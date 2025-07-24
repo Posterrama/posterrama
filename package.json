@@ -16,10 +16,8 @@
   "author": "Mark Frelink",
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "body-parser": "^2.2.0",
-    "dotenv": "^17.2.0",
-    "express": "^5.1.0",
-    "express-session": "^1.18.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "node-fetch": "^2.7.0",
     "plex-api": "^5.3.2"
   }

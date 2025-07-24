@@ -30,6 +30,7 @@ License: AGPL-3.0-or-later
     ```bash
     npm install
     ```
+    This command installs all necessary dependencies as defined in `package.json`, including the stable version of the Express.js framework.
 
 ## Configuration
 

@@ -95,23 +95,23 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const mediaResponse = await fetch('/get-media');
             if (!mediaResponse.ok) {
-                throw new Error(`Serverfout: ${mediaResponse.statusText}`);
+                throw new Error(`Server error: ${mediaResponse.statusText}`);
             }
             const newMediaQueue = await mediaResponse.json();
             if (newMediaQueue.length === 0) {
-                showError("Geen media gevonden. Controleer de bibliotheekconfiguratie.");
+                showError("No media found. Check the library configuration.");
                 return;
             }
             mediaQueue = newMediaQueue;
             console.log(`Playlist bijgewerkt met ${mediaQueue.length} items.`);
 
             if (isInitialLoad) {
-                currentIndex = Math.floor(Math.random() * mediaQueue.length) - 1;
+                currentIndex = -1; // Start at -1, changeMedia will increment to 0
                 changeMedia('next', true);
             }
         } catch (e) {
-            console.error("Media ophalen mislukt", e);
-            showError("Kon media niet laden. Controleer de serververbinding.");
+            console.error("Failed to fetch media", e);
+            showError("Could not load media. Check the server connection.");
         }
     }
 
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             recentContainer.classList.remove('is-hidden');
         } catch (e) {
-            console.error("Fout bij ophalen recent toegevoegde media:", e);
+            console.error("Error fetching recently added media:", e);
         }
     }
 
@@ -186,14 +186,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const currentMedia = mediaQueue[currentIndex];
         if (!currentMedia) {
-            console.error('Ongeldig media-item, sla over.', currentIndex);
+            console.error('Invalid media item, skipping.', currentIndex);
             changeMedia('next', false, true);
             return;
         }
 
         const img = new Image();
         img.onerror = () => {
-            console.error(`Kon achtergrond niet laden voor: ${currentMedia.title}. Item wordt overgeslagen.`);
+            console.error(`Could not load background for: ${currentMedia.title}. Skipping item.`);
             changeMedia('next', false, true);
         };
         img.src = currentMedia.backgroundUrl;

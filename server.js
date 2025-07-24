@@ -15,6 +15,7 @@ const express = require('express');
 const PlexAPI = require('plex-api');
 const fetch = require('node-fetch');
 const config = require('./config.json');
+const { shuffleArray } = require('./utils.js');
 
 const app = express();
 
@@ -25,14 +26,6 @@ const isDebug = process.env.DEBUG === 'true';
 if (isDebug) console.log('--- DEBUG MODE IS ACTIVE ---');
 
 app.use(express.static('public'));
-
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
 
 async function processPlexItem(itemSummary, serverConfig) {
     const plex = getPlexClient(serverConfig);
@@ -263,14 +256,14 @@ app.get('/get-recently-added', async (req, res) => {
 
 app.get('/get-media-by-key/:key', async (req, res) => {
     try {
-        const keyParts = req.params.key.split('-');
-        if (keyParts.length < 3) {
+        const keyParts = req.params.key.split('-'); // e.g., ['plex', 'My', 'Server', '12345']
+        if (keyParts.length < 3) { // Must have at least type, name, and key
             return res.status(400).json({ error: 'Invalid media key format.' });
         }
-        const type = keyParts.shift(); // First part is always the type
-        const originalKey = keyParts.pop(); // Last part is always the original key
-        const serverName = keyParts.join('-'); // The rest is the server name
-        const serverConfig = config.mediaServers.find(s => s.name === serverName && s.type === type && s.enabled);
+        const type = keyParts.shift();
+        const originalKey = keyParts.pop();
+        const serverName = keyParts.join('-'); // Re-join the middle parts
+        const serverConfig = config.mediaServers.find(s => s.name === serverName && s.type === type && s.enabled === true);
 
         if (!serverConfig) {
             return res.status(404).json({ error: 'Server configuration not found for this item.' });
