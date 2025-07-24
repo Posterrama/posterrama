@@ -27,11 +27,17 @@ if (enabledServers.length === 0) {
 }
 
 for (const server of enabledServers) {
-    if (server.hostnameEnvVar) requiredVarsSet.add(server.hostnameEnvVar);
-    if (server.portEnvVar) requiredVarsSet.add(server.portEnvVar);
-    if (server.tokenEnvVar) {
-        requiredVarsSet.add(server.tokenEnvVar);
-        tokenVars.push(server.tokenEnvVar);
+    if (server.type === 'plex') {
+        if (server.hostnameEnvVar) requiredVarsSet.add(server.hostnameEnvVar);
+        if (server.portEnvVar) requiredVarsSet.add(server.portEnvVar);
+        if (server.tokenEnvVar) {
+            requiredVarsSet.add(server.tokenEnvVar);
+            tokenVars.push(server.tokenEnvVar);
+        }
+    } else if (server.type === 'jellyfin') {
+        if (server.urlEnvVar) requiredVarsSet.add(server.urlEnvVar);
+        if (server.apiKeyEnvVar) requiredVarsSet.add(server.apiKeyEnvVar);
+        if (server.userIdEnvVar) requiredVarsSet.add(server.userIdEnvVar);
     }
 }
 

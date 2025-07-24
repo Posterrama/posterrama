@@ -1,6 +1,6 @@
 # posterrama.app
 
-An elegant, web-based screensaver that dynamically displays posters and backdrops from your Plex Media Server. Ideal for a second screen, a living room TV, or simply to showcase your love for your media collection.
+An elegant, web-based screensaver that dynamically displays posters and backdrops from your Plex and/or Jellyfin Media Server. Ideal for a second screen, a living room TV, or simply to showcase your love for your media collection.
 
 Author: Mark Frelink  
 License: AGPL-3.0-or-later
@@ -52,6 +52,11 @@ The configuration is split into two files:
     PLEX_HOSTNAME=192.168.1.100
     PLEX_PORT=32400
     PLEX_TOKEN=YourPlexTokenHere
+
+    # Example configuration for a Jellyfin server
+    JELLYFIN_URL=http://192.168.1.101:8096
+    JELLYFIN_API_KEY=YourJellyfinApiKey
+    JELLYFIN_USER_ID=YourJellyfinUserId
     
     # Application configuration (Optional)
     SERVER_PORT=4000
@@ -60,7 +65,7 @@ The configuration is split into two files:
 
 3.  **Adjust `config.json`**
     In this file, you define which media servers you want to use. You can add multiple servers (for example, Plex, and in the future, Emby or Jellyfin).
-
+    
 ```json
 {
   "mediaServers": [
@@ -74,6 +79,18 @@ The configuration is split into two files:
       "movieLibraryNames": ["Movies", "Kids Movies"],
       "showLibraryNames": ["TV Shows"],
       "movieCount": 30,
+      "showCount": 15
+    },
+    {
+      "name": "Jellyfin Server",
+      "type": "jellyfin",
+      "enabled": true,
+      "urlEnvVar": "JELLYFIN_URL",
+      "apiKeyEnvVar": "JELLYFIN_API_KEY",
+      "userIdEnvVar": "JELLYFIN_USER_ID",
+      "movieLibraryNames": ["Movies"],
+      "showLibraryNames": ["TV Shows"],
+      "movieCount": 20,
       "showCount": 15
     }
   ],
@@ -94,16 +111,19 @@ The configuration is split into two files:
 #### `.env` file
 *   **`..._HOSTNAME`**: (Required) The IP address or hostname of your media server.
 *   **`..._PORT`**: (Required) The port of your media server (e.g., `32400` for Plex).
-*   **`..._TOKEN`**: (Required) Your personal authentication token for the media server.
+*   **`..._TOKEN`**: (Required for Plex) Your personal authentication token for the media server.
+*   **`..._URL`**: (Required for Jellyfin) The full URL to your Jellyfin server (e.g., `http://jellyfin.local:8096`).
+*   **`..._API_KEY`**: (Required for Jellyfin) An API key generated in your Jellyfin dashboard.
+*   **`..._USER_ID`**: (Required for Jellyfin) The ID of the user whose libraries should be used.
 *   **`SERVER_PORT`**: (Optional) The port on which this application's web server runs. Default is `4000`.
 *   **`DEBUG`**: (Optional) Set to `true` to enable additional logs and the `/debug` endpoint. Default is `false`.
 
 #### `config.json` file
 *   **`mediaServers`**: An array of server objects. For each server:
     *   **`name`**: A unique name for your server (e.g., "Living Room Plex").
-    *   **`type`**: The type of server. Currently, only `"plex"` is supported.
+    *   **`type`**: The type of server. Supported types: `"plex"`, `"jellyfin"`.
     *   **`enabled`**: Set to `true` to use this server, `false` to disable.
-    *   **`hostnameEnvVar`**, **`portEnvVar`**, **`tokenEnvVar`**: The names of the variables in your `.env` file that hold the credentials for this server.
+    *   **`...EnvVar`**: The names of the variables in your `.env` file that hold the credentials for this server (e.g., `hostnameEnvVar`, `apiKeyEnvVar`).
     *   **`movieLibraryNames`**: An array of your movie library names.
     *   **`showLibraryNames`**: An array of your TV show library names.
     *   **`movieCount`**, **`showCount`**: The number of random items to fetch from the libraries for the playlist.
@@ -126,6 +146,20 @@ You will see a message indicating the server is running:
 `Plex Screensaver running at http://localhost:4000`
 
 Now open your web browser and go to the displayed address (e.g., `http://localhost:4000` or `http://<server_ip>:4000`) to view the screensaver.
+
+## Admin Interface
+
+This application includes a web-based admin interface to manage your configuration without directly editing the `config.json` and `.env` files.
+
+### First-Time Setup
+1.  Navigate to `/admin` in your browser (e.g., `http://localhost:4000/admin`).
+2.  You will be redirected to a setup page to create an admin user.
+3.  Enter a username and a strong password. These credentials will be securely stored in your `.env` file.
+
+### Accessing the Admin Panel
+After the initial setup, you can log in at `/admin` with the credentials you created. Here you can modify all application settings.
+
+**Note:** After saving changes in the admin panel, you may need to restart the application for them to take full effect.
 
 ## Running in Production with PM2
 

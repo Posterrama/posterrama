@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - posterrama.app</title>
+    <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+    <header class="admin-header">
+        <h1>posterrama.app Admin</h1>
+        <nav>
+            <a href="/" target="_blank">View Screensaver</a>
+            <a href="/admin/logout">Logout</a>
+        </nav>
+    </header>
+
+    <main class="admin-main">
+        <form id="config-form">
+            <h2>General Settings</h2>
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="transitionIntervalSeconds">Transition Interval (seconds)</label>
+                    <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds">
+                </div>
+                <div class="form-group">
+                    <label for="backgroundRefreshMinutes">Background Refresh (minutes)</label>
+                    <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes">
+                </div>
+                 <div class="form-group">
+                    <label for="SERVER_PORT">Application Port</label>
+                    <input type="number" id="SERVER_PORT" name="SERVER_PORT">
+                </div>
+            </div>
+
+            <h2>Display Settings</h2>
+            <div class="form-section">
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="showClearLogo" name="showClearLogo">
+                    <label for="showClearLogo">Show ClearLogo</label>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="recentlyAddedSidebar" name="recentlyAddedSidebar">
+                    <label for="recentlyAddedSidebar">Show "Recently Added" Sidebar</label>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="clockWidget" name="clockWidget">
+                    <label for="clockWidget">Show Clock Widget</label>
+                </div>
+                 <div class="form-group checkbox-group">
+                    <input type="checkbox" id="DEBUG" name="DEBUG">
+                    <label for="DEBUG">Enable Debug Mode</label>
+                </div>
+            </div>
+
+            <button type="submit" class="button-primary">Save Changes</button>
+        </form>
+    </main>
+    <script src="/admin.js" defer></script>
+</body>
+</html>

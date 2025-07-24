@@ -2,7 +2,6 @@
  * posterrama.app - Client-side logic
  *
  * Author: Mark Frelink
- * Version: 1.0.1
  * Last Modified: 2024-08-02
  * License: AGPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -106,8 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`Playlist bijgewerkt met ${mediaQueue.length} items.`);
 
             if (isInitialLoad) {
-                currentIndex = -1; // Start at -1, changeMedia will increment to 0
-                changeMedia('next', true);
+                // Pick a random starting point instead of always starting at 0.
+                // We set it to randomIndex - 1 because changeMedia increments it before use.
+                const randomIndex = Math.floor(Math.random() * mediaQueue.length);
+                currentIndex = randomIndex - 1;
+                changeMedia('next', true); // This will start the slideshow at `randomIndex`
             }
         } catch (e) {
             console.error("Failed to fetch media", e);
@@ -199,10 +201,17 @@ document.addEventListener('DOMContentLoaded', () => {
         img.src = currentMedia.backgroundUrl;
         img.onload = () => {
             if (appConfig.kenBurnsEffect && appConfig.kenBurnsEffect.enabled) {
-                const animations = ['kenburns-tl', 'kenburns-br', 'kenburns-tr', 'kenburns-bl'];
+                const animations = [
+                    'kenburns-zoom-out-tl', 'kenburns-zoom-out-br', 'kenburns-zoom-out-tr', 'kenburns-zoom-out-bl',
+                    'kenburns-zoom-in-tl', 'kenburns-zoom-in-br', 'kenburns-zoom-in-tr', 'kenburns-zoom-in-bl'
+                ];
                 const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
-                const duration = appConfig.kenBurnsEffect.durationSeconds || 20;
-                inactiveLayer.style.animation = `${randomAnimation} ${duration}s ease-in-out infinite alternate`;
+                const duration = appConfig.kenBurnsEffect.durationSeconds || 25;
+
+                // Use 'forwards' to keep the end state of the animation.
+                // This removes the "pulsing" `infinite alternate` effect and creates a smooth,
+                // one-way motion that is more cinematic and less distracting.
+                inactiveLayer.style.animation = `${randomAnimation} ${duration}s linear forwards`;
             } else {
                 inactiveLayer.style.animation = 'none';
             }
@@ -213,10 +222,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const tempLayer = activeLayer;
             activeLayer = inactiveLayer;
             inactiveLayer = tempLayer;
-            activeLayer.style.animationPlayState = 'running';
             posterEl.style.backgroundImage = `url('${currentMedia.posterUrl}')`;
             if (currentMedia.imdbUrl) {
                 posterLink.href = currentMedia.imdbUrl;
+            } else {
+                // Make the poster non-clickable if there is no IMDb URL
+                posterLink.removeAttribute('href');
             }
             titleEl.textContent = currentMedia.title;
             taglineEl.textContent = currentMedia.tagline || '';
@@ -254,6 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function changeMedia(direction = 'next', isFirstLoad = false, isErrorSkip = false) {
         if (mediaQueue.length === 0) return;
         if (timerId) clearInterval(timerId);
+
+        // Hide info immediately to prepare for the new content
         if (!isErrorSkip) {
             infoContainer.classList.remove('visible');
             clearlogoEl.classList.remove('visible');

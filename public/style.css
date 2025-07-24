@@ -2,7 +2,6 @@
  * posterrama.app - Main Stylesheet
  *
  * Author: Mark Frelink
- * Version: 1.0.1
  * Last Modified: 2024-08-02
  * License: AGPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -81,21 +80,43 @@ html, body {
     will-change: transform, opacity;
 }
 
-@keyframes kenburns-tl {
-    0% { transform: scale(1.1) translate(-5%, -5%); }
-    100% { transform: scale(1) translate(0, 0); }
+/* --- Ken Burns Effect Keyframes --- */
+/* More subtle and varied animations for a smoother, more cinematic feel. */
+
+/* Zoom Out Variations */
+@keyframes kenburns-zoom-out-tl {
+    0% { transform: scale(1.1) translate3d(-5%, -5%, 0); }
+    100% { transform: scale(1) translate3d(0, 0, 0); }
 }
-@keyframes kenburns-br {
-    0% { transform: scale(1.1) translate(5%, 5%); }
-    100% { transform: scale(1) translate(0, 0); }
+@keyframes kenburns-zoom-out-br {
+    0% { transform: scale(1.1) translate3d(5%, 5%, 0); }
+    100% { transform: scale(1) translate3d(0, 0, 0); }
 }
-@keyframes kenburns-tr {
-    0% { transform: scale(1.1) translate(5%, -5%); }
-    100% { transform: scale(1) translate(0, 0); }
+@keyframes kenburns-zoom-out-tr {
+    0% { transform: scale(1.1) translate3d(5%, -5%, 0); }
+    100% { transform: scale(1) translate3d(0, 0, 0); }
 }
-@keyframes kenburns-bl {
-    0% { transform: scale(1.1) translate(-5%, 5%); }
-    100% { transform: scale(1) translate(0, 0); }
+@keyframes kenburns-zoom-out-bl {
+    0% { transform: scale(1.1) translate3d(-5%, 5%, 0); }
+    100% { transform: scale(1) translate3d(0, 0, 0); }
+}
+
+/* Zoom In Variations */
+@keyframes kenburns-zoom-in-tl {
+    0% { transform: scale(1) translate3d(0, 0, 0); }
+    100% { transform: scale(1.1) translate3d(-5%, -5%, 0); }
+}
+@keyframes kenburns-zoom-in-br {
+    0% { transform: scale(1) translate3d(0, 0, 0); }
+    100% { transform: scale(1.1) translate3d(5%, 5%, 0); }
+}
+@keyframes kenburns-zoom-in-tr {
+    0% { transform: scale(1) translate3d(0, 0, 0); }
+    100% { transform: scale(1.1) translate3d(5%, -5%, 0); }
+}
+@keyframes kenburns-zoom-in-bl {
+    0% { transform: scale(1) translate3d(0, 0, 0); }
+    100% { transform: scale(1.1) translate3d(-5%, 5%, 0); }
 }
 
 /* --- Widgets (Clock & ClearLogo) --- */
@@ -237,20 +258,21 @@ html, body {
     position: fixed;
     bottom: 20px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(20px); /* Start slightly lower */
     display: flex;
-    gap: 15px;
+    gap: 10px;
     background-color: rgba(0, 0, 0, 0.3);
-    padding: 10px 20px;
+    padding: 8px 15px;
     border-radius: 50px;
     backdrop-filter: blur(5px);
     opacity: 0;
-    transition: opacity 0.4s ease-in-out;
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out; /* Animate both properties */
     z-index: 20;
 }
 
 #controls-container.visible {
     opacity: 1;
+    transform: translateX(-50%) translateY(0); /* Move to final position */
 }
 
 #controls-container button {
@@ -258,7 +280,7 @@ html, body {
     border: none;
     color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
-    padding: 8px;
+    padding: 6px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -269,6 +291,11 @@ html, body {
 #controls-container button:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: #fff;
+}
+
+#controls-container button svg {
+    width: 24px;
+    height: 24px;
 }
 
 #pause-button .icon-play { display: none; }
@@ -376,7 +403,7 @@ html, body {
         max-height: 150px;
     }
 
-    /* Maak de poster-hover effecten ongedaan op touch-apparaten */
+    /* Disable poster hover effects on touch devices */
     #poster-wrapper:hover #poster::before { opacity: 0; }
     #poster-wrapper:hover { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.4)); }
     #poster-wrapper:hover #poster { transform: none; }
