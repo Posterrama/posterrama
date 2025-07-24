@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!-- posterrama.app | Author: Mark Frelink | License: AGPL-3.0-or-later -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>posterrama.app</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loader"></div>
+    <div id="error-message" class="is-hidden"></div>
+
+    <div id="layer-a" class="screensaver-layer"></div>
+    <div id="layer-b" class="screensaver-layer"></div>
+
+    <div id="widget-container">
+        <div id="time-widget">
+            <span id="time-hours">00</span>
+            <span id="time-separator">:</span>
+            <span id="time-minutes">00</span>
+        </div>
+    </div>
+
+    <div id="clearlogo-container">
+        <img id="clearlogo" src="" alt="ClearLogo">
+    </div>
+
+    <div id="info-container">
+        <div id="poster-wrapper">
+            <a id="poster-link" href="#" target="_blank" rel="noopener noreferrer">
+                <div id="poster"></div>
+            </a>
+        </div>
+        <div id="text-wrapper">
+            <h1 id="title"></h1>
+            <p id="tagline"></p>
+            <div id="meta-info">
+                <span id="year"></span>
+                <span id="rating"></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="controls-container">
+        <button id="prev-button" aria-label="Previous">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32px" height="32px"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+        <button id="pause-button" aria-label="Pause/Resume">
+            <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32px" height="32px"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32px" height="32px"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button id="next-button" aria-label="Next">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32px" height="32px"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
+        </button>
+    </div>
+
+    <div id="recent-container" class="is-hidden">
+        <h3 id="recent-title">Recent Added</h3>
+        <div id="recent-items-wrapper"></div>
+    </div>
+
+    <div id="branding-container">
+        <a href="https://posterrama.app" target="_blank" rel="noopener noreferrer" title="posterrama.app">
+            <svg role="img" aria-label="posterrama.app Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2H16L14 22H4L6 2Z"/><path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6;"/></svg>
+        </a>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

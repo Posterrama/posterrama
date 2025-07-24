@@ -1,0 +1,26 @@
+{
+  "name": "posterrama-app",
+  "version": "1.0.9",
+  "description": "An elegant, web-based screensaver for Plex Media Server, named posterrama.app.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node validate-env.js && node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "plex",
+    "screensaver",
+    "media-server",
+    "posterrama"
+  ],
+  "author": "Mark Frelink",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "node-fetch": "^2.7.0",
+    "plex-api": "^5.3.2"
+  }
+}

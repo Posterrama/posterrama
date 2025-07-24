@@ -1,0 +1,432 @@
+/**
+ * posterrama.app - Main Stylesheet
+ *
+ * Author: Mark Frelink
+ * Version: 1.0.1
+ * Last Modified: 2024-08-02
+ * License: AGPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
+/* --- Global Styles & Fonts & Variables --- */
+:root {
+    --plex-orange: #e5a00d;
+}
+
+html, body {
+    height: 100%; /* Let the body adopt the default height */
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #000;
+    color: #fff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    cursor: none; /* Hidden by default, script.js shows it on mouse movement */
+}
+
+/* --- Utility Classes --- */
+.is-hidden {
+    display: none !important;
+}
+
+/* --- Loader & Error Message --- */
+#loader {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 100;
+    transition: opacity 0.5s;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+#error-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(200, 0, 0, 0.85);
+    color: #fff;
+    padding: 20px 30px;
+    border-radius: 8px;
+    z-index: 101;
+    text-align: center;
+    max-width: 80%;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+/* --- Background Layers & Ken Burns Effect --- */
+.screensaver-layer {
+    position: fixed; /* 'fixed' is more robust and detaches the layer from the body */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--app-height, 100vh); /* Apply the JS variable directly here for maximum precision */
+    background-size: cover;
+    background-position: center center;
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+    will-change: transform, opacity;
+}
+
+@keyframes kenburns-tl {
+    0% { transform: scale(1.1) translate(-5%, -5%); }
+    100% { transform: scale(1) translate(0, 0); }
+}
+@keyframes kenburns-br {
+    0% { transform: scale(1.1) translate(5%, 5%); }
+    100% { transform: scale(1) translate(0, 0); }
+}
+@keyframes kenburns-tr {
+    0% { transform: scale(1.1) translate(5%, -5%); }
+    100% { transform: scale(1) translate(0, 0); }
+}
+@keyframes kenburns-bl {
+    0% { transform: scale(1.1) translate(-5%, 5%); }
+    100% { transform: scale(1) translate(0, 0); }
+}
+
+/* --- Widgets (Clock & ClearLogo) --- */
+#widget-container {
+    position: fixed;
+    top: 30px;
+    left: 5%;
+    z-index: 10;
+}
+
+#time-widget {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.6);
+    text-shadow: 0 0 15px rgba(0,0,0,0.7);
+    mix-blend-mode: overlay;
+}
+
+#time-separator {
+    /* Blinking animation removed for a calmer view */
+}
+
+#clearlogo-container {
+    position: fixed;
+    top: 30px;
+    right: 40px;
+    z-index: 10;
+    max-width: 250px;
+    max-height: 120px;
+}
+
+#clearlogo {
+    max-width: 100%;
+    max-height: 100%;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.8));
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+#clearlogo.visible {
+    opacity: 1;
+}
+
+/* --- Main Information Container --- */
+#info-container {
+    position: fixed;
+    bottom: 2%; /* Lowered even further for more space at the bottom */
+    left: 5%;
+    width: 90%;
+    max-width: 1200px;
+    display: flex;
+    align-items: flex-end;
+    gap: 40px;
+    z-index: 5;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    padding-left: 40px; /* Adds space on the left side so the shadow is not cut off */
+    padding-bottom: 50px; /* Adds space at the bottom so the shadow is not cut off */
+}
+
+#info-container.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#poster-wrapper {
+    flex-shrink: 0;
+    position: relative;
+    filter: drop-shadow(0 25px 20px rgba(0, 0, 0, 0.5));
+    transition: filter 0.3s ease;
+}
+
+#poster {
+    width: 200px;
+    height: 300px;
+    background-size: cover;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    --mouse-x: 50%;
+    --mouse-y: 50%;
+}
+
+#poster::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle 200px at var(--mouse-x) var(--mouse-y), rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+#poster-wrapper:hover #poster::before {
+    opacity: 1;
+}
+
+#poster-wrapper:hover {
+    filter: drop-shadow(0 35px 25px rgba(0, 0, 0, 0.55));
+}
+
+#text-wrapper {
+    flex-grow: 1;
+    padding-bottom: 10px;
+}
+
+#title {
+    font-size: 3.5em;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0 0 10px 0;
+    line-height: 1.1;
+}
+
+#tagline {
+    font-size: 1.3em;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 15px 0;
+    font-weight: 400; /* Provides a lighter, more subtle font */
+}
+
+#meta-info {
+    font-size: 1.2em;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#meta-info #rating::before {
+    content: '★';
+    color: var(--plex-orange);
+    margin: 0 10px 0 15px;
+}
+
+/* --- Controls --- */
+#controls-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 10px 20px;
+    border-radius: 50px;
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+    z-index: 20;
+}
+
+#controls-container.visible {
+    opacity: 1;
+}
+
+#controls-container button {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+#controls-container button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+#pause-button .icon-play { display: none; }
+#pause-button.is-paused .icon-pause { display: none; }
+#pause-button.is-paused .icon-play { display: block; }
+
+/* --- Recently Added Sidebar --- */
+#recent-container {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 120px;
+    background: linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,0.6) 50%);
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+#recent-title {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0 0 20px 85px;
+}
+
+#recent-items-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+.recent-item-poster {
+    width: 80px;
+    height: 120px;
+    background-size: cover;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.recent-item-poster:hover {
+    transform: scale(1.05);
+    border-color: var(--plex-orange);
+}
+
+/* --- Branding --- */
+#branding-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10;
+}
+
+#branding-container a {
+    color: rgba(255, 255, 255, 0.4);
+    transition: color 0.2s;
+}
+
+#branding-container a:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#branding-container svg {
+    width: 24px;
+    height: 24px;
+}
+/* --- Media Queries for Mobile Devices --- */
+@media (max-width: 768px) {
+    /* Hide the sidebar and logo on small screens */
+    #recent-container,
+    #branding-container {
+        display: none !important;
+    }
+
+    /* Adjust the main information container */
+    #info-container {
+        flex-direction: row; /* Poster and text next to each other */
+        align-items: flex-end; /* Align at the bottom */
+        text-align: left;
+        bottom: 35px; /* Positioned lower to compensate for extra padding */
+        left: 0;
+        right: 0;
+        width: auto;
+        padding: 0 15px 25px 15px; /* More bottom padding for the dropshadow */
+        gap: 20px;
+        box-sizing: border-box;
+    }
+
+    #poster-wrapper {
+        filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.4));
+    }
+
+    #poster {
+        /* Use viewport units for a scalable poster */
+        width: 28vw; /* Poster significantly smaller */
+        height: 42vw;
+        max-width: 100px;
+        max-height: 150px;
+    }
+
+    /* Maak de poster-hover effecten ongedaan op touch-apparaten */
+    #poster-wrapper:hover #poster::before { opacity: 0; }
+    #poster-wrapper:hover { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.4)); }
+    #poster-wrapper:hover #poster { transform: none; }
+    #poster-wrapper #poster { transform: none !important; } /* Force no transformation */
+
+
+    /* Adjust text sizes with clamp() for flexibility */
+    #title {
+        /* min, ideal, max */
+        font-size: clamp(1.4rem, 5vw, 1.8rem);
+        line-height: 1.1;
+    }
+
+    #tagline {
+        font-size: clamp(0.8rem, 3vw, 1rem);
+    }
+
+    #meta-info {
+        font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+    }
+
+    /* Position the clock and clearlogo differently */
+    #widget-container { left: 15px; top: 15px; }
+    #time-widget {
+        font-size: clamp(1.2rem, 4.5vw, 1.5rem); /* Clock made smaller */
+    }
+
+    #clearlogo-container {
+        right: 15px;
+        top: 15px;
+        display: flex; /* Helps with vertical alignment */
+        align-items: center; /* Centers the logo vertically in the container */
+        /* Scalable with a maximum */
+        max-width: clamp(100px, 35vw, 150px);
+    }
+
+    /* Ensure the controls are always visible and accessible */
+    #controls-container {
+        gap: 10px; /* Less space between the buttons */
+        opacity: 1;
+        background-color: rgba(0, 0, 0, 0.5);
+        bottom: 10px; /* Placed further down */
+    }
+
+    #controls-container button {
+        padding: 4px; /* Buttons made even more compact */
+    }
+
+    #controls-container button svg {
+        width: 18px; /* Icons made even smaller */
+        height: 18px;
+    }
+}

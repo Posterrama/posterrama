@@ -1,0 +1,18 @@
+# Environment variables
+# Prevent sensitive data from being committed to Git
+.env
+
+# Node dependencies
+# These are installed via `npm install`
+/node_modules
+
+# Log files
+*.log
+npm-debug.log*
+
+# OS-generated files
+.DS_Store
+
+# IDE-specific files
+.idea/
+*.iml

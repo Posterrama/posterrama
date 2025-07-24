@@ -1,0 +1,45 @@
+{
+  "name": "plex-api",
+  "version": "5.3.2",
+  "description": "Simple wrapper for querying against HTTP API on the Plex Media Server",
+  "main": "lib/api.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "plex-api-credentials": "3.0.1",
+    "plex-api-headers": "1.1.0",
+    "request": "^2.87.0",
+    "uuid": "^3.0.0",
+    "xml2js": "0.4.16"
+  },
+  "devDependencies": {
+    "expect.js": "^0.3.1",
+    "mocha": "^8.2.0",
+    "nock": "11.3.5",
+    "prettier": "^2.1.2",
+    "proxyquire": "^1.7.3",
+    "sinon": "^1.17.2"
+  },
+  "scripts": {
+    "format": "npm run format:exec -- --write",
+    "format:exec": "prettier --single-quote --print-width=120 --tab-width=4 '{lib,test}/**/*.js'",
+    "test": "npm run test:lint && npm run test:unit",
+    "test:lint": "npm run format:exec -- --list-different",
+    "test:unit": "mocha test/*-test.js",
+    "test:watch": "npm run test:unit -- -w"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": "git://github.com/phillipj/node-plex-api",
+  "keywords": [
+    "plex",
+    "api"
+  ],
+  "engines": {
+    "node": ">=8.0"
+  },
+  "author": "Phillip Johnsen <phillip@lightweight.no>",
+  "license": "MIT"
+}
