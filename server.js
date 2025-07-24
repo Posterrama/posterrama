@@ -34,6 +34,14 @@ if (isDebug) console.log('--- DEBUG MODE IS ACTIVE ---');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true })); // For parsing form data
 
+// General request logger for debugging
+if (isDebug) {
+    app.use((req, res, next) => {
+        console.log(`[Request Logger] Received: ${req.method} ${req.originalUrl}`);
+        next();
+    });
+}
+
 // Session middleware setup
 app.use(session({
     store: new FileStore({
@@ -456,6 +464,9 @@ async function readEnvFile() {
  * @param {Object} newValues - An object with key-value pairs to write.
  */
 async function writeEnvFile(newValues) {
+    if (isDebug) {
+        console.log('[Admin API] Attempting to write to .env file with values:', newValues);
+    }
     let content = await readEnvFile();
     const lines = content.split('\n');
     const updatedKeys = new Set(Object.keys(newValues));
@@ -477,7 +488,12 @@ async function writeEnvFile(newValues) {
         newLines.push(`${key}="${newValues[key]}"`);
     });
 
-    await fs.writeFile('.env', newLines.join('\n'), 'utf-8');
+    const newContent = newLines.join('\n');
+    if (isDebug) {
+        console.log('[Admin API] New .env content to be written:\n---\n' + newContent + '\n---');
+    }
+
+    await fs.writeFile('.env', newContent, 'utf-8');
     // Important: Update process.env for the current running instance
     Object.assign(process.env, newValues);
 }
@@ -495,9 +511,14 @@ async function readConfig() {
  * @param {object} newConfig - The new configuration object to write.
  */
 async function writeConfig(newConfig) {
+    if (isDebug) {
+        console.log('[Admin API] Attempting to write to config.json with data:', JSON.stringify(newConfig, null, 2));
+    }
     // Remove metadata before writing
     delete newConfig._metadata;
-    await fs.writeFile('./config.json', JSON.stringify(newConfig, null, 2), 'utf-8');
+    const newContent = JSON.stringify(newConfig, null, 2);
+
+    await fs.writeFile('./config.json', newContent, 'utf-8');
     // Update the in-memory config for the current running instance
     Object.assign(config, newConfig);
 }
@@ -704,11 +725,14 @@ app.get('/admin/setup', (req, res) => {
 });
 
 app.post('/admin/setup', asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin Setup] Received setup request.');
     if (isAdminSetup()) {
+        if (isDebug) console.log('[Admin Setup] Aborted: Admin user is already configured.');
         return res.status(403).send('Admin user is already configured.');
     }
     const { username, password } = req.body;
     if (!username || !password) {
+        if (isDebug) console.log('[Admin Setup] Aborted: Username or password missing.');
         return res.status(400).send('Username and password are required.');
     }
 
@@ -722,6 +746,7 @@ app.post('/admin/setup', asyncHandler(async (req, res) => {
         SESSION_SECRET: sessionSecret
     });
 
+    if (isDebug) console.log(`[Admin Setup] Successfully created admin user "${username}" and saved to .env file.`);
     res.redirect('/admin/login');
 }));
 
@@ -737,28 +762,36 @@ app.get('/admin/login', (req, res) => {
 
 app.post('/admin/login', asyncHandler(async (req, res) => {
     const { username, password } = req.body;
+    if (isDebug) console.log(`[Admin Login] Attempting login for user "${username}".`);
     const isValidUser = (username === process.env.ADMIN_USERNAME);
     const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
 
     if (isValidUser && isValidPassword) {
         req.session.user = { username: process.env.ADMIN_USERNAME };
+        if (isDebug) console.log(`[Admin Login] Login successful for user "${username}". Session created.`);
         res.redirect('/admin');
     } else {
+        if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid credentials.`);
         res.status(401).send('Invalid credentials. <a href="/admin/login">Try again</a>.');
     }
 }));
 
 app.get('/admin/logout', (req, res) => {
+    if (isDebug) console.log(`[Admin Logout] User "${req.session.user?.username}" logging out.`);
     req.session.destroy(err => {
         if (err) {
+            if (isDebug) console.error('[Admin Logout] Error destroying session:', err);
             return res.status(500).send('Could not log out.');
         }
+        if (isDebug) console.log('[Admin Logout] Session destroyed successfully.');
         res.redirect('/admin/login');
     });
 });
 
 app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Request received for /api/admin/config.');
     const currentConfig = await readConfig();
+    if (isDebug) console.log('[Admin API] Successfully read config.json.');
 
     // WARNING: Exposing environment variables to the client can be a security risk.
     // This is done based on an explicit user request.
@@ -772,19 +805,133 @@ app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
             // Find all keys ending in 'EnvVar' and get their values from process.env
             Object.keys(server).forEach(key => {
                 if (key.endsWith('EnvVar')) {
-                    const envVarName = server[key]; // e.g., "PLEX_HOSTNAME"
-                    if (envVarName && process.env[envVarName]) {
-                        envVarsToExpose[envVarName] = process.env[envVarName];
+                    const envVarName = server[key];
+                    if (envVarName) {
+                        const isSensitive = key.toLowerCase().includes('token') || key.toLowerCase().includes('password') || key.toLowerCase().includes('apikey');
+                        if (isSensitive) {
+                            // For sensitive fields, just indicate if they are set or not.
+                            envVarsToExpose[envVarName] = !!process.env[envVarName];
+                        } else if (process.env[envVarName]) {
+                            envVarsToExpose[envVarName] = process.env[envVarName];
+                        }
                     }
                 }
             });
         });
     }
 
+    if (isDebug) console.log('[Admin API] Sending config and selected environment variables to client.');
     res.json({
         config: currentConfig,
         env: envVarsToExpose
     });
+}));
+
+app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Received request to test Plex connection.');
+    let { hostname, port, token } = req.body; // token is now optional
+
+    if (!hostname || !port) {
+        throw new ApiError(400, 'Hostname and port are required for the test.');
+    }
+
+    // If no token is provided in the request, use the one from the server's config.
+    if (!token) {
+        if (isDebug) console.log('[Plex Test] No token provided in request, attempting to use existing server token.');
+        // Find the first enabled Plex server config. This assumes a single Plex server setup for now.
+        const plexServerConfig = config.mediaServers.find(s => s.type === 'plex' && s.enabled);
+
+        if (plexServerConfig && plexServerConfig.tokenEnvVar) {
+            token = process.env[plexServerConfig.tokenEnvVar];
+            if (!token) {
+                throw new ApiError(400, 'Connection test failed: No new token was provided, and no token is configured on the server.');
+            }
+        } else {
+            throw new ApiError(500, 'Connection test failed: Could not find Plex server configuration on the server.');
+        }
+    }
+
+    try {
+        const testClient = new PlexAPI({ hostname, port, token, timeout: 5000 });
+        // Querying the root is a lightweight way to check credentials and reachability.
+        const result = await testClient.query('/');
+        const serverName = result?.MediaContainer?.friendlyName;
+
+        if (serverName) {
+            res.json({ success: true, message: `Successfully connected to Plex server: ${serverName}` });
+        } else {
+            // This case is unlikely if the query succeeds, but good to handle.
+            res.json({ success: true, message: 'Connection successful, but could not retrieve the server name.' });
+        }
+    } catch (error) {
+        if (isDebug) console.error('[Plex Test] Connection failed:', error.message);
+        let userMessage = 'Connection failed. Please check the hostname, port, and token.';
+        if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+            userMessage = 'Connection refused. Is the hostname and port correct and is the server running?';
+        } else if (error.message.includes('401 Unauthorized')) {
+            userMessage = 'Connection failed: Unauthorized. Is the Plex token correct?';
+        } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+            userMessage = 'Connection timed out. Is the server reachable? Check firewall settings.';
+        }
+        throw new ApiError(400, userMessage);
+    }
+}));
+
+app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    if (isDebug) {
+        console.log('[Admin API] Received POST request to /api/admin/config to save settings. Body:', JSON.stringify(req.body, null, 2));
+    }
+    const { config: newConfig, env: newEnv } = req.body;
+
+    if (!newConfig || !newEnv) {
+        if (isDebug) console.log('[Admin API] Invalid request body. Missing "config" or "env".');
+        throw new ApiError(400, 'Invalid request body. "config" and "env" properties are required.');
+    }
+
+    // Write to config.json and .env
+    await writeConfig(newConfig);
+    if (isDebug) console.log('[Admin API] Successfully wrote to config.json.');
+    await writeEnvFile(newEnv);
+    if (isDebug) console.log('[Admin API] Successfully wrote to .env file.');
+
+    // Clear caches to reflect changes without a full restart
+    playlistCache = null;
+    recentlyAddedCache = null;
+    Object.keys(plexClients).forEach(key => delete plexClients[key]);
+    Object.keys(jellyfinClients).forEach(key => delete jellyfinClients[key]);
+
+    if (isDebug) {
+        console.log('[Admin] Configuration saved successfully. Caches and clients have been cleared.');
+    }
+
+    res.json({ message: 'Configuration saved successfully. Some changes may require an application restart.' });
+}));
+
+app.post('/api/admin/change-password', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Received request to change password.');
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        if (isDebug) console.log('[Admin API] Password change failed: missing fields.');
+        throw new ApiError(400, 'All password fields are required.');
+    }
+
+    if (newPassword !== confirmPassword) {
+        if (isDebug) console.log('[Admin API] Password change failed: new passwords do not match.');
+        throw new ApiError(400, 'New password and confirmation do not match.');
+    }
+
+    const isValidPassword = await bcrypt.compare(currentPassword, process.env.ADMIN_PASSWORD_HASH);
+    if (!isValidPassword) {
+        if (isDebug) console.log('[Admin API] Password change failed: incorrect current password.');
+        throw new ApiError(401, 'Incorrect current password.');
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await writeEnvFile({ ADMIN_PASSWORD_HASH: newPasswordHash });
+
+    if (isDebug) console.log('[Admin API] Password changed successfully and new hash written to .env file.');
+    res.json({ message: 'Password changed successfully.' });
 }));
 
 if (isDebug){

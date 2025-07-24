@@ -1,9 +1,13 @@
 {
-  "_metadata": {
-    "description": "posterrama.app Configuration",
-    "author": "Mark Frelink",
-    "last_modified_date": "2024-08-02",
-    "license": "AGPL-3.0-or-later"
+  "transitionIntervalSeconds": 15,
+  "backgroundRefreshMinutes": 30,
+  "recentlyAddedCacheMinutes": 5,
+  "showClearLogo": true,
+  "recentlyAddedSidebar": false,
+  "clockWidget": true,
+  "kenBurnsEffect": {
+    "enabled": true,
+    "durationSeconds": 15
   },
   "mediaServers": [
     {
@@ -13,20 +17,15 @@
       "hostnameEnvVar": "PLEX_HOSTNAME",
       "portEnvVar": "PLEX_PORT",
       "tokenEnvVar": "PLEX_TOKEN",
-      "movieLibraryNames": ["Movies", "Certified Fresh"],
-      "showLibraryNames": ["TV Shows"],
+      "movieLibraryNames": [
+        "Movies",
+        "Certified Fresh"
+      ],
+      "showLibraryNames": [
+        "TV Shows"
+      ],
       "movieCount": 30,
       "showCount": 0
     }
-  ],
-  "transitionIntervalSeconds": 15,
-  "backgroundRefreshMinutes": 30,
-  "recentlyAddedCacheMinutes": 5,
-  "showClearLogo": true,
-  "recentlyAddedSidebar": false,
-  "clockWidget": true,
-  "kenBurnsEffect": {
-    "enabled": true,
-    "durationSeconds": 25
-  }
+  ]
 }

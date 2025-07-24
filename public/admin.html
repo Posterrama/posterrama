@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - posterrama.app</title>
     <link rel="stylesheet" href="/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         .settings-grid {
             display: grid;
@@ -19,6 +20,33 @@
             padding-bottom: 0.5rem;
             margin-bottom: 1.5rem;
         }
+
+        .notification-container {
+            position: fixed;
+            top: 80px; /* Below the header */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            width: 90%;
+            max-width: 600px;
+        }
+        .notification {
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            color: #fff;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .notification.success { background-color: #28a745; }
+        .notification.error { background-color: #dc3545; }
 
         .form-actions {
             text-align: right;
@@ -47,6 +75,7 @@
     </header>
 
     <main class="admin-main">
+        <div id="notification-area" class="notification-container"></div>
         <form id="config-form">
             <!-- General & Display Settings -->
             <div class="settings-grid">
