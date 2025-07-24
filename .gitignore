@@ -16,3 +16,5 @@ npm-debug.log*
 # IDE-specific files
 .idea/
 *.iml
+
+/sessions

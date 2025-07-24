@@ -13,6 +13,7 @@ require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const bcrypt = require('bcrypt');
 const fs = require('fs').promises;
 const PlexAPI = require('plex-api');
@@ -35,6 +36,12 @@ app.use(express.urlencoded({ extended: true })); // For parsing form data
 
 // Session middleware setup
 app.use(session({
+    store: new FileStore({
+        path: './sessions', // Sessions will be stored in a 'sessions' directory
+        logFn: isDebug ? console.log : () => {},
+        ttl: 86400, // Session TTL in seconds, matches cookie maxAge
+        reapInterval: 86400 // Clean up expired sessions once a day
+    }),
     secret: process.env.SESSION_SECRET || 'please-set-a-strong-secret-in-your-env-file',
     resave: false,
     saveUninitialized: false,
@@ -752,9 +759,31 @@ app.get('/admin/logout', (req, res) => {
 
 app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
     const currentConfig = await readConfig();
+
+    // WARNING: Exposing environment variables to the client can be a security risk.
+    // This is done based on an explicit user request.
+    const envVarsToExpose = {
+        SERVER_PORT: process.env.SERVER_PORT,
+        DEBUG: process.env.DEBUG
+    };
+
+    if (currentConfig.mediaServers) {
+        currentConfig.mediaServers.forEach(server => {
+            // Find all keys ending in 'EnvVar' and get their values from process.env
+            Object.keys(server).forEach(key => {
+                if (key.endsWith('EnvVar')) {
+                    const envVarName = server[key]; // e.g., "PLEX_HOSTNAME"
+                    if (envVarName && process.env[envVarName]) {
+                        envVarsToExpose[envVarName] = process.env[envVarName];
+                    }
+                }
+            });
+        });
+    }
+
     res.json({
         config: currentConfig,
-        env: { SERVER_PORT: process.env.SERVER_PORT, DEBUG: process.env.DEBUG }
+        env: envVarsToExpose
     });
 }));
 
