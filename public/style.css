@@ -20,8 +20,8 @@ html, body {
     width: 100%;
     margin: 0;
     padding: 0;
-    overflow: visible; /* Laat de achtergrond doorlopen */
-    background-color: rgb(30, 30, 30); /* Tijdelijk rood voor troubleshooting */
+    overflow: hidden; /* Voorkomt ongewenste scrollbars */
+    background-color: rgb(30, 30, 30);
     color: #fff;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     cursor: none; /* Hidden by default, script.js shows it on mouse movement */

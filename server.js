@@ -81,11 +81,11 @@ const pkg = require('./package.json');
 const ecosystemConfig = require('./ecosystem.config.js');
 const { shuffleArray } = require('./utils.js');
 
+const PlexSource = require('./sources/plex');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const app = express();
 const { ApiError, NotFoundError } = require('./errors.js');
-const { Jellyfin } = require('@jellyfin/sdk');
 
 // Use process.env with a fallback to config.json
 const port = process.env.SERVER_PORT || config.serverPort || 4000;
@@ -280,56 +280,6 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
     }
 }
 
-
-
-
-
-/**
- * Processes a Jellyfin media item and transforms it into the application's standard format.
- * @param {object} item - The media item object from the Jellyfin API.
- * @param {object} serverConfig - The configuration for the Jellyfin server.
- * @returns {object|null} A processed media item object or null if processing fails.
- */
-function processJellyfinItem(item, serverConfig) {
-    if (!item || !item.Id || !item.Name) return null;
-
-    const serverUrl = process.env[serverConfig.urlEnvVar];
-
-    // Construct image URLs. Jellyfin requires the server URL.
-    const getImageUrl = (type, imageTag) => {
-        if (!imageTag) return null;
-        // We only store the path; the proxy will prepend the server URL and add auth.
-        return `/Items/${item.Id}/Images/${type}?tag=${imageTag}`;
-    };
-
-    const backgroundArt = getImageUrl('Backdrop', item.BackdropImageTags?.[0]);
-    const posterArt = getImageUrl('Primary', item.ImageTags?.Primary);
-
-    if (!backgroundArt || !posterArt) {
-        if (isDebug) console.log(`[Jellyfin Debug] Skipping item "${item.Name}" due to missing primary or background image.`);
-        return null;
-    }
-
-    const uniqueKey = `${serverConfig.type}-${serverConfig.name}-${item.Id}`;
-
-    // For shows, the main item doesn't have a tagline, but we can still display it.
-    const tagline = item.Taglines && item.Taglines.length > 0 ? item.Taglines[0] : null;
-
-    return {
-        key: uniqueKey,
-        title: item.Name,
-        backgroundUrl: `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(backgroundArt)}`,
-        posterUrl: `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(posterArt)}`,
-        clearLogoUrl: item.ImageTags?.Logo ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(getImageUrl('Logo', item.ImageTags.Logo))}` : null,
-        tagline: tagline,
-        rating: item.CommunityRating,
-        year: item.ProductionYear,
-        imdbUrl: item.ProviderIds?.Imdb ? `https://www.imdb.com/title/${item.ProviderIds.Imdb}/` : null,
-        _raw: isDebug ? item : undefined
-    };
-}
-
-
 // --- Client Management ---
 
 /**
@@ -389,32 +339,6 @@ function getPlexClient(serverConfig) {
     return plexClients[serverConfig.name];
 }
 
-const jellyfinClients = {};
-
-async function getJellyfinClient(serverConfig) {
-    if (!jellyfinClients[serverConfig.name]) {
-        const serverUrl = process.env[serverConfig.urlEnvVar];
-        const apiKey = process.env[serverConfig.apiKeyEnvVar];
-
-        if (!serverUrl || !apiKey) {
-            throw new ApiError(500, `[${serverConfig.name}] FATAL: Jellyfin URL or API Key is not set.`);
-        }
-
-        // Initialize the main Jellyfin class
-        const jellyfin = new Jellyfin({
-            clientInfo: { name: 'posterrama.app', version: pkg.version },
-            deviceInfo: { name: 'Posterrama Server', id: 'posterrama-server-node' }
-        });
-
-        // The newer SDK versions require creating an API instance for a specific server,
-        // and then setting the authentication token on it.
-        const api = jellyfin.createApi(serverUrl);
-        api.setAccessToken(apiKey);
-        jellyfinClients[serverConfig.name] = api;
-    }
-    return jellyfinClients[serverConfig.name];
-}
-
 /**
  * Fetches all library sections from a Plex server and returns them as a Map.
  * @param {object} serverConfig - The configuration for the Plex server.
@@ -427,80 +351,6 @@ async function getPlexLibraries(serverConfig) {
     const libraries = new Map();
     allSections.forEach(dir => libraries.set(dir.title, dir));
     return libraries;
-}
-
-async function fetchPlexMedia(serverConfig, libraryNames, type, count) {
-    const plex = getPlexClient(serverConfig);
-    const libraries = await getPlexLibraries(serverConfig);
-    let allSummaries = [];
-
-    // We might need to fetch more items to have enough after filtering.
-    // A multiplier of 3 is a reasonable heuristic.
-    const fetchMultiplier = 3;
-    const itemsToFetch = count * fetchMultiplier;
-
-    for (const name of libraryNames) {
-        const library = libraries.get(name);
-        if (library && library.type === type) {
-            try {
-                // Fetch a larger number of items to ensure we have enough after filtering.
-                const content = await plex.query(`/library/sections/${library.key}/all?X-Plex-Container-Size=${itemsToFetch}`);
-                if (content?.MediaContainer?.Metadata) {
-                    allSummaries = allSummaries.concat(content.MediaContainer.Metadata);
-                }
-            } catch (e) {
-                console.error(`[${serverConfig.name}] Error fetching media from library "${name}": ${e.message}`);
-            }
-        }
-    }
-    const randomSummaries = shuffleArray(allSummaries);
-
-    const mediaItemPromises = randomSummaries.map(itemSummary => processPlexItem(itemSummary, serverConfig, plex));
-    const allProcessedItems = (await Promise.all(mediaItemPromises)).filter(item => item !== null);
-
-    const parsedScore = parseFloat(config.rottenTomatoesMinimumScore);
-    const minScore = isNaN(parsedScore) ? 0 : parsedScore;
-    const filteredItems = allProcessedItems.filter(item => {
-        if (minScore === 0) return true; // No filter applied
-        // The originalScore is on the 0-10 scale, which matches our config setting.
-        return item.rottenTomatoes && item.rottenTomatoes.originalScore >= minScore;
-    });
-
-    // Return the desired count from the filtered list.
-    return filteredItems.slice(0, count);
-}
-
-async function fetchJellyfinMedia(serverConfig, libraryNames, type, count) {
-    const jellyfin = await getJellyfinClient(serverConfig);
-    const userId = process.env[serverConfig.userIdEnvVar];
-    if (!userId) throw new ApiError(500, `[${serverConfig.name}] User ID is not configured.`);
-
-    const { data: views } = await jellyfin.getViews(userId);
-    let allItems = [];
-
-    const itemType = type === 'movie' ? 'Movie' : 'Series';
-
-    for (const name of libraryNames) {
-        const library = views.Items.find(v => v.Name === name);
-        if (library) {
-            try {
-                const { data: content } = await jellyfin.getItems(userId, {
-                    parentId: library.Id,
-                    includeItemTypes: itemType,
-                    recursive: true,
-                    fields: 'Taglines,CommunityRating,ProductionYear,ProviderIds,ImageTags,BackdropImageTags'
-                });
-                if (content.Items) {
-                    allItems = allItems.concat(content.Items);
-                }
-            } catch (e) {
-                console.error(`[${serverConfig.name}] Error fetching media from Jellyfin library "${name}": ${e.message}`);
-            }
-        }
-    }
-
-    const randomItems = shuffleArray(allItems).slice(0, count);
-    return randomItems.map(item => processJellyfinItem(item, serverConfig)).filter(item => item !== null);
 }
 
 async function fetchPlexRecentlyAdded(serverConfig) {
@@ -540,63 +390,33 @@ async function fetchPlexRecentlyAdded(serverConfig) {
     });
 }
 
-async function fetchJellyfinRecentlyAdded(serverConfig) {
-    const jellyfin = await getJellyfinClient(serverConfig);
-    const userId = process.env[serverConfig.userIdEnvVar];
-    if (!userId) return [];
-
-    try {
-        const { data: recentItems } = await jellyfin.getLatestMedia(userId, {
-            limit: 15,
-            fields: 'ParentId,ProductionYear,ImageTags'
-        });
-
-        return recentItems.map(item => {
-            const isShow = item.Type === 'Episode';
-            const uniqueKey = `${serverConfig.type}-${serverConfig.name}-${item.Id}`;
-            return {
-                key: uniqueKey,
-                addedAt: new Date(item.DateCreated).getTime() / 1000,
-                title: isShow ? item.SeriesName : item.Name,
-                subtitle: isShow ? `S${item.ParentIndexNumber} E${item.IndexNumber} - ${item.Name}` : `${item.ProductionYear}`,
-                posterUrl: `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(`/Items/${isShow ? item.SeriesId : item.Id}/Images/Primary?tag=${isShow ? item.SeriesPrimaryImageTag : item.ImageTags.Primary}`)}`,
-            };
-        });
-    } catch (e) {
-        console.error(`[${serverConfig.name}] Error fetching recently added from Jellyfin: ${e.message}`);
-        return [];
-    }
-}
-
-
 // --- Main Data Aggregation ---
 
 async function getPlaylistMedia() {
     let allMedia = [];
     const enabledServers = config.mediaServers.filter(s => s.enabled);
-
+ 
     for (const server of enabledServers) {
         if (isDebug) console.log(`[Debug] Fetching from server: ${server.name} (${server.type})`);
-        
-        let mediaFromServer = [];
+ 
+        let source;
         if (server.type === 'plex') {
-            const [movies, shows] = await Promise.all([
-                fetchPlexMedia(server, server.movieLibraryNames || [], 'movie', server.movieCount || 0),
-                fetchPlexMedia(server, server.showLibraryNames || [], 'show', server.showCount || 0)
-            ]);
-            mediaFromServer = movies.concat(shows);
-        } else if (server.type === 'jellyfin') {
-            const [movies, shows] = await Promise.all([
-                fetchJellyfinMedia(server, server.movieLibraryNames || [], 'movie', server.movieCount || 0),
-                fetchJellyfinMedia(server, server.showLibraryNames || [], 'show', server.showCount || 0)
-            ]);
-            mediaFromServer = movies.concat(shows);
+            source = new PlexSource(server, getPlexClient, processPlexItem, getPlexLibraries, shuffleArray, config.rottenTomatoesMinimumScore, isDebug);
+        } else {
+            if (isDebug) console.log(`[Debug] Skipping server ${server.name} due to unsupported type ${server.type}`);
+            continue;
         }
-
+ 
+        const [movies, shows] = await Promise.all([
+            source.fetchMedia(server.movieLibraryNames || [], 'movie', server.movieCount || 0),
+            source.fetchMedia(server.showLibraryNames || [], 'show', server.showCount || 0)
+        ]);
+        const mediaFromServer = movies.concat(shows);
+ 
         if (isDebug) console.log(`[Debug] Fetched ${mediaFromServer.length} items from ${server.name}.`);
         allMedia = allMedia.concat(mediaFromServer);
     }
-
+ 
     return allMedia;
 }
 
@@ -638,11 +458,18 @@ let recentlyAddedCacheTimestamp = 0;
  * Middleware to check if the user is authenticated.
  */
 function isAuthenticated(req, res, next) {
-    if (req.session.user) {
-        next();
-    } else {
-        res.redirect('/admin/login');
+    if (req.session && req.session.user) {
+        return next();
     }
+
+    // If not authenticated, check if it's an API request.
+    // API requests should receive a 401 JSON error, not a redirect.
+    if (req.path.startsWith('/api/')) {
+        return res.status(401).json({ error: 'Authentication required. Your session may have expired.' });
+    }
+
+    // For regular page navigations, redirect to the login page.
+    return res.redirect('/admin/login');
 }
 
 /**
@@ -873,9 +700,6 @@ app.get('/get-recently-added', asyncHandler(async (req, res) => {
         if (server.type === 'plex') {
             const recent = await fetchPlexRecentlyAdded(server);
             allRecent = allRecent.concat(recent);
-        } else if (server.type === 'jellyfin') {
-            const recent = await fetchJellyfinRecentlyAdded(server);
-            allRecent = allRecent.concat(recent);
         }
     }
 
@@ -931,10 +755,6 @@ app.get('/get-media-by-key/:key', asyncHandler(async (req, res) => {
     if (type === 'plex') {
         const plex = getPlexClient(serverConfig);
         mediaItem = await processPlexItem({ key: `/library/metadata/${originalKey}` }, serverConfig, plex);
-    } else if (type === 'jellyfin') {
-        const jellyfin = await getJellyfinClient(serverConfig);
-        const { data: item } = await jellyfin.getItem(process.env[serverConfig.userIdEnvVar], originalKey);
-        mediaItem = processJellyfinItem(item, serverConfig);
     }
     if (mediaItem) {
         res.json(mediaItem);
@@ -1008,16 +828,6 @@ app.get('/image', asyncHandler(async (req, res) => {
         imageUrl = `http://${hostname}:${port}${imagePath}`;
         fetchOptions.headers['X-Plex-Token'] = token;
         if (isDebug) console.log(`[Image Proxy] Fetching from Plex URL: ${imageUrl}`);
-    } else if (serverConfig.type === 'jellyfin') {
-        const serverUrl = process.env[serverConfig.urlEnvVar];
-        const apiKey = process.env[serverConfig.apiKeyEnvVar];
-        if (!serverUrl || !apiKey) {
-            console.error(`[Image Proxy] Jellyfin URL or API key not configured for server "${serverName}".`);
-            return res.redirect('/fallback-poster.png');
-        }
-        imageUrl = `${serverUrl}${imagePath}`;
-        fetchOptions.headers['Authorization'] = `MediaBrowser Token="${apiKey}"`;
-        if (isDebug) console.log(`[Image Proxy] Fetching from Jellyfin URL: ${imageUrl}`);
     } else {
         console.error(`[Image Proxy] Unsupported server type "${serverConfig.type}" for server "${serverName}".`);
         return res.redirect('/fallback-poster.png');
@@ -1027,11 +837,13 @@ app.get('/image', asyncHandler(async (req, res) => {
         const mediaServerResponse = await fetch(imageUrl, fetchOptions);
 
         if (!mediaServerResponse.ok) {
-            console.warn(`[Image Proxy] Media server "${serverName}" returned status ${mediaServerResponse.status} for path "${imagePath}".`);
+            const statusText = mediaServerResponse.statusText;
+            const status = mediaServerResponse.status;
+            console.warn(`[Image Proxy] Media server "${serverName}" returned status ${status} ${statusText} for path "${imagePath}".`);
             if (isDebug) {
                 const responseText = await mediaServerResponse.text().catch(() => 'Could not read response body.');
                 console.log(`[Image Proxy] Media server response body (truncated): ${responseText.substring(0, 200)}`);
-            }
+            }            
             console.warn(`[Image Proxy] Serving fallback image for "${imagePath}".`);
             return res.redirect('/fallback-poster.png');
         }
@@ -1048,6 +860,13 @@ app.get('/image', asyncHandler(async (req, res) => {
         mediaServerResponse.body.pipe(res);
     } catch (error) {
         console.error(`[Image Proxy] Network or fetch error for path "${imagePath}" on server "${serverName}".`);
+
+        if (error.name === 'AbortError') {
+             console.error(`[Image Proxy] Fetch aborted, possibly due to timeout.`);
+        } else if (error.message.startsWith('read ECONNRESET')) {
+            console.error(`[Image Proxy] Connection reset by peer. The media server may have closed the connection unexpectedly.`);
+        }
+
         console.error(`[Image Proxy] Error: ${error.message}`);
         if (error.cause) console.error(`[Image Proxy] Cause: ${error.cause}`);
         console.warn(`[Image Proxy] Serving fallback image for "${imagePath}".`);
@@ -1341,6 +1160,8 @@ app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(a
     }
 }));
 
+
+
 app.post('/api/admin/plex-libraries', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Received request to fetch Plex libraries.');
     let { hostname, port, token } = req.body;
@@ -1422,7 +1243,6 @@ app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(asyn
     playlistCache = null;
     recentlyAddedCache = null;
     Object.keys(plexClients).forEach(key => delete plexClients[key]);
-    Object.keys(jellyfinClients).forEach(key => delete jellyfinClients[key]);
 
     // Trigger a background refresh of the playlist with the new settings.
     // We don't await this, so the admin UI gets a fast response.
@@ -1487,6 +1307,21 @@ app.post('/api/admin/restart-app', isAuthenticated, asyncHandler(async (req, res
         });
     }, 100); // 100ms delay should be sufficient.
 }));
+
+app.post('/api/admin/refresh-media', isAuthenticated, asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Received request to force-refresh media playlist.');
+
+    // The refreshPlaylistCache function already has a lock (isRefreshing)
+    // so we can call it directly. We'll await it to give feedback to the user.
+    await refreshPlaylistCache();
+
+    const itemCount = playlistCache ? playlistCache.length : 0;
+    const message = `Media playlist succesvol vernieuwd. ${itemCount} items gevonden.`;
+    if (isDebug) console.log(`[Admin API] ${message}`);
+
+    res.json({ success: true, message: message, itemCount: itemCount });
+}));
+
 
 app.get('/admin/debug', isAuthenticated, asyncHandler(async (req, res) => {
     if (!isDebug) {

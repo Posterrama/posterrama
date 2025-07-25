@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         mediaServers: [{
             enabled: true,
+            hostname: '',
+            port: 32400,
             movieLibraryNames: ["Movies"],
             showLibraryNames: ["TV Shows"],
             movieCount: 30,
@@ -44,87 +46,100 @@ document.addEventListener('DOMContentLoaded', () => {
         return value !== undefined && value !== null ? value : defaultValue;
     }
 
+    function populateGeneralSettings(config, env, defaults) {
+        document.getElementById('transitionIntervalSeconds').value = config.transitionIntervalSeconds ?? defaults.transitionIntervalSeconds;
+        document.getElementById('backgroundRefreshMinutes').value = config.backgroundRefreshMinutes ?? defaults.backgroundRefreshMinutes;
+        // Use || to correctly fall back to the default if the env var is an empty string.
+        document.getElementById('SERVER_PORT').value = env.SERVER_PORT || defaults.SERVER_PORT;
+        // Correctly check for the existence of the env.DEBUG variable.
+        // The previous logic had an operator precedence issue and was not correctly using the default.
+        document.getElementById('DEBUG').checked = (env.DEBUG !== undefined) ? (env.DEBUG === 'true') : defaults.DEBUG;
+
+        const debugCheckbox = document.getElementById('DEBUG');
+        const debugLink = document.getElementById('debug-link');
+        if (debugLink) {
+            debugLink.classList.toggle('is-hidden', !debugCheckbox.checked);
+        }
+    }
+
+    function populateDisplaySettings(config, defaults) {
+        document.getElementById('showClearLogo').checked = config.showClearLogo ?? defaults.showClearLogo;
+        document.getElementById('showRottenTomatoes').checked = config.showRottenTomatoes ?? defaults.showRottenTomatoes;
+        document.getElementById('rottenTomatoesMinimumScore').value = config.rottenTomatoesMinimumScore ?? defaults.rottenTomatoesMinimumScore;
+        document.getElementById('showPoster').checked = config.showPoster ?? defaults.showPoster;
+        document.getElementById('showMetadata').checked = config.showMetadata ?? defaults.showMetadata;
+        document.getElementById('clockWidget').checked = config.clockWidget ?? defaults.clockWidget;
+        document.getElementById('kenBurnsEffect.enabled').checked = get(config, 'kenBurnsEffect.enabled', defaults.kenBurnsEffect.enabled);
+        document.getElementById('kenBurnsEffect.durationSeconds').value = get(config, 'kenBurnsEffect.durationSeconds', defaults.kenBurnsEffect.durationSeconds);
+    }
+
+    function setupDisplaySettingListeners() {
+        const showPosterCheckbox = document.getElementById('showPoster');
+        const showMetadataCheckbox = document.getElementById('showMetadata');
+
+        const syncMetadataState = () => {
+            if (!showPosterCheckbox.checked) {
+                showMetadataCheckbox.checked = false;
+                showMetadataCheckbox.disabled = true;
+            } else {
+                showMetadataCheckbox.disabled = false;
+            }
+        };
+
+        showPosterCheckbox.addEventListener('change', syncMetadataState);
+        showMetadataCheckbox.addEventListener('change', () => {
+            if (showMetadataCheckbox.checked) {
+                showPosterCheckbox.checked = true;
+                syncMetadataState(); // Re-enable metadata checkbox if it was disabled
+            }
+        });
+
+        syncMetadataState(); // Set initial state
+    }
+
+    function populateSecuritySettings(security) {
+        twoFaCheckbox.checked = security.is2FAEnabled;
+        update2FAStatusText(security.is2FAEnabled);
+    }
+
+    function populatePlexSettings(config, env, defaults) {
+        const plexServerConfig = config.mediaServers && config.mediaServers[0] ? config.mediaServers[0] : {};
+        const plexDefaults = defaults.mediaServers[0];
+
+        document.getElementById('mediaServers[0].enabled').checked = plexServerConfig.enabled ?? plexDefaults.enabled;
+        // Use || to correctly fall back to defaults if the env var is an empty string.
+        document.getElementById('mediaServers[0].hostname').value = env.PLEX_HOSTNAME || plexDefaults.hostname;
+        document.getElementById('mediaServers[0].port').value = env.PLEX_PORT || plexDefaults.port;
+        // For security, don't display the token. Show a placeholder if it's set.
+        const tokenInput = document.getElementById('mediaServers[0].token');
+        tokenInput.value = ''; // Always clear the value on load
+        // env.PLEX_TOKEN is now a boolean indicating if the token is set on the server
+        tokenInput.placeholder = env.PLEX_TOKEN === true ? '******** (already set)' : 'Enter new token...';
+
+        const savedMovieLibs = plexServerConfig.movieLibraryNames || plexDefaults.movieLibraryNames;
+        const savedShowLibs = plexServerConfig.showLibraryNames || plexDefaults.showLibraryNames;
+
+        document.getElementById('mediaServers[0].movieCount').value = plexServerConfig.movieCount ?? plexDefaults.movieCount;
+        document.getElementById('mediaServers[0].showCount').value = plexServerConfig.showCount ?? plexDefaults.showCount;
+
+        return { savedMovieLibs, savedShowLibs };
+    }
+
     async function loadConfig() {
         try {
             const response = await fetch('/api/admin/config');
             if (!response.ok) {
                 throw new Error('Could not load configuration from the server.');
             }
-            const data = await response.json();
-            const config = data.config || {};
-            const env = data.env || {};
-            const security = data.security || {};
+            const { config = {}, env = {}, security = {} } = await response.json();
 
-            let savedMovieLibs = [], savedShowLibs = [];
+            populateGeneralSettings(config, env, defaults);
+            populateDisplaySettings(config, defaults);
+            setupDisplaySettingListeners();
+            populateSecuritySettings(security);
+            const { savedMovieLibs, savedShowLibs } = populatePlexSettings(config, env, defaults);
 
-            // --- Populate General Settings ---
-            document.getElementById('transitionIntervalSeconds').value = config.transitionIntervalSeconds ?? defaults.transitionIntervalSeconds;
-            document.getElementById('backgroundRefreshMinutes').value = config.backgroundRefreshMinutes ?? defaults.backgroundRefreshMinutes;
-            document.getElementById('SERVER_PORT').value = env.SERVER_PORT ?? defaults.SERVER_PORT;
-            document.getElementById('DEBUG').checked = env.DEBUG === 'true' ?? defaults.DEBUG;
-
-            const debugCheckbox = document.getElementById('DEBUG');
-            const debugLink = document.getElementById('debug-link');
-            if (debugLink) {
-                debugLink.classList.toggle('is-hidden', !debugCheckbox.checked);
-            }
-
-            // --- Populate Display Settings ---
-            document.getElementById('showClearLogo').checked = config.showClearLogo ?? defaults.showClearLogo;
-            document.getElementById('showRottenTomatoes').checked = config.showRottenTomatoes ?? defaults.showRottenTomatoes;
-            document.getElementById('rottenTomatoesMinimumScore').value = config.rottenTomatoesMinimumScore ?? defaults.rottenTomatoesMinimumScore;
-            document.getElementById('showPoster').checked = config.showPoster ?? defaults.showPoster;
-            document.getElementById('showMetadata').checked = config.showMetadata ?? defaults.showMetadata;
-            document.getElementById('clockWidget').checked = config.clockWidget ?? defaults.clockWidget;
-            document.getElementById('kenBurnsEffect.enabled').checked = get(config, 'kenBurnsEffect.enabled', defaults.kenBurnsEffect.enabled);
-            document.getElementById('kenBurnsEffect.durationSeconds').value = get(config, 'kenBurnsEffect.durationSeconds', defaults.kenBurnsEffect.durationSeconds);
-
-            // 2FA status is now loaded with the main config
-            twoFaCheckbox.checked = security.is2FAEnabled;
-            update2FAStatusText(security.is2FAEnabled);
-
-            // Logic for poster/metadata dependency
-            const showPosterCheckbox = document.getElementById('showPoster');
-            const showMetadataCheckbox = document.getElementById('showMetadata');
-
-            const syncMetadataState = () => {
-                if (!showPosterCheckbox.checked) {
-                    showMetadataCheckbox.checked = false;
-                    showMetadataCheckbox.disabled = true;
-                } else {
-                    showMetadataCheckbox.disabled = false;
-                }
-            };
-
-            showPosterCheckbox.addEventListener('change', syncMetadataState);
-            showMetadataCheckbox.addEventListener('change', () => {
-                if (showMetadataCheckbox.checked) {
-                    showPosterCheckbox.checked = true;
-                    syncMetadataState(); // Re-enable metadata checkbox if it was disabled
-                }
-            });
-
-            syncMetadataState(); // Set initial state
-
-            // --- Populate Plex Media Server Settings (including sensitive values) ---
-            const plexServerConfig = config.mediaServers && config.mediaServers[0] ? config.mediaServers[0] : {};
-            const plexDefaults = defaults.mediaServers[0];
-
-            document.getElementById('mediaServers[0].enabled').checked = plexServerConfig.enabled ?? plexDefaults.enabled;
-            document.getElementById('PLEX_HOSTNAME').value = env.PLEX_HOSTNAME ?? '';
-            document.getElementById('PLEX_PORT').value = env.PLEX_PORT ?? '';
-            // For security, don't display the token. Show a placeholder if it's set.
-            const tokenInput = document.getElementById('PLEX_TOKEN');
-            tokenInput.value = ''; // Always clear the value on load
-            // env.PLEX_TOKEN is now a boolean indicating if the token is set on the server
-            tokenInput.placeholder = env.PLEX_TOKEN === true ? '******** (already set)' : 'Enter new token...';
-            
-            savedMovieLibs = plexServerConfig.movieLibraryNames || plexDefaults.movieLibraryNames;
-            savedShowLibs = plexServerConfig.showLibraryNames || plexDefaults.showLibraryNames;
-
-            document.getElementById('mediaServers[0].movieCount').value = plexServerConfig.movieCount ?? plexDefaults.movieCount;
-            document.getElementById('mediaServers[0].showCount').value = plexServerConfig.showCount ?? plexDefaults.showCount;
-
+            // If Plex is configured, fetch libraries and start background slideshow
             if (env.PLEX_HOSTNAME && env.PLEX_PORT && env.PLEX_TOKEN === true) {
                 fetchAndDisplayPlexLibraries(savedMovieLibs, savedShowLibs);
                 initializeAdminBackground();
@@ -132,10 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Forcefully remove focus from any element that the browser might have auto-focused.
             if (document.activeElement) document.activeElement.blur();
-
         } catch (error) {
             console.error('Failed to load config:', error);
-            alert('Failed to load settings. Please try refreshing the page.');
+            showNotification('Failed to load settings. Please try refreshing the page.', 'error');
         }
     }
 
@@ -205,94 +219,106 @@ document.addEventListener('DOMContentLoaded', () => {
      * Adds a "Test Connection" button for the Plex server settings.
      */
     function addPlexTestButton() {
-        const tokenInput = document.getElementById('PLEX_TOKEN');
-        if (!tokenInput) return;
- 
-        const testButton = document.createElement('button');
-        testButton.type = 'button';
-        testButton.className = 'button-primary test-button';
- 
-        const iconSpan = document.createElement('span');
-        iconSpan.className = 'icon';
-        const icon = document.createElement('i');
-        icon.className = 'fas fa-plug';
-        iconSpan.appendChild(icon);
- 
-        const textSpan = document.createElement('span');
-        textSpan.textContent = 'Test Verbinding';
- 
-        testButton.appendChild(iconSpan);
-        testButton.appendChild(textSpan);
- 
-        tokenInput.parentElement.appendChild(testButton);
- 
+        const testButton = document.getElementById('test-plex-button');
+        if (!testButton) return;
+
+        const buttonTextSpan = testButton.querySelector('span:last-child');
+        const icon = testButton.querySelector('.icon i');
+        const originalText = buttonTextSpan.textContent;
+        const originalIconClass = icon.className;
+        const originalButtonClass = testButton.className;
+
         testButton.addEventListener('click', async () => {
-            const originalText = 'Test Verbinding';
-            const originalIconClass = 'fas fa-plug';
-            const originalButtonClass = 'button-primary test-button';
- 
-            // Set loading state
+            const hostname = document.getElementById('mediaServers[0].hostname').value;
+            const port = document.getElementById('mediaServers[0].port').value;
+            const tokenInput = document.getElementById('mediaServers[0].token');
+            const token = tokenInput.value;
+            const isTokenSetOnServer = tokenInput.placeholder.includes('already set');
+
             testButton.disabled = true;
-            textSpan.textContent = 'Testen...';
+            buttonTextSpan.textContent = 'Testen...';
             icon.className = 'fas fa-spinner fa-spin';
-            testButton.className = originalButtonClass; // Revert to base style for loading
- 
-            let finalMessage = '';
-            let finalIcon = '';
-            let finalClass = '';
- 
+            testButton.className = originalButtonClass;
+
             try {
-                const hostname = document.getElementById('PLEX_HOSTNAME').value;
-                const port = document.getElementById('PLEX_PORT').value;
-                const tokenInput = document.getElementById('PLEX_TOKEN');
-                const token = tokenInput.value;
-                const isTokenSetOnServer = tokenInput.placeholder.includes('already set');
- 
                 if (!hostname || !port) {
                     throw new Error('Hostname en poort zijn vereist om een test uit te voeren.');
                 }
                 if (!token && !isTokenSetOnServer) {
                     throw new Error('Een nieuw token is vereist om de verbinding te testen, omdat er nog geen is ingesteld.');
                 }
- 
+
                 const response = await fetch('/api/admin/test-plex', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ hostname, port, token: token || undefined }) // Send token only if it has a value
                 });
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Onbekende fout');
- 
-                finalMessage = 'Succes';
-                finalIcon = 'fas fa-check';
-                finalClass = 'is-success';
 
-                // On success, fetch and display libraries, preserving current selections
-                const currentMovieLibs = getSelectedLibraries('movie');
-                const currentShowLibs = getSelectedLibraries('show');
-                fetchAndDisplayPlexLibraries(currentMovieLibs, currentShowLibs);
-                adminBgQueue = []; // Force a re-fetch of the media queue
-                initializeAdminBackground();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Onbekende fout');
+                }
+
+                testButton.classList.add('is-success');
+                buttonTextSpan.textContent = 'Succes!';
+                icon.className = 'fas fa-check';
+
+                // Zet de "Media Vernieuwen"-knop aan
+                const refreshButton = document.getElementById('refresh-media-button');
+                if (refreshButton) refreshButton.disabled = false;
+
+                 // On success, fetch and display libraries, preserving current selections
+                 const currentMovieLibs = getSelectedLibraries('movie');
+                 const currentShowLibs = getSelectedLibraries('show');
+                 fetchAndDisplayPlexLibraries(currentMovieLibs, currentShowLibs);
+                 adminBgQueue = []; // Force a re-fetch of the media queue
+                 initializeAdminBackground();
+
             } catch (error) {
-                finalMessage = 'Mislukt';
-                finalIcon = 'fas fa-exclamation-triangle';
-                finalClass = 'is-danger';
+                testButton.classList.add('is-danger');
+                buttonTextSpan.textContent = 'Mislukt';
+                icon.className = 'fas fa-exclamation-triangle';
+
+                // Zet de "Media Vernieuwen"-knop uit
+                const refreshButton = document.getElementById('refresh-media-button');
+                if (refreshButton) refreshButton.disabled = true;
+
             }
- 
-            // Set final state (success or error)
-            testButton.classList.add(finalClass);
-            textSpan.textContent = finalMessage;
-            icon.className = finalIcon;
- 
             // Revert to original state after a delay
             setTimeout(() => {
                 testButton.disabled = false;
-                testButton.className = originalButtonClass;
-                textSpan.textContent = originalText;
-                icon.className = originalIconClass;
+                buttonTextSpan.textContent = originalText;
+                icon.className = originalIconClass
+                testButton.className = originalButtonClass; // Remove success/danger classes
             }, 2500);
         });
     }
+
+    addPlexTestButton();
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Fetches Plex libraries from the server and populates checkbox lists.
@@ -302,14 +328,15 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndDisplayPlexLibraries(preSelectedMovieLibs = [], preSelectedShowLibs = []) {
         const movieContainer = document.getElementById('movie-libraries-container');
         const showContainer = document.getElementById('show-libraries-container');
+        const refreshButton = document.getElementById('refresh-media-button');
 
         movieContainer.innerHTML = '<small>Bibliotheken ophalen...</small>';
         showContainer.innerHTML = '<small>Bibliotheken ophalen...</small>';
 
         try {
-            const hostname = document.getElementById('PLEX_HOSTNAME').value;
-            const port = document.getElementById('PLEX_PORT').value;
-            const token = document.getElementById('PLEX_TOKEN').value;
+            const hostname = document.getElementById('mediaServers[0].hostname').value;
+            const port = document.getElementById('mediaServers[0].port').value;
+            const token = document.getElementById('mediaServers[0].token').value;
 
             const response = await fetch('/api/admin/plex-libraries', {
                 method: 'POST',
@@ -349,11 +376,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
+            // Enable refresh button on successful library fetch
+            if (refreshButton) refreshButton.disabled = false;
+
         } catch (error) {
             console.error('Failed to fetch Plex libraries:', error);
             const errorMessage = `<small class="error-text">Fout: ${error.message}</small>`;
             movieContainer.innerHTML = errorMessage;
             showContainer.innerHTML = errorMessage;
+            // Disable refresh button on failure
+            if (refreshButton) refreshButton.disabled = true;
         }
     }
 
@@ -567,14 +599,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
      const configForm = document.getElementById('config-form');
     if (configForm) {
-        addPlexTestButton();
-
         configForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const button = event.target.querySelector('button[type="submit"]');
             const originalButtonText = button.textContent;
             button.disabled = true;
             button.textContent = 'Saving...';
+
+            /**
+             * Recursively creates a deep copy of an object, excluding any keys with a null value.
+             * This prevents empty form fields from overwriting existing settings with null.
+             * @param {object} obj The object to clean.
+             * @returns {object} A new object with null values removed.
+             */
+            const cleanNulls = (obj) => {
+                if (obj === null || typeof obj !== 'object') {
+                    return obj;
+                }
+
+                if (Array.isArray(obj)) {
+                    return obj.map(cleanNulls).filter(item => item !== null);
+                }
+
+                const newObj = {};
+                for (const key in obj) {
+                    if (obj[key] !== null) {
+                        newObj[key] = cleanNulls(obj[key]);
+                    }
+                }
+                return newObj;
+            };
 
             try {
                 // --- Validation ---
@@ -654,21 +708,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newEnv = {
                     SERVER_PORT: getValue('SERVER_PORT'),
                     DEBUG: String(getValue('DEBUG')), // .env values must be strings
-                    PLEX_HOSTNAME: getValue('PLEX_HOSTNAME'),
-                    PLEX_PORT: getValue('PLEX_PORT'),
+                    PLEX_HOSTNAME: getValue('mediaServers[0].hostname'),
+                    PLEX_PORT: getValue('mediaServers[0].port'),
                 };
 
                 // Only include the token if the user has entered a new one.
                 // This prevents overwriting the existing token with an empty string.
-                const plexToken = getValue('PLEX_TOKEN');
+                const plexToken = getValue('mediaServers[0].token');
                 if (plexToken) {
                     newEnv.PLEX_TOKEN = plexToken;
                 }
 
+                // Create a version of the config that doesn't include null values.
+                const cleanedConfig = cleanNulls(newConfig);
+
                 const response = await fetch('/api/admin/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ config: newConfig, env: newEnv }),
+                    body: JSON.stringify({ config: cleanedConfig, env: newEnv }),
                 });
 
                 const result = await response.json();
@@ -676,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 showNotification('Settings saved successfully! Some changes may require a restart.', 'success');
                 // Clear the token field and update the placeholder if a new token was saved.
-                const tokenInput = document.getElementById('PLEX_TOKEN');
+                const tokenInput = document.getElementById('mediaServers[0].token');
                 tokenInput.value = '';
                 if (plexToken) {
                     tokenInput.placeholder = '******** (already set)';
@@ -692,6 +749,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    /**
+     * Force-enables the refresh media button.
+     * This is a workaround to enable it even if the connection test fails,
+     * allowing users to trigger a refresh manually.
+     */
     const changePasswordButton = document.getElementById('change-password-button');
     if (changePasswordButton) {
         changePasswordButton.addEventListener('click', async () => {
@@ -796,4 +858,65 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+
+    const refreshMediaButton = document.getElementById('refresh-media-button');
+    if (refreshMediaButton) {
+        refreshMediaButton.addEventListener('click', async () => {
+            const buttonTextSpan = refreshMediaButton.querySelector('span:last-child');
+            const originalText = buttonTextSpan.textContent;
+            const icon = refreshMediaButton.querySelector('.icon i');
+            const originalIconClass = icon.className;
+
+            refreshMediaButton.disabled = true;
+            buttonTextSpan.textContent = 'Vernieuwen...';
+            icon.className = 'fas fa-spinner fa-spin';
+
+            console.log('[Admin Debug] "Media Vernieuwen" button clicked. Preparing to call API endpoint.');
+
+            try {
+                console.log('[Admin Debug] Sending POST request to /api/admin/refresh-media');
+                const response = await fetch('/api/admin/refresh-media', { method: 'POST' });
+
+                if (!response.ok) {
+                    console.error(`[Admin Debug] API call failed. Status: ${response.status} ${response.statusText}`);
+                    let errorMsg = `HTTP error! Status: ${response.status}`;
+                    try {
+                        const errorResult = await response.json();
+                        errorMsg = errorResult.error || errorMsg;
+                    } catch (e) {
+                        // Fallback if response is not JSON (e.g., HTML error page)
+                        errorMsg = response.statusText || errorMsg;
+                    }
+
+                    if (response.status === 401) {
+                        showNotification('Uw sessie is verlopen. U wordt doorgestuurd naar de inlogpagina.', 'error');
+                        setTimeout(() => window.location.href = '/admin/login', 2500);
+                    }
+                    throw new Error(errorMsg);
+                }
+
+                console.log('[Admin Debug] API call successful. Refreshing background.');
+                const result = await response.json();
+                showNotification(result.message, 'success');
+
+                // Also refresh the admin background to show new items
+                adminBgQueue = [];
+                initializeAdminBackground();
+
+            } catch (error) {
+                console.error('[Admin] Error during media refresh:', error);
+                showNotification(`Fout bij vernieuwen: ${error.message}`, 'error');
+            } finally {
+                // Restore button state after a short delay to show completion
+                setTimeout(() => {
+                    refreshMediaButton.disabled = false;
+                    buttonTextSpan.textContent = originalText;
+                    icon.className = originalIconClass;
+                }, 1000);
+            }
+        });
+    }
+
+
 });

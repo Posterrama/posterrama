@@ -280,18 +280,18 @@
                             <small>Schakelt de verbinding met deze Plex-server in of uit.</small>
                         </div>
                         <div class="form-group">
-                            <label for="PLEX_HOSTNAME">Plex Hostname/IP</label>
-                            <input type="text" id="PLEX_HOSTNAME" name="PLEX_HOSTNAME">
+                            <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
+                            <input type="text" id="mediaServers[0].hostname" name="mediaServers[0].hostname">
                             <small>Het IP-adres of de hostnaam van uw Plex-server (bijv. 192.168.1.10).</small>
                         </div>
                         <div class="form-group">
-                            <label for="PLEX_PORT">Plex Port</label>
-                            <input type="number" id="PLEX_PORT" name="PLEX_PORT">
+                            <label for="mediaServers[0].port">Plex Port</label>
+                            <input type="number" id="mediaServers[0].port" name="mediaServers[0].port">
                             <small>De poort van uw Plex-server (standaard 32400).</small>
                         </div>
                         <div class="form-group">
-                            <label for="PLEX_TOKEN">Plex Token</label>
-                            <input type="password" id="PLEX_TOKEN" name="PLEX_TOKEN">
+                            <label for="mediaServers[0].token">Plex Token</label>
+                            <input type="password" id="mediaServers[0].token" name="mediaServers[0].token">
                             <small>Find your token by following <a href="https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/" target="_blank">these instructions</a>.</small>
                         </div>
                         <div class="form-group">
@@ -315,6 +315,13 @@
                             <label for="mediaServers[0].showCount">Number of Shows to Show</label>
                             <input type="number" id="mediaServers[0].showCount" name="mediaServers[0].showCount">
                             <small>Het maximale aantal series dat in de playlist wordt opgenomen.</small>
+                        </div>
+                         <div class="form-group">
+                            <button type="button" id="test-plex-button" class="button-primary test-button">
+                                <span class="icon"><i class="fas fa-plug"></i></span>
+                                <span>Test Plex Verbinding</span>
+                            </button>
+                            <small id="plex-connection-status"></small>
                         </div>
                     </div>
                 </div>
@@ -355,12 +362,17 @@
                     <div class="form-section">
                         <h3>Applicatiebeheer</h3>
                         <div class="form-group">
-                            <p>Hiermee wordt de serverapplicatie herstart. Dit kan nodig zijn nadat bepaalde instellingen zijn gewijzigd (zoals de poort). De verbinding wordt kort verbroken.</p>
+                            <p><strong>Applicatie Herstarten:</strong> Herstart de server. Nodig na het wijzigen van de poort.</p>
+                            <p style="margin-top: 1rem;"><strong>Media Vernieuwen:</strong> Forceert het opnieuw ophalen van alle media van de geconfigureerde servers. Handig na het toevoegen van nieuwe films of series.</p>
                         </div>
-                        <div class="form-actions" style="text-align: left; margin-top: 0;">
+                        <div class="form-actions" style="text-align: left; margin-top: 0; display: flex; gap: 10px;">
                             <button type="button" id="restart-app-button" class="button-primary button-danger">
                                 <span class="icon"><i class="fas fa-power-off"></i></span>
                                 <span>Applicatie Herstarten</span>
+                            </button>
+                            <button type="button" id="refresh-media-button" class="button-primary" disabled>
+                                <span class="icon"><i class="fas fa-sync-alt"></i></span>
+                                <span>Media Vernieuwen</span>
                             </button>
                         </div>
                     </div>

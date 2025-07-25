@@ -2,16 +2,18 @@
 
 # An elegant, full-screen screensaver that acts as a digital art frame for your media.
 
-It fetches beautiful backgrounds and posters from your Plex or Jellyfin media server and displays them with a subtle Ken Burns effect.
+It fetches beautiful backgrounds and posters from your Plex media server and displays them with a subtle Ken Burns effect.
 
 ![Screenshot of screensaver](screensaver.png)
 
 ![Screenshot of admin](admin.png)
 
+### Showcase / demo: <https://demo.posterrama.app>
+
 
 ## Features
 
-*   **Multiple Sources**: Works with both Plex and Jellyfin.
+*   **Plex Integration**: Works seamlessly with your Plex Media Server.
 *   **Dynamic Display**: Shows movie and series backgrounds with a cinematic Ken Burns effect.
 *   **Rich Metadata**: Displays posters, titles, taglines, year, and ratings.
 *   **Integrations**:
@@ -106,7 +108,7 @@ It fetches beautiful backgrounds and posters from your Plex or Jellyfin media se
 
 ## Configuration
 
-The application is best configured via the **Admin Panel**.
+The application is configured via the **Admin Panel**.
 
 ### Initial Admin Panel Setup
 
@@ -120,7 +122,7 @@ The application is best configured via the **Admin Panel**.
 *   **URL**: `http://<your-server-ip>:4000/admin`
 *   Here you can adjust all settings, such as:
     *   Enabling or disabling the Plex/Jellyfin server connection.
-    *   Selecting which libraries to fetch media from.
+    *   Selecting which Plex libraries to fetch media from.
     *   Customizing the display of the poster, metadata, ClearLogo, and Rotten Tomatoes badge.
     *   Restarting the application after changing critical settings (like the port).
 

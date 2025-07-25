@@ -39,10 +39,6 @@ for (const server of enabledServers) {
             requiredVarsSet.add(server.tokenEnvVar);
             tokenVars.push(server.tokenEnvVar);
         }
-    } else if (server.type === 'jellyfin') {
-        if (server.urlEnvVar) requiredVarsSet.add(server.urlEnvVar);
-        if (server.apiKeyEnvVar) requiredVarsSet.add(server.apiKeyEnvVar);
-        if (server.userIdEnvVar) requiredVarsSet.add(server.userIdEnvVar);
     }
 }
 
