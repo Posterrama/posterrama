@@ -41,14 +41,30 @@ require('dotenv').config();
         console.log('SESSION_SECRET is missing, generating a new one...');
         const newSecret = require('crypto').randomBytes(32).toString('hex');
         // Read the .env file
-        let envContent = await fs.readFile(envPath, 'utf8');
+        const envContent = await fs.readFile(envPath, 'utf8');
         // Append the new secret to the .env file
-        envContent += `\nSESSION_SECRET="${newSecret}"\n`;
+        const newEnvContent = envContent + `\nSESSION_SECRET="${newSecret}"\n`;
         // Write the updated content back to the .env file
-        await fs.writeFile(envPath, envContent, 'utf8');
-        // Update process.env immediately
-        process.env.SESSION_SECRET = newSecret;
+        await fs.writeFile(envPath, newEnvContent, 'utf8');
         console.log('New SESSION_SECRET generated and saved to .env.');
+
+        // If running under PM2, trigger a restart. The current process will likely crash
+        // due to the missing session secret, and PM2 will restart it. The new process
+        // will then load the secret correctly from the .env file.
+        if (process.env.PM2_HOME) {
+            console.log('Running under PM2. Triggering a restart to apply the new SESSION_SECRET...');
+            const { exec } = require('child_process');
+            const ecosystemConfig = require('./ecosystem.config.js');
+            const appName = ecosystemConfig.apps[0].name || 'posterrama';
+
+            exec(`pm2 restart ${appName}`, (error) => {
+                if (error) console.error(`[Initial Setup] PM2 restart command failed: ${error.message}`);
+            });
+        } else {
+            console.warn('SESSION_SECRET was generated, but the app does not appear to be running under PM2. A manual restart is recommended.');
+            // If not under PM2, we can update the current process's env and continue.
+            process.env.SESSION_SECRET = newSecret;
+        }
     }
 })();
 const express = require('express');
