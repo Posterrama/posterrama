@@ -692,25 +692,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const passwordForm = document.getElementById('password-form');
-    if (passwordForm) {
-        passwordForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const button = event.target.querySelector('button[type="submit"]');
+    const changePasswordButton = document.getElementById('change-password-button');
+    if (changePasswordButton) {
+        changePasswordButton.addEventListener('click', async () => {
+            const button = changePasswordButton;
             const originalButtonText = button.textContent;
             button.disabled = true;
             button.textContent = 'Changing...';
+
+            const currentPasswordInput = document.getElementById('currentPassword');
+            const newPasswordInput = document.getElementById('newPassword');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+
+            const data = {
+                currentPassword: currentPasswordInput.value,
+                newPassword: newPasswordInput.value,
+                confirmPassword: confirmPasswordInput.value
+            };
 
             try {
                 const response = await fetch('/api/admin/change-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(Object.fromEntries(new FormData(event.target)))
+                    body: JSON.stringify(data)
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Failed to change password.');
                 showNotification('Password changed successfully!', 'success');
-                passwordForm.reset();
+                // Manually reset the fields since it's not a form anymore
+                if (currentPasswordInput) currentPasswordInput.value = '';
+                if (newPasswordInput) newPasswordInput.value = '';
+                if (confirmPasswordInput) confirmPasswordInput.value = '';
             } catch (error) {
                 console.error('Failed to change password:', error);
                 showNotification(`Error changing password: ${error.message}`, 'error');
