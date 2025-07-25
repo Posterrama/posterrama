@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const config = data.config || {};
             const env = data.env || {};
+            const security = data.security || {};
 
             let savedMovieLibs = [], savedShowLibs = [];
 
@@ -78,7 +79,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('kenBurnsEffect.enabled').checked = get(config, 'kenBurnsEffect.enabled', defaults.kenBurnsEffect.enabled);
             document.getElementById('kenBurnsEffect.durationSeconds').value = get(config, 'kenBurnsEffect.durationSeconds', defaults.kenBurnsEffect.durationSeconds);
 
-            load2FAStatus();
+            // 2FA status is now loaded with the main config
+            twoFaCheckbox.checked = security.is2FAEnabled;
+            update2FAStatusText(security.is2FAEnabled);
 
             // Logic for poster/metadata dependency
             const showPosterCheckbox = document.getElementById('showPoster');
@@ -441,23 +444,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleDisable2FA() {
         // This function now just shows the modal. The logic is moved to the form submit handler.
         showDisable2FAModal();
-    }
-
-    async function load2FAStatus() {
-        if (!twoFaCheckbox) return;
-        try {
-            const response = await fetch('/api/admin/2fa/status');
-            if (!response.ok) throw new Error('Kon 2FA-status niet ophalen.');
-            const data = await response.json();
-            twoFaCheckbox.checked = data.enabled;
-            update2FAStatusText(data.enabled);
-        } catch (error) {
-            console.error('Failed to load 2FA status:', error);
-            if (twoFaStatusText) {
-                twoFaStatusText.textContent = 'Kon status niet laden.';
-                twoFaStatusText.className = 'status-text error-text';
-            }
-        }
     }
 
     if (twoFaCheckbox) {

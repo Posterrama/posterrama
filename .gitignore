@@ -18,4 +18,3 @@ npm-debug.log*
 *.iml
 
 /sessions
-/node_modules
