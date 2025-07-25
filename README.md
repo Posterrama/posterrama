@@ -1,4 +1,4 @@
-# posterrama.app
+# Posterrama
 
 **posterrama.app** is an elegant, full-screen screensaver that acts as a digital art frame for your media. It fetches beautiful backgrounds and posters from your Plex or Jellyfin media server and displays them with a subtle Ken Burns effect.
 
@@ -21,7 +21,7 @@
 ## Requirements
 
 *   **Node.js**: version 18.x or higher.
-*   **npm**: Included with Node.js.
+    (You can download it from [nodejs.org](https://nodejs.org/en/download/)).
 *   **PM2**: A process manager for Node.js. Install it globally:
     ```bash
     npm install -g pm2
