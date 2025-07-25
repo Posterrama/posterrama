@@ -90,11 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (appConfig.clockWidget) {
-            document.getElementById('widget-container').classList.remove('is-hidden');
+            document.getElementById('widget-container').style.display = 'block';
             updateClock();
             setInterval(updateClock, 1000);
         } else {
-            document.getElementById('widget-container').classList.add('is-hidden');
+            document.getElementById('widget-container').style.display = 'none';
         }
 
         if (appConfig.backgroundRefreshMinutes > 0) {
