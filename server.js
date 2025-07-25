@@ -9,17 +9,48 @@
  * (at your option) any later version.
  */
 
+const path = require('path');
+const fs = require('fs').promises;
 require('dotenv').config();
 
-// --- Environment Variable Validation ---
-if (!process.env.SESSION_SECRET) {
-    console.error('[FATAL] SESSION_SECRET is not defined in the .env file. This is required for session management.');
-    console.error('Please generate a secret key and add it to your .env file.');
-    console.error('Example: SESSION_SECRET="some-long-random-string-of-characters"');
-    process.exit(1); // Exit with an error code
-}
+// --- Environment Initialization ---
+// Automatically create and configure the .env file on first run.
+(async function initializeEnvironment() {
+    const envPath = path.join(__dirname, '.env');
+    const exampleEnvPath = path.join(__dirname, 'config.example.env');
 
-const path = require('path');
+    try {
+        // Check if .env file exists
+        await fs.access(envPath);
+    } catch (error) {
+        // If .env doesn't exist, copy from config.example.env
+        if (error.code === 'ENOENT') {
+            console.log('.env file not found, creating from config.example.env...');
+            await fs.copyFile(exampleEnvPath, envPath);
+            console.log('.env file created successfully.');
+            // Reload dotenv to pick up the new file
+            require('dotenv').config({ override: true });
+        } else {
+            console.error('Error checking .env file:', error);
+            process.exit(1);
+        }
+    }
+
+    // Validate SESSION_SECRET
+    if (!process.env.SESSION_SECRET) {
+        console.log('SESSION_SECRET is missing, generating a new one...');
+        const newSecret = require('crypto').randomBytes(32).toString('hex');
+        // Read the .env file
+        let envContent = await fs.readFile(envPath, 'utf8');
+        // Append the new secret to the .env file
+        envContent += `\nSESSION_SECRET="${newSecret}"\n`;
+        // Write the updated content back to the .env file
+        await fs.writeFile(envPath, envContent, 'utf8');
+        // Update process.env immediately
+        process.env.SESSION_SECRET = newSecret;
+        console.log('New SESSION_SECRET generated and saved to .env.');
+    }
+})();
 const express = require('express');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
@@ -60,6 +91,7 @@ if (isDebug) {
     });
 }
 
+require('dotenv').config();
 // Session middleware setup
 app.use(session({
     store: new FileStore({
@@ -80,6 +112,47 @@ app.use(session({
 const asyncHandler = (fn) => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
 };
+
+// --- Environment Initialization ---
+// Automatically create and configure the .env file on first run.
+(async function initializeEnvironment() {
+    const envPath = path.join(__dirname, '.env');
+    const exampleEnvPath = path.join(__dirname, 'config.example.env');
+
+    try {
+        // Check if .env file exists
+        await fs.access(envPath);
+        if (isDebug) console.log('.env file exists, skipping creation.');
+    } catch (error) {
+        // If .env doesn't exist, copy from config.example.env
+        if (error.code === 'ENOENT') {
+            console.log('.env file not found, creating from config.example.env...');
+            await fs.copyFile(exampleEnvPath, envPath);
+            console.log('.env file created successfully.');
+        } else {
+            console.error('Error checking .env file:', error);
+            process.exit(1);
+        }
+    }
+
+    // Validate SESSION_SECRET
+    if (!process.env.SESSION_SECRET) {
+        console.log('SESSION_SECRET is missing, generating a new one...');
+        const newSecret = require('crypto').randomBytes(32).toString('hex');
+        // Read the .env file
+        let envContent = await fs.readFile(envPath, 'utf8');
+        // Append the new secret to the .env file
+        envContent += `\nSESSION_SECRET="${newSecret}"\n`;
+        // Write the updated content back to the .env file
+        await fs.writeFile(envPath, envContent, 'utf8');
+        // Update process.env immediately
+        process.env.SESSION_SECRET = newSecret;
+        console.log('New SESSION_SECRET generated and saved to .env.');
+    }
+})();
+
+
+
 
 /**
  * Returns the standard options for a PlexAPI client instance to ensure consistent identification.
@@ -230,6 +303,10 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         return null;
     }
 }
+
+
+
+
 
 /**
  * Processes a Jellyfin media item and transforms it into the application's standard format.
@@ -1025,7 +1102,6 @@ app.post('/admin/setup', asyncHandler(async (req, res) => {
     const passwordHash = await bcrypt.hash(password, saltRounds);
     const sessionSecret = require('crypto').randomBytes(32).toString('hex');
     
-    // Write credentials directly to .env file, without forcing 2FA on setup.
     // 2FA can be enabled from the admin panel after the first login.
     await writeEnvFile({
         ADMIN_USERNAME: username,
