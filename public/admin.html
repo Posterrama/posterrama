@@ -185,6 +185,7 @@
         <h1>Admin posterrama</h1>
         <nav>
             <a href="/" target="_blank">View Screensaver</a>
+            <a href="/api-docs" target="_blank">API Docs</a>
             <a href="/admin/logout">Logout</a>
         </nav>
     </header>
@@ -317,62 +318,59 @@
                         </div>
                     </div>
                 </div>
+                <div class="settings-column">
+                    <h2>Beveiliging & Beheer</h2>
+                    <!-- Change Password -->
+                    <div class="form-section">
+                        <h3>Wachtwoord Wijzigen</h3>
+                        <form id="password-form">
+                            <div class="form-group">
+                                <label for="currentPassword">Huidig Wachtwoord</label>
+                                <input type="password" id="currentPassword" name="currentPassword" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">Nieuw Wachtwoord</label>
+                                <input type="password" id="newPassword" name="newPassword" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword">Bevestig Nieuw Wachtwoord</label>
+                                <input type="password" id="confirmPassword" name="confirmPassword" required>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="button-primary">Wachtwoord Wijzigen</button>
+                            </div>
+                        </form>
+                    </div>
+                    <!-- 2FA Settings -->
+                    <div class="form-section">
+                        <h3>Two-Factor Authenticatie (2FA)</h3>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="enable2FA" name="enable2FA">
+                            <label for="enable2FA">2FA Inschakelen</label>
+                            <small>Beveilig uw account met een authenticator-app.</small>
+                            <div id="2fa-status-text" class="status-text disabled"></div>
+                        </div>
+                    </div>
+                    <!-- Application Management -->
+                    <div class="form-section">
+                        <h3>Applicatiebeheer</h3>
+                        <div class="form-group">
+                            <p>Hiermee wordt de serverapplicatie herstart. Dit kan nodig zijn nadat bepaalde instellingen zijn gewijzigd (zoals de poort). De verbinding wordt kort verbroken.</p>
+                        </div>
+                        <div class="form-actions" style="text-align: left; margin-top: 0;">
+                            <button type="button" id="restart-app-button" class="button-primary button-danger">
+                                <span class="icon"><i class="fas fa-power-off"></i></span>
+                                <span>Applicatie Herstarten</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="form-actions">
                 <button type="submit" class="button-primary">Save Display & Server Settings</button>
             </div>
         </form>
-
-        <!-- Security & Management -->
-        <div class="settings-grid">
-            <div class="settings-column">
-                <h2>Beveiliging & Beheer</h2>
-                <!-- Change Password -->
-                <div class="form-section">
-                    <h3>Wachtwoord Wijzigen</h3>
-                    <form id="password-form">
-                        <div class="form-group">
-                            <label for="currentPassword">Huidig Wachtwoord</label>
-                            <input type="password" id="currentPassword" name="currentPassword" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="newPassword">Nieuw Wachtwoord</label>
-                            <input type="password" id="newPassword" name="newPassword" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPassword">Bevestig Nieuw Wachtwoord</label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" required>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="button-primary">Wachtwoord Wijzigen</button>
-                        </div>
-                    </form>
-                </div>
-                <!-- 2FA Settings -->
-                <div class="form-section">
-                    <h3>Two-Factor Authenticatie (2FA)</h3>
-                    <div class="form-group checkbox-group">
-                        <input type="checkbox" id="enable2FA" name="enable2FA">
-                        <label for="enable2FA">2FA Inschakelen</label>
-                        <small>Beveilig uw account met een authenticator-app.</small>
-                        <div id="2fa-status-text" class="status-text disabled"></div>
-                    </div>
-                </div>
-                <!-- Application Management -->
-                <div class="form-section">
-                    <h3>Applicatiebeheer</h3>
-                    <div class="form-group">
-                        <p>Hiermee wordt de serverapplicatie herstart. Dit kan nodig zijn nadat bepaalde instellingen zijn gewijzigd (zoals de poort). De verbinding wordt kort verbroken.</p>
-                    </div>
-                    <div class="form-actions" style="text-align: left; margin-top: 0;">
-                        <button type="button" id="restart-app-button" class="button-primary button-danger">
-                            <span class="icon"><i class="fas fa-power-off"></i></span>
-                            <span>Applicatie Herstarten</span>
-                        </button>
-                    </div>
-                </div>
-        </div>
     </main>
 
     <!-- 2FA Setup Modal -->

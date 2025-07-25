@@ -9,51 +9,37 @@
 *   **Multiple Sources**: Works with both Plex and Jellyfin.
 *   **Dynamic Display**: Shows movie and series backgrounds with a cinematic Ken Burns effect.
 *   **Rich Metadata**: Displays posters, titles, taglines, year, and ratings.
-*   **Integraties**:
-    *   **ClearLogo**: Toont het logo van de film of serie.
-    *   **Rotten Tomatoes**: Geeft een "Fresh", "Rotten" of "Certified Fresh" badge weer.
-*   **Aanpasbare Widgets**: Inclusief een configureerbare klok.
-*   **Web-based Admin Paneel**: Eenvoudig te configureren via een webinterface, inclusief het testen van de serververbinding en het selecteren van bibliotheken.
-*   **Procesbeheer**: Draait stabiel met PM2, inclusief automatisch herstarten bij wijzigingen.
 *   **Integrations**:
-    *   **ClearLogo**: Shows the movie or series logo.
+    *   **ClearLogo**: Shows the movie or series logo for a clean look.
     *   **Rotten Tomatoes**: Displays a "Fresh", "Rotten", or "Certified Fresh" badge.
+*   **Secure Admin Panel**: A full-featured, web-based admin panel to configure the application without touching any files.
+*   **Enhanced Security**: The admin account is protected by a hashed password and supports **Two-Factor Authentication (2FA)**.
+*   **API Documentation**: Comes with a built-in Swagger UI to explore and understand the API.
 *   **Customizable Widgets**: Includes a configurable clock.
-*   **Web-based Admin Panel**: Easy to configure via a web interface, including testing the server connection and selecting libraries.
 *   **Process Management**: Runs stably with PM2, including automatic restarts on changes.
 
-## Vereisten
-
-*   **Node.js**: versie 16.x of hoger.
-*   **npm**: Wordt meegeleverd met Node.js.
-*   **PM2**: Een process manager voor Node.js. Installeer het wereldwijd:
 ## Requirements
 
-*   **Node.js**: version 16.x or higher.
+*   **Node.js**: version 18.x or higher.
 *   **npm**: Included with Node.js.
 *   **PM2**: A process manager for Node.js. Install it globally:
     ```bash
     npm install -g pm2
     ```
-*   **Media Server**: Toegang tot een geconfigureerde Plex of Jellyfin server.
 *   **Media Server**: Access to a configured Plex or Jellyfin server.
 
 ## Installation
 
-1.  **Clone de repository**
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/jouw-gebruiker/posterrama.app.git
+    git clone https://github.com/your-user/posterrama.app.git
     cd posterrama.app
     ```
 
-2.  **Installeer de afhankelijkheden**
 2.  **Install dependencies**
     ```bash
     npm install
     ```
-
-3.  **Maak het configuratiebestand voor geheimen**
 
 3.  **Create the configuration file for secrets**
 
@@ -62,8 +48,6 @@
     ```bash
     cp config.example.env .env
     ```
-
-4.  **Vul het `.env` bestand in**
 
 4.  **Fill in the `.env` file**
 
@@ -74,20 +58,20 @@
     # Plex Server Details
     PLEX_HOSTNAME="192.168.1.10"
     PLEX_PORT="32400"
-    PLEX_TOKEN="JouwPlexTokenHier"
+    PLEX_TOKEN="YourPlexTokenHere"
     ```
 
-5.  **Start de applicatie met PM2**
+5.  **Start the application with PM2**
 
-    PM2 zorgt ervoor dat de applicatie op de achtergrond draait en automatisch herstart bij crashes of wijzigingen in de code.
+    PM2 ensures the application runs in the background and automatically restarts after crashes or code changes.
 
     ```bash
     pm2 start ecosystem.config.js
     ```
 
-6.  **Controleer de status**
+6.  **Check the status**
 
-    Je kunt de status en logs van de applicatie bekijken met:
+    You can view the application's status and logs with:
     ```bash
     pm2 status
     pm2 logs posterrama
@@ -95,51 +79,40 @@
 
 ## Configuration
 
-De applicatie gebruikt twee configuratiebestanden:
+The application is best configured via the **Admin Panel**.
 
-*   `.env`: Voor geheimen en server-specifieke instellingen (hostname, poort, tokens).
-*   `config.json`: Voor weergave-instellingen (transitie-interval, welke widgets tonen, etc.).
+### Initial Admin Panel Setup
 
-De eenvoudigste manier om de applicatie te configureren is via het **Admin Paneel**.
+1.  Navigate to `http://<your-server-ip>:4000/admin/setup` in your browser.
+2.  Create an admin account with a username and a strong password.
+3.  After setup, you will be redirected to the login page. Log in with your new credentials.
+4.  It is highly recommended to enable **Two-Factor Authentication (2FA)** immediately after logging in via the "Security" section in the admin panel for enhanced security.
 
-### Eerste Setup van het Admin Paneel
+### Using the Admin Panel
 
-1.  Navigeer in je browser naar `http://<jouw-server-ip>:4000/admin/setup`.
-2.  Maak een beheerdersaccount aan met een gebruikersnaam en een sterk wachtwoord.
-3.  Na de setup word je doorgestuurd naar de login-pagina. Log in met de zojuist aangemaakte gegevens.
-4.  Het wordt sterk aangeraden om direct na het inloggen Two-Factor Authentication (2FA) in te schakelen via het "Beveiliging" gedeelte in het admin paneel.
+*   **URL**: `http://<your-server-ip>:4000/admin`
+*   Here you can adjust all settings, such as:
+    *   Enabling or disabling the Plex/Jellyfin server connection.
+    *   Selecting which libraries to fetch media from.
+    *   Customizing the display of the poster, metadata, ClearLogo, and Rotten Tomatoes badge.
+    *   Restarting the application after changing critical settings (like the port).
 
-### Gebruik van het Admin Paneel
+## Usage
 
-*   **URL**: `http://<jouw-server-ip>:4000/admin`
-*   Hier kun je alle instellingen aanpassen, zoals:
-    *   De Plex/Jellyfin server in- of uitschakelen.
-    *   Bibliotheken selecteren waaruit media moet worden getoond.
-    *   De weergave van de poster, metadata, ClearLogo en Rotten Tomatoes badge aanpassen.
-    *   De applicatie herstarten na het wijzigen van kritieke instellingen (zoals de poort).
-
-## Gebruik
-
-*   **Screensaver**: Open `http://<jouw-server-ip>:4000` in een browser.
-*   **Admin Paneel**: Open `http://<jouw-server-ip>:4000/admin`.
-
-## API Documentatie
-
-De applicatie heeft een interne API die wordt gebruikt door de frontend. Met de toevoeging van Swagger UI is deze API nu gedocumenteerd en interactief te verkennen. Dit is vooral handig voor ontwikkelaars of voor wie de werking van de applicatie beter wil begrijpen.
-
-*   **Swagger UI**: Open `http://<jouw-server-ip>:4000/api-docs` in een browser.
-
+*   **Screensaver**: Open `http://<your-server-ip>:4000` in a browser.
+*   **Admin Panel**: Open `http://<your-server-ip>:4000/admin`.
+*   **API Docs**: Open `http://<your-server-ip>:4000/api-docs` to view the Swagger API documentation.
 
 ## Troubleshooting
 
-*   **Geen media zichtbaar**:
-    1.  Controleer de logs met `pm2 logs posterrama`.
-    2.  Ga naar het Admin Paneel en gebruik de "Test Verbinding" knop om te controleren of de servergegevens correct zijn.
-    3.  Zorg ervoor dat je ten minste één film- of seriebibliotheek hebt geselecteerd.
-*   **Fouten na wijzigingen**:
-    1.  Schakel "Enable Debug Mode" in via het Admin Paneel voor meer gedetailleerde logs.
-    2.  Herstart de applicatie via de knop in het Admin Paneel of via de command line: `pm2 restart posterrama`.
+*   **No media is visible**:
+    1.  Check the logs with `pm2 logs posterrama`.
+    2.  Go to the Admin Panel and use the "Test Connection" button to verify that the server details are correct.
+    3.  Ensure you have selected at least one movie or show library.
+*   **Errors after changes**:
+    1.  Enable "Enable Debug Mode" in the Admin Panel for more detailed logs.
+    2.  Restart the application using the button in the Admin Panel or via the command line: `pm2 restart posterrama`.
 
 ## License
 
-Dit project is gelicenseerd onder de GPL-3.0-or-later licentie. Zie het `LICENSE.md` bestand voor meer details.
+This project is licensed under the GPL-3.0-or-later license. See the `LICENSE` file for more details.
