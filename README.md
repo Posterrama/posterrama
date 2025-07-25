@@ -105,8 +105,9 @@ De eenvoudigste manier om de applicatie te configureren is via het **Admin Panee
 ### Eerste Setup van het Admin Paneel
 
 1.  Navigeer in je browser naar `http://<jouw-server-ip>:4000/admin/setup`.
-2.  Maak een beheerdersaccount aan. Deze gegevens worden veilig opgeslagen in het `.env` bestand.
-3.  Na de setup word je doorgestuurd naar de login-pagina.
+2.  Maak een beheerdersaccount aan met een gebruikersnaam en een sterk wachtwoord.
+3.  Na de setup word je doorgestuurd naar de login-pagina. Log in met de zojuist aangemaakte gegevens.
+4.  Het wordt sterk aangeraden om direct na het inloggen Two-Factor Authentication (2FA) in te schakelen via het "Beveiliging" gedeelte in het admin paneel.
 
 ### Gebruik van het Admin Paneel
 

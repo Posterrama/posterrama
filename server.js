@@ -994,78 +994,35 @@ app.get('/admin/setup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'setup.html'));
 });
 
-app.post('/admin/setup', asyncHandler(async (req, res, next) => {
+app.post('/admin/setup', asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin Setup] Received setup request.');
     if (isAdminSetup()) {
         if (isDebug) console.log('[Admin Setup] Aborted: Admin user is already configured.');
         throw new ApiError(403, 'Admin user is already configured.');
     }
-
+    
     const { username, password } = req.body;
     if (!username || !password) {
         if (isDebug) console.log('[Admin Setup] Aborted: Username or password missing.');
         throw new ApiError(400, 'Username and password are required.');
     }
-
+    
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
     const sessionSecret = require('crypto').randomBytes(32).toString('hex');
-
-    // Generate 2FA secret
-    const tfaSecret = speakeasy.generateSecret({
-        length: 20,
-        name: `posterrama.app (${username})`
+    
+    // Write credentials directly to .env file, without forcing 2FA on setup.
+    // 2FA can be enabled from the admin panel after the first login.
+    await writeEnvFile({
+        ADMIN_USERNAME: username,
+        ADMIN_PASSWORD_HASH: passwordHash,
+        SESSION_SECRET: sessionSecret,
+        ADMIN_2FA_SECRET: '' // Explicitly set to empty to ensure 2FA is off by default
     });
-
-    // Store all necessary info in the session temporarily
-    req.session.setup = { username, passwordHash, sessionSecret, tfaSecret: tfaSecret.base32 };
-
-    // Generate QR code for the user and store it for the setup page
-    const qrDataUrl = await qrcode.toDataURL(tfaSecret.otpauth_url);
-    req.session.tfa_qr = { secret: tfaSecret.base32, qr: qrDataUrl };
-
-    if (isDebug) console.log(`[Admin Setup] Generated 2FA secret for user "${username}". Redirecting to 2FA setup page.`);
-    res.redirect('/admin/2fa-setup');
-}));
-
-app.get('/admin/2fa-setup', (req, res) => {
-    // Check if we are in the middle of a setup process
-    if (!req.session.setup || !req.session.tfa_qr) {
-        return res.redirect('/admin/setup');
-    }
-    res.sendFile(path.join(__dirname, 'public', '2fa-setup.html'));
-});
-
-app.post('/admin/2fa-verify', asyncHandler(async (req, res) => {
-    const { totp_code } = req.body;
-    const setupData = req.session.setup;
-
-    if (!setupData || !setupData.tfaSecret) {
-        throw new ApiError(400, 'Session expired or invalid. Please start the setup process again. <a href="/admin/setup">Start Over</a>');
-    }
-
-    const verified = speakeasy.totp.verify({
-        secret: setupData.tfaSecret,
-        encoding: 'base32',
-        token: totp_code,
-        window: 1
-    });
-
-    if (verified) {
-        await writeEnvFile({
-            ADMIN_USERNAME: setupData.username,
-            ADMIN_PASSWORD_HASH: setupData.passwordHash,
-            SESSION_SECRET: setupData.sessionSecret,
-            ADMIN_2FA_SECRET: setupData.tfaSecret,
-        });
-        if (isDebug) console.log(`[Admin Setup] 2FA verified. Successfully created admin user "${setupData.username}" and saved to .env file.`);
-        delete req.session.setup;
-        delete req.session.tfa_qr;
-        res.send('Setup complete! You will be redirected to the login page. <script>setTimeout(() => window.location.href="/admin/login", 2000);</script>');
-    } else {
-        if (isDebug) console.log('[Admin Setup] 2FA verification failed.');
-        res.redirect('/admin/2fa-setup?error=1');
-    }
+    
+    if (isDebug) console.log(`[Admin Setup] Successfully created admin user "${username}". 2FA is not enabled by default.`);
+    
+    res.send('Setup complete! You can now log in. You will be redirected shortly. <script>setTimeout(() => window.location.href="/admin/login", 3000);</script>');
 }));
 
 app.get('/admin/login', (req, res) => {
@@ -1081,35 +1038,44 @@ app.get('/admin/login', (req, res) => {
 app.post('/admin/login', asyncHandler(async (req, res) => {
     const { username, password, totp_code } = req.body;
     if (isDebug) console.log(`[Admin Login] Attempting login for user "${username}".`);
+
     const isValidUser = (username === process.env.ADMIN_USERNAME);
+    if (!isValidUser) {
+        if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid username.`);
+        throw new ApiError(401, 'Invalid credentials. <a href="/admin/login">Try again</a>.');
+    }
+
     const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
-
-    let verified = false;
-
-    if (isValidUser && isValidPassword) {
-
-      // Check 2FA
-      const secret = process.env.ADMIN_2FA_SECRET;
-      verified = speakeasy.totp.verify({
-        secret: secret,
-        encoding: 'base32',
-        token: totp_code,
-        window: 2
-      });
-
-      if (verified) {
-          req.session.user = { username: process.env.ADMIN_USERNAME };
-          if (isDebug) console.log(`[Admin Login] Login successful for user "${username}". Session created.`);
-          res.redirect('/admin');
-      } else {
-          if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid 2FA code.`);
-          throw new ApiError(401, 'Invalid 2FA code. <a href="/admin/login">Try again</a>.');
-      }
-
-    } else {
+    if (!isValidPassword) {
         if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid credentials.`);
         throw new ApiError(401, 'Invalid credentials. <a href="/admin/login">Try again</a>.');
     }
+
+    // --- 2FA Verification ---
+    const is2FAEnabled = !!process.env.ADMIN_2FA_SECRET;
+    if (is2FAEnabled) {
+        if (!totp_code) {
+            if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". 2FA code is required but was not provided.`);
+            throw new ApiError(401, '2FA code is required. <a href="/admin/login">Try again</a>.');
+        }
+
+        const verified = speakeasy.totp.verify({
+            secret: process.env.ADMIN_2FA_SECRET,
+            encoding: 'base32',
+            token: totp_code,
+            window: 1 // Allows for a 30-second tolerance window (one token before, one after)
+        });
+
+        if (!verified) {
+            if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid 2FA code.`);
+            throw new ApiError(401, 'Invalid 2FA code. <a href="/admin/login">Try again</a>.');
+        }
+    }
+
+    // --- Session Creation ---
+    req.session.user = { username: username };
+    if (isDebug) console.log(`[Admin Login] Login successful for user "${username}". Redirecting to admin panel.`);
+    res.redirect('/admin');
 }));
 
 app.get('/admin/logout', (req, res, next) => {
@@ -1123,6 +1089,70 @@ app.get('/admin/logout', (req, res, next) => {
         res.redirect('/admin/login');
     });
 });
+
+app.get('/api/admin/2fa/status', isAuthenticated, (req, res) => {
+    const isEnabled = !!process.env.ADMIN_2FA_SECRET && process.env.ADMIN_2FA_SECRET !== '';
+    res.json({ enabled: isEnabled });
+});
+
+app.post('/api/admin/2fa/generate', isAuthenticated, asyncHandler(async (req, res) => {
+    // Prevent generating a new secret if one is already active
+    if (!!process.env.ADMIN_2FA_SECRET && process.env.ADMIN_2FA_SECRET !== '') {
+        throw new ApiError(400, '2FA is already enabled.');
+    }
+
+    const secret = speakeasy.generateSecret({
+        length: 20,
+        name: `posterrama.app (${req.session.user.username})`
+    });
+
+    // Store the new secret in the session, waiting for verification.
+    // This is crucial so we don't lock the user out if they fail to verify.
+    req.session.tfa_pending_secret = secret.base32;
+
+    const qrCodeDataUrl = await qrcode.toDataURL(secret.otpauth_url);
+    res.json({ qrCodeDataUrl });
+}));
+
+app.post('/api/admin/2fa/verify', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    const { token } = req.body;
+    const pendingSecret = req.session.tfa_pending_secret;
+
+    if (!pendingSecret) {
+        throw new ApiError(400, 'No 2FA setup process is pending. Please try again.');
+    }
+
+    const verified = speakeasy.totp.verify({
+        secret: pendingSecret,
+        encoding: 'base32',
+        token: token,
+        window: 1
+    });
+
+    if (verified) {
+        // Verification successful, save the secret to the .env file
+        await writeEnvFile({ ADMIN_2FA_SECRET: pendingSecret });
+        
+        // Clear the pending secret from the session
+        delete req.session.tfa_pending_secret;
+
+        if (isDebug) console.log(`[Admin 2FA] 2FA enabled successfully for user "${req.session.user.username}".`);
+        res.json({ success: true, message: '2FA enabled successfully.' });
+    } else {
+        if (isDebug) console.log(`[Admin 2FA] 2FA verification failed for user "${req.session.user.username}".`);
+        throw new ApiError(400, 'Invalid verification code. Please try again.');
+    }
+}));
+
+app.post('/api/admin/2fa/disable', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    const { password } = req.body;
+    if (!password) throw new ApiError(400, 'Password is required to disable 2FA.');
+    const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
+    if (!isValidPassword) throw new ApiError(401, 'Incorrect password.');
+    await writeEnvFile({ ADMIN_2FA_SECRET: '' });
+    if (isDebug) console.log(`[Admin 2FA] 2FA disabled successfully for user "${req.session.user.username}".`);
+    res.json({ success: true, message: '2FA disabled successfully.' });
+}));
 
 app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Request received for /api/admin/config.');
@@ -1161,16 +1191,7 @@ app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
         config: currentConfig,
         env: envVarsToExpose
     });
-}));
-
-app.get('/api/admin/2fa-qr-code', (req, res) => {
-    // This endpoint is used during setup, so we check for session.tfa_qr
-    if (req.session.tfa_qr) {
-        res.json(req.session.tfa_qr);
-    } else {
-        res.status(404).json({ error: '2FA setup data not found in session. Please start over.' });
-    }
-});
+}))
 
 app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Received request to test Plex connection.');

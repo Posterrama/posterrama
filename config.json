@@ -9,6 +9,7 @@
   "showMetadata": true,
   "recentlyAddedSidebar": false,
   "clockWidget": false,
+  "enable2FA": false,
   "kenBurnsEffect": {
     "enabled": true,
     "durationSeconds": 15

@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showCount: 15
         }],
         SERVER_PORT: 4000,
-        DEBUG: false
+        DEBUG: false,
     };
 
     // --- Admin Background Slideshow State ---
@@ -77,6 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('clockWidget').checked = config.clockWidget ?? defaults.clockWidget;
             document.getElementById('kenBurnsEffect.enabled').checked = get(config, 'kenBurnsEffect.enabled', defaults.kenBurnsEffect.enabled);
             document.getElementById('kenBurnsEffect.durationSeconds').value = get(config, 'kenBurnsEffect.durationSeconds', defaults.kenBurnsEffect.durationSeconds);
+
+            load2FAStatus();
 
             // Logic for poster/metadata dependency
             const showPosterCheckbox = document.getElementById('showPoster');
@@ -375,6 +377,139 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkedBoxes = container.querySelectorAll(`input[name="${type}Library"]:checked`);
         return Array.from(checkedBoxes).map(cb => cb.value);
     }
+
+    // --- 2FA Management ---
+
+    const twoFaCheckbox = document.getElementById('enable2FA');
+    const twoFaStatusText = document.getElementById('2fa-status-text');
+    const twoFaModal = document.getElementById('2fa-modal');
+    const twoFaVerifyForm = document.getElementById('2fa-verify-form');
+    const cancel2faButton = document.getElementById('cancel-2fa-button');
+    const qrCodeContainer = document.getElementById('qr-code-container');
+
+    function show2FAModal() {
+        if (twoFaModal) twoFaModal.classList.remove('is-hidden');
+    }
+
+    function hide2FAModal() {
+        if (twoFaModal) twoFaModal.classList.add('is-hidden');
+        if (qrCodeContainer) qrCodeContainer.innerHTML = '';
+        const tokenInput = document.getElementById('2fa-token');
+        if (tokenInput) tokenInput.value = '';
+    }
+
+    function update2FAStatusText(isEnabled) {
+        if (!twoFaStatusText) return;
+        if (isEnabled) {
+            twoFaStatusText.textContent = '2FA is momenteel ingeschakeld.';
+            twoFaStatusText.className = 'status-text enabled';
+        } else {
+            twoFaStatusText.textContent = '2FA is momenteel uitgeschakeld.';
+            twoFaStatusText.className = 'status-text disabled';
+        }
+    }
+
+    async function handleEnable2FA() {
+        try {
+            const response = await fetch('/api/admin/2fa/generate', { method: 'POST' });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Kon QR-code niet genereren.');
+
+            qrCodeContainer.innerHTML = `<img src="${result.qrCodeDataUrl}" alt="QR Code">`;
+            show2FAModal();
+        } catch (error) {
+            showNotification(`Fout bij inschakelen 2FA: ${error.message}`, 'error');
+            twoFaCheckbox.checked = false;
+        }
+    }
+
+    async function handleDisable2FA() {
+        // Een simpele prompt wordt hier gebruikt voor de beknoptheid. Een modaal formulier is beter voor de UX.
+        const password = prompt('Voer uw huidige wachtwoord in om het uitschakelen van 2FA te bevestigen:');
+        if (password === null) { // Gebruiker klikte op annuleren
+            twoFaCheckbox.checked = true; // Zet de checkbox terug
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/admin/2fa/disable', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Uitschakelen mislukt.');
+
+            showNotification('2FA succesvol uitgeschakeld.', 'success');
+            update2FAStatusText(false);
+        } catch (error) {
+            showNotification(`Fout bij uitschakelen 2FA: ${error.message}`, 'error');
+            twoFaCheckbox.checked = true; // Zet de checkbox terug bij een fout
+        }
+    }
+
+    async function load2FAStatus() {
+        if (!twoFaCheckbox) return;
+        try {
+            const response = await fetch('/api/admin/2fa/status');
+            if (!response.ok) throw new Error('Kon 2FA-status niet ophalen.');
+            const data = await response.json();
+            twoFaCheckbox.checked = data.enabled;
+            update2FAStatusText(data.enabled);
+        } catch (error) {
+            console.error('Failed to load 2FA status:', error);
+            if (twoFaStatusText) {
+                twoFaStatusText.textContent = 'Kon status niet laden.';
+                twoFaStatusText.className = 'status-text error-text';
+            }
+        }
+    }
+
+    if (twoFaCheckbox) {
+        twoFaCheckbox.addEventListener('change', (event) => {
+            if (event.target.checked) {
+                handleEnable2FA();
+            } else {
+                handleDisable2FA();
+            }
+        });
+    }
+
+    if (cancel2faButton) {
+        cancel2faButton.addEventListener('click', () => {
+            hide2FAModal();
+            twoFaCheckbox.checked = false;
+            update2FAStatusText(false);
+        });
+    }
+
+    if (twoFaVerifyForm) {
+        twoFaVerifyForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const tokenInput = document.getElementById('2fa-token');
+            const token = tokenInput.value;
+
+            try {
+                const response = await fetch('/api/admin/2fa/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Verificatie mislukt.');
+
+                hide2FAModal();
+                showNotification('2FA succesvol ingeschakeld!', 'success');
+                update2FAStatusText(true);
+            } catch (error) {
+                showNotification(`Fout: ${error.message}`, 'error');
+                tokenInput.value = '';
+                tokenInput.focus();
+            }
+        });
+    }
+
+    // --- Initialization ---
 
     loadConfig();
 

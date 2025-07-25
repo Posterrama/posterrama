@@ -14,8 +14,7 @@ module.exports = {
     ignore_watch: ['node_modules', 'public', 'README.md', 'sessions', '.env', 'logs'],
     env: {
       NODE_ENV: 'production',
-      APP_VERSION: pkg.version,
-      ADMIN_2FA_SECRET: 'Your2FASecretHere'
+      APP_VERSION: pkg.version
     },
   }],
 };

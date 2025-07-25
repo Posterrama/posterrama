@@ -133,6 +133,49 @@
             inset: 0;
             background-color: rgba(0, 0, 0, 0.7); /* Dark filter */
         }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            position: relative;
+            z-index: 1;
+            background-color: #2c2c2c;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90vw;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .modal-content h2 { margin-top: 0; }
+        #qr-code-container {
+            display: flex;
+            justify-content: center;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 4px;
+        }
+        #qr-code-container img { display: block; width: 200px; height: 200px; }
+        .status-text { font-size: 0.9em; margin-top: 0.5rem; }
+        .status-text.enabled { color: #28a745; }
+        .status-text.disabled { color: #888; }
     </style>
 </head>
 <body>
@@ -277,33 +320,45 @@
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="button-primary">Save All Settings</button>
+                <button type="submit" class="button-primary">Save Display & Server Settings</button>
             </div>
         </form>
 
-        <!-- Password & App Management -->
+        <!-- Security & Management -->
         <div class="settings-grid" style="align-items: start;">
             <div class="settings-column">
-                <h2>Change Password</h2>
-                <form id="password-form">
-                    <div class="form-section">
+                <h2>Beveiliging</h2>
+                <!-- Change Password -->
+                <div class="form-section">
+                    <h3>Wachtwoord Wijzigen</h3>
+                    <form id="password-form">
                         <div class="form-group">
-                            <label for="currentPassword">Current Password</label>
+                            <label for="currentPassword">Huidig Wachtwoord</label>
                             <input type="password" id="currentPassword" name="currentPassword" required>
                         </div>
                         <div class="form-group">
-                            <label for="newPassword">New Password</label>
+                            <label for="newPassword">Nieuw Wachtwoord</label>
                             <input type="password" id="newPassword" name="newPassword" required>
                         </div>
                         <div class="form-group">
-                            <label for="confirmPassword">Confirm New Password</label>
+                            <label for="confirmPassword">Bevestig Nieuw Wachtwoord</label>
                             <input type="password" id="confirmPassword" name="confirmPassword" required>
                         </div>
+                        <div class="form-actions">
+                            <button type="submit" class="button-primary">Wachtwoord Wijzigen</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- 2FA Settings -->
+                <div class="form-section">
+                    <h3>Two-Factor Authenticatie (2FA)</h3>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="enable2FA" name="enable2FA">
+                        <label for="enable2FA">2FA Inschakelen</label>
+                        <small>Beveilig uw account met een authenticator-app.</small>
+                        <div id="2fa-status-text" class="status-text disabled"></div>
                     </div>
-                    <div class="form-actions">
-                        <button type="submit" class="button-primary">Change Password</button>
-                    </div>
-                </form>
+                </div>
             </div>
             <div class="settings-column">
                 <h2>Applicatiebeheer</h2>
@@ -321,6 +376,29 @@
             </div>
         </div>
     </main>
+
+    <!-- 2FA Setup Modal -->
+    <div id="2fa-modal" class="modal is-hidden">
+        <div class="modal-background"></div>
+        <div class="modal-content">
+            <h2 id="2fa-modal-title">2FA Instellen</h2>
+            <p id="2fa-modal-intro">Scan de onderstaande QR-code met uw authenticator-app (zoals Google Authenticator, Authy, etc.).</p>
+            <div id="qr-code-container">
+                <!-- QR code will be inserted here by JS -->
+            </div>
+            <p>Voer vervolgens de 6-cijferige code in die door de app wordt gegenereerd om de installatie te voltooien.</p>
+            <form id="2fa-verify-form">
+                <div class="form-group">
+                    <label for="2fa-token">Verificatiecode</label>
+                    <input type="text" id="2fa-token" name="2fa-token" required pattern="\d{6}" maxlength="6" autocomplete="one-time-code" inputmode="numeric">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancel-2fa-button" class="button-secondary">Annuleren</button>
+                    <button type="submit" class="button-primary">Verifiëren en Inschakelen</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <script src="/admin.js" defer></script>
 </body>
 </html>
