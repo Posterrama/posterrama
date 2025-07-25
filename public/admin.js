@@ -704,10 +704,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const newPasswordInput = document.getElementById('newPassword');
             const confirmPasswordInput = document.getElementById('confirmPassword');
 
+            const currentPassword = currentPasswordInput.value;
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            // Client-side validation
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showNotification('Alle wachtwoordvelden zijn verplicht.', 'error');
+                button.disabled = false;
+                button.textContent = originalButtonText;
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                showNotification('Het nieuwe wachtwoord en de bevestiging komen niet overeen.', 'error');
+                button.disabled = false;
+                button.textContent = originalButtonText;
+                return;
+            }
+
             const data = {
-                currentPassword: currentPasswordInput.value,
-                newPassword: newPasswordInput.value,
-                confirmPassword: confirmPasswordInput.value
+                currentPassword, newPassword, confirmPassword
             };
 
             try {
