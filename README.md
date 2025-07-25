@@ -56,8 +56,8 @@ It fetches beautiful backgrounds and posters from your Plex or Jellyfin media se
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/your-user/posterrama.app.git
-    cd posterrama.app
+    git clone https://github.com/mfrelink/posterrama.git
+    cd posterrama
     ```
 
 2.  **Install dependencies**
