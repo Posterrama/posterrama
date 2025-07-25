@@ -55,7 +55,6 @@ const express = require('express');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const bcrypt = require('bcrypt');
-const fs = require('fs').promises;
 const { exec } = require('child_process');
 const PlexAPI = require('plex-api');
 const fetch = require('node-fetch');
@@ -67,6 +66,7 @@ const ecosystemConfig = require('./ecosystem.config.js');
 const { shuffleArray } = require('./utils.js');
 
 const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
 const app = express();
 const { ApiError, NotFoundError } = require('./errors.js');
 const { Jellyfin } = require('@jellyfin/sdk');
@@ -91,7 +91,6 @@ if (isDebug) {
     });
 }
 
-require('dotenv').config();
 // Session middleware setup
 app.use(session({
     store: new FileStore({
@@ -112,45 +111,6 @@ app.use(session({
 const asyncHandler = (fn) => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
 };
-
-// --- Environment Initialization ---
-// Automatically create and configure the .env file on first run.
-(async function initializeEnvironment() {
-    const envPath = path.join(__dirname, '.env');
-    const exampleEnvPath = path.join(__dirname, 'config.example.env');
-
-    try {
-        // Check if .env file exists
-        await fs.access(envPath);
-        if (isDebug) console.log('.env file exists, skipping creation.');
-    } catch (error) {
-        // If .env doesn't exist, copy from config.example.env
-        if (error.code === 'ENOENT') {
-            console.log('.env file not found, creating from config.example.env...');
-            await fs.copyFile(exampleEnvPath, envPath);
-            console.log('.env file created successfully.');
-        } else {
-            console.error('Error checking .env file:', error);
-            process.exit(1);
-        }
-    }
-
-    // Validate SESSION_SECRET
-    if (!process.env.SESSION_SECRET) {
-        console.log('SESSION_SECRET is missing, generating a new one...');
-        const newSecret = require('crypto').randomBytes(32).toString('hex');
-        // Read the .env file
-        let envContent = await fs.readFile(envPath, 'utf8');
-        // Append the new secret to the .env file
-        envContent += `\nSESSION_SECRET="${newSecret}"\n`;
-        // Write the updated content back to the .env file
-        await fs.writeFile(envPath, envContent, 'utf8');
-        // Update process.env immediately
-        process.env.SESSION_SECRET = newSecret;
-        console.log('New SESSION_SECRET generated and saved to .env.');
-    }
-})();
-
 
 
 
@@ -1029,8 +989,9 @@ app.get('/image', asyncHandler(async (req, res) => {
         }
         const hostname = process.env[serverConfig.hostnameEnvVar];
         const port = process.env[serverConfig.portEnvVar];
-        imageUrl = `http://${hostname}:${port}${imagePath}?X-Plex-Token=${token}`;
-        if (isDebug) console.log(`[Image Proxy] Fetching from Plex URL: http://${hostname}:${port}${imagePath}`);
+        imageUrl = `http://${hostname}:${port}${imagePath}`;
+        fetchOptions.headers['X-Plex-Token'] = token;
+        if (isDebug) console.log(`[Image Proxy] Fetching from Plex URL: ${imageUrl}`);
     } else if (serverConfig.type === 'jellyfin') {
         const serverUrl = process.env[serverConfig.urlEnvVar];
         const apiKey = process.env[serverConfig.apiKeyEnvVar];
