@@ -16,10 +16,12 @@ const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const bcrypt = require('bcrypt');
 const fs = require('fs').promises;
+const { exec } = require('child_process');
 const PlexAPI = require('plex-api');
 const fetch = require('node-fetch');
 const config = require('./config.json');
 const pkg = require('./package.json');
+const ecosystemConfig = require('./ecosystem.config.js');
 const { shuffleArray } = require('./utils.js');
 
 const app = express();
@@ -50,7 +52,7 @@ app.use(session({
         ttl: 86400, // Session TTL in seconds, matches cookie maxAge
         reapInterval: 86400 // Clean up expired sessions once a day
     }),
-    secret: process.env.SESSION_SECRET || 'please-set-a-strong-secret-in-your-env-file',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -63,6 +65,28 @@ const asyncHandler = (fn) => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
 };
 
+/**
+ * Returns the standard options for a PlexAPI client instance to ensure consistent identification.
+ * @returns {object}
+ */
+function getPlexClientOptions() {
+    // Default options ensure the app identifies itself correctly.
+    // These can be overridden by setting a "plexClientOptions" object in config.json.
+    const defaultOptions = {
+        identifier: 'c8a5f7d1-b8e9-4f0a-9c6d-3e1f2a5b6c7d', // Static UUID for this app instance
+        product: 'posterrama.app',
+        version: pkg.version,
+        deviceName: 'posterrama.app',
+        platform: 'Node.js'
+    };
+
+    const finalOptions = { ...defaultOptions, ...(config.plexClientOptions || {}) };
+
+    return {
+        // These options must be nested inside an 'options' object per plex-api documentation.
+        options: finalOptions
+    };
+}
 /**
  * Fetches detailed metadata for a single Plex item.
  * @param {object} itemSummary - The summary object of the media item from Plex.
@@ -90,6 +114,55 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         return null;
     };
 
+    const getRottenTomatoesData = (ratings, titleForDebug = 'Unknown') => {
+        if (!ratings || !Array.isArray(ratings)) {
+            return null;
+        }
+
+        const rtRating = ratings.find(r => r.image && r.image.includes('rottentomatoes'));
+
+        if (!rtRating || typeof rtRating.value === 'undefined') {
+            return null;
+        }
+
+        // --- START ENHANCED DEBUG LOGGING ---
+        if (isDebug) {
+            console.log(`[RT Debug] Processing rating for "${titleForDebug}". Raw rtRating object:`, JSON.stringify(rtRating));
+        }
+        // --- END ENHANCED DEBUG LOGGING ---
+
+        const score = parseFloat(rtRating.value);
+        if (isNaN(score)) {
+            return null;
+        }
+
+        // The score from Plex is on a 10-point scale, so we multiply by 10 for a percentage.
+        const finalScore = Math.round(score * 10);
+
+        const imageIdentifier = rtRating.image || '';
+        const isCriticRating = rtRating.type === 'critic';
+        let icon = 'rotten';
+
+        // Heuristic for "Certified Fresh": We assume a high critic score (>= 85) indicates
+        // this status, as the identifier from Plex ('ripe') doesn't distinguish it from regular "Fresh".
+        if (isCriticRating && finalScore >= 85) {
+            icon = 'certified-fresh';
+        } else if (imageIdentifier.includes('ripe') || imageIdentifier.includes('upright') || finalScore >= 60) {
+            // 'ripe' is for critic fresh, 'upright' is for audience fresh. The score is a fallback.
+            icon = 'fresh';
+        }
+
+        if (isDebug) {
+            console.log(`[RT Debug] -> For "${titleForDebug}": Identifier: "${imageIdentifier}", Score: ${finalScore}, Determined Icon: "${icon}"`);
+        }
+
+        return {
+            score: finalScore, // The 0-100 score for display
+            icon: icon,
+            originalScore: score // The original 0-10 score for filtering
+        };
+    };
+
     try {
         if (!itemSummary.key) return null;
         const detailResponse = await plex.query(itemSummary.key);
@@ -112,6 +185,16 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         const imdbUrl = getImdbUrl(sourceItem.Guid);
         const clearLogoPath = getClearLogoPath(sourceItem.Image);
         const uniqueKey = `${serverConfig.type}-${serverConfig.name}-${sourceItem.ratingKey}`;
+        const rottenTomatoesData = getRottenTomatoesData(sourceItem.Rating, sourceItem.title);
+
+        if (isDebug) {
+            if (rottenTomatoesData) {
+                console.log(`[Plex Debug] Found Rotten Tomatoes data for "${sourceItem.title}": Score ${rottenTomatoesData.score}%, Icon ${rottenTomatoesData.icon}`);
+            } else if (sourceItem.Rating) {
+                // Only log if the Rating array exists but we couldn't parse RT data from it.
+                console.log(`[Plex Debug] Could not parse Rotten Tomatoes data for "${sourceItem.title}" from rating array:`, JSON.stringify(sourceItem.Rating));
+            }
+        }
 
         return {
             key: uniqueKey,
@@ -123,6 +206,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             rating: sourceItem.rating,
             year: sourceItem.year,
             imdbUrl: imdbUrl,
+            rottenTomatoes: rottenTomatoesData,
             _raw: isDebug ? item : undefined
         };
     } catch (e) {
@@ -180,21 +264,58 @@ function processJellyfinItem(item, serverConfig) {
 // --- Client Management ---
 
 /**
+ * Creates a new PlexAPI client instance with the given options.
+ * @param {object} options - The connection options.
+ * @param {string} options.hostname - The Plex server hostname or IP.
+ * @param {string|number} options.port - The Plex server port.
+ * @param {string} options.token - The Plex authentication token.
+ * @param {number} [options.timeout] - Optional request timeout in milliseconds.
+ * @returns {PlexAPI} A new PlexAPI client instance.
+ */
+function createPlexClient({ hostname, port, token, timeout }) {
+    if (!hostname || !port || !token) {
+        throw new ApiError(500, 'Plex client creation failed: missing hostname, port, or token.');
+    }
+
+    // Sanitize hostname to prevent crashes if the user includes the protocol.
+    let sanitizedHostname = hostname.trim();
+    try {
+        // The URL constructor needs a protocol to work.
+        const fullUrl = sanitizedHostname.includes('://') ? sanitizedHostname : `http://${sanitizedHostname}`;
+        const url = new URL(fullUrl);
+        sanitizedHostname = url.hostname; // This extracts just the hostname/IP
+        if (isDebug) console.log(`[Plex Client] Sanitized hostname to: "${sanitizedHostname}"`);
+    } catch (e) {
+        // Fallback for invalid URL formats that might still be valid hostnames (though unlikely)
+        sanitizedHostname = sanitizedHostname.replace(/^https?:\/\//, '');
+        if (isDebug) console.log(`[Plex Client] Could not parse hostname as URL, falling back to simple sanitization: "${sanitizedHostname}"`);
+    }
+
+    const clientOptions = {
+        hostname: sanitizedHostname,
+        port,
+        token,
+        ...getPlexClientOptions()
+    };
+
+    if (timeout) clientOptions.timeout = timeout;
+    return new PlexAPI(clientOptions);
+}
+
+/**
  * Caches PlexAPI clients to avoid re-instantiating for every request.
  * @type {Object.<string, PlexAPI>}
  */
 const plexClients = {};
 function getPlexClient(serverConfig) {
     if (!plexClients[serverConfig.name]) {
+        const hostname = process.env[serverConfig.hostnameEnvVar];
+        const port = process.env[serverConfig.portEnvVar];
         const token = process.env[serverConfig.tokenEnvVar];
-        if (!token) {
-            throw new ApiError(500, `[${serverConfig.name}] FATAL: Token environment variable "${serverConfig.tokenEnvVar}" is not set.`);
-        }
-        plexClients[serverConfig.name] = new PlexAPI({
-            hostname: process.env[serverConfig.hostnameEnvVar],
-            port: process.env[serverConfig.portEnvVar],
-            token: token,
-        });
+
+        // The createPlexClient function will throw an error if details are missing.
+        // This replaces the explicit token check that was here before.
+        plexClients[serverConfig.name] = createPlexClient({ hostname, port, token });
     }
     return plexClients[serverConfig.name];
 }
@@ -251,11 +372,17 @@ async function fetchPlexMedia(serverConfig, libraryNames, type, count) {
     const libraries = await getPlexLibraries(serverConfig);
     let allSummaries = [];
 
+    // We might need to fetch more items to have enough after filtering.
+    // A multiplier of 3 is a reasonable heuristic.
+    const fetchMultiplier = 3;
+    const itemsToFetch = count * fetchMultiplier;
+
     for (const name of libraryNames) {
         const library = libraries.get(name);
         if (library && library.type === type) {
             try {
-                const content = await plex.query(`/library/sections/${library.key}/all`);
+                // Fetch a larger number of items to ensure we have enough after filtering.
+                const content = await plex.query(`/library/sections/${library.key}/all?X-Plex-Container-Size=${itemsToFetch}`);
                 if (content?.MediaContainer?.Metadata) {
                     allSummaries = allSummaries.concat(content.MediaContainer.Metadata);
                 }
@@ -264,11 +391,21 @@ async function fetchPlexMedia(serverConfig, libraryNames, type, count) {
             }
         }
     }
-    const randomSummaries = shuffleArray(allSummaries).slice(0, count);
+    const randomSummaries = shuffleArray(allSummaries);
 
     const mediaItemPromises = randomSummaries.map(itemSummary => processPlexItem(itemSummary, serverConfig, plex));
-    const settledItems = await Promise.all(mediaItemPromises);
-    return settledItems.filter(item => item !== null);
+    const allProcessedItems = (await Promise.all(mediaItemPromises)).filter(item => item !== null);
+
+    const parsedScore = parseFloat(config.rottenTomatoesMinimumScore);
+    const minScore = isNaN(parsedScore) ? 0 : parsedScore;
+    const filteredItems = allProcessedItems.filter(item => {
+        if (minScore === 0) return true; // No filter applied
+        // The originalScore is on the 0-10 scale, which matches our config setting.
+        return item.rottenTomatoes && item.rottenTomatoes.originalScore >= minScore;
+    });
+
+    // Return the desired count from the filtered list.
+    return filteredItems.slice(0, count);
 }
 
 async function fetchJellyfinMedia(serverConfig, libraryNames, type, count) {
@@ -548,27 +685,40 @@ app.get('/get-config', (req, res) => {
         transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
         backgroundRefreshMinutes: config.backgroundRefreshMinutes || 30,
         showClearLogo: config.showClearLogo !== false,
+        showPoster: config.showPoster !== false,
+        showMetadata: config.showMetadata === true,
+        showRottenTomatoes: config.showRottenTomatoes !== false,
+        rottenTomatoesMinimumScore: config.rottenTomatoesMinimumScore || 0,
         kenBurnsEffect: config.kenBurnsEffect || { enabled: true, durationSeconds: 20 }
     });
 });
 
 app.get('/get-media', asyncHandler(async (req, res) => {
-    if (!playlistCache || playlistCache.length === 0) {
-        // Fallback for when cache is empty (e.g., initial fetch failed)
-        if (isDebug) console.log('[Debug] Cache is empty, attempting a blocking refresh.');
-        await refreshPlaylistCache();
-    }
+    // Prevent the browser from caching this endpoint, which is crucial for the polling mechanism.
+    res.setHeader('Cache-Control', 'no-store');
 
     if (playlistCache && playlistCache.length > 0) {
         if (isDebug) console.log(`[Debug] Serving ${playlistCache.length} items from cache.`);
-        // The playlistCache is already shuffled during the background refresh.
-        // Shuffling on every request is inefficient and unnecessary, as it creates a new
-        // array and shuffles it for every single client request.
-        // We now send the pre-shuffled cache directly for a significant performance boost.
-        res.json(playlistCache);
-    } else {
-        res.status(503).json({ error: "Media playlist is currently unavailable. Please try again later." });
+        return res.json(playlistCache);
     }
+
+    if (isRefreshing) {
+        // The full cache is being built. Tell the client to wait and try again.
+        if (isDebug) console.log('[Debug] Cache is empty but refreshing. Sending 202 Accepted.');
+        // 202 Accepted is appropriate here: the request is accepted, but processing is not complete.
+        return res.status(202).json({
+            status: 'building',
+            message: 'Playlist is being built. Please try again in a few seconds.',
+            retryIn: 2000 // Suggest a 2-second polling interval
+        });
+    }
+
+    // If we get here, the cache is empty and we are not refreshing, which means the initial fetch failed.
+    if (isDebug) console.log('[Debug] Cache is empty and not refreshing. Sending 503 Service Unavailable.');
+    return res.status(503).json({
+        status: 'failed',
+        error: "Media playlist is currently unavailable. The initial fetch may have failed. Check server logs."
+    });
 }));
 
 app.get('/get-recently-added', asyncHandler(async (req, res) => {
@@ -835,6 +985,11 @@ app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(a
         throw new ApiError(400, 'Hostname and port are required for the test.');
     }
 
+    // Sanitize hostname to remove http(s):// prefix
+    if (hostname) {
+        hostname = hostname.trim().replace(/^https?:\/\//, '');
+    }
+
     // If no token is provided in the request, use the one from the server's config.
     if (!token) {
         if (isDebug) console.log('[Plex Test] No token provided in request, attempting to use existing server token.');
@@ -852,7 +1007,12 @@ app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(a
     }
 
     try {
-        const testClient = new PlexAPI({ hostname, port, token, timeout: 5000 });
+        const testClient = createPlexClient({
+            hostname,
+            port,
+            token,
+            timeout: 5000
+        });
         // Querying the root is a lightweight way to check credentials and reachability.
         const result = await testClient.query('/');
         const serverName = result?.MediaContainer?.friendlyName;
@@ -872,6 +1032,66 @@ app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(a
             userMessage = 'Connection failed: Unauthorized. Is the Plex token correct?';
         } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
             userMessage = 'Connection timed out. Is the server reachable? Check firewall settings.';
+        }
+        throw new ApiError(400, userMessage);
+    }
+}));
+
+app.post('/api/admin/plex-libraries', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Received request to fetch Plex libraries.');
+    let { hostname, port, token } = req.body;
+
+    // Sanitize hostname
+    if (hostname) {
+        hostname = hostname.trim().replace(/^https?:\/\//, '');
+    }
+
+    // Fallback to configured values if not provided in the request
+    const plexServerConfig = config.mediaServers.find(s => s.type === 'plex');
+    if (!plexServerConfig) {
+        throw new ApiError(500, 'Plex server is not configured in config.json.');
+    }
+
+    if (!hostname) {
+        const envHostname = process.env[plexServerConfig.hostnameEnvVar];
+        if (envHostname) hostname = envHostname.trim().replace(/^https?:\/\//, '');
+    }
+    port = port || process.env[plexServerConfig.portEnvVar];
+    token = token || process.env[plexServerConfig.tokenEnvVar];
+
+    if (!hostname || !port || !token) {
+        throw new ApiError(400, 'Plex-verbindingsdetails (hostnaam, poort, token) ontbreken.');
+    }
+
+    try {
+        const client = createPlexClient({
+            hostname,
+            port,
+            token,
+            timeout: 10000
+        });
+        const sectionsResponse = await client.query('/library/sections');
+        const allSections = sectionsResponse?.MediaContainer?.Directory || [];
+
+        const libraries = allSections.map(dir => ({
+            key: dir.key,
+            name: dir.title,
+            type: dir.type // 'movie', 'show', etc.
+        }));
+
+        res.json({ success: true, libraries });
+
+    } catch (error) {
+        if (isDebug) console.error('[Plex Lib Fetch] Failed:', error.message);
+        let userMessage = 'Kon bibliotheken niet ophalen. Controleer de verbindingsgegevens.';
+        if (error.message.includes('401 Unauthorized')) {
+            userMessage = 'Ongeautoriseerd. Is de Plex-token correct?';
+        } else if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+            userMessage = 'Verbinding geweigerd. Is de hostnaam en poort correct?';
+        } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+            userMessage = 'Verbinding time-out. Is de server bereikbaar?';
+        } else if (error.message.includes('The string did not match the expected pattern')) {
+            userMessage = 'Ongeldig hostnaam-formaat. Gebruik een IP-adres of hostnaam zonder http:// of https://.';
         }
         throw new ApiError(400, userMessage);
     }
@@ -900,8 +1120,12 @@ app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(asyn
     Object.keys(plexClients).forEach(key => delete plexClients[key]);
     Object.keys(jellyfinClients).forEach(key => delete jellyfinClients[key]);
 
+    // Trigger a background refresh of the playlist with the new settings.
+    // We don't await this, so the admin UI gets a fast response.
+    refreshPlaylistCache();
+
     if (isDebug) {
-        console.log('[Admin] Configuration saved successfully. Caches and clients have been cleared.');
+        console.log('[Admin] Configuration saved successfully. Caches and clients have been cleared. Triggered background playlist refresh.');
     }
 
     res.json({ message: 'Configuration saved successfully. Some changes may require an application restart.' });
@@ -934,12 +1158,46 @@ app.post('/api/admin/change-password', isAuthenticated, express.json(), asyncHan
     res.json({ message: 'Password changed successfully.' });
 }));
 
-if (isDebug){
-    app.get('/debug', asyncHandler(async (req, res) => {
-        const allMedia = await getPlaylistMedia();
-        res.json({ allMedia: allMedia.map(m => m?._raw) });
-    }));
-}
+app.post('/api/admin/restart-app', isAuthenticated, asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Received request to restart the application.');
+
+    const appName = ecosystemConfig.apps[0].name || 'posterrama';
+    if (isDebug) console.log(`[Admin API] Determined app name for PM2: "${appName}"`);
+
+    // Immediately send a response to the client to avoid a race condition.
+    // We use 202 Accepted, as the server has accepted the request but the action is pending.
+    res.status(202).json({ message: 'Herstart-commando ontvangen. De applicatie wordt nu herstart.' });
+
+    // Execute the restart command after a short delay to ensure the HTTP response has been sent.
+    setTimeout(() => {
+        if (isDebug) console.log(`[Admin API] Executing command: "pm2 restart ${appName}"`);
+        exec(`pm2 restart ${appName}`, (error, stdout, stderr) => {
+            // We can't send a response here, but we can log the outcome for debugging.
+            if (error) {
+                console.error(`[Admin API] PM2 restart command failed after response was sent.`);
+                console.error(`[Admin API] Error: ${error.message}`);
+                if (stderr) console.error(`[Admin API] PM2 stderr: ${stderr}`);
+                return;
+            }
+            if (isDebug) console.log(`[Admin API] PM2 restart command issued successfully for '${appName}'.`);
+        });
+    }, 100); // 100ms delay should be sufficient.
+}));
+
+app.get('/admin/debug', isAuthenticated, asyncHandler(async (req, res) => {
+    if (!isDebug) {
+        throw new NotFoundError('Debug endpoint is only available when debug mode is enabled.');
+    }
+    // Use the existing cache to inspect the current state, which is more useful for debugging.
+    // Calling getPlaylistMedia() would fetch new data every time, which is not what the note implies.
+    const allMedia = playlistCache || [];
+
+    res.json({
+        note: "This endpoint returns the raw data for all media items currently in the *cached* playlist. This reflects what the front-end is using.",
+        playlist_item_count: allMedia.length,
+        playlist_items_raw: allMedia.map(m => m?._raw).filter(Boolean) // Filter out items without raw data
+    });
+}));
 
 // --- Centralized Error Handling ---
 // This should be the last middleware added.
@@ -980,11 +1238,12 @@ app.listen(port, async () => {
 
     // Initial cache population on startup
     console.log('Performing initial playlist fetch...');
-    await refreshPlaylistCache();
-    if (playlistCache) {
+    await refreshPlaylistCache(); // Wait for the initial fetch to complete.
+
+    if (playlistCache && playlistCache.length > 0) {
         console.log(`Initial playlist fetch complete. ${playlistCache.length} items loaded.`);
     } else {
-        console.error('Initial playlist fetch failed. The application will start, but no media will be available until a refresh succeeds.');
+        console.error('Initial playlist fetch did not populate any media. The application will run but will not display any media until a refresh succeeds. Check server configurations and logs for errors during fetch.');
     }
 
     const refreshInterval = (config.backgroundRefreshMinutes || 30) * 60 * 1000;

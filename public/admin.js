@@ -4,9 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const defaults = {
         transitionIntervalSeconds: 15,
         backgroundRefreshMinutes: 30,
-        recentlyAddedCacheMinutes: 5, // A good default value
         showClearLogo: true,
-        recentlyAddedSidebar: false,
+        showRottenTomatoes: true,
+        rottenTomatoesMinimumScore: 0,
+        showPoster: true,
+        showMetadata: true,
         clockWidget: true,
         kenBurnsEffect: {
             enabled: true,
@@ -45,19 +47,52 @@ document.addEventListener('DOMContentLoaded', () => {
             const config = data.config || {};
             const env = data.env || {};
 
+            let savedMovieLibs = [], savedShowLibs = [];
+
             // --- Populate General Settings ---
             document.getElementById('transitionIntervalSeconds').value = config.transitionIntervalSeconds ?? defaults.transitionIntervalSeconds;
             document.getElementById('backgroundRefreshMinutes').value = config.backgroundRefreshMinutes ?? defaults.backgroundRefreshMinutes;
-            document.getElementById('recentlyAddedCacheMinutes').value = config.recentlyAddedCacheMinutes ?? defaults.recentlyAddedCacheMinutes;
             document.getElementById('SERVER_PORT').value = env.SERVER_PORT ?? defaults.SERVER_PORT;
             document.getElementById('DEBUG').checked = env.DEBUG === 'true' ?? defaults.DEBUG;
 
+            const debugCheckbox = document.getElementById('DEBUG');
+            const debugLink = document.getElementById('debug-link');
+            if (debugLink) {
+                debugLink.classList.toggle('is-hidden', !debugCheckbox.checked);
+            }
+
             // --- Populate Display Settings ---
             document.getElementById('showClearLogo').checked = config.showClearLogo ?? defaults.showClearLogo;
-            document.getElementById('recentlyAddedSidebar').checked = config.recentlyAddedSidebar ?? defaults.recentlyAddedSidebar;
+            document.getElementById('showRottenTomatoes').checked = config.showRottenTomatoes ?? defaults.showRottenTomatoes;
+            document.getElementById('rottenTomatoesMinimumScore').value = config.rottenTomatoesMinimumScore ?? defaults.rottenTomatoesMinimumScore;
+            document.getElementById('showPoster').checked = config.showPoster ?? defaults.showPoster;
+            document.getElementById('showMetadata').checked = config.showMetadata ?? defaults.showMetadata;
             document.getElementById('clockWidget').checked = config.clockWidget ?? defaults.clockWidget;
             document.getElementById('kenBurnsEffect.enabled').checked = get(config, 'kenBurnsEffect.enabled', defaults.kenBurnsEffect.enabled);
             document.getElementById('kenBurnsEffect.durationSeconds').value = get(config, 'kenBurnsEffect.durationSeconds', defaults.kenBurnsEffect.durationSeconds);
+
+            // Logic for poster/metadata dependency
+            const showPosterCheckbox = document.getElementById('showPoster');
+            const showMetadataCheckbox = document.getElementById('showMetadata');
+
+            const syncMetadataState = () => {
+                if (!showPosterCheckbox.checked) {
+                    showMetadataCheckbox.checked = false;
+                    showMetadataCheckbox.disabled = true;
+                } else {
+                    showMetadataCheckbox.disabled = false;
+                }
+            };
+
+            showPosterCheckbox.addEventListener('change', syncMetadataState);
+            showMetadataCheckbox.addEventListener('change', () => {
+                if (showMetadataCheckbox.checked) {
+                    showPosterCheckbox.checked = true;
+                    syncMetadataState(); // Re-enable metadata checkbox if it was disabled
+                }
+            });
+
+            syncMetadataState(); // Set initial state
 
             // --- Populate Plex Media Server Settings (including sensitive values) ---
             const plexServerConfig = config.mediaServers && config.mediaServers[0] ? config.mediaServers[0] : {};
@@ -71,12 +106,19 @@ document.addEventListener('DOMContentLoaded', () => {
             tokenInput.value = ''; // Always clear the value on load
             // env.PLEX_TOKEN is now a boolean indicating if the token is set on the server
             tokenInput.placeholder = env.PLEX_TOKEN === true ? '******** (already set)' : 'Enter new token...';
+            
+            savedMovieLibs = plexServerConfig.movieLibraryNames || plexDefaults.movieLibraryNames;
+            savedShowLibs = plexServerConfig.showLibraryNames || plexDefaults.showLibraryNames;
 
-            // Library names are arrays, so we join them into a comma-separated string for the input field.
-            document.getElementById('mediaServers[0].movieLibraryNames').value = (plexServerConfig.movieLibraryNames || plexDefaults.movieLibraryNames).join(', ');
-            document.getElementById('mediaServers[0].showLibraryNames').value = (plexServerConfig.showLibraryNames || plexDefaults.showLibraryNames).join(', ');
             document.getElementById('mediaServers[0].movieCount').value = plexServerConfig.movieCount ?? plexDefaults.movieCount;
             document.getElementById('mediaServers[0].showCount').value = plexServerConfig.showCount ?? plexDefaults.showCount;
+
+            if (env.PLEX_HOSTNAME && env.PLEX_PORT && env.PLEX_TOKEN === true) {
+                fetchAndDisplayPlexLibraries(savedMovieLibs, savedShowLibs);
+            }
+
+            // Forcefully remove focus from any element that the browser might have auto-focused.
+            if (document.activeElement) document.activeElement.blur();
 
         } catch (error) {
             console.error('Failed to load config:', error);
@@ -93,12 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
  
         const testButton = document.createElement('button');
         testButton.type = 'button';
-        testButton.className = 'button is-info is-small';
-        testButton.style.marginLeft = '10px';
-        testButton.style.verticalAlign = 'middle';
-        // Set a fixed width to prevent layout shifts when text changes
-        testButton.style.width = '140px';
-        testButton.style.transition = 'background-color 0.3s, border-color 0.3s';
+        testButton.className = 'button-primary test-button';
  
         const iconSpan = document.createElement('span');
         iconSpan.className = 'icon';
@@ -117,14 +154,13 @@ document.addEventListener('DOMContentLoaded', () => {
         testButton.addEventListener('click', async () => {
             const originalText = 'Test Verbinding';
             const originalIconClass = 'fas fa-plug';
-            const originalButtonClass = 'button is-info is-small';
+            const originalButtonClass = 'button-primary test-button';
  
             // Set loading state
             testButton.disabled = true;
             textSpan.textContent = 'Testen...';
             icon.className = 'fas fa-spinner fa-spin';
-            testButton.classList.remove('is-success', 'is-danger');
-            testButton.classList.add('is-info');
+            testButton.className = originalButtonClass; // Revert to base style for loading
  
             let finalMessage = '';
             let finalIcon = '';
@@ -152,20 +188,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Onbekende fout');
  
-                showNotification(result.message, 'success');
                 finalMessage = 'Succes';
                 finalIcon = 'fas fa-check';
                 finalClass = 'is-success';
+
+                // On success, fetch and display libraries, preserving current selections
+                const currentMovieLibs = getSelectedLibraries('movie');
+                const currentShowLibs = getSelectedLibraries('show');
+                fetchAndDisplayPlexLibraries(currentMovieLibs, currentShowLibs);
             } catch (error) {
-                showNotification(`Test mislukt: ${error.message}`, 'error');
                 finalMessage = 'Mislukt';
                 finalIcon = 'fas fa-exclamation-triangle';
                 finalClass = 'is-danger';
             }
  
             // Set final state (success or error)
-            testButton.className = `${originalButtonClass} ${finalClass}`;
-            testButton.classList.remove('is-info');
+            testButton.classList.add(finalClass);
             textSpan.textContent = finalMessage;
             icon.className = finalIcon;
  
@@ -173,14 +211,109 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 testButton.disabled = false;
                 testButton.className = originalButtonClass;
-                testButton.style.width = '140px';
                 textSpan.textContent = originalText;
                 icon.className = originalIconClass;
             }, 2500);
         });
     }
 
+    /**
+     * Fetches Plex libraries from the server and populates checkbox lists.
+     * @param {string[]} preSelectedMovieLibs - Array of movie library names to pre-check.
+     * @param {string[]} preSelectedShowLibs - Array of show library names to pre-check.
+     */
+    async function fetchAndDisplayPlexLibraries(preSelectedMovieLibs = [], preSelectedShowLibs = []) {
+        const movieContainer = document.getElementById('movie-libraries-container');
+        const showContainer = document.getElementById('show-libraries-container');
+
+        movieContainer.innerHTML = '<small>Bibliotheken ophalen...</small>';
+        showContainer.innerHTML = '<small>Bibliotheken ophalen...</small>';
+
+        try {
+            const hostname = document.getElementById('PLEX_HOSTNAME').value;
+            const port = document.getElementById('PLEX_PORT').value;
+            const token = document.getElementById('PLEX_TOKEN').value;
+
+            const response = await fetch('/api/admin/plex-libraries', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    hostname: hostname || undefined,
+                    port: port || undefined,
+                    token: token || undefined
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Ophalen van bibliotheken mislukt.');
+
+            const libraries = result.libraries || [];
+            const movieLibraries = libraries.filter(lib => lib.type === 'movie');
+            const showLibraries = libraries.filter(lib => lib.type === 'show');
+
+            movieContainer.innerHTML = '';
+            showContainer.innerHTML = '';
+
+            if (movieLibraries.length === 0) {
+                movieContainer.innerHTML = '<small>Geen filmbibliotheken gevonden.</small>';
+            } else {
+                movieLibraries.forEach(lib => {
+                    const isChecked = preSelectedMovieLibs.includes(lib.name);
+                    movieContainer.appendChild(createLibraryCheckbox(lib.name, 'movie', isChecked));
+                });
+            }
+
+            if (showLibraries.length === 0) {
+                showContainer.innerHTML = '<small>Geen seriebibliotheken gevonden.</small>';
+            } else {
+                showLibraries.forEach(lib => {
+                    const isChecked = preSelectedShowLibs.includes(lib.name);
+                    showContainer.appendChild(createLibraryCheckbox(lib.name, 'show', isChecked));
+                });
+            }
+
+        } catch (error) {
+            console.error('Failed to fetch Plex libraries:', error);
+            const errorMessage = `<small class="error-text">Fout: ${error.message}</small>`;
+            movieContainer.innerHTML = errorMessage;
+            showContainer.innerHTML = errorMessage;
+        }
+    }
+
+    function createLibraryCheckbox(name, type, isChecked) {
+        const container = document.createElement('div');
+        container.className = 'checkbox-group';
+        const id = `lib-${type}-${name.replace(/\s+/g, '-')}`;
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.id = id;
+        input.name = `${type}Library`;
+        input.value = name;
+        input.checked = isChecked;
+        const label = document.createElement('label');
+        label.htmlFor = id;
+        label.textContent = name;
+        container.appendChild(input);
+        container.appendChild(label);
+        return container;
+    }
+
+    function getSelectedLibraries(type) {
+        const container = document.getElementById(`${type}-libraries-container`);
+        const checkedBoxes = container.querySelectorAll(`input[name="${type}Library"]:checked`);
+        return Array.from(checkedBoxes).map(cb => cb.value);
+    }
+
     loadConfig();
+
+    const debugCheckbox = document.getElementById('DEBUG');
+    const debugLink = document.getElementById('debug-link');
+
+    if (debugCheckbox && debugLink) {
+        debugCheckbox.addEventListener('change', () => {
+            debugLink.classList.toggle('is-hidden', !debugCheckbox.checked);
+        });
+    }
 
     /**
      * Displays a notification message on the screen.
@@ -221,6 +354,37 @@ document.addEventListener('DOMContentLoaded', () => {
             button.textContent = 'Saving...';
 
             try {
+                // --- Validation ---
+                const isPlexEnabled = document.getElementById('mediaServers[0].enabled').checked;
+                if (isPlexEnabled) {
+                    const selectedMovieLibs = getSelectedLibraries('movie');
+                    const selectedShowLibs = getSelectedLibraries('show');
+
+                    if (selectedMovieLibs.length === 0 && selectedShowLibs.length === 0) {
+                        throw new Error('Als de Plex-server is ingeschakeld, moet u ten minste één film- of seriebibliotheek selecteren.');
+                    }
+                }
+
+                // --- Numeric Field Validation ---
+                const numericFieldIds = [
+                    'transitionIntervalSeconds', 'backgroundRefreshMinutes',
+                    'SERVER_PORT', 'rottenTomatoesMinimumScore', 'kenBurnsEffect.durationSeconds',
+                    'mediaServers[0].movieCount', 'mediaServers[0].showCount'
+                ];
+
+                for (const id of numericFieldIds) {
+                    const element = document.getElementById(id);
+                    if (element && element.value.trim() !== '') {
+                        // Use Number.isFinite to ensure the value is a valid, finite number.
+                        // This correctly handles cases like "123a" which parseFloat would partially parse.
+                        if (!Number.isFinite(Number(element.value))) {
+                            const label = document.querySelector(`label[for="${id}"]`);
+                            const fieldName = label ? label.textContent : id;
+                            throw new Error(`Het veld "${fieldName}" moet een geldig getal zijn.`);
+                        }
+                    }
+                }
+
                 // Helper to get form values and parse them
                 const getValue = (id, type = 'string') => {
                     const element = document.getElementById(id);
@@ -232,10 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const value = element.value;
                     if (type === 'number') {
-                        return value === '' ? null : parseInt(value, 10);
-                    }
-                    if (type === 'array') {
-                        return value.split(',').map(s => s.trim()).filter(Boolean);
+                        return value === '' ? null : parseFloat(value);
                     }
                     return value;
                 };
@@ -243,9 +404,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newConfig = {
                     transitionIntervalSeconds: getValue('transitionIntervalSeconds', 'number'),
                     backgroundRefreshMinutes: getValue('backgroundRefreshMinutes', 'number'),
-                    recentlyAddedCacheMinutes: getValue('recentlyAddedCacheMinutes', 'number'),
                     showClearLogo: getValue('showClearLogo'),
-                    recentlyAddedSidebar: getValue('recentlyAddedSidebar'),
+                    showRottenTomatoes: getValue('showRottenTomatoes'),
+                    rottenTomatoesMinimumScore: getValue('rottenTomatoesMinimumScore', 'number'),
+                    showPoster: getValue('showPoster'),
+                    showMetadata: getValue('showMetadata'),
                     clockWidget: getValue('clockWidget'),
                     kenBurnsEffect: {
                         enabled: getValue('kenBurnsEffect.enabled'),
@@ -258,8 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         hostnameEnvVar: "PLEX_HOSTNAME",
                         portEnvVar: "PLEX_PORT",
                         tokenEnvVar: "PLEX_TOKEN",
-                        movieLibraryNames: getValue('mediaServers[0].movieLibraryNames', 'array'),
-                        showLibraryNames: getValue('mediaServers[0].showLibraryNames', 'array'),
+                        movieLibraryNames: getSelectedLibraries('movie'),
+                        showLibraryNames: getSelectedLibraries('show'),
                         movieCount: getValue('mediaServers[0].movieCount', 'number'),
                         showCount: getValue('mediaServers[0].showCount', 'number')
                     }]
@@ -331,6 +494,54 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 button.disabled = false;
                 button.textContent = originalButtonText;
+            }
+        });
+    }
+
+    const restartButton = document.getElementById('restart-app-button');
+    if (restartButton) {
+        restartButton.addEventListener('click', async () => {
+            if (!confirm('Weet je zeker dat je de applicatie wilt herstarten? De pagina wordt hierdoor tijdelijk onbereikbaar.')) {
+                return;
+            }
+
+            const buttonTextSpan = restartButton.querySelector('span:last-child');
+            const originalText = buttonTextSpan.textContent;
+            const icon = restartButton.querySelector('.icon i');
+            const originalIconClass = icon.className;
+
+            restartButton.disabled = true;
+            buttonTextSpan.textContent = 'Herstarten...';
+            icon.className = 'fas fa-spinner fa-spin';
+
+            const handleRestartInitiated = (message) => {
+                showNotification(message, 'success');
+                // After a short delay, update the UI to indicate the restart is done.
+                setTimeout(() => {
+                    showNotification('Vernieuw de pagina over enkele seconden.', 'success');
+                    buttonTextSpan.textContent = 'Herstart voltooid';
+                    icon.className = 'fas fa-check';
+                    // The button remains disabled, forcing a page refresh to use it again.
+                }, 3000);
+            };
+
+            try {
+                const response = await fetch('/api/admin/restart-app', { method: 'POST' });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    // This will now catch genuine errors returned by the server before the restart is attempted.
+                    throw new Error(result.error || 'Kon het herstart-commando niet naar de server sturen.');
+                }
+                // The server now guarantees a response before restarting, so we can trust the result.
+                handleRestartInitiated(result.message);
+            } catch (error) {
+                // Any error here is now a real error, not an expected one.
+                console.error('[Admin] Error during restart request:', error);
+                showNotification(`Fout bij herstarten: ${error.message}`, 'error');
+                restartButton.disabled = false;
+                buttonTextSpan.textContent = originalText;
+                icon.className = originalIconClass;
             }
         });
     }

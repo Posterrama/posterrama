@@ -6,7 +6,8 @@ body {
     color: #e0e0e0;
     margin: 0;
     line-height: 1.6;
-    overflow-y: auto; /* Allow scrolling for longer admin pages */
+    overflow-y: auto; /* Allow vertical scrolling */
+    overflow-x: hidden; /* Prevent horizontal scrolling */
     position: relative; /* Needed for pseudo-elements */
 }
 
@@ -62,6 +63,7 @@ a:hover {
 
 /* Auth Container (Login & Setup) */
 .auth-container {
+    flex-direction: column; /* Stack box and footer vertically */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -88,6 +90,12 @@ a:hover {
     margin-top: 0;
     color: #fff;
     font-weight: 700;
+    /* Gradient text effect to match the main admin header */
+    background: linear-gradient(90deg, #e0e0e0, #bb86fc, #53a8b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
     letter-spacing: 1px;
 }
 
@@ -103,8 +111,9 @@ a:hover {
 }
 
 .auth-footer {
-    margin-top: 20px;
+    margin-top: 25px;
     font-size: 0.9em;
+    text-align: center;
 }
 
 /* Admin Panel Layout */
@@ -136,26 +145,60 @@ a:hover {
 }
 
 .admin-header nav a {
-    margin-left: 20px;
+    color: #e0e0e0;
+    margin-left: 10px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    font-weight: 500;
+    font-size: 0.9em;
+}
+.admin-header nav a:hover {
+    background-color: rgba(83, 168, 182, 0.3);
+    border-color: rgba(83, 168, 182, 0.7);
+    color: #fff;
 }
 
 .admin-main {
     padding: 40px;
-    max-width: 960px; /* Give content more space */
-    margin: 0 auto;
+    max-width: 1280px; /* Wider for more columns */
+    margin: 20px auto;
+}
+
+.settings-grid {
+    display: grid;
+    /* Allow more columns on wider screens */
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.settings-column h2 {
+    margin-top: 0;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(90deg, rgba(187, 134, 252, 0.1), rgba(83, 168, 182, 0.1));
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e0e0e0;
 }
 
 /* Forms */
 form {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 15px; /* More compact */
 }
 
 .form-section {
     /* Subtle glass effect for sections */
-    background: rgba(255, 255, 255, 0.03);
-    padding: 25px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 20px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -173,7 +216,7 @@ form {
 }
 
 label {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-weight: 500;
     color: #ccc;
 }
@@ -181,12 +224,21 @@ label {
 input[type="text"],
 input[type="password"],
 input[type="number"] {
-    background-color: #333;
-    border: 1px solid #555;
+    background-color: rgba(255, 255, 255, 0.05); /* Subtle transparent background */
+    border: 1px solid rgba(255, 255, 255, 0.15); /* Slightly more visible border */
     color: #e0e0e0;
-    padding: 10px;
-    border-radius: 4px;
+    padding: 12px 15px;
+    border-radius: 8px; /* More rounded corners */
     font-size: 1em;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition for focus */
+    outline: none; /* Remove default outline */
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus {
+    border-color: #bb86fc; /* Highlight with the primary color on focus */
+    box-shadow: 0 0 0 3px rgba(187, 134, 252, 0.2); /* Add a soft glow */
 }
 
 .button-primary {
@@ -204,4 +256,64 @@ input[type="number"] {
 
 .button-primary:hover {
     background-color: #a062e8;
+}
+
+.button-secondary {
+    display: inline-block;
+    /* Glassmorphism effect for the secondary button */
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #b0dbe0; /* A slightly lighter, less saturated blue/green */
+    padding: 10px 20px;
+    border-radius: 8px; /* Match the input fields */
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    text-decoration: none;
+}
+
+.button-secondary:hover {
+    background-color: rgba(83, 168, 182, 0.3); /* Use the accent color with transparency on hover */
+    border-color: rgba(83, 168, 182, 0.7);
+    color: #fff;
+}
+
+/* --- Media Queries for Mobile --- */
+@media (max-width: 960px) {
+    .admin-main {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-header {
+        flex-direction: column;
+        padding: 15px;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .admin-header h1 {
+        font-size: 1.4em;
+    }
+
+    .settings-grid {
+        grid-template-columns: 1fr; /* Stack columns on mobile */
+        gap: 1.5rem;
+    }
+
+    .auth-box {
+        padding: 20px;
+        margin: 0; /* Removed horizontal margin to use container's padding */
+        box-sizing: border-box; /* Ensure padding is included in the width on mobile */
+    }
+
+    /* Disable heavy animations on mobile for performance */
+    body::before,
+    body::after {
+        display: none;
+    }
 }

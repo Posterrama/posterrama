@@ -3,24 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - posterrama.app</title>
+    <title>Admin posterrama</title>
     <link rel="stylesheet" href="/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        .settings-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .settings-column h2 {
-            margin-top: 0;
-            border-bottom: 1px solid #444;
-            padding-bottom: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-
         .notification-container {
             position: fixed;
             top: 80px; /* Below the header */
@@ -48,6 +34,38 @@
         .notification.success { background-color: #28a745; }
         .notification.error { background-color: #dc3545; }
 
+        .test-button {
+            margin-left: 10px;
+            vertical-align: middle;
+            width: 140px; /* Fixed width to prevent layout shifts */
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .button-primary.is-success {
+            background-color: #28a745;
+            border-color: #218838;
+        }
+        .button-primary.is-danger {
+            background-color: #dc3545;
+            border-color: #c82333;
+        }
+
+        .library-container {
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #2c2c2c;
+        }
+        .library-container .checkbox-group {
+            margin-bottom: 8px;
+        }
+        .library-container .checkbox-group:last-child {
+            margin-bottom: 0;
+        }
+        .error-text { color: #ff6b6b; font-size: 0.9em; }
+
         .form-actions {
             text-align: right;
             margin-top: 1.5rem;
@@ -63,11 +81,44 @@
             font-size: 0.8rem;
             margin-top: 0.25rem;
         }
+
+        .button-danger {
+            background-color: #c82333;
+            border-color: #bd2130;
+            color: #fff;
+        }
+        .button-danger:hover {
+            background-color: #a71d2a;
+            border-color: #941a25;
+        }
+        .button-danger:disabled {
+            background-color: #555 !important;
+            border-color: #555 !important;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .button-danger .icon {
+            display: inline-block;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+        .is-hidden {
+            display: none !important;
+        }
+        #debug-link {
+            display: inline-block;
+            margin-left: 1rem;
+            color: #7fadf6;
+            text-decoration: none;
+        }
+        #debug-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <header class="admin-header">
-        <h1>posterrama.app Admin</h1>
+        <h1>Admin posterrama</h1>
         <nav>
             <a href="/" target="_blank">View Screensaver</a>
             <a href="/admin/logout">Logout</a>
@@ -91,10 +142,6 @@
                             <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes">
                         </div>
                         <div class="form-group">
-                            <label for="recentlyAddedCacheMinutes">Recently Added Cache (minutes)</label>
-                            <input type="number" id="recentlyAddedCacheMinutes" name="recentlyAddedCacheMinutes">
-                        </div>
-                        <div class="form-group">
                             <label for="SERVER_PORT">Application Port</label>
                             <input type="number" id="SERVER_PORT" name="SERVER_PORT">
                             <small>Requires application restart to take effect.</small>
@@ -102,7 +149,10 @@
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="DEBUG" name="DEBUG">
                             <label for="DEBUG">Enable Debug Mode</label>
-                            <small>Outputs more detailed logs for troubleshooting.</small>
+                            <small>
+                                Outputs more detailed logs for troubleshooting.
+                                <a href="/admin/debug" target="_blank" id="debug-link" class="is-hidden">View Debug Output</a>
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -114,8 +164,22 @@
                             <label for="showClearLogo">Show ClearLogo</label>
                         </div>
                         <div class="form-group checkbox-group">
-                            <input type="checkbox" id="recentlyAddedSidebar" name="recentlyAddedSidebar">
-                            <label for="recentlyAddedSidebar">Show "Recently Added" Sidebar</label>
+                            <input type="checkbox" id="showRottenTomatoes" name="showRottenTomatoes">
+                            <label for="showRottenTomatoes">Show Rotten Tomatoes Badge</label>
+                        </div>
+                        <div class="form-group">
+                            <label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes Score (0-10)</label>
+                            <input type="number" id="rottenTomatoesMinimumScore" name="rottenTomatoesMinimumScore" min="0" max="10" step="0.1">
+                            <small>Filters media to only show items with this score or higher. Set to 0 to disable.</small>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="showPoster" name="showPoster">
+                            <label for="showPoster">Show Poster</label>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="showMetadata" name="showMetadata">
+                            <label for="showMetadata">Show Metadata (title, tagline, etc.)</label>
+                            <small>Requires "Show Poster" to be enabled.</small>
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="clockWidget" name="clockWidget">
@@ -156,14 +220,16 @@
                             <small>Find your token by following <a href="https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/" target="_blank">these instructions</a>.</small>
                         </div>
                         <div class="form-group">
-                            <label for="mediaServers[0].movieLibraryNames">Movie Library Names</label>
-                            <input type="text" id="mediaServers[0].movieLibraryNames" name="mediaServers[0].movieLibraryNames">
-                            <small>Comma-separated list of library names.</small>
+                            <label>Movie Library Names</label>
+                            <div id="movie-libraries-container" class="library-container">
+                                <small>Test de verbinding om de bibliotheken op te halen.</small>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label for="mediaServers[0].showLibraryNames">Show Library Names</label>
-                            <input type="text" id="mediaServers[0].showLibraryNames" name="mediaServers[0].showLibraryNames">
-                            <small>Comma-separated list of library names.</small>
+                            <label>Show Library Names</label>
+                            <div id="show-libraries-container" class="library-container">
+                                <small>Test de verbinding om de bibliotheken op te halen.</small>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="mediaServers[0].movieCount">Number of Movies to Show</label>
@@ -182,8 +248,8 @@
             </div>
         </form>
 
-        <!-- Password Change Form -->
-        <div class="settings-grid">
+        <!-- Password & App Management -->
+        <div class="settings-grid" style="align-items: start;">
             <div class="settings-column">
                 <h2>Change Password</h2>
                 <form id="password-form">
@@ -205,6 +271,20 @@
                         <button type="submit" class="button-primary">Change Password</button>
                     </div>
                 </form>
+            </div>
+            <div class="settings-column">
+                <h2>Applicatiebeheer</h2>
+                <div class="form-section">
+                    <div class="form-group">
+                        <p>Hiermee wordt de serverapplicatie herstart. Dit kan nodig zijn nadat bepaalde instellingen zijn gewijzigd (zoals de poort). De verbinding wordt kort verbroken.</p>
+                    </div>
+                    <div class="form-actions" style="text-align: left; margin-top: 0;">
+                        <button type="button" id="restart-app-button" class="button-primary button-danger">
+                            <span class="icon"><i class="fas fa-power-off"></i></span>
+                            <span>Applicatie Herstarten</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </main>

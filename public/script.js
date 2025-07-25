@@ -9,20 +9,13 @@
  * (at your option) any later version.
  */
 
-function setAppHeight() {
-    // Sets the --app-height CSS variable to the actual inner height of the window.
-    // This is the most reliable method to solve the "100vh" problem on mobile browsers.
-    document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-}
-window.addEventListener('resize', setAppHeight);
-setAppHeight(); // Call immediately when the script loads
-
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element References ---
     const layerA = document.getElementById('layer-a');
     const layerB = document.getElementById('layer-b');
     const infoContainer = document.getElementById('info-container');
     const posterWrapper = document.getElementById('poster-wrapper');
+    const textWrapper = document.getElementById('text-wrapper');
     const posterEl = document.getElementById('poster');
     const posterLink = document.getElementById('poster-link');
     const titleEl = document.getElementById('title');
@@ -39,6 +32,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
     const recentContainer = document.getElementById('recent-container');
     const recentItemsWrapper = document.getElementById('recent-items-wrapper');
+
+    // --- Create and inject Rotten Tomatoes badge ---
+    const rtBadge = document.createElement('div');
+    rtBadge.id = 'rt-badge';
+
+    const rtIcon = document.createElement('img');
+    rtIcon.id = 'rt-icon';
+    rtIcon.alt = 'Rotten Tomatoes';
+
+    rtBadge.appendChild(rtIcon);
+    posterEl.appendChild(rtBadge);
 
     // --- State ---
     let mediaQueue = [];
@@ -76,6 +80,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         await Promise.all(initialDataPromises);
 
+        if (appConfig.showPoster === false) {
+            infoContainer.classList.add('is-hidden');
+        } else {
+            // Poster is shown, now check metadata
+            if (appConfig.showMetadata === false) {
+                textWrapper.classList.add('is-hidden');
+            }
+        }
+
         if (appConfig.clockWidget) {
             document.getElementById('widget-container').classList.remove('is-hidden');
             updateClock();
@@ -92,13 +105,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchMedia(isInitialLoad = false) {
         try {
-            const mediaResponse = await fetch('/get-media');
-            if (!mediaResponse.ok) {
-                throw new Error(`Server error: ${mediaResponse.statusText}`);
+            // Add a cache-busting query parameter to ensure the browser always fetches a fresh response.
+            const cacheBuster = `?_=${Date.now()}`;
+            const mediaResponse = await fetch('/get-media' + cacheBuster);
+
+            if (mediaResponse.status === 202) {
+                // Server is still building the playlist, let's wait and retry.
+                const data = await mediaResponse.json();
+                console.log('Server is preparing media, retrying in a moment...');
+                // Keep the loader visible if it's the initial load.
+                if (isInitialLoad && loader.style.opacity !== '1') {
+                    loader.style.opacity = '1';
+                }
+                setTimeout(() => fetchMedia(isInitialLoad), data.retryIn || 2000);
+                return; // Stop execution for this call
             }
+
+            if (!mediaResponse.ok) {
+                const errorData = await mediaResponse.json().catch(() => ({ error: mediaResponse.statusText }));
+                throw new Error(errorData.error || `Server error: ${mediaResponse.status}`);
+            }
+
             const newMediaQueue = await mediaResponse.json();
             if (newMediaQueue.length === 0) {
                 showError("No media found. Check the library configuration.");
+                if (loader.style.opacity !== '0') loader.style.opacity = '0';
                 return;
             }
             mediaQueue = newMediaQueue;
@@ -113,7 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) {
             console.error("Failed to fetch media", e);
-            showError("Could not load media. Check the server connection.");
+            showError(e.message || "Could not load media. Check the server connection.");
+            if (loader.style.opacity !== '0') loader.style.opacity = '0';
         }
     }
 
@@ -188,10 +220,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const currentMedia = mediaQueue[currentIndex];
         if (!currentMedia) {
-            console.error('Invalid media item, skipping.', currentIndex);
+            console.error('Invalid media item at index, skipping.', currentIndex);
             changeMedia('next', false, true);
             return;
         }
+
+        console.log('[posterrama.app] Updating info for:', currentMedia);
 
         const img = new Image();
         img.onerror = () => {
@@ -246,6 +280,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearlogoEl.classList.remove('visible');
             }
 
+            // Update Rotten Tomatoes badge
+            if (appConfig.showRottenTomatoes && currentMedia.rottenTomatoes && currentMedia.rottenTomatoes.score) {
+                const { score, icon } = currentMedia.rottenTomatoes;
+                let iconUrl = '';
+                // Use local SVG assets for reliability
+                switch (icon) {
+                    case 'fresh':
+                        iconUrl = '/icons/rt-fresh.svg';
+                        break;
+                    case 'rotten':
+                        iconUrl = '/icons/rt-rotten.svg';
+                        break;
+                    case 'certified-fresh':
+                        iconUrl = '/icons/rt-certified-fresh.svg';
+                        break;
+                }
+                rtIcon.src = iconUrl;
+                rtBadge.classList.add('visible');
+            } else {
+                rtBadge.classList.remove('visible');
+            }
+
             if (loader.style.opacity !== '0') {
                 loader.style.opacity = '0';
             }
@@ -270,6 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isErrorSkip) {
             infoContainer.classList.remove('visible');
             clearlogoEl.classList.remove('visible');
+            rtBadge.classList.remove('visible'); // Hide RT badge
         }
         if (isFirstLoad) {
             updateInfo(direction, true);
@@ -308,6 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     prevButton.addEventListener('click', () => changeMedia('prev'));
 
     document.addEventListener('keydown', (e) => {
+        showControls();
         if (e.key === 'ArrowRight') {
             changeMedia('next');
         } else if (e.key === 'ArrowLeft') {
@@ -318,7 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.body.addEventListener('mousemove', () => {
+    // Toon de controls bij een muisbeweging of aanraking, en verberg ze na een paar seconden.
+    function showControls() {
         controlsContainer.classList.add('visible');
         document.body.style.cursor = 'default';
         clearTimeout(controlsTimer);
@@ -326,7 +385,10 @@ document.addEventListener('DOMContentLoaded', () => {
             controlsContainer.classList.remove('visible');
             document.body.style.cursor = 'none';
         }, 3000);
-    });
+    }
+
+    document.body.addEventListener('mousemove', showControls);
+    document.body.addEventListener('touchstart', showControls, { passive: true });
 
     posterWrapper.addEventListener('mousemove', (e) => {
         const rect = posterWrapper.getBoundingClientRect();

@@ -10,8 +10,8 @@ module.exports = {
     script: 'npm',
     args: 'start',
     version: pkg.version,
-    watch: ['./server.js', './config.json', './validate-env.js'],
-    ignore_watch: ['node_modules', 'public', 'README.md'],
+    watch: ['server.js', 'config.json', 'validate-env.js'],
+    ignore_watch: ['node_modules', 'public', 'README.md', 'sessions', '.env', 'logs'],
     env: {
       NODE_ENV: 'production',
       APP_VERSION: pkg.version,

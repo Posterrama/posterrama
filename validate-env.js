@@ -26,6 +26,11 @@ if (enabledServers.length === 0) {
     console.warn('\x1b[33m%s\x1b[0m', 'WARNING: No media servers are enabled in config.json. The application will run but will not display any media.');
 }
 
+// If the admin user has been configured, the session secret is mandatory.
+if (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD_HASH) {
+    requiredVarsSet.add('SESSION_SECRET');
+}
+
 for (const server of enabledServers) {
     if (server.type === 'plex') {
         if (server.hostnameEnvVar) requiredVarsSet.add(server.hostnameEnvVar);
