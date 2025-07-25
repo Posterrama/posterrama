@@ -10,6 +10,15 @@
  */
 
 require('dotenv').config();
+
+// --- Environment Variable Validation ---
+if (!process.env.SESSION_SECRET) {
+    console.error('[FATAL] SESSION_SECRET is not defined in the .env file. This is required for session management.');
+    console.error('Please generate a secret key and add it to your .env file.');
+    console.error('Example: SESSION_SECRET="some-long-random-string-of-characters"');
+    process.exit(1); // Exit with an error code
+}
+
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
@@ -24,8 +33,6 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./swagger.js');
 const pkg = require('./package.json');
 const ecosystemConfig = require('./ecosystem.config.js');
-const puppeteer = require('puppeteer');
-const qrcode = require('qrcode');
 const { shuffleArray } = require('./utils.js');
 
 const speakeasy = require('speakeasy');
@@ -571,50 +578,6 @@ async function refreshPlaylistCache() {
 
 let recentlyAddedCache = null;
 let recentlyAddedCacheTimestamp = 0;
-
-/**
- * Takes a screenshot of the application's main page and saves it.
- * It waits for a media transition to complete plus an additional 5 seconds
- * to ensure a stable image is captured.
- */
-async function takeScreenshot() {
-    if (isDebug) console.log('[Screenshot] Starting screenshot process...');
-    let browser = null;
-    try {
-        // Launch the browser
-        browser = await puppeteer.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox'], // Necessary for running in some environments
-            defaultViewport: {
-                width: 1920,
-                height: 1080
-            }
-        });
-        const page = await browser.newPage();
-
-        // Go to the app's URL
-        const appUrl = `http://localhost:${port}`;
-        if (isDebug) console.log(`[Screenshot] Navigating to ${appUrl}`);
-        await page.goto(appUrl, { waitUntil: 'networkidle0' });
-
-        // Wait for the first media item to be fully visible
-        if (isDebug) console.log('[Screenshot] Waiting for initial media to display...');
-        await page.waitForSelector('#info-container.visible', { timeout: 30000 }); // 30s timeout for initial load
-
-        // Calculate wait time: transition interval + 5 seconds buffer to avoid capturing the fade
-        const transitionInterval = (config.transitionIntervalSeconds || 15) * 1000;
-        const waitTime = transitionInterval + 5000;
-        if (isDebug) console.log(`[Screenshot] Waiting for ${waitTime / 1000} seconds before taking screenshot...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-
-        const screenshotPath = path.join(__dirname, 'screenshot.png');
-        await page.screenshot({ path: screenshotPath });
-        if (isDebug) console.log(`[Screenshot] Screenshot saved to ${screenshotPath}`);
-    } catch (error) {
-        console.error('[Screenshot] Failed to take screenshot:', error);
-    } finally {
-        if (browser) await browser.close();
-    }
-}
 
 // --- Admin Panel Logic ---
 
@@ -1557,16 +1520,4 @@ app.listen(port, async () => {
         setInterval(refreshPlaylistCache, refreshInterval);
         console.log(`Playlist will be refreshed in the background every ${config.backgroundRefreshMinutes} minutes.`);
     }
-
-    // Schedule screenshot task
-    const fifteenMinutes = 15 * 60 * 1000;
-    setInterval(takeScreenshot, fifteenMinutes);
-    console.log(`Screenshots will be taken every 15 minutes and saved as screenshot.png.`);
-
-    // Take one screenshot on startup for immediate use in the README, etc.
-    // We wait a bit for the server to be fully ready.
-    setTimeout(() => {
-        if (isDebug) console.log('[Screenshot] Taking initial screenshot after startup.');
-        takeScreenshot();
-    }, 20000); // 20 seconds after start
 });

@@ -4,7 +4,10 @@
 
 It fetches beautiful backgrounds and posters from your Plex or Jellyfin media server and displays them with a subtle Ken Burns effect.
 
-![Screenshot of posterrama.app](https://demo.posterrama.app/screenshot.png)
+![Screenshot of screensaver](https://demo.posterrama.app/screensaver.png)
+
+![Screenshot of admin](https://demo.posterrama.app/admin.png)
+
 
 ## Features
 
