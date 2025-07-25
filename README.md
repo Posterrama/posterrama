@@ -23,7 +23,29 @@ It fetches beautiful backgrounds and posters from your Plex or Jellyfin media se
 ## Requirements
 
 *   **Node.js**: version 18.x or higher.
-    (You can download it from [nodejs.org](https://nodejs.org/en/download/)).
+    *   **Windows & macOS**: Download the official installer from [nodejs.org](https://nodejs.org/en/download/).
+    *   **Linux**: Installing a recent version of Node.js on Linux requires a few extra steps. The versions available in the default system repositories (e.g., via `apt` or `yum`) are often outdated and **will not work** with this application. The recommended method is to use the official NodeSource repositories, which always provide the latest versions.
+
+        **Recommended Installation (via NodeSource):**
+
+        *   **Debian, Ubuntu, and derivatives:**
+            ```bash
+            # This command adds the NodeSource repository for Node.js v18
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+            # Then, install Node.js
+            sudo apt-get install -y nodejs
+            ```
+        *   **RHEL, CentOS, Fedora, and derivatives:**
+            ```bash
+            # This command adds the NodeSource repository for Node.js v18
+            curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+            # Then, install Node.js (use 'dnf' if 'yum' is not available)
+            sudo yum install -y nodejs
+            ```
+        *   **Arch Linux:** The official Arch repositories are typically up-to-date. The standard installation command is usually sufficient.
+            ```bash
+            sudo pacman -S nodejs npm
+            ```
 *   **PM2**: A process manager for Node.js. Install it globally:
     ```bash
     npm install -g pm2
