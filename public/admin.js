@@ -25,6 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
         DEBUG: false
     };
 
+    // --- Admin Background Slideshow State ---
+    let adminBgQueue = [];
+    let adminBgIndex = -1;
+    let adminBgTimer = null;
+    let activeAdminLayer = null;
+    let inactiveAdminLayer = null;
+
     /**
      * Helper to safely get a value from a nested object.
      * @param {object} obj The object to query.
@@ -115,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (env.PLEX_HOSTNAME && env.PLEX_PORT && env.PLEX_TOKEN === true) {
                 fetchAndDisplayPlexLibraries(savedMovieLibs, savedShowLibs);
+                initializeAdminBackground();
             }
 
             // Forcefully remove focus from any element that the browser might have auto-focused.
@@ -124,6 +132,68 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to load config:', error);
             alert('Failed to load settings. Please try refreshing the page.');
         }
+    }
+
+    /**
+     * Initializes and starts the admin background slideshow.
+     * Fetches the media list if not already present and starts a timer.
+     */
+    async function initializeAdminBackground() {
+        if (adminBgTimer) {
+            clearInterval(adminBgTimer);
+        }
+
+        if (!activeAdminLayer) {
+            activeAdminLayer = document.getElementById('admin-background-a');
+            inactiveAdminLayer = document.getElementById('admin-background-b');
+        }
+
+        if (adminBgQueue.length === 0) {
+            try {
+                const response = await fetch(`/get-media?_=${Date.now()}`);
+                if (!response.ok) {
+                    console.warn('Could not fetch media for admin background, server might be starting up.');
+                    return;
+                }
+                adminBgQueue = await response.json();
+                if (adminBgQueue.length === 0) {
+                    console.warn('Admin background queue is empty.');
+                    return;
+                }
+                adminBgIndex = Math.floor(Math.random() * adminBgQueue.length) - 1;
+            } catch (error) {
+                console.warn('Failed to fetch admin background media:', error);
+                return;
+            }
+        }
+
+        changeAdminBackground(); // Show first image immediately
+        adminBgTimer = setInterval(changeAdminBackground, 30000); // Change every 30 seconds
+    }
+
+    /**
+     * Changes the background image on the admin page with a fade effect.
+     */
+    function changeAdminBackground() {
+        if (adminBgQueue.length === 0 || !activeAdminLayer || !inactiveAdminLayer) return;
+
+        adminBgIndex = (adminBgIndex + 1) % adminBgQueue.length;
+        const currentItem = adminBgQueue[adminBgIndex];
+
+        if (!currentItem || !currentItem.backgroundUrl) return;
+
+        const img = new Image();
+        img.onload = () => {
+            inactiveAdminLayer.style.backgroundImage = `url('${currentItem.backgroundUrl}')`;
+            inactiveAdminLayer.style.opacity = 1;
+            activeAdminLayer.style.opacity = 0;
+
+            // Swap layers for the next transition
+            const tempLayer = activeAdminLayer;
+            activeAdminLayer = inactiveAdminLayer;
+            inactiveAdminLayer = tempLayer;
+        };
+        img.src = currentItem.backgroundUrl;
     }
 
     /**
@@ -196,6 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const currentMovieLibs = getSelectedLibraries('movie');
                 const currentShowLibs = getSelectedLibraries('show');
                 fetchAndDisplayPlexLibraries(currentMovieLibs, currentShowLibs);
+                adminBgQueue = []; // Force a re-fetch of the media queue
+                initializeAdminBackground();
             } catch (error) {
                 finalMessage = 'Mislukt';
                 finalIcon = 'fas fa-exclamation-triangle';

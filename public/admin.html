@@ -114,9 +114,29 @@
         #debug-link:hover {
             text-decoration: underline;
         }
+
+        .admin-background-layer {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center center;
+            z-index: -1;
+            transition: opacity 2.5s ease-in-out; /* Slower fade for a calmer effect */
+            opacity: 0;
+        }
+        .admin-background-layer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.7); /* Dark filter */
+        }
     </style>
 </head>
 <body>
+    <div id="admin-background-a" class="admin-background-layer"></div>
+    <div id="admin-background-b" class="admin-background-layer"></div>
     <header class="admin-header">
         <h1>Admin posterrama</h1>
         <nav>

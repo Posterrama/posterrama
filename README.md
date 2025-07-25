@@ -1,47 +1,63 @@
 # posterrama.app
 
-**posterrama.app** is een elegante, full-screen screensaver die fungeert als een digitaal art-frame voor uw media. Het haalt prachtige achtergronden en posters van uw Plex of Jellyfin media server en toont ze met een subtiel Ken Burns-effect.
+**posterrama.app** is an elegant, full-screen screensaver that acts as a digital art frame for your media. It fetches beautiful backgrounds and posters from your Plex or Jellyfin media server and displays them with a subtle Ken Burns effect.
 
-![Screenshot van posterrama.app](https://user-images.githubusercontent.com/example/screenshot.png) <!-- Vervang dit door een echte screenshot URL -->
+![Screenshot of posterrama.app](https://user-images.githubusercontent.com/example/screenshot.png) <!-- Replace this with a real screenshot URL -->
 
 ## Features
 
-*   **Meerdere Bronnen**: Werkt met zowel Plex als Jellyfin.
-*   **Dynamische Weergave**: Toont film- en serie-achtergronden met een cinematisch Ken Burns-effect.
-*   **Rijke Metadata**: Geeft posters, titels, taglines, jaartal en ratings weer.
+*   **Multiple Sources**: Works with both Plex and Jellyfin.
+*   **Dynamic Display**: Shows movie and series backgrounds with a cinematic Ken Burns effect.
+*   **Rich Metadata**: Displays posters, titles, taglines, year, and ratings.
 *   **Integraties**:
     *   **ClearLogo**: Toont het logo van de film of serie.
     *   **Rotten Tomatoes**: Geeft een "Fresh", "Rotten" of "Certified Fresh" badge weer.
 *   **Aanpasbare Widgets**: Inclusief een configureerbare klok.
 *   **Web-based Admin Paneel**: Eenvoudig te configureren via een webinterface, inclusief het testen van de serververbinding en het selecteren van bibliotheken.
 *   **Procesbeheer**: Draait stabiel met PM2, inclusief automatisch herstarten bij wijzigingen.
+*   **Integrations**:
+    *   **ClearLogo**: Shows the movie or series logo.
+    *   **Rotten Tomatoes**: Displays a "Fresh", "Rotten", or "Certified Fresh" badge.
+*   **Customizable Widgets**: Includes a configurable clock.
+*   **Web-based Admin Panel**: Easy to configure via a web interface, including testing the server connection and selecting libraries.
+*   **Process Management**: Runs stably with PM2, including automatic restarts on changes.
 
 ## Vereisten
 
 *   **Node.js**: versie 16.x of hoger.
 *   **npm**: Wordt meegeleverd met Node.js.
 *   **PM2**: Een process manager voor Node.js. Installeer het wereldwijd:
+## Requirements
+
+*   **Node.js**: version 16.x or higher.
+*   **npm**: Included with Node.js.
+*   **PM2**: A process manager for Node.js. Install it globally:
     ```bash
     npm install -g pm2
     ```
 *   **Media Server**: Toegang tot een geconfigureerde Plex of Jellyfin server.
+*   **Media Server**: Access to a configured Plex or Jellyfin server.
 
 ## Installation
 
 1.  **Clone de repository**
+1.  **Clone the repository**
     ```bash
     git clone https://github.com/jouw-gebruiker/posterrama.app.git
     cd posterrama.app
     ```
 
 2.  **Installeer de afhankelijkheden**
+2.  **Install dependencies**
     ```bash
     npm install
     ```
 
 3.  **Maak het configuratiebestand voor geheimen**
 
-    Kopieer het voorbeeld-omgevingsbestand naar een nieuw `.env` bestand. Dit bestand bevat de geheime sleutels en tokens en wordt niet meegenomen in versiebeheer.
+3.  **Create the configuration file for secrets**
+
+    Copy the example environment file to a new `.env` file. This file contains secret keys and tokens and is not tracked by version control.
 
     ```bash
     cp config.example.env .env
@@ -49,9 +65,11 @@
 
 4.  **Vul het `.env` bestand in**
 
-    Open het `.env` bestand met een tekst-editor en vul de gegevens van je media server in.
+4.  **Fill in the `.env` file**
 
-    *Voorbeeld voor Plex:*
+    Open the `.env` file with a text editor and enter your media server details.
+
+    *Example for Plex:*
     ```env
     # Plex Server Details
     PLEX_HOSTNAME="192.168.1.10"

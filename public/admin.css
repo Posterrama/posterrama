@@ -1,53 +1,12 @@
 /* Basic Reset & Font */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    /* New "Aurora" background */
-    background-color: #0f101a; /* A deep, dark blue as a base */
+    background-color: #1f2937; /* A neutral dark gray, replacing the "Aurora" background */
     color: #e0e0e0;
     margin: 0;
     line-height: 1.6;
     overflow-y: auto; /* Allow vertical scrolling */
     overflow-x: hidden; /* Prevent horizontal scrolling */
-    position: relative; /* Needed for pseudo-elements */
-}
-
-/* Animated background blobs */
-body::before,
-body::after {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    filter: blur(120px); /* Increased blur for a softer effect */
-    border-radius: 50%;
-}
-
-body::before {
-    width: 500px;
-    height: 500px;
-    background-color: #53a8b6; /* Using the link color */
-    top: -150px;
-    left: -150px;
-    animation: move-blob-1 20s infinite alternate ease-in-out;
-}
-
-body::after {
-    width: 600px;
-    height: 600px;
-    background-color: #bb86fc; /* Using the button color */
-    bottom: -200px;
-    right: -200px;
-    animation: move-blob-2 22s infinite alternate ease-in-out;
-    animation-delay: -10s;
-}
-
-@keyframes move-blob-1 {
-    from { transform: translate(0, 0) rotate(0deg); }
-    to { transform: translate(80vw, 60vh) rotate(180deg); }
-}
-
-@keyframes move-blob-2 {
-    from { transform: translate(0, 0) rotate(0deg); }
-    to { transform: translate(-70vw, -50vh) rotate(-180deg); }
 }
 
 a {
