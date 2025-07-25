@@ -2,7 +2,7 @@
 
 # An elegant, full-screen screensaver that acts as a digital art frame for your media.
 
-## It fetches beautiful backgrounds and posters from your Plex or Jellyfin media server and displays them with a subtle Ken Burns effect.
+It fetches beautiful backgrounds and posters from your Plex or Jellyfin media server and displays them with a subtle Ken Burns effect.
 
 ![Screenshot of posterrama.app](https://demo.posterrama.app/screenshot.png)
 
