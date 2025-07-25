@@ -98,7 +98,27 @@ It fetches beautiful backgrounds and posters from your Plex media server and dis
     pm2 start ecosystem.config.js
     ```
 
-6.  **Check the status**
+6.  **Enable Automatic Startup on Boot (Recommended)**
+
+    To ensure the application automatically starts when the server reboots, you need to set up the PM2 startup script.
+
+    First, generate the startup command:
+    ```bash
+    pm2 startup
+    ```
+    PM2 will display a command that you need to copy and run. It will look something like this (the exact command may vary depending on your system):
+    ```bash
+    # Example for a systemd-based Linux system:
+    sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u <your_username> --hp /home/<your_username>
+    ```
+    **Important:** Run the exact command provided by PM2 in your terminal.
+
+    Finally, save the current process list so PM2 knows which applications to restart on boot:
+    ```bash
+    pm2 save
+    ```
+
+7.  **Check the status**
 
     You can view the application's status and logs with:
     ```bash
