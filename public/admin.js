@@ -387,6 +387,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancel2faButton = document.getElementById('cancel-2fa-button');
     const qrCodeContainer = document.getElementById('qr-code-container');
 
+    // New elements for the disable modal
+    const disable2FAModal = document.getElementById('disable-2fa-modal');
+    const disable2FAForm = document.getElementById('disable-2fa-form');
+    const cancelDisable2FAButton = document.getElementById('cancel-disable-2fa-button');
+
     function show2FAModal() {
         if (twoFaModal) twoFaModal.classList.remove('is-hidden');
     }
@@ -396,6 +401,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (qrCodeContainer) qrCodeContainer.innerHTML = '';
         const tokenInput = document.getElementById('2fa-token');
         if (tokenInput) tokenInput.value = '';
+    }
+
+    // New functions for the disable modal
+    function showDisable2FAModal() {
+        if (disable2FAModal) disable2FAModal.classList.remove('is-hidden');
+    }
+
+    function hideDisable2FAModal() {
+        if (disable2FAModal) disable2FAModal.classList.add('is-hidden');
+        if (disable2FAForm) disable2FAForm.reset();
     }
 
     function update2FAStatusText(isEnabled) {
@@ -424,28 +439,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleDisable2FA() {
-        // Een simpele prompt wordt hier gebruikt voor de beknoptheid. Een modaal formulier is beter voor de UX.
-        const password = prompt('Voer uw huidige wachtwoord in om het uitschakelen van 2FA te bevestigen:');
-        if (password === null) { // Gebruiker klikte op annuleren
-            twoFaCheckbox.checked = true; // Zet de checkbox terug
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/admin/2fa/disable', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
-            });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || 'Uitschakelen mislukt.');
-
-            showNotification('2FA succesvol uitgeschakeld.', 'success');
-            update2FAStatusText(false);
-        } catch (error) {
-            showNotification(`Fout bij uitschakelen 2FA: ${error.message}`, 'error');
-            twoFaCheckbox.checked = true; // Zet de checkbox terug bij een fout
-        }
+        // This function now just shows the modal. The logic is moved to the form submit handler.
+        showDisable2FAModal();
     }
 
     async function load2FAStatus() {
@@ -506,6 +501,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 tokenInput.value = '';
                 tokenInput.focus();
             }
+        });
+    }
+
+    if (disable2FAForm) {
+        disable2FAForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const passwordInput = document.getElementById('disable-2fa-password');
+            const password = passwordInput.value;
+
+            try {
+                const response = await fetch('/api/admin/2fa/disable', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Uitschakelen mislukt.');
+
+                hideDisable2FAModal();
+                showNotification('2FA succesvol uitgeschakeld.', 'success');
+                update2FAStatusText(false);
+            } catch (error) {
+                showNotification(`Fout bij uitschakelen 2FA: ${error.message}`, 'error');
+                // Don't hide the modal on error, so the user can try again.
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        });
+    }
+
+    if (cancelDisable2FAButton) {
+        cancelDisable2FAButton.addEventListener('click', () => {
+            hideDisable2FAModal();
+            twoFaCheckbox.checked = true; // Revert the checkbox state since the user cancelled
+            update2FAStatusText(true);
         });
     }
 

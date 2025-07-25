@@ -30,6 +30,7 @@ const { shuffleArray } = require('./utils.js');
 const speakeasy = require('speakeasy');
 const app = express();
 const { ApiError, NotFoundError } = require('./errors.js');
+const { Jellyfin } = require('@jellyfin/sdk');
 
 // Use process.env with a fallback to config.json
 const port = process.env.SERVER_PORT || config.serverPort || 4000;
@@ -328,15 +329,8 @@ function getPlexClient(serverConfig) {
 }
 
 const jellyfinClients = {};
-let Jellyfin; // Will be loaded dynamically
 
 async function getJellyfinClient(serverConfig) {
-    if (!Jellyfin) {
-        // Dynamically import the ESM module
-        const sdk = await import('@jellyfin/sdk');
-        Jellyfin = sdk.Jellyfin;
-    }
-
     if (!jellyfinClients[serverConfig.name]) {
         const serverUrl = process.env[serverConfig.urlEnvVar];
         const apiKey = process.env[serverConfig.apiKeyEnvVar];
@@ -655,16 +649,29 @@ async function readConfig() {
  * @param {object} newConfig - The new configuration object to write.
  */
 async function writeConfig(newConfig) {
-    if (isDebug) {
-        console.log('[Admin API] Attempting to write to config.json with data:', JSON.stringify(newConfig, null, 2));
-    }
+    if (isDebug) console.log('[Admin API] Attempting to write to config.json with data:', JSON.stringify(newConfig, null, 2));
+
     // Remove metadata before writing
     delete newConfig._metadata;
     const newContent = JSON.stringify(newConfig, null, 2);
+    const tempPath = './config.json.tmp';
+    const finalPath = './config.json';
 
-    await fs.writeFile('./config.json', newContent, 'utf-8');
-    // Update the in-memory config for the current running instance
-    Object.assign(config, newConfig);
+    try {
+        // Write to a temporary file first
+        await fs.writeFile(tempPath, newContent, 'utf-8');
+        // Atomically rename the temp file to the final file
+        await fs.rename(tempPath, finalPath);
+        // Update the in-memory config for the current running instance
+        Object.assign(config, newConfig);
+    } catch (error) {
+        console.error('[Admin API] Failed to write config atomically. Cleaning up temp file if it exists.', error);
+        // Attempt to clean up the temporary file on error to avoid leaving garbage
+        await fs.unlink(tempPath).catch(cleanupError => {
+            console.error('[Admin API] Failed to clean up temp config file:', cleanupError);
+        });
+        throw error; // Re-throw the original error
+    }
 }
 
 /**
@@ -1036,46 +1043,69 @@ app.get('/admin/login', (req, res) => {
 });
 
 app.post('/admin/login', asyncHandler(async (req, res) => {
-    const { username, password, totp_code } = req.body;
+    const { username, password } = req.body;
     if (isDebug) console.log(`[Admin Login] Attempting login for user "${username}".`);
 
     const isValidUser = (username === process.env.ADMIN_USERNAME);
     if (!isValidUser) {
         if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid username.`);
-        throw new ApiError(401, 'Invalid credentials. <a href="/admin/login">Try again</a>.');
+        throw new ApiError(401, 'Invalid username or password. <a href="/admin/login">Try again</a>.');
     }
 
     const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
     if (!isValidPassword) {
         if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid credentials.`);
-        throw new ApiError(401, 'Invalid credentials. <a href="/admin/login">Try again</a>.');
+        throw new ApiError(401, 'Invalid username or password. <a href="/admin/login">Try again</a>.');
     }
 
-    // --- 2FA Verification ---
-    const is2FAEnabled = !!process.env.ADMIN_2FA_SECRET;
+    // --- Check if 2FA is enabled ---
+    const secret = process.env.ADMIN_2FA_SECRET || '';
+    const is2FAEnabled = secret.trim() !== '';
+
     if (is2FAEnabled) {
-        if (!totp_code) {
-            if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". 2FA code is required but was not provided.`);
-            throw new ApiError(401, '2FA code is required. <a href="/admin/login">Try again</a>.');
-        }
+        // User is valid, but needs to provide a 2FA code.
+        // Set a temporary flag in the session.
+        req.session.tfa_required = true;
+        req.session.tfa_user = { username: username }; // Store user info temporarily
+        if (isDebug) console.log(`[Admin Login] Credentials valid for "${username}". Redirecting to 2FA verification.`);
+        res.redirect('/admin/2fa-verify');
+    } else {
+        // No 2FA, log the user in directly.
+        req.session.user = { username: username };
+        if (isDebug) console.log(`[Admin Login] Login successful for user "${username}". Redirecting to admin panel.`);
+        res.redirect('/admin');
+    }
+}));
 
-        const verified = speakeasy.totp.verify({
-            secret: process.env.ADMIN_2FA_SECRET,
-            encoding: 'base32',
-            token: totp_code,
-            window: 1 // Allows for a 30-second tolerance window (one token before, one after)
-        });
+app.get('/admin/2fa-verify', (req, res) => {
+    // Only show this page if the user has passed the first step of login.
+    if (!req.session.tfa_required) {
+        return res.redirect('/admin/login');
+    }
+    res.sendFile(path.join(__dirname, 'public', '2fa-verify.html'));
+});
 
-        if (!verified) {
-            if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid 2FA code.`);
-            throw new ApiError(401, 'Invalid 2FA code. <a href="/admin/login">Try again</a>.');
-        }
+app.post('/admin/2fa-verify', asyncHandler(async (req, res) => {
+    const { totp_code } = req.body;
+
+    if (!req.session.tfa_required || !req.session.tfa_user) {
+        if (isDebug) console.log('[Admin 2FA Verify] 2FA verification attempted without prior password validation. Redirecting to login.');
+        return res.redirect('/admin/login');
     }
 
-    // --- Session Creation ---
-    req.session.user = { username: username };
-    if (isDebug) console.log(`[Admin Login] Login successful for user "${username}". Redirecting to admin panel.`);
-    res.redirect('/admin');
+    const secret = process.env.ADMIN_2FA_SECRET || '';
+    const verified = speakeasy.totp.verify({ secret, encoding: 'base32', token: totp_code, window: 1 });
+
+    if (verified) {
+        req.session.user = { username: req.session.tfa_user.username };
+        delete req.session.tfa_required;
+        delete req.session.tfa_user;
+        if (isDebug) console.log(`[Admin 2FA Verify] 2FA verification successful for user "${req.session.user.username}".`);
+        res.redirect('/admin');
+    } else {
+        if (isDebug) console.log(`[Admin 2FA Verify] Invalid 2FA code for user "${req.session.tfa_user.username}".`);
+        throw new ApiError(401, 'Invalid 2FA code. <a href="/admin/2fa-verify">Try again</a>.');
+    }
 }));
 
 app.get('/admin/logout', (req, res, next) => {
@@ -1091,26 +1121,29 @@ app.get('/admin/logout', (req, res, next) => {
 });
 
 app.get('/api/admin/2fa/status', isAuthenticated, (req, res) => {
-    const isEnabled = !!process.env.ADMIN_2FA_SECRET && process.env.ADMIN_2FA_SECRET !== '';
+    const secret = process.env.ADMIN_2FA_SECRET || '';
+    const isEnabled = secret.trim() !== '';
     res.json({ enabled: isEnabled });
 });
 
 app.post('/api/admin/2fa/generate', isAuthenticated, asyncHandler(async (req, res) => {
+    const secret = process.env.ADMIN_2FA_SECRET || '';
+    const isEnabled = secret.trim() !== '';
     // Prevent generating a new secret if one is already active
-    if (!!process.env.ADMIN_2FA_SECRET && process.env.ADMIN_2FA_SECRET !== '') {
+    if (isEnabled) {
         throw new ApiError(400, '2FA is already enabled.');
     }
 
-    const secret = speakeasy.generateSecret({
+    const newSecret = speakeasy.generateSecret({
         length: 20,
         name: `posterrama.app (${req.session.user.username})`
     });
 
     // Store the new secret in the session, waiting for verification.
     // This is crucial so we don't lock the user out if they fail to verify.
-    req.session.tfa_pending_secret = secret.base32;
+    req.session.tfa_pending_secret = newSecret.base32;
 
-    const qrCodeDataUrl = await qrcode.toDataURL(secret.otpauth_url);
+    const qrCodeDataUrl = await qrcode.toDataURL(newSecret.otpauth_url);
     res.json({ qrCodeDataUrl });
 }));
 

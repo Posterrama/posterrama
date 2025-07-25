@@ -317,6 +317,19 @@
                         </div>
                     </div>
                 </div>
+                <div class="settings-column">
+                    <h2>Beveiliging & Beheer</h2>
+                    <!-- Change Password -->
+                    <div class="form-section">
+                        <h3>Wachtwoord Wijzigen</h3>
+                        <form id="password-form">
+                            <div class="form-group">
+                                <label for="currentPassword">Huidig Wachtwoord</label>
+                                <input type="password" id="currentPassword" name="currentPassword" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">Nieuw Wachtwoord</label>
+                                <input type="password" id="newPassword" name="newPassword" required>
             </div>
 
             <div class="form-actions">
@@ -325,9 +338,9 @@
         </form>
 
         <!-- Security & Management -->
-        <div class="settings-grid" style="align-items: start;">
+        <div class="settings-grid">
             <div class="settings-column">
-                <h2>Beveiliging</h2>
+                <h2>Beveiliging & Beheer</h2>
                 <!-- Change Password -->
                 <div class="form-section">
                     <h3>Wachtwoord Wijzigen</h3>
@@ -359,10 +372,9 @@
                         <div id="2fa-status-text" class="status-text disabled"></div>
                     </div>
                 </div>
-            </div>
-            <div class="settings-column">
-                <h2>Applicatiebeheer</h2>
+                <!-- Application Management -->
                 <div class="form-section">
+                    <h3>Applicatiebeheer</h3>
                     <div class="form-group">
                         <p>Hiermee wordt de serverapplicatie herstart. Dit kan nodig zijn nadat bepaalde instellingen zijn gewijzigd (zoals de poort). De verbinding wordt kort verbroken.</p>
                     </div>
@@ -373,7 +385,6 @@
                         </button>
                     </div>
                 </div>
-            </div>
         </div>
     </main>
 
@@ -395,6 +406,25 @@
                 <div class="form-actions">
                     <button type="button" id="cancel-2fa-button" class="button-secondary">Annuleren</button>
                     <button type="submit" class="button-primary">Verifiëren en Inschakelen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Disable 2FA Confirmation Modal -->
+    <div id="disable-2fa-modal" class="modal is-hidden">
+        <div class="modal-background"></div>
+        <div class="modal-content">
+            <h2>Bevestig het uitschakelen van 2FA</h2>
+            <p>Voer uw huidige wachtwoord in om te bevestigen dat u Two-Factor Authenticatie wilt uitschakelen.</p>
+            <form id="disable-2fa-form">
+                <div class="form-group">
+                    <label for="disable-2fa-password">Huidig Wachtwoord</label>
+                    <input type="password" id="disable-2fa-password" name="password" required autocomplete="current-password">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancel-disable-2fa-button" class="button-secondary">Annuleren</button>
+                    <button type="submit" class="button-primary button-danger">2FA Uitschakelen</button>
                 </div>
             </form>
         </div>

@@ -1,15 +1,12 @@
 {
   "transitionIntervalSeconds": 15,
   "backgroundRefreshMinutes": 30,
-  "recentlyAddedCacheMinutes": 5,
   "showClearLogo": true,
   "showRottenTomatoes": true,
   "rottenTomatoesMinimumScore": 0,
   "showPoster": true,
   "showMetadata": true,
-  "recentlyAddedSidebar": false,
   "clockWidget": false,
-  "enable2FA": false,
   "kenBurnsEffect": {
     "enabled": true,
     "durationSeconds": 15
@@ -29,7 +26,7 @@
         "TV Shows"
       ],
       "movieCount": 30,
-      "showCount": 0
+      "showCount": 15
     }
   ]
 }

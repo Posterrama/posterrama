@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Verification - posterrama</title>
+    <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1>Two-Factor Authentication</h1>
+            <p>Enter the 6-digit code from your authenticator app to complete your login.</p>
+            <form action="/admin/2fa-verify" method="POST">
+                <div class="form-group">
+                    <label for="totp_code">Verification Code</label>
+                    <input type="text" id="totp_code" name="totp_code" required pattern="\d{6}" maxlength="6" autocomplete="one-time-code" inputmode="numeric" autofocus>
+                </div>
+                <button type="submit" class="button-primary">Verify</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
