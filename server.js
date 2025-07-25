@@ -3,8 +3,8 @@
  *
  * Author: Mark Frelink
  * Last Modified: 2024-08-02
- * License: AGPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
+ * License: GPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  */
@@ -20,10 +20,14 @@ const { exec } = require('child_process');
 const PlexAPI = require('plex-api');
 const fetch = require('node-fetch');
 const config = require('./config.json');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./swagger.js');
 const pkg = require('./package.json');
 const ecosystemConfig = require('./ecosystem.config.js');
+const qrcode = require('qrcode');
 const { shuffleArray } = require('./utils.js');
 
+const speakeasy = require('speakeasy');
 const app = express();
 const { ApiError, NotFoundError } = require('./errors.js');
 
@@ -35,6 +39,9 @@ if (isDebug) console.log('--- DEBUG MODE IS ACTIVE ---');
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true })); // For parsing form data
+
+// Swagger API documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // General request logger for debugging
 if (isDebug) {
@@ -678,6 +685,22 @@ app.get('/admin', (req, res) => {
 });
 
 // --- API Endpoints ---
+
+/**
+ * @swagger
+ * /get-config:
+ *   get:
+ *     summary: Retrieve the public application configuration
+ *     description: Fetches the non-sensitive configuration needed by the frontend for display logic.
+ *     tags: [Public API]
+ *     responses:
+ *       200:
+ *         description: The public configuration object.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Config'
+ */
 app.get('/get-config', (req, res) => {
     res.json({
         clockWidget: config.clockWidget !== false,
@@ -693,6 +716,34 @@ app.get('/get-config', (req, res) => {
     });
 });
 
+/**
+ * @swagger
+ * /get-media:
+ *   get:
+ *     summary: Retrieve the shuffled media playlist
+ *     description: >
+ *       Fetches the media playlist from the cache. If the cache is empty or stale,
+ *       it triggers a refresh from the configured media servers (Plex/Jellyfin).
+ *       The client may receive a 202 status if the playlist is being built.
+ *     tags: [Public API]
+ *     responses:
+ *       200:
+ *         description: An array of media items.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MediaItem'
+ *       202:
+ *         description: The playlist is being built, please try again.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiMessage'
+ *       503:
+ *         description: Service unavailable. The initial media fetch may have failed.
+ */
 app.get('/get-media', asyncHandler(async (req, res) => {
     // Prevent the browser from caching this endpoint, which is crucial for the polling mechanism.
     res.setHeader('Cache-Control', 'no-store');
@@ -721,6 +772,21 @@ app.get('/get-media', asyncHandler(async (req, res) => {
     });
 }));
 
+/**
+ * @swagger
+ * /get-recently-added:
+ *   get:
+ *     summary: Retrieve recently added media items
+ *     description: Fetches a short, sorted list of the most recently added items from all enabled media servers.
+ *     tags: [Public API]
+ *     responses:
+ *       200:
+ *         description: An array of recently added media items.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ */
 app.get('/get-recently-added', asyncHandler(async (req, res) => {
     if (config.recentlyAddedSidebar !== true) {
         return res.json([]);
@@ -756,6 +822,30 @@ app.get('/get-recently-added', asyncHandler(async (req, res) => {
     res.json(recentlyAddedCache);
 }));
 
+/**
+ * @swagger
+ * /get-media-by-key/{key}:
+ *   get:
+ *     summary: Retrieve a single media item by its unique key
+ *     description: Fetches the full details for a specific media item, typically used when a user clicks on a 'recently added' item that isn't in the main playlist.
+ *     tags: [Public API]
+ *     parameters:
+ *       - in: path
+ *         name: key
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique key of the media item (e.g., plex-MyPlex-12345).
+ *     responses:
+ *       200:
+ *         description: The requested media item.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MediaItem'
+ *       404:
+ *         description: Media item not found.
+ */
 app.get('/get-media-by-key/:key', asyncHandler(async (req, res) => {
     const keyParts = req.params.key.split('-'); // e.g., ['plex', 'My', 'Server', '12345']
     if (keyParts.length < 3) { // Must have at least type, name, and key
@@ -786,6 +876,36 @@ app.get('/get-media-by-key/:key', asyncHandler(async (req, res) => {
     }
 }));
 
+/**
+ * @swagger
+ * /image:
+ *   get:
+ *     summary: Image proxy
+ *     description: Proxies image requests to the media server (Plex/Jellyfin) to avoid exposing server details and tokens to the client.
+ *     tags: [Public API]
+ *     parameters:
+ *       - in: query
+ *         name: server
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the server config from config.json.
+ *       - in: query
+ *         name: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The image path from the media item object (e.g., /library/metadata/12345/art/...).
+ *     responses:
+ *       200:
+ *         description: The requested image.
+ *         content:
+ *           image/*: {}
+ *       400:
+ *         description: Bad request, missing parameters.
+ *       302:
+ *         description: Redirects to a fallback image on error.
+ */
 app.get('/image', asyncHandler(async (req, res) => {
     const { server: serverName, path: imagePath } = req.query;
 
@@ -874,30 +994,78 @@ app.get('/admin/setup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'setup.html'));
 });
 
-app.post('/admin/setup', asyncHandler(async (req, res) => {
+app.post('/admin/setup', asyncHandler(async (req, res, next) => {
     if (isDebug) console.log('[Admin Setup] Received setup request.');
     if (isAdminSetup()) {
         if (isDebug) console.log('[Admin Setup] Aborted: Admin user is already configured.');
-        return res.status(403).send('Admin user is already configured.');
+        throw new ApiError(403, 'Admin user is already configured.');
     }
+
     const { username, password } = req.body;
     if (!username || !password) {
         if (isDebug) console.log('[Admin Setup] Aborted: Username or password missing.');
-        return res.status(400).send('Username and password are required.');
+        throw new ApiError(400, 'Username and password are required.');
     }
 
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
     const sessionSecret = require('crypto').randomBytes(32).toString('hex');
 
-    await writeEnvFile({
-        ADMIN_USERNAME: username,
-        ADMIN_PASSWORD_HASH: passwordHash,
-        SESSION_SECRET: sessionSecret
+    // Generate 2FA secret
+    const tfaSecret = speakeasy.generateSecret({
+        length: 20,
+        name: `posterrama.app (${username})`
     });
 
-    if (isDebug) console.log(`[Admin Setup] Successfully created admin user "${username}" and saved to .env file.`);
-    res.redirect('/admin/login');
+    // Store all necessary info in the session temporarily
+    req.session.setup = { username, passwordHash, sessionSecret, tfaSecret: tfaSecret.base32 };
+
+    // Generate QR code for the user and store it for the setup page
+    const qrDataUrl = await qrcode.toDataURL(tfaSecret.otpauth_url);
+    req.session.tfa_qr = { secret: tfaSecret.base32, qr: qrDataUrl };
+
+    if (isDebug) console.log(`[Admin Setup] Generated 2FA secret for user "${username}". Redirecting to 2FA setup page.`);
+    res.redirect('/admin/2fa-setup');
+}));
+
+app.get('/admin/2fa-setup', (req, res) => {
+    // Check if we are in the middle of a setup process
+    if (!req.session.setup || !req.session.tfa_qr) {
+        return res.redirect('/admin/setup');
+    }
+    res.sendFile(path.join(__dirname, 'public', '2fa-setup.html'));
+});
+
+app.post('/admin/2fa-verify', asyncHandler(async (req, res) => {
+    const { totp_code } = req.body;
+    const setupData = req.session.setup;
+
+    if (!setupData || !setupData.tfaSecret) {
+        throw new ApiError(400, 'Session expired or invalid. Please start the setup process again. <a href="/admin/setup">Start Over</a>');
+    }
+
+    const verified = speakeasy.totp.verify({
+        secret: setupData.tfaSecret,
+        encoding: 'base32',
+        token: totp_code,
+        window: 1
+    });
+
+    if (verified) {
+        await writeEnvFile({
+            ADMIN_USERNAME: setupData.username,
+            ADMIN_PASSWORD_HASH: setupData.passwordHash,
+            SESSION_SECRET: setupData.sessionSecret,
+            ADMIN_2FA_SECRET: setupData.tfaSecret,
+        });
+        if (isDebug) console.log(`[Admin Setup] 2FA verified. Successfully created admin user "${setupData.username}" and saved to .env file.`);
+        delete req.session.setup;
+        delete req.session.tfa_qr;
+        res.send('Setup complete! You will be redirected to the login page. <script>setTimeout(() => window.location.href="/admin/login", 2000);</script>');
+    } else {
+        if (isDebug) console.log('[Admin Setup] 2FA verification failed.');
+        res.redirect('/admin/2fa-setup?error=1');
+    }
 }));
 
 app.get('/admin/login', (req, res) => {
@@ -911,27 +1079,45 @@ app.get('/admin/login', (req, res) => {
 });
 
 app.post('/admin/login', asyncHandler(async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, totp_code } = req.body;
     if (isDebug) console.log(`[Admin Login] Attempting login for user "${username}".`);
     const isValidUser = (username === process.env.ADMIN_USERNAME);
     const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
 
+    let verified = false;
+
     if (isValidUser && isValidPassword) {
-        req.session.user = { username: process.env.ADMIN_USERNAME };
-        if (isDebug) console.log(`[Admin Login] Login successful for user "${username}". Session created.`);
-        res.redirect('/admin');
+
+      // Check 2FA
+      const secret = process.env.ADMIN_2FA_SECRET;
+      verified = speakeasy.totp.verify({
+        secret: secret,
+        encoding: 'base32',
+        token: totp_code,
+        window: 2
+      });
+
+      if (verified) {
+          req.session.user = { username: process.env.ADMIN_USERNAME };
+          if (isDebug) console.log(`[Admin Login] Login successful for user "${username}". Session created.`);
+          res.redirect('/admin');
+      } else {
+          if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid 2FA code.`);
+          throw new ApiError(401, 'Invalid 2FA code. <a href="/admin/login">Try again</a>.');
+      }
+
     } else {
         if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid credentials.`);
-        res.status(401).send('Invalid credentials. <a href="/admin/login">Try again</a>.');
+        throw new ApiError(401, 'Invalid credentials. <a href="/admin/login">Try again</a>.');
     }
 }));
 
-app.get('/admin/logout', (req, res) => {
+app.get('/admin/logout', (req, res, next) => {
     if (isDebug) console.log(`[Admin Logout] User "${req.session.user?.username}" logging out.`);
     req.session.destroy(err => {
         if (err) {
             if (isDebug) console.error('[Admin Logout] Error destroying session:', err);
-            return res.status(500).send('Could not log out.');
+            return next(new ApiError(500, 'Could not log out.'));
         }
         if (isDebug) console.log('[Admin Logout] Session destroyed successfully.');
         res.redirect('/admin/login');
@@ -976,6 +1162,15 @@ app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
         env: envVarsToExpose
     });
 }));
+
+app.get('/api/admin/2fa-qr-code', (req, res) => {
+    // This endpoint is used during setup, so we check for session.tfa_qr
+    if (req.session.tfa_qr) {
+        res.json(req.session.tfa_qr);
+    } else {
+        res.status(404).json({ error: '2FA setup data not found in session. Please start over.' });
+    }
+});
 
 app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Received request to test Plex connection.');
@@ -1202,32 +1397,50 @@ app.get('/admin/debug', isAuthenticated, asyncHandler(async (req, res) => {
 // --- Centralized Error Handling ---
 // This should be the last middleware added.
 app.use((err, req, res, next) => {
-    // In debug mode, log the full error. In production, a shorter log might be better.
-    console.error(err);
+    // Log the error with more context
+    if (isDebug) {
+        console.error(`[Error Handler] Caught error for ${req.method} ${req.originalUrl}:`, err);
+    } else {
+        // In production, a more structured log is better
+        console.error({
+            timestamp: new Date().toISOString(),
+            level: 'error',
+            message: err.message,
+            method: req.method,
+            url: req.originalUrl,
+            stack: err.stack,
+            status: err.statusCode || 500
+        });
+    }
 
-    const statusCode = err.status || err.statusCode || 500;
+    // Determine status and message
+    const isApiError = err instanceof ApiError;
+    const statusCode = isApiError ? err.statusCode : 500;
     const isProd = process.env.NODE_ENV === 'production';
 
-    // For client errors (4xx), we can expose the message. For server errors (5xx), we hide details in production.
-    const message = (statusCode < 500 || !isProd) ? err.message : 'Internal Server Error';
+    // For known API errors, we can trust the message. For unknown errors, we hide details in production.
+    const message = (isApiError || !isProd) ? err.message : 'Internal Server Error';
+
+    // Avoid sending a response if one has already been sent
+    if (res.headersSent) {
+        return next(err);
+    }
 
     // Respond with HTML for browser requests, JSON for API requests
-    if (req.accepts('html', 'json') === 'html') {
+    if (req.accepts('html', 'json') === 'html' && !req.path.startsWith('/api/')) {
         res.status(statusCode);
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         const stackTrace = !isProd ? `<pre>${err.stack || 'No stack trace available'}</pre>` : '';
+        // A slightly more user-friendly error page
         res.send(`
             <!DOCTYPE html>
             <html lang="en">
-            <head><title>Error ${statusCode}</title><style>body{font-family:sans-serif;padding:2em}pre{background-color:#f0f0f0;padding:1em}</style></head>
-            <body>
-                <h1>Error ${statusCode}</h1>
-                <p>${message}</p>
-                ${stackTrace}
-            </body>
+            <head><meta charset="UTF-8"><title>Error ${statusCode}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:2em;background-color:#1a1a1a;color:#e0e0e0}.container{max-width:800px;margin:0 auto;background-color:#2c2c2c;padding:2em;border-radius:8px}h1{color:#dc3545}pre{background-color:#1a1a1a;padding:1em;border-radius:4px;overflow-x:auto}a{color:#7fadf6}</style></head>
+            <body><div class="container"><h1>Error ${statusCode}</h1><p>${message}</p><p><a href="javascript:history.back()">Go Back</a> or <a href="/">Go Home</a></p>${stackTrace}</div></body>
             </html>
         `);
     } else {
+        // Always respond with JSON for API routes or when JSON is preferred
         res.status(statusCode).json({ error: message });
     }
 });

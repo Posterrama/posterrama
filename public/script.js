@@ -3,8 +3,8 @@
  *
  * Author: Mark Frelink
  * Last Modified: 2024-08-02
- * License: AGPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
+ * License: GPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  */
@@ -211,6 +211,59 @@ document.addEventListener('DOMContentLoaded', () => {
         preloadedImage.src = mediaQueue[nextIndex].backgroundUrl;
     }
 
+    /**
+     * Renders the metadata for a single media item into the DOM.
+     * This function is responsible for updating the poster, title, tagline, ratings, etc.
+     * @param {object} mediaItem The media item object to render.
+     */
+    function renderMediaItem(mediaItem) {
+        posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+        if (mediaItem.imdbUrl) {
+            posterLink.href = mediaItem.imdbUrl;
+        } else {
+            // Make the poster non-clickable if there is no IMDb URL
+            posterLink.removeAttribute('href');
+        }
+        titleEl.textContent = mediaItem.title;
+        taglineEl.textContent = mediaItem.tagline || '';
+        yearEl.textContent = mediaItem.year || '';
+        ratingEl.textContent = mediaItem.rating ? mediaItem.rating.toFixed(1) : '';
+        document.title = `${mediaItem.title} - posterrama.app`;
+        taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
+        yearEl.style.display = mediaItem.year ? 'inline' : 'none';
+        ratingEl.style.display = mediaItem.rating ? 'inline' : 'none';
+
+        if (appConfig.showClearLogo && mediaItem.clearLogoUrl) {
+            clearlogoEl.src = mediaItem.clearLogoUrl;
+            clearlogoEl.classList.add('visible');
+        } else {
+            clearlogoEl.src = transparentPixel;
+            clearlogoEl.classList.remove('visible');
+        }
+
+        // Update Rotten Tomatoes badge
+        if (appConfig.showRottenTomatoes && mediaItem.rottenTomatoes && mediaItem.rottenTomatoes.score) {
+            const { icon } = mediaItem.rottenTomatoes;
+            let iconUrl = '';
+            // Use local SVG assets for reliability
+            switch (icon) {
+                case 'fresh':
+                    iconUrl = '/icons/rt-fresh.svg';
+                    break;
+                case 'rotten':
+                    iconUrl = '/icons/rt-rotten.svg';
+                    break;
+                case 'certified-fresh':
+                    iconUrl = '/icons/rt-certified-fresh.svg';
+                    break;
+            }
+            rtIcon.src = iconUrl;
+            rtBadge.classList.add('visible');
+        } else {
+            rtBadge.classList.remove('visible');
+        }
+    }
+
     function updateInfo(direction, isFirstLoad = false) {
         if (direction === 'next') {
             currentIndex = (currentIndex + 1) % mediaQueue.length;
@@ -255,52 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
             inactiveLayer.style.opacity = 1;
             const tempLayer = activeLayer;
             activeLayer = inactiveLayer;
-            inactiveLayer = tempLayer;
-            posterEl.style.backgroundImage = `url('${currentMedia.posterUrl}')`;
-            if (currentMedia.imdbUrl) {
-                posterLink.href = currentMedia.imdbUrl;
-            } else {
-                // Make the poster non-clickable if there is no IMDb URL
-                posterLink.removeAttribute('href');
-            }
-            titleEl.textContent = currentMedia.title;
-            taglineEl.textContent = currentMedia.tagline || '';
-            yearEl.textContent = currentMedia.year || '';
-            ratingEl.textContent = currentMedia.rating ? currentMedia.rating.toFixed(1) : '';
-            document.title = `${currentMedia.title} - posterrama.app`;
-            taglineEl.style.display = currentMedia.tagline ? 'block' : 'none';
-            yearEl.style.display = currentMedia.year ? 'inline' : 'none';
-            ratingEl.style.display = currentMedia.rating ? 'inline' : 'none';
-
-            if (appConfig.showClearLogo && currentMedia.clearLogoUrl) {
-                clearlogoEl.src = currentMedia.clearLogoUrl;
-                clearlogoEl.classList.add('visible');
-            } else {
-                clearlogoEl.src = transparentPixel;
-                clearlogoEl.classList.remove('visible');
-            }
-
-            // Update Rotten Tomatoes badge
-            if (appConfig.showRottenTomatoes && currentMedia.rottenTomatoes && currentMedia.rottenTomatoes.score) {
-                const { score, icon } = currentMedia.rottenTomatoes;
-                let iconUrl = '';
-                // Use local SVG assets for reliability
-                switch (icon) {
-                    case 'fresh':
-                        iconUrl = '/icons/rt-fresh.svg';
-                        break;
-                    case 'rotten':
-                        iconUrl = '/icons/rt-rotten.svg';
-                        break;
-                    case 'certified-fresh':
-                        iconUrl = '/icons/rt-certified-fresh.svg';
-                        break;
-                }
-                rtIcon.src = iconUrl;
-                rtBadge.classList.add('visible');
-            } else {
-                rtBadge.classList.remove('visible');
-            }
+            inactiveLayer = tempLayer;            
+            renderMediaItem(currentMedia);
 
             if (loader.style.opacity !== '0') {
                 loader.style.opacity = '0';
@@ -408,4 +417,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     initialize();
+
+    // --- Swipe-functionaliteit voor touchscreens ---
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    const swipeThreshold = 50; // Minimale *horizontale* afstand in pixels voor een swipe
+
+    function handleSwipe() {
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+
+        // Controleer of de beweging voornamelijk horizontaal is
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            // Controleer of de swipe lang genoeg is
+            if (Math.abs(deltaX) > swipeThreshold) {
+                if (deltaX < 0) {
+                    // Swipe naar links -> Volgende media
+                    console.log('Swipe Left detected, showing next media.');
+                    changeMedia('next');
+                } else {
+                    // Swipe naar rechts -> Vorige media
+                    console.log('Swipe Right detected, showing previous media.');
+                    changeMedia('prev');
+                }
+            }
+        }
+    }
+
+    document.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+
+    document.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
 });

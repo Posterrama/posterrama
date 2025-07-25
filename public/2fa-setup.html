@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Setup - posterrama</title>
+    <link rel="stylesheet" href="/admin.css">
+    <style>
+        #qr-code-container { background:white; padding: 1rem; margin: 1rem auto; width: 256px; height: 256px; border-radius: 8px; }
+        #qr-code-container img { width: 100%; height: 100%; }
+        #secret-key-container { background: #222; padding: 0.75rem; border-radius: 4px; font-family: monospace; word-wrap: break-word; text-align: center; }
+        .error-text { color: #ff6b6b; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1>Two-Factor Authentication Setup</h1>
+            <p>Scan the QR code with your authenticator app (e.g., Google Authenticator, Authy).</p>
+            <div id="qr-code-container">
+                <p>Loading QR Code...</p>
+            </div>
+            <p>If you cannot scan the code, manually enter this secret key:</p>
+            <div id="secret-key-container">Loading...</div>
+            <hr>
+            <p>Enter the 6-digit code from your app to verify.</p>
+            <form action="/admin/2fa-verify" method="POST">
+                <div class="form-group">
+                    <label for="totp_code">Verification Code</label>
+                    <input type="text" id="totp_code" name="totp_code" required pattern="\\d{6}" title="Enter a 6-digit code" autocomplete="off">
+                </div>
+                <div id="error-message" class="error-text" style="display:none; margin-bottom: 1rem;">Invalid code. Please try again.</div>
+                <button type="submit" class="button-primary">Verify & Complete Setup</button>
+            </form>
+        </div>
+    </div>
+    <script src="/2fa-setup.js"></script>
+</body>
+</html>

@@ -3,8 +3,8 @@
  *
  * Author: Mark Frelink
  * Last Modified: 2024-08-02
- * License: AGPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
+ * License: GPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  */
@@ -127,6 +127,7 @@ html, body {
     top: 30px;
     left: 50px; /* Align with poster and controls margin */
     z-index: 10;
+    display: none; /* Hide by default to prevent FOUC */
 }
 
 #time-widget {

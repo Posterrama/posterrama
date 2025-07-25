@@ -122,6 +122,13 @@ De eenvoudigste manier om de applicatie te configureren is via het **Admin Panee
 *   **Screensaver**: Open `http://<jouw-server-ip>:4000` in een browser.
 *   **Admin Paneel**: Open `http://<jouw-server-ip>:4000/admin`.
 
+## API Documentatie
+
+De applicatie heeft een interne API die wordt gebruikt door de frontend. Met de toevoeging van Swagger UI is deze API nu gedocumenteerd en interactief te verkennen. Dit is vooral handig voor ontwikkelaars of voor wie de werking van de applicatie beter wil begrijpen.
+
+*   **Swagger UI**: Open `http://<jouw-server-ip>:4000/api-docs` in een browser.
+
+
 ## Troubleshooting
 
 *   **Geen media zichtbaar**:
@@ -134,4 +141,4 @@ De eenvoudigste manier om de applicatie te configureren is via het **Admin Panee
 
 ## License
 
-Dit project is gelicenseerd onder de AGPL-3.0-or-later licentie. Zie het `LICENSE` bestand voor meer details.
+Dit project is gelicenseerd onder de GPL-3.0-or-later licentie. Zie het `LICENSE.md` bestand voor meer details.

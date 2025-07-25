@@ -77,9 +77,10 @@
 
         .form-group small {
             display: block;
-            color: #9e9e9e;
-            font-size: 0.8rem;
-            margin-top: 0.25rem;
+            color: #888;
+            font-size: 0.75rem;
+            font-style: italic;
+            margin-top: 0.3rem;
         }
 
         .button-danger {
@@ -156,10 +157,12 @@
                         <div class="form-group">
                             <label for="transitionIntervalSeconds">Transition Interval (seconds)</label>
                             <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds">
+                            <small>Hoeveel seconden elke poster zichtbaar is.</small>
                         </div>
                         <div class="form-group">
                             <label for="backgroundRefreshMinutes">Background Refresh (minutes)</label>
                             <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes">
+                            <small>Hoe vaak (in minuten) de volledige mediatheek opnieuw wordt opgehaald. 0 om uit te schakelen.</small>
                         </div>
                         <div class="form-group">
                             <label for="SERVER_PORT">Application Port</label>
@@ -182,10 +185,12 @@
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="showClearLogo" name="showClearLogo">
                             <label for="showClearLogo">Show ClearLogo</label>
+                            <small>Toont het logo van de film/serie (indien beschikbaar).</small>
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="showRottenTomatoes" name="showRottenTomatoes">
                             <label for="showRottenTomatoes">Show Rotten Tomatoes Badge</label>
+                            <small>Toont een 'Fresh' of 'Rotten' badge op de poster.</small>
                         </div>
                         <div class="form-group">
                             <label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes Score (0-10)</label>
@@ -204,14 +209,17 @@
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="clockWidget" name="clockWidget">
                             <label for="clockWidget">Show Clock Widget</label>
+                            <small>Toont een klok linksboven in het scherm.</small>
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="kenBurnsEffect.enabled" name="kenBurnsEffect.enabled">
                             <label for="kenBurnsEffect.enabled">Enable Ken Burns Effect</label>
+                            <small>Voegt een subtiel zoom/pan-effect toe aan de achtergrondafbeeldingen.</small>
                         </div>
                         <div class="form-group">
                             <label for="kenBurnsEffect.durationSeconds">Ken Burns Effect Duration (seconds)</label>
                             <input type="number" id="kenBurnsEffect.durationSeconds" name="kenBurnsEffect.durationSeconds">
+                            <small>De duur van het animatie-effect. Een langere duur is subtieler.</small>
                         </div>
                     </div>
                 </div>
@@ -225,14 +233,17 @@
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="mediaServers[0].enabled" name="mediaServers[0].enabled">
                             <label for="mediaServers[0].enabled">Enable Plex Server</label>
+                            <small>Schakelt de verbinding met deze Plex-server in of uit.</small>
                         </div>
                         <div class="form-group">
                             <label for="PLEX_HOSTNAME">Plex Hostname/IP</label>
                             <input type="text" id="PLEX_HOSTNAME" name="PLEX_HOSTNAME">
+                            <small>Het IP-adres of de hostnaam van uw Plex-server (bijv. 192.168.1.10).</small>
                         </div>
                         <div class="form-group">
                             <label for="PLEX_PORT">Plex Port</label>
                             <input type="number" id="PLEX_PORT" name="PLEX_PORT">
+                            <small>De poort van uw Plex-server (standaard 32400).</small>
                         </div>
                         <div class="form-group">
                             <label for="PLEX_TOKEN">Plex Token</label>
@@ -254,10 +265,12 @@
                         <div class="form-group">
                             <label for="mediaServers[0].movieCount">Number of Movies to Show</label>
                             <input type="number" id="mediaServers[0].movieCount" name="mediaServers[0].movieCount">
+                            <small>Het maximale aantal films dat in de playlist wordt opgenomen.</small>
                         </div>
                         <div class="form-group">
                             <label for="mediaServers[0].showCount">Number of Shows to Show</label>
                             <input type="number" id="mediaServers[0].showCount" name="mediaServers[0].showCount">
+                            <small>Het maximale aantal series dat in de playlist wordt opgenomen.</small>
                         </div>
                     </div>
                 </div>

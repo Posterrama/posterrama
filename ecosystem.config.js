@@ -15,6 +15,7 @@ module.exports = {
     env: {
       NODE_ENV: 'production',
       APP_VERSION: pkg.version,
+      ADMIN_2FA_SECRET: 'Your2FASecretHere'
     },
   }],
 };
