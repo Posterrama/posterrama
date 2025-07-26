@@ -1,6 +1,6 @@
 {
   "name": "posterrama-app",
-  "version": "1.2.0",
+  "version": "1.2.4",
   "description": "An elegant, web-based screensaver for Plex and Jellyfin media servers, named posterrama.app.",
   "main": "server.js",
   "scripts": {

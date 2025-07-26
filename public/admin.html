@@ -4,43 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin posterrama</title>
-    <link rel="stylesheet" href="/admin.css">
+    <link rel="stylesheet" href="/admin.css?v=1.2.4">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        .notification-container {
-            position: fixed;
-            top: 80px; /* Below the header */
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            width: 90%;
-            max-width: 600px;
-        }
-        .notification {
-            padding: 1rem 1.5rem;
-            margin-bottom: 1rem;
-            border-radius: 4px;
-            color: #fff;
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-        .notification.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .notification.success { background-color: #28a745; }
-        .notification.error { background-color: #dc3545; }
-
-        .test-button {
-            margin-left: 10px;
-            vertical-align: middle;
-            width: 140px; /* Fixed width to prevent layout shifts */
-            transition: background-color 0.3s, border-color 0.3s;
-        }
-
         .button-primary.is-success {
             background-color: #28a745;
             border-color: #218838;
@@ -62,16 +28,6 @@
             margin-bottom: 8px;
         }
         .library-container .checkbox-group:last-child {
-            margin-bottom: 0;
-        }
-        .error-text { color: #ff6b6b; font-size: 0.9em; }
-
-        .form-actions {
-            text-align: right;
-            margin-top: 1.5rem;
-        }
-
-        .form-section .form-group:last-child {
             margin-bottom: 0;
         }
 
@@ -116,23 +72,6 @@
             text-decoration: underline;
         }
 
-        .admin-background-layer {
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            background-size: cover;
-            background-position: center center;
-            z-index: -1;
-            transition: opacity 2.5s ease-in-out; /* Slower fade for a calmer effect */
-            opacity: 0;
-        }
-        .admin-background-layer::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.7); /* Dark filter */
-        }
         .modal {
             position: fixed;
             top: 0;
@@ -201,22 +140,22 @@
                         <div class="form-group">
                             <label for="transitionIntervalSeconds" title="How many seconds each poster is visible.">Transition Interval (seconds)</label>
                             <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds">
-                            <small>How many seconds each poster is visible.</small>
+                            <small class="help-text">How many seconds each poster is visible.</small>
                         </div>
                         <div class="form-group">
                             <label for="backgroundRefreshMinutes">Background Refresh (minutes)</label>
                             <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes">
-                            <small>How often (in minutes) the entire media library is re-fetched. 0 to disable.</small>
+                            <small class="help-text">How often (in minutes) the entire media library is re-fetched. 0 to disable.</small>
                         </div>
                         <div class="form-group">
                             <label for="SERVER_PORT">Application Port</label>
                             <input type="number" id="SERVER_PORT" name="SERVER_PORT">
-                            <small>Requires application restart to take effect.</small>
+                            <small class="help-text">Requires application restart to take effect.</small>
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="DEBUG" name="DEBUG">
                             <label for="DEBUG">Enable Debug Mode</label>
-                            <small>
+                            <small class="help-text">
                                 Outputs more detailed logs for troubleshooting.
                                 <a href="/admin/debug" target="_blank" id="debug-link" class="is-hidden">View Debug Output</a>
                             </small>
@@ -229,17 +168,17 @@
                        <div class="form-group checkbox-group">
                             <input type="checkbox" id="showClearLogo" name="showClearLogo">
                             <label for="showClearLogo">Show ClearLogo</label>
-                            <small>Shows the movie/series logo (if available).</small>
+                            <small class="help-text">Shows the movie/series logo (if available).</small>
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="showRottenTomatoes" name="showRottenTomatoes">
                             <label for="showRottenTomatoes">Show Rotten Tomatoes Badge</label>
-                            <small>Shows a 'Fresh' or 'Rotten' badge on the poster.</small>
+                            <small class="help-text">Shows a 'Fresh' or 'Rotten' badge on the poster.</small>
                         </div>
                         <div class="form-group">
                             <label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes Score (0-10)</label>
                             <input type="number" id="rottenTomatoesMinimumScore" name="rottenTomatoesMinimumScore" min="0" max="10" step="0.1">
-                            <small>Filters media to only show items with this score or higher. Set to 0 to disable.</small>
+                            <small class="help-text">Filters media to only show items with this score or higher. Set to 0 to disable.</small>
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="showPoster" name="showPoster">
@@ -248,22 +187,22 @@
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="showMetadata" name="showMetadata">
                             <label for="showMetadata">Show Metadata (title, tagline, etc.)</label>
-                            <small>Requires "Show Poster" to be enabled.</small>
+                            <small class="help-text">Requires "Show Poster" to be enabled.</small>
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="clockWidget" name="clockWidget">
                             <label for="clockWidget">Show Clock Widget</label>
-                            <small>Shows a clock in the top left of the screen.</small>
+                            <small class="help-text">Shows a clock in the top left of the screen.</small>
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="kenBurnsEffect.enabled" name="kenBurnsEffect.enabled">
                             <label for="kenBurnsEffect.enabled">Enable Ken Burns Effect</label>
-                            <small>Adds a subtle zoom/pan effect to the background images.</small>
+                            <small class="help-text">Adds a subtle zoom/pan effect to the background images.</small>
                         </div>
                         <div class="form-group">
                             <label for="kenBurnsEffect.durationSeconds">Ken Burns Effect Duration (seconds)</label>
                             <input type="number" id="kenBurnsEffect.durationSeconds" name="kenBurnsEffect.durationSeconds">
-                            <small>The duration of the animation effect. A longer duration is more subtle.</small>
+                            <small class="help-text">The duration of the animation effect. A longer duration is more subtle.</small>
                         </div>
                     </div>
                 </div>
@@ -277,22 +216,22 @@
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="mediaServers[0].enabled" name="mediaServers[0].enabled">
                             <label for="mediaServers[0].enabled">Enable Plex Server</label>
-                            <small>Enables or disables the connection to this Plex server.</small>
+                            <small class="help-text">Enables or disables the connection to this Plex server.</small>
                         </div>
                         <div class="form-group">
                             <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
                             <input type="text" id="mediaServers[0].hostname" name="mediaServers[0].hostname">
-                            <small>The IP address or hostname of your Plex server (e.g., 192.168.1.10).</small>
+                            <small class="help-text">The IP address or hostname of your Plex server (e.g., 192.168.1.10).</small>
                         </div>
                         <div class="form-group">
                             <label for="mediaServers[0].port">Plex Port</label>
                             <input type="number" id="mediaServers[0].port" name="mediaServers[0].port">
-                            <small>The port of your Plex server (default 32400).</small>
+                            <small class="help-text">The port of your Plex server (default 32400).</small>
                         </div>
                         <div class="form-group">
                             <label for="mediaServers[0].token">Plex Token</label>
                             <input type="password" id="mediaServers[0].token" name="mediaServers[0].token">
-                            <small>Find your token by following <a href="https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/" target="_blank">these instructions</a>.</small>
+                            <small class="help-text">Find your token by following <a href="https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/" target="_blank">these instructions</a>.</small>
                         </div>
                         <div class="form-group">
                             <label>Movie Library Names</label>
@@ -309,15 +248,15 @@
                         <div class="form-group">
                             <label for="mediaServers[0].movieCount">Number of Movies to Show</label>
                             <input type="number" id="mediaServers[0].movieCount" name="mediaServers[0].movieCount">
-                            <small>The maximum number of movies to include in the playlist.</small>
+                            <small class="help-text">The maximum number of movies to include in the playlist.</small>
                         </div>
                         <div class="form-group">
                             <label for="mediaServers[0].showCount">Number of Shows to Show</label>
                             <input type="number" id="mediaServers[0].showCount" name="mediaServers[0].showCount">
-                            <small>The maximum number of shows to include in the playlist.</small>
+                            <small class="help-text">The maximum number of shows to include in the playlist.</small>
                         </div>
                          <div class="form-group">
-                            <button type="button" id="test-plex-button" class="button-primary test-button">
+                            <button type="button" id="test-plex-button" class="button-primary">
                                 <span class="icon"><i class="fas fa-plug"></i></span>
                                 <span>Test Plex Connection</span>
                             </button>
@@ -354,7 +293,7 @@
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="enable2FA" name="enable2FA">
                             <label for="enable2FA">Enable 2FA</label>
-                            <small>Secure your account with an authenticator app.</small>
+                            <small class="help-text">Secure your account with an authenticator app.</small>
                             <div id="2fa-status-text" class="status-text disabled"></div>
                         </div>
                     </div>
@@ -365,7 +304,7 @@
                             <p><strong>Restart Application:</strong> Restarts the server. Necessary after changing the port.</p>
                             <p style="margin-top: 1rem;"><strong>Refresh Media:</strong> Forces a refetch of all media from the configured servers. Useful after adding new movies or shows.</p>
                         </div>
-                        <div class="form-actions" style="text-align: left; margin-top: 0; display: flex; gap: 10px;">
+                        <div class="form-actions">
                             <button type="button" id="restart-app-button" class="button-primary button-danger">
                                 <span class="icon"><i class="fas fa-power-off"></i></span>
                                 <span>Restart Application</span>
@@ -377,10 +316,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="form-actions">
-                <button type="submit" class="button-primary">Save Display & Server Settings</button>
             </div>
         </form>
     </main>
@@ -426,6 +361,7 @@
             </form>
         </div>
     </div>
+    <script src="admin-help.js" defer></script>
     <script src="/admin.js" defer></script>
 </body>
 </html>

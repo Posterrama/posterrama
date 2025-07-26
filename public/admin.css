@@ -1,12 +1,26 @@
+/* --- CSS Reset & Box Sizing --- */
+html {
+    box-sizing: border-box;
+    background-color: #121212; /* Donkere basiskleur om witte flits bij laden te voorkomen */
+    /* This combination is a robust fix for preventing horizontal scroll on mobile.
+       It ensures the root element cannot be wider than the screen. */
+    max-width: 100%;
+    overflow-x: hidden;
+}
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
 /* Basic Reset & Font */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: #1f2937; /* A neutral dark gray, replacing the "Aurora" background */
+    background-color: transparent; /* Background is handled by the JS-powered slideshow */
     color: #e0e0e0;
     margin: 0;
     line-height: 1.6;
     overflow-y: auto; /* Allow vertical scrolling */
-    overflow-x: hidden; /* Prevent horizontal scrolling */
+    overflow-x: hidden; /* Add to body as well for maximum compatibility, as you suggested. */
+    overflow-wrap: break-word; /* Fix: Zorgt ervoor dat lange, onbreekbare tekst (zoals URLs) kan afbreken en geen overflow veroorzaakt. */
 }
 
 a {
@@ -81,7 +95,7 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 40px;
+    padding: 15px 30px; /* Reduced padding for a more compact header */
     background: rgba(15, 16, 26, 0.5); /* Semi-transparent dark background */
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -121,7 +135,7 @@ a:hover {
 }
 
 .admin-main {
-    padding: 40px;
+    padding: 25px; /* Reduced padding for a more compact layout */
     max-width: 1280px; /* Wider for more columns */
     margin: 20px auto;
 }
@@ -129,49 +143,84 @@ a:hover {
 .settings-grid {
     display: grid;
     /* Allow more columns on wider screens */
-    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-    gap: 2rem;
-    margin-bottom: 2rem;
+    /* The minmax value is reduced to prevent horizontal overflow on narrow mobile screens.
+       320px is a safe value that avoids overflow on devices like the iPhone SE. */
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem; /* Reduced gap between columns */
+    margin-bottom: 1.5rem; /* Reduced bottom margin */
 }
 
 .settings-column h2 {
     margin-top: 0;
-    padding: 0.75rem 1.25rem;
     margin-bottom: 1.5rem;
-    background: linear-gradient(90deg, rgba(187, 134, 252, 0.1), rgba(83, 168, 182, 0.1));
+    padding: 0.8rem 1.25rem;
+    background-color: rgba(255, 255, 255, 0.05); /* A slightly more solid background */
     border-radius: 8px;
-    font-size: 1.1em;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #e0e0e0;
+    font-size: 1.0em; /* Slightly smaller font for uppercase */
+    font-weight: 700; /* Bolder */
+    letter-spacing: 1.5px; /* More spacing for uppercase */
+    border-left: 4px solid #bb86fc; /* Accent border using primary color */
+    color: #fff; /* Brighter text */
+    text-transform: uppercase; /* Make it stand out as a title */
 }
 
 /* Forms */
 form {
     display: flex;
     flex-direction: column;
-    gap: 15px; /* More compact */
+    gap: 12px; /* Reduced gap for more compact forms */
 }
 
 .form-section {
     /* Subtle glass effect for sections */
     background: rgba(255, 255, 255, 0.04);
-    padding: 20px;
+    padding: 15px; /* Reduced padding inside sections */
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Add space between form sections when they are stacked in the same column */
+.form-section + .form-section {
+    margin-top: 1.5rem;
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    text-align: left; /* Align labels to the left */
+    text-align: left;
+    margin-bottom: 1rem; /* Reduced vertical space between form options */
+}
+
+/* Remove margin from the last group in a section to prevent extra space at the bottom */
+.form-section .form-group:last-child {
+    margin-bottom: 0;
 }
 
 .form-group.checkbox-group {
     flex-direction: row;
     align-items: center;
+    flex-wrap: wrap; /* Allow items to wrap to the next line */
     gap: 10px;
+}
+
+/* Uniform help text styling */
+.form-group small {
+    display: block; /* Ensure it's on its own line */
+    color: #9e9e9e; /* Lighter gray for better readability */
+    font-size: 0.8rem;
+    font-style: italic;
+    margin-top: 0.4rem;
+    line-height: 1.4;
+}
+
+/* Specific override for help text within a checkbox group to force it to a new line */
+.form-group.checkbox-group small {
+    flex-basis: 100%; /* Make it take the full width, forcing it to wrap */
+}
+
+/* Also force the 2FA status text to a new line in its checkbox group */
+.form-group.checkbox-group .status-text {
+    flex-basis: 100%;
 }
 
 label {
@@ -186,7 +235,7 @@ input[type="number"] {
     background-color: rgba(255, 255, 255, 0.05); /* Subtle transparent background */
     border: 1px solid rgba(255, 255, 255, 0.15); /* Slightly more visible border */
     color: #e0e0e0;
-    padding: 12px 15px;
+    padding: 10px 12px; /* Reduced padding for a more compact feel */
     border-radius: 8px; /* More rounded corners */
     font-size: 1em;
     transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition for focus */
@@ -240,23 +289,140 @@ input[type="number"]:focus {
     color: #fff;
 }
 
+/* Container for form buttons (Save, Restart, etc.) */
+.form-actions {
+    display: flex;
+    flex-wrap: wrap; /* Allow buttons to wrap on small screens */
+    gap: 10px; /* Consistent spacing between buttons */
+    justify-content: flex-end;
+    margin-top: 1rem; /* Reduced top margin */
+}
+
+/* Specific button styles */
+#test-plex-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center; /* Center icon and text within the button */
+}
+#test-plex-button .icon {
+    margin-right: 0.5em; /* Space between icon and text */
+}
+
+/* Validation States */
+.form-group.has-error input[type="text"],
+.form-group.has-error input[type="password"],
+.form-group.has-error input[type="number"] {
+    border-color: #f44336;
+    box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
+}
+
+.error-text {
+    color: #f44336;
+    font-size: 0.8em;
+    margin-top: 0.2em;
+}
+
+.error-box {
+    background-color: rgba(220, 53, 69, 0.2); /* transparent red */
+    border: 1px solid #dc3545;
+    color: #f8d7da; /* light red text */
+    padding: 10px 15px;
+    border-radius: 8px; /* match other elements */
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 0.9em;
+}
+
+.notification-container {
+    position: fixed;
+    top: 80px; /* Below the header */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: 90%;
+    max-width: 600px;
+    /* Prevent the container from capturing pointer events when empty */
+    pointer-events: none;
+}
+
+/* Individual notification bubble */
+.notification {
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    color: #fff;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    /* Allow pointer events again for the notification itself */
+    pointer-events: auto;
+    /* --- FIX FOR TEXT OVERFLOW --- */
+    /* These properties ensure that long text, like URLs, will wrap correctly. */
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+.notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+.notification.success { background-color: #28a745; }
+.notification.error { background-color: #dc3545; }
+
+/* These layers are positioned behind all other content */
+#admin-background-a,
+#admin-background-b {
+    position: fixed;
+    /* Use 100% instead of 100vw. 100vw can cause a horizontal scrollbar if a vertical
+       scrollbar is present. 100% sizes to the body, and `overflow-x: hidden` on the
+       html element prevents any scrolling. This is a more compatible fix. */
+    width: 100%;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    transition: opacity 1.5s ease-in-out;
+    z-index: -1; /* Ensure it's behind all other page content */
+}
+
+/* Add a dark overlay to the background images to improve text readability */
+#admin-background-a::before,
+#admin-background-b::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.75); /* 85% black overlay, a bit lighter */
+}
+
 /* --- Media Queries for Mobile --- */
 @media (max-width: 960px) {
     .admin-main {
-        padding: 20px;
+        padding: 15px; /* Reduced padding for mobile */
     }
 }
 
 @media (max-width: 768px) {
     .admin-header {
         flex-direction: column;
-        padding: 15px;
-        gap: 15px;
+        padding: 12px; /* Reduced padding for mobile header */
+        gap: 10px; /* Reduced gap for mobile header */
         text-align: center;
     }
 
     .admin-header h1 {
         font-size: 1.4em;
+    }
+
+    .admin-header nav {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .admin-header nav a {
+        /* Verwijder de oude marge die de uitlijning verstoort */
+        margin-left: 0;
     }
 
     .settings-grid {
@@ -273,6 +439,174 @@ input[type="number"]:focus {
     /* Disable heavy animations on mobile for performance */
     body::before,
     body::after {
+        display: none;
+    }
+}
+
+/* --- Admin Help Popups --- */
+
+/* The wrapper is now a span appended to the label, so we need to adjust its styling */
+.help-icon-wrapper {
+    position: relative; /* Needed for the absolute positioning of the popup */
+    display: inline-block; /* Allows it to sit nicely with the label text */
+    vertical-align: middle; /* Align with the middle of the text */
+    margin-left: 8px; /* Space between label text and icon */
+}
+
+/* The '?' icon style */
+.help-icon {
+    /* --- Modernized Help Icon --- */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; /* Slightly smaller for a more refined look */
+    height: 22px;
+    background-color: transparent; /* More subtle default state */
+    color: rgba(255, 255, 255, 0.4); /* Make the icon more subtle */
+    border-radius: 50%;
+    font-size: 0; /* Hide the original '?' text content */
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, transform 0.2s;
+    user-select: none;
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+}
+
+.help-icon::before {
+    /* Use FontAwesome 'info-circle' icon */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900; /* Use the 'solid' style of the icon */
+    content: "\f05a"; /* Unicode for fa-info-circle */
+    font-size: 16px; /* Set the icon size */
+}
+
+.help-icon:hover,
+.help-icon-wrapper.is-active .help-icon {
+    color: #bb86fc; /* Use purple accent color on hover for a clear change */
+    border-color: #bb86fc; /* And for the border */
+    transform: scale(1.1); /* Keep the subtle zoom effect */
+    background-color: rgba(187, 134, 252, 0.1); /* Add a subtle purple glow */
+}
+
+/* The popup bubble (hidden by default) */
+.help-popup {
+    position: absolute;
+    bottom: 135%; /* Position a bit higher to account for the slide-in effect */
+    left: 50%;
+    width: 300px;
+    /* --- Modernized Glassmorphism Style --- */
+    background: rgba(30, 38, 58, 0.7); /* A slightly bluer, darker transparent background */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+    padding: 15px;
+    border-radius: 12px; /* Slightly larger radius for a softer look */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5); /* A bit more pronounced shadow */
+    font-size: 0.9em;
+    line-height: 1.5;
+    z-index: 1001;
+    opacity: 0;
+    visibility: hidden;
+    /* Add transform to transition for a subtle slide-in effect */
+    transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
+    pointer-events: none;
+    text-align: left; /* Ensure text inside is left-aligned */
+    /* Initial state for slide-in effect */
+    transform: translateX(-50%) translateY(10px);
+}
+
+/* --- Smart Popup Alignment --- */
+/* These classes are added by JS to prevent the popup from going off-screen. */
+.help-popup.align-right {
+    left: auto;
+    right: 0; /* Align to the right edge of the wrapper */
+    transform: translateX(0);
+}
+
+.help-popup.align-left {
+    left: 0; /* Align to the left edge of the wrapper */
+    transform: translateX(0);
+}
+
+.help-popup.align-right::after {
+    left: auto;
+    right: 4px; /* (icon_width/2) - (arrow_width/2) = (24/2) - (16/2) = 4px */
+}
+
+.help-popup.align-left::after {
+    left: 12px; /* Center of the 24px icon */
+}
+
+/* Arrow for the popup */
+.help-popup::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -8px;
+    border-width: 7px; /* Slightly smaller arrow */
+    border-style: solid;
+    /* Match the new background color of the popup */
+    border-color: rgba(30, 38, 58, 0.7) transparent transparent transparent;
+}
+
+/* Show the popup on hover (desktop) */
+.help-icon-wrapper:hover .help-popup {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0); /* Final state for slide-in effect */
+}
+
+/* Active state for click/tap (primarily for mobile) */
+.help-popup.is-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Overlay for mobile view */
+.help-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    pointer-events: none;
+}
+
+.help-overlay.is-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Mobile-specific styles for the popup */
+@media (max-width: 768px) {
+    /* On mobile, disable hover effect ONLY if the popup is not actively opened by a click.
+       This prevents the hover-off style from overriding the click-on style. */
+    .help-icon-wrapper:hover .help-popup:not(.is-active) {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    /* Transform the popup into a modal on mobile */
+    .help-popup.is-active {
+        position: fixed;
+        bottom: auto;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 400px;
+        z-index: 1002; /* Ensure it's above the overlay (1000) and other content */
+    }
+
+    /* Hide the little arrow on mobile */
+    .help-popup.is-active::after {
         display: none;
     }
 }

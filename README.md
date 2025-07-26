@@ -4,11 +4,9 @@
 
 It fetches beautiful backgrounds and posters from your Plex media server and displays them with a subtle Ken Burns effect.
 
-![Screenshot of screensaver](screensaver.png)
+![Screenshot of screensaver](./screenshots/screensaver.png)
 
-![Screenshot of admin](admin.png)
-
-### Showcase / demo: <https://demo.posterrama.app>
+![Screenshot of admin](./screenshots/admin.png)
 
 
 ## Features

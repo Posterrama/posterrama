@@ -74,6 +74,83 @@ html, body {
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
 
+/* --- Promo Box for /site page --- */
+#promo-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95); /* Start slightly smaller for animation */
+    z-index: 50;
+    background-color: rgba(20, 20, 20, 0.88);
+    backdrop-filter: blur(15px);
+    color: #fff;
+    padding: 40px 50px;
+    border-radius: 16px;
+    text-align: center;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    opacity: 0; /* Start hidden for animation */
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out; /* Smooth transition for when it appears */
+}
+
+/* When the is-hidden class is removed, these styles will apply */
+#promo-box:not(.is-hidden) {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.promo-logo {
+    margin: 0 auto 25px auto;
+    width: 60px;
+    height: 60px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#promo-box h1 {
+    font-size: 2.2em; /* Larger font */
+    font-weight: 800; /* Bolder */
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    line-height: 1.2;
+}
+
+#promo-box p {
+    font-size: 1.1em;
+    color: var(--text-color-muted);
+    margin-bottom: 30px;
+    max-width: 450px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.promo-cta a.button-promo {
+    display: inline-block;
+    background-color: var(--plex-orange);
+    color: #111;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1em;
+    padding: 14px 28px;
+    border-radius: 50px; /* Pill shape */
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, background-color 0.2s;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.promo-cta a.button-promo:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(229, 160, 13, 0.4);
+    background-color: #ffb40f;
+}
+
+.promo-cta a.button-promo .fab {
+    margin-right: 10px;
+    font-size: 1.2em;
+    vertical-align: middle;
+}
+
 /* --- Background Layers & Ken Burns Effect --- */
 .screensaver-layer {
     position: fixed; /* fixed zodat het full screen onder de adresbalk komt */
@@ -287,7 +364,7 @@ html, body {
     bottom: 35px; /* Iets lager voor betere visuele uitlijning met de schaduw van de poster */
     right: 50px;  /* Zelfde afstand van de rand als de linkerkant */
     display: flex;
-    gap: 10px;
+    gap: 15px;
     background-color: rgba(0, 0, 0, 0.3);
     padding: 8px 15px;
     border-radius: 50px;

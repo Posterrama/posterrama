@@ -983,7 +983,9 @@ app.post('/admin/2fa-verify', asyncHandler(async (req, res) => {
         res.redirect('/admin');
     } else {
         if (isDebug) console.log(`[Admin 2FA Verify] Invalid 2FA code for user "${req.session.tfa_user.username}".`);
-        throw new ApiError(401, 'Invalid 2FA code. <a href="/admin/2fa-verify">Try again</a>.');
+        // Redirect back to the verification page with an error query parameter
+        // for a better user experience than a generic error page.
+        res.redirect('/admin/2fa-verify?error=invalid_code');
     }
 }));
 
@@ -1412,6 +1414,69 @@ if (require.main === module) {
             console.log(`Playlist will be refreshed in the background every ${config.backgroundRefreshMinutes} minutes.`);
         }
     });
+
+    // --- Conditional Site Server ---
+    // This server runs on a separate port and is controlled by config.json.
+    // It's intended for public viewing without exposing the main application's admin panel.
+    if (config.siteServer && config.siteServer.enabled) {
+        const siteApp = express();
+        const sitePort = config.siteServer.port || 4001;
+        const mainAppUrl = `http://localhost:${port}`; // 'port' is the main app's port
+
+        // A simple proxy for API requests to the main application.
+        // This ensures that the public site can fetch data without exposing admin endpoints.
+        const proxyApiRequest = async (req, res) => {
+            const targetUrl = `${mainAppUrl}${req.originalUrl}`;
+            try {
+                if (isDebug) console.log(`[Site Server Proxy] Forwarding request to: ${targetUrl}`);
+                const response = await fetch(targetUrl);
+
+                // Intercept /get-config to add a flag indicating this is the public site.
+                // The client-side script can use this flag to show specific elements, like a promo box.
+                if (req.originalUrl === '/get-config' && response.ok) {
+                    if (isDebug) console.log(`[Site Server Proxy] Modifying response for /get-config`);
+                    const originalConfig = await response.json();
+                    const modifiedConfig = { ...originalConfig, isPublicSite: true };
+                    // We send the modified JSON and stop further processing for this request.
+                    return res.json(modifiedConfig);
+                }
+
+                // Forward the status code from the main app
+                res.status(response.status);
+
+                // Forward all headers from the main app's response
+                response.headers.forEach((value, name) => {
+                    res.setHeader(name, value);
+                });
+
+                // Pipe the response body
+                response.body.pipe(res);
+            } catch (error) {
+                console.error(`[Site Server Proxy] Error forwarding request to ${targetUrl}:`, error);
+                res.status(502).json({ error: 'Bad Gateway', message: 'The site server could not connect to the main application.' });
+            }
+        };
+
+        // Define the public API routes that need to be proxied
+        siteApp.get('/get-config', proxyApiRequest);
+        siteApp.get('/get-media', proxyApiRequest);
+        siteApp.get('/get-recently-added', proxyApiRequest);
+        siteApp.get('/get-media-by-key/:key', proxyApiRequest);
+        siteApp.get('/image', proxyApiRequest);
+
+        // Serve static files (CSS, JS, etc.) from the 'public' directory
+        siteApp.use(express.static(path.join(__dirname, 'public')));
+
+        // A catch-all route to serve the main index.html for any other GET request.
+        // This is crucial for single-page applications (SPAs) to handle client-side routing.
+        siteApp.get('*', (req, res) => {
+            res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        });
+
+        siteApp.listen(sitePort, () => {
+            console.log(`Public site server is enabled and running on http://localhost:${sitePort}`);
+        });
+    }
 }
 
 // Export the app instance so that it can be imported and used by Supertest in our tests.

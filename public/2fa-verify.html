@@ -11,6 +11,10 @@
         <div class="auth-box">
             <h1>Two-Factor Authentication</h1>
             <p>Enter the 6-digit code from your authenticator app to complete your login.</p>
+
+            <!-- Error message placeholder -->
+            <div id="error-message" class="error-box" style="display: none;"></div>
+
             <form action="/admin/2fa-verify" method="POST">
                 <div class="form-group">
                     <label for="totp_code">Verification Code</label>
@@ -20,5 +24,24 @@
             </form>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const errorMessageContainer = document.getElementById('error-message');
+            const urlParams = new URLSearchParams(window.location.search);
+
+            if (urlParams.has('error')) {
+                // We can add more specific messages based on the error value later if needed
+                errorMessageContainer.textContent = 'Invalid or expired code. Please try again.';
+                errorMessageContainer.style.display = 'block';
+
+                // Clear the input and focus it for a quick retry
+                const codeInput = document.getElementById('totp_code');
+                if (codeInput) {
+                    codeInput.value = '';
+                    codeInput.focus();
+                }
+            }
+        });
+    </script>
 </body>
 </html>

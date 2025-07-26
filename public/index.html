@@ -8,11 +8,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="loader"></div>
     <div id="error-message" class="is-hidden"></div>
+
+    <!-- Promo Box for the /site page -->
+    <div id="promo-box" class="is-hidden">
+        <div class="promo-logo">
+            <svg role="img" aria-label="posterrama.app Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2H16L14 22H4L6 2Z"/><path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6;"/></svg>
+        </div>
+        <h1>Bring your media library to life.</h1>
+        <p>This is Posterrama, a stunning, self-hosted screensaver for your movie and TV show collection.</p>
+        <div class="promo-cta">
+            <a href="https://github.com/mfrelink/posterrama" target="_blank" rel="noopener noreferrer" class="button-promo">
+                <i class="fab fa-github"></i>
+                Get it on GitHub
+            </a>
+        </div>
+    </div>
 
     <div id="layer-a" class="screensaver-layer"></div>
     <div id="layer-b" class="screensaver-layer"></div>

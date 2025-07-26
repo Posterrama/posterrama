@@ -9,7 +9,7 @@
  * (at your option) any later version.
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // --- Element References ---
     const layerA = document.getElementById('layer-a');
     const layerB = document.getElementById('layer-b');
@@ -66,6 +66,14 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const configResponse = await fetch('/get-config');
             appConfig = await configResponse.json();
+
+            // Logic for the public site promo box.
+            // The server injects `isPublicSite: true` into the config for the public-facing server.
+            if (appConfig.isPublicSite) {
+                const promoBox = document.getElementById('promo-box');
+                if (promoBox) promoBox.classList.remove('is-hidden');
+            }
+
         } catch (e) {
             showError(e.message);
             console.error(e);

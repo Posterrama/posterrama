@@ -222,12 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const testButton = document.getElementById('test-plex-button');
         if (!testButton) return;
 
-        const buttonTextSpan = testButton.querySelector('span:last-child');
-        const icon = testButton.querySelector('.icon i');
-        const originalText = buttonTextSpan.textContent;
-        const originalIconClass = icon.className;
-        const originalButtonClass = testButton.className;
-
         testButton.addEventListener('click', async () => {
             const hostname = document.getElementById('mediaServers[0].hostname').value;
             const port = document.getElementById('mediaServers[0].port').value;
@@ -235,10 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const token = tokenInput.value;
             const isTokenSetOnServer = tokenInput.placeholder.includes('already set');
 
-            testButton.disabled = true;
-            buttonTextSpan.textContent = 'Testen...';
-            icon.className = 'fas fa-spinner fa-spin';
-            testButton.className = originalButtonClass;
+            setButtonState(testButton, 'loading', { text: 'Testen...' });
 
             try {
                 if (!hostname || !port) {
@@ -259,9 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(result.error || 'Onbekende fout');
                 }
 
-                testButton.classList.add('is-success');
-                buttonTextSpan.textContent = 'Succes!';
-                icon.className = 'fas fa-check';
+                setButtonState(testButton, 'success');
 
                 // Zet de "Media Vernieuwen"-knop aan
                 const refreshButton = document.getElementById('refresh-media-button');
@@ -275,9 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  initializeAdminBackground();
 
             } catch (error) {
-                testButton.classList.add('is-danger');
-                buttonTextSpan.textContent = 'Mislukt';
-                icon.className = 'fas fa-exclamation-triangle';
+                setButtonState(testButton, 'error');
 
                 // Zet de "Media Vernieuwen"-knop uit
                 const refreshButton = document.getElementById('refresh-media-button');
@@ -286,10 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // Revert to original state after a delay
             setTimeout(() => {
-                testButton.disabled = false;
-                buttonTextSpan.textContent = originalText;
-                icon.className = originalIconClass
-                testButton.className = originalButtonClass; // Remove success/danger classes
+                setButtonState(testButton, 'revert');
             }, 2500);
         });
     }
@@ -811,6 +795,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    /**
+     * Manages the visual state of a button during an async operation.
+     * Stores the original state in data attributes to easily revert.
+     * @param {HTMLButtonElement} button The button element.
+     * @param {'loading' | 'success' | 'error' | 'revert'} state The state to set.
+     * @param {object} [options] Options for text and classes.
+     * @param {string} [options.text] Text for the new state.
+     * @param {string} [options.iconClass] FontAwesome class for the new state.
+     * @param {string} [options.buttonClass] Bulma class for the new state (e.g., 'is-success').
+     */
+    function setButtonState(button, state, options = {}) {
+        const buttonTextSpan = button.querySelector('span:last-child');
+        const icon = button.querySelector('.icon i');
+
+        // Store original state if not already stored
+        if (!button.dataset.originalText) {
+            button.dataset.originalText = buttonTextSpan.textContent;
+            button.dataset.originalIconClass = icon.className;
+            button.dataset.originalButtonClass = button.className;
+        }
+
+        switch (state) {
+            case 'loading':
+                button.disabled = true;
+                buttonTextSpan.textContent = options.text || 'Bezig...';
+                icon.className = options.iconClass || 'fas fa-spinner fa-spin';
+                button.className = button.dataset.originalButtonClass;
+                break;
+            case 'success':
+            case 'error':
+                button.disabled = true; // Keep disabled until revert
+                buttonTextSpan.textContent = options.text || (state === 'success' ? 'Succes!' : 'Mislukt');
+                icon.className = options.iconClass || (state === 'success' ? 'fas fa-check' : 'fas fa-exclamation-triangle');
+                button.className = `${button.dataset.originalButtonClass} ${options.buttonClass || (state === 'success' ? 'is-success' : 'is-danger')}`;
+                break;
+            case 'revert':
+                button.disabled = false;
+                buttonTextSpan.textContent = button.dataset.originalText;
+                icon.className = button.dataset.originalIconClass;
+                button.className = button.dataset.originalButtonClass;
+                break;
+        }
+    }
+
     const restartButton = document.getElementById('restart-app-button');
     if (restartButton) {
         restartButton.addEventListener('click', async () => {
@@ -818,22 +846,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const buttonTextSpan = restartButton.querySelector('span:last-child');
-            const originalText = buttonTextSpan.textContent;
-            const icon = restartButton.querySelector('.icon i');
-            const originalIconClass = icon.className;
-
-            restartButton.disabled = true;
-            buttonTextSpan.textContent = 'Herstarten...';
-            icon.className = 'fas fa-spinner fa-spin';
+            setButtonState(restartButton, 'loading', { text: 'Herstarten...' });
 
             const handleRestartInitiated = (message) => {
                 showNotification(message, 'success');
                 // After a short delay, update the UI to indicate the restart is done.
                 setTimeout(() => {
                     showNotification('Vernieuw de pagina over enkele seconden.', 'success');
-                    buttonTextSpan.textContent = 'Herstart voltooid';
-                    icon.className = 'fas fa-check';
+                    setButtonState(restartButton, 'success', { text: 'Herstart voltooid' });
                     // The button remains disabled, forcing a page refresh to use it again.
                 }, 3000);
             };
@@ -852,25 +872,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Any error here is now a real error, not an expected one.
                 console.error('[Admin] Error during restart request:', error);
                 showNotification(`Fout bij herstarten: ${error.message}`, 'error');
-                restartButton.disabled = false;
-                buttonTextSpan.textContent = originalText;
-                icon.className = originalIconClass;
+                setButtonState(restartButton, 'revert');
             }
         });
     }
 
-
     const refreshMediaButton = document.getElementById('refresh-media-button');
     if (refreshMediaButton) {
         refreshMediaButton.addEventListener('click', async () => {
-            const buttonTextSpan = refreshMediaButton.querySelector('span:last-child');
-            const originalText = buttonTextSpan.textContent;
-            const icon = refreshMediaButton.querySelector('.icon i');
-            const originalIconClass = icon.className;
-
-            refreshMediaButton.disabled = true;
-            buttonTextSpan.textContent = 'Vernieuwen...';
-            icon.className = 'fas fa-spinner fa-spin';
+            setButtonState(refreshMediaButton, 'loading', { text: 'Vernieuwen...' });
 
             console.log('[Admin Debug] "Media Vernieuwen" button clicked. Preparing to call API endpoint.');
 
@@ -910,9 +920,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 // Restore button state after a short delay to show completion
                 setTimeout(() => {
-                    refreshMediaButton.disabled = false;
-                    buttonTextSpan.textContent = originalText;
-                    icon.className = originalIconClass;
+                    setButtonState(refreshMediaButton, 'revert');
                 }, 1000);
             }
         });
