@@ -2,7 +2,7 @@
  * posterrama.app - Client-side logic
  *
  * Author: Mark Frelink
- * Last Modified: 2024-08-02
+ * Last Modified: 2025-07-26
  * License: GPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             mediaQueue = newMediaQueue;
-            console.log(`Playlist bijgewerkt met ${mediaQueue.length} items.`);
+            console.log(`Playlist updated with ${mediaQueue.length} items.`);
 
             if (isInitialLoad) {
                 // Pick a random starting point instead of always starting at 0.
@@ -360,7 +360,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Toon de controls bij een muisbeweging of aanraking, en verberg ze na een paar seconden.
+    // Show controls on mouse movement or touch, and hide them after a few seconds.
     function showControls() {
         controlsContainer.classList.add('visible');
         document.body.style.cursor = 'default';
@@ -393,28 +393,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initialize();
 
-    // --- Swipe-functionaliteit voor touchscreens ---
+    // --- Swipe functionality for touchscreens ---
 
     let touchStartX = 0;
     let touchStartY = 0;
     let touchEndX = 0;
     let touchEndY = 0;
-    const swipeThreshold = 50; // Minimale *horizontale* afstand in pixels voor een swipe
+    const swipeThreshold = 50; // Minimum *horizontal* distance in pixels for a swipe
 
     function handleSwipe() {
         const deltaX = touchEndX - touchStartX;
         const deltaY = touchEndY - touchStartY;
 
-        // Controleer of de beweging voornamelijk horizontaal is
+        // Check if the movement is primarily horizontal
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
-            // Controleer of de swipe lang genoeg is
+            // Check if the swipe is long enough
             if (Math.abs(deltaX) > swipeThreshold) {
                 if (deltaX < 0) {
-                    // Swipe naar links -> Volgende media
+                    // Swipe left -> Next media
                     console.log('Swipe Left detected, showing next media.');
                     changeMedia('next');
                 } else {
-                    // Swipe naar rechts -> Vorige media
+                    // Swipe right -> Previous media
                     console.log('Swipe Right detected, showing previous media.');
                     changeMedia('prev');
                 }

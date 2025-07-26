@@ -26,9 +26,5 @@
       "movieCount": 30,
       "showCount": 15
     }
-  ],
-  "siteServer": {
-    "enabled": true,
-    "port": 4001
-  }
+  ]
 }

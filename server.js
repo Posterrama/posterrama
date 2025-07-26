@@ -2,16 +2,58 @@
  * posterrama.app - Server-side logic for multiple media sources
  *
  * Author: Mark Frelink
- * Last Modified: 2024-08-02
+ * Last Modified: 2025-07-26
  * License: GPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  */
 
+// --- In-memory Log Caching ---
+// This should be at the very top to capture as many logs as possible.
+const MAX_LOG_LINES = 200;
+const logCache = [];
+
+function captureLog(level, args) {
+    const message = args.map(arg => {
+        if (typeof arg === 'object' && arg !== null) {
+            try {
+                // A simple stringify for objects, limited depth to avoid circular reference issues
+                return JSON.stringify(arg, (key, value) => {
+                    if (key === '_raw' && value) return '[Raw Data Hidden]';
+                    return value;
+                }, 2);
+            } catch (e) {
+                return '[Unserializable Object]';
+            }
+        }
+        return String(arg);
+    }).join(' ');
+
+    logCache.push({
+        timestamp: new Date().toISOString(),
+        level: level.toUpperCase(),
+        message: message
+    });
+
+    // Keep the cache from growing indefinitely
+    if (logCache.length > MAX_LOG_LINES) {
+        logCache.shift();
+    }
+}
+
+// Override console methods to capture logs
+const originalConsoleLog = console.log;
+console.log = (...args) => { captureLog('log', args); originalConsoleLog.apply(console, args); };
+const originalConsoleError = console.error;
+console.error = (...args) => { captureLog('error', args); originalConsoleError.apply(console, args); };
+const originalConsoleWarn = console.warn;
+console.warn = (...args) => { captureLog('warn', args); originalConsoleWarn.apply(console, args); };
+
 const path = require('path');
 const fs = require('fs').promises;
 require('dotenv').config();
+const crypto = require('crypto');
 
 // --- Environment Initialization ---
 // Automatically create and configure the .env file on first run.
@@ -353,43 +395,6 @@ async function getPlexLibraries(serverConfig) {
     return libraries;
 }
 
-async function fetchPlexRecentlyAdded(serverConfig) {
-    const plex = getPlexClient(serverConfig);
-    const libraries = await getPlexLibraries(serverConfig);
-    const libraryNames = [
-        ...(serverConfig.movieLibraryNames || []),
-        ...(serverConfig.showLibraryNames || [])
-    ];
-
-    let recentItemsRaw = [];
-
-    for (const name of libraryNames) {
-        const library = libraries.get(name);
-        if (library) {
-            try {
-                const content = await plex.query(`/library/sections/${library.key}/recentlyAdded?X-Plex-Container-Size=15`);
-                if (content?.MediaContainer?.Metadata) {
-                    recentItemsRaw = recentItemsRaw.concat(content.MediaContainer.Metadata);
-                }
-            } catch (e) {
-                console.error(`[${serverConfig.name}] Error fetching recently added from library "${name}": ${e.message}`);
-            }
-        }
-    }
-
-    return recentItemsRaw.map(item => {
-        const isShow = item.type === 'episode' || item.type === 'season';
-        const uniqueKey = `${serverConfig.type}-${serverConfig.name}-${item.ratingKey}`;
-        return {
-            key: uniqueKey,
-            addedAt: item.addedAt,
-            title: isShow ? item.grandparentTitle : item.title,
-            subtitle: isShow ? `S${item.parentIndex} E${item.index} - ${item.title}` : `${item.year}`,
-            posterUrl: `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(isShow ? item.grandparentThumb : item.thumb)}`,
-        };
-    });
-}
-
 // --- Main Data Aggregation ---
 
 async function getPlaylistMedia() {
@@ -449,23 +454,46 @@ async function refreshPlaylistCache() {
     }
 }
 
-let recentlyAddedCache = null;
-let recentlyAddedCacheTimestamp = 0;
-
 // --- Admin Panel Logic ---
 
 /**
  * Middleware to check if the user is authenticated.
  */
-function isAuthenticated(req, res, next) {
+function isAuthenticated(req, res, next) {    
+    // 1. Check for session-based authentication (for browser users)
     if (req.session && req.session.user) {
+        if (isDebug) console.log(`[Auth] Authenticated via session for user: ${req.session.user.username}`);
         return next();
     }
 
-    // If not authenticated, check if it's an API request.
-    // API requests should receive a 401 JSON error, not a redirect.
+    // 2. Check for API key authentication (for scripts, Swagger, etc.)
+    const apiToken = process.env.API_ACCESS_TOKEN;
+    const authHeader = req.headers.authorization;
+
+    if (apiToken && authHeader && authHeader.startsWith('Bearer ')) {
+        const providedToken = authHeader.substring(7, authHeader.length);
+        
+        // Use timing-safe comparison to prevent timing attacks
+        const storedTokenBuffer = Buffer.from(apiToken);
+        const providedTokenBuffer = Buffer.from(providedToken);
+
+        if (storedTokenBuffer.length === providedTokenBuffer.length && crypto.timingSafeEqual(storedTokenBuffer, providedTokenBuffer)) {
+            if (isDebug) console.log('[Auth] Authenticated via API Key.');
+            // Optionally, you could attach a user object for consistency
+            // req.user = { username: 'api_user' };
+            return next();
+        }
+    }
+
+    // 3. If neither method works, deny access.
+    if (isDebug) {
+        const reason = authHeader ? 'Invalid token' : 'No session or token';
+        console.log(`[Auth] Authentication failed. Reason: ${reason}`);
+    }
+
+    // For API requests, send a 401 JSON error.
     if (req.path.startsWith('/api/')) {
-        return res.status(401).json({ error: 'Authentication required. Your session may have expired.' });
+        return res.status(401).json({ error: 'Authentication required. Your session may have expired or your API token is invalid.' });
     }
 
     // For regular page navigations, redirect to the login page.
@@ -578,6 +606,11 @@ app.get('/admin', (req, res) => {
     isAuthenticated(req, res, () => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 });
 
+app.get('/admin/logs', isAuthenticated, (req, res) => {
+    // This route serves the dedicated live log viewer page.
+    res.sendFile(path.join(__dirname, 'public', 'logs.html'));
+});
+
 // --- API Endpoints ---
 
 /**
@@ -598,7 +631,6 @@ app.get('/admin', (req, res) => {
 app.get('/get-config', (req, res) => {
     res.json({
         clockWidget: config.clockWidget !== false,
-        recentlyAddedSidebar: config.recentlyAddedSidebar === true,
         transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
         backgroundRefreshMinutes: config.backgroundRefreshMinutes || 30,
         showClearLogo: config.showClearLogo !== false,
@@ -664,53 +696,6 @@ app.get('/get-media', asyncHandler(async (req, res) => {
         status: 'failed',
         error: "Media playlist is currently unavailable. The initial fetch may have failed. Check server logs."
     });
-}));
-
-/**
- * @swagger
- * /get-recently-added:
- *   get:
- *     summary: Retrieve recently added media items
- *     description: Fetches a short, sorted list of the most recently added items from all enabled media servers.
- *     tags: [Public API]
- *     responses:
- *       200:
- *         description: An array of recently added media items.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- */
-app.get('/get-recently-added', asyncHandler(async (req, res) => {
-    if (config.recentlyAddedSidebar !== true) {
-        return res.json([]);
-    }
-
-    const cacheTtl = (config.recentlyAddedCacheMinutes || 5) * 60 * 1000;
-    if (recentlyAddedCache && (Date.now() - recentlyAddedCacheTimestamp < cacheTtl)) {
-        if (isDebug) console.log(`[Debug] Serving ${recentlyAddedCache.length} recently added items from cache.`);
-        return res.json(recentlyAddedCache);
-    }
-
-    if (isDebug) console.log('[Debug] Recently added cache is stale or empty, fetching fresh data.');
-    const enabledServers = config.mediaServers.filter(s => s.enabled);
-    let allRecent = [];
-
-    for (const server of enabledServers) {
-        if (server.type === 'plex') {
-            const recent = await fetchPlexRecentlyAdded(server);
-            allRecent = allRecent.concat(recent);
-        }
-    }
-
-    const combined = allRecent
-        .sort((a, b) => b.addedAt - a.addedAt)
-        .slice(0, 5);
-
-    recentlyAddedCache = combined;
-    recentlyAddedCacheTimestamp = Date.now();
-
-    res.json(recentlyAddedCache);
 }));
 
 /**
@@ -1001,6 +986,30 @@ app.get('/admin/logout', (req, res, next) => {
     });
 });
 
+/**
+ * @swagger
+ * /api/admin/2fa/generate:
+ *   post:
+ *     summary: Genereer een nieuwe 2FA-geheim
+ *     description: >
+ *       Genereert een nieuw geheim voor Two-Factor Authentication (2FA) en geeft een QR-code terug
+ *       die de gebruiker kan scannen met een authenticator-app. Het geheim wordt tijdelijk in de sessie
+ *       opgeslagen en wordt pas permanent na succesvolle verificatie.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: QR-code en geheim succesvol gegenereerd.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Generate2FAResponse'
+ *       400:
+ *         description: 2FA is al ingeschakeld.
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
 app.post('/api/admin/2fa/generate', isAuthenticated, asyncHandler(async (req, res) => {
     const secret = process.env.ADMIN_2FA_SECRET || '';
     const isEnabled = secret.trim() !== '';
@@ -1022,6 +1031,35 @@ app.post('/api/admin/2fa/generate', isAuthenticated, asyncHandler(async (req, re
     res.json({ qrCodeDataUrl });
 }));
 
+/**
+ * @swagger
+ * /api/admin/2fa/verify:
+ *   post:
+ *     summary: Verifieer en activeer 2FA
+ *     description: >
+ *       Verifieert de TOTP-code die door de gebruiker is ingevoerd tegen het tijdelijke geheim in de sessie.
+ *       Bij succes wordt het 2FA-geheim permanent opgeslagen in het .env-bestand en wordt 2FA geactiveerd.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Verify2FARequest'
+ *     responses:
+ *       200:
+ *         description: 2FA succesvol ingeschakeld.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminApiResponse'
+ *       400:
+ *         description: Ongeldige verificatiecode of geen 2FA-proces in behandeling.
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
 app.post('/api/admin/2fa/verify', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
     const { token } = req.body;
     const pendingSecret = req.session.tfa_pending_secret;
@@ -1052,6 +1090,35 @@ app.post('/api/admin/2fa/verify', isAuthenticated, express.json(), asyncHandler(
     }
 }));
 
+/**
+ * @swagger
+ * /api/admin/2fa/disable:
+ *   post:
+ *     summary: Schakel 2FA uit
+ *     description: >
+ *       Schakelt Two-Factor Authentication uit voor de admin-account.
+ *       De gebruiker moet zijn huidige wachtwoord opgeven als bevestiging.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Disable2FARequest'
+ *     responses:
+ *       200:
+ *         description: 2FA succesvol uitgeschakeld.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminApiResponse'
+ *       400:
+ *         description: Wachtwoord is vereist.
+ *       401:
+ *         description: Onjuist wachtwoord of niet geautoriseerd.
+ */
 app.post('/api/admin/2fa/disable', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
     const { password } = req.body;
     if (!password) throw new ApiError(400, 'Password is required to disable 2FA.');
@@ -1062,6 +1129,27 @@ app.post('/api/admin/2fa/disable', isAuthenticated, express.json(), asyncHandler
     res.json({ success: true, message: '2FA disabled successfully.' });
 }));
 
+/**
+ * @swagger
+ * /api/admin/config:
+ *   get:
+ *     summary: Haal de volledige admin-configuratie op
+ *     description: >
+ *       Haalt de volledige `config.json` op, samen met relevante omgevingsvariabelen
+ *       en beveiligingsstatus (zoals 2FA) die nodig zijn voor het admin-paneel.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: De configuratie-objecten.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminConfigResponse'
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
 app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Request received for /api/admin/config.');
     const currentConfig = await readConfig();
@@ -1102,6 +1190,33 @@ app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
     });
 }))
 
+/**
+ * @swagger
+ * /api/admin/test-plex:
+ *   post:
+ *     summary: Test de verbinding met een Plex-server
+ *     description: >
+ *       Controleert of de applicatie verbinding kan maken met een Plex-server met de opgegeven
+ *       hostnaam, poort en token. Dit is een lichtgewicht controle die de server-root opvraagt.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PlexConnectionRequest'
+ *     responses:
+ *       200:
+ *         description: Verbinding succesvol.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminApiResponse'
+ *       400:
+ *         description: Verbindingsfout (bv. onjuiste gegevens, time-out).
+ */
 app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Received request to test Plex connection.');
     let { hostname, port, token } = req.body; // token is now optional
@@ -1164,6 +1279,33 @@ app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(a
 
 
 
+/**
+ * @swagger
+ * /api/admin/plex-libraries:
+ *   post:
+ *     summary: Haal Plex-bibliotheken op
+ *     description: >
+ *       Haalt een lijst op van alle beschikbare bibliotheken (zoals 'Movies', 'TV Shows')
+ *       van de geconfigureerde Plex-server.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: Optionele verbindingsgegevens. Indien niet opgegeven, worden de geconfigureerde waarden gebruikt.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PlexConnectionRequest'
+ *     responses:
+ *       200:
+ *         description: Een lijst met gevonden bibliotheken.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PlexLibrariesResponse'
+ *       400:
+ *         description: Kon bibliotheken niet ophalen (bv. onjuiste gegevens).
+ */
 app.post('/api/admin/plex-libraries', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Received request to fetch Plex libraries.');
     let { hostname, port, token } = req.body;
@@ -1224,6 +1366,36 @@ app.post('/api/admin/plex-libraries', isAuthenticated, express.json(), asyncHand
     }
 }));
 
+/**
+ * @swagger
+ * /api/admin/config:
+ *   post:
+ *     summary: Sla de admin-configuratie op
+ *     description: >
+ *       Slaat de wijzigingen op in zowel `config.json` als het `.env`-bestand.
+ *       Na een succesvolle opslag worden de caches en clients van de applicatie gewist
+ *       en wordt een achtergrondvernieuwing van de afspeellijst gestart.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SaveConfigRequest'
+ *     responses:
+ *       200:
+ *         description: Configuratie succesvol opgeslagen.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminApiResponse'
+ *       400:
+ *         description: Ongeldige request body.
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
 app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
     if (isDebug) {
         console.log('[Admin API] Received POST request to /api/admin/config to save settings. Body:', JSON.stringify(req.body, null, 2));
@@ -1243,7 +1415,6 @@ app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(asyn
 
     // Clear caches to reflect changes without a full restart
     playlistCache = null;
-    recentlyAddedCache = null;
     Object.keys(plexClients).forEach(key => delete plexClients[key]);
 
     // Trigger a background refresh of the playlist with the new settings.
@@ -1257,6 +1428,33 @@ app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(asyn
     res.json({ message: 'Configuration saved successfully. Some changes may require an application restart.' });
 }));
 
+/**
+ * @swagger
+ * /api/admin/change-password:
+ *   post:
+ *     summary: Wijzig het admin-wachtwoord
+ *     description: Stelt de gebruiker in staat om zijn eigen admin-wachtwoord te wijzigen.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ChangePasswordRequest'
+ *     responses:
+ *       200:
+ *         description: Wachtwoord succesvol gewijzigd.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminApiResponse'
+ *       400:
+ *         description: Vereiste velden ontbreken of nieuwe wachtwoorden komen niet overeen.
+ *       401:
+ *         description: Huidig wachtwoord is onjuist.
+ */
 app.post('/api/admin/change-password', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Received request to change password.');
     const { currentPassword, newPassword, confirmPassword } = req.body;
@@ -1284,6 +1482,26 @@ app.post('/api/admin/change-password', isAuthenticated, express.json(), asyncHan
     res.json({ message: 'Password changed successfully.' });
 }));
 
+/**
+ * @swagger
+ * /api/admin/restart-app:
+ *   post:
+ *     summary: Herstart de applicatie
+ *     description: >
+ *       Geeft een commando aan PM2 om de applicatie te herstarten.
+ *       Dit is nuttig na het wijzigen van kritieke instellingen zoals de poort.
+ *       De API reageert onmiddellijk met een 202 Accepted status.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       202:
+ *         description: Herstart-commando ontvangen en wordt verwerkt.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminApiResponse'
+ */
 app.post('/api/admin/restart-app', isAuthenticated, asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Received request to restart the application.');
 
@@ -1310,6 +1528,36 @@ app.post('/api/admin/restart-app', isAuthenticated, asyncHandler(async (req, res
     }, 100); // 100ms delay should be sufficient.
 }));
 
+/**
+ * @swagger
+ * /api/admin/refresh-media:
+ *   post:
+ *     summary: Forceer een onmiddellijke vernieuwing van de media-afspeellijst
+ *     description: >
+ *       Start handmatig het proces om media op te halen van alle geconfigureerde servers.
+ *       Dit is een asynchrone operatie. De API reageert wanneer de vernieuwing is voltooid.
+ *       Dit eindpunt is beveiligd en vereist een actieve admin-sessie.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: De afspeellijst is succesvol vernieuwd.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Media playlist succesvol vernieuwd. 150 items gevonden."
+ *                 itemCount:
+ *                   type: integer
+ *                   example: 150
+ */
 app.post('/api/admin/refresh-media', isAuthenticated, asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Received request to force-refresh media playlist.');
 
@@ -1324,7 +1572,153 @@ app.post('/api/admin/refresh-media', isAuthenticated, asyncHandler(async (req, r
     res.json({ success: true, message: message, itemCount: itemCount });
 }));
 
+/**
+ * @swagger
+ * /api/admin/api-key:
+ *   get:
+ *     summary: Haal de huidige API-sleutel op
+ *     description: Haalt de momenteel geconfigureerde API-toegangssleutel op. Deze wordt alleen teruggestuurd naar een geauthenticeerde admin-sessie.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: De API-sleutel.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 apiKey:
+ *                   type: string
+ *                   nullable: true
+ */
+app.get('/api/admin/api-key', isAuthenticated, (req, res) => {
+    const apiKey = process.env.API_ACCESS_TOKEN || null;
+    res.json({ apiKey });
+});
+/**
+ * @swagger
+ * /api/admin/api-key/status:
+ *   get:
+ *     summary: Controleer de status van de API-sleutel
+ *     description: Geeft aan of er momenteel een API-toegangssleutel is geconfigureerd in de applicatie.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: De status van de API-sleutel.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 hasKey:
+ *                   type: boolean
+ *                   example: true
+ */
+app.get('/api/admin/api-key/status', isAuthenticated, (req, res) => {
+    const hasKey = !!(process.env.API_ACCESS_TOKEN || '').trim();
+    res.json({ hasKey });
+});
 
+/**
+ * @swagger
+ * /api/admin/api-key/generate:
+ *   post:
+ *     summary: Genereer een nieuwe API-sleutel
+ *     description: >
+ *       Genereert een nieuwe, cryptografisch veilige API-toegangssleutel, slaat deze op in het .env-bestand
+ *       en overschrijft een eventuele bestaande sleutel. De nieuwe sleutel wordt EENMALIG teruggestuurd.
+ *       Sla hem veilig op, want hij kan niet opnieuw worden opgevraagd.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: De nieuw gegenereerde API-sleutel.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiKeyResponse'
+ */
+app.post('/api/admin/api-key/generate', isAuthenticated, asyncHandler(async (req, res) => {
+    const newApiKey = crypto.randomBytes(32).toString('hex');
+    await writeEnvFile({ API_ACCESS_TOKEN: newApiKey });
+    if (isDebug) console.log('[Admin API] New API Access Token generated and saved.');
+    res.json({ apiKey: newApiKey, message: 'New API key generated. This is the only time it will be shown. Please save it securely.' });
+}));
+
+/**
+ * @swagger
+ * /api/admin/api-key/revoke:
+ *   post:
+ *     summary: Trek de huidige API-sleutel in
+ *     description: Verwijdert de huidige API-toegangssleutel uit de configuratie, waardoor deze onbruikbaar wordt.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Bevestiging dat de sleutel is ingetrokken.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminApiResponse'
+ */
+app.post('/api/admin/api-key/revoke', isAuthenticated, asyncHandler(async (req, res) => {
+    await writeEnvFile({ API_ACCESS_TOKEN: '' });
+    if (isDebug) console.log('[Admin API] API Access Token has been revoked.');
+    res.json({ success: true, message: 'API key has been revoked.' });
+}));
+
+/**
+ * @swagger
+ * /api/admin/logs:
+ *   get:
+ *     summary: Haal de meest recente applicatielogs op
+ *     description: >
+ *       Haalt een lijst op van de meest recente log-regels die in het geheugen zijn opgeslagen.
+ *       Dit is handig voor het debuggen vanuit het admin-paneel zonder directe servertoegang.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Een array van log-objecten.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/LogEntry'
+ */
+app.get('/api/admin/logs', isAuthenticated, (req, res) => {
+    res.json(logCache);
+});
+
+/**
+ * @swagger
+ * /admin/debug:
+ *   get:
+ *     summary: Haal debug-informatie op
+ *     description: >
+ *       Geeft de onbewerkte data terug van alle items in de huidige *gecachte* afspeellijst.
+ *       Dit eindpunt is alleen beschikbaar als de debug-modus is ingeschakeld in de .env-file.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: De onbewerkte data van de afspeellijst.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DebugResponse'
+ *       404:
+ *         description: Niet gevonden (als de debug-modus is uitgeschakeld).
+ */
 app.get('/admin/debug', isAuthenticated, asyncHandler(async (req, res) => {
     if (!isDebug) {
         throw new NotFoundError('Debug endpoint is only available when debug mode is enabled.');
@@ -1460,7 +1854,6 @@ if (require.main === module) {
         // Define the public API routes that need to be proxied
         siteApp.get('/get-config', proxyApiRequest);
         siteApp.get('/get-media', proxyApiRequest);
-        siteApp.get('/get-recently-added', proxyApiRequest);
         siteApp.get('/get-media-by-key/:key', proxyApiRequest);
         siteApp.get('/image', proxyApiRequest);
 

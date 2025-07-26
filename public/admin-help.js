@@ -4,8 +4,8 @@
  * This script transforms static help text paragraphs into interactive help popups.
  * It should be included in the admin HTML page.
  *
- * Author: Mark Frelink & Gemini Code Assist
- * Last Modified: 2024-08-02
+ * Author: Mark Frelink
+ * Last Modified: 2025-07-26
  * License: GPL-3.0-or-later
  */
 

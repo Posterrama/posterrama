@@ -1,7 +1,7 @@
 /* --- CSS Reset & Box Sizing --- */
 html {
     box-sizing: border-box;
-    background-color: #121212; /* Donkere basiskleur om witte flits bij laden te voorkomen */
+    background-color: #121212; /* Dark base color to prevent white flash on load */
     /* This combination is a robust fix for preventing horizontal scroll on mobile.
        It ensures the root element cannot be wider than the screen. */
     max-width: 100%;
@@ -20,7 +20,7 @@ body {
     line-height: 1.6;
     overflow-y: auto; /* Allow vertical scrolling */
     overflow-x: hidden; /* Add to body as well for maximum compatibility, as you suggested. */
-    overflow-wrap: break-word; /* Fix: Zorgt ervoor dat lange, onbreekbare tekst (zoals URLs) kan afbreken en geen overflow veroorzaakt. */
+    overflow-wrap: break-word; /* Fix: Ensures that long, unbreakable text (like URLs) can wrap and does not cause overflow. */
 }
 
 a {
@@ -421,7 +421,7 @@ input[type="number"]:focus {
     }
 
     .admin-header nav a {
-        /* Verwijder de oude marge die de uitlijning verstoort */
+        /* Remove the old margin that disrupts alignment */
         margin-left: 0;
     }
 

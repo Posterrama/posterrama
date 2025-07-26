@@ -17,30 +17,39 @@ try {
     process.exit(1);
 }
 
-const requiredVarsSet = new Set();
-const tokenVars = [];
+/**
+ * Determines which environment variables are required based on the configuration.
+ * @param {object} appConfig The application's config.json content.
+ * @returns {{required: Set<string>, tokens: string[]}} An object containing a set of required variable names and an array of token variable names.
+ */
+function getRequiredVars(appConfig) {
+    const required = new Set();
+    const tokens = [];
 
-const enabledServers = config.mediaServers.filter(s => s.enabled);
+    // Session secret is needed if an admin user exists
+    if (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD_HASH) {
+        required.add('SESSION_SECRET');
+    }
 
-if (enabledServers.length === 0) {
-    console.warn('\x1b[33m%s\x1b[0m', 'WARNING: No media servers are enabled in config.json. The application will run but will not display any media.');
-}
+    const enabledServers = appConfig.mediaServers.filter(s => s.enabled);
+    if (enabledServers.length === 0) {
+        console.warn('\x1b[33m%s\x1b[0m', 'WARNING: No media servers are enabled in config.json. The application will run but will not display any media.');
+    }
 
-// If the admin user has been configured, the session secret is mandatory.
-if (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD_HASH) {
-    requiredVarsSet.add('SESSION_SECRET');
-}
-
-for (const server of enabledServers) {
-    if (server.type === 'plex') {
-        if (server.hostnameEnvVar) requiredVarsSet.add(server.hostnameEnvVar);
-        if (server.portEnvVar) requiredVarsSet.add(server.portEnvVar);
-        if (server.tokenEnvVar) {
-            requiredVarsSet.add(server.tokenEnvVar);
-            tokenVars.push(server.tokenEnvVar);
+    for (const server of enabledServers) {
+        if (server.type === 'plex') {
+            if (server.hostnameEnvVar) required.add(server.hostnameEnvVar);
+            if (server.portEnvVar) required.add(server.portEnvVar);
+            if (server.tokenEnvVar) {
+                required.add(server.tokenEnvVar);
+                tokens.push(server.tokenEnvVar);
+            }
         }
     }
+    return { required, tokens };
 }
+
+const { required: requiredVarsSet, tokens: tokenVars } = getRequiredVars(config);
 
 const missingVars = [...requiredVarsSet].filter(varName => !process.env[varName]);
 

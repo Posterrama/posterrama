@@ -49,16 +49,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateGeneralSettings(config, env, defaults) {
         document.getElementById('transitionIntervalSeconds').value = config.transitionIntervalSeconds ?? defaults.transitionIntervalSeconds;
         document.getElementById('backgroundRefreshMinutes').value = config.backgroundRefreshMinutes ?? defaults.backgroundRefreshMinutes;
-        // Use || to correctly fall back to the default if the env var is an empty string.
-        document.getElementById('SERVER_PORT').value = env.SERVER_PORT || defaults.SERVER_PORT;
+        // Use the nullish coalescing operator (??) to correctly handle empty strings from .env
+        document.getElementById('SERVER_PORT').value = env.SERVER_PORT ?? defaults.SERVER_PORT;
         // Correctly check for the existence of the env.DEBUG variable.
         // The previous logic had an operator precedence issue and was not correctly using the default.
         document.getElementById('DEBUG').checked = (env.DEBUG !== undefined) ? (env.DEBUG === 'true') : defaults.DEBUG;
 
         const debugCheckbox = document.getElementById('DEBUG');
-        const debugLink = document.getElementById('debug-link');
-        if (debugLink) {
-            debugLink.classList.toggle('is-hidden', !debugCheckbox.checked);
+        const debugAction = document.getElementById('debug-cache-action');
+        if (debugAction) {
+            debugAction.classList.toggle('is-hidden', !debugCheckbox.checked);
         }
     }
 
@@ -107,9 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const plexDefaults = defaults.mediaServers[0];
 
         document.getElementById('mediaServers[0].enabled').checked = plexServerConfig.enabled ?? plexDefaults.enabled;
-        // Use || to correctly fall back to defaults if the env var is an empty string.
-        document.getElementById('mediaServers[0].hostname').value = env.PLEX_HOSTNAME || plexDefaults.hostname;
-        document.getElementById('mediaServers[0].port').value = env.PLEX_PORT || plexDefaults.port;
+        // Use the nullish coalescing operator (??) to correctly handle empty strings from .env
+        document.getElementById('mediaServers[0].hostname').value = env.PLEX_HOSTNAME ?? plexDefaults.hostname;
+        document.getElementById('mediaServers[0].port').value = env.PLEX_PORT ?? plexDefaults.port;
         // For security, don't display the token. Show a placeholder if it's set.
         const tokenInput = document.getElementById('mediaServers[0].token');
         tokenInput.value = ''; // Always clear the value on load
@@ -229,14 +229,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const token = tokenInput.value;
             const isTokenSetOnServer = tokenInput.placeholder.includes('already set');
 
-            setButtonState(testButton, 'loading', { text: 'Testen...' });
+            setButtonState(testButton, 'loading', { text: 'Testing...' });
 
             try {
                 if (!hostname || !port) {
-                    throw new Error('Hostname en poort zijn vereist om een test uit te voeren.');
+                    throw new Error('Hostname and port are required to run a test.');
                 }
                 if (!token && !isTokenSetOnServer) {
-                    throw new Error('Een nieuw token is vereist om de verbinding te testen, omdat er nog geen is ingesteld.');
+                    throw new Error('A new token is required to test the connection, as none is set yet.');
                 }
 
                 const response = await fetch('/api/admin/test-plex', {
@@ -247,12 +247,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(result.error || 'Onbekende fout');
+                    throw new Error(result.error || 'Unknown error');
                 }
 
-                setButtonState(testButton, 'success');
+                setButtonState(testButton, 'success', { text: result.message });
 
-                // Zet de "Media Vernieuwen"-knop aan
+                // Enable the "Refresh Media" button
                 const refreshButton = document.getElementById('refresh-media-button');
                 if (refreshButton) refreshButton.disabled = false;
 
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 setButtonState(testButton, 'error');
 
-                // Zet de "Media Vernieuwen"-knop uit
+                // Disable the "Refresh Media" button
                 const refreshButton = document.getElementById('refresh-media-button');
                 if (refreshButton) refreshButton.disabled = true;
 
@@ -314,8 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const showContainer = document.getElementById('show-libraries-container');
         const refreshButton = document.getElementById('refresh-media-button');
 
-        movieContainer.innerHTML = '<small>Bibliotheken ophalen...</small>';
-        showContainer.innerHTML = '<small>Bibliotheken ophalen...</small>';
+        movieContainer.innerHTML = '<small>Fetching libraries...</small>';
+        showContainer.innerHTML = '<small>Fetching libraries...</small>';
 
         try {
             const hostname = document.getElementById('mediaServers[0].hostname').value;
@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const result = await response.json();
-            if (!response.ok) throw new Error(result.error || 'Ophalen van bibliotheken mislukt.');
+            if (!response.ok) throw new Error(result.error || 'Failed to fetch libraries.');
 
             const libraries = result.libraries || [];
             const movieLibraries = libraries.filter(lib => lib.type === 'movie');
@@ -343,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showContainer.innerHTML = '';
 
             if (movieLibraries.length === 0) {
-                movieContainer.innerHTML = '<small>Geen filmbibliotheken gevonden.</small>';
+                movieContainer.innerHTML = '<small>No movie libraries found.</small>';
             } else {
                 movieLibraries.forEach(lib => {
                     const isChecked = preSelectedMovieLibs.includes(lib.name);
@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (showLibraries.length === 0) {
-                showContainer.innerHTML = '<small>Geen seriebibliotheken gevonden.</small>';
+                showContainer.innerHTML = '<small>No show libraries found.</small>';
             } else {
                 showLibraries.forEach(lib => {
                     const isChecked = preSelectedShowLibs.includes(lib.name);
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Failed to fetch Plex libraries:', error);
-            const errorMessage = `<small class="error-text">Fout: ${error.message}</small>`;
+            const errorMessage = `<small class="error-text">Error: ${error.message}</small>`;
             movieContainer.innerHTML = errorMessage;
             showContainer.innerHTML = errorMessage;
             // Disable refresh button on failure
@@ -435,10 +435,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function update2FAStatusText(isEnabled) {
         if (!twoFaStatusText) return;
         if (isEnabled) {
-            twoFaStatusText.textContent = '2FA is momenteel ingeschakeld.';
+            twoFaStatusText.textContent = '2FA is currently enabled.';
             twoFaStatusText.className = 'status-text enabled';
         } else {
-            twoFaStatusText.textContent = '2FA is momenteel uitgeschakeld.';
+            twoFaStatusText.textContent = '2FA is currently disabled.';
             twoFaStatusText.className = 'status-text disabled';
         }
     }
@@ -447,12 +447,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/admin/2fa/generate', { method: 'POST' });
             const result = await response.json();
-            if (!response.ok) throw new Error(result.error || 'Kon QR-code niet genereren.');
+            if (!response.ok) throw new Error(result.error || 'Could not generate QR code.');
 
             qrCodeContainer.innerHTML = `<img src="${result.qrCodeDataUrl}" alt="QR Code">`;
             show2FAModal();
         } catch (error) {
-            showNotification(`Fout bij inschakelen 2FA: ${error.message}`, 'error');
+            showNotification(`Error enabling 2FA: ${error.message}`, 'error');
             twoFaCheckbox.checked = false;
         }
     }
@@ -493,13 +493,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ token })
                 });
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Verificatie mislukt.');
+                if (!response.ok) throw new Error(result.error || 'Verification failed.');
 
                 hide2FAModal();
-                showNotification('2FA succesvol ingeschakeld!', 'success');
+                showNotification('2FA enabled successfully!', 'success');
                 update2FAStatusText(true);
             } catch (error) {
-                showNotification(`Fout: ${error.message}`, 'error');
+                showNotification(`Error: ${error.message}`, 'error');
                 tokenInput.value = '';
                 tokenInput.focus();
             }
@@ -519,13 +519,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ password })
                 });
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Uitschakelen mislukt.');
+                if (!response.ok) throw new Error(result.error || 'Disable failed.');
 
                 hideDisable2FAModal();
-                showNotification('2FA succesvol uitgeschakeld.', 'success');
+                showNotification('2FA disabled successfully.', 'success');
                 update2FAStatusText(false);
             } catch (error) {
-                showNotification(`Fout bij uitschakelen 2FA: ${error.message}`, 'error');
+                showNotification(`Error disabling 2FA: ${error.message}`, 'error');
                 // Don't hide the modal on error, so the user can try again.
                 passwordInput.value = '';
                 passwordInput.focus();
@@ -541,16 +541,163 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    /**
+     * Attaches a click handler to a button that requires a second confirmation click.
+     * This provides a better user experience than a native confirm() dialog.
+     * @param {HTMLButtonElement} button The button element.
+     * @param {string} confirmText The text to display on the button for confirmation.
+     * @param {function} onConfirm The async function to execute upon confirmation.
+     */
+    function addConfirmClickHandler(button, confirmText, onConfirm) {
+        let confirmTimeout = null;
+        const textSpan = button.querySelector('span:last-child');
+        // If there's no text span, the button likely doesn't have an icon. Fallback to full textContent.
+        const originalText = textSpan ? textSpan.textContent : button.textContent;
+
+        const revertButton = () => {
+            if (confirmTimeout) clearTimeout(confirmTimeout);
+            if (!button) return;
+            button.dataset.confirming = 'false';
+            if (textSpan) {
+                textSpan.textContent = originalText;
+            } else {
+                button.textContent = originalText;
+            }
+            button.classList.remove('is-warning');
+        };
+
+        button.addEventListener('click', (event) => {
+            if (button.disabled) return;
+
+            if (button.dataset.confirming === 'true') {
+                revertButton();
+                onConfirm(event);
+            } else {
+                button.dataset.confirming = 'true';
+                if (textSpan) {
+                    textSpan.textContent = confirmText;
+                } else {
+                    button.textContent = confirmText;
+                }
+                button.classList.add('is-warning');
+                confirmTimeout = setTimeout(revertButton, 4000);
+            }
+        });
+    }
+
+    // --- API Key Management ---
+    const apiKeyStatusText = document.getElementById('api-key-status-text');
+    const apiKeyDisplayContainer = document.getElementById('api-key-display-container');
+    const apiKeyInput = document.getElementById('api-key-input');
+    const copyApiKeyButton = document.getElementById('copy-api-key-button');
+    const toggleApiKeyVisibilityButton = document.getElementById('toggle-api-key-visibility-button');
+    const generateApiKeyButton = document.getElementById('generate-api-key-button');
+    const revokeApiKeyButton = document.getElementById('revoke-api-key-button');
+
+    async function updateApiKeyStatus() {
+        try {
+            const response = await fetch('/api/admin/api-key/status');
+            if (!response.ok) throw new Error('Could not fetch status.');
+            const { hasKey } = await response.json();
+
+            if (hasKey) {
+                apiKeyStatusText.textContent = 'Active';
+                apiKeyStatusText.className = 'status-text enabled';
+                revokeApiKeyButton.disabled = false;
+
+                // Fetch the key and display it
+                const keyResponse = await fetch('/api/admin/api-key');
+                if (!keyResponse.ok) throw new Error('Could not fetch API key.');
+                const { apiKey } = await keyResponse.json();
+
+                if (apiKey) {
+                    apiKeyInput.value = apiKey;
+                    apiKeyDisplayContainer.classList.remove('is-hidden');
+                } else {
+                    apiKeyDisplayContainer.classList.add('is-hidden');
+                }
+            } else {
+                apiKeyStatusText.textContent = 'No key configured';
+                apiKeyStatusText.className = 'status-text disabled';
+                revokeApiKeyButton.disabled = true;
+                apiKeyDisplayContainer.classList.add('is-hidden');
+                apiKeyInput.value = '';
+            }
+        } catch (error) {
+            apiKeyStatusText.textContent = `Error: ${error.message}`;
+            apiKeyStatusText.className = 'status-text error';
+        }
+    }
+
+    if (generateApiKeyButton) {
+        addConfirmClickHandler(generateApiKeyButton, 'Are you sure? Click again', async () => {
+            try {
+                const response = await fetch('/api/admin/api-key/generate', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Genereren mislukt.');
+
+                apiKeyInput.value = result.apiKey;
+                apiKeyDisplayContainer.classList.remove('is-hidden');
+                showNotification(result.message, 'success');
+                updateApiKeyStatus();
+            } catch (error) {
+                showNotification(`Error: ${error.message}`, 'error');
+            }
+        });
+    }
+
+    if (revokeApiKeyButton) {
+        addConfirmClickHandler(revokeApiKeyButton, 'Are you sure? Click again', async () => {
+            try {
+                const response = await fetch('/api/admin/api-key/revoke', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Revoke failed.');
+
+                showNotification(result.message, 'success');
+                apiKeyDisplayContainer.classList.add('is-hidden'); // Hide the key display after revoking
+                apiKeyInput.value = '';
+                updateApiKeyStatus();
+            } catch (error) {
+                showNotification(`Error: ${error.message}`, 'error');
+            }
+        });
+    }
+
+    if (copyApiKeyButton) {
+        copyApiKeyButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(apiKeyInput.value).then(() => {
+                showNotification('API key copied to clipboard!', 'success');
+            }, () => {
+                showNotification('Copy failed.', 'error');
+            });
+        });
+    }
+
+    if (toggleApiKeyVisibilityButton) {
+        toggleApiKeyVisibilityButton.addEventListener('click', () => {
+            const icon = toggleApiKeyVisibilityButton.querySelector('i');
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                apiKeyInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    }
+
     // --- Initialization ---
 
     loadConfig();
 
     const debugCheckbox = document.getElementById('DEBUG');
-    const debugLink = document.getElementById('debug-link');
+    const debugAction = document.getElementById('debug-cache-action');
 
-    if (debugCheckbox && debugLink) {
+    if (debugCheckbox && debugAction) {
         debugCheckbox.addEventListener('change', () => {
-            debugLink.classList.toggle('is-hidden', !debugCheckbox.checked);
+            debugAction.classList.toggle('is-hidden', !debugCheckbox.checked);
         });
     }
 
@@ -585,10 +732,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (configForm) {
         configForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const button = event.target.querySelector('button[type="submit"]');
-            const originalButtonText = button.textContent;
+            const button = document.querySelector('button[type="submit"][form="config-form"]');
+            if (!button) return;
+
+            const buttonTextSpan = button.querySelector('span:last-child');
+            const originalButtonText = buttonTextSpan.textContent;
+
             button.disabled = true;
-            button.textContent = 'Saving...';
+            buttonTextSpan.textContent = 'Saving...';
 
             /**
              * Recursively creates a deep copy of an object, excluding any keys with a null value.
@@ -622,7 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const selectedShowLibs = getSelectedLibraries('show');
 
                     if (selectedMovieLibs.length === 0 && selectedShowLibs.length === 0) {
-                        throw new Error('Als de Plex-server is ingeschakeld, moet u ten minste één film- of seriebibliotheek selecteren.');
+                        throw new Error('If the Plex server is enabled, you must select at least one movie or show library.');
                     }
                 }
 
@@ -641,7 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (!Number.isFinite(Number(element.value))) {
                             const label = document.querySelector(`label[for="${id}"]`);
                             const fieldName = label ? label.textContent : id;
-                            throw new Error(`Het veld "${fieldName}" moet een geldig getal zijn.`);
+                            throw new Error(`The field "${fieldName}" must be a valid number.`);
                         }
                     }
                 }
@@ -715,20 +866,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Failed to save settings.');
 
-                showNotification('Settings saved successfully! Some changes may require a restart.', 'success');
-                // Clear the token field and update the placeholder if a new token was saved.
-                const tokenInput = document.getElementById('mediaServers[0].token');
-                tokenInput.value = '';
-                if (plexToken) {
-                    tokenInput.placeholder = '******** (already set)';
-                }
+                // Since PM2 watches config.json, saving settings will trigger a restart.
+                // We provide feedback to the user and tell them to refresh.
+                showNotification('Settings saved! The application is restarting. Please refresh the page in a few seconds.', 'success');
 
             } catch (error) {
                 console.error('Failed to save config:', error);
                 showNotification(`Error saving settings: ${error.message}`, 'error');
             } finally {
                 button.disabled = false;
-                button.textContent = originalButtonText;
+                buttonTextSpan.textContent = originalButtonText;
             }
         });
     }
@@ -740,39 +887,27 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     const changePasswordButton = document.getElementById('change-password-button');
     if (changePasswordButton) {
-        changePasswordButton.addEventListener('click', async () => {
-            const button = changePasswordButton;
-            const originalButtonText = button.textContent;
-            button.disabled = true;
-            button.textContent = 'Changing...';
-
+        addConfirmClickHandler(changePasswordButton, 'Change password?', async () => {
+            setButtonState(changePasswordButton, 'loading', { text: 'Changing...' });
             const currentPasswordInput = document.getElementById('currentPassword');
             const newPasswordInput = document.getElementById('newPassword');
             const confirmPasswordInput = document.getElementById('confirmPassword');
 
-            const currentPassword = currentPasswordInput.value;
-            const newPassword = newPasswordInput.value;
-            const confirmPassword = confirmPasswordInput.value;
-
-            // Client-side validation
-            if (!currentPassword || !newPassword || !confirmPassword) {
-                showNotification('Alle wachtwoordvelden zijn verplicht.', 'error');
-                button.disabled = false;
-                button.textContent = originalButtonText;
-                return;
-            }
-            if (newPassword !== confirmPassword) {
-                showNotification('Het nieuwe wachtwoord en de bevestiging komen niet overeen.', 'error');
-                button.disabled = false;
-                button.textContent = originalButtonText;
-                return;
-            }
-
-            const data = {
-                currentPassword, newPassword, confirmPassword
-            };
-
             try {
+                const data = {
+                    currentPassword: currentPasswordInput.value,
+                    newPassword: newPasswordInput.value,
+                    confirmPassword: confirmPasswordInput.value
+                };
+
+                // Client-side validation
+                if (!data.currentPassword || !data.newPassword || !data.confirmPassword) {
+                    throw new Error('All password fields are required.');
+                }
+                if (data.newPassword !== data.confirmPassword) {
+                    throw new Error('The new password and confirmation do not match.');
+                }
+
                 const response = await fetch('/api/admin/change-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -780,17 +915,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Failed to change password.');
+
+                setButtonState(changePasswordButton, 'success', { text: 'Changed!' });
                 showNotification('Password changed successfully!', 'success');
-                // Manually reset the fields since it's not a form anymore
                 if (currentPasswordInput) currentPasswordInput.value = '';
                 if (newPasswordInput) newPasswordInput.value = '';
                 if (confirmPasswordInput) confirmPasswordInput.value = '';
             } catch (error) {
-                console.error('Failed to change password:', error);
-                showNotification(`Error changing password: ${error.message}`, 'error');
+                setButtonState(changePasswordButton, 'error', { text: 'Failed' });
+                showNotification(`Error: ${error.message}`, 'error');
             } finally {
-                button.disabled = false;
-                button.textContent = originalButtonText;
+                // Revert button state after a short delay
+                setTimeout(() => setButtonState(changePasswordButton, 'revert'), 3000);
             }
         });
     }
@@ -819,14 +955,14 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (state) {
             case 'loading':
                 button.disabled = true;
-                buttonTextSpan.textContent = options.text || 'Bezig...';
+                buttonTextSpan.textContent = options.text || 'Working...';
                 icon.className = options.iconClass || 'fas fa-spinner fa-spin';
                 button.className = button.dataset.originalButtonClass;
                 break;
             case 'success':
             case 'error':
                 button.disabled = true; // Keep disabled until revert
-                buttonTextSpan.textContent = options.text || (state === 'success' ? 'Succes!' : 'Mislukt');
+                buttonTextSpan.textContent = options.text || (state === 'success' ? 'Success!' : 'Failed');
                 icon.className = options.iconClass || (state === 'success' ? 'fas fa-check' : 'fas fa-exclamation-triangle');
                 button.className = `${button.dataset.originalButtonClass} ${options.buttonClass || (state === 'success' ? 'is-success' : 'is-danger')}`;
                 break;
@@ -841,46 +977,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const restartButton = document.getElementById('restart-app-button');
     if (restartButton) {
-        restartButton.addEventListener('click', async () => {
-            if (!confirm('Weet je zeker dat je de applicatie wilt herstarten? De pagina wordt hierdoor tijdelijk onbereikbaar.')) {
-                return;
-            }
-
-            setButtonState(restartButton, 'loading', { text: 'Herstarten...' });
-
-            const handleRestartInitiated = (message) => {
-                showNotification(message, 'success');
-                // After a short delay, update the UI to indicate the restart is done.
-                setTimeout(() => {
-                    showNotification('Vernieuw de pagina over enkele seconden.', 'success');
-                    setButtonState(restartButton, 'success', { text: 'Herstart voltooid' });
-                    // The button remains disabled, forcing a page refresh to use it again.
-                }, 3000);
-            };
-
-            try {
-                const response = await fetch('/api/admin/restart-app', { method: 'POST' });
-                const result = await response.json();
-
-                if (!response.ok) {
-                    // This will now catch genuine errors returned by the server before the restart is attempted.
-                    throw new Error(result.error || 'Kon het herstart-commando niet naar de server sturen.');
-                }
-                // The server now guarantees a response before restarting, so we can trust the result.
-                handleRestartInitiated(result.message);
-            } catch (error) {
-                // Any error here is now a real error, not an expected one.
-                console.error('[Admin] Error during restart request:', error);
-                showNotification(`Fout bij herstarten: ${error.message}`, 'error');
-                setButtonState(restartButton, 'revert');
-            }
+        addConfirmClickHandler(restartButton, 'Are you sure? Click again', async () => {
+             setButtonState(restartButton, 'loading', { text: 'Restarting...' });
+ 
+             const handleRestartInitiated = (message) => {
+                 showNotification(message, 'success');
+                 // After a short delay, update the UI to indicate the restart is done.
+                 setTimeout(() => {
+                     showNotification('Please refresh the page in a few seconds.', 'success');
+                     setButtonState(restartButton, 'success', { text: 'Restart Complete' });
+                     // The button remains disabled, forcing a page refresh to use it again.
+                 }, 3000);
+             };
+ 
+             try {
+                 const response = await fetch('/api/admin/restart-app', { method: 'POST' });
+                 const result = await response.json();
+ 
+                 if (!response.ok) {
+                     // This will now catch genuine errors returned by the server before the restart is attempted.
+                     throw new Error(result.error || 'Could not send restart command to the server.');
+                 }
+                 // The server now guarantees a response before restarting, so we can trust the result.
+                 handleRestartInitiated(result.message);
+             } catch (error) {
+                 // Any error here is now a real error, not an expected one.
+                 console.error('[Admin] Error during restart request:', error);
+                 showNotification(`Error restarting: ${error.message}`, 'error');
+                 setButtonState(restartButton, 'revert');
+             }
         });
     }
 
     const refreshMediaButton = document.getElementById('refresh-media-button');
     if (refreshMediaButton) {
         refreshMediaButton.addEventListener('click', async () => {
-            setButtonState(refreshMediaButton, 'loading', { text: 'Vernieuwen...' });
+            setButtonState(refreshMediaButton, 'loading', { text: 'Refreshing...' });
 
             console.log('[Admin Debug] "Media Vernieuwen" button clicked. Preparing to call API endpoint.');
 
@@ -900,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     if (response.status === 401) {
-                        showNotification('Uw sessie is verlopen. U wordt doorgestuurd naar de inlogpagina.', 'error');
+                        showNotification('Your session has expired. You will be redirected to the login page.', 'error');
                         setTimeout(() => window.location.href = '/admin/login', 2500);
                     }
                     throw new Error(errorMsg);
@@ -916,7 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 console.error('[Admin] Error during media refresh:', error);
-                showNotification(`Fout bij vernieuwen: ${error.message}`, 'error');
+                showNotification(`Error refreshing: ${error.message}`, 'error');
             } finally {
                 // Restore button state after a short delay to show completion
                 setTimeout(() => {
@@ -926,5 +1058,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    updateApiKeyStatus();
 
 });

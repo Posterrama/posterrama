@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin posterrama</title>
+    <title>Posterrama Admin</title>
     <link rel="stylesheet" href="/admin.css?v=1.2.4">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -15,6 +15,64 @@
             background-color: #dc3545;
             border-color: #c82333;
         }
+        .button-primary.is-warning,
+        .button-danger.is-warning {
+            background-color: #e5a00d; /* Plex Orange */
+            border-color: #c78c0a;
+            color: #111;
+        }
+        .management-action {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #444;
+        }
+        .management-action:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .management-action:first-child {
+            padding-top: 0.5rem;
+        }
+        .action-description strong {
+            display: block;
+            color: #eee;
+            margin-bottom: 0.25rem;
+        }
+        .action-description p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #aaa;
+            max-width: 400px;
+        }
+        .action-button { flex-shrink: 0; margin-left: 1rem; }
+       a.button-primary {
+           display: inline-flex;
+           align-items: center;
+           text-decoration: none;
+           padding: 0.5rem 1rem;
+       }
+        .log-viewer {
+            background-color: #1a1a1a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: #ccc;
+        }
+        .log-viewer pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-line { display: block; }
+        .log-line.level-error { color: #ff6b6b; }
+        .log-line.level-warn { color: #feca57; }
 
         .library-container {
             border: 1px solid #555;
@@ -54,8 +112,7 @@
             cursor: not-allowed;
             opacity: 0.7;
         }
-        .button-danger .icon {
-            display: inline-block;
+        .button-primary .icon {
             margin-right: 0.5rem;
             vertical-align: middle;
         }
@@ -121,7 +178,7 @@
     <div id="admin-background-a" class="admin-background-layer"></div>
     <div id="admin-background-b" class="admin-background-layer"></div>
     <header class="admin-header">
-        <h1>Admin posterrama</h1>
+        <h1>Posterrama Admin</h1>
         <nav>
             <a href="/" target="_blank">View Screensaver</a>
             <a href="/api-docs" target="_blank">API Docs</a>
@@ -155,10 +212,7 @@
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="DEBUG" name="DEBUG">
                             <label for="DEBUG">Enable Debug Mode</label>
-                            <small class="help-text">
-                                Outputs more detailed logs for troubleshooting.
-                                <a href="/admin/debug" target="_blank" id="debug-link" class="is-hidden">View Debug Output</a>
-                            </small>
+                            <small class="help-text">Outputs more detailed logs for troubleshooting.</small>
                         </div>
                     </div>
                 </div>
@@ -283,7 +337,10 @@
                                 <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password">
                             </div>
                             <div class="form-actions">
-                                <button type="button" id="change-password-button" class="button-primary">Change Password</button>
+                                <button type="button" id="change-password-button" class="button-primary">
+                                    <span class="icon"><i class="fas fa-lock"></i></span>
+                                    <span>Change Password</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -297,27 +354,99 @@
                             <div id="2fa-status-text" class="status-text disabled"></div>
                         </div>
                     </div>
+                    <!-- API Access Section -->
+                    <div class="form-section">
+                        <h3>API Access</h3>
+                        <div class="form-group">
+                            <p>Manage a permanent API key for use with external applications or scripts (like Swagger).</p>
+                        </div>
+                        <div class="form-group" id="api-key-status">
+                            <p>Status: <span id="api-key-status-text" class="status-text">Loading...</span></p>
+                        </div>
+                        <div id="api-key-display-container" class="is-hidden form-group">
+                            <label>Current API Key:</label>
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <input id="api-key-input" type="password" readonly style="flex-grow: 1;">
+                                <button id="toggle-api-key-visibility-button" type="button" class="button-primary" title="Show/hide key" style="flex-shrink: 0;">
+                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                </button>
+                                <button id="copy-api-key-button" type="button" class="button-primary" title="Copy to clipboard" style="flex-shrink: 0;">
+                                    <span class="icon"><i class="fas fa-copy"></i></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button id="generate-api-key-button" type="button" class="button-primary">
+                                <span class="icon"><i class="fas fa-key"></i></span>
+                                <span>Generate New Key</span>
+                            </button>
+                            <button id="revoke-api-key-button" type="button" class="button-primary button-danger" disabled>
+                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                <span>Revoke Key</span>
+                            </button>
+                        </div>
+                    </div>
                     <!-- Application Management -->
                     <div class="form-section">
                         <h3>Application Management</h3>
-                        <div class="form-group">
-                            <p><strong>Restart Application:</strong> Restarts the server. Necessary after changing the port.</p>
-                            <p style="margin-top: 1rem;"><strong>Refresh Media:</strong> Forces a refetch of all media from the configured servers. Useful after adding new movies or shows.</p>
+                        <div id="debug-cache-action" class="management-action is-hidden">
+                            <div class="action-description">
+                                <strong>View Plex Cache</strong>
+                                <p>Shows the raw JSON data of the currently cached media playlist. Only available in debug mode.</p>
+                            </div>
+                            <div class="action-button">
+                                <a href="/admin/debug" target="_blank" class="button-primary">
+                                    <span class="icon"><i class="fas fa-database"></i></span>
+                                    <span>View Cache</span>
+                                </a>
+                            </div>
                         </div>
-                        <div class="form-actions">
-                            <button type="button" id="restart-app-button" class="button-primary button-danger">
-                                <span class="icon"><i class="fas fa-power-off"></i></span>
-                                <span>Restart Application</span>
-                            </button>
-                            <button type="button" id="refresh-media-button" class="button-primary" disabled>
-                                <span class="icon"><i class="fas fa-sync-alt"></i></span>
-                                <span>Refresh Media</span>
-                            </button>
+                        <div class="management-action">
+                            <div class="action-description">
+                                <strong>View Live Logs</strong>
+                                <p>Opens a new tab with a real-time view of the server logs for debugging.</p>
+                            </div>
+                            <div class="action-button">
+                                <a href="/admin/logs" target="_blank" class="button-primary">
+                                    <span class="icon"><i class="fas fa-terminal"></i></span>
+                                    <span>View Live Logs</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="management-action">
+                            <div class="action-description">
+                                <strong>Refresh Media</strong>
+                                <p>Forces a refetch of all media from the configured servers. Useful after adding new movies or shows.</p>
+                            </div>
+                            <div class="action-button">
+                                <button type="button" id="refresh-media-button" class="button-primary" disabled>
+                                    <span class="icon"><i class="fas fa-sync-alt"></i></span>
+                                    <span>Refresh Media</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="management-action">
+                            <div class="action-description">
+                                <strong>Restart Application</strong>
+                                <p>Restarts the server. Necessary after changing the port or other critical settings.</p>
+                            </div>
+                            <div class="action-button">
+                                <button type="button" id="restart-app-button" class="button-primary button-danger">
+                                    <span class="icon"><i class="fas fa-power-off"></i></span>
+                                    <span>Restart Application</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </form>
+        <footer class="admin-footer">
+            <button type="submit" form="config-form" class="button-primary button-save">
+                <span class="icon"><i class="fas fa-save"></i></span>
+                <span>Save All Settings</span>
+            </button>
+        </footer>
     </main>
 
     <!-- 2FA Setup Modal -->
