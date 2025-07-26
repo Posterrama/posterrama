@@ -30,8 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevButton = document.getElementById('prev-button');
     const controlsContainer = document.getElementById('controls-container');
     const loader = document.getElementById('loader');
-    const recentContainer = document.getElementById('recent-container');
-    const recentItemsWrapper = document.getElementById('recent-items-wrapper');
 
     // --- Create and inject Rotten Tomatoes badge ---
     const rtBadge = document.createElement('div');
@@ -74,12 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const initialDataPromises = [fetchMedia(true)];
-        if (appConfig.recentlyAddedSidebar) {
-            initialDataPromises.push(fetchAndShowRecentlyAdded());
-        }
-        await Promise.all(initialDataPromises);
-
+        await fetchMedia(true);
         if (appConfig.showPoster === false) {
             infoContainer.classList.add('is-hidden');
         } else {
@@ -146,32 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Failed to fetch media", e);
             showError(e.message || "Could not load media. Check the server connection.");
             if (loader.style.opacity !== '0') loader.style.opacity = '0';
-        }
-    }
-
-    async function fetchAndShowRecentlyAdded() {
-        try {
-            const response = await fetch('/get-recently-added');
-            if (!response.ok) return;
-
-            const recentMedia = await response.json();
-            if (recentMedia.length === 0) return;
-
-            recentItemsWrapper.innerHTML = ''; // Clear previous items
-
-            recentMedia.forEach(item => {
-                const recentItem = document.createElement('div');
-                recentItem.className = 'recent-item-poster';
-                recentItem.style.backgroundImage = `url('${item.posterUrl}')`;
-                recentItem.title = item.title;
-                recentItem.dataset.key = item.key;
-                recentItem.addEventListener('click', () => jumpToMedia(item.key));
-                recentItemsWrapper.appendChild(recentItem);
-            });
-
-            recentContainer.classList.remove('is-hidden');
-        } catch (e) {
-            console.error("Error fetching recently added media:", e);
         }
     }
 
