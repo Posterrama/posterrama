@@ -674,8 +674,11 @@ app.get('/get-media', asyncHandler(async (req, res) => {
     // Prevent the browser from caching this endpoint, which is crucial for the polling mechanism.
     res.setHeader('Cache-Control', 'no-store');
 
-    if (playlistCache && playlistCache.length > 0) {
-        if (isDebug) console.log(`[Debug] Serving ${playlistCache.length} items from cache.`);
+    // If the cache is not null, it means the initial fetch has completed (even if it found no items).
+    // An empty array is a valid state if no servers are configured or no media is found.
+    if (playlistCache !== null) {
+        const itemCount = playlistCache.length;
+        if (isDebug) console.log(`[Debug] Serving ${itemCount} items from cache. Cache is ${itemCount > 0 ? 'populated' : 'empty'}.`);
         return res.json(playlistCache);
     }
 

@@ -1,9 +1,9 @@
 module.exports = {
-  // Gebruik de Node.js-omgeving voor de tests
+  // Use the Node.js environment for the tests
   testEnvironment: 'node',
-  // Vertel Jest om alleen in de __tests__ map te zoeken naar testen.
-  // Dit voorkomt verwarring en zorgt voor een schone projectstructuur.
+  // Tell Jest to only look for tests in the __tests__ directory.
+  // This prevents confusion and ensures a clean project structure.
   roots: ['<rootDir>/__tests__'],
-  // Negeer de node_modules map bij het verzamelen van test coverage
+  // Ignore the node_modules directory when collecting test coverage
   coveragePathIgnorePatterns: ['/node_modules/'],
 };

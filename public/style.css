@@ -21,17 +21,19 @@
 }
 
 html, body {
-    height: 100vh; /* Volledige viewporthoogte, inclusief adresbalk */
+    height: 100dvh;
+    /* Use dynamic viewport height to correctly handle mobile browser UI */
     width: 100%;
     margin: 0;
-    padding: 0;
-    overflow: hidden; /* Voorkomt ongewenste scrollbars */
+    /* Apply safe-area padding to prevent UI elements from being obscured by notches or system UI. */
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    overflow: hidden;
+    /* Prevents unwanted scrollbars */
     background-color: var(--background-color);
+    /* Fallback background color */
     color: var(--text-color);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    cursor: none; /* Hidden by default, script.js shows it on mouse movement */
-    /* Veiligheid voor devices met notch / afgeronde hoeken */
-    padding-bottom: env(safe-area-inset-bottom);
+    cursor: none;
 }
 
 /* --- Utility Classes --- */
@@ -126,6 +128,15 @@ html, body {
     margin-right: auto;
 }
 
+.promo-brand-name {
+    font-weight: 700; /* Consistent with admin panel */
+    /* Gradient text effect to match the admin panel for a more striking look */
+    background: linear-gradient(90deg, #e0e0e0, #bb86fc, #53a8b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 .promo-cta a.button-promo {
     display: inline-block;
     background-color: var(--plex-orange);
@@ -153,9 +164,10 @@ html, body {
 
 /* --- Background Layers & Ken Burns Effect --- */
 .screensaver-layer {
-    position: fixed; /* fixed zodat het full screen onder de adresbalk komt */
-    inset: 0;        /* top:0; right:0; bottom:0; left:0; shortcut */
+    position: fixed; /* A modern shorthand for top: 0; right: 0; bottom: 0; left: 0; */
+    inset: 0;
     width: 100%;
+    /* This layer now inherits its height from the body, which is set to 100dvh. */
     height: 100%;
     background-size: cover;
     background-position: center center;
@@ -246,14 +258,14 @@ html, body {
 
 /* --- Main Information Container --- */
 #info-container {
-    position: fixed;
-    bottom: 0px; /* Terug naar een lagere positie */
-    left: 50px;   /* Iets meer naar rechts voor uitlijning */
-    width: auto;  /* Breedte automatisch aanpassen */
-    max-width: 1100px; /* Iets minder breed om ruimte te maken */
+    position: fixed; /* Back to a lower position */
+    bottom: 0px; /* A bit more to the right for alignment */
+    left: 50px;   /* Adjust width automatically */
+    width: auto;  /* A bit less wide to make space */
+    max-width: 1100px;
     display: flex;
     align-items: flex-end;
-    gap: 40px;
+    gap: 40px; /* Adjusted for the new position, with space for the shadow */
     z-index: 5;
     opacity: 0;
     transform: translateY(20px);
@@ -273,28 +285,28 @@ html, body {
 }
 
 #poster {
-    width: 180px;  /* Poster kleiner gemaakt */
-    height: 270px; /* Poster kleiner gemaakt */
+    width: 180px;  /* Poster made smaller */
+    height: 270px; /* Poster made smaller */
     background-size: cover;
     border-radius: 8px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     position: relative;
     --mouse-x: 50%;
     --mouse-y: 50%;
-    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45); /* Schaduw minder hoog en iets subtieler */
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45); /* Shadow less high and a bit more subtle */
 }
 
 #rt-badge {
-    position: absolute;
-    bottom: -5px; /* Positioneer icoon iets buiten de poster */
-    right: -8px;  /* Positioneer icoon iets buiten de poster, naar rechts */
-    /* Achtergrond, blur, padding en rand verwijderd om alleen het pure icoon te tonen */
-    line-height: 0;     /* Voorkomt extra ruimte rond de afbeelding */
-    z-index: 10; /* Zorgt ervoor dat de badge altijd bovenop de poster en zijn effecten ligt */
+    position: absolute; /* Position icon slightly outside the poster */
+    bottom: -5px; /* Position icon slightly outside the poster, to the right */
+    right: -8px;  /* Background, blur, padding and border removed to only show the pure icon */
+    /* Prevents extra space around the image */
+    line-height: 0;     /* Ensures the badge is always on top of the poster and its effects */
+    z-index: 10;
     opacity: 0;
     transform: translateY(10px);
     transition: opacity 0.4s ease-out, transform 0.4s ease-out;
-    transition-delay: 0.2s; /* Delay appearance slightly */
+    transition-delay: 0.2s;
 }
 
 #rt-badge.visible {
@@ -303,8 +315,8 @@ html, body {
 }
 
 #rt-icon {
-    width: 24px;  /* Iets groter voor betere zichtbaarheid */
-    height: 24px;
+    width: 24px;  /* A bit larger for better visibility */
+    height: 24px; /* A bit larger for better visibility */
 }
 
 #poster::before {
@@ -321,35 +333,35 @@ html, body {
 }
 
 #poster-wrapper:hover #poster {
-    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.5); /* Hover-schaduw ook minder hoog */
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.5); /* Hover shadow also less high */
 }
 
 #text-wrapper {
     flex-grow: 1;
-    padding-bottom: 0; /* Verwijderd om de onderkant van de tekst uit te lijnen met de poster */
+    padding-bottom: 0; /* Removed to align the bottom of the text with the poster */
 }
 
 #title {
-    font-size: 3.2em; /* Iets kleiner voor een subtielere look */
+    font-size: 3.2em; /* A bit smaller for a more subtle look */
     font-weight: 700;
-    color: var(--text-color-strong); /* Originele kleur */
-    margin: 0; /* Marge verwijderd om de tagline nog dichterbij te brengen */
+    color: var(--text-color-strong); /* Original color */
+    margin: 0; /* Margin removed to bring the tagline even closer */
     line-height: 1.1;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7); /* Subtiele schaduw voor leesbaarheid */
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7); /* Subtle shadow for readability */
 }
 
 #tagline {
     font-size: 1.3em;
     font-style: italic;
     color: var(--text-color-muted);
-    margin: 0 0 15px 0;
+    margin: 0 0 15px 0; /* Lighter font */
     font-weight: 400;
 }
 
 #meta-info {
-    font-size: 1.1em;
-    font-weight: 400; /* Lichter lettertype */
-    color: var(--text-color-semi-muted); /* Meer doorzichtig voor subtiliteit */
+    font-size: 1.1em; /* More transparent for subtlety */
+    font-weight: 400;
+    color: var(--text-color-semi-muted);
 }
 
 #meta-info #rating::before {
@@ -360,14 +372,14 @@ html, body {
 
 /* --- Controls --- */
 #controls-container {
-    position: fixed;
-    bottom: 35px; /* Iets lager voor betere visuele uitlijning met de schaduw van de poster */
-    right: 50px;  /* Zelfde afstand van de rand als de linkerkant */
+    position: fixed; /* A bit lower for better visual alignment with the poster's shadow */
+    bottom: 35px; /* Same distance from the edge as the left side */
+    right: 50px;
     display: flex;
     gap: 15px;
     background-color: rgba(0, 0, 0, 0.3);
     padding: 8px 15px;
-    border-radius: 50px;
+    border-radius: 50px; /* Adjusted to new 'bottom' value */
     backdrop-filter: blur(5px);
     opacity: 0;
     transform: translateY(calc(100% + 35px)); /* Aangepast aan nieuwe 'bottom' waarde */
@@ -409,8 +421,8 @@ html, body {
 
 /* --- Branding --- */
 #branding-container {
-    position: fixed;
-    bottom: 15px; /* Iets lager voor een betere balans */
+    position: fixed; /* A bit lower for a better balance */
+    bottom: 15px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
@@ -461,8 +473,8 @@ html, body {
     /* Adjust the main information container */
     #info-container {
         flex-direction: row; /* Poster and text next to each other */
-        align-items: flex-end; /* Align at the bottom */
-        text-align: left; /* Test: verplaats de poster en metadata helemaal naar onderen */
+        align-items: flex-end; /* Align at the bottom */ /* Test: move the poster and metadata all the way down */
+        text-align: left;
         bottom: 0;
         left: 0;
         right: 0;
