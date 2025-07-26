@@ -1165,23 +1165,26 @@ app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
         DEBUG: process.env.DEBUG
     };
 
-    if (currentConfig.mediaServers) {
+    if (Array.isArray(currentConfig.mediaServers)) {
         currentConfig.mediaServers.forEach(server => {
-            // Find all keys ending in 'EnvVar' and get their values from process.env
-            Object.keys(server).forEach(key => {
-                if (key.endsWith('EnvVar')) {
-                    const envVarName = server[key];
-                    if (envVarName) {
-                        const isSensitive = key.toLowerCase().includes('token') || key.toLowerCase().includes('password') || key.toLowerCase().includes('apikey');
-                        if (isSensitive) {
-                            // For sensitive fields, just indicate if they are set or not.
-                            envVarsToExpose[envVarName] = !!process.env[envVarName];
-                        } else if (process.env[envVarName]) {
-                            envVarsToExpose[envVarName] = process.env[envVarName];
+            // Ensure server is a valid object before processing to prevent crashes
+            if (server && typeof server === 'object') {
+                // Find all keys ending in 'EnvVar' and get their values from process.env
+                Object.keys(server).forEach(key => {
+                    if (key.endsWith('EnvVar')) {
+                        const envVarName = server[key];
+                        if (envVarName) {
+                            const isSensitive = key.toLowerCase().includes('token') || key.toLowerCase().includes('password') || key.toLowerCase().includes('apikey');
+                            if (isSensitive) {
+                                // For sensitive fields, just indicate if they are set or not.
+                                envVarsToExpose[envVarName] = !!process.env[envVarName];
+                            } else if (process.env[envVarName]) {
+                                envVarsToExpose[envVarName] = process.env[envVarName];
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         });
     }
 
