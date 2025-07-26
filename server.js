@@ -1389,23 +1389,30 @@ app.use((err, req, res, next) => {
     }
 });
 
-app.listen(port, async () => {
-    console.log(`posterrama.app is running on http://localhost:${port}`);
-    if(isDebug) console.log(`Debug endpoint is available at http://localhost:${port}/debug`);
+// Start the server only if this script is run directly (e.g., `node server.js`)
+// and not when it's imported by another script (like our tests).
+if (require.main === module) {
+    app.listen(port, async () => {
+        console.log(`posterrama.app is running on http://localhost:${port}`);
+        if(isDebug) console.log(`Debug endpoint is available at http://localhost:${port}/debug`);
 
-    // Initial cache population on startup
-    console.log('Performing initial playlist fetch...');
-    await refreshPlaylistCache(); // Wait for the initial fetch to complete.
+        // Initial cache population on startup
+        console.log('Performing initial playlist fetch...');
+        await refreshPlaylistCache(); // Wait for the initial fetch to complete.
 
-    if (playlistCache && playlistCache.length > 0) {
-        console.log(`Initial playlist fetch complete. ${playlistCache.length} items loaded.`);
-    } else {
-        console.error('Initial playlist fetch did not populate any media. The application will run but will not display any media until a refresh succeeds. Check server configurations and logs for errors during fetch.');
-    }
+        if (playlistCache && playlistCache.length > 0) {
+            console.log(`Initial playlist fetch complete. ${playlistCache.length} items loaded.`);
+        } else {
+            console.error('Initial playlist fetch did not populate any media. The application will run but will not display any media until a refresh succeeds. Check server configurations and logs for errors during fetch.');
+        }
 
-    const refreshInterval = (config.backgroundRefreshMinutes || 30) * 60 * 1000;
-    if (refreshInterval > 0) {
-        setInterval(refreshPlaylistCache, refreshInterval);
-        console.log(`Playlist will be refreshed in the background every ${config.backgroundRefreshMinutes} minutes.`);
-    }
-});
+        const refreshInterval = (config.backgroundRefreshMinutes || 30) * 60 * 1000;
+        if (refreshInterval > 0) {
+            setInterval(refreshPlaylistCache, refreshInterval);
+            console.log(`Playlist will be refreshed in the background every ${config.backgroundRefreshMinutes} minutes.`);
+        }
+    });
+}
+
+// Export the app instance so that it can be imported and used by Supertest in our tests.
+module.exports = app;
