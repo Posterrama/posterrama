@@ -1795,18 +1795,20 @@ app.use((err, req, res, next) => {
 // and not when it's imported by another script (like our tests).
 if (require.main === module) {
     app.listen(port, async () => {
-        console.log(`posterrama.app is running on http://localhost:${port}`);
-        if(isDebug) console.log(`Debug endpoint is available at http://localhost:${port}/debug`);
+        console.log(`posterrama.app is listening on http://localhost:${port}`);
+        if(isDebug) console.log(`Debug endpoint is available at http://localhost:${port}/admin/debug`);
 
-        // Initial cache population on startup
+        // Start de server onmiddellijk en voer de eerste media-ophaling op de achtergrond uit.
+        // Dit voorkomt dat de serverstart wordt geblokkeerd als de mediaserver traag is.
         console.log('Performing initial playlist fetch...');
-        await refreshPlaylistCache(); // Wait for the initial fetch to complete.
-
-        if (playlistCache && playlistCache.length > 0) {
-            console.log(`Initial playlist fetch complete. ${playlistCache.length} items loaded.`);
-        } else {
-            console.error('Initial playlist fetch did not populate any media. The application will run but will not display any media until a refresh succeeds. Check server configurations and logs for errors during fetch.');
-        }
+        refreshPlaylistCache().then(() => {
+            if (playlistCache && playlistCache.length > 0) {
+                console.log(`Initial playlist fetch complete. ${playlistCache.length} items loaded.`);
+            } else {
+                // Gebruik console.warn hier, omdat dit geen fatale fout is voor de server zelf.
+                console.warn('Initial playlist fetch did not populate any media. The application will run but will not display any media until a refresh succeeds. Check server configurations and logs for errors during fetch.');
+            }
+        }).catch(err => console.error('An error occurred during the initial background fetch:', err));
 
         const refreshInterval = (config.backgroundRefreshMinutes || 30) * 60 * 1000;
         if (refreshInterval > 0) {
