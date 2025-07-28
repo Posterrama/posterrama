@@ -1,0 +1,246 @@
+const fs = require('fs').promises;
+const path = require('path');
+const config = require('../config');
+const logger = require('../logger');
+const pkg = require('../package.json');
+
+// Health check cache to avoid expensive checks on every request
+let healthCheckCache = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 30000; // 30 seconds
+
+/**
+ * Basic health check for simple monitoring
+ */
+function getBasicHealth() {
+    return {
+        status: 'ok',
+        service: 'posterrama',
+        version: pkg.version,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    };
+}
+
+/**
+ * Check if the configuration is valid
+ */
+async function checkConfiguration() {
+    try {
+        const enabledServers = (config.mediaServers || []).filter(s => s.enabled);
+        
+        if (enabledServers.length === 0) {
+            return {
+                name: 'configuration',
+                status: 'warning',
+                message: 'No media servers are enabled in config.json. The application will run but cannot serve media.'
+            };
+        }
+        
+        return {
+            name: 'configuration',
+            status: 'ok',
+            message: `${enabledServers.length} media server(s) are enabled.`,
+            details: {
+                enabledServers: enabledServers.length,
+                totalServers: (config.mediaServers || []).length
+            }
+        };
+    } catch (error) {
+        return {
+            name: 'configuration',
+            status: 'error',
+            message: `Configuration error: ${error.message}`,
+            details: { error: error.message }
+        };
+    }
+}
+
+/**
+ * Check filesystem access
+ */
+async function checkFilesystem() {
+    try {
+        // Check if we can read/write to the sessions directory
+        const sessionsDir = path.join(__dirname, '..', 'sessions');
+        await fs.access(sessionsDir, fs.constants.R_OK | fs.constants.W_OK);
+        
+        // Check if we can access the image cache directory
+        const imageCacheDir = path.join(__dirname, '..', 'image_cache');
+        await fs.access(imageCacheDir, fs.constants.R_OK | fs.constants.W_OK);
+        
+        // Check if we can access logs directory
+        const logsDir = path.join(__dirname, '..', 'logs');
+        await fs.access(logsDir, fs.constants.R_OK | fs.constants.W_OK);
+        
+        return {
+            name: 'filesystem',
+            status: 'ok',
+            message: 'All required filesystem paths are accessible.',
+            details: {
+                directories: ['sessions', 'image_cache', 'logs']
+            }
+        };
+    } catch (error) {
+        return {
+            name: 'filesystem',
+            status: 'error',
+            message: `Filesystem access error: ${error.message}`,
+            details: { error: error.message }
+        };
+    }
+}
+
+/**
+ * Check media cache status
+ */
+async function checkMediaCache() {
+    try {
+        // This would need access to the playlist cache
+        // For now, we'll do a basic check
+        const imageCacheDir = path.join(__dirname, '..', 'image_cache');
+        const stats = await fs.stat(imageCacheDir);
+        const files = await fs.readdir(imageCacheDir);
+        
+        return {
+            name: 'media_cache',
+            status: 'ok',
+            message: `Media cache directory is accessible with ${files.length} cached items.`,
+            details: {
+                itemCount: files.length,
+                lastModified: stats.mtime
+            }
+        };
+    } catch (error) {
+        return {
+            name: 'media_cache',
+            status: 'warning',
+            message: `Media cache check failed: ${error.message}`,
+            details: { error: error.message }
+        };
+    }
+}
+
+/**
+ * Check Plex server connectivity
+ */
+async function checkPlexConnectivity() {
+    try {
+        const { testServerConnection } = require('../sources/plex');
+        const enabledServers = (config.mediaServers || []).filter(s => s.enabled && s.type === 'plex');
+        
+        if (enabledServers.length === 0) {
+            return null; // No Plex servers to check
+        }
+        
+        const checks = [];
+        for (const server of enabledServers) {
+            const startTime = Date.now();
+            const result = await testServerConnection(server);
+            const responseTime = Date.now() - startTime;
+            
+            checks.push({
+                server: server.name,
+                status: result.status,
+                message: result.message,
+                responseTime
+            });
+        }
+        
+        const hasErrors = checks.some(check => check.status === 'error');
+        const hasWarnings = checks.some(check => check.status === 'warning');
+        
+        return {
+            name: 'plex_connectivity',
+            status: hasErrors ? 'error' : hasWarnings ? 'warning' : 'ok',
+            message: `Checked ${checks.length} Plex server(s).`,
+            details: { servers: checks }
+        };
+    } catch (error) {
+        return {
+            name: 'plex_connectivity',
+            status: 'error',
+            message: `Plex connectivity check failed: ${error.message}`,
+            details: { error: error.message }
+        };
+    }
+}
+
+/**
+ * Perform all health checks
+ */
+async function performHealthChecks() {
+    const checks = [];
+    
+    try {
+        // Run all checks in parallel where possible
+        const [configCheck, fsCheck, cacheCheck, plexCheck] = await Promise.all([
+            checkConfiguration(),
+            checkFilesystem(),
+            checkMediaCache(),
+            checkPlexConnectivity()
+        ]);
+        
+        checks.push(configCheck);
+        checks.push(fsCheck);
+        checks.push(cacheCheck);
+        
+        if (plexCheck) {
+            checks.push(plexCheck);
+        }
+        
+        // Determine overall status
+        const hasErrors = checks.some(check => check.status === 'error');
+        const hasWarnings = checks.some(check => check.status === 'warning');
+        
+        const overallStatus = hasErrors ? 'error' : hasWarnings ? 'warning' : 'ok';
+        
+        return {
+            status: overallStatus,
+            timestamp: new Date().toISOString(),
+            checks
+        };
+    } catch (error) {
+        logger.error('Health check failed:', error);
+        return {
+            status: 'error',
+            timestamp: new Date().toISOString(),
+            checks: [{
+                name: 'system',
+                status: 'error',
+                message: `Health check system failure: ${error.message}`,
+                details: { error: error.message }
+            }]
+        };
+    }
+}
+
+/**
+ * Get cached health check results or perform new checks
+ */
+async function getDetailedHealth() {
+    const now = Date.now();
+    
+    // Return cached result if still valid
+    if (healthCheckCache && (now - cacheTimestamp) < CACHE_DURATION) {
+        return healthCheckCache;
+    }
+    
+    // Perform new health checks
+    const result = await performHealthChecks();
+    
+    // Cache the result
+    healthCheckCache = result;
+    cacheTimestamp = now;
+    
+    return result;
+}
+
+module.exports = {
+    getBasicHealth,
+    getDetailedHealth,
+    checkConfiguration,
+    checkFilesystem,
+    checkMediaCache,
+    checkPlexConnectivity
+};

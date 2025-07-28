@@ -18,3 +18,8 @@ npm-debug.log*
 *.iml
 
 /sessions
+/logs
+
+# Test coverage reports
+coverage/
+*.lcov

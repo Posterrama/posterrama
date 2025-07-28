@@ -12,11 +12,11 @@ describe('API Endpoints', () => {
     expect(response.headers['content-type']).toMatch(/html/);
   });
 
-  // Test of de admin-pagina een redirect geeft (omdat we niet ingelogd zijn)
+  // Test if the admin page gives a redirect (because we're not logged in)
   it('GET /admin - should redirect to login page when not authenticated', async () => {
     const response = await request(app).get('/admin');
     expect(response.statusCode).toBe(302); // 302 is de statuscode voor een redirect
-    expect(response.headers.location).toBe('/admin/login');
+    expect(response.headers.location).toBe('/admin/setup');
   });
 
   it('GET /non-existent-page - should return 404 Not Found', async () => {

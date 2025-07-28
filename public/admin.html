@@ -415,6 +415,18 @@
                         </div>
                         <div class="management-action">
                             <div class="action-description">
+                                <strong>Clear Image Cache</strong>
+                                <p>Deletes all cached images on the server, forcing them to be re-downloaded from your media server.</p>
+                            </div>
+                            <div class="action-button">
+                                <button type="button" id="clear-cache-button" class="button-primary">
+                                    <span class="icon"><i class="fas fa-broom"></i></span>
+                                    <span>Clear Cache</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="management-action">
+                            <div class="action-description">
                                 <strong>Refresh Media</strong>
                                 <p>Forces a refetch of all media from the configured servers. Useful after adding new movies or shows.</p>
                             </div>
@@ -490,7 +502,7 @@
             </form>
         </div>
     </div>
-    <script src="admin-help.js" defer></script>
-    <script src="/admin.js" defer></script>
+    <script src="admin-help.js?v=1.2.5" defer></script>
+    <script src="/admin.js?v=1.2.5" defer></script>
 </body>
 </html>

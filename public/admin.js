@@ -1014,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshMediaButton.addEventListener('click', async () => {
             setButtonState(refreshMediaButton, 'loading', { text: 'Refreshing...' });
 
-            console.log('[Admin Debug] "Media Vernieuwen" button clicked. Preparing to call API endpoint.');
+            console.log('[Admin Debug] "Refresh Media" button clicked. Preparing to call API endpoint.');
 
             try {
                 console.log('[Admin Debug] Sending POST request to /api/admin/refresh-media');
@@ -1055,6 +1055,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     setButtonState(refreshMediaButton, 'revert');
                 }, 1000);
             }
+        });
+    }
+
+    const clearCacheButton = document.getElementById('clear-cache-button');
+    if (clearCacheButton) {
+        addConfirmClickHandler(clearCacheButton, 'Are you sure? Click again', async () => {
+            setButtonState(clearCacheButton, 'loading', { text: 'Clearing...' });
+            try {
+                const response = await fetch('/api/admin/clear-image-cache', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to clear cache.');
+                showNotification(result.message, 'success');
+            } catch (error) {
+                showNotification(`Error: ${error.message}`, 'error');
+            }
+            setTimeout(() => setButtonState(clearCacheButton, 'revert'), 2000);
         });
     }
 

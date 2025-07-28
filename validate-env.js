@@ -5,7 +5,13 @@
 
 const fs = require('fs');
 const path = require('path');
+const Ajv = require('ajv');
 require('dotenv').config();
+
+// --- Schema Validation ---
+const ajv = new Ajv({ allErrors: true }); // Show all errors, not just the first
+const configSchema = require('./config.schema.json');
+const validate = ajv.compile(configSchema);
 
 let config;
 try {
@@ -14,6 +20,23 @@ try {
 } catch (error) {
     console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: Could not read or parse config.json.');
     console.error(error.message);
+    process.exit(1);
+}
+
+// Validate the loaded config against the schema
+const isConfigValid = validate(config);
+if (!isConfigValid) {
+    console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: config.json is invalid. Please correct the following errors:');
+    validate.errors.forEach(error => {
+        const instancePath = error.instancePath || 'root';
+        // Use a more readable format for the error path
+        const readablePath = instancePath.replace(/\//g, ' -> ').substring(3) || 'root';
+        console.error(`  - Path: \x1b[33m${readablePath}\x1b[0m`);
+        console.error(`    Message: ${error.message}`);
+        if (error.params) {
+            console.error(`    Details: ${JSON.stringify(error.params)}`);
+        }
+    });
     process.exit(1);
 }
 
@@ -31,7 +54,7 @@ function getRequiredVars(appConfig) {
         required.add('SESSION_SECRET');
     }
 
-    const enabledServers = appConfig.mediaServers.filter(s => s.enabled);
+    const enabledServers = (appConfig.mediaServers || []).filter(s => s.enabled);
     if (enabledServers.length === 0) {
         console.warn('\x1b[33m%s\x1b[0m', 'WARNING: No media servers are enabled in config.json. The application will run but will not display any media.');
     }

@@ -1,0 +1,164 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Posterrama Configuration",
+    "description": "Schema for the Posterrama config.json file.",
+    "type": "object",
+    "properties": {
+        "transitionIntervalSeconds": {
+            "description": "How many seconds each poster is visible.",
+            "type": "integer",
+            "minimum": 1
+        },
+        "backgroundRefreshMinutes": {
+            "description": "How often (in minutes) the entire media library is re-fetched. 0 to disable.",
+            "type": "integer",
+            "minimum": 0
+        },
+        "showClearLogo": {
+            "description": "Shows the movie/series logo (if available).",
+            "type": "boolean"
+        },
+        "showRottenTomatoes": {
+            "description": "Shows a 'Fresh' or 'Rotten' badge on the poster.",
+            "type": "boolean"
+        },
+        "rottenTomatoesMinimumScore": {
+            "description": "Filters media to only show items with this score or higher. Set to 0 to disable.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+        },
+        "showPoster": {
+            "description": "Shows the poster.",
+            "type": "boolean"
+        },
+        "showMetadata": {
+            "description": "Shows metadata (title, tagline, etc.). Requires 'showPoster' to be enabled.",
+            "type": "boolean"
+        },
+        "clockWidget": {
+            "description": "Shows a clock in the top left of the screen.",
+            "type": "boolean"
+        },
+        "kenBurnsEffect": {
+            "description": "Adds a subtle zoom/pan effect to the background images.",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "durationSeconds": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            },
+            "required": [
+                "enabled",
+                "durationSeconds"
+            ]
+        },
+        "mediaServers": {
+            "description": "An array of media server configurations.",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "A friendly name for this server.",
+                        "minLength": 1
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "plex",
+                            "jellyfin"
+                        ],
+                        "description": "The type of the media server."
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "description": "Whether this server configuration is active."
+                    },
+                    "hostnameEnvVar": {
+                        "type": "string",
+                        "description": "The name of the environment variable for the hostname.",
+                        "minLength": 1
+                    },
+                    "portEnvVar": {
+                        "type": "string",
+                        "description": "The name of the environment variable for the port.",
+                        "minLength": 1
+                    },
+                    "tokenEnvVar": {
+                        "type": "string",
+                        "description": "The name of the environment variable for the authentication token.",
+                        "minLength": 1
+                    },
+                    "movieLibraryNames": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "showLibraryNames": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "movieCount": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "showCount": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "required": [
+                    "name",
+                    "type",
+                    "enabled",
+                    "hostnameEnvVar",
+                    "portEnvVar",
+                    "tokenEnvVar"
+                ]
+            }
+        },
+        "siteServer": {
+            "description": "Configuration for the optional public-facing site server.",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "port": {
+                    "type": "integer",
+                    "minimum": 1024,
+                    "maximum": 65535
+                }
+            },
+            "required": [
+                "enabled",
+                "port"
+            ]
+        },
+        "plexClientOptions": {
+            "description": "Advanced options to pass to the plex-api client.",
+            "type": "object"
+        }
+    },
+    "required": [
+        "transitionIntervalSeconds",
+        "backgroundRefreshMinutes",
+        "showClearLogo",
+        "showRottenTomatoes",
+        "rottenTomatoesMinimumScore",
+        "showPoster",
+        "showMetadata",
+        "clockWidget",
+        "kenBurnsEffect",
+        "mediaServers"
+    ]
+}

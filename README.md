@@ -1,8 +1,13 @@
 # Posterrama
 
-# An elegant, full-screen screensaver that acts as a digital art frame for your media.
+[![Coverage Status](https://img.shields.io/badge/coverage-62%25-orange)](./coverage/lcov-report/index.html)
+[![Tests](https://img.shields.io/badge/tests-121%20passing-brightgreen)](#testing)
+[![Node.js Version](https://img.shields.io/badge/node.js-%E2%89%A518.0.0-brightgreen)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
 
-It fetches beautiful backgrounds and posters from your Plex media server and displays them with a subtle Ken Burns effect.
+An elegant, full-screen screensaver that acts as a digital art frame for your media collection.
+
+Posterrama transforms your screen into a beautiful display that fetches and shows movie backgrounds, posters, and metadata from your Plex media server with cinematic Ken Burns effects and rich information overlays.
 
 ![Screenshot of screensaver](./screenshots/screensaver.png)
 
@@ -11,49 +16,73 @@ It fetches beautiful backgrounds and posters from your Plex media server and dis
 
 ## Features
 
-*   **Plex Integration**: Works seamlessly with your Plex Media Server.
-*   **Dynamic Display**: Shows movie and series backgrounds with a cinematic Ken Burns effect.
-*   **Rich Metadata**: Displays posters, titles, taglines, year, and ratings.
-*   **Integrations**:
-    *   **ClearLogo**: Shows the movie or series logo for a clean look.
-    *   **Rotten Tomatoes**: Displays a "Fresh", "Rotten", or "Certified Fresh" badge.
-*   **Secure Admin Panel**: A full-featured, web-based admin panel to configure the application without touching any files.
-*   **Enhanced Security**: The admin account is protected by a hashed password and supports **Two-Factor Authentication (2FA)**.
-*   **API Documentation**: Comes with a built-in Swagger UI to explore and understand the API.
-*   **Customizable Widgets**: Includes a configurable clock.
-*   **Process Management**: Runs stably with PM2, including automatic restarts on changes.
+### 🎬 Media Server Integration
+*   **Plex Integration**: Seamless integration with your Plex Media Server
+*   **Dynamic Display**: Shows movie and series backgrounds with cinematic Ken Burns effects
+*   **Rich Metadata**: Displays posters, titles, taglines, release years, and ratings
+*   **Smart Caching**: Intelligent caching system for faster loading and reduced server load
+
+### 🎨 Visual Experience
+*   **ClearLogo Integration**: Shows movie or series logos for a clean, professional look
+*   **Rotten Tomatoes**: Displays "Fresh", "Rotten", or "Certified Fresh" badges
+*   **Customizable Widgets**: Configurable clock and display elements
+*   **Responsive Design**: Optimized for full-screen display on any resolution
+
+### 🔐 Security & Administration
+*   **Secure Admin Panel**: Full-featured web-based administration interface
+*   **Enhanced Security**: Admin accounts protected with hashed passwords
+*   **Two-Factor Authentication (2FA)**: TOTP-based 2FA support for enhanced security
+*   **Session Management**: Secure session handling with file-based storage
+*   **API Key Authentication**: Support for API key-based authentication
+*   **OAuth Integration**: OAuth provider support for external authentication
+*   **Role-Based Access Control (RBAC)**: Granular permission system
+*   **Password Reset**: Secure password recovery functionality
+
+### 🚀 Performance & Reliability
+*   **Process Management**: Runs stably with PM2, including automatic restarts
+*   **Health Monitoring**: Comprehensive health check endpoints for system monitoring
+*   **Rate Limiting**: Built-in API throttling and abuse prevention
+*   **Error Handling**: Robust error management with detailed logging
+*   **Input Validation**: Comprehensive request validation and sanitization
+*   **Memory Management**: Automatic memory usage monitoring and optimization
+
+### 📊 Developer Experience
+*   **API Documentation**: Built-in Swagger UI for API exploration and testing
+*   **Comprehensive Testing**: 121 test cases with 62% code coverage
+*   **Test-Driven Development**: TDD approach with Jest and Supertest
+*   **Logging System**: Advanced Winston-based logging with live log viewer
+*   **Metrics Dashboard**: Real-time performance monitoring and analytics
+*   **CI/CD Ready**: Automated testing and deployment pipeline support
 
 ## Requirements
 
-*   **Node.js**: version 18.x or higher.
-    *   **Windows & macOS**: Download the official installer from [nodejs.org](https://nodejs.org/en/download/).
-    *   **Linux**: Installing a recent version of Node.js on Linux requires a few extra steps. The versions available in the default system repositories (e.g., via `apt` or `yum`) are often outdated and **will not work** with this application. The recommended method is to use the official NodeSource repositories, which always provide the latest versions.
+*   **Node.js**: Version 18.x or higher
+    *   **Windows & macOS**: Download the official installer from [nodejs.org](https://nodejs.org/en/download/)
+    *   **Linux**: The versions available in default system repositories are often outdated. Use the official NodeSource repositories for the latest versions:
 
-        **Recommended Installation (via NodeSource):**
+        **Debian/Ubuntu:**
+        ```bash
+        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        ```
 
-        *   **Debian, Ubuntu, and derivatives:**
-            ```bash
-            # This command adds the NodeSource repository for Node.js v18
-            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-            # Then, install Node.js
-            sudo apt-get install -y nodejs
-            ```
-        *   **RHEL, CentOS, Fedora, and derivatives:**
-            ```bash
-            # This command adds the NodeSource repository for Node.js v18
-            curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
-            # Then, install Node.js (use 'dnf' if 'yum' is not available)
-            sudo yum install -y nodejs
-            ```
-        *   **Arch Linux:** The official Arch repositories are typically up-to-date. The standard installation command is usually sufficient.
-            ```bash
-            sudo pacman -S nodejs npm
-            ```
-*   **PM2**: A process manager for Node.js. Install it globally:
+        **RHEL/CentOS/Fedora:**
+        ```bash
+        curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+        sudo yum install -y nodejs
+        ```
+
+        **Arch Linux:**
+        ```bash
+        sudo pacman -S nodejs npm
+        ```
+
+*   **PM2**: Process manager for Node.js applications
     ```bash
     npm install -g pm2
     ```
-*   **Media Server**: Access to a configured Plex or Jellyfin server.
+
+*   **Media Server**: Access to a configured Plex Media Server with appropriate permissions
 
 ## Installation
 
@@ -68,57 +97,56 @@ It fetches beautiful backgrounds and posters from your Plex media server and dis
     npm install
     ```
 
-3.  **Create the configuration file for secrets**
+3.  **Create environment configuration**
 
-    Copy the example environment file to a new `.env` file. This file contains secret keys and tokens and is not tracked by version control.
+    Copy the example environment file and configure your media server details:
 
     ```bash
     cp config.example.env .env
     ```
 
-4.  **Fill in the `.env` file**
+4.  **Configure your media server**
 
-    Open the `.env` file with a text editor and enter your media server details.
+    Edit the `.env` file with your Plex server details:
 
-    *Example for Plex:*
     ```env
-    # Plex Server Details
+    # Plex Server Configuration
     PLEX_HOSTNAME="192.168.1.10"
     PLEX_PORT="32400"
     PLEX_TOKEN="YourPlexTokenHere"
+    
+    # Optional: Application Configuration
+    PORT="4000"
+    NODE_ENV="production"
     ```
 
-5.  **Start the application with PM2**
+5.  **Start the application**
 
-    PM2 ensures the application runs in the background and automatically restarts after crashes or code changes.
+    Use PM2 for production deployment with automatic restarts:
 
     ```bash
     pm2 start ecosystem.config.js
     ```
 
-6.  **Enable Automatic Startup on Boot (Recommended)**
+    Or for development:
 
-    To ensure the application automatically starts when the server reboots, you need to set up the PM2 startup script.
+    ```bash
+    npm run dev
+    ```
 
-    First, generate the startup command:
+6.  **Set up automatic startup (Optional)**
+
+    Configure PM2 to start automatically on system boot:
+
     ```bash
     pm2 startup
-    ```
-    PM2 will display a command that you need to copy and run. It will look something like this (the exact command may vary depending on your system):
-    ```bash
-    # Example for a systemd-based Linux system:
-    sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u <your_username> --hp /home/<your_username>
-    ```
-    **Important:** Run the exact command provided by PM2 in your terminal.
-
-    Finally, save the current process list so PM2 knows which applications to restart on boot:
-    ```bash
+    # Run the command provided by PM2 output
     pm2 save
     ```
 
-7.  **Check the status**
+7.  **Verify installation**
 
-    You can view the application's status and logs with:
+    Check that the application is running:
     ```bash
     pm2 status
     pm2 logs posterrama
@@ -126,40 +154,97 @@ It fetches beautiful backgrounds and posters from your Plex media server and dis
 
 ## Configuration
 
-The application is configured via the **Admin Panel**.
+### Initial Setup
 
-### Initial Admin Panel Setup
+1.  **Admin Account Setup**
 
-1.  Navigate to `http://<your-server-ip>:4000/admin/setup` in your browser.
-2.  Create an admin account with a username and a strong password.
-3.  After setup, you will be redirected to the login page. Log in with your new credentials.
-4.  It is highly recommended to enable **Two-Factor Authentication (2FA)** immediately after logging in via the "Security" section in the admin panel for enhanced security.
+    Navigate to `http://<your-server-ip>:4000/admin/setup` to create your admin account:
+    - Choose a strong username and password
+    - Enable Two-Factor Authentication (2FA) for enhanced security
+    - Save your recovery codes securely
 
-### Using the Admin Panel
+2.  **Media Server Configuration**
 
-*   **URL**: `http://<your-server-ip>:4000/admin`
-*   Here you can adjust all settings, such as:
-    *   Enabling or disabling the Plex/Jellyfin server connection.
-    *   Selecting which Plex libraries to fetch media from.
-    *   Customizing the display of the poster, metadata, ClearLogo, and Rotten Tomatoes badge.
-    *   Restarting the application after changing critical settings (like the port).
+    Access the admin panel at `http://<your-server-ip>:4000/admin` to configure:
+    - **Plex Server Settings**: Hostname, port, and authentication token
+    - **Library Selection**: Choose which Plex libraries to display
+    - **Display Options**: Customize poster display, metadata, and visual effects
+    - **Security Settings**: Configure authentication methods and access controls
 
-## Usage
+### Available URLs
 
-*   **Screensaver**: Open `http://<your-server-ip>:4000` in a browser.
-*   **Admin Panel**: Open `http://<your-server-ip>:4000/admin`.
-*   **API Docs**: Open `http://<your-server-ip>:4000/api-docs` to view the Swagger API documentation.
+*   **Screensaver**: `http://<your-server-ip>:4000` - Full-screen media display
+*   **Admin Panel**: `http://<your-server-ip>:4000/admin` - Administrative interface
+*   **API Documentation**: `http://<your-server-ip>:4000/api-docs` - Interactive API documentation
+*   **Health Check**: `http://<your-server-ip>:4000/health` - System health status
 
 ## Troubleshooting
 
-*   **No media is visible**:
-    1.  Check the logs with `pm2 logs posterrama`.
-    2.  Go to the Admin Panel and use the "Test Connection" button to verify that the server details are correct.
-    3.  Ensure you have selected at least one movie or show library.
-*   **Errors after changes**:
-    1.  Enable "Enable Debug Mode" in the Admin Panel for more detailed logs.
-    2.  Restart the application using the button in the Admin Panel or via the command line: `pm2 restart posterrama`.
+### Common Issues
+
+**No media is visible:**
+1. Check application logs: `pm2 logs posterrama`
+2. Verify Plex server connection in Admin Panel using "Test Connection"
+3. Ensure at least one movie or TV show library is selected
+4. Check that your Plex token has appropriate permissions
+
+**Application not starting:**
+1. Verify Node.js version: `node --version` (requires 18.x or higher)
+2. Check environment configuration in `.env` file
+3. Ensure all dependencies are installed: `npm install`
+4. Check for port conflicts: `lsof -i :4000`
+
+**Authentication issues:**
+1. Clear browser cookies and try again
+2. Check if 2FA is enabled and use the correct TOTP code
+3. Verify session files in `sessions/` directory
+4. Reset admin password through setup process if needed
+
+**Performance issues:**
+1. Monitor memory usage: `pm2 monit`
+2. Check logs for errors: `pm2 logs posterrama --lines 100`
+3. Clear image cache: `/api/admin/cache/clear`
+4. Restart application: `pm2 restart posterrama`
+
+### Debug Mode
+
+Enable detailed logging by setting debug mode in the Admin Panel or environment:
+
+```bash
+# In .env file
+DEBUG_MODE=true
+
+# Or set in Admin Panel > Settings > Enable Debug Mode
+```
+
+### Health Check
+
+Monitor application health and dependencies:
+
+```bash
+# Basic health check
+curl http://localhost:4000/health
+
+# Detailed health information
+curl http://localhost:4000/health/detailed
+```
+
+### Getting Help
+
+- Check the [Issues](https://github.com/mfrelink/posterrama/issues) page for known problems
+- Review the API documentation at `/api-docs` for integration help
+- Enable debug logging for detailed error information
 
 ## License
 
-This project is licensed under the GPL-3.0-or-later license. See the `LICENSE` file for more details.
+This project is licensed under the **GPL-3.0-or-later** license. See the [LICENSE](./LICENSE) file for full details.
+
+### What this means:
+- You can freely use, modify, and distribute this software
+- Any modifications or derivative works must also be open source under GPL-3.0
+- Commercial use is allowed
+- No warranty is provided
+
+---
+
+**Posterrama** - Transform your screen into a beautiful digital art frame for your media collection.

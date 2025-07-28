@@ -1,110 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Logs - posterrama</title>
-    <link rel="stylesheet" href="/admin.css?v=1.2.4"> <!-- Reuse admin styles -->
+    <title>Live Logs - Posterrama</title>
+    <link rel="stylesheet" href="/admin.css?v=1.2.4">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body {
-            background-color: #1a1a1a;
-            color: #ccc;
-            font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-            padding: 0;
-            margin: 0;
-        }
-
-        .log-header {
-            background-color: #2c2c2c;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #444;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .log-header h1 {
+            flex-direction: column;
+            height: 100vh;
             margin: 0;
-            font-size: 1.2rem;
-            color: #fff;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
         }
-
-        .status-indicator {
+        .admin-header {
+            flex-shrink: 0;
+            padding: 1rem;
+        }
+        .admin-header nav {
+            margin-top: 1rem;
+        }
+        .admin-header a {
+            margin-right: 1rem;
+        }
+        .log-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            overflow: hidden;
+        }
+        .log-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .log-controls label {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 0.9rem;
         }
-
+        .log-status {
+            display: flex;
+            align-items: center;
+            margin-right: auto;
+        }
         .status-dot {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
+            margin-right: 8px;
             background-color: #feca57;
-            /* Yellow for connecting */
-            transition: background-color 0.3s;
+            transition: background-color 0.3s ease;
         }
-
-        .status-dot.connected {
-            background-color: #28a745;
+        .status-dot.connected { background-color: #28a745; }
+        .status-dot.disconnected { background-color: #dc3545; }
+        
+        .log-level-select {
+            padding: 0.5em;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            min-width: 150px;
         }
-
-        /* Green for connected */
-        .status-dot.disconnected {
-            background-color: #dc3545;
-        }
-
-        /* Red for disconnected */
-
-        .log-container {
-            padding: 1.5rem;
-            height: calc(100vh - 60px);
-            /* Full height minus header */
+        
+        .log-viewer {
+            flex-grow: 1;
+            background-color: #111;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 15px;
             overflow-y: auto;
-        }
-
-        .log-container pre {
-            margin: 0;
-            white-space: pre-wrap;
-            word-wrap: break-word;
+            font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
             font-size: 0.85rem;
-            line-height: 1.6;
+            line-height: 1.5;
         }
-
-        .log-line {
-            display: block;
+        
+        .log-entry {
+            padding: 4px 8px;
+            border-bottom: 1px solid #2c2c2c;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-
-        .log-line.level-error {
-            color: #ff6b6b;
+        
+        .timestamp {
+            color: #666;
+            font-size: 0.9em;
+            white-space: nowrap;
         }
-
-        .log-line.level-warn {
-            color: #feca57;
+        
+        .level {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            min-width: 50px;
+            text-align: center;
+            font-weight: bold;
         }
-
-        .log-line.level-log {
-            color: #ccc;
+        
+        .level-trace { background: #6c757d; color: white; }
+        .level-debug { background: #17a2b8; color: white; }
+        .level-info { background: #28a745; color: white; }
+        .level-warn { background: #ffc107; color: black; }
+        .level-error { background: #dc3545; color: white; }
+        .level-fatal { background: #9c27b0; color: white; }
+        
+        .message { flex-grow: 1; }
+        
+        button {
+            padding: 0.5em 1em;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background: #3c3c3c;
+        }
+        
+        .log-text-filter {
+            padding: 0.5em;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            min-width: 200px;
+        }
+        
+        .log-text-filter::placeholder {
+            color: #888;
+        }
+        
+        .auto-scroll-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            user-select: none;
         }
     </style>
 </head>
-
 <body>
-    <header class="log-header">
-        <h1>Live Application Logs</h1>
-        <div class="status-indicator">
-            <div id="status-dot" class="status-dot"></div>
-            <span id="status-text">Connecting...</span>
-        </div>
+    <header class="admin-header">
+        <h1>Live Logs</h1>
+        <nav>
+            <a href="/admin">Back to Admin</a>
+            <a href="/admin/logout">Logout</a>
+        </nav>
     </header>
-    <main class="log-container">
-        <pre id="log-output"></pre>
-    </main>
-    <script src="/logs.js" defer></script>
-</body>
 
+    <main class="log-container">
+        <div class="log-controls">
+            <div class="log-status">
+                <span id="status-dot" class="status-dot"></span>
+                <span id="status-text">Connecting...</span>
+            </div>
+            
+            <label>
+                Filter Level:
+                <select id="logLevel" class="log-level-select">
+                    <option value="trace">TRACE & above</option>
+                    <option value="debug">DEBUG & above</option>
+                    <option value="info" selected>INFO & above</option>
+                    <option value="warn">WARN & above</option>
+                    <option value="error">ERROR & above</option>
+                    <option value="fatal">FATAL only</option>
+                </select>
+            </label>
+            
+            <input type="text" id="textFilter" class="log-text-filter" placeholder="Filter logs by text...">
+            
+            <button id="clearFilter">Clear Filters</button>
+            
+            <label class="auto-scroll-label">
+                <input type="checkbox" id="autoScroll" checked>
+                Auto-scroll
+            </label>
+            
+            <button id="pauseButton">Pause Updates</button>
+        </div>
+        
+        <div class="log-viewer">
+            <div id="log-output"></div>
+        </div>
+    </main>
+
+    <script src="/logs.js?v=1.2.6" defer></script>
+</body>
 </html>

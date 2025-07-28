@@ -2,113 +2,191 @@ const fs = require('fs');
 const path = require('path');
 
 describe('Environment Validator (validate-env.js)', () => {
-    let originalEnv;
+    let originalProcessExit;
+    let originalConsoleError;
+    let originalConsoleWarn;
+    let originalFsReadFileSync;
+    let mockExit;
     let mockConsoleError;
     let mockConsoleWarn;
-    let mockProcessExit;
-    let mockReadFileSync;
 
-    // Before each test, we set up a clean environment
     beforeEach(() => {
-        // Store the original process.env
-        originalEnv = { ...process.env };
+        // Store original functions
+        originalProcessExit = process.exit;
+        originalConsoleError = console.error;
+        originalConsoleWarn = console.warn;
+        originalFsReadFileSync = fs.readFileSync;
 
-        // Mock console and process methods to spy on them without polluting the output
-        mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => { });
-        mockConsoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => { });
-        mockProcessExit = jest.spyOn(process, 'exit').mockImplementation(() => {
-            throw new Error('process.exit() was called'); // Throw to stop execution
-        });
-
-        // Mock fs.readFileSync to control the config content for each test
-        mockReadFileSync = jest.spyOn(fs, 'readFileSync');
-
-        // Reset modules to ensure validate-env.js is re-evaluated with new mocks
-        jest.resetModules();
-    });
-
-    // After each test, we restore the original environment
-    afterEach(() => {
-        process.env = originalEnv;
-        jest.restoreAllMocks();
-    });
-
-    const runValidator = () => {
-        try {
-            require('../validate-env.js');
-        } catch (e) {
-            // We expect the process.exit mock to throw, so we can catch it here.
-            if (e.message !== 'process.exit() was called') {
-                throw e;
+        // Mock functions
+        mockExit = jest.fn((code) => {
+            // Simulate actual exit by throwing an error to stop execution
+            if (code === 1) {
+                throw new Error('Process exit with code 1');
             }
-        }
-    };
-
-    const mockConfig = (configObject) => {
-        mockReadFileSync.mockReturnValue(JSON.stringify(configObject));
-    };
-
-    it('should pass validation when all required variables are set', () => {
-        mockConfig({
-            mediaServers: [{
-                enabled: true,
-                type: 'plex',
-                hostnameEnvVar: 'PLEX_HOST',
-                portEnvVar: 'PLEX_PORT',
-                tokenEnvVar: 'PLEX_TOKEN'
-            }]
         });
-        process.env.PLEX_HOST = 'localhost';
+        mockConsoleError = jest.fn();
+        mockConsoleWarn = jest.fn();
+        
+        process.exit = mockExit;
+        console.error = mockConsoleError;
+        console.warn = mockConsoleWarn;
+
+        // Reset modules
+        jest.resetModules();
+        
+        // Clear environment variables
+        delete process.env.ADMIN_USERNAME;
+        delete process.env.ADMIN_PASSWORD_HASH; 
+        delete process.env.SESSION_SECRET;
+        delete process.env.PLEX_HOSTNAME;
+        delete process.env.PLEX_PORT;
+        delete process.env.PLEX_TOKEN;
+    });
+
+    afterEach(() => {
+        // Restore original functions
+        process.exit = originalProcessExit;
+        console.error = originalConsoleError;
+        console.warn = originalConsoleWarn;
+        fs.readFileSync = originalFsReadFileSync;
+    });
+
+    const validConfig = {
+        transitionIntervalSeconds: 15,
+        backgroundRefreshMinutes: 30,
+        showClearLogo: true,
+        showRottenTomatoes: true,
+        rottenTomatoesMinimumScore: 0,
+        showPoster: true,
+        showMetadata: true,
+        clockWidget: false,
+        kenBurnsEffect: {
+            enabled: true,
+            durationSeconds: 15
+        },
+        mediaServers: [
+            {
+                name: "Test Server",
+                type: "plex",
+                enabled: true,
+                hostnameEnvVar: "PLEX_HOSTNAME",
+                portEnvVar: "PLEX_PORT", 
+                tokenEnvVar: "PLEX_TOKEN"
+            }
+        ]
+    };
+
+    test('should pass validation when config is valid', () => {
+        // Mock successful file read
+        fs.readFileSync = jest.fn().mockReturnValue(JSON.stringify(validConfig));
+        
+        // Set required environment variables
+        process.env.PLEX_HOSTNAME = 'localhost';
         process.env.PLEX_PORT = '32400';
-        process.env.PLEX_TOKEN = 'valid-token';
+        process.env.PLEX_TOKEN = 'test-token';
 
-        runValidator();
+        // Require the validator (this will execute it)
+        require('../validate-env');
 
-        expect(mockProcessExit).not.toHaveBeenCalled();
+        // Should not exit with error
+        expect(mockExit).not.toHaveBeenCalledWith(1);
         expect(mockConsoleError).not.toHaveBeenCalled();
     });
 
-    it('should exit with an error if a required environment variable is missing', () => {
-        mockConfig({
-            mediaServers: [{ enabled: true, type: 'plex', tokenEnvVar: 'PLEX_TOKEN' }]
-        });
-        // PLEX_TOKEN is missing from process.env
-
-        runValidator();
-
-        expect(mockProcessExit).toHaveBeenCalledWith(1);
-        expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining('Missing required environment variables'));
-        expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining('- PLEX_TOKEN'));
-    });
-
-    it('should warn but not exit if no media servers are enabled', () => {
-        mockConfig({
-            mediaServers: [{ enabled: false, type: 'plex', tokenEnvVar: 'PLEX_TOKEN' }]
+    test('should exit with error if config.json cannot be read', () => {
+        // Mock file read error
+        fs.readFileSync = jest.fn().mockImplementation(() => {
+            throw new Error('File not found');
         });
 
-        runValidator();
+        try {
+            require('../validate-env.js');
+        } catch (error) {
+            // Expected to throw due to mocked exit
+        }
 
-        expect(mockProcessExit).not.toHaveBeenCalled();
-        expect(mockConsoleWarn).toHaveBeenCalledWith(expect.stringContaining('WARNING: No media servers are enabled'));
+        expect(mockExit).toHaveBeenCalledWith(1);
+        expect(mockConsoleError).toHaveBeenCalledWith(
+            '\x1b[31m%s\x1b[0m', 'FATAL ERROR: Could not read or parse config.json.'
+        );
     });
 
-    it('should handle a missing mediaServers array gracefully', () => {
-        mockConfig({ someOtherKey: 'value' }); // config.json without mediaServers
+    test('should exit with error if config.json has invalid JSON', () => {
+        // Mock invalid JSON
+        fs.readFileSync = jest.fn().mockReturnValue('{ invalid json }');
 
-        runValidator();
+        try {
+            require('../validate-env.js');
+        } catch (error) {
+            // Expected to throw due to mocked exit
+        }
 
-        expect(mockProcessExit).not.toHaveBeenCalled();
-        expect(mockConsoleWarn).toHaveBeenCalledWith(expect.stringContaining('WARNING: No media servers are enabled'));
+        expect(mockExit).toHaveBeenCalledWith(1);
+        expect(mockConsoleError).toHaveBeenCalledWith(
+            '\x1b[31m%s\x1b[0m', 'FATAL ERROR: Could not read or parse config.json.'
+        );
     });
 
-    it('should exit with an error if config.json cannot be parsed', () => {
-        mockReadFileSync.mockImplementation(() => {
-            throw new Error('JSON Parse Error');
-        });
+    test('should exit with error if config.json fails schema validation', () => {
+        const invalidConfig = {
+            // Missing required transitionIntervalSeconds
+            showRottenTomatoes: true
+        };
 
-        runValidator();
+        fs.readFileSync = jest.fn().mockReturnValue(JSON.stringify(invalidConfig));
 
-        expect(mockProcessExit).toHaveBeenCalledWith(1);
-        expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining('FATAL ERROR: Could not read or parse config.json'));
+        try {
+            require('../validate-env.js');
+        } catch (error) {
+            // Expected to throw due to mocked exit
+        }
+
+        expect(mockExit).toHaveBeenCalledWith(1);
+        expect(mockConsoleError).toHaveBeenCalledWith(
+            '\x1b[31m%s\x1b[0m', 'FATAL ERROR: config.json is invalid. Please correct the following errors:'
+        );
+    });
+
+    test('should warn but not exit if no media servers are enabled', () => {
+        const configWithNoServers = {
+            ...validConfig,
+            mediaServers: []
+        };
+
+        fs.readFileSync = jest.fn().mockReturnValue(JSON.stringify(configWithNoServers));
+
+        require('../validate-env.js');
+
+        // Should warn but not exit
+        expect(mockConsoleWarn).toHaveBeenCalledWith(
+            '\x1b[33m%s\x1b[0m', 'WARNING: No media servers are enabled in config.json. The application will run but will not display any media.'
+        );
+        expect(mockExit).not.toHaveBeenCalledWith(1);
+    });
+
+    test('should require SESSION_SECRET when admin credentials are set', () => {
+        const configWithDisabledServers = {
+            ...validConfig,
+            mediaServers: []
+        };
+        
+        fs.readFileSync = jest.fn().mockReturnValue(JSON.stringify(configWithDisabledServers));
+        
+        // Set admin credentials but not session secret
+        process.env.ADMIN_USERNAME = 'admin';
+        process.env.ADMIN_PASSWORD_HASH = 'hash123';
+        // Don't set SESSION_SECRET
+
+        try {
+            require('../validate-env.js');
+        } catch (error) {
+            // Expected to throw due to mocked exit
+        }
+
+        // Should exit due to missing SESSION_SECRET
+        expect(mockExit).toHaveBeenCalledWith(1);
+        expect(mockConsoleError).toHaveBeenCalledWith(
+            '\x1b[31m%s\x1b[0m', 'FATAL ERROR: Missing required environment variables.'
+        );
     });
 });

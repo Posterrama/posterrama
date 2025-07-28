@@ -14,7 +14,7 @@ const options = {
         info: {
             title: 'Posterrama API',
             version: pkg.version,
-            description: 'API-documentatie voor de posterrama.app screensaver-applicatie. Dit documenteert de publieke API die door de frontend wordt gebruikt om media en configuratie op te halen.',
+            description: 'API documentation for the posterrama.app screensaver application. This documents the public API used by the frontend to retrieve media and configuration.',
             contact: {
                 name: 'Mark Frelink',
                 url: 'https://github.com/mfrelink/posterrama',
@@ -27,17 +27,17 @@ const options = {
         tags: [
             {
                 name: 'Public API',
-                description: 'Eindpunten die beschikbaar zijn voor de frontend-client zonder authenticatie.'
+                description: 'Endpoints available to the frontend client without authentication.'
             },
             {
                 name: 'Admin API',
-                description: 'Beveiligde eindpunten voor het beheren van de applicatie. Vereist een actieve admin-sessie.'
+                description: 'Secured endpoints for managing the application. Requires an active admin session.'
             }
         ],
         servers: [
             {
                 url: '/',
-                description: 'Huidige server'
+                description: 'Current server'
             },
         ],
         components: {
@@ -45,59 +45,60 @@ const options = {
                 bearerAuth: {
                     type: 'http',
                     scheme: 'bearer',
-                    bearerFormat: 'JWT', // Of een ander tokenformaat
-                    description: 'Voer het token in met het "Bearer " voorvoegsel, bv. "Bearer abcde12345"'
+                    description: 'API access token. Enter the token with the "Bearer " prefix, e.g., "Bearer abcde12345"'
                 }
             },
             schemas: {
                 Config: {
                     type: 'object',
                     properties: {
-                        clockWidget: { type: 'boolean', description: 'Of de klok-widget is ingeschakeld.' },
-                        transitionIntervalSeconds: { type: 'integer', description: 'Tijd in seconden tussen media-overgangen.' },
-                        backgroundRefreshMinutes: { type: 'integer', description: 'Hoe vaak de media-afspeellijst wordt vernieuwd vanaf de server.' },
-                        showClearLogo: { type: 'boolean', description: 'Of de ClearLogo-afbeelding moet worden weergegeven.' },
-                        showPoster: { type: 'boolean', description: 'Of de poster-afbeelding moet worden weergegeven.' },
-                        showMetadata: { type: 'boolean', description: 'Of metadatatekst (tagline, jaar, etc.) moet worden weergegeven.' },
-                        showRottenTomatoes: { type: 'boolean', description: 'Of de Rotten Tomatoes-badge moet worden weergegeven.' },
-                        rottenTomatoesMinimumScore: { type: 'integer', description: 'Minimale score voor een item om te worden opgenomen als het een Rotten Tomatoes-beoordeling heeft.' },
+                        clockWidget: { type: 'boolean', description: 'Whether the clock widget is enabled.' },
+                        transitionIntervalSeconds: { type: 'integer', description: 'Time in seconds between media transitions.' },
+                        backgroundRefreshMinutes: { type: 'integer', description: 'How often the media playlist is refreshed from the server.' },
+                        showClearLogo: { type: 'boolean', description: 'Whether the ClearLogo image should be displayed.' },
+                        showPoster: { type: 'boolean', description: 'Whether the poster image should be displayed.' },
+                        showMetadata: { type: 'boolean', description: 'Whether metadata text (tagline, year, etc.) should be displayed.' },
+                        showRottenTomatoes: { type: 'boolean', description: 'Whether the Rotten Tomatoes badge should be displayed.' },
+                        rottenTomatoesMinimumScore: { type: 'number', description: 'Minimum score (scale 0-10) for an item to be included if it has a Rotten Tomatoes rating. A value of 7.5 corresponds to 75%.' },
                         kenBurnsEffect: {
                             type: 'object',
                             properties: {
                                 enabled: { type: 'boolean' },
                                 durationSeconds: { type: 'integer' }
                             }
-                        }
+                        },
+                        isPublicSite: { type: 'boolean', description: 'Flag indicating if this is the public site server (added by site server proxy).' }
                     }
                 },
                 MediaItem: {
                     type: 'object',
                     properties: {
-                        key: { type: 'string', description: 'Een unieke identificatie voor het media-item, samengesteld uit servertype, naam en item-sleutel.' },
+                        key: { type: 'string', description: 'A unique identifier for the media item, composed of server type, name and item key.' },
                         title: { type: 'string' },
-                        backgroundUrl: { type: 'string', format: 'uri', description: 'URL naar de achtergrondafbeelding, geproxied via de app.' },
-                        posterUrl: { type: 'string', format: 'uri', description: 'URL naar de posterafbeelding, geproxied via de app.' },
-                        clearLogoUrl: { type: 'string', format: 'uri', nullable: true, description: 'URL naar de ClearLogo-afbeelding, geproxied via de app.' },
+                        backgroundUrl: { type: 'string', format: 'uri', description: 'URL to the background image, proxied through the app.' },
+                        posterUrl: { type: 'string', format: 'uri', description: 'URL to the poster image, proxied through the app.' },
+                        clearLogoUrl: { type: 'string', format: 'uri', nullable: true, description: 'URL to the ClearLogo image, proxied through the app.' },
                         tagline: { type: 'string', nullable: true },
-                        rating: { type: 'number', nullable: true, description: 'De algemene publieksbeoordeling (bijv. 7.8).' },
+                        rating: { type: 'number', nullable: true, description: 'The general audience rating (e.g., 7.8).' },
                         year: { type: 'integer', nullable: true },
-                        imdbUrl: { type: 'string', format: 'uri', nullable: true, description: 'Directe link naar de IMDb-pagina voor het item.' },
+                        imdbUrl: { type: 'string', format: 'uri', nullable: true, description: 'Direct link to the IMDb page for this item.' },
                         rottenTomatoes: {
                             type: 'object',
                             nullable: true,
                             properties: {
-                                score: { type: 'integer', description: 'De Rotten Tomatoes-score (0-100).' },
-                                icon: { type: 'string', enum: ['fresh', 'rotten', 'certified-fresh'], description: 'Het bijbehorende RT-icoon.' },
-                                originalScore: { type: 'number', description: 'De originele score van de bron (bijv. schaal 0-10).' }
+                                score: { type: 'integer', description: 'The Rotten Tomatoes score (0-100).' },
+                                icon: { type: 'string', enum: ['fresh', 'rotten', 'certified-fresh'], description: 'The corresponding RT icon.' },
+                                originalScore: { type: 'number', description: 'The original score from the source (e.g., scale 0-10).' }
                             }
-                        }
+                        },
+                        _raw: { type: 'object', description: 'Raw metadata from the media server (only included in debug mode).' }
                     }
                 },
                 ApiMessage: {
                     type: 'object',
                     properties: {
                         status: { type: 'string', example: 'building' },
-                        message: { type: 'string', example: 'Afspeellijst wordt opgebouwd. Probeer het over een paar seconden opnieuw.' },
+                        message: { type: 'string', example: 'Playlist is being built. Please try again in a few seconds.' },
                         retryIn: { type: 'integer', example: 2000 },
                         error: { type: 'string' }
                     }
@@ -114,17 +115,17 @@ const options = {
                     type: 'object',
                     required: ['hostname', 'port'],
                     properties: {
-                        hostname: { type: 'string', description: 'De hostnaam of het IP-adres van de Plex-server.', example: '192.168.1.10' },
-                        port: { type: 'integer', description: 'De poort van de Plex-server.', example: 32400 },
-                        token: { type: 'string', description: 'De Plex X-Plex-Token. Optioneel bij testen, verplicht bij ophalen van bibliotheken als er geen is geconfigureerd.' }
+                        hostname: { type: 'string', description: 'The hostname or IP address of the Plex server.', example: '192.168.1.10' },
+                        port: { type: 'integer', description: 'The port of the Plex server.', example: 32400 },
+                        token: { type: 'string', description: 'The Plex X-Plex-Token. Optional when testing, required when fetching libraries if none is configured.' }
                     }
                 },
                 PlexLibrary: {
                     type: 'object',
                     properties: {
-                        key: { type: 'string', description: 'De unieke sleutel van de bibliotheek.', example: '1' },
-                        name: { type: 'string', description: 'De naam van de bibliotheek.', example: 'Movies' },
-                        type: { type: 'string', description: 'Het type van de bibliotheek.', example: 'movie', enum: ['movie', 'show', 'artist'] }
+                        key: { type: 'string', description: 'The unique key of the library.', example: '1' },
+                        name: { type: 'string', description: 'The name of the library.', example: 'Movies' },
+                        type: { type: 'string', description: 'The type of the library.', example: 'movie', enum: ['movie', 'show', 'artist'] }
                     }
                 },
                 PlexLibrariesResponse: {
@@ -140,12 +141,12 @@ const options = {
                 AdminConfigResponse: {
                     type: 'object',
                     properties: {
-                        config: { type: 'object', description: 'De volledige inhoud van config.json.' },
-                        env: { type: 'object', description: 'Een selectie van relevante omgevingsvariabelen.' },
+                        config: { type: 'object', description: 'The complete contents of config.json.' },
+                        env: { type: 'object', description: 'A selection of relevant environment variables.' },
                         security: {
                             type: 'object',
                             properties: {
-                                is2FAEnabled: { type: 'boolean', description: 'Geeft aan of 2FA is ingeschakeld voor de admin.' }
+                                is2FAEnabled: { type: 'boolean', description: 'Indicates whether 2FA is enabled for the admin.' }
                             }
                         }
                     }
@@ -153,8 +154,8 @@ const options = {
                 SaveConfigRequest: {
                     type: 'object',
                     properties: {
-                        config: { type: 'object', description: 'Het volledige config.json-object om op te slaan.' },
-                        env: { type: 'object', description: 'Sleutel-waardeparen van omgevingsvariabelen om op te slaan.' }
+                        config: { type: 'object', description: 'The complete config.json object to save.' },
+                        env: { type: 'object', description: 'Key-value pairs of environment variables to save.' }
                     }
                 },
                 ChangePasswordRequest: {
@@ -169,31 +170,31 @@ const options = {
                 Generate2FAResponse: {
                     type: 'object',
                     properties: {
-                        qrCodeDataUrl: { type: 'string', format: 'uri', description: 'Een data-URI van de QR-code afbeelding die gescand kan worden.' }
+                        qrCodeDataUrl: { type: 'string', format: 'uri', description: 'A data URI of the QR code image that can be scanned.' }
                     }
                 },
                 Verify2FARequest: {
                     type: 'object',
                     required: ['token'],
                     properties: {
-                        token: { type: 'string', description: 'De 6-cijferige TOTP-code van de authenticator-app.' }
+                        token: { type: 'string', description: 'The 6-digit TOTP code from the authenticator app.' }
                     }
                 },
                 Disable2FARequest: {
                     type: 'object',
                     required: ['password'],
                     properties: {
-                        password: { type: 'string', format: 'password', description: 'Het huidige admin-wachtwoord van de gebruiker.' }
+                        password: { type: 'string', format: 'password', description: 'The current admin password of the user.' }
                     }
                 },
                 DebugResponse: {
                     type: 'object',
                     properties: {
-                        note: { type: 'string', description: 'Een opmerking over de inhoud van de response.' },
-                        playlist_item_count: { type: 'integer', description: 'Het aantal items in de huidige afspeellijst-cache.' },
+                        note: { type: 'string', description: 'A note about the contents of the response.' },
+                        playlist_item_count: { type: 'integer', description: 'The number of items in the current playlist cache.' },
                         playlist_items_raw: {
                             type: 'array',
-                            description: 'Een array van de onbewerkte media-objecten zoals ontvangen van de mediaserver.',
+                            description: 'An array of the raw media objects as received from the media server.',
                             items: {
                                 type: 'object'
                             }
@@ -205,23 +206,139 @@ const options = {
                     properties: {
                         apiKey: {
                             type: 'string',
-                            description: 'De nieuw gegenereerde API-sleutel. Wordt slechts eenmaal getoond.'
+                            description: 'The newly generated API key. Will only be shown once.'
                         },
                         message: { type: 'string' }
+                    }
+                },
+                RefreshMediaResponse: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean', example: true },
+                        message: { type: 'string', example: 'Media playlist successfully refreshed. 150 items found.' },
+                        itemCount: { type: 'integer', example: 150, description: 'Number of media items found after refresh.' }
                     }
                 },
                 LogEntry: {
                     type: 'object',
                     properties: {
                         timestamp: { type: 'string', format: 'date-time' },
-                        level: { type: 'string', enum: ['LOG', 'ERROR', 'WARN', 'INFO'] },
+                        level: { type: 'string', enum: ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'] },
                         message: { type: 'string' }
+                    }
+                },
+                ErrorResponse: {
+                    type: 'object',
+                    properties: {
+                        error: { type: 'string', description: 'Error message describing what went wrong.' }
+                    }
+                },
+                BasicHealthResponse: {
+                    type: 'object',
+                    required: ['status', 'service', 'version', 'timestamp', 'uptime'],
+                    properties: {
+                        status: { type: 'string', enum: ['ok'], description: 'Service status', example: 'ok' },
+                        service: { type: 'string', description: 'Service name', example: 'posterrama' },
+                        version: { type: 'string', description: 'Service version', example: '1.2.5' },
+                        timestamp: { type: 'string', format: 'date-time', description: 'Current timestamp', example: '2025-07-27T12:00:00Z' },
+                        uptime: { type: 'number', description: 'Process uptime in seconds', example: 3600 }
+                    }
+                },
+                HealthCheckResult: {
+                    type: 'object',
+                    required: ['name', 'status', 'message'],
+                    properties: {
+                        name: { type: 'string', description: 'Name of the health check', example: 'configuration' },
+                        status: { type: 'string', enum: ['ok', 'warning', 'error'], description: 'Status of this specific check', example: 'ok' },
+                        message: { type: 'string', description: 'A descriptive message about the check result', example: 'Connection successful' },
+                        details: { type: 'object', description: 'Additional details about the check' }
+                    }
+                },
+                HealthCheckResponse: {
+                    type: 'object',
+                    required: ['status', 'timestamp', 'checks'],
+                    properties: {
+                        status: { type: 'string', enum: ['ok', 'warning', 'error'], description: 'Overall health status of the application', example: 'ok' },
+                        timestamp: { type: 'string', format: 'date-time', description: 'Timestamp when the health check was performed', example: '2025-07-27T12:00:00Z' },
+                        checks: { type: 'array', description: 'List of individual health check results', items: { $ref: '#/components/schemas/HealthCheckResult' } }
                     }
                 }
             }
         }
     },
-    apis: ['./server.js'], // Pad naar de bestanden met OpenAPI-definities
+    apis: ['./server.js'], // Path to files with OpenAPI definitions
+    paths: {
+        '/api/v1/config': {
+            get: {
+                summary: 'Retrieve the public application configuration (v1 API)',
+                description: 'Fetches the non-sensitive configuration needed by the frontend for display logic. This is a versioned alias for /get-config that ensures API compatibility.',
+                tags: ['Public API'],
+                responses: {
+                    200: {
+                        description: 'The public configuration object.',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/Config' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/v1/media': {
+            get: {
+                summary: 'Retrieve the shuffled media playlist (v1 API)',
+                description: 'Returns an array of media items from all configured and enabled media servers. This is a versioned alias for /get-media that ensures API compatibility. The response is served from an in-memory cache that is periodically refreshed in the background.',
+                tags: ['Public API'],
+                responses: {
+                    200: {
+                        description: 'An array of media items.',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: { $ref: '#/components/schemas/MediaItem' }
+                                }
+                            }
+                        }
+                    },
+                    202: {
+                        description: 'The playlist is being built, please try again.',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ApiMessage' }
+                            }
+                        }
+                    },
+                    503: {
+                        description: 'Service unavailable. The initial media fetch may have failed.',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ApiMessage' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/health': {
+            get: {
+                summary: 'Basic Health Check',
+                description: 'Quick health check that returns basic service information without performing external connectivity tests.',
+                tags: ['Public API'],
+                responses: {
+                    200: {
+                        description: 'Basic health information',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/BasicHealthResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 };
 
 const swaggerSpec = swaggerJSDoc(options);
