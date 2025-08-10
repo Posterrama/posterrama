@@ -2725,6 +2725,31 @@ app.get('/api/health', asyncHandler(async (req, res) => {
 
 /**
  * @swagger
+ * /health/detailed:
+ *   get:
+ *     summary: Detailed Health Check (Alternative Route)
+ *     description: >
+ *       Alternative route for the detailed health check endpoint. This provides
+ *       the same comprehensive health information as /api/health, included for
+ *       convenience and API consistency.
+ *     tags: [Public API]
+ *     responses:
+ *       200:
+ *         description: Health check completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthCheckResponse'
+ */
+app.get('/health/detailed', asyncHandler(async (req, res) => {
+    const health = await getDetailedHealth();
+    
+    // Always return 200 for health checks - let the consumer decide based on status
+    res.status(200).json(health);
+}));
+
+/**
+ * @swagger
  * /get-config:
  *   get:
  *     summary: Retrieve the public application configuration

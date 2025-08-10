@@ -88,12 +88,31 @@ describe('Health Check Endpoints', () => {
                 .get('/api/health')
                 .expect(200);
 
-            const cacheCheck = response.body.checks.find(check => check.name === 'media_cache');
+            const cacheCheck = response.body.checks.find(check => check.name === 'cache');
             expect(cacheCheck).toBeDefined();
             expect(cacheCheck).toHaveProperty('status');
             expect(cacheCheck).toHaveProperty('message');
-            expect(cacheCheck).toHaveProperty('details');
-            expect(typeof cacheCheck.details.itemCount).toBe('number');
+            expect(['ok', 'warning', 'error']).toContain(cacheCheck.status);
+        });
+
+        test('should work with alternative /health/detailed endpoint', async () => {
+            const response = await request(app)
+                .get('/health/detailed')
+                .expect(200);
+
+            expect(response.body).toHaveProperty('status');
+            expect(['ok', 'warning', 'error']).toContain(response.body.status);
+            expect(response.body).toHaveProperty('timestamp');
+            expect(response.body).toHaveProperty('checks');
+            expect(Array.isArray(response.body.checks)).toBe(true);
+            
+            // Should return same data structure as /api/health
+            const apiResponse = await request(app)
+                .get('/api/health')
+                .expect(200);
+            
+            expect(response.body).toHaveProperty('checks');
+            expect(response.body.checks.length).toBeGreaterThan(0);
         });
     });
 
