@@ -10,8 +10,9 @@ describe('Rate Limiting', () => {
 
         test('should block requests exceeding rate limit', async () => {
             // Make multiple requests quickly to trigger rate limiting
+            // In test mode, the limit is divided by 10, so we need more requests
             const requests = [];
-            for (let i = 0; i < 15; i++) { // More than the 10 test limit
+            for (let i = 0; i < 60; i++) { // More than the 50 test limit (500/10)
                 requests.push(request(app).get('/get-config'));
             }
             

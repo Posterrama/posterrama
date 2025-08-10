@@ -267,18 +267,17 @@ app.set('trust proxy', 1);
 // Rate Limiting
 const { createRateLimiter } = require('./middleware/rateLimiter');
 
-// General API Rate Limiting
+// General API Rate Limiting (more lenient for screensaver usage)
 const apiLimiter = createRateLimiter(
     15 * 60 * 1000, // 15 minutes
-    100, // Max requests
+    500, // Max requests (increased from 100)
     'Too many requests from this IP, please try again later.'
 );
 
 // Admin API Rate Limiting (more restrictive)
-
 const adminApiLimiter = createRateLimiter(
     15 * 60 * 1000, // 15 minutes
-    50, // Max requests
+    200, // Max requests (increased from 50)
     'Too many admin API requests from this IP, please try again later.'
 );
 
