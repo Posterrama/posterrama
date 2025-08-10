@@ -2780,6 +2780,8 @@ app.get('/get-config',
     (req, res) => {
         res.json({
             clockWidget: config.clockWidget !== false,
+            clockTimezone: config.clockTimezone || 'auto',
+            clockFormat: config.clockFormat || '24h',
             transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
             backgroundRefreshMinutes: config.backgroundRefreshMinutes || 30,
             showClearLogo: config.showClearLogo !== false,
@@ -3756,6 +3758,9 @@ app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(asyn
     // Clear caches to reflect changes without a full restart
     playlistCache = null;
     Object.keys(plexClients).forEach(key => delete plexClients[key]);
+    
+    // Clear the /get-config cache so changes are immediately visible
+    cacheManager.delete('GET:/get-config');
 
     // Trigger a background refresh of the playlist with the new settings.
     // We don't await this, so the admin UI gets a fast response.

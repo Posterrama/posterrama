@@ -1105,4 +1105,445 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateApiKeyStatus();
 
+    // Preview functionality
+    function initializePreview() {
+        console.log('Initializing preview functionality...');
+        const previewContainer = document.getElementById('preview-container');
+        const previewFrame = document.getElementById('preview-frame');
+        const previewContent = document.getElementById('preview-content');
+        
+        console.log('Preview elements found:', {
+            previewContainer: !!previewContainer,
+            previewFrame: !!previewFrame,
+            previewContent: !!previewContent
+        });
+        
+        if (!previewContainer || !previewFrame || !previewContent) {
+            console.log('Preview elements not found - aborting initialization');
+            return;
+        }
+
+        // Handle orientation radio buttons
+        const orientationRadios = document.querySelectorAll('input[name="preview-orientation"]');
+        orientationRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                updatePreviewOrientation();
+            });
+        });
+
+        // Set up live updates for DISPLAY SETTINGS
+        setupLivePreviewUpdates();
+
+        // Start preview immediately and keep it always on
+        startPreview();
+
+        function startPreview() {
+            console.log('Starting preview...');
+            
+            // Show preview frame and set initial orientation
+            previewFrame.style.display = 'block';
+            updatePreviewOrientation();
+            
+            // Load initial preview
+            updatePreview();
+            
+            // Auto-refresh preview every 30 seconds to sync any other changes
+            window.previewInterval = setInterval(() => {
+                updatePreview();
+            }, 30000);
+            
+            console.log('Preview started successfully');
+        }
+
+        // Hide loading overlay when content loads
+        const previewOverlay = document.getElementById('preview-overlay');
+        if (previewOverlay) {
+            // Hide overlay after initial load
+            setTimeout(() => {
+                previewOverlay.style.display = 'none';
+            }, 1000);
+        }
+    }
+
+    function updatePreviewOrientation() {
+        const previewFrame = document.getElementById('preview-frame');
+        const orientationRadios = document.querySelectorAll('input[name="preview-orientation"]');
+        
+        if (!previewFrame) return;
+
+        const selectedOrientation = Array.from(orientationRadios).find(radio => radio.checked)?.value;
+        
+        if (selectedOrientation === 'portrait') {
+            // Cinema Mode (Portrait)
+            previewFrame.className = 'preview-frame preview-cinema';
+        } else {
+            // PC Mode (Landscape) - default
+            previewFrame.className = 'preview-frame preview-pc';
+        }
+    }
+
+    function updatePreview() {
+        console.log('Updating preview content...');
+        
+        const previewOverlay = document.getElementById('preview-overlay');
+        const previewPoster = document.getElementById('preview-poster');
+        const previewMetadata = document.getElementById('preview-metadata');
+        const previewClock = document.getElementById('preview-clock');
+        const previewClearlogo = document.getElementById('preview-clearlogo');
+        const previewRtBadge = document.getElementById('preview-rt-badge');
+        
+        // Show loading overlay
+        if (previewOverlay) {
+            previewOverlay.style.display = 'flex';
+        }
+
+        // Fetch current config and generate preview
+        Promise.all([
+            fetch('/get-config').then(r => r.json()),
+            fetch('/get-media').then(r => r.json()) // Use the correct endpoint
+        ]).then(([config, mediaData]) => {
+            console.log('Preview data loaded successfully!');
+            console.log('Config data:', config);
+            console.log('Media data (first item):', Array.isArray(mediaData) ? mediaData[0] : mediaData);
+            
+            // Get first media item for preview (mediaData is an array)
+            const poster = Array.isArray(mediaData) && mediaData.length > 0 ? mediaData[0] : null;
+            
+            if (poster) {
+                console.log('Using poster data:', {
+                    title: poster.title,
+                    posterUrl: poster.posterUrl,
+                    clearLogoUrl: poster.clearLogoUrl,
+                    tagline: poster.tagline,
+                    rottenTomatoes: poster.rottenTomatoes
+                });
+            } else {
+                console.log('No poster data available, using mock data');
+            }
+            
+            // Update preview based on config
+            updatePreviewElements(config, poster, {
+                previewPoster,
+                previewMetadata, 
+                previewClock,
+                previewClearlogo,
+                previewRtBadge
+            });
+            
+            // Update orientation based on radio buttons
+            updatePreviewOrientation();
+            
+            // Hide loading overlay
+            if (previewOverlay) {
+                previewOverlay.style.display = 'none';
+            }
+            
+        }).catch(error => {
+            console.error('Error updating preview:', error);
+            
+            // Show preview with mock data if API fails
+            updatePreviewWithMockData({
+                previewPoster,
+                previewMetadata, 
+                previewClock,
+                previewClearlogo,
+                previewRtBadge
+            });
+            
+            // Hide loading overlay on error
+            if (previewOverlay) {
+                previewOverlay.style.display = 'none';
+            }
+        });
+    }
+
+    function updatePreviewElements(config, poster, elements) {
+        const { previewPoster, previewMetadata, previewClock, previewClearlogo, previewRtBadge } = elements;
+        
+        // Show/hide poster
+        if (config.showPoster && poster && previewPoster) {
+            // Use the correct property name from the media API
+            const posterUrl = poster.posterUrl || poster.posterPath || poster.poster || '';
+            previewPoster.src = posterUrl;
+            previewPoster.style.display = posterUrl ? 'block' : 'none';
+            console.log('Showing poster:', posterUrl);
+        } else if (previewPoster) {
+            previewPoster.style.display = 'none';
+            console.log('Hiding poster');
+        }
+        
+        // Show/hide metadata
+        if (config.showMetadata && poster && previewMetadata) {
+            const title = poster.title || poster.name || 'Sample Movie';
+            const tagline = poster.tagline || poster.summary || 'A great movie preview';
+            previewMetadata.innerHTML = `
+                <h3>${title}</h3>
+                <p>${tagline}</p>
+            `;
+            previewMetadata.style.display = 'block';
+            console.log('Showing metadata:', title);
+        } else if (previewMetadata) {
+            previewMetadata.style.display = 'none';
+            console.log('Hiding metadata');
+        }
+        
+        // Show/hide clock
+        if (config.clockWidget && previewClock) {
+            updatePreviewClock(config, previewClock);
+            previewClock.style.display = 'block';
+            console.log('Showing clock');
+        } else if (previewClock) {
+            previewClock.style.display = 'none';
+            console.log('Hiding clock');
+        }
+        
+        // Show/hide clear logo  
+        if (config.showClearLogo && poster && previewClearlogo) {
+            const logoUrl = poster.clearLogoUrl || poster.clearLogoPath || poster.clearLogo || '';
+            const logoImg = previewClearlogo.querySelector('img');
+            if (logoImg && logoUrl) {
+                logoImg.src = logoUrl;
+                previewClearlogo.style.display = 'block';
+                console.log('Showing clear logo:', logoUrl);
+            } else {
+                previewClearlogo.style.display = 'none';
+            }
+        } else if (previewClearlogo) {
+            previewClearlogo.style.display = 'none';
+            console.log('Hiding clear logo');
+        }
+        
+        // Show/hide RT badge
+        if (config.showRottenTomatoes && poster && previewRtBadge) {
+            const rtScore = poster.rottenTomatoes?.score || poster.rottenTomatoesScore || poster.rtScore || 0;
+            if (rtScore > 0) {
+                const badgeImg = previewRtBadge.querySelector('img');
+                if (badgeImg) {
+                    const isFresh = rtScore >= 60;
+                    badgeImg.src = `/icons/rt-${isFresh ? 'certified-fresh' : 'rotten'}.svg`;
+                    previewRtBadge.style.display = 'block';
+                    console.log('Showing RT badge:', rtScore, isFresh ? 'fresh' : 'rotten');
+                } else {
+                    console.log('RT badge img element not found');
+                }
+            } else {
+                previewRtBadge.style.display = 'none';
+                console.log('No RT score available:', rtScore);
+            }
+        } else if (previewRtBadge) {
+            previewRtBadge.style.display = 'none';
+            console.log('Hiding RT badge - config disabled or no poster');
+        }
+    }
+
+    function updatePreviewClock(config, previewClock) {
+        const now = new Date();
+        const timeFormat = config.clockFormat === '12h' ? 
+            { hour12: true, hour: 'numeric', minute: '2-digit' } :
+            { hour12: false, hour: '2-digit', minute: '2-digit' };
+        
+        const timeString = config.clockTimezone === 'auto' ?
+            now.toLocaleTimeString([], timeFormat) :
+            now.toLocaleTimeString([], { ...timeFormat, timeZone: config.clockTimezone });
+            
+        previewClock.textContent = timeString;
+        
+        // Update clock every second
+        if (!window.previewClockInterval) {
+            window.previewClockInterval = setInterval(() => {
+                if (config.clockWidget && previewClock.style.display !== 'none') {
+                    const now = new Date();
+                    const timeString = config.clockTimezone === 'auto' ?
+                        now.toLocaleTimeString([], timeFormat) :
+                        now.toLocaleTimeString([], { ...timeFormat, timeZone: config.clockTimezone });
+                    previewClock.textContent = timeString;
+                }
+            }, 1000);
+        }
+    }
+
+    function updatePreviewWithMockData(elements) {
+        const { previewPoster, previewMetadata, previewClock, previewClearlogo, previewRtBadge } = elements;
+        
+        // Show mock content if API fails
+        console.log('Using mock data for preview');
+        
+        if (previewMetadata) {
+            previewMetadata.innerHTML = `
+                <h3>Sample Movie</h3>
+                <p>This is a preview of how your screensaver will look</p>
+            `;
+            previewMetadata.style.display = 'block';
+        }
+        
+        // Other elements will be hidden since we don't have poster data
+        if (previewPoster) previewPoster.style.display = 'none';
+        if (previewClearlogo) previewClearlogo.style.display = 'none';
+        if (previewRtBadge) previewRtBadge.style.display = 'none';
+    }
+
+    function setupLivePreviewUpdates() {
+        // Find all display-related form elements (using correct field names from HTML)
+        const displayInputs = [
+            'showClearLogo',
+            'showRottenTomatoes', 
+            'rottenTomatoesMinimumScore',
+            'showPoster',
+            'showMetadata',
+            'clockWidget',
+            'clockTimezone',
+            'clockFormat',
+            'cinemaMode'
+        ];
+
+        console.log('Setting up live preview updates for:', displayInputs);
+
+        displayInputs.forEach(inputName => {
+            const input = document.querySelector(`[name="${inputName}"]`);
+            if (input) {
+                console.log(`Found input: ${inputName}`, input.type);
+                // Add event listeners for different input types
+                if (input.type === 'checkbox' || input.type === 'radio') {
+                    input.addEventListener('change', async () => {
+                        console.log(`Display setting changed: ${inputName} = ${input.checked || input.value}`);
+                        // Auto-save the configuration
+                        await saveConfigurationSilently();
+                        // Wait longer for config to be fully processed and cached
+                        setTimeout(() => updatePreview(), 2000);
+                    });
+                } else {
+                    // For text inputs, number inputs, selects
+                    input.addEventListener('input', debounce(async () => {
+                        console.log(`Display setting changed: ${inputName} = ${input.value}`);
+                        // Auto-save the configuration
+                        await saveConfigurationSilently();
+                        setTimeout(() => updatePreview(), 2000);
+                    }, 1000)); // Debounce for 1 second
+                }
+            } else {
+                console.log(`Input not found: ${inputName}`);
+            }
+        });
+    }
+
+    // Save configuration without showing notifications and clear cache
+    async function saveConfigurationSilently() {
+        try {
+            console.log('Auto-saving configuration for preview update...');
+            
+            // Get current config from server first to maintain structure
+            const currentConfigResponse = await fetch('/api/admin/config');
+            if (!currentConfigResponse.ok) {
+                console.error('Failed to fetch current config for merge');
+                return;
+            }
+            const currentData = await currentConfigResponse.json();
+            
+            // Create a deep copy of current config to modify
+            const configData = JSON.parse(JSON.stringify(currentData.config));
+            const envData = { ...currentData.env };
+            
+            // Only update the changed display field(s) while preserving nested structure
+            const displayInputs = [
+                'showClearLogo',
+                'showRottenTomatoes', 
+                'rottenTomatoesMinimumScore',
+                'showPoster',
+                'showMetadata',
+                'clockWidget',
+                'clockTimezone',
+                'clockFormat'
+            ];
+            
+            // Track what we're updating
+            const updates = {};
+            
+            // Update only display-related fields from the form
+            displayInputs.forEach(fieldName => {
+                const input = document.querySelector(`[name="${fieldName}"]`);
+                if (input) {
+                    let newValue;
+                    if (input.type === 'checkbox') {
+                        newValue = input.checked;
+                    } else if (input.type === 'number') {
+                        newValue = parseFloat(input.value) || 0;
+                    } else {
+                        newValue = input.value;
+                    }
+                    
+                    // Only update if value actually changed
+                    if (configData[fieldName] !== newValue) {
+                        configData[fieldName] = newValue;
+                        updates[fieldName] = newValue;
+                    }
+                }
+            });
+            
+            console.log('Config fields being updated:', updates);
+            
+            // Only save if there are actual changes
+            if (Object.keys(updates).length === 0) {
+                console.log('No config changes detected, skipping save');
+                return;
+            }
+            
+            const response = await fetch('/api/admin/config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    config: configData,
+                    env: envData
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Configuration auto-saved successfully:', result);
+            } else {
+                const errorText = await response.text();
+                console.error('Failed to auto-save configuration:', response.status, response.statusText, errorText);
+            }
+        } catch (error) {
+            console.error('Error auto-saving configuration:', error);
+        }
+    }
+
+    // Debounce function to prevent too many updates
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    function triggerConfigChanged() {
+        // Dispatch custom event when config is saved
+        document.dispatchEvent(new CustomEvent('configChanged'));
+    }
+
+    // Initialize preview when DOM is ready
+    setTimeout(() => {
+        initializePreview();
+    }, 100);
+
+    // Modify the existing save config function to trigger preview update
+    const originalSubmitHandler = document.querySelector('#config-form')?.onsubmit;
+    const previewConfigForm = document.querySelector('#config-form');
+    if (previewConfigForm && !previewConfigForm.dataset.previewHandlerAdded) {
+        previewConfigForm.dataset.previewHandlerAdded = 'true';
+        previewConfigForm.addEventListener('submit', (e) => {
+            // Let the original handler run first
+            setTimeout(() => {
+                triggerConfigChanged();
+            }, 1000); // Delay to ensure config is saved
+        });
+    }
+
 });

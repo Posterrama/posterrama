@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Timezone Test</title>
+</head>
+<body>
+    <h1>Browser Timezone Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        const now = new Date();
+        
+        function addResult(label, value) {
+            const div = document.createElement('div');
+            div.innerHTML = `<strong>${label}:</strong> ${value}`;
+            results.appendChild(div);
+        }
+        
+        // Test browser info
+        addResult('User Agent', navigator.userAgent);
+        addResult('Current Time', now.toString());
+        
+        // Test different timezone formats
+        const timezones = ['Europe/Amsterdam', 'America/New_York', 'Australia/Perth', 'auto'];
+        
+        timezones.forEach(tz => {
+            try {
+                if (tz === 'auto') {
+                    const timeString = now.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    addResult(`${tz} (no timeZone)`, timeString);
+                } else {
+                    const timeString = now.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZone: tz
+                    });
+                    addResult(tz, timeString);
+                }
+            } catch (error) {
+                addResult(`${tz} ERROR`, error.message);
+            }
+        });
+        
+        // Test Intl support
+        addResult('Intl Support', typeof Intl !== 'undefined' ? 'Yes' : 'No');
+        if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
+            try {
+                const supportedTimezones = Intl.supportedValuesOf ? 
+                    Intl.supportedValuesOf('timeZone').length : 'Unknown';
+                addResult('Supported Timezones Count', supportedTimezones);
+            } catch (e) {
+                addResult('Supported Timezones Count', 'Error checking');
+            }
+        }
+    </script>
+</body>
+</html>

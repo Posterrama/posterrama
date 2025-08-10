@@ -344,7 +344,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         try {
-            const timeString = now.toLocaleTimeString('en-US', timeOptions);
+            // Try primary method with browser compatibility check
+            let timeString;
+            if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
+                // Use Intl.DateTimeFormat for better browser compatibility
+                const formatter = new Intl.DateTimeFormat('en-US', timeOptions);
+                timeString = formatter.format(now);
+                console.debug('[Clock] Using Intl.DateTimeFormat:', { timezone, format, timeString, timeOptions });
+            } else {
+                // Fallback to toLocaleTimeString
+                timeString = now.toLocaleTimeString('en-US', timeOptions);
+                console.debug('[Clock] Using toLocaleTimeString fallback:', { timezone, format, timeString, timeOptions });
+            }
             
             if (format === '12h') {
                 // For 12h format, split time and AM/PM

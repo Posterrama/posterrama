@@ -188,7 +188,11 @@
 
     <main class="admin-main">
         <div id="notification-area" class="notification-container"></div>
-        <form id="config-form">
+        
+        <div class="main-layout">
+            <!-- Configuration Section -->
+            <div class="config-section">
+                <form id="config-form">
             <!-- General & Display Settings -->
             <div class="settings-grid">
                 <div class="settings-column">
@@ -245,7 +249,7 @@
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="clockWidget" name="clockWidget">
-                            <label for="clockWidget">Show Clock Widget</label>
+                            <label for="clockWidget">Show Clock</label>
                             <small class="help-text">Shows a clock in the top left of the screen.</small>
                         </div>
                         <div class="form-group" id="clockTimezoneGroup" style="display: none;">
@@ -510,6 +514,52 @@
                 </div>
             </div>
         </form>
+        </div>
+        
+        <!-- Preview Section -->
+        <div class="preview-section">
+            <h2>
+                <i class="fas fa-eye"></i>
+                Live Preview
+            </h2>
+            <div id="preview-container" class="preview-container">
+                <div class="preview-orientation-controls">
+                    <label class="orientation-option">
+                        <input type="radio" name="preview-orientation" value="landscape" checked>
+                        <i class="fas fa-tv"></i>
+                        Screensaver
+                    </label>
+                    <label class="orientation-option">
+                        <input type="radio" name="preview-orientation" value="portrait">
+                        <i class="fas fa-film"></i>
+                        Cinema
+                    </label>
+                </div>
+                <div class="preview-frame" id="preview-frame">
+                    <div class="preview-content" id="preview-content">
+                        <!-- Live preview content will be loaded here -->
+                        <div class="preview-poster-container">
+                            <img id="preview-poster" src="" alt="Preview Poster" style="display: none;">
+                            <div class="preview-metadata" id="preview-metadata"></div>
+                            <div class="preview-clock" id="preview-clock" style="display: none;"></div>
+                            <div class="preview-clearlogo" id="preview-clearlogo" style="display: none;">
+                                <img src="" alt="Clear Logo">
+                            </div>
+                            <div class="preview-rt-badge" id="preview-rt-badge" style="display: none;">
+                                <img src="" alt="Rotten Tomatoes">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="preview-overlay" id="preview-overlay">
+                        <div class="preview-status">
+                            <i class="fas fa-sync-alt fa-spin"></i>
+                            <span>Loading preview...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
         <footer class="admin-footer">
             <button type="submit" form="config-form" class="button-primary button-save">
                 <span class="icon"><i class="fas fa-save"></i></span>

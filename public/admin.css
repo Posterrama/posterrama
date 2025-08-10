@@ -134,20 +134,42 @@ a:hover {
     color: #fff;
 }
 
+/* Main layout with preview focus */
 .admin-main {
-    padding: 25px; /* Reduced padding for a more compact layout */
-    max-width: 1280px; /* Wider for more columns */
+    padding: 25px;
+    max-width: 1400px; /* Wider for preview layout */
     margin: 20px auto;
+}
+
+.main-layout {
+    display: grid;
+    grid-template-columns: 1fr 500px; /* Fixed preview width */
+    gap: 2rem;
+    align-items: start;
+}
+
+.config-section {
+    min-width: 0; /* Prevent overflow */
+}
+
+.preview-section {
+    position: sticky;
+    top: 90px; /* Stick below header */
+    background: rgba(22, 33, 62, 0.4);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    height: fit-content;
 }
 
 .settings-grid {
     display: grid;
-    /* Allow more columns on wider screens */
-    /* The minmax value is reduced to prevent horizontal overflow on narrow mobile screens.
-       320px is a safe value that avoids overflow on devices like the iPhone SE. */
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1.5rem; /* Reduced gap between columns */
-    margin-bottom: 1.5rem; /* Reduced bottom margin */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .settings-column h2 {
@@ -645,5 +667,262 @@ select optgroup {
     /* Hide the little arrow on mobile */
     .help-popup.is-active::after {
         display: none;
+    }
+}
+
+/* Realtime Preview Styles */
+.preview-section h2 {
+    margin: 0 0 15px 0;
+    color: #e0e0e0;
+    font-size: 1.2em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.preview-section h2 i {
+    color: #53a8b6;
+}
+
+.preview-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.preview-orientation-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.orientation-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85em;
+    color: #b3b3b3;
+    min-width: 0;
+}
+
+.orientation-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.orientation-option input[type="radio"] {
+    margin: 0;
+}
+
+.orientation-option input[type="radio"]:checked + i {
+    color: #53a8b6;
+}
+
+.orientation-option:has(input:checked) {
+    background: rgba(83, 168, 182, 0.15);
+    border-color: rgba(83, 168, 182, 0.3);
+    color: #e0e0e0;
+}
+
+.preview-frame {
+    position: relative;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    background: #000;
+}
+
+.preview-content {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: linear-gradient(45deg, #1a1a1a, #2d2d2d);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.preview-poster-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#preview-poster {
+    max-width: 85%;
+    max-height: 85%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+}
+
+.preview-metadata {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.preview-metadata h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.preview-metadata p {
+    margin: 0;
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+.preview-clock {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.preview-clearlogo {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    max-width: 120px;
+    max-height: 60px;
+}
+
+.preview-clearlogo img {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.8));
+}
+
+.preview-rt-badge {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 40px;
+}
+
+.preview-rt-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.preview-frame.preview-pc {
+    width: 100%;
+    max-width: 460px; /* Smaller for sidebar */
+    height: 259px; /* 16:9 aspect ratio */
+    margin: 0 auto;
+}
+
+.preview-frame.preview-cinema {
+    width: 230px; /* Smaller for sidebar */
+    height: 408px; /* 9:16 aspect ratio */
+    margin: 0 auto;
+}
+
+.preview-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: opacity 0.3s ease;
+}
+
+.preview-overlay.loaded {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.preview-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #e0e0e0;
+    font-size: 0.9em;
+}
+
+.preview-status .fa-spin {
+    color: #53a8b6;
+}
+
+/* Responsive adjustments for preview */
+@media (max-width: 1200px) {
+    .main-layout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    .preview-section {
+        position: static;
+        order: -1; /* Show preview at top on mobile */
+    }
+    
+    .preview-frame.preview-pc {
+        max-width: 100%;
+        height: auto;
+        aspect-ratio: 16/9;
+    }
+    
+    .preview-frame.preview-cinema {
+        width: 250px;
+        height: 444px;
+    }
+}
+
+@media (max-width: 768px) {
+    .preview-orientation-controls {
+        justify-content: center;
+        gap: 6px;
+    }
+    
+    .orientation-option {
+        padding: 5px 8px;
+        font-size: 0.8em;
+    }
+
+    .preview-frame.preview-pc {
+        height: auto;
+        aspect-ratio: 16/9;
+    }
+
+    .preview-frame.preview-cinema {
+        width: 200px;
+        height: 356px;
     }
 }

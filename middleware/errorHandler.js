@@ -81,6 +81,17 @@ function error(err, req, res, next) {
     const isProduction = process.env.NODE_ENV === 'production';
     const timestamp = new Date().toISOString();
 
+    // Handle null or undefined errors
+    if (!err) {
+        err = new Error('Unknown error occurred');
+        err.statusCode = 500;
+    }
+
+    // Ensure err has required properties
+    if (!err.message) {
+        err.message = 'An error occurred';
+    }
+
     // Log the error
     logger.error(`[Error Handler] Caught error for ${req.method} ${req.path}: ${err.message}`, {
         stack: err.stack,
