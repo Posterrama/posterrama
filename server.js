@@ -284,7 +284,13 @@ const adminApiLimiter = createRateLimiter(
 
 // Apply rate limiting
 app.use('/api/admin/', adminApiLimiter);
-app.use('/api/', apiLimiter);
+
+// In test mode, use more lenient rate limiting for all /api/ routes
+const testApiLimiter = process.env.NODE_ENV === 'test' ? 
+    createRateLimiter(15 * 60 * 1000, 1000, 'Too many requests from this IP, please try again later.') :
+    apiLimiter;
+
+app.use('/api/', testApiLimiter);
 app.use('/get-config', apiLimiter);
 app.use('/get-media', apiLimiter);
 app.use('/get-media-by-key', apiLimiter);

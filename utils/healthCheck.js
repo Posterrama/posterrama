@@ -103,7 +103,7 @@ async function checkMediaCache() {
         const files = await fs.readdir(imageCacheDir);
         
         return {
-            name: 'media_cache',
+            name: 'cache',
             status: 'ok',
             message: `Media cache directory is accessible with ${files.length} cached items.`,
             details: {
@@ -113,7 +113,7 @@ async function checkMediaCache() {
         };
     } catch (error) {
         return {
-            name: 'media_cache',
+            name: 'cache',
             status: 'warning',
             message: `Media cache check failed: ${error.message}`,
             details: { error: error.message }

@@ -176,8 +176,8 @@ describe('Health Check Endpoints', () => {
                 .get('/api/health')
                 .expect(200);
 
-            // Wait for cache to expire (assuming 30 second cache)
-            await new Promise(resolve => setTimeout(resolve, 100)); // Short wait for test
+            // Wait to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             const response2 = await request(app)
                 .get('/api/health')

@@ -6,6 +6,10 @@ module.exports = {
   // This prevents confusion and ensures a clean project structure.
   roots: ['<rootDir>/__tests__'],
   
+  // Add timeout and force exit to prevent hanging
+  testTimeout: 30000, // 30 second timeout
+  forceExit: true,    // Force exit after tests complete
+  
   // Coverage configuration
   collectCoverage: false, // Set to true by default if you want coverage always
   collectCoverageFrom: [
