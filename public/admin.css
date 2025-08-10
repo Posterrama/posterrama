@@ -244,10 +244,47 @@ input[type="number"] {
 
 input[type="text"]:focus,
 input[type="password"]:focus,
-input[type="number"]:focus {
+input[type="number"]:focus,
+select:focus {
     border-color: #bb86fc; /* Highlight with the primary color on focus */
     box-shadow: 0 0 0 3px rgba(187, 134, 252, 0.2); /* Add a soft glow */
 }
+
+/* Select dropdown styling */
+select {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e0e0e0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    outline: none;
+    cursor: pointer;
+    width: 100%;
+    max-height: 200px;
+}
+
+/* Timezone select specific styling for scrolling */
+select[name="clockTimezone"] {
+    overflow-y: auto;
+    height: auto;
+    max-height: 200px;
+}
+
+select option {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    padding: 8px;
+}
+
+select optgroup {
+    background-color: #2a2a2a;
+    color: #bb86fc;
+    font-weight: bold;
+}
+
+/* Checkbox styling */
 
 .button-primary {
     background-color: #bb86fc;

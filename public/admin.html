@@ -250,7 +250,7 @@
                         </div>
                         <div class="form-group" id="clockTimezoneGroup" style="display: none;">
                             <label for="clockTimezone">Clock Timezone</label>
-                            <select id="clockTimezone" name="clockTimezone">
+                            <select id="clockTimezone" name="clockTimezone" style="max-height: 200px; overflow-y: auto;">
                                 <option value="auto">Auto (System Timezone)</option>
                                 <optgroup label="Common Timezones">
                                     <option value="Europe/Amsterdam">Europe/Amsterdam (CET/CEST)</option>
@@ -264,6 +264,35 @@
                                     <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
                                     <option value="Asia/Shanghai">Asia/Shanghai (CST)</option>
                                     <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
+                                </optgroup>
+                                <optgroup label="Additional Timezones">
+                                    <option value="UTC">UTC (Coordinated Universal Time)</option>
+                                    <option value="Africa/Cairo">Africa/Cairo (EET)</option>
+                                    <option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option>
+                                    <option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires (ART)</option>
+                                    <option value="America/Mexico_City">America/Mexico_City (CST/CDT)</option>
+                                    <option value="America/Sao_Paulo">America/Sao_Paulo (BRT/BRST)</option>
+                                    <option value="America/Toronto">America/Toronto (EST/EDT)</option>
+                                    <option value="America/Vancouver">America/Vancouver (PST/PDT)</option>
+                                    <option value="Asia/Bangkok">Asia/Bangkok (ICT)</option>
+                                    <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                                    <option value="Asia/Hong_Kong">Asia/Hong_Kong (HKT)</option>
+                                    <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
+                                    <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+                                    <option value="Asia/Seoul">Asia/Seoul (KST)</option>
+                                    <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
+                                    <option value="Asia/Taipei">Asia/Taipei (CST)</option>
+                                    <option value="Australia/Brisbane">Australia/Brisbane (AEST)</option>
+                                    <option value="Australia/Melbourne">Australia/Melbourne (AEST/AEDT)</option>
+                                    <option value="Australia/Perth">Australia/Perth (AWST)</option>
+                                    <option value="Europe/Athens">Europe/Athens (EET/EEST)</option>
+                                    <option value="Europe/Istanbul">Europe/Istanbul (TRT)</option>
+                                    <option value="Europe/Moscow">Europe/Moscow (MSK)</option>
+                                    <option value="Europe/Rome">Europe/Rome (CET/CEST)</option>
+                                    <option value="Europe/Stockholm">Europe/Stockholm (CET/CEST)</option>
+                                    <option value="Europe/Zurich">Europe/Zurich (CET/CEST)</option>
+                                    <option value="Pacific/Auckland">Pacific/Auckland (NZST/NZDT)</option>
+                                    <option value="Pacific/Honolulu">Pacific/Honolulu (HST)</option>
                                 </optgroup>
                             </select>
                             <small class="help-text">Select the timezone for the clock display. Uses IANA timezone identifiers.</small>
