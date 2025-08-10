@@ -248,6 +248,34 @@
                             <label for="clockWidget">Show Clock Widget</label>
                             <small class="help-text">Shows a clock in the top left of the screen.</small>
                         </div>
+                        <div class="form-group" id="clockTimezoneGroup" style="display: none;">
+                            <label for="clockTimezone">Clock Timezone</label>
+                            <select id="clockTimezone" name="clockTimezone">
+                                <option value="auto">Auto (System Timezone)</option>
+                                <optgroup label="Common Timezones">
+                                    <option value="Europe/Amsterdam">Europe/Amsterdam (CET/CEST)</option>
+                                    <option value="Europe/London">Europe/London (GMT/BST)</option>
+                                    <option value="Europe/Berlin">Europe/Berlin (CET/CEST)</option>
+                                    <option value="Europe/Paris">Europe/Paris (CET/CEST)</option>
+                                    <option value="America/New_York">America/New_York (EST/EDT)</option>
+                                    <option value="America/Chicago">America/Chicago (CST/CDT)</option>
+                                    <option value="America/Denver">America/Denver (MST/MDT)</option>
+                                    <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+                                    <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                                    <option value="Asia/Shanghai">Asia/Shanghai (CST)</option>
+                                    <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
+                                </optgroup>
+                            </select>
+                            <small class="help-text">Select the timezone for the clock display. Uses IANA timezone identifiers.</small>
+                        </div>
+                        <div class="form-group" id="clockFormatGroup" style="display: none;">
+                            <label for="clockFormat">Clock Format</label>
+                            <select id="clockFormat" name="clockFormat">
+                                <option value="24h">24-hour format (23:45)</option>
+                                <option value="12h">12-hour format (11:45 PM)</option>
+                            </select>
+                            <small class="help-text">Choose between 12-hour format with AM/PM or 24-hour format.</small>
+                        </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="kenBurnsEffect.enabled" name="kenBurnsEffect.enabled">
                             <label for="kenBurnsEffect.enabled">Enable Ken Burns Effect</label>

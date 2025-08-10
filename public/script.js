@@ -327,10 +327,64 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateClock() {
         const now = new Date();
-        const hours = now.getHours().toString().padStart(2, '0');
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        timeHours.textContent = hours;
-        timeMinutes.textContent = minutes;
+        
+        // Get timezone and format from config
+        const timezone = appConfig.clockTimezone || 'auto';
+        const format = appConfig.clockFormat || '24h';
+        
+        let timeOptions = {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: format === '12h'
+        };
+        
+        // Apply timezone if not 'auto'
+        if (timezone !== 'auto') {
+            timeOptions.timeZone = timezone;
+        }
+        
+        try {
+            const timeString = now.toLocaleTimeString('en-US', timeOptions);
+            
+            if (format === '12h') {
+                // For 12h format, split time and AM/PM
+                const parts = timeString.split(' ');
+                const timePart = parts[0];
+                const ampm = parts[1];
+                
+                const [hours, minutes] = timePart.split(':');
+                timeHours.textContent = hours;
+                timeMinutes.textContent = minutes;
+                
+                // Add AM/PM indicator if not already present
+                let ampmElement = document.getElementById('time-ampm');
+                if (!ampmElement) {
+                    ampmElement = document.createElement('span');
+                    ampmElement.id = 'time-ampm';
+                    ampmElement.className = 'time-ampm';
+                    document.getElementById('time-widget').appendChild(ampmElement);
+                }
+                ampmElement.textContent = ampm;
+            } else {
+                // For 24h format, just use hours and minutes
+                const [hours, minutes] = timeString.split(':');
+                timeHours.textContent = hours;
+                timeMinutes.textContent = minutes;
+                
+                // Remove AM/PM indicator if present
+                const ampmElement = document.getElementById('time-ampm');
+                if (ampmElement) {
+                    ampmElement.remove();
+                }
+            }
+        } catch (error) {
+            // Fallback to basic formatting if timezone is invalid
+            console.warn('Invalid timezone configuration, falling back to system timezone:', error);
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            timeHours.textContent = hours;
+            timeMinutes.textContent = minutes;
+        }
     }
 
     pauseButton.addEventListener('click', () => {

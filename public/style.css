@@ -229,6 +229,16 @@ html, body {
     font-weight: 700;
     color: var(--text-color-muted); /* Increased opacity for clarity, but still transparent */
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); /* A sharper, darker shadow to define the edges */
+    display: flex;
+    align-items: baseline;
+    gap: 0.2em;
+}
+
+.time-ampm {
+    font-size: 0.6em;
+    font-weight: 600;
+    opacity: 0.8;
+    margin-left: 0.3em;
 }
 
 

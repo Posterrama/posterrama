@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
         showPoster: true,
         showMetadata: true,
         clockWidget: true,
+        clockTimezone: 'auto',
+        clockFormat: '24h',
         kenBurnsEffect: {
             enabled: true,
             durationSeconds: 25
@@ -69,13 +71,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('showPoster').checked = config.showPoster ?? defaults.showPoster;
         document.getElementById('showMetadata').checked = config.showMetadata ?? defaults.showMetadata;
         document.getElementById('clockWidget').checked = config.clockWidget ?? defaults.clockWidget;
+        document.getElementById('clockTimezone').value = config.clockTimezone ?? defaults.clockTimezone;
+        document.getElementById('clockFormat').value = config.clockFormat ?? defaults.clockFormat;
         document.getElementById('kenBurnsEffect.enabled').checked = get(config, 'kenBurnsEffect.enabled', defaults.kenBurnsEffect.enabled);
         document.getElementById('kenBurnsEffect.durationSeconds').value = get(config, 'kenBurnsEffect.durationSeconds', defaults.kenBurnsEffect.durationSeconds);
+        
+        // Show/hide timezone settings based on clockWidget state
+        toggleClockSettings();
     }
 
     function setupDisplaySettingListeners() {
         const showPosterCheckbox = document.getElementById('showPoster');
         const showMetadataCheckbox = document.getElementById('showMetadata');
+        const clockWidgetCheckbox = document.getElementById('clockWidget');
 
         const syncMetadataState = () => {
             if (!showPosterCheckbox.checked) {
@@ -94,7 +102,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        syncMetadataState(); // Set initial state
+        // Setup clock widget toggle
+        clockWidgetCheckbox.addEventListener('change', toggleClockSettings);
+
+        // Initial state
+        syncMetadataState();
+        toggleClockSettings();
+    }
+
+    function toggleClockSettings() {
+        const clockWidget = document.getElementById('clockWidget');
+        const timezoneGroup = document.getElementById('clockTimezoneGroup');
+        const formatGroup = document.getElementById('clockFormatGroup');
+        
+        if (clockWidget.checked) {
+            timezoneGroup.style.display = 'block';
+            formatGroup.style.display = 'block';
+        } else {
+            timezoneGroup.style.display = 'none';
+            formatGroup.style.display = 'none';
+        }
     }
 
     function populateSecuritySettings(security) {
@@ -822,6 +849,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     showPoster: getValue('showPoster'),
                     showMetadata: getValue('showMetadata'),
                     clockWidget: getValue('clockWidget'),
+                    clockTimezone: getValue('clockTimezone'),
+                    clockFormat: getValue('clockFormat'),
                     kenBurnsEffect: {
                         enabled: getValue('kenBurnsEffect.enabled'),
                         durationSeconds: getValue('kenBurnsEffect.durationSeconds', 'number')

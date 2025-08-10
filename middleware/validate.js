@@ -11,6 +11,8 @@ const purify = DOMPurify(window);
 const configSchema = Joi.object({
     config: Joi.object({
         clockWidget: Joi.boolean().required(),
+        clockTimezone: Joi.string().default('auto').optional(),
+        clockFormat: Joi.string().valid('12h', '24h').default('24h').optional(),
         transitionIntervalSeconds: Joi.number().integer().min(1).max(300).required(),
         backgroundRefreshMinutes: Joi.number().integer().min(1).max(1440).required(),
         showClearLogo: Joi.boolean().required(),
@@ -21,6 +23,14 @@ const configSchema = Joi.object({
         kenBurnsEffect: Joi.object({
             enabled: Joi.boolean().required(),
             durationSeconds: Joi.number().integer().min(5).max(60).required()
+        }).optional(),
+        mediaServers: Joi.object({
+            plex: Joi.object({
+                hostname: Joi.string().required(),
+                port: Joi.number().integer().min(1).max(65535).required(),
+                token: Joi.string().required(),
+                ssl: Joi.boolean().optional()
+            }).optional()
         }).optional(),
         customMessage: Joi.string().max(500).optional()
     }).required()

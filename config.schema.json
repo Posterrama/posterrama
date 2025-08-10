@@ -40,6 +40,17 @@
             "description": "Shows a clock in the top left of the screen.",
             "type": "boolean"
         },
+        "clockTimezone": {
+            "description": "Timezone for the clock widget (IANA timezone identifier like 'Europe/Amsterdam', 'America/New_York'). Defaults to system timezone.",
+            "type": "string",
+            "default": "auto"
+        },
+        "clockFormat": {
+            "description": "Clock display format: '12h' for 12-hour format with AM/PM, '24h' for 24-hour format.",
+            "type": "string",
+            "enum": ["12h", "24h"],
+            "default": "24h"
+        },
         "kenBurnsEffect": {
             "description": "Adds a subtle zoom/pan effect to the background images.",
             "type": "object",

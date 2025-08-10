@@ -6,13 +6,27 @@ describe('Input Validation Middleware', () => {
         test('should accept valid config data', async () => {
             const validConfig = {
                 clockWidget: true,
+                kenBurnsEffect: {
+                    enabled: true,
+                    durationSeconds: 20
+                },
+                clockTimezone: 'auto',
+                clockFormat: '24h',
                 transitionIntervalSeconds: 10,
                 backgroundRefreshMinutes: 5,
                 showClearLogo: true,
                 showPoster: true,
                 showMetadata: true,
                 showRottenTomatoes: true,
-                rottenTomatoesMinimumScore: 7.5
+                rottenTomatoesMinimumScore: 7.5,
+                mediaServers: {
+                    plex: {
+                        hostname: 'localhost',
+                        port: 32400,
+                        token: 'test-token',
+                        ssl: false
+                    }
+                }
             };
 
             const response = await request(app)
@@ -54,6 +68,74 @@ describe('Input Validation Middleware', () => {
 
             expect(response.body.success).toBe(false);
             expect(response.body.error).toBe('Validation failed');
+        });
+
+        test('should accept valid clock timezone configuration', async () => {
+            const configWithTimezone = {
+                clockWidget: true,
+                kenBurnsEffect: {
+                    enabled: false,
+                    durationSeconds: 10
+                },
+                clockTimezone: 'auto',
+                clockFormat: '12h',
+                transitionIntervalSeconds: 15,
+                backgroundRefreshMinutes: 30,
+                showClearLogo: true,
+                showPoster: true,
+                showMetadata: true,
+                showRottenTomatoes: true,
+                rottenTomatoesMinimumScore: 0,
+                mediaServers: {
+                    plex: {
+                        hostname: 'localhost',
+                        port: 32400,
+                        token: 'test-token',
+                        ssl: false
+                    }
+                }
+            };
+
+            const response = await request(app)
+                .post('/api/v1/admin/config/validate')
+                .send({ config: configWithTimezone })
+                .expect(200);
+
+            expect(response.body.success).toBe(true);
+        });
+
+        test('should accept valid IANA timezone identifier', async () => {
+            const configWithIANA = {
+                clockWidget: true,
+                kenBurnsEffect: {
+                    enabled: true,
+                    durationSeconds: 30
+                },
+                clockTimezone: 'America/New_York',
+                clockFormat: '24h',
+                transitionIntervalSeconds: 15,
+                backgroundRefreshMinutes: 30,
+                showClearLogo: true,
+                showPoster: true,
+                showMetadata: true,
+                showRottenTomatoes: true,
+                rottenTomatoesMinimumScore: 0,
+                mediaServers: {
+                    plex: {
+                        hostname: 'localhost',
+                        port: 32400,
+                        token: 'test-token',
+                        ssl: false
+                    }
+                }
+            };
+
+            const response = await request(app)
+                .post('/api/v1/admin/config/validate')
+                .send({ config: configWithIANA })
+                .expect(200);
+
+            expect(response.body.success).toBe(true);
         });
     });
 
