@@ -1199,7 +1199,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Fetch current config and generate preview
         Promise.all([
-            fetch('/get-config').then(r => r.json()),
+            fetch('/get-config', {
+                cache: 'no-cache',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            }).then(r => r.json()),
             fetch('/get-media').then(r => r.json()) // Use the correct endpoint
         ]).then(([config, mediaData]) => {
             console.log('Preview data loaded successfully!');

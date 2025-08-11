@@ -2773,8 +2773,8 @@ app.get('/health/detailed', asyncHandler(async (req, res) => {
  */
 app.get('/get-config', 
     cacheMiddleware({
-        ttl: 600000, // 10 minutes
-        cacheControl: 'public, max-age=600',
+        ttl: 30000, // 30 seconds instead of 10 minutes
+        cacheControl: 'public, max-age=30',
         varyHeaders: ['Accept-Encoding']
     }),
     (req, res) => {

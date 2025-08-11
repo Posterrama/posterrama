@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let timerId = null;
     let controlsTimer = null;
     let refreshTimerId = null;
+    let configRefreshTimerId = null;
     let appConfig = {};
     let preloadedImage = null;
 
@@ -64,7 +65,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function initialize() {
         try {
-            const configResponse = await fetch('/get-config');
+            const configResponse = await fetch('/get-config', {
+                cache: 'no-cache',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
             appConfig = await configResponse.json();
 
             // Logic for the public site promo box.
@@ -101,6 +108,109 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (appConfig.backgroundRefreshMinutes > 0) {
             if (refreshTimerId) clearInterval(refreshTimerId);
             refreshTimerId = setInterval(fetchMedia, appConfig.backgroundRefreshMinutes * 60 * 1000);
+        }
+
+        // Periodically refresh configuration to pick up admin changes
+        // Check for config changes every 30 seconds
+        if (configRefreshTimerId) clearInterval(configRefreshTimerId);
+        configRefreshTimerId = setInterval(refreshConfig, 30 * 1000);
+    }
+
+    async function refreshConfig() {
+        try {
+            const configResponse = await fetch('/get-config', {
+                cache: 'no-cache',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            const newConfig = await configResponse.json();
+            
+            // Check if configuration has changed
+            const configChanged = JSON.stringify(appConfig) !== JSON.stringify(newConfig);
+            
+            if (configChanged) {
+                console.log('Configuration changed, applying updates...');
+                const oldConfig = { ...appConfig };
+                appConfig = newConfig;
+                
+                // Apply configuration changes
+                applyConfigurationChanges(oldConfig, newConfig);
+            }
+        } catch (error) {
+            console.error('Failed to refresh configuration:', error);
+        }
+    }
+
+    function applyConfigurationChanges(oldConfig, newConfig) {
+        // Handle display changes
+        if (oldConfig.showPoster !== newConfig.showPoster) {
+            if (newConfig.showPoster === false) {
+                infoContainer.classList.add('is-hidden');
+            } else {
+                infoContainer.classList.remove('is-hidden');
+            }
+        }
+
+        // Handle clock widget changes
+        if (oldConfig.clockWidget !== newConfig.clockWidget) {
+            const widgetContainer = document.getElementById('widget-container');
+            if (newConfig.clockWidget) {
+                widgetContainer.style.display = 'block';
+                updateClock();
+                if (!document.clockUpdateInterval) {
+                    document.clockUpdateInterval = setInterval(updateClock, 1000);
+                }
+            } else {
+                widgetContainer.style.display = 'none';
+                if (document.clockUpdateInterval) {
+                    clearInterval(document.clockUpdateInterval);
+                    document.clockUpdateInterval = null;
+                }
+            }
+        }
+
+        // Handle clock timezone or format changes
+        if (oldConfig.clockTimezone !== newConfig.clockTimezone || 
+            oldConfig.clockFormat !== newConfig.clockFormat) {
+            updateClock(); // Update clock immediately with new settings
+        }
+
+        // Handle metadata display changes
+        if (oldConfig.showMetadata !== newConfig.showMetadata) {
+            updateCurrentMediaDisplay();
+        }
+
+        // Handle clear logo display changes
+        if (oldConfig.showClearLogo !== newConfig.showClearLogo) {
+            updateCurrentMediaDisplay();
+        }
+
+        // Handle Rotten Tomatoes display changes
+        if (oldConfig.showRottenTomatoes !== newConfig.showRottenTomatoes) {
+            updateCurrentMediaDisplay();
+        }
+
+        // Handle background refresh interval changes
+        if (oldConfig.backgroundRefreshMinutes !== newConfig.backgroundRefreshMinutes) {
+            if (refreshTimerId) clearInterval(refreshTimerId);
+            if (newConfig.backgroundRefreshMinutes > 0) {
+                refreshTimerId = setInterval(fetchMedia, newConfig.backgroundRefreshMinutes * 60 * 1000);
+            }
+        }
+
+        console.log('Configuration changes applied successfully');
+    }
+
+    function updateCurrentMediaDisplay() {
+        // Re-render the current media item with updated configuration
+        if (currentIndex >= 0 && currentIndex < mediaQueue.length) {
+            const currentMedia = mediaQueue[currentIndex];
+            if (currentMedia) {
+                renderMediaItem(currentMedia);
+                console.log('Updated current media display with new configuration');
+            }
         }
     }
 
