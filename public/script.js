@@ -117,6 +117,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Apply initial UI scaling
         applyUIScaling(appConfig);
+
+        // Apply cinema mode
+        applyCinemaMode(appConfig);
     }
 
     function applyUIScaling(config) {
@@ -131,23 +134,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Calculate final scaling values (individual * global / 100)
         const globalScale = scaling.global || 100;
-        const posterScale = ((scaling.poster || 100) * globalScale) / 100;
-        const textScale = ((scaling.text || 100) * globalScale) / 100;
+        const contentScale = ((scaling.content || 100) * globalScale) / 100;
         const clearlogoScale = ((scaling.clearlogo || 100) * globalScale) / 100;
         const clockScale = ((scaling.clock || 100) * globalScale) / 100;
 
         // Set CSS custom properties for scaling
-        root.style.setProperty('--poster-scale', posterScale / 100);
-        root.style.setProperty('--text-scale', textScale / 100);
+        root.style.setProperty('--content-scale', contentScale / 100);
         root.style.setProperty('--clearlogo-scale', clearlogoScale / 100);
         root.style.setProperty('--clock-scale', clockScale / 100);
 
         console.log('Applied UI scaling:', {
-            poster: posterScale,
-            text: textScale,
+            content: contentScale,
             clearlogo: clearlogoScale,
             clock: clockScale
         });
+    }
+
+    function applyCinemaMode(config) {
+        const body = document.body;
+        
+        // Remove any existing cinema mode classes
+        body.classList.remove('cinema-mode', 'cinema-auto', 'cinema-portrait', 'cinema-portrait-flipped');
+        
+        if (config.cinemaMode) {
+            console.log('Applying cinema mode with orientation:', config.cinemaOrientation);
+            
+            // Add cinema mode base class
+            body.classList.add('cinema-mode');
+            
+            // Add orientation-specific class
+            const orientation = config.cinemaOrientation || 'auto';
+            body.classList.add(`cinema-${orientation}`);
+            
+            // Force info container to be visible in cinema mode
+            setTimeout(() => {
+                infoContainer.classList.add('visible');
+            }, 100);
+        }
     }
 
     async function refreshConfig() {
@@ -174,6 +197,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // Apply UI scaling changes
                 applyUIScaling(newConfig);
+                
+                // Apply cinema mode changes
+                applyCinemaMode(newConfig);
             }
         } catch (error) {
             console.error('Failed to refresh configuration:', error);
@@ -237,6 +263,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        // Handle cinema mode changes
+        if (oldConfig.cinemaMode !== newConfig.cinemaMode || 
+            oldConfig.cinemaOrientation !== newConfig.cinemaOrientation) {
+            applyCinemaMode(newConfig);
+        }
+
         console.log('Configuration changes applied successfully');
     }
 
@@ -246,21 +278,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             const root = document.documentElement;
             const globalScale = (config.uiScaling.global || 100) / 100;
             
-            // Calculate combined scales (individual * global)
-            const posterScale = ((config.uiScaling.poster || 100) / 100) * globalScale;
-            const textScale = ((config.uiScaling.text || 100) / 100) * globalScale;
+            // Support both old and new field names for backwards compatibility
+            let contentScale;
+            if (config.uiScaling.content !== undefined) {
+                // New format: use content field
+                contentScale = ((config.uiScaling.content || 100) / 100) * globalScale;
+            } else if (config.uiScaling.poster !== undefined || config.uiScaling.text !== undefined) {
+                // Old format: use average of poster and text, or fallback to poster
+                const posterVal = config.uiScaling.poster || 100;
+                const textVal = config.uiScaling.text || posterVal;
+                contentScale = ((Math.max(posterVal, textVal) || 100) / 100) * globalScale;
+            } else {
+                // Default
+                contentScale = globalScale;
+            }
+            
             const clearlogoScale = ((config.uiScaling.clearlogo || 100) / 100) * globalScale;
             const clockScale = ((config.uiScaling.clock || 100) / 100) * globalScale;
             
             // Apply to CSS custom properties
-            root.style.setProperty('--poster-scale', posterScale);
-            root.style.setProperty('--text-scale', textScale);
+            root.style.setProperty('--content-scale', contentScale);
             root.style.setProperty('--clearlogo-scale', clearlogoScale);
             root.style.setProperty('--clock-scale', clockScale);
             
             console.log('Applied UI scaling:', {
-                poster: posterScale,
-                text: textScale,
+                content: contentScale,
                 clearlogo: clearlogoScale,
                 clock: clockScale
             });
@@ -368,12 +410,30 @@ document.addEventListener('DOMContentLoaded', async () => {
      * @param {object} mediaItem The media item object to render.
      */
     function renderMediaItem(mediaItem) {
-        posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
-        if (mediaItem.imdbUrl) {
-            posterLink.href = mediaItem.imdbUrl;
+        console.log('[DEBUG] renderMediaItem called, cinemaMode:', appConfig.cinemaMode);
+        
+        // Apply transition effects to poster in cinema mode
+        if (appConfig.cinemaMode) {
+            console.log('[DEBUG] Cinema mode is active, applying poster layer effects');
+            applyPosterTransitionEffect(mediaItem.posterUrl);
         } else {
-            // Make the poster non-clickable if there is no IMDb URL
+            console.log('[DEBUG] Cinema mode is OFF, using original poster');
+            posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+        }
+        
+        // In cinema mode, disable all poster links
+        if (appConfig.cinemaMode) {
             posterLink.removeAttribute('href');
+            posterLink.style.cursor = 'default';
+        } else {
+            // Normal mode - handle links as usual
+            if (mediaItem.imdbUrl) {
+                posterLink.href = mediaItem.imdbUrl;
+                posterLink.style.cursor = 'pointer';
+            } else {
+                posterLink.removeAttribute('href');
+                posterLink.style.cursor = 'default';
+            }
         }
         titleEl.textContent = mediaItem.title;
         taglineEl.textContent = mediaItem.tagline || '';
@@ -438,28 +498,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
         img.src = currentMedia.backgroundUrl;
         img.onload = () => {
-            if (appConfig.kenBurnsEffect && appConfig.kenBurnsEffect.enabled) {
-                const animations = [
-                    'kenburns-zoom-out-tl', 'kenburns-zoom-out-br', 'kenburns-zoom-out-tr', 'kenburns-zoom-out-bl',
-                    'kenburns-zoom-in-tl', 'kenburns-zoom-in-br', 'kenburns-zoom-in-tr', 'kenburns-zoom-in-bl'
-                ];
-                const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
-                const duration = appConfig.kenBurnsEffect.durationSeconds || 25;
-
-                // Use 'forwards' to keep the end state of the animation.
-                // This removes the "pulsing" `infinite alternate` effect and creates a smooth,
-                // one-way motion that is more cinematic and less distracting.
-                inactiveLayer.style.animation = `${randomAnimation} ${duration}s linear forwards`;
-            } else {
-                inactiveLayer.style.animation = 'none';
-            }
-
+            // Set the background image first
             inactiveLayer.style.backgroundImage = `url('${currentMedia.backgroundUrl}')`;
-            activeLayer.style.opacity = 0;
-            inactiveLayer.style.opacity = 1;
-            const tempLayer = activeLayer;
-            activeLayer = inactiveLayer;
-            inactiveLayer = tempLayer;            
+            
+            console.log('[DEBUG] Background image set on layer:', inactiveLayer.id, 'Image URL:', currentMedia.backgroundUrl);
+            console.log('[DEBUG] Layer styles before effect - opacity:', inactiveLayer.style.opacity, 'transform:', inactiveLayer.style.transform);
+            
+            // Apply transition effects with proper layering
+            applyTransitionEffect(inactiveLayer, activeLayer, false);
+            
             renderMediaItem(currentMedia);
 
             if (loader.style.opacity !== '0') {
@@ -472,10 +519,419 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 setTimeout(() => {
                     infoContainer.classList.add('visible');
+                    
+                    // Additional check for cinema mode
+                    if (appConfig.cinemaMode) {
+                        infoContainer.classList.add('visible');
+                    }
                 }, 500);
             }
             if (!isPaused) startTimer();
         };
+    }
+
+    // Apply transition effects specifically for posters in cinema mode
+    function applyPosterTransitionEffect(newPosterUrl) {
+        console.log('[DEBUG] applyPosterTransitionEffect called with URL:', newPosterUrl);
+        
+        // Get poster layer elements
+        const posterA = document.getElementById('poster-a');
+        const posterB = document.getElementById('poster-b');
+        
+        if (!posterA || !posterB) {
+            console.warn('[DEBUG] Poster layers not found, falling back to original poster');
+            const originalPoster = document.getElementById('poster');
+            if (originalPoster) {
+                originalPoster.style.backgroundImage = `url('${newPosterUrl}')`;
+            }
+            return;
+        }
+        
+        // Get transition effect configuration
+        const transitionEffect = appConfig.transitionEffect || 'none';
+        const transitionInterval = appConfig.transitionIntervalSeconds || 15;
+        const pauseTime = (appConfig.effectPauseTime !== null && appConfig.effectPauseTime !== undefined) ? appConfig.effectPauseTime : 2;
+        
+        // NEW LOGIC: effect duration = total interval - pause time
+        const effectDuration = Math.max(1, transitionInterval - pauseTime);
+        
+        // Use same logic as screensaver mode for actual durations
+        const actualDuration = effectDuration; // Use calculated effect duration
+        const actualPauseTime = pauseTime; // Use full pause time
+
+        console.log('[DEBUG] Poster effect config:', {
+            transitionEffect,
+            transitionInterval,
+            pauseTime,
+            effectDuration,
+            actualDuration,
+            actualPauseTime
+        });
+
+        // Determine which layer is currently active and which is new
+        const currentLayer = posterA.style.opacity === '1' ? posterA : posterB;
+        const newLayer = currentLayer === posterA ? posterB : posterA;
+        
+        console.log('[DEBUG] Layer setup:', {
+            currentLayer: currentLayer.id,
+            newLayer: newLayer.id,
+            currentOpacity: currentLayer.style.opacity,
+            newOpacity: newLayer.style.opacity
+        });
+
+        // Set the new image on the new layer
+        newLayer.style.backgroundImage = `url('${newPosterUrl}')`;
+        
+        // Clear any existing animations and reset to starting state
+        newLayer.style.animation = 'none';
+        newLayer.style.transition = 'none';
+        newLayer.style.transform = 'none';
+        newLayer.style.opacity = '0';
+        
+        console.log('[DEBUG] After reset - newLayer opacity:', newLayer.style.opacity, 'animation:', newLayer.style.animation);
+
+        // Force reflow to ensure styles are applied
+        newLayer.offsetHeight;
+
+        if (transitionEffect === 'none') {
+            console.log('[DEBUG] Applying NONE effect to poster layers');
+            newLayer.style.transition = 'opacity 0.8s ease-in-out';
+            
+            setTimeout(() => {
+                console.log('[DEBUG] Setting new layer opacity to 1');
+                newLayer.style.opacity = '1';
+                currentLayer.style.opacity = '0';
+                
+                // Hold for pause time
+                setTimeout(() => {
+                    console.log('[DEBUG] Pause complete for NONE effect');
+                }, actualPauseTime * 1000);
+            }, 100);
+            return;
+        }
+
+        // Handle Ken Burns for posters - DISABLED for cinema mode
+        if ((transitionEffect === 'kenburns' || 
+            (!appConfig.transitionEffect && appConfig.kenBurnsEffect && appConfig.kenBurnsEffect.enabled))) {
+            
+            console.log('[DEBUG] Ken Burns disabled for cinema mode - using fade instead');
+            // Fall through to fade behavior
+        }
+
+        // Apply other effects to poster layers
+        switch (transitionEffect) {
+            case 'kenburns':
+                // Ken Burns disabled for cinema mode - fall through to fade
+                console.log('[DEBUG] Ken Burns effect redirected to fade for cinema mode');
+            case 'fade':
+                console.log('[DEBUG] Applying FADE effect to poster layers');
+                const fadeInDuration = 1.5; // Fixed fade in duration
+                const holdDuration = actualDuration - actualPauseTime - fadeInDuration; // Hold visible
+                
+                // Fade in new layer while fading out old layer
+                newLayer.style.transition = `opacity ${fadeInDuration}s ease-in-out`;
+                currentLayer.style.transition = `opacity ${fadeInDuration}s ease-in-out`;
+                
+                setTimeout(() => {
+                    console.log('[DEBUG] Cross-fading poster layers, duration:', fadeInDuration + 's', 'hold:', holdDuration + 's', 'pause:', actualPauseTime + 's');
+                    newLayer.style.opacity = '1';
+                    currentLayer.style.opacity = '0';
+                    
+                    // Hold visible for calculated time
+                    setTimeout(() => {
+                        console.log('[DEBUG] Fade hold time complete');
+                    }, holdDuration * 1000);
+                }, 100);
+                break;
+                
+            case 'slide':
+                console.log('[DEBUG] Applying SLIDE effect to poster layers');
+                const slideDuration = actualDuration - actualPauseTime;
+                
+                // Only left/right slides for cinema mode with cinema-specific animations
+                const slideDirections = ['cinema-slide-in-left', 'cinema-slide-in-right'];
+                const slideDirection = slideDirections[Math.floor(Math.random() * slideDirections.length)];
+                
+                console.log('[DEBUG] Starting cinema slide animation:', slideDirection, 'duration:', slideDuration + 's', 'pause:', actualPauseTime + 's');
+                
+                // Set initial state for slide - new layer starts off-screen
+                newLayer.style.opacity = '1';
+                newLayer.style.transition = 'none';
+                newLayer.style.transform = slideDirection.includes('left') ? 'translateX(-100%)' : 'translateX(100%)';
+                newLayer.style.animation = 'none';
+                
+                // Current layer stays visible
+                currentLayer.style.opacity = '1';
+                currentLayer.style.transition = 'none';
+                currentLayer.style.transform = 'translateX(0)';
+                
+                // Force reflow
+                newLayer.offsetHeight;
+                
+                setTimeout(() => {
+                    console.log('[DEBUG] Starting slide animation on both layers');
+                    
+                    // Animate new layer sliding in
+                    newLayer.style.animation = `${slideDirection} ${slideDuration}s ease-out forwards`;
+                    
+                    // Animate old layer sliding out (opposite direction)
+                    const slideOutDirection = slideDirection.includes('left') ? 'cinema-slide-out-right' : 'cinema-slide-out-left';
+                    currentLayer.style.animation = `${slideOutDirection} ${slideDuration}s ease-out forwards`;
+                    
+                    // After animation + pause
+                    setTimeout(() => {
+                        console.log('[DEBUG] Cinema slide animation + pause complete');
+                        newLayer.style.animation = 'none';
+                        newLayer.style.transform = 'translateX(0)';
+                        currentLayer.style.animation = 'none';
+                        currentLayer.style.opacity = '0';
+                        currentLayer.style.transform = 'translateX(0)';
+                    }, (slideDuration + actualPauseTime) * 1000);
+                }, 100);
+                break;
+                
+            default:
+                console.warn(`[DEBUG] Poster effect not implemented for: ${transitionEffect}, using fade`);
+                newLayer.style.transition = 'opacity 1s ease-in-out';
+                
+                setTimeout(() => {
+                    newLayer.style.opacity = '1';
+                    currentLayer.style.opacity = '0';
+                }, 100);
+                break;
+        }
+    }
+
+    // Apply transition effects based on configuration
+    function applyTransitionEffect(newLayer, oldLayer, isPoster = false) {
+        // Clear any existing animation classes
+        newLayer.className = newLayer.className.replace(/\beffect-\w+\b/g, '');
+        newLayer.style.animation = 'none';
+        newLayer.style.transition = 'none';
+
+        // Get transition effect configuration
+        const transitionEffect = appConfig.transitionEffect || 'none';
+        const transitionInterval = appConfig.transitionIntervalSeconds || 15;
+        const pauseTime = (appConfig.effectPauseTime !== null && appConfig.effectPauseTime !== undefined) ? appConfig.effectPauseTime : 2;
+        
+        // NEW LOGIC: effect duration = total interval - pause time
+        const effectDuration = Math.max(1, transitionInterval - pauseTime);
+
+        console.log('[DEBUG] Applying transition effect:', {
+            transitionEffect,
+            transitionInterval,
+            pauseTime,
+            effectDuration,
+            isPoster,
+            hasOldKenBurns: !!(appConfig.kenBurnsEffect && appConfig.kenBurnsEffect.enabled)
+        });
+
+        // For posters in cinema mode, use shorter duration for better UX
+        const actualDuration = isPoster ? effectDuration : effectDuration;
+        const actualPauseTime = isPoster ? pauseTime : pauseTime;
+
+        if (transitionEffect === 'none') {
+            // For 'none', just do a simple crossfade with pause
+            newLayer.style.opacity = 0;
+            newLayer.style.transition = 'opacity 0.5s ease-in-out';
+            
+            // Trigger the transition
+            requestAnimationFrame(() => {
+                newLayer.style.opacity = 1;
+                if (oldLayer) {
+                    oldLayer.style.opacity = 0;
+                }
+                
+                // Swap layers after transition + pause
+                setTimeout(() => {
+                    swapLayers(newLayer, oldLayer);
+                }, 500 + (actualPauseTime * 1000));
+            });
+            return;
+        }
+
+        // Handle backward compatibility with old Ken Burns config
+        if (transitionEffect === 'kenburns') {
+            const kenBurnsVariations = [
+                'kenburns-zoom-out-tl', 'kenburns-zoom-out-br', 'kenburns-zoom-out-tr', 'kenburns-zoom-out-bl',
+                'kenburns-zoom-in-tl', 'kenburns-zoom-in-br', 'kenburns-zoom-in-tr', 'kenburns-zoom-in-bl'
+            ];
+            const randomAnimation = kenBurnsVariations[Math.floor(Math.random() * kenBurnsVariations.length)];
+            
+            // Start with opacity 0, then animate in with Ken Burns
+            newLayer.style.opacity = 0;
+            newLayer.style.transition = 'opacity 1s ease-in-out';
+            
+            requestAnimationFrame(() => {
+                newLayer.style.opacity = 1;
+                newLayer.style.animation = `${randomAnimation} ${actualDuration}s linear forwards`;
+                if (oldLayer) {
+                    oldLayer.style.opacity = 0;
+                }
+                
+                // Swap layers after fade in (no pause for Ken Burns)
+                setTimeout(() => {
+                    swapLayers(newLayer, oldLayer);
+                }, 1000);
+            });
+            return;
+        }
+
+        // Backward compatibility: if transitionEffect is not set but old kenBurnsEffect is enabled
+        if (!appConfig.transitionEffect && appConfig.kenBurnsEffect && appConfig.kenBurnsEffect.enabled) {
+            const kenBurnsVariations = [
+                'kenburns-zoom-out-tl', 'kenburns-zoom-out-br', 'kenburns-zoom-out-tr', 'kenburns-zoom-out-bl',
+                'kenburns-zoom-in-tl', 'kenburns-zoom-in-br', 'kenburns-zoom-in-tr', 'kenburns-zoom-in-bl'
+            ];
+            const randomAnimation = kenBurnsVariations[Math.floor(Math.random() * kenBurnsVariations.length)];
+            
+            newLayer.style.opacity = 0;
+            newLayer.style.transition = 'opacity 1s ease-in-out';
+            
+            requestAnimationFrame(() => {
+                newLayer.style.opacity = 1;
+                newLayer.style.animation = `${randomAnimation} ${actualDuration}s linear forwards`;
+                if (oldLayer) {
+                    oldLayer.style.opacity = 0;
+                }
+                
+                setTimeout(() => {
+                    swapLayers(newLayer, oldLayer);
+                }, 1000);
+            });
+            return;
+        }
+
+        // Apply the selected effect with proper layering
+        switch (transitionEffect) {
+            case 'fade':
+                // Proper crossfade: both layers visible, new layer fades in while old fades out
+                newLayer.style.opacity = 0;
+                newLayer.style.transition = `opacity ${actualDuration}s ease-in-out`;
+                
+                if (oldLayer) {
+                    oldLayer.style.transition = `opacity ${actualDuration}s ease-in-out`;
+                }
+                
+                requestAnimationFrame(() => {
+                    newLayer.style.opacity = 1;
+                    if (oldLayer) {
+                        oldLayer.style.opacity = 0;
+                    }
+                    
+                    // Swap layers after effect + pause
+                    setTimeout(() => {
+                        swapLayers(newLayer, oldLayer);
+                    }, (actualDuration + actualPauseTime) * 1000);
+                });
+                break;
+                
+            case 'slide':
+                // True slide effect with proper layer management
+                const slideDirections = ['slide-in-left', 'slide-in-right', 'slide-in-up', 'slide-in-down'];
+                const randomSlide = slideDirections[Math.floor(Math.random() * slideDirections.length)];
+                
+                console.log('[DEBUG] Starting slide animation:', randomSlide);
+                console.log('[DEBUG] newLayer (will slide in):', newLayer.id);
+                console.log('[DEBUG] oldLayer (background):', oldLayer ? oldLayer.id : 'none');
+                console.log('[DEBUG] newLayer background image:', newLayer.style.backgroundImage ? 'set' : 'not set');
+                
+                // Ensure old layer is visible and positioned correctly as background
+                if (oldLayer) {
+                    oldLayer.style.transform = 'none';
+                    oldLayer.style.animation = 'none';
+                    oldLayer.style.transition = 'none';
+                    oldLayer.style.opacity = 1;
+                    console.log('[DEBUG] oldLayer set to visible as background');
+                }
+                
+                // Prepare new layer for slide animation - start with opacity 1 so it's visible during slide
+                newLayer.style.opacity = 1;
+                newLayer.style.transition = 'none';
+                newLayer.style.transform = 'none';
+                newLayer.style.zIndex = 2; // Make sure new layer is on top
+                
+                if (oldLayer) {
+                    oldLayer.style.zIndex = 1; // Old layer behind
+                }
+                
+                // Force a reflow
+                newLayer.offsetHeight;
+                
+                console.log('[DEBUG] About to start animation:', randomSlide);
+                
+                // Apply slide animation
+                newLayer.style.animation = `${randomSlide} ${actualDuration}s ease-out forwards`;
+                
+                // After animation completes, clean up
+                setTimeout(() => {
+                    console.log('[DEBUG] Slide animation complete, cleaning up');
+                    
+                    // Reset the new layer completely
+                    newLayer.style.animation = 'none';
+                    newLayer.style.transform = 'none';
+                    newLayer.style.opacity = 1;
+                    newLayer.style.zIndex = '';
+                    
+                    // Hide old layer
+                    if (oldLayer) {
+                        oldLayer.style.opacity = 0;
+                        oldLayer.style.animation = 'none';
+                        oldLayer.style.transform = 'none';
+                        oldLayer.style.zIndex = '';
+                    }
+                    
+                    // Swap the global references
+                    const tempLayer = activeLayer;
+                    activeLayer = inactiveLayer;
+                    inactiveLayer = tempLayer;
+                    
+                    console.log('[DEBUG] Layer swap complete. New activeLayer:', activeLayer.id);
+                    
+                }, actualDuration * 1000);
+                
+                return; // Exit early to avoid the swapLayers call at the end
+                
+            default:
+                console.warn(`Unknown transition effect: ${transitionEffect}`);
+                // Fallback to simple crossfade
+                newLayer.style.opacity = 0;
+                newLayer.style.transition = 'opacity 1s ease-in-out';
+                
+                requestAnimationFrame(() => {
+                    newLayer.style.opacity = 1;
+                    if (oldLayer) {
+                        oldLayer.style.opacity = 0;
+                    }
+                    
+                    setTimeout(() => {
+                        swapLayers(newLayer, oldLayer);
+                    }, (1 + actualPauseTime) * 1000);
+                });
+                break;
+        }
+    }
+
+    // Helper function to swap layers after transition
+    function swapLayers(newLayer, oldLayer) {
+        if (oldLayer) {
+            // Reset old layer completely
+            oldLayer.style.animation = 'none';
+            oldLayer.style.transition = 'none';
+            oldLayer.style.opacity = 0;
+            oldLayer.style.transform = 'none'; // Reset any transforms from animations
+        }
+        
+        // Reset new layer transitions but keep it visible
+        newLayer.style.transition = 'none';
+        newLayer.style.animation = 'none';
+        newLayer.style.transform = 'none'; // Reset any transforms from animations
+        newLayer.style.opacity = 1; // Ensure it's visible
+        
+        // Update global layer references
+        const tempLayer = activeLayer;
+        activeLayer = inactiveLayer;
+        inactiveLayer = tempLayer;
     }
 
     function changeMedia(direction = 'next', isFirstLoad = false, isErrorSkip = false) {
@@ -484,7 +940,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Hide info immediately to prepare for the new content
         if (!isErrorSkip) {
-            infoContainer.classList.remove('visible');
+            // In cinema mode, don't hide the info container
+            if (!appConfig.cinemaMode) {
+                infoContainer.classList.remove('visible');
+            }
             clearlogoEl.classList.remove('visible');
             rtBadge.classList.remove('visible'); // Hide RT badge
         }
@@ -497,7 +956,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function startTimer() {
         if (timerId) clearInterval(timerId);
-        const interval = (appConfig.transitionIntervalSeconds || 15) * 1000;
+        
+        // Calculate total time including effect duration + pause time
+        const transitionInterval = appConfig.transitionIntervalSeconds || 15;
+        const effectPauseTime = (appConfig.effectPauseTime !== null && appConfig.effectPauseTime !== undefined) ? appConfig.effectPauseTime : 2;
+        
+        // Total interval should be: effect duration + pause time
+        // But if user sets a specific interval, respect that as the total time
+        const totalInterval = transitionInterval; // User sets total time
+        const interval = totalInterval * 1000;
+        
+        console.log('[TIMER] Starting timer with total interval:', totalInterval + 's', 'effect pause:', effectPauseTime + 's');
+        
         timerId = setInterval(() => changeMedia('next'), interval);
     }
 
@@ -623,13 +1093,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const centerY = rect.height / 2;
         const rotateX = ((y - centerY) / centerY) * -8;
         const rotateY = ((x - centerX) / centerX) * 8;
-        posterEl.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.08, 1.08, 1.08)`;
+        
+        // Get current content scale from CSS variable
+        const contentScale = getComputedStyle(document.documentElement).getPropertyValue('--content-scale').trim() || '1';
+        posterEl.style.transform = `scale(${contentScale}) perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.08, 1.08, 1.08)`;
         posterEl.style.setProperty('--mouse-x', `${x}px`);
         posterEl.style.setProperty('--mouse-y', `${y}px`);
     });
 
     posterWrapper.addEventListener('mouseleave', () => {
-        posterEl.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+        // Get current content scale from CSS variable
+        const contentScale = getComputedStyle(document.documentElement).getPropertyValue('--content-scale').trim() || '1';
+        posterEl.style.transform = `scale(${contentScale}) perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)`;
     });
 
     initialize();

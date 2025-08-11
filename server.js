@@ -270,14 +270,14 @@ const { createRateLimiter } = require('./middleware/rateLimiter');
 // General API Rate Limiting (more lenient for screensaver usage)
 const apiLimiter = createRateLimiter(
     15 * 60 * 1000, // 15 minutes
-    500, // Max requests (increased from 100)
+    1000, // Max requests (increased for heavy usage)
     'Too many requests from this IP, please try again later.'
 );
 
-// Admin API Rate Limiting (more restrictive)
+// Admin API Rate Limiting (more lenient for development/testing)
 const adminApiLimiter = createRateLimiter(
     15 * 60 * 1000, // 15 minutes
-    200, // Max requests (increased from 50)
+    500, // Max requests (increased for admin testing)
     'Too many admin API requests from this IP, please try again later.'
 );
 
@@ -2782,6 +2782,8 @@ app.get('/get-config',
             clockWidget: config.clockWidget !== false,
             clockTimezone: config.clockTimezone || 'auto',
             clockFormat: config.clockFormat || '24h',
+            cinemaMode: config.cinemaMode || false,
+            cinemaOrientation: config.cinemaOrientation || 'auto',
             transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
             backgroundRefreshMinutes: config.backgroundRefreshMinutes || 30,
             showClearLogo: config.showClearLogo !== false,
@@ -2789,7 +2791,15 @@ app.get('/get-config',
             showMetadata: config.showMetadata === true,
             showRottenTomatoes: config.showRottenTomatoes !== false,
             rottenTomatoesMinimumScore: config.rottenTomatoesMinimumScore || 0,
-            kenBurnsEffect: config.kenBurnsEffect || { enabled: true, durationSeconds: 20 }
+            transitionEffect: config.transitionEffect || 'kenburns',
+            effectPauseTime: config.effectPauseTime || 2,
+            kenBurnsEffect: config.kenBurnsEffect || { enabled: true, durationSeconds: 20 },
+            uiScaling: config.uiScaling || {
+                content: 100,
+                clearlogo: 100,
+                clock: 100,
+                global: 100
+            }
         });
     });
 

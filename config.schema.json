@@ -51,40 +51,40 @@
             "enum": ["12h", "24h"],
             "default": "24h"
         },
-        "kenBurnsEffect": {
-            "description": "Adds a subtle zoom/pan effect to the background images.",
-            "type": "object",
-            "properties": {
-                "enabled": {
-                    "type": "boolean"
-                },
-                "durationSeconds": {
-                    "type": "integer",
-                    "minimum": 1
-                }
-            },
-            "required": [
-                "enabled",
-                "durationSeconds"
-            ]
+        "cinemaMode": {
+            "description": "Enable cinema mode for portrait displays with fullscreen poster layout.",
+            "type": "boolean",
+            "default": false
+        },
+        "cinemaOrientation": {
+            "description": "Force a specific portrait orientation for cinema mode instead of relying on device sensors.",
+            "type": "string",
+            "enum": ["auto", "portrait", "portrait-flipped"],
+            "default": "auto"
+        },
+        "transitionEffect": {
+            "description": "Visual transition effect for background images and posters. Duration is automatically calculated based on transition interval.",
+            "type": "string",
+            "enum": ["none", "kenburns", "fade", "slide"],
+            "default": "kenburns"
+        },
+        "effectPauseTime": {
+            "description": "Time to pause after effect completes before next transition in seconds (not applied to Ken Burns effect).",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 2
         },
         "uiScaling": {
             "description": "Scaling settings for UI elements to adapt to different screen sizes and resolutions.",
             "type": "object",
             "properties": {
-                "poster": {
+                "content": {
                     "type": "integer",
                     "minimum": 50,
                     "maximum": 200,
                     "default": 100,
-                    "description": "Poster size scaling percentage (50-200%)"
-                },
-                "text": {
-                    "type": "integer",
-                    "minimum": 50,
-                    "maximum": 200,
-                    "default": 100,
-                    "description": "Text size scaling percentage (50-200%)"
+                    "description": "Poster and metadata content size scaling percentage (50-200%)"
                 },
                 "clearlogo": {
                     "type": "integer",
@@ -109,8 +109,7 @@
                 }
             },
             "required": [
-                "poster",
-                "text", 
+                "content",
                 "clearlogo",
                 "clock",
                 "global"
@@ -217,7 +216,8 @@
         "showPoster",
         "showMetadata",
         "clockWidget",
-        "kenBurnsEffect",
+        "transitionEffect",
+        "effectPauseTime",
         "mediaServers"
     ]
 }

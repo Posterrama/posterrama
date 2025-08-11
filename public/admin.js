@@ -12,13 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
         clockWidget: true,
         clockTimezone: 'auto',
         clockFormat: '24h',
-        kenBurnsEffect: {
-            enabled: true,
-            durationSeconds: 25
-        },
+        cinemaMode: false,
+        cinemaOrientation: 'auto',
+        transitionEffect: 'kenburns',
+        effectPauseTime: 2,
         uiScaling: {
-            poster: 100,
-            text: 100,
+            content: 100,
             clearlogo: 100,
             clock: 100,
             global: 100
@@ -42,6 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let adminBgTimer = null;
     let activeAdminLayer = null;
     let inactiveAdminLayer = null;
+
+    // --- Preview Slideshow State ---
+    let previewMediaQueue = [];
+    let previewMediaIndex = -1;
+    let previewTimer = null;
+    let currentPreviewConfig = null;
+    let isCinemaMode = false;
 
     /**
      * Helper to safely get a value from a nested object.
@@ -80,8 +86,33 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('clockWidget').checked = config.clockWidget ?? defaults.clockWidget;
         document.getElementById('clockTimezone').value = config.clockTimezone ?? defaults.clockTimezone;
         document.getElementById('clockFormat').value = config.clockFormat ?? defaults.clockFormat;
-        document.getElementById('kenBurnsEffect.enabled').checked = get(config, 'kenBurnsEffect.enabled', defaults.kenBurnsEffect.enabled);
-        document.getElementById('kenBurnsEffect.durationSeconds').value = get(config, 'kenBurnsEffect.durationSeconds', defaults.kenBurnsEffect.durationSeconds);
+        
+        // Handle backward compatibility: convert old kenBurnsEffect to new transitionEffect
+        let transitionEffect = config.transitionEffect ?? defaults.transitionEffect;
+
+        if (!transitionEffect && config.kenBurnsEffect) {
+            transitionEffect = config.kenBurnsEffect.enabled ? 'kenburns' : 'none';
+        }
+
+        document.getElementById('transitionEffect').value = transitionEffect;
+        document.getElementById('effectPauseTime').value = config.effectPauseTime ?? defaults.effectPauseTime;
+        document.getElementById('cinemaMode').checked = config.cinemaMode ?? defaults.cinemaMode;
+        document.getElementById('cinemaOrientation').value = config.cinemaOrientation ?? defaults.cinemaOrientation;
+        
+        // Set cinema mode state from config
+        isCinemaMode = config.cinemaMode ?? defaults.cinemaMode;
+        
+        // Show/hide cinema orientation settings based on cinema mode
+        const cinemaOrientationGroup = document.getElementById('cinemaOrientationGroup');
+        if (cinemaOrientationGroup) {
+            cinemaOrientationGroup.style.display = isCinemaMode ? 'block' : 'none';
+        }
+        
+        // Apply cinema mode settings (including Ken Burns dropdown handling)
+        toggleCinemaModeSettings(isCinemaMode);
+        
+        // Show/hide display settings based on cinema mode
+        toggleCinemaModeSettings(isCinemaMode);
         
         // Populate UI scaling settings
         populateUIScalingSettings(config, defaults);
@@ -94,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const scalingConfig = config.uiScaling || defaults.uiScaling;
         
         // Populate range sliders and their value displays
-        const scalingFields = ['poster', 'text', 'clearlogo', 'clock', 'global'];
+        const scalingFields = ['content', 'clearlogo', 'clock', 'global'];
         scalingFields.forEach(field => {
             const slider = document.getElementById(`uiScaling.${field}`);
             const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
@@ -104,15 +135,116 @@ document.addEventListener('DOMContentLoaded', () => {
                 slider.value = value;
                 valueDisplay.textContent = `${value}%`;
                 
+                // Update slider background to show progress
+                updateSliderBackground(slider);
+                
                 // Add event listener to update display in real-time
                 slider.addEventListener('input', () => {
                     valueDisplay.textContent = `${slider.value}%`;
+                    updateSliderBackground(slider);
                 });
                 
                 // Add event listener for live preview updates
                 slider.addEventListener('change', () => {
                     updatePreview();
                 });
+                
+                // Add keyboard support for fine control
+                slider.addEventListener('keydown', (e) => {
+                    let currentValue = parseInt(slider.value);
+                    let newValue = currentValue;
+                    
+                    switch(e.key) {
+                        case 'ArrowLeft':
+                        case 'ArrowDown':
+                            newValue = Math.max(parseInt(slider.min), currentValue - 1);
+                            break;
+                        case 'ArrowRight':
+                        case 'ArrowUp':
+                            newValue = Math.min(parseInt(slider.max), currentValue + 1);
+                            break;
+                        case 'PageDown':
+                            newValue = Math.max(parseInt(slider.min), currentValue - 10);
+                            break;
+                        case 'PageUp':
+                            newValue = Math.min(parseInt(slider.max), currentValue + 10);
+                            break;
+                        case 'Home':
+                            newValue = parseInt(slider.min);
+                            break;
+                        case 'End':
+                            newValue = parseInt(slider.max);
+                            break;
+                        default:
+                            return; // Don't prevent default for other keys
+                    }
+                    
+                    if (newValue !== currentValue) {
+                        e.preventDefault();
+                        slider.value = newValue;
+                        valueDisplay.textContent = `${newValue}%`;
+                        updateSliderBackground(slider);
+                        updatePreview();
+                    }
+                });
+            }
+        });
+
+        // Function to update slider background based on value
+        function updateSliderBackground(slider) {
+            const value = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+            slider.style.background = `linear-gradient(to right, #bb86fc 0%, #bb86fc ${value}%, rgba(255, 255, 255, 0.1) ${value}%, rgba(255, 255, 255, 0.1) 100%)`;
+        }
+
+        // Setup reset button
+        setupUIScalingResetButton();
+
+        // Setup preset buttons
+        setupUIScalingPresets();
+    }
+
+    function setupUIScalingResetButton() {
+        const resetButton = document.getElementById('reset-ui-scaling');
+        if (!resetButton) return;
+
+        resetButton.addEventListener('click', async () => {
+            // Visual feedback - disable button temporarily
+            resetButton.disabled = true;
+            resetButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+            
+            // Reset all sliders to default values (100%)
+            const scalingFields = ['content', 'clearlogo', 'clock', 'global'];
+            
+            scalingFields.forEach(field => {
+                const slider = document.getElementById(`uiScaling.${field}`);
+                const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
+                
+                if (slider && valueDisplay) {
+                    slider.value = 100;
+                    valueDisplay.textContent = '100%';
+                }
+            });
+
+            // Apply immediately to preview
+            applyScalingToPreview();
+
+            try {
+                // Save the reset values
+                await saveConfigurationSilently();
+                
+                // Show success notification
+                showNotification('UI scaling reset to defaults', 'success');
+                
+                console.log('UI scaling reset to defaults');
+            } catch (error) {
+                console.error('Failed to save reset values:', error);
+                showNotification('Failed to save reset values', 'error');
+            } finally {
+                // Restore button state
+                setTimeout(() => {
+                    resetButton.disabled = false;
+                    resetButton.innerHTML = '<i class="fas fa-undo"></i> Reset to Defaults';
+                }, 1000);
             }
         });
     }
@@ -200,6 +332,8 @@ document.addEventListener('DOMContentLoaded', () => {
             populateGeneralSettings(config, env, defaults);
             populateDisplaySettings(config, defaults);
             setupDisplaySettingListeners();
+            setupPreviewTimerListener();
+            setupCinemaModeListeners();
             populateSecuritySettings(security);
             const { savedMovieLibs, savedShowLibs } = populatePlexSettings(config, env, defaults);
 
@@ -756,6 +890,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadConfig();
 
+    // Cleanup timers when page unloads
+    window.addEventListener('beforeunload', () => {
+        stopPreviewTimer();
+        if (adminBgTimer) {
+            clearInterval(adminBgTimer);
+            adminBgTimer = null;
+        }
+    });
+
     const debugCheckbox = document.getElementById('DEBUG');
     const debugAction = document.getElementById('debug-cache-action');
 
@@ -844,7 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // --- Numeric Field Validation ---
                 const numericFieldIds = [
                     'transitionIntervalSeconds', 'backgroundRefreshMinutes',
-                    'SERVER_PORT', 'rottenTomatoesMinimumScore', 'kenBurnsEffect.durationSeconds',
+                    'SERVER_PORT', 'rottenTomatoesMinimumScore', 'effectPauseTime',
                     'mediaServers[0].movieCount', 'mediaServers[0].showCount'
                 ];
 
@@ -888,9 +1031,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     clockWidget: getValue('clockWidget'),
                     clockTimezone: getValue('clockTimezone'),
                     clockFormat: getValue('clockFormat'),
-                    kenBurnsEffect: {
-                        enabled: getValue('kenBurnsEffect.enabled'),
-                        durationSeconds: getValue('kenBurnsEffect.durationSeconds', 'number')
+                    cinemaMode: getValue('cinemaMode'),
+                    cinemaOrientation: getValue('cinemaOrientation'),
+                    transitionEffect: getValue('transitionEffect'),
+                    effectPauseTime: getValue('effectPauseTime', 'number'),
+                    uiScaling: {
+                        content: getValue('uiScaling.content', 'number') || 100,
+                        clearlogo: getValue('uiScaling.clearlogo', 'number') || 100,
+                        clock: getValue('uiScaling.clock', 'number') || 100,
+                        global: getValue('uiScaling.global', 'number') || 100
                     },
                     mediaServers: [{
                         name: "Plex Server", // This is not editable in the UI
@@ -1160,14 +1309,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Handle orientation radio buttons
-        const orientationRadios = document.querySelectorAll('input[name="preview-orientation"]');
-        orientationRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                updatePreviewOrientation();
-            });
-        });
-
         // Set up live updates for DISPLAY SETTINGS
         setupLivePreviewUpdates();
 
@@ -1204,15 +1345,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updatePreviewOrientation() {
         const previewFrame = document.getElementById('preview-frame');
-        const orientationRadios = document.querySelectorAll('input[name="preview-orientation"]');
         
         if (!previewFrame) return;
 
-        const selectedOrientation = Array.from(orientationRadios).find(radio => radio.checked)?.value;
-        
-        if (selectedOrientation === 'portrait') {
+        if (isCinemaMode) {
             // Cinema Mode (Portrait)
             previewFrame.className = 'preview-frame preview-cinema';
+            
+            // Apply cinema orientation if specified
+            const cinemaOrientationSelect = document.getElementById('cinemaOrientation');
+            if (cinemaOrientationSelect) {
+                const orientation = cinemaOrientationSelect.value;
+                
+                // Remove existing orientation classes
+                previewFrame.classList.remove('portrait-flipped');
+                
+                // Add specific orientation class
+                if (orientation === 'portrait-flipped') {
+                    previewFrame.classList.add('portrait-flipped');
+                }
+                // Note: 'auto' and 'portrait' don't need special classes (default state)
+            }
         } else {
             // PC Mode (Landscape) - default
             previewFrame.className = 'preview-frame preview-pc';
@@ -1244,8 +1397,20 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Config data:', config);
             console.log('Media data (first item):', Array.isArray(mediaData) ? mediaData[0] : mediaData);
             
-            // Get first media item for preview (mediaData is an array)
-            const poster = Array.isArray(mediaData) && mediaData.length > 0 ? mediaData[0] : null;
+            // Store config and media data for timer
+            currentPreviewConfig = config;
+            previewMediaQueue = Array.isArray(mediaData) ? mediaData : [];
+            
+            // Reset index for fresh random selection on each update
+            previewMediaIndex = -1;
+            
+            // Get media item for preview
+            let poster = null;
+            if (previewMediaQueue.length > 0) {
+                // Select random item
+                previewMediaIndex = Math.floor(Math.random() * previewMediaQueue.length);
+                poster = previewMediaQueue[previewMediaIndex];
+            }
             
             if (poster) {
                 console.log('Using poster data:', {
@@ -1268,6 +1433,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update orientation based on radio buttons
             updatePreviewOrientation();
             
+            // Start preview timer based on transition interval
+            startPreviewTimer(config);
+            
             // Hide loading overlay
             if (previewOverlay) {
                 previewOverlay.style.display = 'none';
@@ -1286,7 +1454,120 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function startPreviewTimer(config) {
+        // Clear existing timer
+        if (previewTimer) {
+            clearInterval(previewTimer);
+            previewTimer = null;
+        }
+
+        // Only start timer if we have media and config
+        if (previewMediaQueue.length > 1 && config && config.transitionIntervalSeconds) {
+            const interval = config.transitionIntervalSeconds * 1000;
+            console.log(`Starting preview timer with ${config.transitionIntervalSeconds}s interval`);
+            
+            previewTimer = setInterval(() => {
+                changePreviewMedia();
+            }, interval);
+        }
+    }
+
+    function changePreviewMedia() {
+        if (previewMediaQueue.length === 0) return;
+
+        // Move to next media item
+        previewMediaIndex = (previewMediaIndex + 1) % previewMediaQueue.length;
+        const poster = previewMediaQueue[previewMediaIndex];
+
+        console.log(`Preview switching to item ${previewMediaIndex + 1}/${previewMediaQueue.length}:`, poster.title);
+
+        // Update preview elements with new media
+        if (currentPreviewConfig && poster) {
+            updatePreviewElements(currentPreviewConfig, poster);
+        }
+    }
+
+    function stopPreviewTimer() {
+        if (previewTimer) {
+            clearInterval(previewTimer);
+            previewTimer = null;
+            console.log('Preview timer stopped');
+        }
+    }
+
     function updatePreviewElements(config, poster, elements) {
+        if (isCinemaMode) {
+            updateCinemaPreview(config, poster);
+        } else {
+            updateNormalPreview(config, poster);
+        }
+    }
+
+    function updateCinemaPreview(config, poster) {
+        const previewContent = document.getElementById('preview-content');
+        
+        if (!previewContent || !poster) return;
+
+        // Clear existing content
+        previewContent.innerHTML = '';
+
+        // Create cinema layout
+        const cinemaContainer = document.createElement('div');
+        cinemaContainer.className = 'cinema-poster-container';
+
+        // Header section
+        const header = document.createElement('div');
+        header.className = 'cinema-header';
+        header.textContent = 'NOW SHOWING';
+
+        // Poster container with ambilight effect
+        const posterContainer = document.createElement('div');
+        posterContainer.style.cssText = `
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        `;
+
+        // Ambilight background
+        const ambilight = document.createElement('div');
+        ambilight.className = 'cinema-ambilight';
+        if (poster.posterUrl) {
+            ambilight.style.backgroundImage = `url("${poster.posterUrl}")`;
+        }
+
+        // Main poster
+        const posterImg = document.createElement('img');
+        posterImg.className = 'cinema-poster';
+        posterImg.src = poster.posterUrl || '';
+        posterImg.alt = poster.title || 'Movie Poster';
+
+        // Footer section
+        const footer = document.createElement('div');
+        footer.className = 'cinema-footer';
+        footer.textContent = 'Premium Experience';
+
+        // Assemble layout
+        posterContainer.appendChild(ambilight);
+        posterContainer.appendChild(posterImg);
+        
+        cinemaContainer.appendChild(header);
+        cinemaContainer.appendChild(posterContainer);
+        cinemaContainer.appendChild(footer);
+        
+        previewContent.appendChild(cinemaContainer);
+    }
+
+    function updateNormalPreview(config, poster) {
+        const previewContent = document.getElementById('preview-content');
+        
+        // Ensure normal preview HTML structure exists
+        if (!document.getElementById('preview-layer')) {
+            restoreNormalPreviewStructure();
+        }
+        
         const previewLayer = document.getElementById('preview-layer');
         const previewInfoContainer = document.getElementById('preview-info-container');
         const previewPoster = document.getElementById('preview-poster');
@@ -1390,6 +1671,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function restoreNormalPreviewStructure() {
+        const previewContent = document.getElementById('preview-content');
+        if (!previewContent) return;
+
+        // Clear any cinema mode content
+        previewContent.innerHTML = `
+            <!-- Background layer for posters -->
+            <div class="preview-layer" id="preview-layer"></div>
+            
+            <!-- Widget container (clock) - top left -->
+            <div class="preview-widget-container" id="preview-widget-container">
+                <div class="preview-time-widget" id="preview-clock"></div>
+            </div>
+            
+            <!-- Clearlogo container - top right -->
+            <div class="preview-clearlogo-container" id="preview-clearlogo-container">
+                <img id="preview-clearlogo" src="" alt="Clear Logo">
+            </div>
+            
+            <!-- Info container - bottom left -->
+            <div class="preview-info-container" id="preview-info-container">
+                <div class="preview-poster-wrapper" id="preview-poster-wrapper">
+                    <img id="preview-poster" src="" alt="Preview Poster">
+                    <div class="preview-rt-badge" id="preview-rt-badge">
+                        <img id="preview-rt-icon" src="" alt="Rotten Tomatoes">
+                    </div>
+                </div>
+                <div class="preview-text-wrapper" id="preview-text-wrapper">
+                    <div class="preview-metadata" id="preview-metadata"></div>
+                </div>
+            </div>
+        `;
+    }
+
     function updatePreviewClock(config, previewClock) {
         const now = new Date();
         const timeFormat = config.clockFormat === '12h' ? 
@@ -1461,13 +1776,13 @@ document.addEventListener('DOMContentLoaded', () => {
             'clockWidget',
             'clockTimezone',
             'clockFormat',
-            'cinemaMode'
+            'cinemaMode',
+            'cinemaOrientation'
         ];
 
         // Add UI scaling inputs
         const scalingInputs = [
-            'uiScaling.poster',
-            'uiScaling.text',
+            'uiScaling.content',
             'uiScaling.clearlogo', 
             'uiScaling.clock',
             'uiScaling.global'
@@ -1513,10 +1828,150 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function setupPreviewTimerListener() {
+        const transitionInput = document.getElementById('transitionIntervalSeconds');
+        if (transitionInput) {
+            transitionInput.addEventListener('input', debounce(() => {
+                console.log('Transition interval changed, restarting preview timer');
+                // If we have current config and media, restart timer with new interval
+                if (currentPreviewConfig && previewMediaQueue.length > 0) {
+                    // Update the config with new value
+                    currentPreviewConfig.transitionIntervalSeconds = parseInt(transitionInput.value) || 15;
+                    // Restart timer
+                    startPreviewTimer(currentPreviewConfig);
+                }
+            }, 500)); // Debounce for half a second
+        }
+    }
+
+    function setupCinemaModeListeners() {
+        const cinemaModeCheckbox = document.getElementById('cinemaMode');
+        const cinemaOrientationGroup = document.getElementById('cinemaOrientationGroup');
+        const cinemaOrientationSelect = document.getElementById('cinemaOrientation');
+        
+        if (cinemaModeCheckbox) {
+            cinemaModeCheckbox.addEventListener('change', () => {
+                isCinemaMode = cinemaModeCheckbox.checked;
+                
+                // Show/hide orientation settings
+                if (cinemaOrientationGroup) {
+                    cinemaOrientationGroup.style.display = isCinemaMode ? 'block' : 'none';
+                }
+                
+                // Show/hide irrelevant display settings for cinema mode
+                toggleCinemaModeSettings(isCinemaMode);
+                
+                // Update preview orientation
+                updatePreviewOrientation();
+                
+                console.log('Cinema mode toggled:', isCinemaMode ? 'enabled' : 'disabled');
+            });
+            
+            // Set initial state on page load
+            toggleCinemaModeSettings(cinemaModeCheckbox.checked);
+        }
+        
+        // Add event listener for cinema orientation changes
+        if (cinemaOrientationSelect) {
+            cinemaOrientationSelect.addEventListener('change', () => {
+                console.log('Cinema orientation changed:', cinemaOrientationSelect.value);
+                updatePreviewOrientation();
+            });
+        }
+    }
+
+    function toggleCinemaModeSettings(isCinemaMode) {
+        // Elements to hide in cinema mode (these are not applicable)
+        const elementsToHide = [
+            'showClearLogo',
+            'showRottenTomatoes', 
+            'rottenTomatoesMinimumScore',
+            'showPoster',
+            'showMetadata'
+        ];
+        
+        // Hide/show individual form groups
+        elementsToHide.forEach(elementId => {
+            const element = document.getElementById(elementId);
+            if (element) {
+                const formGroup = element.closest('.form-group');
+                if (formGroup) {
+                    formGroup.style.display = isCinemaMode ? 'none' : 'block';
+                }
+            }
+        });
+        
+        // Handle Ken Burns option in transition effects dropdown
+        const transitionEffectSelect = document.getElementById('transitionEffect');
+        if (transitionEffectSelect) {
+            const kenBurnsOption = transitionEffectSelect.querySelector('option[value="kenburns"]');
+            if (kenBurnsOption) {
+                if (isCinemaMode) {
+                    // Hide Ken Burns option and switch to fade if currently selected
+                    kenBurnsOption.style.display = 'none';
+                    if (transitionEffectSelect.value === 'kenburns') {
+                        transitionEffectSelect.value = 'fade';
+                        console.log('Cinema mode enabled: switched from Ken Burns to Fade effect');
+                    }
+                } else {
+                    // Show Ken Burns option
+                    kenBurnsOption.style.display = 'block';
+                }
+            }
+        }
+        
+        // Hide entire UI Scaling section in cinema mode
+        const uiScalingSection = document.querySelector('.form-section h3');
+        if (uiScalingSection && uiScalingSection.textContent.includes('UI Element Scaling')) {
+            const scalingSection = uiScalingSection.closest('.form-section');
+            if (scalingSection) {
+                scalingSection.style.display = isCinemaMode ? 'none' : 'block';
+            }
+        }
+        
+        // Add visual indication for cinema mode
+        const displaySettingsHeaders = document.querySelectorAll('h2');
+        let displaySettingsHeader = null;
+        displaySettingsHeaders.forEach(header => {
+            if (header.textContent.includes('Display Settings')) {
+                displaySettingsHeader = header;
+            }
+        });
+        
+        if (displaySettingsHeader) {
+            const existingIndicator = displaySettingsHeader.parentNode.querySelector('.cinema-mode-subtitle');
+            
+            if (isCinemaMode) {
+                if (!existingIndicator) {
+                    // Create subtitle element
+                    const subtitle = document.createElement('div');
+                    subtitle.className = 'cinema-mode-subtitle';
+                    subtitle.textContent = 'Cinema Mode Active';
+                    subtitle.style.cssText = `
+                        color: #e28743;
+                        font-size: 0.9em;
+                        font-weight: 500;
+                        margin-top: -8px;
+                        margin-bottom: 16px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        opacity: 0.9;
+                    `;
+                    
+                    // Insert after the h2 header
+                    displaySettingsHeader.parentNode.insertBefore(subtitle, displaySettingsHeader.nextSibling);
+                }
+            } else {
+                if (existingIndicator) {
+                    existingIndicator.remove();
+                }
+            }
+        }
+    }
+
     function applyScalingToPreview() {
         // Get current scaling values from sliders
-        const posterScale = document.getElementById('uiScaling.poster')?.value || 100;
-        const textScale = document.getElementById('uiScaling.text')?.value || 100;
+        const contentScale = document.getElementById('uiScaling.content')?.value || 100;
         const clearlogoScale = document.getElementById('uiScaling.clearlogo')?.value || 100;
         const clockScale = document.getElementById('uiScaling.clock')?.value || 100;
         const globalScale = document.getElementById('uiScaling.global')?.value || 100;
@@ -1528,18 +1983,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const previewClock = document.getElementById('preview-clock');
 
         // Calculate combined scales (individual * global / 100)
-        const finalPosterScale = (posterScale * globalScale) / 100;
-        const finalTextScale = (textScale * globalScale) / 100;
+        const finalContentScale = (contentScale * globalScale) / 100;
         const finalClearlogoScale = (clearlogoScale * globalScale) / 100;
         const finalClockScale = (clockScale * globalScale) / 100;
 
         // Apply transforms
         if (previewPoster) {
-            previewPoster.style.transform = `scale(${finalPosterScale / 100})`;
+            previewPoster.style.transform = `scale(${finalContentScale / 100})`;
         }
         
         if (previewMetadata) {
-            previewMetadata.style.transform = `scale(${finalTextScale / 100})`;
+            previewMetadata.style.transform = `scale(${finalContentScale / 100})`;
             previewMetadata.style.transformOrigin = 'bottom left';
         }
         
@@ -1554,8 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         console.log('Applied scaling to preview:', {
-            poster: finalPosterScale,
-            text: finalTextScale, 
+            content: finalContentScale,
             clearlogo: finalClearlogoScale,
             clock: finalClockScale
         });
@@ -1590,6 +2043,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 'clockFormat'
             ];
             
+            // UI Scaling inputs
+            const uiScalingInputs = [
+                'uiScaling.content',
+                'uiScaling.clearlogo',
+                'uiScaling.clock',
+                'uiScaling.global'
+            ];
+            
             // Track what we're updating
             const updates = {};
             
@@ -1610,6 +2071,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (configData[fieldName] !== newValue) {
                         configData[fieldName] = newValue;
                         updates[fieldName] = newValue;
+                    }
+                }
+            });
+            
+            // Handle UI scaling fields (nested structure)
+            if (!configData.uiScaling) {
+                configData.uiScaling = {};
+            }
+            
+            uiScalingInputs.forEach(fieldPath => {
+                const fieldName = fieldPath.split('.')[1]; // Get 'poster' from 'uiScaling.poster'
+                const input = document.getElementById(fieldPath);
+                if (input) {
+                    const newValue = parseInt(input.value) || 100;
+                    
+                    // Only update if value actually changed
+                    if (configData.uiScaling[fieldName] !== newValue) {
+                        configData.uiScaling[fieldName] = newValue;
+                        updates[fieldPath] = newValue;
                     }
                 }
             });
@@ -1678,6 +2158,84 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 triggerConfigChanged();
             }, 1000); // Delay to ensure config is saved
+        });
+    }
+
+    function setupUIScalingPresets() {
+        // Define preset configurations
+        const presets = {
+            '4k-tv': {
+                name: '4K TV',
+                content: 150,
+                clearlogo: 140,
+                clock: 140,
+                global: 100
+            },
+            'full-hd': {
+                name: 'Full HD',
+                content: 100,
+                clearlogo: 100,
+                clock: 100,
+                global: 100
+            },
+            'ultrawide': {
+                name: 'Ultrawide',
+                content: 115,
+                clearlogo: 120,
+                clock: 110,
+                global: 100
+            }
+        };
+
+        // Setup click handlers for preset buttons
+        const presetButtons = document.querySelectorAll('.preset-button');
+        presetButtons.forEach(button => {
+            button.addEventListener('click', async () => {
+                const presetKey = button.dataset.preset;
+                const preset = presets[presetKey];
+                
+                if (!preset) return;
+
+                // Visual feedback
+                button.disabled = true;
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+
+                try {
+                    // Apply preset values to sliders
+                    Object.keys(preset).forEach(field => {
+                        if (field === 'name') return;
+                        
+                        const slider = document.getElementById(`uiScaling.${field}`);
+                        const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
+                        
+                        if (slider && valueDisplay) {
+                            slider.value = preset[field];
+                            valueDisplay.textContent = `${preset[field]}%`;
+                        }
+                    });
+
+                    // Apply immediately to preview
+                    applyScalingToPreview();
+
+                    // Save the preset values
+                    await saveConfigurationSilently();
+                    
+                    // Show success notification
+                    showNotification(`Applied ${preset.name} preset`, 'success');
+                    
+                    console.log(`Applied ${preset.name} preset:`, preset);
+                } catch (error) {
+                    console.error('Failed to apply preset:', error);
+                    showNotification('Failed to apply preset', 'error');
+                } finally {
+                    // Restore button state
+                    setTimeout(() => {
+                        button.disabled = false;
+                        button.innerHTML = originalHTML;
+                    }, 1000);
+                }
+            });
         });
     }
 

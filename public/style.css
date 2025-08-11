@@ -20,8 +20,7 @@
     --text-color-strong: rgba(255, 255, 255, 0.85);
     
     /* UI Scaling variables - defaults to 1 (100%) */
-    --poster-scale: 1;
-    --text-scale: 1;
+    --content-scale: 1;
     --clearlogo-scale: 1;
     --clock-scale: 1;
 }
@@ -275,20 +274,22 @@ html, body {
 
 /* --- Main Information Container --- */
 #info-container {
-    position: fixed; /* Back to a lower position */
-    bottom: 0px; /* A bit more to the right for alignment */
-    left: 50px;   /* Adjust width automatically */
-    width: auto;  /* A bit less wide to make space */
-    max-width: 1100px;
+    position: fixed;
+    bottom: 0px;
+    left: 50px;
+    right: 50px; /* Use right instead of fixed width for better responsiveness */
+    top: 50px; /* Add top constraint to prevent overflow at top */
+    max-width: none; /* Remove max-width constraint */
     display: flex;
     align-items: flex-end;
-    gap: 40px; /* Adjusted for the new position, with space for the shadow */
+    gap: calc(40px * var(--content-scale)); /* Scale gap with content */
     z-index: 5;
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.8s ease-out, transform 0.8s ease-out;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-    padding-bottom: 50px; /* Adjusted for the new position, with space for the shadow */
+    padding-bottom: 50px;
+    overflow: hidden; /* Prevent elements from overflowing */
 }
 
 #info-container.visible {
@@ -299,6 +300,13 @@ html, body {
 #poster-wrapper {
     flex-shrink: 0;
     position: relative;
+    display: flex;
+    align-items: flex-end; /* Align poster to bottom of wrapper */
+    justify-content: flex-start; /* Align poster to left of wrapper */
+    min-height: 270px; /* Minimum height to accommodate base poster size */
+    height: calc(270px * var(--content-scale)); /* Dynamic height based on scaling */
+    min-width: 180px; /* Minimum width for base poster */
+    width: calc(180px * var(--content-scale)); /* Dynamic width to accommodate scaling */
 }
 
 #poster {
@@ -311,8 +319,24 @@ html, body {
     --mouse-x: 50%;
     --mouse-y: 50%;
     box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45); /* Shadow less high and a bit more subtle */
-    transform: scale(var(--poster-scale));
-    transform-origin: center bottom;
+    transform: scale(var(--content-scale));
+    transform-origin: bottom left;
+}
+
+/* Poster layers for smooth transitions in cinema mode */
+.poster-layer {
+    width: 180px;
+    height: 270px;
+    background-size: cover;
+    border-radius: 8px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    z-index: 1;
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45);
+    transform: scale(var(--content-scale));
+    transform-origin: bottom left;
 }
 
 #rt-badge {
@@ -357,9 +381,11 @@ html, body {
 
 #text-wrapper {
     flex-grow: 1;
-    padding-bottom: 0; /* Removed to align the bottom of the text with the poster */
-    transform: scale(var(--text-scale));
+    min-width: 0; /* Allow text to shrink */
+    padding-bottom: 0;
+    transform: scale(var(--content-scale));
     transform-origin: bottom left;
+    padding-left: calc(20px * var(--content-scale)); /* Add some spacing from poster */
 }
 
 #title {
@@ -520,8 +546,7 @@ html, body {
     /* Disable poster hover effects on touch devices */
     #poster-wrapper:hover #poster::before { opacity: 0; }
     #poster-wrapper:hover { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.4)); }
-    #poster-wrapper:hover #poster { transform: none; }
-    #poster-wrapper #poster { transform: none !important; } /* Force no transformation */
+    /* Keep the scaling transform even on hover for touch devices */
 
 
     /* Adjust text sizes with clamp() for flexibility */
@@ -572,4 +597,428 @@ html, body {
         width: 20px;
         height: 20px;
     }
+}
+
+/* --- Cinema Mode Styles --- */
+body.cinema-mode {
+    background: black;
+    overflow: visible; /* Allow slide animations from outside viewport */
+}
+
+body.cinema-mode #info-container {
+    position: fixed !important;
+    top: 60px !important; /* Smaller header space */
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 60px !important; /* Smaller footer space */
+    width: 100vw !important;
+    height: calc(100vh - 120px) !important; /* Total height minus header and footer */
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    opacity: 1 !important;
+    transform: none !important;
+    z-index: 10 !important;
+    transition: none !important;
+}
+
+body.cinema-mode #poster-wrapper {
+    width: 100vw !important;
+    height: auto !important;
+    max-width: 100vw !important;
+    max-height: calc(100vh - 120px) !important;
+    display: block !important;
+    flex-shrink: 0 !important;
+    /* Allow posters to slide in from outside the viewport */
+    overflow: visible !important;
+}
+
+body.cinema-mode #info-container #poster-wrapper #poster {
+    width: 100vw !important;
+    height: calc(100vw * 1.5) !important;
+    min-width: 100vw !important;
+    min-height: calc(100vw * 1.5) !important;
+    max-width: 100vw !important;
+    max-height: calc(100vh - 120px) !important;
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    /* Allow transforms for animations - don't force a specific transform */
+    /* Allow transitions for animations */
+    position: relative !important;
+    flex: none !important;
+}
+
+/* Cinema mode poster layers */
+body.cinema-mode .poster-layer {
+    width: 100vw !important;
+    height: calc(100vw * 1.5) !important;
+    min-width: 100vw !important;
+    min-height: calc(100vw * 1.5) !important;
+    max-width: 100vw !important;
+    max-height: calc(100vh - 120px) !important;
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 1 !important;
+}
+
+/* Disable poster interactivity in cinema mode */
+body.cinema-mode #poster-link {
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+body.cinema-mode #poster-wrapper {
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+/* Disable hover effects in cinema mode */
+body.cinema-mode #poster::before {
+    display: none !important;
+}
+
+body.cinema-mode #poster-wrapper:hover #poster::before {
+    display: none !important;
+}
+
+body.cinema-mode #poster-wrapper:hover #poster {
+    /* Don't override transform for animations - only remove hover effects */
+    box-shadow: none !important;
+}
+
+/* Hide text wrapper in cinema mode */
+body.cinema-mode #text-wrapper {
+    display: none;
+}
+
+/* Cinema mode header space */
+body.cinema-mode::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px; /* Smaller header space */
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* Cinema mode footer space */
+body.cinema-mode::after {
+    content: "";
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px; /* Smaller footer space */
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* Portrait orientation (default) */
+body.cinema-mode.cinema-portrait #info-container,
+body.cinema-mode.cinema-auto #info-container {
+    /* Default portrait orientation */
+    transform: none;
+}
+
+/* Portrait flipped orientation */
+body.cinema-mode.cinema-portrait-flipped #info-container {
+    transform: rotate(180deg);
+}
+
+/* Hide other elements in cinema mode */
+body.cinema-mode #layer-a,
+body.cinema-mode #layer-b,
+body.cinema-mode #widget-container,
+body.cinema-mode #clearlogo-container,
+body.cinema-mode #branding-container,
+body.cinema-mode #rt-badge,
+body.cinema-mode #controls-container {
+    display: none;
+}
+
+/* Keep controls visible but minimal */
+body.cinema-mode #controls-container {
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+/* --- Transition Effects Animations --- */
+
+/* Fade In/Out Effect */
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Slide Transitions - true slide effects for layers */
+@keyframes slide-in-left {
+    from { 
+        transform: translateX(100%); 
+        opacity: 1;
+    }
+    to { 
+        transform: translateX(0); 
+        opacity: 1;
+    }
+}
+
+@keyframes slide-in-right {
+    from { 
+        transform: translateX(-100%); 
+        opacity: 1;
+    }
+    to { 
+        transform: translateX(0); 
+        opacity: 1;
+    }
+}
+
+@keyframes slide-in-up {
+    from { 
+        transform: translateY(100%); 
+        opacity: 1;
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1;
+    }
+}
+
+@keyframes slide-in-down {
+    from { 
+        transform: translateY(-100%); 
+        opacity: 1;
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1;
+    }
+}
+
+/* Poster-specific slide effect (scale + fade since posters can't truly slide) */
+@keyframes slide-fade-in {
+    0% { 
+        opacity: 0; 
+        transform: scale(0.9) translateX(-30px); 
+    }
+    50% { 
+        opacity: 0.5; 
+        transform: scale(0.95) translateX(-10px); 
+    }
+    100% { 
+        opacity: 1; 
+        transform: scale(1) translateX(0); 
+    }
+}
+
+/* True slide animations for posters in cinema mode */
+@keyframes slide-in-left {
+    0% {
+        opacity: 1;
+        transform: translateX(-100%);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slide-in-right {
+    0% {
+        opacity: 1;
+        transform: translateX(100%);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Cinema mode specific slide animations - these create a push effect */
+@keyframes cinema-slide-in-left {
+    0% {
+        transform: translateX(-100%);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes cinema-slide-in-right {
+    0% {
+        transform: translateX(100%);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes cinema-slide-out-left {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(-100%);
+        opacity: 1;
+    }
+}
+
+@keyframes cinema-slide-out-right {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(100%);
+        opacity: 1;
+    }
+}
+
+@keyframes slide-in-top {
+    0% {
+        opacity: 1;
+        transform: translateY(-100%);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-in-bottom {
+    0% {
+        opacity: 1;
+        transform: translateY(100%);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Zoom Effects */
+@keyframes zoom-in {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes zoom-out {
+    from { transform: scale(1.2); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* Parallax Scroll Effect */
+@keyframes parallax-slow {
+    from { transform: translateY(0) scale(1.1); }
+    to { transform: translateY(-5%) scale(1.15); }
+}
+
+@keyframes parallax-fast {
+    from { transform: translateY(0) scale(1.05); }
+    to { transform: translateY(-10%) scale(1.1); }
+}
+
+/* Cross Fade Effect */
+@keyframes crossfade-in {
+    from { 
+        opacity: 0; 
+        transform: scale(1.05);
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+}
+
+/* Blur Transition */
+@keyframes blur-in {
+    from { 
+        filter: blur(10px); 
+        opacity: 0; 
+        transform: scale(1.1);
+    }
+    to { 
+        filter: blur(0px); 
+        opacity: 1; 
+        transform: scale(1);
+    }
+}
+
+/* Rotate Transition */
+@keyframes rotate-in {
+    from { 
+        transform: rotate(-5deg) scale(0.9); 
+        opacity: 0; 
+    }
+    to { 
+        transform: rotate(0deg) scale(1); 
+        opacity: 1; 
+    }
+}
+
+/* Ken Burns variations - existing animations enhanced */
+@keyframes kenburns-zoom-in-center {
+    from { transform: scale(1); }
+    to { transform: scale(1.3); }
+}
+
+@keyframes kenburns-zoom-out-center {
+    from { transform: scale(1.3); }
+    to { transform: scale(1); }
+}
+
+@keyframes kenburns-pan-left {
+    from { transform: scale(1.2) translateX(0); }
+    to { transform: scale(1.3) translateX(-8%); }
+}
+
+@keyframes kenburns-pan-right {
+    from { transform: scale(1.2) translateX(0); }
+    to { transform: scale(1.3) translateX(8%); }
+}
+
+/* Cinema Mode Poster Effects */
+body.cinema-mode .poster-effect-fade {
+    animation: fade-in var(--effect-duration, 3s) ease-in-out forwards;
+}
+
+body.cinema-mode .poster-effect-zoom {
+    animation: zoom-in var(--effect-duration, 3s) ease-out forwards;
+}
+
+body.cinema-mode .poster-effect-blur {
+    animation: blur-in var(--effect-duration, 3s) ease-out forwards;
+}
+
+body.cinema-mode .poster-effect-rotate {
+    animation: rotate-in var(--effect-duration, 3s) ease-out forwards;
 }

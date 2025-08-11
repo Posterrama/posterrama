@@ -1,5 +1,5 @@
 {
-  "transitionIntervalSeconds": 10,
+  "transitionIntervalSeconds": 15,
   "backgroundRefreshMinutes": 30,
   "showClearLogo": true,
   "showRottenTomatoes": true,
@@ -9,8 +9,10 @@
   "clockWidget": false,
   "clockTimezone": "auto",
   "clockFormat": "24h",
-  "transitionEffect": "slide",
-  "effectPauseTime": 3,
+  "kenBurnsEffect": {
+    "enabled": true,
+    "durationSeconds": 15
+  },
   "uiScaling": {
     "content": 100,
     "clearlogo": 100,
@@ -32,7 +34,5 @@
       "movieCount": 30,
       "showCount": 15
     }
-  ],
-  "cinemaMode": true,
-  "cinemaOrientation": "auto"
+  ]
 }
