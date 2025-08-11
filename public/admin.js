@@ -16,6 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
             enabled: true,
             durationSeconds: 25
         },
+        uiScaling: {
+            poster: 100,
+            text: 100,
+            clearlogo: 100,
+            clock: 100,
+            global: 100
+        },
         mediaServers: [{
             enabled: true,
             hostname: '',
@@ -76,8 +83,38 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('kenBurnsEffect.enabled').checked = get(config, 'kenBurnsEffect.enabled', defaults.kenBurnsEffect.enabled);
         document.getElementById('kenBurnsEffect.durationSeconds').value = get(config, 'kenBurnsEffect.durationSeconds', defaults.kenBurnsEffect.durationSeconds);
         
+        // Populate UI scaling settings
+        populateUIScalingSettings(config, defaults);
+        
         // Show/hide timezone settings based on clockWidget state
         toggleClockSettings();
+    }
+
+    function populateUIScalingSettings(config, defaults) {
+        const scalingConfig = config.uiScaling || defaults.uiScaling;
+        
+        // Populate range sliders and their value displays
+        const scalingFields = ['poster', 'text', 'clearlogo', 'clock', 'global'];
+        scalingFields.forEach(field => {
+            const slider = document.getElementById(`uiScaling.${field}`);
+            const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
+            
+            if (slider && valueDisplay) {
+                const value = scalingConfig[field] || defaults.uiScaling[field];
+                slider.value = value;
+                valueDisplay.textContent = `${value}%`;
+                
+                // Add event listener to update display in real-time
+                slider.addEventListener('input', () => {
+                    valueDisplay.textContent = `${slider.value}%`;
+                });
+                
+                // Add event listener for live preview updates
+                slider.addEventListener('change', () => {
+                    updatePreview();
+                });
+            }
+        });
     }
 
     function setupDisplaySettingListeners() {
@@ -1225,6 +1262,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update preview based on config
             updatePreviewElements(config, poster);
             
+            // Apply scaling to preview
+            applyScalingToPreview();
+            
             // Update orientation based on radio buttons
             updatePreviewOrientation();
             
@@ -1424,9 +1464,18 @@ document.addEventListener('DOMContentLoaded', () => {
             'cinemaMode'
         ];
 
-        console.log('Setting up live preview updates for:', displayInputs);
+        // Add UI scaling inputs
+        const scalingInputs = [
+            'uiScaling.poster',
+            'uiScaling.text',
+            'uiScaling.clearlogo', 
+            'uiScaling.clock',
+            'uiScaling.global'
+        ];
 
-        displayInputs.forEach(inputName => {
+        console.log('Setting up live preview updates for:', [...displayInputs, ...scalingInputs]);
+
+        [...displayInputs, ...scalingInputs].forEach(inputName => {
             const input = document.querySelector(`[name="${inputName}"]`);
             if (input) {
                 console.log(`Found input: ${inputName}`, input.type);
@@ -1438,6 +1487,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         await saveConfigurationSilently();
                         // Wait longer for config to be fully processed and cached
                         setTimeout(() => updatePreview(), 2000);
+                    });
+                } else if (input.type === 'range') {
+                    // For range sliders, update preview immediately without saving
+                    input.addEventListener('input', () => {
+                        applyScalingToPreview();
+                    });
+                    // Save when user stops dragging
+                    input.addEventListener('change', async () => {
+                        console.log(`Scaling setting changed: ${inputName} = ${input.value}`);
+                        await saveConfigurationSilently();
                     });
                 } else {
                     // For text inputs, number inputs, selects
@@ -1451,6 +1510,54 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log(`Input not found: ${inputName}`);
             }
+        });
+    }
+
+    function applyScalingToPreview() {
+        // Get current scaling values from sliders
+        const posterScale = document.getElementById('uiScaling.poster')?.value || 100;
+        const textScale = document.getElementById('uiScaling.text')?.value || 100;
+        const clearlogoScale = document.getElementById('uiScaling.clearlogo')?.value || 100;
+        const clockScale = document.getElementById('uiScaling.clock')?.value || 100;
+        const globalScale = document.getElementById('uiScaling.global')?.value || 100;
+
+        // Apply scaling to preview elements
+        const previewPoster = document.getElementById('preview-poster');
+        const previewMetadata = document.getElementById('preview-metadata');
+        const previewClearlogo = document.getElementById('preview-clearlogo');
+        const previewClock = document.getElementById('preview-clock');
+
+        // Calculate combined scales (individual * global / 100)
+        const finalPosterScale = (posterScale * globalScale) / 100;
+        const finalTextScale = (textScale * globalScale) / 100;
+        const finalClearlogoScale = (clearlogoScale * globalScale) / 100;
+        const finalClockScale = (clockScale * globalScale) / 100;
+
+        // Apply transforms
+        if (previewPoster) {
+            previewPoster.style.transform = `scale(${finalPosterScale / 100})`;
+        }
+        
+        if (previewMetadata) {
+            previewMetadata.style.transform = `scale(${finalTextScale / 100})`;
+            previewMetadata.style.transformOrigin = 'bottom left';
+        }
+        
+        if (previewClearlogo) {
+            previewClearlogo.style.transform = `scale(${finalClearlogoScale / 100})`;
+            previewClearlogo.style.transformOrigin = 'top right';
+        }
+        
+        if (previewClock) {
+            previewClock.style.transform = `scale(${finalClockScale / 100})`;
+            previewClock.style.transformOrigin = 'top left';
+        }
+
+        console.log('Applied scaling to preview:', {
+            poster: finalPosterScale,
+            text: finalTextScale, 
+            clearlogo: finalClearlogoScale,
+            clock: finalClockScale
         });
     }
 

@@ -114,6 +114,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Check for config changes every 30 seconds
         if (configRefreshTimerId) clearInterval(configRefreshTimerId);
         configRefreshTimerId = setInterval(refreshConfig, 30 * 1000);
+
+        // Apply UI scaling if configured
+        applyUIScaling(appConfig);
+    }
+
+    function applyUIScaling(config) {
+        if (!config.uiScaling) {
+            console.log('No UI scaling configuration found, using defaults');
+            return;
+        }
+
+        const scaling = config.uiScaling;
+        const root = document.documentElement;
+
+        // Calculate final scaling values (individual * global / 100)
+        const globalScale = scaling.global || 100;
+        const posterScale = ((scaling.poster || 100) * globalScale) / 100;
+        const textScale = ((scaling.text || 100) * globalScale) / 100;
+        const clearlogoScale = ((scaling.clearlogo || 100) * globalScale) / 100;
+        const clockScale = ((scaling.clock || 100) * globalScale) / 100;
+
+        // Set CSS custom properties for scaling
+        root.style.setProperty('--poster-scale', posterScale / 100);
+        root.style.setProperty('--text-scale', textScale / 100);
+        root.style.setProperty('--clearlogo-scale', clearlogoScale / 100);
+        root.style.setProperty('--clock-scale', clockScale / 100);
+
+        console.log('Applied UI scaling:', {
+            poster: posterScale,
+            text: textScale,
+            clearlogo: clearlogoScale,
+            clock: clockScale
+        });
+    }
     }
 
     async function refreshConfig() {
@@ -137,6 +171,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // Apply configuration changes
                 applyConfigurationChanges(oldConfig, newConfig);
+                
+                // Apply UI scaling changes
+                applyUIScaling(newConfig);
             }
         } catch (error) {
             console.error('Failed to refresh configuration:', error);

@@ -18,6 +18,12 @@
     --text-color-muted: rgba(255, 255, 255, 0.6);
     --text-color-semi-muted: rgba(255, 255, 255, 0.65);
     --text-color-strong: rgba(255, 255, 255, 0.85);
+    
+    /* UI Scaling variables - defaults to 1 (100%) */
+    --poster-scale: 1;
+    --text-scale: 1;
+    --clearlogo-scale: 1;
+    --clock-scale: 1;
 }
 
 html, body {
@@ -232,6 +238,8 @@ html, body {
     display: flex;
     align-items: baseline;
     gap: 0.2em;
+    transform: scale(var(--clock-scale));
+    transform-origin: top left;
 }
 
 .time-ampm {
@@ -249,6 +257,8 @@ html, body {
     z-index: 10;
     max-width: 250px;
     max-height: 120px;
+    transform: scale(var(--clearlogo-scale));
+    transform-origin: top right;
 }
 
 #clearlogo {
@@ -301,6 +311,8 @@ html, body {
     --mouse-x: 50%;
     --mouse-y: 50%;
     box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45); /* Shadow less high and a bit more subtle */
+    transform: scale(var(--poster-scale));
+    transform-origin: center bottom;
 }
 
 #rt-badge {
@@ -346,6 +358,8 @@ html, body {
 #text-wrapper {
     flex-grow: 1;
     padding-bottom: 0; /* Removed to align the bottom of the text with the poster */
+    transform: scale(var(--text-scale));
+    transform-origin: bottom left;
 }
 
 #title {

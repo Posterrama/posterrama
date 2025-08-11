@@ -68,6 +68,54 @@
                 "durationSeconds"
             ]
         },
+        "uiScaling": {
+            "description": "Scaling settings for UI elements to adapt to different screen sizes and resolutions.",
+            "type": "object",
+            "properties": {
+                "poster": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 200,
+                    "default": 100,
+                    "description": "Poster size scaling percentage (50-200%)"
+                },
+                "text": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 200,
+                    "default": 100,
+                    "description": "Text size scaling percentage (50-200%)"
+                },
+                "clearlogo": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 200,
+                    "default": 100,
+                    "description": "Clearlogo size scaling percentage (50-200%)"
+                },
+                "clock": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 200,
+                    "default": 100,
+                    "description": "Clock widget size scaling percentage (50-200%)"
+                },
+                "global": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 200,
+                    "default": 100,
+                    "description": "Global scaling multiplier for all UI elements (50-200%)"
+                }
+            },
+            "required": [
+                "poster",
+                "text", 
+                "clearlogo",
+                "clock",
+                "global"
+            ]
+        },
         "mediaServers": {
             "description": "An array of media server configurations.",
             "type": "array",
