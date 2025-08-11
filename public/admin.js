@@ -1,5 +1,245 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    // Sidebar functionality
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const navItems = document.querySelectorAll('.nav-item');
+    const sections = document.querySelectorAll('.section-content');
+
+    // Restore sidebar state from localStorage
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    if (savedSidebarState === 'true') {
+        sidebar.classList.add('collapsed');
+    }
+
+    // Toggle sidebar
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            // Save the new state to localStorage
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        });
+    }
+
+    // Mobile overlay
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+        });
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        // Quick Help shortcut: Press 'H' key
+        if (e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            // Only activate if we're not typing in an input field
+            const activeElement = document.activeElement;
+            const isInputField = activeElement && (
+                activeElement.tagName === 'INPUT' || 
+                activeElement.tagName === 'TEXTAREA' || 
+                activeElement.contentEditable === 'true'
+            );
+            
+            if (!isInputField) {
+                e.preventDefault();
+                toggleHelpPanel();
+            }
+        }
+    });
+
+    // Navigation functionality
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const targetSection = item.dataset.section;
+            
+            // Update active nav item
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+            
+            // Update active section
+            sections.forEach(section => section.classList.remove('active'));
+            const targetElement = document.getElementById(`${targetSection}-section`);
+            if (targetElement) {
+                targetElement.classList.add('active');
+            }
+            
+            // Update help content based on section
+            updateHelpContent(targetSection);
+        });
+    });
+
+    // Help content for different sections
+    const helpContent = {
+        general: {
+            title: "General Settings Help",
+            sections: [
+                {
+                    title: "Transition Interval",
+                    content: "Controls how long each poster is displayed before switching to the next one. Set between 1-300 seconds. Shorter intervals create more dynamic displays, while longer intervals are better for reading metadata."
+                },
+                {
+                    title: "Background Refresh",
+                    content: "How often the system fetches new content from your media server. Set to 0 to disable automatic refresh. Regular refreshing ensures new content appears in the rotation."
+                },
+                {
+                    title: "Application Port",
+                    content: "The network port for the admin interface. Default is 4000. Changing this requires an application restart. Make sure the port isn't used by other applications."
+                },
+                {
+                    title: "Debug Mode",
+                    content: "Enables detailed logging for troubleshooting. Check the live logs to see debug information. Only enable when investigating issues as it can impact performance."
+                }
+            ]
+        },
+        display: {
+            title: "Display Settings Help",
+            sections: [
+                {
+                    title: "Visual Elements",
+                    content: "Control which elements are visible on the screensaver: ClearLogo (movie/show logos), Rotten Tomatoes badges, posters, and metadata text."
+                },
+                {
+                    title: "Clock Widget",
+                    content: "Shows a customizable clock in the top-left corner. Choose timezone and format (12/24 hour). Uses IANA timezone identifiers for accuracy."
+                },
+                {
+                    title: "UI Scaling",
+                    content: "Adjust the size of different UI elements. Global scale affects everything at once, useful for different screen sizes and viewing distances."
+                }
+            ]
+        },
+        effects: {
+            title: "Effects & Transitions Help",
+            sections: [
+                {
+                    title: "Transition Effects",
+                    content: "Ken Burns: Slow zoom and pan effect. Fade: Simple fade in/out transitions. Slide: Left/right sliding in cinema mode."
+                },
+                {
+                    title: "Cinema Mode",
+                    content: "Optimized for portrait displays. Shows fullscreen posters with header/footer areas. Can force specific orientation if device sensors aren't reliable."
+                },
+                {
+                    title: "Effect Timing",
+                    content: "Pause time controls the delay after an effect completes. Not applicable to Ken Burns effect which uses the full transition interval."
+                }
+            ]
+        },
+        media: {
+            title: "Media Servers Help",
+            sections: [
+                {
+                    title: "Plex Connection",
+                    content: "Configure your Plex server hostname/IP, port (usually 32400), and authentication token. Test the connection before saving to ensure it works."
+                },
+                {
+                    title: "Library Selection",
+                    content: "Choose which Plex libraries to include. Movie and TV show libraries are handled separately. Test connection first to populate available libraries."
+                },
+                {
+                    title: "Content Limits",
+                    content: "Limit the number of movies and shows to prevent performance issues. Higher numbers may cause slower loading and increased memory usage."
+                }
+            ]
+        },
+        authentication: {
+            title: "Authentication & Security Help",
+            sections: [
+                {
+                    title: "Password Management",
+                    content: "Change your admin password. Enter current password first for security. Choose a strong password to protect your admin interface."
+                },
+                {
+                    title: "Two-Factor Authentication",
+                    content: "Add an extra security layer with authenticator apps like Google Authenticator. Scan the QR code and enter the verification code to enable."
+                },
+                {
+                    title: "API Access",
+                    content: "Generate permanent API keys for external applications or scripts. Keys can be viewed, copied, or revoked as needed. Useful for Swagger API access."
+                }
+            ]
+        },
+        promobox: {
+            title: "Promobox Site Help",
+            sections: [
+                {
+                    title: "Public Site",
+                    content: "Enable a public-facing screensaver site on port 4001 without admin access. Perfect for promotional displays or kiosks."
+                },
+                {
+                    title: "Port Configuration",
+                    content: "Choose a different port if 4001 is unavailable. Ensure the port isn't used by other applications and is accessible to your intended users."
+                }
+            ]
+        },
+        management: {
+            title: "Application Management Help",
+            sections: [
+                {
+                    title: "Cache Management",
+                    content: "Clear image cache to free space or force re-download of images. Refresh media to update the content library from Plex immediately."
+                },
+                {
+                    title: "Application Control",
+                    content: "Restart the application when needed (required after port changes). Use with caution as it will disconnect all users temporarily."
+                },
+                {
+                    title: "Debugging",
+                    content: "View live logs for real-time troubleshooting. Debug cache view shows raw playlist data when debug mode is enabled."
+                }
+            ]
+        },
+        logs: {
+            title: "Live Logs Help",
+            sections: [
+                {
+                    title: "Log Monitoring",
+                    content: "Real-time view of application logs. Different log levels (info, warn, error) are color-coded for easy identification of issues."
+                },
+                {
+                    title: "Troubleshooting",
+                    content: "Enable debug mode in General Settings for more detailed logging. Logs automatically scroll to show newest entries first."
+                }
+            ]
+        }
+    };
+
+    // Function to update help content based on current section
+    function updateHelpContent(section) {
+        const helpTitle = document.getElementById('help-title');
+        const helpContentDiv = document.getElementById('help-content');
+        
+        if (!helpTitle || !helpContentDiv) return;
+        
+        const content = helpContent[section];
+        if (!content) return;
+        
+        helpTitle.textContent = content.title;
+        
+        helpContentDiv.innerHTML = content.sections.map(section => `
+            <div class="help-section">
+                <h4>${section.title}</h4>
+                <p>${section.content}</p>
+            </div>
+        `).join('');
+    }
+
+    // Mobile responsive
+    function handleResize() {
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('collapsed');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        }
+    }
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
     // Default values for settings
     const defaults = {
         transitionIntervalSeconds: 15,
@@ -152,6 +392,227 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Setup real-time input validation
+    function setupInputValidation() {
+        // Add validation for numeric fields
+        const numericFields = [
+            { id: 'transitionIntervalSeconds', min: 1, max: 300, label: 'Transition Interval' },
+            { id: 'backgroundRefreshMinutes', min: 0, max: 1440, label: 'Background Refresh' },
+            { id: 'SERVER_PORT', min: 1024, max: 65535, label: 'Application Port' },
+            { id: 'siteServer.port', min: 1024, max: 65535, label: 'Promobox Site Port' },
+            { id: 'rottenTomatoesMinimumScore', min: 0, max: 10, label: 'Rotten Tomatoes Score' },
+            { id: 'mediaServers[0].port', min: 1, max: 65535, label: 'Plex Port' },
+            { id: 'mediaServers[0].movieCount', min: 1, max: 10000, label: 'Movie Count' },
+            { id: 'mediaServers[0].showCount', min: 1, max: 10000, label: 'Show Count' },
+            { id: 'effectPauseTime', min: 0, max: 10, label: 'Effect Pause Time' }
+        ];
+
+        numericFields.forEach(field => {
+            const element = document.getElementById(field.id);
+            if (element) {
+                // Add input event listener for real-time validation
+                element.addEventListener('input', function() {
+                    validateNumericInput(element, field);
+                });
+                
+                // Add blur event for more thorough validation
+                element.addEventListener('blur', function() {
+                    validateNumericInput(element, field);
+                });
+            }
+        });
+
+        // Add validation for password confirmation
+        const newPasswordInput = document.getElementById('newPassword');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        
+        if (newPasswordInput && confirmPasswordInput) {
+            const validatePasswords = () => {
+                const newPassword = newPasswordInput.value;
+                const confirmPassword = confirmPasswordInput.value;
+                
+                // Clear previous validation state
+                confirmPasswordInput.setCustomValidity('');
+                
+                if (confirmPassword && newPassword !== confirmPassword) {
+                    confirmPasswordInput.setCustomValidity('Passwords do not match');
+                } else if (newPassword && newPassword.length < 6) {
+                    newPasswordInput.setCustomValidity('Password must be at least 6 characters long');
+                } else {
+                    newPasswordInput.setCustomValidity('');
+                }
+            };
+            
+            newPasswordInput.addEventListener('input', validatePasswords);
+            confirmPasswordInput.addEventListener('input', validatePasswords);
+        }
+
+        // Add validation for hostname/IP format
+        const hostnameInput = document.getElementById('mediaServers[0].hostname');
+        if (hostnameInput) {
+            hostnameInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                if (value && !/^[a-zA-Z0-9\.\-]+$/.test(value)) {
+                    this.setCustomValidity('Hostname must contain only letters, numbers, dots, and hyphens');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+        }
+    }
+
+    function validateNumericInput(element, field) {
+        const value = element.value.trim();
+        
+        // Clear previous validation state
+        element.setCustomValidity('');
+        
+        if (value === '') {
+            // Empty is allowed for most fields
+            return;
+        }
+        
+        const numValue = Number(value);
+        
+        if (!Number.isFinite(numValue)) {
+            element.setCustomValidity(`${field.label} must be a valid number`);
+            return;
+        }
+        
+        if (field.min !== undefined && numValue < field.min) {
+            element.setCustomValidity(`${field.label} must be at least ${field.min}`);
+            return;
+        }
+        
+        if (field.max !== undefined && numValue > field.max) {
+            element.setCustomValidity(`${field.label} must be at most ${field.max}`);
+            return;
+        }
+    }
+
+    // Setup form change tracking for better UX
+    function setupFormChangeTracking() {
+        const configForm = document.getElementById('config-form');
+        const statusMessage = document.getElementById('config-status');
+        const saveButton = document.getElementById('save-config-button');
+        let hasChanges = false;
+        let originalFormData = null;
+
+        if (!configForm || !statusMessage || !saveButton) return;
+
+        // Capture original form state
+        const captureFormState = () => {
+            const formData = new FormData(configForm);
+            const state = {};
+            for (const [key, value] of formData.entries()) {
+                state[key] = value;
+            }
+            // Also capture checkbox states
+            configForm.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                state[checkbox.name] = checkbox.checked;
+            });
+            return state;
+        };
+
+        // Compare form states
+        const formHasChanged = () => {
+            if (!originalFormData) return false;
+            const currentData = captureFormState();
+            return JSON.stringify(originalFormData) !== JSON.stringify(currentData);
+        };
+
+        // Update status message
+        const updateStatus = (message, className = '') => {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${className}`;
+        };
+
+        // Monitor form changes
+        const handleFormChange = debounce(() => {
+            if (formHasChanged()) {
+                if (!hasChanges) {
+                    hasChanges = true;
+                    updateStatus('Unsaved changes detected', 'warning');
+                    saveButton.classList.add('has-changes');
+                }
+            } else {
+                if (hasChanges) {
+                    hasChanges = false;
+                    updateStatus('All changes saved', 'success');
+                    saveButton.classList.remove('has-changes');
+                }
+            }
+        }, 500);
+
+        // Capture initial state after form is populated
+        setTimeout(() => {
+            originalFormData = captureFormState();
+        }, 100);
+
+        // Add event listeners
+        configForm.addEventListener('input', handleFormChange);
+        configForm.addEventListener('change', handleFormChange);
+
+        // Reset state after successful save
+        document.addEventListener('configSaved', () => {
+            originalFormData = captureFormState();
+            hasChanges = false;
+            updateStatus('Configuration saved successfully', 'success');
+            saveButton.classList.remove('has-changes');
+        });
+
+        // Show unsaved changes warning before page unload
+        window.addEventListener('beforeunload', (e) => {
+            if (hasChanges) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                return e.returnValue;
+            }
+        });
+    }
+
+    // Setup keyboard shortcuts for improved accessibility
+    function setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+S or Cmd+S to save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                const saveButton = document.getElementById('save-config-button');
+                if (saveButton && !saveButton.disabled) {
+                    saveButton.click();
+                }
+            }
+            
+            // Ctrl+T or Cmd+T to test Plex connection
+            if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+                e.preventDefault();
+                const testButton = document.getElementById('test-plex-button');
+                if (testButton && !testButton.disabled) {
+                    testButton.click();
+                }
+            }
+            
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                const modals = document.querySelectorAll('.modal:not(.is-hidden)');
+                modals.forEach(modal => {
+                    modal.classList.add('is-hidden');
+                });
+            }
+        });
+        
+        // Add keyboard shortcuts help tooltip
+        const saveButton = document.getElementById('save-config-button');
+        if (saveButton) {
+            saveButton.title = 'Save all settings (Ctrl+S)';
+        }
+        
+        const testButton = document.getElementById('test-plex-button');
+        if (testButton) {
+            testButton.title = 'Test Plex connection (Ctrl+T)';
+        }
+    }
+
     function populateDisplaySettings(config, defaults) {
         document.getElementById('showClearLogo').checked = config.showClearLogo ?? defaults.showClearLogo;
         document.getElementById('showRottenTomatoes').checked = config.showRottenTomatoes ?? defaults.showRottenTomatoes;
@@ -188,6 +649,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Apply cinema mode settings (including Ken Burns dropdown handling)
         toggleCinemaModeSettings(isCinemaMode);
+        
+        // Set up real-time input validation
+        setupInputValidation();
+        
+        // Set up form change tracking
+        setupFormChangeTracking();
+        
+        // Set up keyboard shortcuts
+        setupKeyboardShortcuts();
         
         // Show/hide display settings based on cinema mode
         toggleCinemaModeSettings(isCinemaMode);
@@ -443,14 +913,30 @@ document.addEventListener('DOMContentLoaded', () => {
      * Fetches the media list if not already present and starts a timer.
      */
     async function initializeAdminBackground() {
+        console.log('Initializing admin background slideshow...');
+        
+        // Clear any existing timer
         if (adminBgTimer) {
             clearInterval(adminBgTimer);
+            adminBgTimer = null;
         }
 
+        // Initialize layers
         if (!activeAdminLayer) {
             activeAdminLayer = document.getElementById('admin-background-a');
             inactiveAdminLayer = document.getElementById('admin-background-b');
         }
+
+        if (!activeAdminLayer || !inactiveAdminLayer) {
+            console.warn('Admin background layers not found');
+            return;
+        }
+
+        // Reset layers
+        activeAdminLayer.style.opacity = 0;
+        inactiveAdminLayer.style.opacity = 0;
+        activeAdminLayer.style.backgroundImage = '';
+        inactiveAdminLayer.style.backgroundImage = '';
 
         if (adminBgQueue.length === 0) {
             try {
@@ -464,14 +950,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.warn('Admin background queue is empty.');
                     return;
                 }
-                adminBgIndex = Math.floor(Math.random() * adminBgQueue.length) - 1;
+                adminBgIndex = -1; // Start at -1 so first increment gives 0
             } catch (error) {
                 console.warn('Failed to fetch admin background media:', error);
                 return;
             }
         }
 
-        changeAdminBackground(); // Show first image immediately
+        console.log(`Starting slideshow with ${adminBgQueue.length} images`);
+        
+        // Show first image immediately
+        changeAdminBackground();
+        
+        // Set up regular interval
         adminBgTimer = setInterval(changeAdminBackground, 30000); // Change every 30 seconds
     }
 
@@ -479,24 +970,98 @@ document.addEventListener('DOMContentLoaded', () => {
      * Changes the background image on the admin page with a fade effect.
      */
     function changeAdminBackground() {
-        if (adminBgQueue.length === 0 || !activeAdminLayer || !inactiveAdminLayer) return;
+        console.log('=== changeAdminBackground CALLED ===');
+        
+        if (adminBgQueue.length === 0 || !activeAdminLayer || !inactiveAdminLayer) {
+            console.log('Admin background change skipped - missing elements or empty queue');
+            console.log('Queue length:', adminBgQueue.length);
+            console.log('Active layer:', activeAdminLayer);
+            console.log('Inactive layer:', inactiveAdminLayer);
+            return;
+        }
 
+        const oldIndex = adminBgIndex;
         adminBgIndex = (adminBgIndex + 1) % adminBgQueue.length;
         const currentItem = adminBgQueue[adminBgIndex];
 
-        if (!currentItem || !currentItem.backgroundUrl) return;
+        console.log(`Index changed from ${oldIndex} to ${adminBgIndex}`);
+        console.log('Current item:', currentItem);
+
+        if (!currentItem || !currentItem.backgroundUrl) {
+            console.log('Admin background change skipped - invalid item');
+            console.log('Current item:', currentItem);
+            return;
+        }
+
+        console.log(`Changing admin background to: ${currentItem.title || 'Unknown'} (${adminBgIndex + 1}/${adminBgQueue.length})`);
+        console.log('Background URL:', currentItem.backgroundUrl);
+
+        // Log current layer states
+        console.log('BEFORE transition:');
+        console.log('Active layer opacity:', window.getComputedStyle(activeAdminLayer).opacity);
+        console.log('Inactive layer opacity:', window.getComputedStyle(inactiveAdminLayer).opacity);
+        console.log('Active layer background:', window.getComputedStyle(activeAdminLayer).backgroundImage);
+        console.log('Inactive layer background:', window.getComputedStyle(inactiveAdminLayer).backgroundImage);
 
         const img = new Image();
         img.onload = () => {
+            console.log('Image loaded successfully');
+            
+            // Set new image on inactive layer and make it visible
             inactiveAdminLayer.style.backgroundImage = `url('${currentItem.backgroundUrl}')`;
-            inactiveAdminLayer.style.opacity = 1;
-            activeAdminLayer.style.opacity = 0;
-
-            // Swap layers for the next transition
-            const tempLayer = activeAdminLayer;
-            activeAdminLayer = inactiveAdminLayer;
-            inactiveAdminLayer = tempLayer;
+            inactiveAdminLayer.style.opacity = 0;
+            
+            console.log('Set background image on inactive layer, opacity set to 0');
+            
+            // Start fade transition immediately
+            setTimeout(() => {
+                console.log('Starting fade transition...');
+                
+                // Fade out current active layer
+                activeAdminLayer.style.opacity = 0;
+                // Fade in new layer
+                inactiveAdminLayer.style.opacity = 0.7;
+                
+                console.log('Set transitions: active to 0, inactive to 0.7');
+                
+                // After transition, swap the layer references 
+                // The inactive layer (which now has the new image and is visible) becomes active
+                setTimeout(() => {
+                    console.log('Swapping layer references...');
+                    console.log('Before swap - active:', activeAdminLayer.id, 'inactive:', inactiveAdminLayer.id);
+                    
+                    const tempLayer = activeAdminLayer;
+                    activeAdminLayer = inactiveAdminLayer;  // The one with the new image becomes active
+                    inactiveAdminLayer = tempLayer;         // The old active becomes inactive
+                    
+                    // DO NOT clear the background image - keep it for debugging
+                    // inactiveAdminLayer.style.backgroundImage = 'none';
+                    
+                    console.log('After swap - active:', activeAdminLayer.id, 'inactive:', inactiveAdminLayer.id);
+                    console.log('Background transition completed');
+                    
+                    // Log final states
+                    console.log('AFTER transition:');
+                    console.log('Active layer opacity:', window.getComputedStyle(activeAdminLayer).opacity);
+                    console.log('Inactive layer opacity:', window.getComputedStyle(inactiveAdminLayer).opacity);
+                    console.log('Active layer background:', window.getComputedStyle(activeAdminLayer).backgroundImage);
+                    console.log('Inactive layer background:', window.getComputedStyle(inactiveAdminLayer).backgroundImage);
+                    
+                }, 1100); // Wait a bit longer for CSS transition to complete
+                
+            }, 50); // Small delay to ensure image is set
         };
+        
+        img.onerror = () => {
+            console.warn(`Failed to load admin background image: ${currentItem.backgroundUrl}`);
+            // Try next image
+            setTimeout(() => {
+                console.log('Retrying with next image due to load error...');
+                changeAdminBackground();
+            }, 1000);
+        };
+        
+        console.log('Loading image...');
         img.src = currentItem.backgroundUrl;
     }
 
@@ -1089,6 +1654,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             const fieldName = label ? label.textContent : id;
                             throw new Error(`The field "${fieldName}" must be a valid number.`);
                         }
+                        
+                        // Additional range validation for specific fields
+                        const value = Number(element.value);
+                        if (id === 'transitionIntervalSeconds' && (value < 1 || value > 300)) {
+                            throw new Error('Transition Interval must be between 1 and 300 seconds.');
+                        }
+                        if (id === 'backgroundRefreshMinutes' && (value < 0 || value > 1440)) {
+                            throw new Error('Background Refresh must be between 0 and 1440 minutes (24 hours).');
+                        }
+                        if ((id === 'SERVER_PORT' || id === 'siteServer.port') && (value < 1024 || value > 65535)) {
+                            throw new Error('Port numbers must be between 1024 and 65535.');
+                        }
+                        if (id === 'rottenTomatoesMinimumScore' && (value < 0 || value > 10)) {
+                            throw new Error('Rotten Tomatoes score must be between 0 and 10.');
+                        }
+                        if ((id === 'mediaServers[0].movieCount' || id === 'mediaServers[0].showCount') && (value < 1 || value > 10000)) {
+                            throw new Error('Movie/Show count must be between 1 and 10,000.');
+                        }
                     }
                 }
 
@@ -1210,6 +1793,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Client-side validation
                 if (!data.currentPassword || !data.newPassword || !data.confirmPassword) {
                     throw new Error('All password fields are required.');
+                }
+                
+                if (data.newPassword.length < 6) {
+                    throw new Error('New password must be at least 6 characters long.');
+                }
+                
+                if (data.newPassword !== data.confirmPassword) {
+                    throw new Error('New password and confirmation do not match.');
+                }
+                
+                if (data.currentPassword === data.newPassword) {
+                    throw new Error('New password must be different from the current password.');
                 }
                 if (data.newPassword !== data.confirmPassword) {
                     throw new Error('The new password and confirmation do not match.');
@@ -2344,6 +2939,113 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+
+    // Toggle help panel
+    function toggleHelpPanel() {
+        const helpPanel = document.getElementById('quick-help-panel');
+        if (helpPanel) {
+            helpPanel.classList.toggle('open');
+        }
     }
 
+    // Make toggleHelpPanel globally available
+    window.toggleHelpPanel = toggleHelpPanel;
+    
+    // Note: Admin background slideshow is now initialized from loadSettings() when Plex is configured
+    }
+
+// Initialize range slider value displays
+const rangeInputs = document.querySelectorAll('input[type="range"]');
+rangeInputs.forEach(input => {
+    const valueDisplay = document.getElementById(input.id + '-value');
+    if (valueDisplay) {
+        // Update display on input
+        input.addEventListener('input', () => {
+            valueDisplay.textContent = input.value + '%';
+        });
+        // Initialize display
+        valueDisplay.textContent = input.value + '%';
+    }
 });
+
+});
+
+// UI Scaling Template Functions
+function applyScalingTemplate(template) {
+    const templates = {
+        fullhd: {
+            poster: 100,
+            text: 100,
+            clearlogo: 100,
+            clock: 100,
+            global: 100
+        },
+        '4k': {
+            poster: 150,
+            text: 130,
+            clearlogo: 140,
+            clock: 120,
+            global: 130
+        },
+        widescreen: {
+            poster: 120,
+            text: 110,
+            clearlogo: 125,
+            clock: 110,
+            global: 115
+        }
+    };
+
+    const values = templates[template];
+    if (values) {
+        Object.keys(values).forEach(key => {
+            const input = document.getElementById(`uiScaling.${key}`);
+            const valueDisplay = document.getElementById(`uiScaling.${key}-value`);
+            
+            if (input && valueDisplay) {
+                input.value = values[key];
+                valueDisplay.textContent = values[key] + '%';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
+    }
+}
+
+function resetScalingToDefaults() {
+    applyScalingTemplate('fullhd');
+}
+
+// Custom Number Input Controls
+function incrementValue(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    
+    const currentValue = parseInt(input.value) || 0;
+    const step = parseInt(input.step) || 1;
+    const max = parseInt(input.max);
+    
+    let newValue = currentValue + step;
+    if (max && newValue > max) {
+        newValue = max;
+    }
+    
+    input.value = newValue;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function decrementValue(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    
+    const currentValue = parseInt(input.value) || 0;
+    const step = parseInt(input.step) || 1;
+    const min = parseInt(input.min);
+    
+    let newValue = currentValue - step;
+    if (min !== undefined && newValue < min) {
+        newValue = min;
+    }
+    
+    input.value = newValue;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+}

@@ -3,18 +3,612 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Posterrama Admin Dashboard</title>
-    <link rel="stylesheet" href="/admin.css?v=1.2.5">
+    <title>Posterrama Admin</title>
+    <link rel="stylesheet" href="/admin.css?v=1.2.4">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* All styles moved to admin.css */
+        .button-primary.is-success {
+            background-color: #28a745;
+            border-color: #218838;
+        }
+        .button-primary.is-danger {
+            background-color: #dc3545;
+            border-color: #c82333;
+        }
+        .button-primary.is-warning,
+        .button-danger.is-warning {
+            background-color: #e5a00d; /* Plex Orange */
+            border-color: #c78c0a;
+            color: #111;
+        }
+        .management-action {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #444;
+        }
+        .management-action:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .management-action:first-child {
+            padding-top: 0.5rem;
+        }
+        .action-description strong {
+            display: block;
+            color: #eee;
+            margin-bottom: 0.25rem;
+        }
+        .action-description p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #aaa;
+            max-width: 400px;
+        }
+        .action-button { flex-shrink: 0; margin-left: 1rem; }
+       a.button-primary {
+           display: inline-flex;
+           align-items: center;
+           text-decoration: none;
+           padding: 0.5rem 1rem;
+       }
+        .log-viewer {
+            background-color: #1a1a1a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: #ccc;
+        }
+        .log-viewer pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-line { display: block; }
+        .log-line.level-error { color: #ff6b6b; }
+        .log-line.level-warn { color: #feca57; }
+
+        .library-container {
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #2c2c2c;
+        }
+        .library-container .checkbox-group {
+            margin-bottom: 8px;
+        }
+        .library-container .checkbox-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-group small {
+            display: block;
+            color: #888;
+            font-size: 0.75rem;
+            font-style: italic;
+            margin-top: 0.3rem;
+        }
+
+        .button-danger {
+            background-color: #c82333;
+            border-color: #bd2130;
+            color: #fff;
+        }
+        .button-danger:hover {
+            background-color: #a71d2a;
+            border-color: #941a25;
+        }
+        .button-danger:disabled {
+            background-color: #555 !important;
+            border-color: #555 !important;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .button-primary .icon {
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+        .is-hidden {
+            display: none !important;
+        }
+        
+        /* Input validation styles */
+        .form-group input:invalid, .form-group select:invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+        
+        .form-group input:valid, .form-group select:valid {
+            border-color: #28a745;
+        }
+        
+        .form-group input:focus:invalid {
+            outline: none;
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+        
+        .form-group input:focus:valid {
+            outline: none;
+            border-color: #28a745;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+        }
+        
+        /* Required field indicator */
+        .form-group label[for] {
+            position: relative;
+        }
+        
+        .form-group input[required] + .help-text::before,
+        .form-group input[required] ~ .help-text::before {
+            content: "• Required field. ";
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        /* Better spacing and visual hierarchy */
+        .settings-column h2 {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            color: #007bff;
+        }
+        
+        .form-section h3 {
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 0.3rem;
+            margin-bottom: 1rem;
+            color: #495057;
+        }
+        
+        /* Footer improvements */
+        .admin-footer {
+            position: sticky;
+            bottom: 0;
+            background: rgba(248, 249, 250, 0.95);
+            backdrop-filter: blur(5px);
+            border-top: 1px solid #dee2e6;
+            padding: 1rem;
+            z-index: 1000;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 100%;
+        }
+        
+        .footer-status {
+            flex: 1;
+        }
+        
+        .status-message {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .status-message.changed {
+            color: #ffc107;
+        }
+        
+        .status-message.saving {
+            color: #007bff;
+        }
+        
+        .status-message.saved {
+            color: #28a745;
+        }
+        
+        .status-message.error {
+            color: #dc3545;
+        }
+        
+        /* Save button highlight when changes exist */
+        .button-save-highlight {
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Help panel styles */
+        .quick-help-panel {
+            position: fixed;
+            top: 20px;
+            right: -400px;
+            width: 380px;
+            height: calc(100vh - 40px);
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 9999;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+        
+        .quick-help-panel.open {
+            right: 20px;
+        }
+        
+        .help-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .help-header h3 {
+            margin: 0;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+        
+        .help-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            color: #6c757d;
+            font-size: 1.2rem;
+        }
+        
+        .help-toggle:hover {
+            color: #495057;
+        }
+        
+        .help-content {
+            padding: 1rem;
+        }
+        
+        .help-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .help-section h4 {
+            margin: 0 0 0.5rem 0;
+            color: #007bff;
+            font-size: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 0.25rem;
+        }
+        
+        .help-section ul {
+            margin: 0;
+            padding-left: 1rem;
+        }
+        
+        .help-section li {
+            margin-bottom: 0.5rem;
+            color: #495057;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .help-section kbd {
+            background: #f1f3f4;
+            border: 1px solid #dadce0;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        
+        .help-toggle-fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #007bff;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            cursor: pointer;
+            z-index: 9998;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .help-toggle-fab:hover {
+            background: #0056b3;
+            transform: scale(1.1);
+        }
+        
+        #debug-link {
+            display: inline-block;
+            margin-left: 1rem;
+            color: #7fadf6;
+            text-decoration: none;
+        }
+        #debug-link:hover {
+            text-decoration: underline;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            position: relative;
+            z-index: 1;
+            background-color: #2c2c2c;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90vw;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .modal-content h2 { margin-top: 0; }
+        #qr-code-container {
+            display: flex;
+            justify-content: center;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 4px;
+        }
+        #qr-code-container img { display: block; width: 200px; height: 200px; }
+        .status-text { font-size: 0.9em; margin-top: 0.5rem; }
+        .status-text.enabled { color: #28a745; }
+        .status-text.disabled { color: #888; }
+
+        /* Modern Sidebar Menu Styles */
+        /* Layout override to work with external CSS */
+        .admin-layout {
+            /* Grid layout is defined in admin.css */
+        }
+
+        .sidebar {
+            /* Sidebar styles are defined in admin.css */
+        }
+
+        .sidebar.collapsed {
+            width: 70px;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar.collapsed .sidebar-logo .logo-text {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background-color: #fff;
+        }
+
+        .nav-icon {
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .nav-text {
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            flex: 1;
+        }
+
+        .sidebar.collapsed .nav-text {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed .nav-item {
+            justify-content: center;
+            padding: 0.875rem 0;
+        }
+
+        .sidebar.collapsed .nav-icon {
+            margin-right: 0;
+        }
+
+        /* Main content area */
+        .main-content {
+            margin-left: 280px;
+            padding: 2rem;
+            flex: 1;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .sidebar.collapsed + .main-content {
+            margin-left: 70px;
+        }
+
+        /* Update header styles to work with sidebar */
+        .admin-header {
+            margin-left: 280px;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+            padding: 1rem 2rem;
+        }
+
+        .sidebar.collapsed ~ .admin-header {
+            margin-left: 70px;
+        }
+
+        /* Section content styles */
+        .section-content {
+            display: none;
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .section-content.active {
+            display: block;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #007bff;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content,
+            .admin-header {
+                margin-left: 0;
+            }
+
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+                display: none;
+            }
+
+            .sidebar.open ~ .sidebar-overlay {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="admin-layout">
         <!-- Header -->
         <header class="admin-header">
-            <h1 class="logo-text">Admin Dashboard</h1>
+            <h1>Admin Dashboard</h1>
             <nav>
                 <a href="/" target="_blank">
                     <i class="fas fa-external-link-alt"></i>
@@ -34,12 +628,13 @@
         <!-- Sidebar Navigation -->
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i class="fas fa-film nav-icon"></i>
+                    <span class="logo-text">Posterrama</span>
+                </div>
                 <button class="sidebar-toggle" id="sidebar-toggle">
                     <i class="fas fa-bars"></i>
                 </button>
-                <div class="sidebar-logo">
-                    <span class="logo-text">Posterrama</span>
-                </div>
             </div>
             
             <div class="sidebar-nav">
@@ -92,7 +687,6 @@
         <div class="main-content">
             <div id="admin-background-a" class="admin-background-layer"></div>
             <div id="admin-background-b" class="admin-background-layer"></div>
-            <div class="admin-background-overlay"></div>
 
             <main class="admin-main">
                 <div id="notification-area" class="notification-container"></div>
@@ -108,49 +702,23 @@
                         <div class="form-section">
                             <div class="form-group">
                                 <label for="transitionIntervalSeconds" title="How many seconds each poster is visible.">Transition Interval (seconds)</label>
-                                <div class="number-input-wrapper">
-                                    <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds" min="1" max="300" step="1" required>
-                                    <div class="number-controls">
-                                        <button type="button" class="number-btn" onclick="incrementValue('transitionIntervalSeconds')">
-                                            <i class="fas fa-chevron-up"></i>
-                                        </button>
-                                        <button type="button" class="number-btn" onclick="decrementValue('transitionIntervalSeconds')">
-                                            <i class="fas fa-chevron-down"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                                <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds" min="1" max="300" step="1" required>
+                                <small class="help-text">How many seconds each poster is visible. Must be between 1 and 300 seconds.</small>
                             </div>
                             <div class="form-group">
                                 <label for="backgroundRefreshMinutes">Background Refresh (minutes)</label>
-                                <div class="number-input-wrapper">
-                                    <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes" min="0" max="1440" step="1">
-                                    <div class="number-controls">
-                                        <button type="button" class="number-btn" onclick="incrementValue('backgroundRefreshMinutes')">
-                                            <i class="fas fa-chevron-up"></i>
-                                        </button>
-                                        <button type="button" class="number-btn" onclick="decrementValue('backgroundRefreshMinutes')">
-                                            <i class="fas fa-chevron-down"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                                <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes" min="0" max="1440" step="1">
+                                <small class="help-text">How often (in minutes) the entire media library is re-fetched. 0 to disable. Maximum 24 hours (1440 minutes).</small>
                             </div>
                             <div class="form-group">
                                 <label for="SERVER_PORT">Application Port</label>
-                                <div class="number-input-wrapper">
-                                    <input type="number" id="SERVER_PORT" name="SERVER_PORT" min="1024" max="65535" step="1" required>
-                                    <div class="number-controls">
-                                        <button type="button" class="number-btn" onclick="incrementValue('SERVER_PORT')">
-                                            <i class="fas fa-chevron-up"></i>
-                                        </button>
-                                        <button type="button" class="number-btn" onclick="decrementValue('SERVER_PORT')">
-                                            <i class="fas fa-chevron-down"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                                <input type="number" id="SERVER_PORT" name="SERVER_PORT" min="1024" max="65535" step="1" required>
+                                <small class="help-text">Requires application restart to take effect. Must be between 1024 and 65535.</small>
                             </div>
                             <div class="form-group checkbox-group">
                                 <input type="checkbox" id="DEBUG" name="DEBUG">
                                 <label for="DEBUG">Enable Debug Mode</label>
+                                <small class="help-text">Outputs more detailed logs for troubleshooting. Check the live logs to see debug information in real-time.</small>
                             </div>
                         </div>
                     </div>
@@ -166,14 +734,17 @@
                             <div class="form-group checkbox-group">
                                 <input type="checkbox" id="showClearLogo" name="showClearLogo">
                                 <label for="showClearLogo">Show ClearLogo</label>
+                                <small class="help-text">Shows the movie/series logo (if available).</small>
                             </div>
                             <div class="form-group checkbox-group">
                                 <input type="checkbox" id="showRottenTomatoes" name="showRottenTomatoes">
                                 <label for="showRottenTomatoes">Show Rotten Tomatoes Badge</label>
+                                <small class="help-text">Shows a 'Fresh' or 'Rotten' badge on the poster.</small>
                             </div>
                             <div class="form-group">
                                 <label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes Score (0-10)</label>
                                 <input type="number" id="rottenTomatoesMinimumScore" name="rottenTomatoesMinimumScore" min="0" max="10" step="0.1">
+                                <small class="help-text">Filters media to only show items with this score or higher. Set to 0 to disable filtering.</small>
                             </div>
                             <div class="form-group checkbox-group">
                                 <input type="checkbox" id="showPoster" name="showPoster">
@@ -182,10 +753,12 @@
                             <div class="form-group checkbox-group">
                                 <input type="checkbox" id="showMetadata" name="showMetadata">
                                 <label for="showMetadata">Show Metadata (title, tagline, etc.)</label>
+                                <small class="help-text">Requires "Show Poster" to be enabled.</small>
                             </div>
                             <div class="form-group checkbox-group">
                                 <input type="checkbox" id="clockWidget" name="clockWidget">
                                 <label for="clockWidget">Show Clock</label>
+                                <small class="help-text">Shows a clock in the top left of the screen.</small>
                             </div>
                             <div class="form-group" id="clockTimezoneGroup" style="display: none;">
                                 <label for="clockTimezone">Clock Timezone</label>
@@ -234,6 +807,7 @@
                                     <option value="Pacific/Honolulu">Pacific/Honolulu (HST)</option>
                                 </optgroup>
                             </select>
+                            <small class="help-text">Select the timezone for the clock display. Uses IANA timezone identifiers.</small>
                         </div>
                         <div class="form-group" id="clockFormatGroup" style="display: none;">
                             <label for="clockFormat">Clock Format</label>
@@ -241,51 +815,40 @@
                                 <option value="24h">24-hour format (23:45)</option>
                                 <option value="12h">12-hour format (11:45 PM)</option>
                             </select>
+                            <small class="help-text">Choose between 12-hour format with AM/PM or 24-hour format.</small>
                         </div>
                         
                         <!-- UI Scaling Settings -->
-                        <div class="subsection">
-                            <div class="subsection-title">
-                                <i class="fas fa-expand-arrows-alt"></i>
-                                UI Element Scaling
-                            </div>
-                            
-                            <!-- Scaling Templates -->
-                            <div class="scaling-templates">
-                                <label>Quick Templates:</label>
-                                <div class="template-buttons">
-                                    <button type="button" class="btn btn-secondary" onclick="applyScalingTemplate('fullhd')">Full HD</button>
-                                    <button type="button" class="btn btn-secondary" onclick="applyScalingTemplate('4k')">4K</button>
-                                    <button type="button" class="btn btn-secondary" onclick="applyScalingTemplate('widescreen')">Widescreen</button>
-                                    <button type="button" class="btn btn-secondary" onclick="resetScalingToDefaults()">Reset to Defaults</button>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="uiScaling.poster">Poster Size</label>
-                                <input type="range" id="uiScaling.poster" name="uiScaling.poster" min="50" max="200" value="100" step="5">
-                                <span class="range-value" id="uiScaling.poster-value">100%</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="uiScaling.text">Text Size</label>
-                                <input type="range" id="uiScaling.text" name="uiScaling.text" min="50" max="200" value="100" step="5">
-                                <span class="range-value" id="uiScaling.text-value">100%</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="uiScaling.clearlogo">Clearlogo Size</label>
-                                <input type="range" id="uiScaling.clearlogo" name="uiScaling.clearlogo" min="50" max="200" value="100" step="5">
-                                <span class="range-value" id="uiScaling.clearlogo-value">100%</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="uiScaling.clock">Clock Size</label>
-                                <input type="range" id="uiScaling.clock" name="uiScaling.clock" min="50" max="200" value="100" step="5">
-                                <span class="range-value" id="uiScaling.clock-value">100%</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="uiScaling.global">Global Scale</label>
-                                <input type="range" id="uiScaling.global" name="uiScaling.global" min="50" max="200" value="100" step="5">
-                                <span class="range-value" id="uiScaling.global-value">100%</span>
-                            </div>
+                        <h3>UI Element Scaling</h3>
+                        <div class="form-group">
+                            <label for="uiScaling.poster">Poster Size</label>
+                            <input type="range" id="uiScaling.poster" name="uiScaling.poster" min="50" max="200" value="100" step="5">
+                            <span class="range-value" id="uiScaling.poster-value">100%</span>
+                            <small class="help-text">Adjust the size of the poster relative to the default size.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="uiScaling.text">Text Size</label>
+                            <input type="range" id="uiScaling.text" name="uiScaling.text" min="50" max="200" value="100" step="5">
+                            <span class="range-value" id="uiScaling.text-value">100%</span>
+                            <small class="help-text">Adjust the size of titles and metadata text.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="uiScaling.clearlogo">Clearlogo Size</label>
+                            <input type="range" id="uiScaling.clearlogo" name="uiScaling.clearlogo" min="50" max="200" value="100" step="5">
+                            <span class="range-value" id="uiScaling.clearlogo-value">100%</span>
+                            <small class="help-text">Adjust the size of the clearlogo in the top right corner.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="uiScaling.clock">Clock Size</label>
+                            <input type="range" id="uiScaling.clock" name="uiScaling.clock" min="50" max="200" value="100" step="5">
+                            <span class="range-value" id="uiScaling.clock-value">100%</span>
+                            <small class="help-text">Adjust the size of the clock widget.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="uiScaling.global">Global Scale</label>
+                            <input type="range" id="uiScaling.global" name="uiScaling.global" min="50" max="200" value="100" step="5">
+                            <span class="range-value" id="uiScaling.global-value">100%</span>
+                            <small class="help-text">Adjust the overall scale of all UI elements at once. Useful for different screen sizes.</small>
                         </div>
                         </div>
                     </div>
@@ -305,14 +868,17 @@
                                 <option value="fade">Fade In/Out</option>
                                 <option value="slide">Slide Transition</option>
                             </select>
+                            <small class="help-text">Choose visual transition effects for background images and posters. Ken Burns provides a slow zoom and pan effect, while slide creates left/right sliding transitions in cinema mode.</small>
                         </div>
                         <div class="form-group">
                             <label for="effectPauseTime">Effect Pause Time (seconds)</label>
                             <input type="number" id="effectPauseTime" name="effectPauseTime" min="0" max="10" step="0.5" value="2">
+                            <small class="help-text">Time to pause after effect completes before next transition. Not applied to Ken Burns effect since it uses the full transition interval.</small>
                         </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="cinemaMode" name="cinemaMode">
                             <label for="cinemaMode">Cinema Mode</label>
+                            <small class="help-text">Enable cinema mode for portrait displays. Shows fullscreen poster with header/footer areas.</small>
                         </div>
                         <div class="form-group" id="cinemaOrientationGroup" style="display: none;">
                             <label for="cinemaOrientation">Cinema Display Orientation</label>
@@ -321,6 +887,7 @@
                                 <option value="portrait">Portrait</option>
                                 <option value="portrait-flipped">Portrait Flipped (180°)</option>
                             </select>
+                            <small class="help-text">Force a specific portrait orientation for cinema mode instead of relying on device sensors.</small>
                         </div>
                         </div>
                     </div>
@@ -337,18 +904,22 @@
                             <div class="form-group checkbox-group">
                                 <input type="checkbox" id="mediaServers[0].enabled" name="mediaServers[0].enabled">
                                 <label for="mediaServers[0].enabled">Enable Plex Server</label>
+                                <small class="help-text">Enables or disables the connection to this Plex server.</small>
                             </div>
                             <div class="form-group">
                                 <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
                                 <input type="text" id="mediaServers[0].hostname" name="mediaServers[0].hostname" placeholder="192.168.1.10 or plex.local" pattern="^[a-zA-Z0-9\.\-]+$">
+                                <small class="help-text">The IP address or hostname of your Plex server (e.g., 192.168.1.10 or plex.local).</small>
                             </div>
                             <div class="form-group">
                                 <label for="mediaServers[0].port">Plex Port</label>
                                 <input type="number" id="mediaServers[0].port" name="mediaServers[0].port" min="1" max="65535" placeholder="32400">
+                                <small class="help-text">The port of your Plex server (default 32400). Must be between 1 and 65535.</small>
                             </div>
                             <div class="form-group">
                                 <label for="mediaServers[0].token">Plex Token</label>
                                 <input type="password" id="mediaServers[0].token" name="mediaServers[0].token">
+                                <small class="help-text">Find your token by following <a href="https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/" target="_blank">these instructions</a>.</small>
                             </div>
                             <div class="form-group">
                                 <label>Movie Library Names</label>
@@ -365,10 +936,12 @@
                             <div class="form-group">
                                 <label for="mediaServers[0].movieCount">Number of Movies to Show</label>
                                 <input type="number" id="mediaServers[0].movieCount" name="mediaServers[0].movieCount" min="1" max="10000" placeholder="100">
+                                <small class="help-text">The maximum number of movies to include in the playlist. Higher numbers may affect performance.</small>
                             </div>
                             <div class="form-group">
                                 <label for="mediaServers[0].showCount">Number of Shows to Show</label>
                                 <input type="number" id="mediaServers[0].showCount" name="mediaServers[0].showCount" min="1" max="10000" placeholder="50">
+                                <small class="help-text">The maximum number of shows to include in the playlist. Higher numbers may affect performance.</small>
                             </div>
                             <div class="form-group">
                                 <button type="button" id="test-plex-button" class="button-primary">
@@ -416,6 +989,7 @@
                             <div class="form-group checkbox-group">
                                 <input type="checkbox" id="enable2FA" name="enable2FA">
                                 <label for="enable2FA">Enable 2FA</label>
+                                <small class="help-text">Secure your account with an authenticator app.</small>
                                 <div id="2fa-status-text" class="status-text disabled"></div>
                             </div>
                         </div>
@@ -464,10 +1038,12 @@
                             <div class="form-group checkbox-group">
                                 <input type="checkbox" id="siteServer.enabled" name="siteServer.enabled">
                                 <label for="siteServer.enabled">Enable Promobox Site</label>
+                                <small class="help-text">Enables the promotional website that showcases Posterrama features.</small>
                             </div>
                             <div class="form-group" id="siteServerPortGroup" style="display: none;">
                                 <label for="siteServer.port">Promobox Site Port</label>
                                 <input type="number" id="siteServer.port" name="siteServer.port" min="1024" max="65535" value="4001">
+                                <small class="help-text">The port for the promotional website. Default is 4001.</small>
                             </div>
                             <div id="siteServerStatus" class="status-indicator" style="display: none;">
                                 <div class="status-badge">
@@ -581,19 +1157,16 @@
                 <div class="admin-footer">
                     <div class="footer-content">
                         <div class="footer-status">
-                            <div id="config-status" class="status-message">
-                                <i class="fas fa-check-circle"></i>
-                                Ready to save
-                            </div>
+                            <div id="config-status" class="status-message">Ready to save</div>
                         </div>
                         <div class="footer-actions">
-                            <button type="button" onclick="toggleHelpPanel()" class="btn btn-secondary">
-                                <i class="fas fa-question-circle"></i>
+                            <button type="button" onclick="toggleHelpPanel()" class="button-secondary">
+                                <span class="icon"><i class="fas fa-question-circle"></i></span>
                                 <span>Quick Help</span>
                             </button>
-                            <button type="submit" id="save-config-button" class="btn" form="config-form">
-                                <i class="fas fa-save"></i>
-                                <span>Save Settings</span>
+                            <button type="submit" id="save-config-button" class="button-primary" form="config-form">
+                                <span class="icon"><i class="fas fa-save"></i></span>
+                                <span class="button-text">Save Settings</span>
                             </button>
                         </div>
                     </div>
@@ -690,65 +1263,6 @@
         console.log('=== LAYOUT DEBUGGING ===');
         
         document.addEventListener('DOMContentLoaded', function() {
-            // === ADMIN BACKGROUND SLIDESHOW DEBUGGING ===
-            let debugInterval;
-            
-            function startBackgroundDebugging() {
-                console.log('=== STARTING ADMIN BACKGROUND DEBUGGING ===');
-                
-                // Monitor the slideshow variables every 2 seconds
-                debugInterval = setInterval(() => {
-                    const activeLayer = document.getElementById('admin-background-a');
-                    const inactiveLayer = document.getElementById('admin-background-b');
-                    
-                    if (activeLayer && inactiveLayer) {
-                        const activeStyle = window.getComputedStyle(activeLayer);
-                        const inactiveStyle = window.getComputedStyle(inactiveLayer);
-                        
-                        console.log('--- SLIDESHOW STATE ---');
-                        console.log('Active layer (A):', {
-                            opacity: activeStyle.opacity,
-                            backgroundImage: activeStyle.backgroundImage,
-                            hasImage: activeStyle.backgroundImage !== 'none'
-                        });
-                        console.log('Inactive layer (B):', {
-                            opacity: inactiveStyle.opacity,
-                            backgroundImage: inactiveStyle.backgroundImage,
-                            hasImage: inactiveStyle.backgroundImage !== 'none'
-                        });
-                        
-                        // Check if slideshow variables exist
-                        if (typeof window.adminBgQueue !== 'undefined') {
-                            console.log('AdminBg Queue length:', window.adminBgQueue?.length);
-                            console.log('AdminBg Index:', window.adminBgIndex);
-                            console.log('AdminBg Timer active:', !!window.adminBgTimer);
-                        } else {
-                            console.log('AdminBg variables not accessible from window');
-                        }
-                    }
-                }, 2000);
-                
-                // Also monitor transitions
-                const layers = document.querySelectorAll('.admin-background-layer');
-                layers.forEach((layer, index) => {
-                    layer.addEventListener('transitionstart', (e) => {
-                        if (e.propertyName === 'opacity') {
-                            console.log(`Layer ${index} transition START: opacity changing from ${e.target.style.opacity}`);
-                        }
-                    });
-                    
-                    layer.addEventListener('transitionend', (e) => {
-                        if (e.propertyName === 'opacity') {
-                            const finalOpacity = window.getComputedStyle(e.target).opacity;
-                            console.log(`Layer ${index} transition END: opacity is now ${finalOpacity}`);
-                        }
-                    });
-                });
-            }
-            
-            // Start debugging after a short delay
-            setTimeout(startBackgroundDebugging, 1000);
-            
             setTimeout(() => {
                 // Debug layout dimensions
                 const adminLayout = document.querySelector('.admin-layout');
@@ -823,101 +1337,7 @@
                         position: mainStyle.position
                     });
                 }
-
-                // === FANART DEBUGGING ===
-                console.log('=== FANART DEBUGGING ===');
-                
-                const backgroundLayers = document.querySelectorAll('.admin-background-layer');
-                const backgroundOverlay = document.querySelector('.admin-background-overlay');
-                
-                console.log('Background layers found:', backgroundLayers.length);
-                
-                backgroundLayers.forEach((layer, index) => {
-                    const layerStyle = window.getComputedStyle(layer);
-                    console.log(`Background layer ${index}:`, {
-                        element: layer,
-                        id: layer.id,
-                        className: layer.className,
-                        opacity: layerStyle.opacity,
-                        backgroundImage: layerStyle.backgroundImage,
-                        zIndex: layerStyle.zIndex,
-                        position: layerStyle.position,
-                        display: layerStyle.display,
-                        visibility: layerStyle.visibility
-                    });
-                });
-                
-                if (backgroundOverlay) {
-                    const overlayStyle = window.getComputedStyle(backgroundOverlay);
-                    console.log('Background overlay:', {
-                        element: backgroundOverlay,
-                        opacity: overlayStyle.opacity,
-                        background: overlayStyle.background,
-                        zIndex: overlayStyle.zIndex,
-                        position: overlayStyle.position,
-                        display: overlayStyle.display,
-                        visibility: overlayStyle.visibility
-                    });
-                } else {
-                    console.log('Background overlay NOT FOUND!');
-                }
-                
-                // Check if fanart JavaScript is running
-                console.log('Checking for adminBgTimer...');
-                if (window.adminBgTimer) {
-                    console.log('Admin background timer is active:', window.adminBgTimer);
-                } else {
-                    console.log('Admin background timer is NOT active');
-                    
-                    // Start slideshow manually with a check to prevent duplicates
-                    console.log('Starting slideshow manually...');
-                    if (typeof initializeAdminBackground === 'function') {
-                        console.log('Calling initializeAdminBackground once...');
-                        initializeAdminBackground();
-                    } else {
-                        console.log('initializeAdminBackground function NOT found');
-                    }
-                }
-                
-                // Force check opacity after 3 seconds - DISABLED FOR NOW
-                setTimeout(() => {
-                    console.log('=== OPACITY CHECK AFTER 3 SECONDS ===');
-                    backgroundLayers.forEach((layer, index) => {
-                        const layerStyle = window.getComputedStyle(layer);
-                        console.log(`Layer ${index} opacity after delay:`, layerStyle.opacity);
-                    });
-                    
-                    // OPACITY FORCING DISABLED - slideshow is working correctly
-                    console.log('=== OPACITY FORCING DISABLED ===');
-                    console.log('Slideshow is working correctly with opacity 0.7');
-                    /*
-                    backgroundLayers.forEach((layer, index) => {
-                        if (layer.classList.contains('active') || window.getComputedStyle(layer).opacity > 0) {
-                            console.log(`Forcing layer ${index} opacity to 0.05`);
-                            layer.style.opacity = '0.05';
-                            layer.style.setProperty('opacity', '0.05', 'important');
-                        }
-                    });
-                    
-                    // Also make overlay even darker
-                    if (backgroundOverlay) {
-                        console.log('Making overlay darker...');
-                        backgroundOverlay.style.background = 'radial-gradient(circle at center, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.8) 50%, rgba(0, 0, 0, 0.95) 100%)';
-                        backgroundOverlay.style.setProperty('background', 'radial-gradient(circle at center, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.8) 50%, rgba(0, 0, 0, 0.95) 100%)', 'important');
-                    }
-                    */
-                    
-                    // Verify changes after another second
-                    setTimeout(() => {
-                        console.log('=== FINAL OPACITY CHECK ===');
-                        backgroundLayers.forEach((layer, index) => {
-                            const finalStyle = window.getComputedStyle(layer);
-                            console.log(`Layer ${index} FINAL opacity:`, finalStyle.opacity);
-                        });
-                    }, 1000);
-                }, 3000);
-                
-            }, 2000);
+            }, 1000);
         });
     </script>
 </body>
