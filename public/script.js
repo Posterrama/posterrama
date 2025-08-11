@@ -115,18 +115,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (configRefreshTimerId) clearInterval(configRefreshTimerId);
         configRefreshTimerId = setInterval(refreshConfig, 30 * 1000);
 
-        // Apply UI scaling if configured
+        // Apply initial UI scaling
         applyUIScaling(appConfig);
     }
 
     function applyUIScaling(config) {
+        // Apply UI scaling from configuration
         if (!config.uiScaling) {
             console.log('No UI scaling configuration found, using defaults');
             return;
         }
 
-        const scaling = config.uiScaling;
         const root = document.documentElement;
+        const scaling = config.uiScaling;
 
         // Calculate final scaling values (individual * global / 100)
         const globalScale = scaling.global || 100;
@@ -147,7 +148,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearlogo: clearlogoScale,
             clock: clockScale
         });
-    }
     }
 
     async function refreshConfig() {
@@ -238,6 +238,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         console.log('Configuration changes applied successfully');
+    }
+
+    function applyUIScaling(config) {
+        // Apply UI scaling from configuration
+        if (config.uiScaling) {
+            const root = document.documentElement;
+            const globalScale = (config.uiScaling.global || 100) / 100;
+            
+            // Calculate combined scales (individual * global)
+            const posterScale = ((config.uiScaling.poster || 100) / 100) * globalScale;
+            const textScale = ((config.uiScaling.text || 100) / 100) * globalScale;
+            const clearlogoScale = ((config.uiScaling.clearlogo || 100) / 100) * globalScale;
+            const clockScale = ((config.uiScaling.clock || 100) / 100) * globalScale;
+            
+            // Apply to CSS custom properties
+            root.style.setProperty('--poster-scale', posterScale);
+            root.style.setProperty('--text-scale', textScale);
+            root.style.setProperty('--clearlogo-scale', clearlogoScale);
+            root.style.setProperty('--clock-scale', clockScale);
+            
+            console.log('Applied UI scaling:', {
+                poster: posterScale,
+                text: textScale,
+                clearlogo: clearlogoScale,
+                clock: clockScale
+            });
+        } else {
+            console.log('No UI scaling configuration found, using defaults');
+        }
     }
 
     function updateCurrentMediaDisplay() {
