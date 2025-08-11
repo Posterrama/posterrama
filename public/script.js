@@ -354,6 +354,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             mediaQueue = newMediaQueue;
             console.log(`Playlist updated with ${mediaQueue.length} items.`);
 
+            // Clean up any existing preloaded images when playlist changes
+            if (!isInitialLoad) {
+                console.log('[DEBUG] Cleaning up preloaded images due to playlist change');
+                cleanupPreloadedImages();
+            }
+
             if (isInitialLoad) {
                 // Pick a random starting point instead of always starting at 0.
                 // We set it to randomIndex - 1 because changeMedia increments it before use.
@@ -361,6 +367,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 currentIndex = randomIndex - 1;
                 changeMedia('next', true); // This will start the slideshow at `randomIndex`
             }
+            
+            // Start preloading images for smooth transitions
+            preloadNextImages();
         } catch (e) {
             console.error("Failed to fetch media", e);
             showError(e.message || "Could not load media. Check the server connection.");
@@ -397,11 +406,90 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function preloadNextImage() {
+    // Prefetch system for smooth transitions
+    const preloadedImages = {
+        backgrounds: new Map(),
+        posters: new Map()
+    };
+    const maxPreloadedImages = 5; // Preload next 5 items
+
+    function preloadNextImages() {
         if (mediaQueue.length < 2) return;
-        const nextIndex = (currentIndex + 1) % mediaQueue.length;
-        preloadedImage = new Image();
-        preloadedImage.src = mediaQueue[nextIndex].backgroundUrl;
+        
+        // Preload next few items for smooth transitions
+        const itemsToPreload = Math.min(maxPreloadedImages, mediaQueue.length - 1);
+        
+        for (let i = 1; i <= itemsToPreload; i++) {
+            const nextIndex = (currentIndex + i) % mediaQueue.length;
+            const mediaItem = mediaQueue[nextIndex];
+            
+            if (!mediaItem) continue;
+            
+            // Preload background image
+            if (!preloadedImages.backgrounds.has(mediaItem.backgroundUrl)) {
+                const bgImg = new Image();
+                bgImg.onload = () => {
+                    console.log('[PRELOAD] Background loaded:', mediaItem.title);
+                };
+                bgImg.onerror = () => {
+                    console.warn('[PRELOAD] Background failed to load:', mediaItem.backgroundUrl);
+                };
+                bgImg.src = mediaItem.backgroundUrl;
+                preloadedImages.backgrounds.set(mediaItem.backgroundUrl, bgImg);
+            }
+            
+            // Preload poster image
+            if (!preloadedImages.posters.has(mediaItem.posterUrl)) {
+                const posterImg = new Image();
+                posterImg.onload = () => {
+                    console.log('[PRELOAD] Poster loaded:', mediaItem.title);
+                };
+                posterImg.onerror = () => {
+                    console.warn('[PRELOAD] Poster failed to load:', mediaItem.posterUrl);
+                };
+                posterImg.src = mediaItem.posterUrl;
+                preloadedImages.posters.set(mediaItem.posterUrl, posterImg);
+            }
+        }
+        
+        // Clean up old preloaded images to avoid memory leaks
+        cleanupPreloadedImages();
+    }
+
+    function cleanupPreloadedImages() {
+        // Keep only images for current and next few items
+        const currentUrls = new Set();
+        const itemsToKeep = Math.min(maxPreloadedImages + 2, mediaQueue.length);
+        
+        for (let i = 0; i < itemsToKeep; i++) {
+            const index = (currentIndex + i) % mediaQueue.length;
+            const mediaItem = mediaQueue[index];
+            if (mediaItem) {
+                currentUrls.add(mediaItem.backgroundUrl);
+                currentUrls.add(mediaItem.posterUrl);
+            }
+        }
+        
+        // Remove backgrounds not in current set
+        for (const [url] of preloadedImages.backgrounds) {
+            if (!currentUrls.has(url)) {
+                preloadedImages.backgrounds.delete(url);
+                console.log('[PRELOAD] Cleaned up background:', url);
+            }
+        }
+        
+        // Remove posters not in current set
+        for (const [url] of preloadedImages.posters) {
+            if (!currentUrls.has(url)) {
+                preloadedImages.posters.delete(url);
+                console.log('[PRELOAD] Cleaned up poster:', url);
+            }
+        }
+    }
+
+    function preloadNextImage() {
+        // Legacy function - now use the enhanced preloadNextImages
+        preloadNextImages();
     }
 
     /**
@@ -502,7 +590,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             inactiveLayer.style.backgroundImage = `url('${currentMedia.backgroundUrl}')`;
             
             console.log('[DEBUG] Background image set on layer:', inactiveLayer.id, 'Image URL:', currentMedia.backgroundUrl);
-            console.log('[DEBUG] Layer styles before effect - opacity:', inactiveLayer.style.opacity, 'transform:', inactiveLayer.style.transform);
             
             // Apply transition effects with proper layering
             applyTransitionEffect(inactiveLayer, activeLayer, false);
@@ -534,6 +621,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     function applyPosterTransitionEffect(newPosterUrl) {
         console.log('[DEBUG] applyPosterTransitionEffect called with URL:', newPosterUrl);
         
+        // Check if poster is already preloaded
+        const isPreloaded = preloadedImages.posters.has(newPosterUrl);
+        console.log('[DEBUG] Poster preloaded:', isPreloaded ? 'YES' : 'NO');
+        
         // Get poster layer elements
         const posterA = document.getElementById('poster-a');
         const posterB = document.getElementById('poster-b');
@@ -542,7 +633,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.warn('[DEBUG] Poster layers not found, falling back to original poster');
             const originalPoster = document.getElementById('poster');
             if (originalPoster) {
-                originalPoster.style.backgroundImage = `url('${newPosterUrl}')`;
+                if (isPreloaded) {
+                    // Image is preloaded, safe to set immediately
+                    originalPoster.style.backgroundImage = `url('${newPosterUrl}')`;
+                } else {
+                    // Load image first to avoid black flash
+                    const img = new Image();
+                    img.onload = () => {
+                        originalPoster.style.backgroundImage = `url('${newPosterUrl}')`;
+                    };
+                    img.onerror = () => {
+                        console.warn('[DEBUG] Failed to load poster:', newPosterUrl);
+                    };
+                    img.src = newPosterUrl;
+                }
             }
             return;
         }
@@ -758,21 +862,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             ];
             const randomAnimation = kenBurnsVariations[Math.floor(Math.random() * kenBurnsVariations.length)];
             
+            // Ken Burns uses the full transition interval (no pause time)
+            const kenBurnsDuration = transitionInterval || appConfig.transitionInterval || 20;
+            
+            // Mark as Ken Burns active and clear any conflicting styles
+            newLayer.setAttribute('data-ken-burns', 'true');
+            newLayer.style.transform = '';
+            newLayer.style.animation = 'none';
+            
             // Start with opacity 0, then animate in with Ken Burns
             newLayer.style.opacity = 0;
             newLayer.style.transition = 'opacity 1s ease-in-out';
             
             requestAnimationFrame(() => {
-                newLayer.style.opacity = 1;
-                newLayer.style.animation = `${randomAnimation} ${actualDuration}s linear forwards`;
-                if (oldLayer) {
-                    oldLayer.style.opacity = 0;
-                }
+                requestAnimationFrame(() => {
+                    newLayer.style.opacity = 1;
+                    newLayer.style.animation = `${randomAnimation} ${kenBurnsDuration}s linear forwards`;
+                    if (oldLayer) {
+                        oldLayer.style.opacity = 0;
+                    }
+                });
                 
-                // Swap layers after fade in (no pause for Ken Burns)
+                // Swap layers after fade in + full Ken Burns animation  
                 setTimeout(() => {
-                    swapLayers(newLayer, oldLayer);
-                }, 1000);
+                    // Fade out the layer while Ken Burns is still running
+                    newLayer.style.transition = 'opacity 1s ease-out';
+                    newLayer.style.opacity = 0;
+                    
+                    // Clean up after fade out completes, but don't call swapLayers
+                    setTimeout(() => {
+                        newLayer.removeAttribute('data-ken-burns');
+                        newLayer.style.animation = 'none';
+                        newLayer.style.transition = 'none';
+                        
+                        // Manually update layer references without forcing visibility
+                        const tempLayer = activeLayer;
+                        activeLayer = inactiveLayer;
+                        inactiveLayer = tempLayer;
+                    }, 1000);
+                }, (kenBurnsDuration - 1) * 1000); // Start fade-out 1 second before Ken Burns ends
             });
             return;
         }
@@ -785,19 +913,43 @@ document.addEventListener('DOMContentLoaded', async () => {
             ];
             const randomAnimation = kenBurnsVariations[Math.floor(Math.random() * kenBurnsVariations.length)];
             
+            // Ken Burns uses the full transition interval (no pause time)
+            const kenBurnsDuration = transitionInterval || appConfig.transitionInterval || 20;
+            
+            // Mark as Ken Burns active and clear any conflicting styles
+            newLayer.setAttribute('data-ken-burns', 'true');
+            newLayer.style.transform = '';
+            newLayer.style.animation = 'none';
+            
             newLayer.style.opacity = 0;
             newLayer.style.transition = 'opacity 1s ease-in-out';
             
             requestAnimationFrame(() => {
-                newLayer.style.opacity = 1;
-                newLayer.style.animation = `${randomAnimation} ${actualDuration}s linear forwards`;
-                if (oldLayer) {
-                    oldLayer.style.opacity = 0;
-                }
+                requestAnimationFrame(() => {
+                    newLayer.style.opacity = 1;
+                    newLayer.style.animation = `${randomAnimation} ${kenBurnsDuration}s linear forwards`;
+                    if (oldLayer) {
+                        oldLayer.style.opacity = 0;
+                    }
+                });
                 
                 setTimeout(() => {
-                    swapLayers(newLayer, oldLayer);
-                }, 1000);
+                    // Fade out the layer while Ken Burns is still running
+                    newLayer.style.transition = 'opacity 1s ease-out';
+                    newLayer.style.opacity = 0;
+                    
+                    // Clean up after fade out completes, but don't call swapLayers
+                    setTimeout(() => {
+                        newLayer.removeAttribute('data-ken-burns');
+                        newLayer.style.animation = 'none';
+                        newLayer.style.transition = 'none';
+                        
+                        // Manually update layer references without forcing visibility
+                        const tempLayer = activeLayer;
+                        activeLayer = inactiveLayer;
+                        inactiveLayer = tempLayer;
+                    }, 1000);
+                }, (kenBurnsDuration - 1) * 1000); // Start fade-out 1 second before Ken Burns ends
             });
             return;
         }
@@ -920,13 +1072,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             oldLayer.style.transition = 'none';
             oldLayer.style.opacity = 0;
             oldLayer.style.transform = 'none'; // Reset any transforms from animations
+            oldLayer.removeAttribute('data-ken-burns'); // Clean up Ken Burns marker
         }
         
-        // Reset new layer transitions but keep it visible
+        // Reset new layer transitions but keep it visible ONLY if it's not faded out from Ken Burns
         newLayer.style.transition = 'none';
         newLayer.style.animation = 'none';
-        newLayer.style.transform = 'none'; // Reset any transforms from animations
-        newLayer.style.opacity = 1; // Ensure it's visible
+        
+        // Only reset transform if NOT a Ken Burns layer that's still animating
+        const isKenBurnsActive = newLayer.hasAttribute('data-ken-burns');
+        if (!isKenBurnsActive) {
+            newLayer.style.transform = 'none'; // Reset any transforms from animations
+        }
+        
+        // IMPORTANT: Don't force opacity to 1 if layer was intentionally faded out
+        // This prevents the "flash back to visible" issue
+        if (newLayer.style.opacity !== '0') {
+            newLayer.style.opacity = 1; // Only ensure visibility if not faded out
+        }
         
         // Update global layer references
         const tempLayer = activeLayer;

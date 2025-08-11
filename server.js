@@ -140,6 +140,28 @@ const { ApiError, NotFoundError } = require('./errors.js');
 const port = process.env.SERVER_PORT || config.serverPort || 4000;
 const isDebug = process.env.DEBUG === 'true';
 
+// Helper function to get local IP address
+function getLocalIPAddress() {
+    const os = require('os');
+    const interfaces = os.networkInterfaces();
+    
+    // Look for the first non-internal IPv4 address
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            // Skip over internal (i.e., 127.0.0.1) and IPv6 addresses
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    
+    // Fallback to localhost if no external IP found
+    return 'localhost';
+}
+
+// Cache the server IP address
+const serverIPAddress = getLocalIPAddress();
+
 // Caching system
 const { cacheManager, cacheMiddleware, initializeCache } = require('./utils/cache');
 initializeCache(logger);
@@ -3538,7 +3560,8 @@ app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
     res.json({
         config: currentConfig,
         env: envVarsToExpose,
-        security: { is2FAEnabled: !!(process.env.ADMIN_2FA_SECRET || '').trim() }
+        security: { is2FAEnabled: !!(process.env.ADMIN_2FA_SECRET || '').trim() },
+        server: { ipAddress: serverIPAddress }
     });
 }))
 

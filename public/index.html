@@ -1,35 +1,122 @@
 <!DOCTYPE html>
-<!-- posterrama.app | Author: Mark Frelink | License: AGPL-3.0-or-later -->
+<!-- posterrama.app | Author: Posterrama Team | License: GPL-3.0-or-later -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>posterrama.app</title>
+    <title>Posterrama - Self-Hosted Digital Movie Poster App & Cinema Display</title>
+    <meta name="description" content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays. Self-hosted, open-source, and perfect for home theaters and media rooms.">
+    <meta name="keywords" content="movie poster app, digital movie posters, cinema display, screensaver, self-hosted media, home theater, plex companion, media collection, movie library, tv show posters, digital signage, media server, personal cinema, movie collection display, film poster screensaver, home cinema automation, media room display, raspberry pi media, kodi alternative, emby companion, jellyfin integration, movie artwork display, poster slideshow, cinema mode app, home theater software, media center display, digital photo frame movies, auto movie posters">
+    <meta name="author" content="Posterrama Team">
+    <meta name="robots" content="index, follow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://posterrama.app/">
+    <meta property="og:title" content="Posterrama - Self-Hosted Digital Movie Poster App">
+    <meta property="og:description" content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays. Self-hosted and open-source.">
+    <meta property="og:site_name" content="Posterrama">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://posterrama.app/">
+    <meta property="twitter:title" content="Posterrama - Self-Hosted Digital Movie Poster App">
+    <meta property="twitter:description" content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays.">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://posterrama.app/">
+    
+    <!-- Preconnects for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <!-- Add Font Awesome for icons -->
+    
+    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Structured Data / JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Posterrama",
+        "description": "Self-hosted digital movie poster app that transforms your screens into personal cinemas and elegant screensavers",
+        "url": "https://posterrama.app",
+        "downloadUrl": "https://github.com/Posterrama/posterrama",
+        "operatingSystem": "Linux, Windows, macOS",
+        "applicationCategory": "MultimediaApplication",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "creator": {
+            "@type": "Organization",
+            "name": "Posterrama Team",
+            "url": "https://github.com/Posterrama"
+        },
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "softwareVersion": "1.3.0",
+        "requirements": "Docker, Node.js, Media Server (Plex)",
+        "featureList": [
+            "Digital Movie Poster Display",
+            "Cinema Mode for Portrait Screens", 
+            "Elegant Screensavers",
+            "Self-Hosted Media Management",
+            "Plex Integration",
+            "Multiple Display Support",
+            "Responsive Design"
+        ]
+    }
+    </script>
 </head>
 <body>
     <div id="loader"></div>
     <div id="error-message" class="is-hidden"></div>
 
     <!-- Promo Box for the /site page -->
-    <div id="promo-box" class="is-hidden">
-        <div class="promo-logo">
-            <svg role="img" aria-label="posterrama.app Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2H16L14 22H4L6 2Z"/><path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6;"/></svg>
-        </div>
+    <main id="promo-box" class="is-hidden">
+        <header class="promo-logo">
+            <svg role="img" aria-label="Posterrama Digital Movie Poster App Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2H16L14 22H4L6 2Z"/><path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6;"/></svg>
+        </header>
         <h1>Bring your media library to life.</h1>
-        <p>This is <span class="promo-brand-name">Posterrama</span>, a stunning, self-hosted screensaver for your movie and TV show collection.</p>
-        <div class="promo-cta">
-            <a href="https://github.com/mfrelink/posterrama" target="_blank" rel="noopener noreferrer" class="button-promo">
+        <p>This is <span class="promo-brand-name">Posterrama</span>, a stunning, self-hosted digital movie poster app that transforms your screens into personal cinemas and elegant screensavers.</p>
+        
+        <!-- Hidden SEO content -->
+        <div class="seo-content" style="position: absolute; left: -9999px; top: -9999px;">
+            <h2>Features</h2>
+            <ul>
+                <li>Digital movie poster displays for home theaters</li>
+                <li>Cinema mode for portrait orientation screens</li>
+                <li>Beautiful screensavers from your media collection</li>
+                <li>Self-hosted media management</li>
+                <li>Plex media server integration</li>
+                <li>Multi-screen support for digital signage</li>
+                <li>Responsive design for all devices</li>
+                <li>Open source and free to use</li>
+            </ul>
+            
+            <h2>Perfect for</h2>
+            <ul>
+                <li>Home theater enthusiasts</li>
+                <li>Media room displays</li>
+                <li>Digital signage projects</li>
+                <li>Plex server companions</li>
+                <li>Movie collection showcases</li>
+                <li>Personal cinema setups</li>
+            </ul>
+        </div>
+        
+        <section class="promo-cta">
+            <a href="https://github.com/Posterrama/posterrama" target="_blank" rel="noopener noreferrer" class="button-promo" aria-label="Download Posterrama from GitHub">
                 <i class="fab fa-github"></i>
                 Get it on GitHub
             </a>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <div id="layer-a" class="screensaver-layer"></div>
     <div id="layer-b" class="screensaver-layer"></div>

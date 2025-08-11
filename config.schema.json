@@ -189,12 +189,14 @@
             "type": "object",
             "properties": {
                 "enabled": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": false
                 },
                 "port": {
                     "type": "integer",
                     "minimum": 1024,
-                    "maximum": 65535
+                    "maximum": 65535,
+                    "default": 4001
                 }
             },
             "required": [

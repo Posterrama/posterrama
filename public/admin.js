@@ -31,6 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
             movieCount: 30,
             showCount: 15
         }],
+        siteServer: {
+            enabled: false,
+            port: 4001
+        },
         SERVER_PORT: 4000,
         DEBUG: false,
     };
@@ -75,6 +79,77 @@ document.addEventListener('DOMContentLoaded', () => {
         if (debugAction) {
             debugAction.classList.toggle('is-hidden', !debugCheckbox.checked);
         }
+        
+        // Populate site server settings
+        populateSiteServerSettings(config);
+    }
+
+    function populateSiteServerSettings(config, server = {}) {
+        const siteServer = config.siteServer || {};
+        const serverIP = server.ipAddress || 'localhost';
+        const enabledCheckbox = document.getElementById('siteServer.enabled');
+        const portInput = document.getElementById('siteServer.port');
+        const portGroup = document.getElementById('siteServerPortGroup');
+        const statusIndicator = document.getElementById('siteServerStatus');
+        
+        if (enabledCheckbox) {
+            enabledCheckbox.checked = siteServer.enabled || false;
+        }
+        
+        if (portInput) {
+            portInput.value = siteServer.port || 4001;
+        }
+        
+        // Show/hide port input based on enabled state
+        if (portGroup) {
+            portGroup.style.display = siteServer.enabled ? 'block' : 'none';
+        }
+        
+        // Show/hide status indicator based on enabled state
+        if (statusIndicator) {
+            statusIndicator.style.display = siteServer.enabled ? 'block' : 'none';
+            if (siteServer.enabled) {
+                const port = siteServer.port || 4001;
+                const statusLink = statusIndicator.querySelector('.status-link');
+                if (statusLink) {
+                    statusLink.href = `http://${serverIP}:${port}`;
+                    statusLink.textContent = `http://${serverIP}:${port}`;
+                }
+            }
+        }
+        
+        // Add event listener for site server checkbox
+        if (enabledCheckbox) {
+            enabledCheckbox.addEventListener('change', function() {
+                const isEnabled = this.checked;
+                if (portGroup) {
+                    portGroup.style.display = isEnabled ? 'block' : 'none';
+                }
+                if (statusIndicator) {
+                    statusIndicator.style.display = isEnabled ? 'block' : 'none';
+                    if (isEnabled) {
+                        const port = portInput ? (portInput.value || 4001) : 4001;
+                        const statusLink = statusIndicator.querySelector('.status-link');
+                        if (statusLink) {
+                            statusLink.href = `http://${serverIP}:${port}`;
+                            statusLink.textContent = `http://${serverIP}:${port}`;
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Add event listener for port input
+        if (portInput && statusIndicator) {
+            portInput.addEventListener('input', function() {
+                const port = this.value || 4001;
+                const statusLink = statusIndicator.querySelector('.status-link');
+                if (statusLink) {
+                    statusLink.href = `http://${serverIP}:${port}`;
+                    statusLink.textContent = `http://${serverIP}:${port}`;
+                }
+            });
+        }
     }
 
     function populateDisplaySettings(config, defaults) {
@@ -101,6 +176,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Set cinema mode state from config
         isCinemaMode = config.cinemaMode ?? defaults.cinemaMode;
+        
+        // Show/hide effect pause time based on transition effect
+        toggleEffectPauseTime();
         
         // Show/hide cinema orientation settings based on cinema mode
         const cinemaOrientationGroup = document.getElementById('cinemaOrientationGroup');
@@ -274,6 +352,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setup clock widget toggle
         clockWidgetCheckbox.addEventListener('change', toggleClockSettings);
 
+        // Setup transition effect change to toggle effect pause time visibility
+        const transitionEffectSelect = document.getElementById('transitionEffect');
+        if (transitionEffectSelect) {
+            transitionEffectSelect.addEventListener('change', toggleEffectPauseTime);
+        }
+
         // Initial state
         syncMetadataState();
         toggleClockSettings();
@@ -327,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 throw new Error('Could not load configuration from the server.');
             }
-            const { config = {}, env = {}, security = {} } = await response.json();
+            const { config = {}, env = {}, security = {}, server = {} } = await response.json();
 
             populateGeneralSettings(config, env, defaults);
             populateDisplaySettings(config, defaults);
@@ -336,6 +420,9 @@ document.addEventListener('DOMContentLoaded', () => {
             setupCinemaModeListeners();
             populateSecuritySettings(security);
             const { savedMovieLibs, savedShowLibs } = populatePlexSettings(config, env, defaults);
+
+            // Pass server info to site server settings
+            populateSiteServerSettings(config, server);
 
             // If Plex is configured, fetch libraries and start background slideshow
             if (env.PLEX_HOSTNAME && env.PLEX_PORT && env.PLEX_TOKEN === true) {
@@ -988,7 +1075,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const numericFieldIds = [
                     'transitionIntervalSeconds', 'backgroundRefreshMinutes',
                     'SERVER_PORT', 'rottenTomatoesMinimumScore', 'effectPauseTime',
-                    'mediaServers[0].movieCount', 'mediaServers[0].showCount'
+                    'mediaServers[0].movieCount', 'mediaServers[0].showCount',
+                    'siteServer.port'
                 ];
 
                 for (const id of numericFieldIds) {
@@ -1052,7 +1140,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         showLibraryNames: getSelectedLibraries('show'),
                         movieCount: getValue('mediaServers[0].movieCount', 'number'),
                         showCount: getValue('mediaServers[0].showCount', 'number')
-                    }]
+                    }],
+                    siteServer: {
+                        enabled: getValue('siteServer.enabled'),
+                        port: getValue('siteServer.port', 'number') || 4001
+                    }
                 };
 
                 const newEnv = {
@@ -1965,6 +2057,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (existingIndicator) {
                     existingIndicator.remove();
                 }
+            }
+        }
+    }
+
+    function toggleEffectPauseTime() {
+        const transitionEffectSelect = document.getElementById('transitionEffect');
+        const effectPauseTimeElement = document.getElementById('effectPauseTime');
+        
+        if (transitionEffectSelect && effectPauseTimeElement) {
+            const isKenBurns = transitionEffectSelect.value === 'kenburns';
+            const formGroup = effectPauseTimeElement.closest('.form-group');
+            
+            if (formGroup) {
+                formGroup.style.display = isKenBurns ? 'none' : 'block';
+                console.log('Effect Pause Time visibility:', isKenBurns ? 'hidden' : 'visible', 'for effect:', transitionEffectSelect.value);
             }
         }
     }

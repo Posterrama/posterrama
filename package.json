@@ -13,6 +13,7 @@
     "test:coverage:report": "./scripts/coverage-report.sh",
     "test:watch": "jest --watch",
     "test:ci": "jest --coverage --ci --watchAll=false",
+    "check-promobox": "./check-promobox.sh",
     "lint": "echo 'Linting not yet configured - install ESLint to enable'"
   },
   "dependencies": {

@@ -39,6 +39,13 @@ html, body {
     color: var(--text-color);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     cursor: none;
+    /* Enhanced rendering for stability */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Prevent layout shifts */
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 /* --- Utility Classes --- */
@@ -167,6 +174,118 @@ html, body {
     vertical-align: middle;
 }
 
+/* --- Responsive Promo Box Sizing --- */
+/* Desktop and larger screens - Make promo box more prominent */
+@media (min-width: 768px) {
+    #promo-box {
+        max-width: 700px;
+        padding: 50px 60px;
+    }
+    
+    #promo-box h1 {
+        font-size: 2.6em;
+        margin-bottom: 20px;
+    }
+    
+    #promo-box p {
+        font-size: 1.2em;
+        margin-bottom: 35px;
+        max-width: 500px;
+    }
+    
+    .promo-logo {
+        width: 70px;
+        height: 70px;
+        margin-bottom: 30px;
+    }
+}
+
+/* Large desktop screens - Even more prominent */
+@media (min-width: 1200px) {
+    #promo-box {
+        max-width: 700px;
+        padding: 50px 60px;
+    }
+    
+    #promo-box h1 {
+        font-size: 2.6em;
+        margin-bottom: 20px;
+    }
+    
+    #promo-box p {
+        font-size: 1.2em;
+        margin-bottom: 35px;
+        max-width: 500px;
+    }
+    
+    .promo-logo {
+        width: 70px;
+        height: 70px;
+        margin-bottom: 30px;
+    }
+    
+    .promo-cta a.button-promo {
+        font-size: 1.1em;
+        padding: 14px 28px;
+    }
+}
+
+/* Ultra-wide screens - Maximum impact */
+@media (min-width: 1920px) {
+    #promo-box {
+        max-width: 750px;
+        padding: 60px 70px;
+    }
+    
+    #promo-box h1 {
+        font-size: 2.9em;
+    }
+    
+    #promo-box p {
+        font-size: 1.3em;
+        max-width: 550px;
+    }
+    
+    .promo-logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 35px;
+    }
+}
+
+/* --- SEO Content Styling --- */
+.seo-content {
+    /* Accessibility-friendly screen reader only content */
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.seo-content h2 {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin: 1em 0 0.5em 0;
+    color: #fff;
+}
+
+.seo-content ul {
+    list-style-type: disc;
+    margin: 0.5em 0 1em 1.5em;
+    padding: 0;
+}
+
+.seo-content li {
+    margin: 0.3em 0;
+    color: #fff;
+    line-height: 1.4;
+}
+
 /* --- Background Layers & Ken Burns Effect --- */
 .screensaver-layer {
     position: fixed; /* A modern shorthand for top: 0; right: 0; bottom: 0; left: 0; */
@@ -176,9 +295,27 @@ html, body {
     height: 100%;
     background-size: cover;
     background-position: center center;
+    background-repeat: no-repeat;
     opacity: 0;
     transition: opacity 1.5s ease-in-out;
     will-change: transform, opacity;
+    /* Basic anti-aliasing without interfering with Ken Burns */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    image-rendering: optimizeQuality;
+    backface-visibility: hidden;
+}
+
+/* Apply stability only when no Ken Burns animation is active */
+.screensaver-layer:not([data-ken-burns="true"]) {
+    transform: translateZ(0);
+    background-attachment: fixed;
+}
+
+/* Ken Burns layers need special handling */
+.screensaver-layer[data-ken-burns="true"] {
+    background-attachment: scroll;
+    transform: none;
 }
 
 /* --- Ken Burns Effect Keyframes --- */
@@ -328,6 +465,8 @@ html, body {
     width: 180px;
     height: 270px;
     background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
     border-radius: 8px;
     position: absolute;
     top: 0;
@@ -337,6 +476,13 @@ html, body {
     box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45);
     transform: scale(var(--content-scale));
     transform-origin: bottom left;
+    /* Anti-aliasing and smooth rendering */
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+    image-rendering: optimizeQuality;
+    /* Prevent sub-pixel jumping */
+    will-change: transform, opacity;
 }
 
 #rt-badge {
@@ -667,6 +813,14 @@ body.cinema-mode .poster-layer {
     background-size: cover !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
+    /* Enhanced stability for cinema mode */
+    transform-style: preserve-3d !important;
+    backface-visibility: hidden !important;
+    -webkit-font-smoothing: antialiased !important;
+    image-rendering: optimizeQuality !important;
+    /* Prevent sub-pixel movement */
+    transform: translateZ(0) !important;
+    will-change: transform, opacity !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     position: absolute !important;

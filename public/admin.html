@@ -434,6 +434,29 @@
                     </div>
                 </div>
                 <div class="settings-column">
+                    <h2>Public Site Settings</h2>
+                    <!-- Promobox Site -->
+                    <div class="form-section">
+                        <h3>Promobox Site</h3>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="siteServer.enabled" name="siteServer.enabled">
+                            <label for="siteServer.enabled">Enable Promobox Site</label>
+                            <small class="help-text">Start a public-facing site server on port 4001 without admin access. Perfect for promotional displays.</small>
+                        </div>
+                        <div class="form-group" id="siteServerPortGroup" style="display: none;">
+                            <label for="siteServer.port">Promobox Site Port</label>
+                            <input type="number" id="siteServer.port" name="siteServer.port" min="1024" max="65535" value="4001">
+                            <small class="help-text">Port number for the public site (default: 4001). Make sure this port is not used by other applications.</small>
+                        </div>
+                        <div id="siteServerStatus" class="status-indicator" style="display: none;">
+                            <div class="status-badge">
+                                <span class="status-icon">🌐</span>
+                                <span class="status-text">Promobox site running on <a href="http://localhost:4001" target="_blank" class="status-link">http://localhost:4001</a></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-column">
                     <h2>Security & Management</h2>
                     <!-- Change Password -->
                     <div class="form-section">

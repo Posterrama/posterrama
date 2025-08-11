@@ -16,8 +16,8 @@ const options = {
             version: pkg.version,
             description: 'API documentation for the posterrama.app screensaver application. This documents the public API used by the frontend to retrieve media and configuration.',
             contact: {
-                name: 'Mark Frelink',
-                url: 'https://github.com/mfrelink/posterrama',
+                name: 'Posterrama',
+                url: 'https://github.com/Posterrama/posterrama',
             },
             license: {
                 name: 'GPL-3.0-or-later',

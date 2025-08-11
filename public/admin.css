@@ -1333,3 +1333,38 @@ input[type="range"]::-moz-range-track {
         height: 356px;
     }
 }
+
+/* --- Site Server Status Styles --- */
+.status-indicator {
+    margin-top: 1rem;
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+    border-radius: 6px;
+    color: #28a745;
+}
+
+.status-icon {
+    margin-right: 0.5rem;
+    font-size: 1.2em;
+}
+
+.status-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.status-link {
+    color: #53a8b6;
+    text-decoration: underline;
+    margin-left: 0.25rem;
+}
+
+.status-link:hover {
+    color: #84c0c6;
+}
