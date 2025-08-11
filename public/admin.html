@@ -537,19 +537,33 @@
                 </div>
                 <div class="preview-frame" id="preview-frame">
                     <div class="preview-content" id="preview-content">
-                        <!-- Live preview content will be loaded here -->
-                        <div class="preview-poster-container">
-                            <img id="preview-poster" src="" alt="Preview Poster" style="display: none;">
-                            <div class="preview-metadata" id="preview-metadata"></div>
-                            <div class="preview-clock" id="preview-clock" style="display: none;"></div>
-                            <div class="preview-clearlogo" id="preview-clearlogo" style="display: none;">
-                                <img src="" alt="Clear Logo">
+                        <!-- Background layer for posters -->
+                        <div class="preview-layer" id="preview-layer"></div>
+                        
+                        <!-- Widget container (clock) - top left -->
+                        <div class="preview-widget-container" id="preview-widget-container">
+                            <div class="preview-time-widget" id="preview-clock"></div>
+                        </div>
+                        
+                        <!-- Clearlogo container - top right -->
+                        <div class="preview-clearlogo-container" id="preview-clearlogo-container">
+                            <img id="preview-clearlogo" src="" alt="Clear Logo">
+                        </div>
+                        
+                        <!-- Info container - bottom left -->
+                        <div class="preview-info-container" id="preview-info-container">
+                            <div class="preview-poster-wrapper" id="preview-poster-wrapper">
+                                <img id="preview-poster" src="" alt="Preview Poster">
+                                <div class="preview-rt-badge" id="preview-rt-badge">
+                                    <img id="preview-rt-icon" src="" alt="Rotten Tomatoes">
+                                </div>
                             </div>
-                            <div class="preview-rt-badge" id="preview-rt-badge" style="display: none;">
-                                <img src="" alt="Rotten Tomatoes">
+                            <div class="preview-text-wrapper" id="preview-text-wrapper">
+                                <div class="preview-metadata" id="preview-metadata"></div>
                             </div>
                         </div>
                     </div>
+                    
                     <div class="preview-overlay" id="preview-overlay">
                         <div class="preview-status">
                             <i class="fas fa-sync-alt fa-spin"></i>

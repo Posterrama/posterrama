@@ -1186,11 +1186,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Updating preview content...');
         
         const previewOverlay = document.getElementById('preview-overlay');
-        const previewPoster = document.getElementById('preview-poster');
-        const previewMetadata = document.getElementById('preview-metadata');
-        const previewClock = document.getElementById('preview-clock');
-        const previewClearlogo = document.getElementById('preview-clearlogo');
-        const previewRtBadge = document.getElementById('preview-rt-badge');
         
         // Show loading overlay
         if (previewOverlay) {
@@ -1228,13 +1223,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             // Update preview based on config
-            updatePreviewElements(config, poster, {
-                previewPoster,
-                previewMetadata, 
-                previewClock,
-                previewClearlogo,
-                previewRtBadge
-            });
+            updatePreviewElements(config, poster);
             
             // Update orientation based on radio buttons
             updatePreviewOrientation();
@@ -1248,13 +1237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error updating preview:', error);
             
             // Show preview with mock data if API fails
-            updatePreviewWithMockData({
-                previewPoster,
-                previewMetadata, 
-                previewClock,
-                previewClearlogo,
-                previewRtBadge
-            });
+            updatePreviewWithMockData();
             
             // Hide loading overlay on error
             if (previewOverlay) {
@@ -1264,33 +1247,78 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updatePreviewElements(config, poster, elements) {
-        const { previewPoster, previewMetadata, previewClock, previewClearlogo, previewRtBadge } = elements;
+        const previewLayer = document.getElementById('preview-layer');
+        const previewInfoContainer = document.getElementById('preview-info-container');
+        const previewPoster = document.getElementById('preview-poster');
+        const previewMetadata = document.getElementById('preview-metadata');
+        const previewClock = document.getElementById('preview-clock');
+        const previewClearlogo = document.getElementById('preview-clearlogo');
+        const previewRtBadge = document.getElementById('preview-rt-badge');
+        const previewRtIcon = document.getElementById('preview-rt-icon');
         
-        // Show/hide poster
-        if (config.showPoster && poster && previewPoster) {
-            // Use the correct property name from the media API
-            const posterUrl = poster.posterUrl || poster.posterPath || poster.poster || '';
-            previewPoster.src = posterUrl;
-            previewPoster.style.display = posterUrl ? 'block' : 'none';
-            console.log('Showing poster:', posterUrl);
-        } else if (previewPoster) {
-            previewPoster.style.display = 'none';
-            console.log('Hiding poster');
+        // Set background layer to poster image
+        if (poster && poster.posterUrl && previewLayer) {
+            previewLayer.style.backgroundImage = `url("${poster.posterUrl}")`;
         }
         
-        // Show/hide metadata
-        if (config.showMetadata && poster && previewMetadata) {
-            const title = poster.title || poster.name || 'Sample Movie';
-            const tagline = poster.tagline || poster.summary || 'A great movie preview';
-            previewMetadata.innerHTML = `
-                <h3>${title}</h3>
-                <p>${tagline}</p>
-            `;
-            previewMetadata.style.display = 'block';
-            console.log('Showing metadata:', title);
-        } else if (previewMetadata) {
-            previewMetadata.style.display = 'none';
-            console.log('Hiding metadata');
+        // Show/hide info container based on poster setting
+        if (config.showPoster && previewInfoContainer) {
+            previewInfoContainer.classList.add('visible');
+            
+            // Show poster
+            if (poster && previewPoster) {
+                previewPoster.src = poster.posterUrl || poster.posterPath || poster.poster || '';
+                previewPoster.style.display = 'block';
+                console.log('Showing poster:', poster.posterUrl);
+            } else if (previewPoster) {
+                previewPoster.style.display = 'none';
+            }
+            
+            // Show/hide metadata
+            if (config.showMetadata && poster && previewMetadata) {
+                const title = poster.title || poster.name || 'Sample Movie';
+                const tagline = poster.tagline || poster.summary || 'A great movie preview';
+                const year = poster.year || '';
+                const rating = poster.rating || poster.contentRating || '';
+                
+                let metaInfo = '';
+                if (year) metaInfo += year;
+                if (rating && year) metaInfo += ` • ${rating}`;
+                else if (rating) metaInfo += rating;
+                
+                previewMetadata.innerHTML = `
+                    <h3>${title}</h3>
+                    <p>${tagline}</p>
+                    ${metaInfo ? `<div class="meta-info">${metaInfo}<span class="rating">8.5</span></div>` : ''}
+                `;
+                previewMetadata.style.display = 'block';
+                console.log('Showing metadata:', title);
+            } else if (previewMetadata) {
+                previewMetadata.style.display = 'none';
+                console.log('Hiding metadata');
+            }
+            
+            // Show/hide RT badge
+            if (config.showRottenTomatoes && poster && previewRtBadge && previewRtIcon) {
+                const rtScore = poster.rottenTomatoes?.score || poster.rottenTomatoesScore || poster.rtScore || 0;
+                if (rtScore >= (config.rottenTomatoesMinimumScore || 0)) {
+                    const isFresh = rtScore >= 60;
+                    previewRtIcon.src = `/icons/rt-${isFresh ? 'certified-fresh' : 'rotten'}.svg`;
+                    previewRtBadge.classList.add('visible');
+                    previewRtBadge.style.display = 'block';
+                    console.log('Showing RT badge:', rtScore, isFresh ? 'fresh' : 'rotten');
+                } else {
+                    previewRtBadge.classList.remove('visible');
+                    previewRtBadge.style.display = 'none';
+                }
+            } else if (previewRtBadge) {
+                previewRtBadge.classList.remove('visible');
+                previewRtBadge.style.display = 'none';
+                console.log('Hiding RT badge');
+            }
+        } else if (previewInfoContainer) {
+            previewInfoContainer.classList.remove('visible');
+            console.log('Hiding poster container');
         }
         
         // Show/hide clock
@@ -1306,39 +1334,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show/hide clear logo  
         if (config.showClearLogo && poster && previewClearlogo) {
             const logoUrl = poster.clearLogoUrl || poster.clearLogoPath || poster.clearLogo || '';
-            const logoImg = previewClearlogo.querySelector('img');
-            if (logoImg && logoUrl) {
-                logoImg.src = logoUrl;
+            if (logoUrl) {
+                previewClearlogo.src = logoUrl;
+                previewClearlogo.classList.add('visible');
                 previewClearlogo.style.display = 'block';
                 console.log('Showing clear logo:', logoUrl);
             } else {
+                previewClearlogo.classList.remove('visible');
                 previewClearlogo.style.display = 'none';
             }
         } else if (previewClearlogo) {
+            previewClearlogo.classList.remove('visible');
             previewClearlogo.style.display = 'none';
             console.log('Hiding clear logo');
-        }
-        
-        // Show/hide RT badge
-        if (config.showRottenTomatoes && poster && previewRtBadge) {
-            const rtScore = poster.rottenTomatoes?.score || poster.rottenTomatoesScore || poster.rtScore || 0;
-            if (rtScore > 0) {
-                const badgeImg = previewRtBadge.querySelector('img');
-                if (badgeImg) {
-                    const isFresh = rtScore >= 60;
-                    badgeImg.src = `/icons/rt-${isFresh ? 'certified-fresh' : 'rotten'}.svg`;
-                    previewRtBadge.style.display = 'block';
-                    console.log('Showing RT badge:', rtScore, isFresh ? 'fresh' : 'rotten');
-                } else {
-                    console.log('RT badge img element not found');
-                }
-            } else {
-                previewRtBadge.style.display = 'none';
-                console.log('No RT score available:', rtScore);
-            }
-        } else if (previewRtBadge) {
-            previewRtBadge.style.display = 'none';
-            console.log('Hiding RT badge - config disabled or no poster');
         }
     }
 
@@ -1369,23 +1377,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updatePreviewWithMockData(elements) {
-        const { previewPoster, previewMetadata, previewClock, previewClearlogo, previewRtBadge } = elements;
+        const previewInfoContainer = document.getElementById('preview-info-container');
+        const previewMetadata = document.getElementById('preview-metadata');
+        const previewClock = document.getElementById('preview-clock');
+        const previewClearlogo = document.getElementById('preview-clearlogo');
+        const previewRtBadge = document.getElementById('preview-rt-badge');
         
         // Show mock content if API fails
         console.log('Using mock data for preview');
+        
+        if (previewInfoContainer) {
+            previewInfoContainer.classList.add('visible');
+        }
         
         if (previewMetadata) {
             previewMetadata.innerHTML = `
                 <h3>Sample Movie</h3>
                 <p>This is a preview of how your screensaver will look</p>
+                <div class="meta-info">2024 • PG-13<span class="rating">8.5</span></div>
             `;
             previewMetadata.style.display = 'block';
         }
         
-        // Other elements will be hidden since we don't have poster data
-        if (previewPoster) previewPoster.style.display = 'none';
-        if (previewClearlogo) previewClearlogo.style.display = 'none';
-        if (previewRtBadge) previewRtBadge.style.display = 'none';
+        // Hide elements that need poster data
+        if (previewClearlogo) {
+            previewClearlogo.classList.remove('visible');
+            previewClearlogo.style.display = 'none';
+        }
+        if (previewRtBadge) {
+            previewRtBadge.classList.remove('visible');
+            previewRtBadge.style.display = 'none';
+        }
     }
 
     function setupLivePreviewUpdates() {
