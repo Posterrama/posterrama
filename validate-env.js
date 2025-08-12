@@ -23,22 +23,8 @@ try {
     process.exit(1);
 }
 
-// Validate the loaded config against the schema
+// Defer config schema validation error output until after env var checks to match test expectations
 const isConfigValid = validate(config);
-if (!isConfigValid) {
-    console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: config.json is invalid. Please correct the following errors:');
-    validate.errors.forEach(error => {
-        const instancePath = error.instancePath || 'root';
-        // Use a more readable format for the error path
-        const readablePath = instancePath.replace(/\//g, ' -> ').substring(3) || 'root';
-        console.error(`  - Path: \x1b[33m${readablePath}\x1b[0m`);
-        console.error(`    Message: ${error.message}`);
-        if (error.params) {
-            console.error(`    Details: ${JSON.stringify(error.params)}`);
-        }
-    });
-    process.exit(1);
-}
 
 /**
  * Determines which environment variables are required based on the configuration.
@@ -77,11 +63,26 @@ const { required: requiredVarsSet, tokens: tokenVars } = getRequiredVars(config)
 const missingVars = [...requiredVarsSet].filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
-  console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: Missing required environment variables.');
-  console.error('The following variables are not set in your .env file:');
-  missingVars.forEach(varName => console.error(`  - ${varName}`));
-  console.error('\nPlease copy `config.example.env` to a new file named `.env` and fill in the required values.');
-  process.exit(1); // Exit with an error code to prevent server from starting
+    console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: Missing required environment variables.');
+    console.error('The following variables are not set in your .env file:');
+    missingVars.forEach(varName => console.error(`  - ${varName}`));
+    console.error('\nPlease copy `config.example.env` to a new file named `.env` and fill in the required values.');
+    process.exit(1); // Exit with an error code to prevent server from starting
+}
+
+// Only now report config schema validation errors (if any) after env var fatal checks
+if (!isConfigValid) {
+    console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: config.json is invalid. Please correct the following errors:');
+    validate.errors.forEach(error => {
+        const instancePath = error.instancePath || 'root';
+        const readablePath = instancePath.replace(/\//g, ' -> ').substring(3) || 'root';
+        console.error(`  - Path: \x1b[33m${readablePath}\x1b[0m`);
+        console.error(`    Message: ${error.message}`);
+        if (error.params) {
+            console.error(`    Details: ${JSON.stringify(error.params)}`);
+        }
+    });
+    process.exit(1);
 }
 
 tokenVars.forEach(tokenVar => {

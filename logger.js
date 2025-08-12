@@ -60,35 +60,39 @@ const memoryTransport = new winston.transports.Stream({
     })
 });
 
-// Create the logger instance
-const logger = winston.createLogger({
-    level: process.env.LOG_LEVEL || 'info',
-    levels: winston.config.npm.levels, // Use standard npm levels: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5
-    format: customFormat,
-    transports: [
-        // Write to console with color
-        new winston.transports.Console({
-            format: winston.format.combine(
-                winston.format.colorize(),
-                winston.format.simple()
-            )
-        }),
-        // Write to file with rotation
+// Build transports conditionally (skip file transports in test to avoid fs.stat issues with mocks)
+const transports = [
+    new winston.transports.Console({
+        format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple()
+        )
+    }),
+    memoryTransport
+];
+
+if (process.env.NODE_ENV !== 'test') {
+    transports.splice(1, 0, // Insert file transports after console
         new winston.transports.File({
             filename: path.join(logsDir, 'error.log'),
             level: 'error',
-            maxsize: 5242880, // 5MB
+            maxsize: 5242880,
             maxFiles: 5
         }),
-        // Write all logs to combined file
         new winston.transports.File({
             filename: path.join(logsDir, 'combined.log'),
-            maxsize: 5242880, // 5MB
+            maxsize: 5242880,
             maxFiles: 5
-        }),
-        // In-memory transport for admin panel
-        memoryTransport
-    ]
+        })
+    );
+}
+
+// Create the logger instance
+const logger = winston.createLogger({
+    level: process.env.LOG_LEVEL || 'info',
+    levels: winston.config.npm.levels,
+    format: customFormat,
+    transports
 });
 
 // Store logs in memory for admin panel access

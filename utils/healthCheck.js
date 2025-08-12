@@ -1,4 +1,5 @@
-const fs = require('fs').promises;
+const fsModule = require('fs');
+const fs = fsModule.promises;
 const path = require('path');
 const config = require('../config');
 const logger = require('../logger');
@@ -63,15 +64,17 @@ async function checkFilesystem() {
     try {
         // Check if we can read/write to the sessions directory
         const sessionsDir = path.join(__dirname, '..', 'sessions');
-        await fs.access(sessionsDir, fs.constants.R_OK | fs.constants.W_OK);
+    const R_OK = fsModule.constants?.R_OK || 4;
+    const W_OK = fsModule.constants?.W_OK || 2;
+    await fs.access(sessionsDir, R_OK | W_OK);
         
         // Check if we can access the image cache directory
         const imageCacheDir = path.join(__dirname, '..', 'image_cache');
-        await fs.access(imageCacheDir, fs.constants.R_OK | fs.constants.W_OK);
+    await fs.access(imageCacheDir, R_OK | W_OK);
         
         // Check if we can access logs directory
         const logsDir = path.join(__dirname, '..', 'logs');
-        await fs.access(logsDir, fs.constants.R_OK | fs.constants.W_OK);
+    await fs.access(logsDir, R_OK | W_OK);
         
         return {
             name: 'filesystem',
@@ -242,5 +245,6 @@ module.exports = {
     checkConfiguration,
     checkFilesystem,
     checkMediaCache,
-    checkPlexConnectivity
+    checkPlexConnectivity,
+    __resetCache: () => { healthCheckCache = null; cacheTimestamp = 0; }
 };

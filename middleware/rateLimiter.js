@@ -2,7 +2,8 @@
 const createRateLimiter = (windowMs, max, messageText) => {
     return require('express-rate-limit')({
         windowMs,
-        max: process.env.NODE_ENV === 'test' ? Math.floor(max / 10) : max,
+        // In test environment drastically lower max to trigger 429 quickly
+        max: process.env.NODE_ENV === 'test' ? Math.max(1, Math.floor(max / 50)) : max,
         standardHeaders: true,
         legacyHeaders: false,
         message: (req) => ({

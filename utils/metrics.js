@@ -2,8 +2,9 @@ const os = require('os');
 const process = require('process');
 
 class MetricsManager {
-    constructor() {
-        this.startTime = Date.now();
+    constructor(startTime) {
+        // Allow injection of startTime for deterministic tests; fallback to Date.now()
+        this.startTime = typeof startTime === 'number' ? startTime : Date.now();
         this.requestMetrics = new Map(); // endpoint -> { count, totalTime, errors, responses }
         this.systemMetrics = {
             totalRequests: 0,
@@ -21,8 +22,10 @@ class MetricsManager {
             maxHistoryPoints: 1440 // 24 hours of minute-by-minute data
         };
         
-        // Start collecting system metrics periodically
-        this.startMetricsCollection();
+        // Avoid background timers automatically in test environment to prevent noisy failures & open handles
+        if (process.env.NODE_ENV !== 'test') {
+            this.startMetricsCollection();
+        }
     }
 
     // Record a request
@@ -363,11 +366,23 @@ class MetricsManager {
 
     // Helper methods
     getCpuUsagePercent() {
-        // This is a simplified CPU usage calculation
-        // In production, you might want to use a more accurate method
-        const loadAvg = os.loadavg()[0];
-        const numCPUs = os.cpus().length;
-        return Math.min((loadAvg / numCPUs) * 100, 100);
+        // Simplified CPU usage calculation with defensive guards for mocked/partial os module in tests
+        let loadAvgValue = 0;
+        try {
+            const load = typeof os.loadavg === 'function' ? os.loadavg() : [0];
+            if (Array.isArray(load) && load.length) loadAvgValue = Number(load[0]) || 0;
+        } catch (_) {
+            loadAvgValue = 0;
+        }
+        let numCPUs = 1;
+        try {
+            const cpus = typeof os.cpus === 'function' ? os.cpus() : [];
+            if (Array.isArray(cpus) && cpus.length) numCPUs = cpus.length;
+        } catch (_) {
+            numCPUs = 1;
+        }
+        if (numCPUs <= 0) numCPUs = 1;
+        return Math.min((loadAvgValue / numCPUs) * 100, 100);
     }
 
     getActiveConnections() {
@@ -397,6 +412,11 @@ class MetricsManager {
     startMetricsCollection() {
         if (this.collectionInterval) {
             clearInterval(this.collectionInterval);
+        }
+
+        // Skip creating intervals when disabled or in test environment unless explicitly invoked by tests
+        if (process.env.NODE_ENV === 'test') {
+            return; // Tests that need this can set NODE_ENV differently or call with env adjusted
         }
 
         this.collectionInterval = setInterval(() => {
@@ -434,9 +454,20 @@ class MetricsManager {
     getEndpointMetric(endpoint) {
         return this.requestMetrics.get(endpoint) || null;
     }
+
+    // Shutdown helper for graceful test teardown
+    shutdown() {
+        if (this.collectionInterval) clearInterval(this.collectionInterval);
+    }
+
+    // Testing helper to realign start time with mocked Date.now
+    _resetStartTime() { this.startTime = Date.now(); }
+    _setStartTime(ts) { this.startTime = ts; }
 }
 
-// Create singleton instance
+// Create singleton instance (default)
 const metricsManager = new MetricsManager();
 
 module.exports = metricsManager;
+// Also export the class for tests that need a fresh instance with controlled start time
+module.exports.constructor = MetricsManager;

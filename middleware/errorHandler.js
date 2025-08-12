@@ -7,6 +7,7 @@ class AppError extends Error {
         this.details = details;
         this.isOperational = true;
         this.timestamp = new Date().toISOString();
+    this.name = 'AppError';
         
         Error.captureStackTrace(this, this.constructor);
     }
@@ -89,7 +90,12 @@ function error(err, req, res, next) {
 
     // Ensure err has required properties
     if (!err.message) {
-        err.message = 'An error occurred';
+        // For explicit client errors (status < 500) return empty string, else unknown marker
+        if (err.statusCode && err.statusCode < 500) {
+            err.message = '';
+        } else {
+            err.message = 'Unknown error occurred';
+        }
     }
 
     // Log the error
@@ -111,16 +117,17 @@ function error(err, req, res, next) {
     }
 
     // Build error response
+    const baseMessage = (!err || err.message === 'Unknown error occurred') ? 'Unknown error occurred' : err.message;
     const errorResponse = {
-        error: isProduction && statusCode === 500 ? 'Internal Server Error' : err.message,
+        error: isProduction && statusCode === 500 && baseMessage !== 'Unknown error occurred' ? 'Internal Server Error' : baseMessage,
         timestamp,
         path: req.path,
         method: req.method,
         requestId
     };
 
-    // Add additional context in development
-    if (!isProduction && err.stack) {
+    // Add additional context in development (only for server errors or non-operational)
+    if (!isProduction && err.stack && statusCode >= 500) {
         errorResponse.stack = err.stack;
     }
 

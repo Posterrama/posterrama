@@ -59,7 +59,8 @@ class CacheManager {
                 clearTimeout(this.timers.get(key));
             }
 
-            const expiresAt = Date.now() + (ttl || this.config.defaultTTL);
+            const ttlMs = typeof ttl === 'number' ? ttl : this.config.defaultTTL;
+            const expiresAt = Date.now() + ttlMs;
             const etag = this.generateETag(value);
             
             const entry = {
@@ -74,12 +75,17 @@ class CacheManager {
             this.cache.set(key, entry);
 
             // Set expiration timer
-            const timer = setTimeout(() => {
+            if (ttlMs > 0) {
+                const timer = setTimeout(() => {
+                    this.delete(key);
+                    logger.debug('Cache entry expired', { key });
+                }, ttlMs);
+                this.timers.set(key, timer);
+            } else {
+                // Immediate expiration
                 this.delete(key);
-                logger.debug('Cache entry expired', { key });
-            }, ttl || this.config.defaultTTL);
-
-            this.timers.set(key, timer);
+                return null;
+            }
 
             logger.debug('Cache entry set', { 
                 key, 
@@ -115,7 +121,7 @@ class CacheManager {
             }
 
             // Check if expired
-            if (Date.now() > entry.expiresAt) {
+            if (Date.now() >= entry.expiresAt) {
                 this.delete(key);
                 logger.debug('Cache entry expired on access', { key });
                 return null;
@@ -143,7 +149,8 @@ class CacheManager {
      */
     has(key) {
         const entry = this.cache.get(key);
-        return entry && Date.now() <= entry.expiresAt;
+        if (!entry) return false;
+        return Date.now() < entry.expiresAt;
     }
 
     /**

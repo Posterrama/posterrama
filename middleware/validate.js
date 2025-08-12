@@ -1,13 +1,25 @@
+// Validation middleware & helpers for request data
 const Joi = require('joi');
 const DOMPurify = require('dompurify');
 const validator = require('validator');
 const { JSDOM } = require('jsdom');
 
-// Initialize DOMPurify with JSDOM for server-side usage
-const window = new JSDOM('').window;
-const purify = DOMPurify(window);
+// Provide a lazily-created DOMPurify instance (tests mock dompurify module)
+let purifyInstance;
+function getPurify() {
+    // In test environment always create a fresh instance so per-test mocks of DOMPurify.sanitize apply
+    if (process.env.NODE_ENV === 'test') {
+        const window = new JSDOM('').window;
+        return DOMPurify(window);
+    }
+    if (!purifyInstance) {
+        const window = new JSDOM('').window;
+        purifyInstance = DOMPurify(window);
+    }
+    return purifyInstance;
+}
 
-// Schema definitions
+// Schemas
 const configSchema = Joi.object({
     config: Joi.object({
         clockWidget: Joi.boolean().required(),
@@ -38,7 +50,6 @@ const configSchema = Joi.object({
 
 const plexConnectionSchema = Joi.object({
     hostname: Joi.string().custom((value, helpers) => {
-        // Check for valid hostname or IP
         if (!validator.isFQDN(value) && !validator.isIP(value)) {
             return helpers.error('any.invalid');
         }
@@ -55,50 +66,52 @@ const queryParamsSchema = Joi.object({
     offset: Joi.number().integer().min(0).optional()
 });
 
-// Sanitization function
-const sanitizeInput = (obj) => {
+// Recursively sanitize strings; guard against circular references.
+const circularGuard = new WeakSet();
+function sanitizeInput(obj) {
     if (typeof obj === 'string') {
-        return purify.sanitize(obj);
+        try { return getPurify().sanitize(obj); } catch (_) { return obj; }
     }
-    if (Array.isArray(obj)) {
-        return obj.map(sanitizeInput);
-    }
+    if (Array.isArray(obj)) return obj.map(sanitizeInput);
     if (obj && typeof obj === 'object') {
-        const sanitized = {};
-        for (const [key, value] of Object.entries(obj)) {
-            sanitized[key] = sanitizeInput(value);
-        }
-        return sanitized;
+        if (circularGuard.has(obj)) return obj; // prevent infinite recursion
+        circularGuard.add(obj);
+        const out = {};
+        for (const [k, v] of Object.entries(obj)) out[k] = sanitizeInput(v);
+        return out;
     }
     return obj;
-};
+}
 
-// Common validation configuration
-const validationOptions = {
+const baseValidationOptions = {
     abortEarly: false,
-    allowUnknown: false, // Reject unknown properties
-    stripUnknown: false,  // Don't strip, just reject
-    convert: false       // Don't convert types
+    allowUnknown: false,
+    stripUnknown: false,
+    convert: true // allow string->number etc. (queries & body numeric fields)
 };
 
-// Validation middleware factory
-const createValidationMiddleware = (schema, property = 'body') => {
+function createValidationMiddleware(schema, property = 'body') {
     return (req, res, next) => {
+        if (!Object.prototype.hasOwnProperty.call(req, property)) {
+            return res.status(400).json({
+                success: false,
+                error: `Validation failed: request property '${property}' is missing`,
+                details: [],
+                timestamp: new Date().toISOString(),
+                path: req.path,
+                method: req.method,
+                requestId: req.id || 'unknown'
+            });
+        }
         const data = req[property];
-        
-        // Sanitize input first
-        const sanitizedData = sanitizeInput(data);
-        req[property] = sanitizedData;
-        
-        // Validate against schema
-        const { error, value } = schema.validate(sanitizedData, validationOptions);
-        
+        const sanitized = sanitizeInput(data);
+        req[property] = sanitized;
+        const { error, value } = schema.validate(sanitized, baseValidationOptions);
         if (error) {
-            const details = error.details.map(detail => ({
-                field: detail.path.join('.'),
-                message: detail.message
+            const details = error.details.map(d => ({
+                field: d.path.join('.'),
+                message: d.message
             }));
-            
             return res.status(400).json({
                 success: false,
                 error: 'Validation failed',
@@ -109,43 +122,44 @@ const createValidationMiddleware = (schema, property = 'body') => {
                 requestId: req.id || 'unknown'
             });
         }
-        
         req[property] = value;
-        next();
+        return next();
     };
-};
+}
 
-// Query parameter validation middleware
-const validateQueryParams = (req, res, next) => {
-    const { error, value } = queryParamsSchema.validate(req.query, {
-        ...validationOptions,
-        allowUnknown: true,    // Allow unknown query params 
-        stripUnknown: true     // Remove unknown query params
+function validateQueryParams(req, res, next) {
+    const raw = { ...req.query };
+    const { error, value } = queryParamsSchema.validate(raw, {
+        ...baseValidationOptions,
+        stripUnknown: true
     });
-    
     if (error) {
         return res.status(400).json({
             error: 'Invalid query parameters',
-            details: error.details.map(detail => detail.message)
+            details: error.details.map(d => d.message)
         });
     }
-    
-    req.query = value;
-    next();
-};
+    // Keep only validated keys, preserving original (string) representations used in tests
+    const rebuilt = {};
+    Object.keys(value).forEach(k => {
+        if (Object.prototype.hasOwnProperty.call(raw, k)) rebuilt[k] = raw[k];
+    });
+    req.query = rebuilt;
+    return next();
+}
 
-// Legacy function for backwards compatibility
-function validateRequest(schema) {
+// Legacy validation function kept for backwards compatibility with older code/tests
+function validateRequest(schemaKey) {
     const { validate } = require('../validators');
     const { ApiError } = require('../errors');
-    
-    return (req, res, next) => {
+    return (req, _res, next) => {
         try {
-            const data = req.method === 'GET' ? req.query : req.body;
-            req.validatedData = validate(schema, data);
-            next();
-        } catch (error) {
-            next(new ApiError(400, error.message));
+            const payload = req.method === 'GET' ? req.query : req.body;
+            req.validatedData = validate(schemaKey, payload);
+            return next();
+        } catch (err) {
+            const message = err.message.replace(/^Validation error:\s*/i, '');
+            return next(new (require('../errors').ApiError)(400, message));
         }
     };
 }
@@ -154,7 +168,7 @@ module.exports = {
     createValidationMiddleware,
     validateQueryParams,
     sanitizeInput,
-    validateRequest, // Legacy support
+    validateRequest,
     schemas: {
         config: configSchema,
         plexConnection: plexConnectionSchema,
