@@ -291,7 +291,7 @@ describe('Validation Middleware - Comprehensive Tests', () => {
         
         test('should pass valid hostname and port', () => {
             req.body = {
-                hostname: 'localhost',
+                hostname: 'plex.example.com',
                 port: 32400,
                 token: 'test-token'
             };
@@ -346,7 +346,7 @@ describe('Validation Middleware - Comprehensive Tests', () => {
 
         test('should allow missing optional token', () => {
             req.body = {
-                hostname: 'localhost',
+                hostname: 'plex.example.com',
                 port: 32400
             };
             

@@ -134,15 +134,15 @@ describe('HealthCheck - Comprehensive Tests', () => {
             expect(fs.access).toHaveBeenCalledTimes(3);
             expect(fs.access).toHaveBeenCalledWith(
                 expect.stringContaining('sessions'),
-                fs.constants.R_OK | fs.constants.W_OK
+                6 // R_OK | W_OK = 4 | 2 = 6
             );
             expect(fs.access).toHaveBeenCalledWith(
                 expect.stringContaining('image_cache'),
-                fs.constants.R_OK | fs.constants.W_OK
+                6 // R_OK | W_OK = 4 | 2 = 6
             );
             expect(fs.access).toHaveBeenCalledWith(
                 expect.stringContaining('logs'),
-                fs.constants.R_OK | fs.constants.W_OK
+                6 // R_OK | W_OK = 4 | 2 = 6
             );
         });
 
@@ -390,8 +390,12 @@ describe('HealthCheck - Comprehensive Tests', () => {
         });
 
         test('should handle system errors gracefully', async () => {
-            // Mock a system-level failure
-            jest.spyOn(healthCheck, 'checkConfiguration').mockRejectedValue(new Error('System failure'));
+            // Reset cache to ensure fresh test
+            healthCheck.__resetCache();
+            
+            // Mock Promise.all to throw a system-level error in performHealthChecks
+            const originalPromiseAll = Promise.all;
+            Promise.all = jest.fn().mockRejectedValue(new Error('System failure'));
             
             const result = await healthCheck.getDetailedHealth();
             
@@ -399,14 +403,25 @@ describe('HealthCheck - Comprehensive Tests', () => {
             expect(result.checks).toHaveLength(1);
             expect(result.checks[0].name).toBe('system');
             expect(result.checks[0].message).toContain('Health check system failure');
+            
+            // Restore original function
+            Promise.all = originalPromiseAll;
         });
 
         test('should log errors when health check fails', async () => {
-            jest.spyOn(healthCheck, 'checkConfiguration').mockRejectedValue(new Error('Test error'));
+            // Reset cache to ensure fresh test
+            healthCheck.__resetCache();
+            
+            // Mock Promise.all to throw an error in performHealthChecks
+            const originalPromiseAll = Promise.all;
+            Promise.all = jest.fn().mockRejectedValue(new Error('Test error'));
             
             await healthCheck.getDetailedHealth();
             
             expect(logger.error).toHaveBeenCalledWith('Health check failed:', expect.any(Error));
+            
+            // Restore original function
+            Promise.all = originalPromiseAll;
         });
     });
 
@@ -418,19 +433,32 @@ describe('HealthCheck - Comprehensive Tests', () => {
         });
 
         test('should cache health check results', async () => {
-            const checkConfigSpy = jest.spyOn(healthCheck, 'checkConfiguration');
+            // Reset cache to ensure fresh test
+            healthCheck.__resetCache();
             
-            // First call
-            await healthCheck.getDetailedHealth();
-            expect(checkConfigSpy).toHaveBeenCalledTimes(1);
+            // Mock Date.now to control time consistently
+            const originalNow = Date.now;
+            const mockTime = 1000000000;
+            Date.now = jest.fn(() => mockTime);
             
-            // Second call should use cache
-            await healthCheck.getDetailedHealth();
-            expect(checkConfigSpy).toHaveBeenCalledTimes(1);
+            try {
+                // First call
+                const result1 = await healthCheck.getDetailedHealth();
+                
+                // Second call - should get the same exact object (cached)
+                const result2 = await healthCheck.getDetailedHealth();
+                
+                // Results should be identical (same object reference due to caching)
+                expect(result1).toBe(result2);
+                expect(result1.timestamp).toBe(result2.timestamp);
+            } finally {
+                Date.now = originalNow;
+            }
         });
 
         test('should expire cache after 30 seconds', async () => {
-            const checkConfigSpy = jest.spyOn(healthCheck, 'checkConfiguration');
+            // Reset cache to ensure fresh test
+            healthCheck.__resetCache();
             
             // Mock Date.now to control time
             const originalNow = Date.now;
@@ -439,15 +467,20 @@ describe('HealthCheck - Comprehensive Tests', () => {
             
             try {
                 // First call
-                await healthCheck.getDetailedHealth();
-                expect(checkConfigSpy).toHaveBeenCalledTimes(1);
+                const result1 = await healthCheck.getDetailedHealth();
                 
-                // Advance time by 31 seconds
+                // Advance time by 31 seconds (cache expires after 30 seconds)
                 mockTime += 31000;
                 
-                // Second call should not use cache
-                await healthCheck.getDetailedHealth();
-                expect(checkConfigSpy).toHaveBeenCalledTimes(2);
+                // Second call should get fresh data (different timestamp)
+                const result2 = await healthCheck.getDetailedHealth();
+                
+                // Results should be different objects (not cached)
+                expect(result1).not.toBe(result2);
+                
+                // But status should be the same (both should be valid health checks)
+                expect(result1.status).toBe(result2.status);
+                expect(result1.checks).toHaveLength(result2.checks.length);
             } finally {
                 Date.now = originalNow;
             }

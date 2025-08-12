@@ -60,6 +60,8 @@ describe('Environment Validator (validate-env.js)', () => {
         showPoster: true,
         showMetadata: true,
         clockWidget: false,
+        transitionEffect: 'none',
+        effectPauseTime: 0,
         kenBurnsEffect: {
             enabled: true,
             durationSeconds: 15
@@ -168,6 +170,13 @@ describe('Environment Validator (validate-env.js)', () => {
         };
 
         fs.readFileSync = jest.fn().mockReturnValue(JSON.stringify(configWithNoServers));
+
+        // Clear any leftover environment variables from previous tests
+        delete process.env.PLEX_HOSTNAME;
+        delete process.env.PLEX_PORT;
+        delete process.env.PLEX_TOKEN;
+        delete process.env.ADMIN_USERNAME;
+        delete process.env.ADMIN_PASSWORD_HASH;
 
         try {
             // Clear module cache and require the validator

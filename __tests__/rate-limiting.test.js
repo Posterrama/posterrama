@@ -1,18 +1,36 @@
 const request = require('supertest');
-const app = require('../server');
 
 describe('Rate Limiting', () => {
+    let app;
+
+    beforeEach(() => {
+        // Clear require cache before each test to ensure fresh modules
+        jest.resetModules();
+    });
+
+    afterEach(() => {
+        // Clean up environment
+        delete process.env.RATE_LIMIT_TEST;
+    });
+
     describe('API Rate Limits', () => {
         test('should allow requests within rate limit', async () => {
+            app = require('../server');
             const response = await request(app).get('/get-config');
             expect(response.statusCode).toBe(200);
         });
 
         test('should block requests exceeding rate limit', async () => {
+            // Set strict rate limiting BEFORE loading any modules
+            process.env.RATE_LIMIT_TEST = 'strict';
+            
+            // Now load the server with the environment variable set
+            app = require('../server');
+            
             // Make multiple requests quickly to trigger rate limiting
-            // In test mode, the limit is divided by 10, so we need more requests
+            // In strict test mode, the limit is divided by 50, so we need more requests
             const requests = [];
-            for (let i = 0; i < 60; i++) { // More than the 50 test limit (500/10)
+            for (let i = 0; i < 30; i++) { // More than the test limit
                 requests.push(request(app).get('/get-config'));
             }
             
@@ -24,6 +42,7 @@ describe('Rate Limiting', () => {
         });
 
         test('should include rate limit headers', async () => {
+            app = require('../server');
             const response = await request(app).get('/get-config');
             expect(response.headers).toHaveProperty('ratelimit-limit');
             expect(response.headers).toHaveProperty('ratelimit-remaining');
@@ -33,6 +52,7 @@ describe('Rate Limiting', () => {
 
     describe('Admin API Rate Limits', () => {
         test('should have different rate limits for admin endpoints', async () => {
+            app = require('../server');
             // This test assumes we're not authenticated, so we should get 401
             // but we want to test that rate limiting headers are present
             const response = await request(app).get('/api/admin/config');
@@ -42,6 +62,7 @@ describe('Rate Limiting', () => {
 
     describe('IP-based Rate Limiting', () => {
         test('should track rate limits per IP', async () => {
+            app = require('../server');
             const response = await request(app)
                 .get('/get-config')
                 .set('X-Forwarded-For', '192.168.1.100');

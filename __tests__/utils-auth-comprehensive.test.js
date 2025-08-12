@@ -515,17 +515,24 @@ describe('AuthenticationManager - Comprehensive Tests', () => {
         });
 
         test('should generate password reset token', () => {
-            const token = authManager.generatePasswordResetToken('admin@example.com');
+            const tokenData = authManager.generatePasswordResetToken('admin@example.com');
             
-            expect(token).toBeDefined();
+            expect(tokenData).toBeDefined();
+            expect(tokenData.token).toBeDefined();
+            expect(tokenData.expiresAt).toBeDefined();
             expect(crypto.randomBytes).toHaveBeenCalled();
         });
 
         test('should reset password with valid token', async () => {
             const email = 'admin@example.com';
-            const token = authManager.generatePasswordResetToken(email);
+            
+            // Create a token and ensure the auth manager maintains state
+            const tokenData = authManager.generatePasswordResetToken(email);
+            const token = tokenData.token;
+            
             const newPassword = 'NewResetP@ssw0rd';
             
+            // The token should now be in the auth manager's token map
             await authManager.resetPassword(token, newPassword);
             
             expect(bcrypt.hashSync).toHaveBeenCalledWith(newPassword, 10);
