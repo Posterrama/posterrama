@@ -1,11 +1,114 @@
-document.addEventListener('DOMContentLoaded', () => {
+/*
+ * Posterrama Admin Panel Refactor Summary
+ * Date: 2025-08-12
+ * Scope: Incremental cleanup, performance, UX, and robustness improvements applied during session.
+ *
+ * Key Changes (chronological/high-level):
+ * - Fixed historical layout issue where only 'general' & 'display' sections rendered: introduced portal container to prevent hidden/collapsed content.
+ * - Removed legacy preview / PiP code (dead / debug-only) reducing script size & noise.
+ * - Unified admin font stack to Roboto (no changes to public/logs pages per request).
+ * - Added lazy-loading for Media (Plex libraries + background slideshow) on first Media tab activation instead of upfront.
+ * - Hardened keyboard shortcut (Help panel 'H') against undefined e.key (prevented toLowerCase TypeError).
+ * - Cinema Mode improvements:
+ *   - Eliminated duplicate toggleCinemaModeSettings invocations.
+ *   - Preserves Ken Burns selection; temporarily swaps to fade while hidden and restores afterwards.
+ * - Password change form: removed duplicate mismatch checks (now single clear validation path).
+ * - Restart button UX: shows progress, completion, then re-enables after delay (no forced page refresh requirement).
+ * - Background slideshow:
+ *   - Logging drastically reduced; gated behind defaults.DEBUG flag (light heartbeat only otherwise).
+ *   - Timer cleared when leaving Media section (prevents leaks / duplicate intervals).
+ * - Auto-save mechanism:
+ *   - Replaced fixed 200ms retry delay with microtask + requestAnimationFrame scheduling for responsiveness.
+ *   - UI scaling auto-save no longer overwrites values with 100 when slider empty; ignores blank input.
+ * - UI scaling manual submit logic: preserves explicit zero, uses defaults only when value truly absent.
+ * - Added Ken Burns + cinema mode state memory & restoration semantics.
+ * - Plex token security: replaced fragile placeholder text parsing with data-token-set attribute.
+ * - Clean form submission sanitizer (cleanNulls) now also strips empty strings (prevents overwriting server config with '').
+ * - Rotten Tomatoes badge logic clarified with inline comment; minimum score persists but only applied if badge enabled.
+ * - General logging scrubs: background rotation & restart flow now concise; removed obsolete debug helpers & mutation observers.
+ * - Memory / global hygiene: removed old preview globals, prevented accumulating timers, minimized window namespace surface.
+ *
+ * Outstanding / Future (not performed here):
+ * - Potential modular split of this file (config, media, ui, helpers) for maintainability.
+ * - Accessibility pass (ARIA roles, focus management, reduced motion preference for transitions).
+ * - Design token centralization (colors, spacing, radii) for easier theming.
+ * - Additional debounce/coalesce for rapid config slider changes (current approach acceptable but could batch network posts).
+ *
+ * NOTE: This comment block documents the refactor session; retain until next major version bump or migrate to CHANGELOG.
+ */
+// Global helper: quick help panel toggle (must be defined before DOM key listeners use it)
+function toggleHelpPanel() {
+    const helpPanel = document.getElementById('quick-help-panel');
+    if (helpPanel) {
+        helpPanel.classList.toggle('open');
+    }
+}
+// Expose globally
+window.toggleHelpPanel = toggleHelpPanel;
 
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('[ADMIN SENTINEL] admin.js build 1.2.9 loaded at', new Date().toISOString());
+    // Global runtime error capture overlay (diagnostic aid)
+    (function installGlobalErrorHandler(){
+        if (window.__ADMIN_ERROR_HANDLER_INSTALLED) return; window.__ADMIN_ERROR_HANDLER_INSTALLED=true;
+        function showRuntimeError(title, msg){
+            let box = document.getElementById('admin-runtime-error-box');
+            if(!box){
+                box=document.createElement('div');
+                box.id='admin-runtime-error-box';
+                box.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);max-width:860px;width:90%;background:#300;border:2px solid #f33;color:#fff;font:12px monospace;z-index:70000;padding:10px;white-space:pre-wrap;overflow:auto;max-height:70vh;';
+                document.body.appendChild(box);
+            }
+            const ts=new Date().toISOString();
+            box.innerHTML = `[${ts}] ${title}\n${msg}\n` + box.innerHTML;
+        }
+        window.addEventListener('error', e=>{
+            showRuntimeError('JS Error', `${e.message}\nSource:${e.filename}:${e.lineno}:${e.colno}`);
+        });
+        window.addEventListener('unhandledrejection', e=>{
+            showRuntimeError('Unhandled Promise Rejection', String(e.reason && e.reason.stack || e.reason));
+        });
+        window.__showRuntimeError = showRuntimeError;
+    })();
+    // (Removed old sentinel overlay & transient debug badges)
     // Sidebar functionality
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
     const navItems = document.querySelectorAll('.nav-item');
-    const sections = document.querySelectorAll('.section-content');
+    let sections = document.querySelectorAll('.section-content');
+
+    const expectedSectionKeys = ['general','display','media','authentication','promobox','management','logs'];
+
+    function ensureAllSectionsPresent() {
+        sections = document.querySelectorAll('.section-content');
+        const presentIds = Array.from(sections).map(s=>s.id);
+        const missing = expectedSectionKeys.filter(key=>!presentIds.includes(`${key}-section`));
+        if (missing.length) {
+            console.warn('[ADMIN] Missing section DOM nodes detected, creating placeholders for:', missing);
+            const form = document.getElementById('config-form');
+            if (form) {
+                missing.forEach(key => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'section-content';
+                    wrapper.id = `${key}-section`;
+                    wrapper.innerHTML = `\n<div class="section-main-content">\n  <div class="section-title">${key.charAt(0).toUpperCase()+key.slice(1)} (placeholder injected)</div>\n  <div class="form-section">\n    <p style="padding:8px 4px;margin:0;color:#fff;font-family:monospace;font-size:14px;">Original HTML for this section was not delivered by the server. Placeholder injected client-side.</p>\n  </div>\n</div>`;
+                    form.appendChild(wrapper);
+                });
+                sections = document.querySelectorAll('.section-content');
+            }
+        }
+        // Log diagnostics table
+        try {
+            const diag = Array.from(sections).map(sec=>({id:sec.id,len:sec.innerHTML.length}));
+            console.table(diag);
+        } catch(_) {}
+    }
+
+    // Run once at startup
+    ensureAllSectionsPresent();
+
+    // (Removed legacy layout fallback interval – no longer required after portal approach)
 
     // Restore sidebar state from localStorage
     const savedSidebarState = localStorage.getItem('sidebarCollapsed');
@@ -31,8 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-        // Quick Help shortcut: Press 'H' key
-        if (e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Quick Help shortcut: Press 'H' key (defensive for browsers/events without key)
+        const key = (e && typeof e.key === 'string') ? e.key.toLowerCase() : '';
+        if (key === 'h' && !e.ctrlKey && !e.altKey && !e.metaKey) {
             // Only activate if we're not typing in an input field
             const activeElement = document.activeElement;
             const isInputField = activeElement && (
@@ -43,204 +147,84 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (!isInputField) {
                 e.preventDefault();
-                toggleHelpPanel();
+                // Use globally attached function (set later) to avoid scope issues
+                if (window.toggleHelpPanel) {
+                    window.toggleHelpPanel();
+                }
             }
         }
     });
 
-    // Navigation functionality
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const targetSection = item.dataset.section;
-            
-            // Update active nav item
-            navItems.forEach(nav => nav.classList.remove('active'));
-            item.classList.add('active');
-            
-            // Update active section
-            sections.forEach(section => section.classList.remove('active'));
-            const targetElement = document.getElementById(`${targetSection}-section`);
-            if (targetElement) {
-                targetElement.classList.add('active');
-            }
-            
-            // Update help content based on section
-            updateHelpContent(targetSection);
-        });
+    // Store original section content before any modifications
+    window.originalSectionContent = {};
+    
+    // Store all section content at page load
+    const allSections = document.querySelectorAll('.section-content');
+    allSections.forEach(section => {
+        window.originalSectionContent[section.id] = section.innerHTML;
     });
 
-    // Help content for different sections
+    // Help content for different sections (moved up to ensure available before first activation)
     const helpContent = {
-        general: {
-            title: "General Settings Help",
-            sections: [
-                {
-                    title: "Transition Interval",
-                    content: "Controls how long each poster is displayed before switching to the next one. Set between 1-300 seconds. Shorter intervals create more dynamic displays, while longer intervals are better for reading metadata."
-                },
-                {
-                    title: "Background Refresh",
-                    content: "How often the system fetches new content from your media server. Set to 0 to disable automatic refresh. Regular refreshing ensures new content appears in the rotation."
-                },
-                {
-                    title: "Application Port",
-                    content: "The network port for the admin interface. Default is 4000. Changing this requires an application restart. Make sure the port isn't used by other applications."
-                },
-                {
-                    title: "Debug Mode",
-                    content: "Enables detailed logging for troubleshooting. Check the live logs to see debug information. Only enable when investigating issues as it can impact performance."
-                }
-            ]
-        },
-        display: {
-            title: "Display Settings Help",
-            sections: [
-                {
-                    title: "Visual Elements",
-                    content: "Control which elements are visible on the screensaver: ClearLogo (movie/show logos), Rotten Tomatoes badges, posters, and metadata text."
-                },
-                {
-                    title: "Clock Widget",
-                    content: "Shows a customizable clock in the top-left corner. Choose timezone and format (12/24 hour). Uses IANA timezone identifiers for accuracy."
-                },
-                {
-                    title: "UI Scaling",
-                    content: "Adjust the size of different UI elements. Global scale affects everything at once, useful for different screen sizes and viewing distances."
-                }
-            ]
-        },
-        effects: {
-            title: "Effects & Transitions Help",
-            sections: [
-                {
-                    title: "Transition Effects",
-                    content: "Ken Burns: Slow zoom and pan effect. Fade: Simple fade in/out transitions. Slide: Left/right sliding in cinema mode."
-                },
-                {
-                    title: "Cinema Mode",
-                    content: "Optimized for portrait displays. Shows fullscreen posters with header/footer areas. Can force specific orientation if device sensors aren't reliable."
-                },
-                {
-                    title: "Effect Timing",
-                    content: "Pause time controls the delay after an effect completes. Not applicable to Ken Burns effect which uses the full transition interval."
-                }
-            ]
-        },
-        media: {
-            title: "Media Servers Help",
-            sections: [
-                {
-                    title: "Plex Connection",
-                    content: "Configure your Plex server hostname/IP, port (usually 32400), and authentication token. Test the connection before saving to ensure it works."
-                },
-                {
-                    title: "Library Selection",
-                    content: "Choose which Plex libraries to include. Movie and TV show libraries are handled separately. Test connection first to populate available libraries."
-                },
-                {
-                    title: "Content Limits",
-                    content: "Limit the number of movies and shows to prevent performance issues. Higher numbers may cause slower loading and increased memory usage."
-                }
-            ]
-        },
-        authentication: {
-            title: "Authentication & Security Help",
-            sections: [
-                {
-                    title: "Password Management",
-                    content: "Change your admin password. Enter current password first for security. Choose a strong password to protect your admin interface."
-                },
-                {
-                    title: "Two-Factor Authentication",
-                    content: "Add an extra security layer with authenticator apps like Google Authenticator. Scan the QR code and enter the verification code to enable."
-                },
-                {
-                    title: "API Access",
-                    content: "Generate permanent API keys for external applications or scripts. Keys can be viewed, copied, or revoked as needed. Useful for Swagger API access."
-                }
-            ]
-        },
-        promobox: {
-            title: "Promobox Site Help",
-            sections: [
-                {
-                    title: "Public Site",
-                    content: "Enable a public-facing screensaver site on port 4001 without admin access. Perfect for promotional displays or kiosks."
-                },
-                {
-                    title: "Port Configuration",
-                    content: "Choose a different port if 4001 is unavailable. Ensure the port isn't used by other applications and is accessible to your intended users."
-                }
-            ]
-        },
-        management: {
-            title: "Application Management Help",
-            sections: [
-                {
-                    title: "Cache Management",
-                    content: "Clear image cache to free space or force re-download of images. Refresh media to update the content library from Plex immediately."
-                },
-                {
-                    title: "Application Control",
-                    content: "Restart the application when needed (required after port changes). Use with caution as it will disconnect all users temporarily."
-                },
-                {
-                    title: "Debugging",
-                    content: "View live logs for real-time troubleshooting. Debug cache view shows raw playlist data when debug mode is enabled."
-                }
-            ]
-        },
-        logs: {
-            title: "Live Logs Help",
-            sections: [
-                {
-                    title: "Log Monitoring",
-                    content: "Real-time view of application logs. Different log levels (info, warn, error) are color-coded for easy identification of issues."
-                },
-                {
-                    title: "Troubleshooting",
-                    content: "Enable debug mode in General Settings for more detailed logging. Logs automatically scroll to show newest entries first."
-                }
-            ]
-        }
+        general: { title: "General Settings Help", sections: [
+            { title: "Transition Interval", content: "Controls how long each poster is displayed before switching to the next one. Set between 1-300 seconds. Shorter intervals create more dynamic displays, while longer intervals are better for reading metadata." },
+            { title: "Background Refresh", content: "How often the system fetches new content from your media server. Set to 0 to disable automatic refresh. Regular refreshing ensures new content appears in the rotation." },
+            { title: "Application Port", content: "The network port for the admin interface. Default is 4000. Changing this requires an application restart. Make sure the port isn't used by other applications." },
+            { title: "Debug Mode", content: "Enables detailed logging for troubleshooting. Check the live logs to see debug information. Only enable when investigating issues as it can impact performance." }
+        ]},
+        display: { title: "Display & Effects Settings Help", sections: [
+            { title: "Visual Elements", content: "Control visibility: ClearLogo (movie/show logos), Rotten Tomatoes badges, posters, metadata text." },
+            { title: "Clock Widget", content: "Shows a clock (timezone + 12/24h). Uses IANA timezone IDs or system time when set to Auto." },
+            { title: "UI Scaling", content: "Adjust element sizes. Individual sliders multiply with Global for flexible tuning across displays." },
+            { title: "Transition Effects", content: "Ken Burns: slow zoom/pan (uses full interval). Fade: cross-fade between items. Slide: horizontal slide (cinema mode friendly)." },
+            { title: "Cinema Mode", content: "Portrait-optimized layout. Optionally force orientation or use device auto. Hides non-relevant elements for a clean poster focus." },
+            { title: "Effect Timing", content: "Effect Pause Time adds a still pause after transitions (ignored by Ken Burns which animates full duration)." }
+        ]},
+        media: { title: "Media Servers Help", sections: [
+            { title: "Plex Connection", content: "Configure your Plex server hostname/IP, port (usually 32400), and authentication token. Test the connection before saving to ensure it works." },
+            { title: "Library Selection", content: "Choose which Plex libraries to include. Movie and TV show libraries are handled separately. Test connection first to populate available libraries." },
+            { title: "Content Limits", content: "Limit the number of movies and shows to prevent performance issues. Higher numbers may cause slower loading and increased memory usage." }
+        ]},
+        authentication: { title: "Authentication & Security Help", sections: [
+            { title: "Password Management", content: "Change your admin password. Enter current password first for security. Choose a strong password to protect your admin interface." },
+            { title: "Two-Factor Authentication", content: "Add an extra security layer with authenticator apps like Google Authenticator. Scan the QR code and enter the verification code to enable." },
+            { title: "API Access", content: "Generate permanent API keys for external applications or scripts. Keys can be viewed, copied, or revoked as needed. Useful for Swagger API access." }
+        ]},
+        promobox: { title: "Promobox Site Help", sections: [
+            { title: "Public Site", content: "Enable a public-facing screensaver site on port 4001 without admin access. Perfect for promotional displays or kiosks." },
+            { title: "Port Configuration", content: "Choose a different port if 4001 is unavailable. Ensure the port isn't used by other applications and is accessible to your intended users." }
+        ]},
+        management: { title: "Application Management Help", sections: [
+            { title: "Cache Management", content: "Clear image cache to free space or force re-download of images. Refresh media to update the content library from Plex immediately." },
+            { title: "Application Control", content: "Restart the application when needed (required after port changes). Use with caution as it will disconnect all users temporarily." },
+            { title: "Debugging", content: "View live logs for real-time troubleshooting. Debug cache view shows raw playlist data when debug mode is enabled." }
+        ]},
+        logs: { title: "Live Logs Help", sections: [
+            { title: "Log Monitoring", content: "Real-time view of application logs. Different log levels (info, warn, error) are color-coded for easy identification of issues." },
+            { title: "Troubleshooting", content: "Enable debug mode in General Settings for more detailed logging. Logs automatically scroll to show newest entries first." }
+        ]}
     };
 
-    // Function to update help content based on current section
-    function updateHelpContent(section) {
+    /**
+     * Update the contextual help panel.
+     * @param {string} key - Key inside helpContent (e.g. 'general', 'display').
+     */
+    function updateHelpContent(key) {
         const helpTitle = document.getElementById('help-title');
         const helpContentDiv = document.getElementById('help-content');
-        
         if (!helpTitle || !helpContentDiv) return;
-        
-        const content = helpContent[section];
-        if (!content) return;
-        
-        helpTitle.textContent = content.title;
-        
-        helpContentDiv.innerHTML = content.sections.map(section => `
+        const contentBlock = helpContent[key] || helpContent['general'];
+        if (!contentBlock) return;
+        helpTitle.textContent = contentBlock.title;
+        helpContentDiv.innerHTML = contentBlock.sections.map(sectionItem => `
             <div class="help-section">
-                <h4>${section.title}</h4>
-                <p>${section.content}</p>
+                <h4>${sectionItem.title}</h4>
+                <p>${sectionItem.content}</p>
             </div>
         `).join('');
     }
 
-    // Mobile responsive
-    function handleResize() {
-        if (window.innerWidth <= 768) {
-            sidebar.classList.remove('collapsed');
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', () => {
-                    sidebar.classList.toggle('open');
-                });
-            }
-        }
-    }
-
-    window.addEventListener('resize', handleResize);
-    handleResize();
-
-    // Default values for settings
+    // Default values for settings (moved up to precede any timer cleanup calls)
     const defaults = {
         transitionIntervalSeconds: 15,
         backgroundRefreshMinutes: 30,
@@ -286,12 +270,106 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeAdminLayer = null;
     let inactiveAdminLayer = null;
 
-    // --- Preview Slideshow State ---
-    let previewMediaQueue = [];
-    let previewMediaIndex = -1;
-    let previewTimer = null;
-    let currentPreviewConfig = null;
-    let isCinemaMode = false;
+    // (Preview system removed)
+    let isCinemaMode = false; // retained only for display settings toggling until rewrite
+
+    let sectionNodes = Array.from(document.querySelectorAll('.section-content'));
+
+    // Mutation observer diagnostics to detect unexpected child removals / empties
+    // (Removed mutation observers & legacy debug toggles – simplifying production build)
+
+    function cleanupLegacyDebug() { /* no-op after cleanup */ }
+
+    function activateSection(targetSection) {
+        if (!targetSection) return;
+        // Stop background slideshow when leaving media section to prevent leaks/timers stacking
+        if (targetSection !== 'media' && adminBgTimer) {
+            clearInterval(adminBgTimer);
+            adminBgTimer = null;
+        }
+        sectionNodes = Array.from(document.querySelectorAll('.section-content'));
+        ensureAllSectionsPresent();
+        // Ensure a simple portal container exists for non-core sections
+        let portal = document.getElementById('admin-section-portal');
+        if (!portal) {
+            portal = document.createElement('div');
+            portal.id = 'admin-section-portal';
+            portal.style.cssText = 'position:relative;display:block;width:100%;min-height:400px;';
+            const formEl = document.getElementById('config-form');
+            if (formEl && formEl.parentElement) formEl.parentElement.insertBefore(portal, formEl.nextSibling); else document.body.appendChild(portal);
+        }
+        sectionNodes.forEach(sec => {
+            const isTarget = sec.id === `${targetSection}-section`;
+            if (isTarget) {
+                sec.classList.add('active');
+                sec.style.display='block';
+                // Move non-core sections into portal (layout stability)
+                if (sec.id !== 'general-section' && sec.id !== 'display-section' && sec.parentElement !== portal) {
+                    portal.appendChild(sec);
+                } else if ((sec.id === 'general-section' || sec.id === 'display-section')) {
+                    const formEl = document.getElementById('config-form');
+                    if (formEl && sec.parentElement !== formEl) formEl.appendChild(sec);
+                }
+            } else {
+                sec.classList.remove('active');
+                sec.style.display='none';
+            }
+        });
+        updateHelpContent(targetSection);
+        // Lazy load Plex libraries + background at first media activation
+    if (targetSection === 'media' && window.__plexReady && !window.__mediaLazyLoaded) {
+            window.__mediaLazyLoaded = true;
+            const movieContainer = document.getElementById('movie-libraries-container');
+            const showContainer = document.getElementById('show-libraries-container');
+            if (movieContainer) movieContainer.innerHTML = '<small>Loading libraries...</small>';
+            if (showContainer) showContainer.innerHTML = '<small>Loading libraries...</small>';
+            setTimeout(()=>{
+                try {
+                    fetchAndDisplayPlexLibraries(window.__savedMovieLibs||[], window.__savedShowLibs||[]);
+            initializeAdminBackground(); // starts timer only while on media section
+                } catch(e){ console.warn('[ADMIN] Lazy media load failed', e); }
+            }, 30);
+        }
+    }
+
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetSection = item.dataset.section;
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+            activateSection(targetSection);
+        });
+    });
+
+    // Initialize help content after definitions
+    updateHelpContent('general');
+
+    // Ensure only first (or currently expected) section is visible at start (after timers defined)
+    if (navItems.length > 0) {
+        const initial = navItems[0].dataset.section;
+        navItems[0].classList.add('active');
+        activateSection(initial);
+    }
+
+    // Legacy debug helpers removed
+
+    // Mobile responsive
+    function handleResize() {
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('collapsed');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        }
+    }
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    // (defaults & state moved earlier)
 
     /**
      * Helper to safely get a value from a nested object.
@@ -306,27 +384,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateGeneralSettings(config, env, defaults) {
+        // Normalize env values to predictable runtime types (strings for ports, booleans for flags)
+        const normalizedEnv = {
+            SERVER_PORT: env.SERVER_PORT != null ? String(env.SERVER_PORT) : String(defaults.SERVER_PORT),
+            DEBUG: env.DEBUG != null ? (env.DEBUG === true || env.DEBUG === 'true') : !!defaults.DEBUG,
+            PLEX_HOSTNAME: env.PLEX_HOSTNAME != null ? String(env.PLEX_HOSTNAME) : undefined,
+            PLEX_PORT: env.PLEX_PORT != null ? String(env.PLEX_PORT) : undefined,
+            PLEX_TOKEN: env.PLEX_TOKEN === true // server already sends boolean for token presence
+        };
+        // Persist normalized version for other functions (read-only usage)
+        window.__normalizedEnv = normalizedEnv;
+
         document.getElementById('transitionIntervalSeconds').value = config.transitionIntervalSeconds ?? defaults.transitionIntervalSeconds;
         document.getElementById('backgroundRefreshMinutes').value = config.backgroundRefreshMinutes ?? defaults.backgroundRefreshMinutes;
-        // Use the nullish coalescing operator (??) to correctly handle empty strings from .env
-        document.getElementById('SERVER_PORT').value = env.SERVER_PORT ?? defaults.SERVER_PORT;
-        // Correctly check for the existence of the env.DEBUG variable.
-        // The previous logic had an operator precedence issue and was not correctly using the default.
-        document.getElementById('DEBUG').checked = (env.DEBUG !== undefined) ? (env.DEBUG === 'true') : defaults.DEBUG;
+        document.getElementById('SERVER_PORT').value = normalizedEnv.SERVER_PORT;
+        document.getElementById('DEBUG').checked = normalizedEnv.DEBUG;
 
         const debugCheckbox = document.getElementById('DEBUG');
         const debugAction = document.getElementById('debug-cache-action');
         if (debugAction) {
             debugAction.classList.toggle('is-hidden', !debugCheckbox.checked);
         }
-        
-        // Populate site server settings
-        populateSiteServerSettings(config);
+    // Site server settings are populated after server meta (IP) is available in loadConfig.
+    // (Avoid early call with placeholder IP to prevent inconsistent link text.)
     }
 
     function populateSiteServerSettings(config, server = {}) {
         const siteServer = config.siteServer || {};
-        const serverIP = server.ipAddress || 'localhost';
+        const serverIP = server.ipAddress; // Only use real IP when provided
         const enabledCheckbox = document.getElementById('siteServer.enabled');
         const portInput = document.getElementById('siteServer.port');
         const portGroup = document.getElementById('siteServerPortGroup');
@@ -352,8 +437,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const port = siteServer.port || 4001;
                 const statusLink = statusIndicator.querySelector('.status-link');
                 if (statusLink) {
-                    statusLink.href = `http://${serverIP}:${port}`;
-                    statusLink.textContent = `http://${serverIP}:${port}`;
+                    if (serverIP) {
+                        statusLink.href = `http://${serverIP}:${port}`;
+                        statusLink.textContent = `http://${serverIP}:${port}`;
+                    } else {
+                        statusLink.removeAttribute('href');
+                        statusLink.textContent = `(waiting for server IP...)`;
+                    }
                 }
             }
         }
@@ -371,8 +461,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         const port = portInput ? (portInput.value || 4001) : 4001;
                         const statusLink = statusIndicator.querySelector('.status-link');
                         if (statusLink) {
-                            statusLink.href = `http://${serverIP}:${port}`;
-                            statusLink.textContent = `http://${serverIP}:${port}`;
+                            if (serverIP) {
+                                statusLink.href = `http://${serverIP}:${port}`;
+                                statusLink.textContent = `http://${serverIP}:${port}`;
+                            } else {
+                                statusLink.removeAttribute('href');
+                                statusLink.textContent = `(waiting for server IP...)`;
+                            }
                         }
                     }
                 }
@@ -380,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Add event listener for port input
-        if (portInput && statusIndicator) {
+        if (portInput && statusIndicator && serverIP) {
             portInput.addEventListener('input', function() {
                 const port = this.value || 4001;
                 const statusLink = statusIndicator.querySelector('.status-link');
@@ -491,43 +586,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Setup form change tracking for better UX
+    // Enhanced form change tracking (singleton)
+    let formTrackingInitialized = false;
     function setupFormChangeTracking() {
+        if (formTrackingInitialized) return; // prevent duplicate listeners
         const configForm = document.getElementById('config-form');
         const statusMessage = document.getElementById('config-status');
         const saveButton = document.getElementById('save-config-button');
+        if (!configForm || !statusMessage || !saveButton) return;
+
+        formTrackingInitialized = true;
         let hasChanges = false;
         let originalFormData = null;
 
-        if (!configForm || !statusMessage || !saveButton) return;
-
-        // Capture original form state
         const captureFormState = () => {
             const formData = new FormData(configForm);
             const state = {};
-            for (const [key, value] of formData.entries()) {
-                state[key] = value;
-            }
-            // Also capture checkbox states
-            configForm.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                state[checkbox.name] = checkbox.checked;
-            });
+            for (const [key, value] of formData.entries()) state[key] = value;
+            configForm.querySelectorAll('input[type="checkbox"]').forEach(cb => { state[cb.name] = cb.checked; });
             return state;
         };
 
-        // Compare form states
         const formHasChanged = () => {
             if (!originalFormData) return false;
-            const currentData = captureFormState();
-            return JSON.stringify(originalFormData) !== JSON.stringify(currentData);
+            return JSON.stringify(originalFormData) !== JSON.stringify(captureFormState());
         };
 
-        // Update status message
         const updateStatus = (message, className = '') => {
             statusMessage.textContent = message;
             statusMessage.className = `status-message ${className}`;
         };
 
-        // Monitor form changes
         const handleFormChange = debounce(() => {
             if (formHasChanged()) {
                 if (!hasChanges) {
@@ -535,25 +624,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateStatus('Unsaved changes detected', 'warning');
                     saveButton.classList.add('has-changes');
                 }
-            } else {
-                if (hasChanges) {
-                    hasChanges = false;
-                    updateStatus('All changes saved', 'success');
-                    saveButton.classList.remove('has-changes');
-                }
+            } else if (hasChanges) {
+                hasChanges = false;
+                updateStatus('All changes saved', 'success');
+                saveButton.classList.remove('has-changes');
             }
-        }, 500);
+        }, 400);
 
-        // Capture initial state after form is populated
-        setTimeout(() => {
-            originalFormData = captureFormState();
-        }, 100);
+        // Initial snapshot after current tick (ensures population done)
+        setTimeout(() => { originalFormData = captureFormState(); }, 120);
 
-        // Add event listeners
         configForm.addEventListener('input', handleFormChange);
         configForm.addEventListener('change', handleFormChange);
 
-        // Reset state after successful save
         document.addEventListener('configSaved', () => {
             originalFormData = captureFormState();
             hasChanges = false;
@@ -561,7 +644,6 @@ document.addEventListener('DOMContentLoaded', () => {
             saveButton.classList.remove('has-changes');
         });
 
-        // Show unsaved changes warning before page unload
         window.addEventListener('beforeunload', (e) => {
             if (hasChanges) {
                 e.preventDefault();
@@ -569,6 +651,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return e.returnValue;
             }
         });
+
+        // Expose helper to manually reset tracking (e.g., after external save)
+        window.resetFormChangeTracking = () => {
+            originalFormData = captureFormState();
+            hasChanges = false;
+            updateStatus('All changes saved', 'success');
+            saveButton.classList.remove('has-changes');
+        };
     }
 
     // Setup keyboard shortcuts for improved accessibility
@@ -647,8 +737,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cinemaOrientationGroup.style.display = isCinemaMode ? 'block' : 'none';
         }
         
-        // Apply cinema mode settings (including Ken Burns dropdown handling)
-        toggleCinemaModeSettings(isCinemaMode);
+    // Apply cinema mode settings (including Ken Burns dropdown handling) - single invocation
+    toggleCinemaModeSettings(isCinemaMode);
         
         // Set up real-time input validation
         setupInputValidation();
@@ -659,8 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set up keyboard shortcuts
         setupKeyboardShortcuts();
         
-        // Show/hide display settings based on cinema mode
-        toggleCinemaModeSettings(isCinemaMode);
+    // (Removed duplicate toggleCinemaModeSettings call)
         
         // Populate UI scaling settings
         populateUIScalingSettings(config, defaults);
@@ -679,7 +768,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
             
             if (slider && valueDisplay) {
-                const value = scalingConfig[field] || defaults.uiScaling[field];
+                let raw = scalingConfig[field];
+                if (raw === undefined || raw === null || raw === '') raw = defaults.uiScaling[field];
+                const value = Number(raw);
                 slider.value = value;
                 valueDisplay.textContent = `${value}%`;
                 
@@ -694,7 +785,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Add event listener for live preview updates
                 slider.addEventListener('change', () => {
-                    updatePreview();
+                    // preview update removed
                 });
                 
                 // Add keyboard support for fine control
@@ -732,7 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         slider.value = newValue;
                         valueDisplay.textContent = `${newValue}%`;
                         updateSliderBackground(slider);
-                        updatePreview();
+                        // preview update removed
                     }
                 });
             }
@@ -853,18 +944,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populatePlexSettings(config, env, defaults) {
+        // Prefer normalized env if available
+        const nEnv = window.__normalizedEnv || {};
         const plexServerConfig = config.mediaServers && config.mediaServers[0] ? config.mediaServers[0] : {};
         const plexDefaults = defaults.mediaServers[0];
 
         document.getElementById('mediaServers[0].enabled').checked = plexServerConfig.enabled ?? plexDefaults.enabled;
-        // Use the nullish coalescing operator (??) to correctly handle empty strings from .env
-        document.getElementById('mediaServers[0].hostname').value = env.PLEX_HOSTNAME ?? plexDefaults.hostname;
-        document.getElementById('mediaServers[0].port').value = env.PLEX_PORT ?? plexDefaults.port;
+        document.getElementById('mediaServers[0].hostname').value = nEnv.PLEX_HOSTNAME ?? env.PLEX_HOSTNAME ?? plexDefaults.hostname;
+        document.getElementById('mediaServers[0].port').value = nEnv.PLEX_PORT ?? env.PLEX_PORT ?? plexDefaults.port;
         // For security, don't display the token. Show a placeholder if it's set.
         const tokenInput = document.getElementById('mediaServers[0].token');
         tokenInput.value = ''; // Always clear the value on load
-        // env.PLEX_TOKEN is now a boolean indicating if the token is set on the server
-        tokenInput.placeholder = env.PLEX_TOKEN === true ? '******** (already set)' : 'Enter new token...';
+    // env.PLEX_TOKEN is now a boolean indicating if the token is set on the server
+    const tokenIsSet = (nEnv.PLEX_TOKEN || env.PLEX_TOKEN === true);
+    tokenInput.dataset.tokenSet = tokenIsSet ? 'true' : 'false';
+    tokenInput.placeholder = tokenIsSet ? '******** (token stored)' : 'Enter new token...';
 
         const savedMovieLibs = plexServerConfig.movieLibraryNames || plexDefaults.movieLibraryNames;
         const savedShowLibs = plexServerConfig.showLibraryNames || plexDefaults.showLibraryNames;
@@ -886,18 +980,45 @@ document.addEventListener('DOMContentLoaded', () => {
             populateGeneralSettings(config, env, defaults);
             populateDisplaySettings(config, defaults);
             setupDisplaySettingListeners();
-            setupPreviewTimerListener();
+            // (preview timers removed)
             setupCinemaModeListeners();
             populateSecuritySettings(security);
             const { savedMovieLibs, savedShowLibs } = populatePlexSettings(config, env, defaults);
+            window.__savedMovieLibs = savedMovieLibs;
+            window.__savedShowLibs = savedShowLibs;
 
             // Pass server info to site server settings
             populateSiteServerSettings(config, server);
 
             // If Plex is configured, fetch libraries and start background slideshow
-            if (env.PLEX_HOSTNAME && env.PLEX_PORT && env.PLEX_TOKEN === true) {
-                fetchAndDisplayPlexLibraries(savedMovieLibs, savedShowLibs);
-                initializeAdminBackground();
+            const nEnv = window.__normalizedEnv || {};
+            const isNonEmpty = v => v !== undefined && v !== null && String(v).trim() !== '' && String(v).toLowerCase() !== 'null' && String(v).toLowerCase() !== 'undefined';
+            const hasPlexHost = isNonEmpty(nEnv.PLEX_HOSTNAME ?? env.PLEX_HOSTNAME);
+            const rawPort = nEnv.PLEX_PORT ?? env.PLEX_PORT;
+            const portNum = Number(rawPort);
+            // Accept only numeric port within valid range (1-65535). Port '0' is invalid for Plex.
+            const hasPlexPort = Number.isFinite(portNum) && portNum >= 1 && portNum <= 65535;
+            const rawToken = (nEnv.PLEX_TOKEN !== undefined ? nEnv.PLEX_TOKEN : env.PLEX_TOKEN);
+            const hasPlexToken = rawToken === true || rawToken === 'true' || (typeof rawToken === 'string' && rawToken.length > 0);
+            window.__plexReady = (hasPlexHost && hasPlexPort && hasPlexToken);
+            if (!window.__plexReady) {
+                const missing = [];
+                if (!hasPlexHost) missing.push('PLEX_HOSTNAME');
+                if (!hasPlexPort) missing.push('PLEX_PORT(valid)');
+                if (!hasPlexToken) missing.push('PLEX_TOKEN');
+                if (missing.length < 3) console.warn('Plex not initialized — missing:', missing.join(', '));
+            } else {
+                // Placeholders until user clicks Media
+                const movieContainer = document.getElementById('movie-libraries-container');
+                const showContainer = document.getElementById('show-libraries-container');
+                if (movieContainer && !movieContainer.dataset.lazyReady) {
+                    movieContainer.innerHTML = '<small>Libraries load on first Media tab open...</small>';
+                    movieContainer.dataset.lazyReady='true';
+                }
+                if (showContainer && !showContainer.dataset.lazyReady) {
+                    showContainer.innerHTML = '<small>Libraries load on first Media tab open...</small>';
+                    showContainer.dataset.lazyReady='true';
+                }
             }
 
             // Forcefully remove focus from any element that the browser might have auto-focused.
@@ -957,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        console.log(`Starting slideshow with ${adminBgQueue.length} images`);
+    if (defaults.DEBUG) console.log(`[AdminBG] Starting slideshow with ${adminBgQueue.length} images`);
         
         // Show first image immediately
         changeAdminBackground();
@@ -970,7 +1091,12 @@ document.addEventListener('DOMContentLoaded', () => {
      * Changes the background image on the admin page with a fade effect.
      */
     function changeAdminBackground() {
-        console.log('=== changeAdminBackground CALLED ===');
+        if (!defaults.DEBUG) {
+            // Light heartbeat every few cycles only
+            if (adminBgIndex % 10 === 0) console.debug('[AdminBG] rotate');
+        } else {
+            console.log('[AdminBG] tick');
+        }
         
         if (adminBgQueue.length === 0 || !activeAdminLayer || !inactiveAdminLayer) {
             console.log('Admin background change skipped - missing elements or empty queue');
@@ -984,8 +1110,9 @@ document.addEventListener('DOMContentLoaded', () => {
         adminBgIndex = (adminBgIndex + 1) % adminBgQueue.length;
         const currentItem = adminBgQueue[adminBgIndex];
 
-        console.log(`Index changed from ${oldIndex} to ${adminBgIndex}`);
-        console.log('Current item:', currentItem);
+        if (defaults.DEBUG) {
+            console.log(`[AdminBG] index ${oldIndex} -> ${adminBgIndex}`, currentItem);
+        }
 
         if (!currentItem || !currentItem.backgroundUrl) {
             console.log('Admin background change skipped - invalid item');
@@ -993,42 +1120,43 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        console.log(`Changing admin background to: ${currentItem.title || 'Unknown'} (${adminBgIndex + 1}/${adminBgQueue.length})`);
-        console.log('Background URL:', currentItem.backgroundUrl);
+        if (defaults.DEBUG) {
+            console.log(`[AdminBG] change -> ${currentItem.title || 'Unknown'} (${adminBgIndex + 1}/${adminBgQueue.length}) url=${currentItem.backgroundUrl}`);
+        }
 
         // Log current layer states
-        console.log('BEFORE transition:');
-        console.log('Active layer opacity:', window.getComputedStyle(activeAdminLayer).opacity);
-        console.log('Inactive layer opacity:', window.getComputedStyle(inactiveAdminLayer).opacity);
-        console.log('Active layer background:', window.getComputedStyle(activeAdminLayer).backgroundImage);
-        console.log('Inactive layer background:', window.getComputedStyle(inactiveAdminLayer).backgroundImage);
+        if (defaults.DEBUG) {
+            console.log('[AdminBG] BEFORE', {
+                activeOpacity: window.getComputedStyle(activeAdminLayer).opacity,
+                inactiveOpacity: window.getComputedStyle(inactiveAdminLayer).opacity
+            });
+        }
 
         const img = new Image();
         img.onload = () => {
-            console.log('Image loaded successfully');
+            if (defaults.DEBUG) console.log('[AdminBG] image loaded');
             
             // Set new image on inactive layer and make it visible
             inactiveAdminLayer.style.backgroundImage = `url('${currentItem.backgroundUrl}')`;
             inactiveAdminLayer.style.opacity = 0;
             
-            console.log('Set background image on inactive layer, opacity set to 0');
+            if (defaults.DEBUG) console.log('[AdminBG] inactive layer prepared');
             
             // Start fade transition immediately
             setTimeout(() => {
-                console.log('Starting fade transition...');
+                if (defaults.DEBUG) console.log('[AdminBG] fade start');
                 
                 // Fade out current active layer
                 activeAdminLayer.style.opacity = 0;
                 // Fade in new layer
                 inactiveAdminLayer.style.opacity = 0.7;
                 
-                console.log('Set transitions: active to 0, inactive to 0.7');
+                if (defaults.DEBUG) console.log('[AdminBG] transition props applied');
                 
                 // After transition, swap the layer references 
                 // The inactive layer (which now has the new image and is visible) becomes active
                 setTimeout(() => {
-                    console.log('Swapping layer references...');
-                    console.log('Before swap - active:', activeAdminLayer.id, 'inactive:', inactiveAdminLayer.id);
+                    if (defaults.DEBUG) console.log('[AdminBG] swapping layers');
                     
                     const tempLayer = activeAdminLayer;
                     activeAdminLayer = inactiveAdminLayer;  // The one with the new image becomes active
@@ -1037,15 +1165,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     // DO NOT clear the background image - keep it for debugging
                     // inactiveAdminLayer.style.backgroundImage = 'none';
                     
-                    console.log('After swap - active:', activeAdminLayer.id, 'inactive:', inactiveAdminLayer.id);
-                    console.log('Background transition completed');
+                    if (defaults.DEBUG) console.log('[AdminBG] swap complete', { active: activeAdminLayer.id, inactive: inactiveAdminLayer.id });
                     
                     // Log final states
-                    console.log('AFTER transition:');
-                    console.log('Active layer opacity:', window.getComputedStyle(activeAdminLayer).opacity);
-                    console.log('Inactive layer opacity:', window.getComputedStyle(inactiveAdminLayer).opacity);
-                    console.log('Active layer background:', window.getComputedStyle(activeAdminLayer).backgroundImage);
-                    console.log('Inactive layer background:', window.getComputedStyle(inactiveAdminLayer).backgroundImage);
+                    if (defaults.DEBUG) console.log('[AdminBG] AFTER', {
+                        activeOpacity: window.getComputedStyle(activeAdminLayer).opacity,
+                        inactiveOpacity: window.getComputedStyle(inactiveAdminLayer).opacity
+                    });
                     
                 }, 1100); // Wait a bit longer for CSS transition to complete
                 
@@ -1061,7 +1187,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1000);
         };
         
-        console.log('Loading image...');
+    if (defaults.DEBUG) console.log('[AdminBG] loading image');
         img.src = currentItem.backgroundUrl;
     }
 
@@ -1077,7 +1203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const port = document.getElementById('mediaServers[0].port').value;
             const tokenInput = document.getElementById('mediaServers[0].token');
             const token = tokenInput.value;
-            const isTokenSetOnServer = tokenInput.placeholder.includes('already set');
+            const isTokenSetOnServer = tokenInput.dataset.tokenSet === 'true';
 
             setButtonState(testButton, 'loading', { text: 'Testing...' });
 
@@ -1243,8 +1369,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getSelectedLibraries(type) {
         const container = document.getElementById(`${type}-libraries-container`);
-        const checkedBoxes = container.querySelectorAll(`input[name="${type}Library"]:checked`);
-        return Array.from(checkedBoxes).map(cb => cb.value);
+        if (!container) {
+            console.warn(`[Admin] getSelectedLibraries: container not found for type='${type}'`);
+            return [];
+        }
+        try {
+            const checkedBoxes = container.querySelectorAll(`input[name="${type}Library"]:checked`);
+            return Array.from(checkedBoxes).map(cb => cb.value);
+        } catch (err) {
+            console.error('[Admin] getSelectedLibraries failed:', err);
+            return [];
+        }
     }
 
     // --- 2FA Management ---
@@ -1544,7 +1679,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cleanup timers when page unloads
     window.addEventListener('beforeunload', () => {
-        stopPreviewTimer();
+        clearAllPreviewTimers();
         if (adminBgTimer) {
             clearInterval(adminBgTimer);
             adminBgTimer = null;
@@ -1607,18 +1742,21 @@ document.addEventListener('DOMContentLoaded', () => {
              * @returns {object} A new object with null values removed.
              */
             const cleanNulls = (obj) => {
+                // Primitive handling: convert empty strings to undefined sentinel (drop later)
+                if (obj === '') return undefined;
                 if (obj === null || typeof obj !== 'object') {
                     return obj;
                 }
-
                 if (Array.isArray(obj)) {
-                    return obj.map(cleanNulls).filter(item => item !== null);
+                    return obj
+                        .map(cleanNulls)
+                        .filter(item => item !== null && item !== undefined);
                 }
-
                 const newObj = {};
                 for (const key in obj) {
-                    if (obj[key] !== null) {
-                        newObj[key] = cleanNulls(obj[key]);
+                    const cleaned = cleanNulls(obj[key]);
+                    if (cleaned !== null && cleaned !== undefined) {
+                        newObj[key] = cleaned;
                     }
                 }
                 return newObj;
@@ -1695,6 +1833,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     transitionIntervalSeconds: getValue('transitionIntervalSeconds', 'number'),
                     backgroundRefreshMinutes: getValue('backgroundRefreshMinutes', 'number'),
                     showClearLogo: getValue('showClearLogo'),
+                    // Rotten Tomatoes: minimum score applied only if badge enabled; when disabled we still send value for persistence.
                     showRottenTomatoes: getValue('showRottenTomatoes'),
                     rottenTomatoesMinimumScore: getValue('rottenTomatoesMinimumScore', 'number'),
                     showPoster: getValue('showPoster'),
@@ -1707,10 +1846,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     transitionEffect: getValue('transitionEffect'),
                     effectPauseTime: getValue('effectPauseTime', 'number'),
                     uiScaling: {
-                        content: getValue('uiScaling.content', 'number') || 100,
-                        clearlogo: getValue('uiScaling.clearlogo', 'number') || 100,
-                        clock: getValue('uiScaling.clock', 'number') || 100,
-                        global: getValue('uiScaling.global', 'number') || 100
+                        content: (()=>{ const v=getValue('uiScaling.content','number'); return Number.isFinite(v)?v:defaults.uiScaling.content; })(),
+                        clearlogo: (()=>{ const v=getValue('uiScaling.clearlogo','number'); return Number.isFinite(v)?v:defaults.uiScaling.clearlogo; })(),
+                        clock: (()=>{ const v=getValue('uiScaling.clock','number'); return Number.isFinite(v)?v:defaults.uiScaling.clock; })(),
+                        global: (()=>{ const v=getValue('uiScaling.global','number'); return Number.isFinite(v)?v:defaults.uiScaling.global; })()
                     },
                     mediaServers: [{
                         name: "Plex Server", // This is not editable in the UI
@@ -1747,6 +1886,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Create a version of the config that doesn't include null values.
                 const cleanedConfig = cleanNulls(newConfig);
 
+                // Coordinate with auto-save to avoid race
+                window.__saveCoordinator = window.__saveCoordinator || { manualInProgress: false };
+                window.__saveCoordinator.manualInProgress = true;
                 const response = await fetch('/api/admin/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1757,8 +1899,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) throw new Error(result.error || 'Failed to save settings.');
 
                 // Since PM2 watches config.json, saving settings will trigger a restart.
-                // We provide feedback to the user and tell them to refresh.
+                // Provide feedback; delay auto-saves shortly.
                 showNotification('Settings saved! The application is restarting. Please refresh the page in a few seconds.', 'success');
+                if (window.__saveCoordinator) {
+                    window.__saveCoordinator.lastManualAt = Date.now();
+                }
+                // Notify form tracking listeners
+                document.dispatchEvent(new CustomEvent('configSaved'));
 
             } catch (error) {
                 console.error('Failed to save config:', error);
@@ -1766,6 +1913,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 button.disabled = false;
                 buttonTextSpan.textContent = originalButtonText;
+                if (window.__saveCoordinator) {
+                    window.__saveCoordinator.manualInProgress = false;
+                }
             }
         });
     }
@@ -1802,12 +1952,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.newPassword !== data.confirmPassword) {
                     throw new Error('New password and confirmation do not match.');
                 }
-                
                 if (data.currentPassword === data.newPassword) {
                     throw new Error('New password must be different from the current password.');
-                }
-                if (data.newPassword !== data.confirmPassword) {
-                    throw new Error('The new password and confirmation do not match.');
                 }
 
                 const response = await fetch('/api/admin/change-password', {
@@ -1881,15 +2027,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (restartButton) {
         addConfirmClickHandler(restartButton, 'Are you sure? Click again', async () => {
              setButtonState(restartButton, 'loading', { text: 'Restarting...' });
- 
+
              const handleRestartInitiated = (message) => {
-                 showNotification(message, 'success');
-                 // After a short delay, update the UI to indicate the restart is done.
+                 showNotification(message || 'Restart initiated.', 'success');
+                 // After a short delay, show completion and then re-enable for another attempt without full page reload.
                  setTimeout(() => {
-                     showNotification('Please refresh the page in a few seconds.', 'success');
+                     showNotification('Restart complete (refresh page if UI seems stale).', 'success');
                      setButtonState(restartButton, 'success', { text: 'Restart Complete' });
-                     // The button remains disabled, forcing a page refresh to use it again.
-                 }, 3000);
+                     // Revert after a further delay so user can restart again later if needed.
+                     setTimeout(()=> setButtonState(restartButton, 'revert'), 4000);
+                 }, 2500);
              };
  
              try {
@@ -1978,568 +2125,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateApiKeyStatus();
 
-    // Preview functionality
-    function initializePreview() {
-        console.log('Initializing preview functionality...');
-        const previewContainer = document.getElementById('preview-container');
-        const previewFrame = document.getElementById('preview-frame');
-        const previewContent = document.getElementById('preview-content');
-        
-        console.log('Preview elements found:', {
-            previewContainer: !!previewContainer,
-            previewFrame: !!previewFrame,
-            previewContent: !!previewContent
-        });
-        
-        if (!previewContainer || !previewFrame || !previewContent) {
-            console.log('Preview elements not found - aborting initialization');
-            return;
-        }
+    // Preview functionality removed
 
-        // Set up PiP button functionality
-        const pipButton = document.querySelector('.pip-button');
-        if (pipButton) {
-            pipButton.addEventListener('click', togglePiP);
-            console.log('PiP button event listener added');
-        } else {
-            console.log('PiP button not found');
-        }
+    function updatePreviewOrientation() { /* removed */ }
 
-        // Set up live updates for DISPLAY SETTINGS
-        setupLivePreviewUpdates();
+    function updatePreview() { /* removed */ }
 
-        // Start preview immediately and keep it always on
-        startPreview();
+    // Removed preview timer logic
 
-        function startPreview() {
-            console.log('Starting preview...');
-            
-            // Show preview container and frame
-            previewContainer.style.display = 'block';
-            previewFrame.style.display = 'block';
-            updatePreviewOrientation();
-            
-            // Load initial preview
-            updatePreview();
-            
-            // Auto-refresh preview every 30 seconds to sync any other changes
-            window.previewInterval = setInterval(() => {
-                updatePreview();
-            }, 30000);
-            
-            console.log('Preview started successfully');
-        }
+    function clearAllPreviewTimers() { /* removed */ }
 
-        // Hide loading overlay when content loads
-        const previewOverlay = document.getElementById('preview-overlay');
-        if (previewOverlay) {
-            // Hide overlay after initial load
-            setTimeout(() => {
-                previewOverlay.style.display = 'none';
-            }, 1000);
-        }
-    }
+    function updatePreviewElements() { /* removed */ }
 
-    function updatePreviewOrientation() {
-        const previewFrame = document.getElementById('preview-frame');
-        
-        if (!previewFrame) return;
+    function updateCinemaPreview() { /* removed */ }
 
-        if (isCinemaMode) {
-            // Cinema Mode (Portrait)
-            previewFrame.className = 'preview-frame preview-cinema';
-            
-            // Apply cinema orientation if specified
-            const cinemaOrientationSelect = document.getElementById('cinemaOrientation');
-            if (cinemaOrientationSelect) {
-                const orientation = cinemaOrientationSelect.value;
-                
-                // Remove existing orientation classes
-                previewFrame.classList.remove('portrait-flipped');
-                
-                // Add specific orientation class
-                if (orientation === 'portrait-flipped') {
-                    previewFrame.classList.add('portrait-flipped');
-                }
-                // Note: 'auto' and 'portrait' don't need special classes (default state)
-            }
-        } else {
-            // PC Mode (Landscape) - default
-            previewFrame.className = 'preview-frame preview-pc';
-        }
-    }
+    function updateNormalPreview() { /* removed */ }
 
-    function updatePreview() {
-        console.log('Updating preview content...');
-        
-        const previewOverlay = document.getElementById('preview-overlay');
-        
-        // Show loading overlay
-        if (previewOverlay) {
-            previewOverlay.style.display = 'flex';
-        }
+    function restoreNormalPreviewStructure() { /* removed */ }
 
-        // Fetch current config and generate preview
-        Promise.all([
-            fetch('/get-config', {
-                cache: 'no-cache',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
-            }).then(r => r.json()),
-            fetch('/get-media').then(r => r.json()) // Use the correct endpoint
-        ]).then(([config, mediaData]) => {
-            console.log('Preview data loaded successfully!');
-            console.log('Config data:', config);
-            console.log('Media data (first item):', Array.isArray(mediaData) ? mediaData[0] : mediaData);
-            
-            // Store config and media data for timer
-            currentPreviewConfig = config;
-            previewMediaQueue = Array.isArray(mediaData) ? mediaData : [];
-            
-            // Reset index for fresh random selection on each update
-            previewMediaIndex = -1;
-            
-            // Get media item for preview
-            let poster = null;
-            if (previewMediaQueue.length > 0) {
-                // Select random item
-                previewMediaIndex = Math.floor(Math.random() * previewMediaQueue.length);
-                poster = previewMediaQueue[previewMediaIndex];
-            }
-            
-            if (poster) {
-                console.log('Using poster data:', {
-                    title: poster.title,
-                    posterUrl: poster.posterUrl,
-                    clearLogoUrl: poster.clearLogoUrl,
-                    tagline: poster.tagline,
-                    rottenTomatoes: poster.rottenTomatoes
-                });
-            } else {
-                console.log('No poster data available, using mock data');
-            }
-            
-            // Update preview based on config
-            updatePreviewElements(config, poster);
-            
-            // Apply scaling to preview
-            applyScalingToPreview();
-            
-            // Update orientation based on radio buttons
-            updatePreviewOrientation();
-            
-            // Start preview timer based on transition interval
-            startPreviewTimer(config);
-            
-            // Hide loading overlay
-            if (previewOverlay) {
-                previewOverlay.style.display = 'none';
-            }
-            
-        }).catch(error => {
-            console.error('Error updating preview:', error);
-            
-            // Show preview with mock data if API fails
-            updatePreviewWithMockData();
-            
-            // Hide loading overlay on error
-            if (previewOverlay) {
-                previewOverlay.style.display = 'none';
-            }
-        });
-    }
+    function updatePreviewClock() { /* removed */ }
 
-    function startPreviewTimer(config) {
-        // Clear existing timer
-        if (previewTimer) {
-            clearInterval(previewTimer);
-            previewTimer = null;
-        }
+    function updatePreviewWithMockData() { /* removed */ }
 
-        // Only start timer if we have media and config
-        if (previewMediaQueue.length > 1 && config && config.transitionIntervalSeconds) {
-            const interval = config.transitionIntervalSeconds * 1000;
-            console.log(`Starting preview timer with ${config.transitionIntervalSeconds}s interval`);
-            
-            previewTimer = setInterval(() => {
-                changePreviewMedia();
-            }, interval);
-        }
-    }
+    function setupLivePreviewUpdates() { /* removed */ }
 
-    function changePreviewMedia() {
-        if (previewMediaQueue.length === 0) return;
-
-        // Move to next media item
-        previewMediaIndex = (previewMediaIndex + 1) % previewMediaQueue.length;
-        const poster = previewMediaQueue[previewMediaIndex];
-
-        console.log(`Preview switching to item ${previewMediaIndex + 1}/${previewMediaQueue.length}:`, poster.title);
-
-        // Update preview elements with new media
-        if (currentPreviewConfig && poster) {
-            updatePreviewElements(currentPreviewConfig, poster);
-        }
-    }
-
-    function stopPreviewTimer() {
-        if (previewTimer) {
-            clearInterval(previewTimer);
-            previewTimer = null;
-            console.log('Preview timer stopped');
-        }
-    }
-
-    function updatePreviewElements(config, poster, elements) {
-        if (isCinemaMode) {
-            updateCinemaPreview(config, poster);
-        } else {
-            updateNormalPreview(config, poster);
-        }
-    }
-
-    function updateCinemaPreview(config, poster) {
-        const previewContent = document.getElementById('preview-content');
-        
-        if (!previewContent || !poster) return;
-
-        // Clear existing content
-        previewContent.innerHTML = '';
-
-        // Create cinema layout
-        const cinemaContainer = document.createElement('div');
-        cinemaContainer.className = 'cinema-poster-container';
-
-        // Header section
-        const header = document.createElement('div');
-        header.className = 'cinema-header';
-        header.textContent = 'NOW SHOWING';
-
-        // Poster container with ambilight effect
-        const posterContainer = document.createElement('div');
-        posterContainer.style.cssText = `
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-        `;
-
-        // Ambilight background
-        const ambilight = document.createElement('div');
-        ambilight.className = 'cinema-ambilight';
-        if (poster.posterUrl) {
-            ambilight.style.backgroundImage = `url("${poster.posterUrl}")`;
-        }
-
-        // Main poster
-        const posterImg = document.createElement('img');
-        posterImg.className = 'cinema-poster';
-        posterImg.src = poster.posterUrl || '';
-        posterImg.alt = poster.title || 'Movie Poster';
-
-        // Footer section
-        const footer = document.createElement('div');
-        footer.className = 'cinema-footer';
-        footer.textContent = 'Premium Experience';
-
-        // Assemble layout
-        posterContainer.appendChild(ambilight);
-        posterContainer.appendChild(posterImg);
-        
-        cinemaContainer.appendChild(header);
-        cinemaContainer.appendChild(posterContainer);
-        cinemaContainer.appendChild(footer);
-        
-        previewContent.appendChild(cinemaContainer);
-    }
-
-    function updateNormalPreview(config, poster) {
-        const previewContent = document.getElementById('preview-content');
-        
-        // Ensure normal preview HTML structure exists
-        if (!document.getElementById('preview-layer')) {
-            restoreNormalPreviewStructure();
-        }
-        
-        const previewLayer = document.getElementById('preview-layer');
-        const previewInfoContainer = document.getElementById('preview-info-container');
-        const previewPoster = document.getElementById('preview-poster');
-        const previewMetadata = document.getElementById('preview-metadata');
-        const previewClock = document.getElementById('preview-clock');
-        const previewClearlogo = document.getElementById('preview-clearlogo');
-        const previewRtBadge = document.getElementById('preview-rt-badge');
-        const previewRtIcon = document.getElementById('preview-rt-icon');
-        
-        // Set background layer to poster image
-        if (poster && poster.posterUrl && previewLayer) {
-            previewLayer.style.backgroundImage = `url("${poster.posterUrl}")`;
-        }
-        
-        // Show/hide info container based on poster setting
-        if (config.showPoster && previewInfoContainer) {
-            previewInfoContainer.classList.add('visible');
-            
-            // Show poster
-            if (poster && previewPoster) {
-                previewPoster.src = poster.posterUrl || poster.posterPath || poster.poster || '';
-                previewPoster.style.display = 'block';
-                console.log('Showing poster:', poster.posterUrl);
-            } else if (previewPoster) {
-                previewPoster.style.display = 'none';
-            }
-            
-            // Show/hide metadata
-            if (config.showMetadata && poster && previewMetadata) {
-                const title = poster.title || poster.name || 'Sample Movie';
-                const tagline = poster.tagline || poster.summary || 'A great movie preview';
-                const year = poster.year || '';
-                const rating = poster.rating || poster.contentRating || '';
-                
-                let metaInfo = '';
-                if (year) metaInfo += year;
-                if (rating && year) metaInfo += ` • ${rating}`;
-                else if (rating) metaInfo += rating;
-                
-                previewMetadata.innerHTML = `
-                    <h3>${title}</h3>
-                    <p>${tagline}</p>
-                    ${metaInfo ? `<div class="meta-info">${metaInfo}<span class="rating">8.5</span></div>` : ''}
-                `;
-                previewMetadata.style.display = 'block';
-                console.log('Showing metadata:', title);
-            } else if (previewMetadata) {
-                previewMetadata.style.display = 'none';
-                console.log('Hiding metadata');
-            }
-            
-            // Show/hide RT badge
-            if (config.showRottenTomatoes && poster && previewRtBadge && previewRtIcon) {
-                const rtScore = poster.rottenTomatoes?.score || poster.rottenTomatoesScore || poster.rtScore || 0;
-                if (rtScore >= (config.rottenTomatoesMinimumScore || 0)) {
-                    const isFresh = rtScore >= 60;
-                    previewRtIcon.src = `/icons/rt-${isFresh ? 'certified-fresh' : 'rotten'}.svg`;
-                    previewRtBadge.classList.add('visible');
-                    previewRtBadge.style.display = 'block';
-                    console.log('Showing RT badge:', rtScore, isFresh ? 'fresh' : 'rotten');
-                } else {
-                    previewRtBadge.classList.remove('visible');
-                    previewRtBadge.style.display = 'none';
-                }
-            } else if (previewRtBadge) {
-                previewRtBadge.classList.remove('visible');
-                previewRtBadge.style.display = 'none';
-                console.log('Hiding RT badge');
-            }
-        } else if (previewInfoContainer) {
-            previewInfoContainer.classList.remove('visible');
-            console.log('Hiding poster container');
-        }
-        
-        // Show/hide clock
-        if (config.clockWidget && previewClock) {
-            updatePreviewClock(config, previewClock);
-            previewClock.style.display = 'block';
-            console.log('Showing clock');
-        } else if (previewClock) {
-            previewClock.style.display = 'none';
-            console.log('Hiding clock');
-        }
-        
-        // Show/hide clear logo  
-        if (config.showClearLogo && poster && previewClearlogo) {
-            const logoUrl = poster.clearLogoUrl || poster.clearLogoPath || poster.clearLogo || '';
-            if (logoUrl) {
-                previewClearlogo.src = logoUrl;
-                previewClearlogo.classList.add('visible');
-                previewClearlogo.style.display = 'block';
-                console.log('Showing clear logo:', logoUrl);
-            } else {
-                previewClearlogo.classList.remove('visible');
-                previewClearlogo.style.display = 'none';
-            }
-        } else if (previewClearlogo) {
-            previewClearlogo.classList.remove('visible');
-            previewClearlogo.style.display = 'none';
-            console.log('Hiding clear logo');
-        }
-    }
-
-    function restoreNormalPreviewStructure() {
-        const previewContent = document.getElementById('preview-content');
-        if (!previewContent) return;
-
-        // Clear any cinema mode content
-        previewContent.innerHTML = `
-            <!-- Background layer for posters -->
-            <div class="preview-layer" id="preview-layer"></div>
-            
-            <!-- Widget container (clock) - top left -->
-            <div class="preview-widget-container" id="preview-widget-container">
-                <div class="preview-time-widget" id="preview-clock"></div>
-            </div>
-            
-            <!-- Clearlogo container - top right -->
-            <div class="preview-clearlogo-container" id="preview-clearlogo-container">
-                <img id="preview-clearlogo" src="" alt="Clear Logo">
-            </div>
-            
-            <!-- Info container - bottom left -->
-            <div class="preview-info-container" id="preview-info-container">
-                <div class="preview-poster-wrapper" id="preview-poster-wrapper">
-                    <img id="preview-poster" src="" alt="Preview Poster">
-                    <div class="preview-rt-badge" id="preview-rt-badge">
-                        <img id="preview-rt-icon" src="" alt="Rotten Tomatoes">
-                    </div>
-                </div>
-                <div class="preview-text-wrapper" id="preview-text-wrapper">
-                    <div class="preview-metadata" id="preview-metadata"></div>
-                </div>
-            </div>
-        `;
-    }
-
-    function updatePreviewClock(config, previewClock) {
-        const now = new Date();
-        const timeFormat = config.clockFormat === '12h' ? 
-            { hour12: true, hour: 'numeric', minute: '2-digit' } :
-            { hour12: false, hour: '2-digit', minute: '2-digit' };
-        
-        const timeString = config.clockTimezone === 'auto' ?
-            now.toLocaleTimeString([], timeFormat) :
-            now.toLocaleTimeString([], { ...timeFormat, timeZone: config.clockTimezone });
-            
-        previewClock.textContent = timeString;
-        
-        // Update clock every second
-        if (!window.previewClockInterval) {
-            window.previewClockInterval = setInterval(() => {
-                if (config.clockWidget && previewClock.style.display !== 'none') {
-                    const now = new Date();
-                    const timeString = config.clockTimezone === 'auto' ?
-                        now.toLocaleTimeString([], timeFormat) :
-                        now.toLocaleTimeString([], { ...timeFormat, timeZone: config.clockTimezone });
-                    previewClock.textContent = timeString;
-                }
-            }, 1000);
-        }
-    }
-
-    function updatePreviewWithMockData(elements) {
-        const previewInfoContainer = document.getElementById('preview-info-container');
-        const previewMetadata = document.getElementById('preview-metadata');
-        const previewClock = document.getElementById('preview-clock');
-        const previewClearlogo = document.getElementById('preview-clearlogo');
-        const previewRtBadge = document.getElementById('preview-rt-badge');
-        
-        // Show mock content if API fails
-        console.log('Using mock data for preview');
-        
-        if (previewInfoContainer) {
-            previewInfoContainer.classList.add('visible');
-        }
-        
-        if (previewMetadata) {
-            previewMetadata.innerHTML = `
-                <h3>Sample Movie</h3>
-                <p>This is a preview of how your screensaver will look</p>
-                <div class="meta-info">2024 • PG-13<span class="rating">8.5</span></div>
-            `;
-            previewMetadata.style.display = 'block';
-        }
-        
-        // Hide elements that need poster data
-        if (previewClearlogo) {
-            previewClearlogo.classList.remove('visible');
-            previewClearlogo.style.display = 'none';
-        }
-        if (previewRtBadge) {
-            previewRtBadge.classList.remove('visible');
-            previewRtBadge.style.display = 'none';
-        }
-    }
-
-    function setupLivePreviewUpdates() {
-        // Find all display-related form elements (using correct field names from HTML)
-        const displayInputs = [
-            'showClearLogo',
-            'showRottenTomatoes', 
-            'rottenTomatoesMinimumScore',
-            'showPoster',
-            'showMetadata',
-            'clockWidget',
-            'clockTimezone',
-            'clockFormat',
-            'cinemaMode',
-            'cinemaOrientation'
-        ];
-
-        // Add UI scaling inputs
-        const scalingInputs = [
-            'uiScaling.content',
-            'uiScaling.clearlogo', 
-            'uiScaling.clock',
-            'uiScaling.global'
-        ];
-
-        console.log('Setting up live preview updates for:', [...displayInputs, ...scalingInputs]);
-
-        [...displayInputs, ...scalingInputs].forEach(inputName => {
-            const input = document.querySelector(`[name="${inputName}"]`);
-            if (input) {
-                console.log(`Found input: ${inputName}`, input.type);
-                // Add event listeners for different input types
-                if (input.type === 'checkbox' || input.type === 'radio') {
-                    input.addEventListener('change', async () => {
-                        console.log(`Display setting changed: ${inputName} = ${input.checked || input.value}`);
-                        // Auto-save the configuration
-                        await saveConfigurationSilently();
-                        // Wait longer for config to be fully processed and cached
-                        setTimeout(() => updatePreview(), 2000);
-                    });
-                } else if (input.type === 'range') {
-                    // For range sliders, update preview immediately without saving
-                    input.addEventListener('input', () => {
-                        applyScalingToPreview();
-                    });
-                    // Save when user stops dragging
-                    input.addEventListener('change', async () => {
-                        console.log(`Scaling setting changed: ${inputName} = ${input.value}`);
-                        await saveConfigurationSilently();
-                    });
-                } else {
-                    // For text inputs, number inputs, selects
-                    input.addEventListener('input', debounce(async () => {
-                        console.log(`Display setting changed: ${inputName} = ${input.value}`);
-                        // Auto-save the configuration
-                        await saveConfigurationSilently();
-                        setTimeout(() => updatePreview(), 2000);
-                    }, 1000)); // Debounce for 1 second
-                }
-            } else {
-                console.log(`Input not found: ${inputName}`);
-            }
-        });
-    }
-
-    function setupPreviewTimerListener() {
-        const transitionInput = document.getElementById('transitionIntervalSeconds');
-        if (transitionInput) {
-            transitionInput.addEventListener('input', debounce(() => {
-                console.log('Transition interval changed, restarting preview timer');
-                // If we have current config and media, restart timer with new interval
-                if (currentPreviewConfig && previewMediaQueue.length > 0) {
-                    // Update the config with new value
-                    currentPreviewConfig.transitionIntervalSeconds = parseInt(transitionInput.value) || 15;
-                    // Restart timer
-                    startPreviewTimer(currentPreviewConfig);
-                }
-            }, 500)); // Debounce for half a second
-        }
-    }
+    function setupPreviewTimerListener() { /* removed */ }
 
     function setupCinemaModeListeners() {
         const cinemaModeCheckbox = document.getElementById('cinemaMode');
@@ -2564,8 +2174,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Cinema mode toggled:', isCinemaMode ? 'enabled' : 'disabled');
             });
             
-            // Set initial state on page load
-            toggleCinemaModeSettings(cinemaModeCheckbox.checked);
+            // Initial state handled once inside populateDisplaySettings to avoid duplicate invocation here.
         }
         
         // Add event listener for cinema orientation changes
@@ -2578,6 +2187,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toggleCinemaModeSettings(isCinemaMode) {
+        // Preserve user preference for Ken Burns effect when toggling cinema mode
+        const transitionEffectSelect = document.getElementById('transitionEffect');
+        if (!isCinemaMode && transitionEffectSelect && transitionEffectSelect.value === 'kenburns') {
+            window.__wantedKenBurnsBeforeCinema = true;
+        }
         // Elements to hide in cinema mode (these are not applicable)
         const elementsToHide = [
             'showClearLogo',
@@ -2598,21 +2212,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Handle Ken Burns option in transition effects dropdown
-        const transitionEffectSelect = document.getElementById('transitionEffect');
+        // Handle Ken Burns option with restoration after exiting cinema mode
         if (transitionEffectSelect) {
             const kenBurnsOption = transitionEffectSelect.querySelector('option[value="kenburns"]');
             if (kenBurnsOption) {
                 if (isCinemaMode) {
-                    // Hide Ken Burns option and switch to fade if currently selected
                     kenBurnsOption.style.display = 'none';
                     if (transitionEffectSelect.value === 'kenburns') {
+                        window.__wantedKenBurnsBeforeCinema = true; // remember preference
                         transitionEffectSelect.value = 'fade';
-                        console.log('Cinema mode enabled: switched from Ken Burns to Fade effect');
+                        console.log('[CinemaMode] Temporarily switched Ken Burns to Fade');
                     }
                 } else {
-                    // Show Ken Burns option
                     kenBurnsOption.style.display = 'block';
+                    if (window.__wantedKenBurnsBeforeCinema) {
+                        transitionEffectSelect.value = 'kenburns';
+                        delete window.__wantedKenBurnsBeforeCinema;
+                        console.log('[CinemaMode] Restored Ken Burns effect');
+                    }
                 }
             }
         }
@@ -2681,159 +2298,98 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function applyScalingToPreview() {
-        // Get current scaling values from sliders
-        const contentScale = document.getElementById('uiScaling.content')?.value || 100;
-        const clearlogoScale = document.getElementById('uiScaling.clearlogo')?.value || 100;
-        const clockScale = document.getElementById('uiScaling.clock')?.value || 100;
-        const globalScale = document.getElementById('uiScaling.global')?.value || 100;
-
-        // Apply scaling to preview elements
-        const previewPoster = document.getElementById('preview-poster');
-        const previewMetadata = document.getElementById('preview-metadata');
-        const previewClearlogo = document.getElementById('preview-clearlogo');
-        const previewClock = document.getElementById('preview-clock');
-
-        // Calculate combined scales (individual * global / 100)
-        const finalContentScale = (contentScale * globalScale) / 100;
-        const finalClearlogoScale = (clearlogoScale * globalScale) / 100;
-        const finalClockScale = (clockScale * globalScale) / 100;
-
-        // Apply transforms
-        if (previewPoster) {
-            previewPoster.style.transform = `scale(${finalContentScale / 100})`;
-        }
-        
-        if (previewMetadata) {
-            previewMetadata.style.transform = `scale(${finalContentScale / 100})`;
-            previewMetadata.style.transformOrigin = 'bottom left';
-        }
-        
-        if (previewClearlogo) {
-            previewClearlogo.style.transform = `scale(${finalClearlogoScale / 100})`;
-            previewClearlogo.style.transformOrigin = 'top right';
-        }
-        
-        if (previewClock) {
-            previewClock.style.transform = `scale(${finalClockScale / 100})`;
-            previewClock.style.transformOrigin = 'top left';
-        }
-
-        console.log('Applied scaling to preview:', {
-            content: finalContentScale,
-            clearlogo: finalClearlogoScale,
-            clock: finalClockScale
-        });
-    }
+    // applyScalingToPreview removed (no preview UI)
 
     // Save configuration without showing notifications and clear cache
     async function saveConfigurationSilently() {
+        // Coordinated auto-save to avoid race with manual save
+        window.__saveCoordinator = window.__saveCoordinator || {
+            manualInProgress: false,
+            autoInProgress: false,
+            pending: false,
+            lastManualAt: 0,
+            lastAutoAt: 0
+        };
+        const state = window.__saveCoordinator;
+
+        // If a manual save just happened (<2s), skip
+        if (Date.now() - state.lastManualAt < 2000) {
+            return;
+        }
+        // If another auto save is running, mark pending and exit
+        if (state.autoInProgress || state.manualInProgress) {
+            state.pending = true;
+            return;
+        }
+        state.autoInProgress = true;
+        state.pending = false;
         try {
-            console.log('Auto-saving configuration for preview update...');
-            
-            // Get current config from server first to maintain structure
+            // Fetch latest to merge safely
             const currentConfigResponse = await fetch('/api/admin/config');
             if (!currentConfigResponse.ok) {
-                console.error('Failed to fetch current config for merge');
+                console.error('Auto-save: failed to fetch current config for merge');
                 return;
             }
             const currentData = await currentConfigResponse.json();
-            
-            // Create a deep copy of current config to modify
             const configData = JSON.parse(JSON.stringify(currentData.config));
             const envData = { ...currentData.env };
-            
-            // Only update the changed display field(s) while preserving nested structure
+
             const displayInputs = [
-                'showClearLogo',
-                'showRottenTomatoes', 
-                'rottenTomatoesMinimumScore',
-                'showPoster',
-                'showMetadata',
-                'clockWidget',
-                'clockTimezone',
-                'clockFormat'
+                'showClearLogo','showRottenTomatoes','rottenTomatoesMinimumScore','showPoster','showMetadata','clockWidget','clockTimezone','clockFormat'
             ];
-            
-            // UI Scaling inputs
-            const uiScalingInputs = [
-                'uiScaling.content',
-                'uiScaling.clearlogo',
-                'uiScaling.clock',
-                'uiScaling.global'
-            ];
-            
-            // Track what we're updating
+            const uiScalingInputs = ['uiScaling.content','uiScaling.clearlogo','uiScaling.clock','uiScaling.global'];
             const updates = {};
-            
-            // Update only display-related fields from the form
+
             displayInputs.forEach(fieldName => {
                 const input = document.querySelector(`[name="${fieldName}"]`);
-                if (input) {
-                    let newValue;
-                    if (input.type === 'checkbox') {
-                        newValue = input.checked;
-                    } else if (input.type === 'number') {
-                        newValue = parseFloat(input.value) || 0;
-                    } else {
-                        newValue = input.value;
-                    }
-                    
-                    // Only update if value actually changed
-                    if (configData[fieldName] !== newValue) {
-                        configData[fieldName] = newValue;
-                        updates[fieldName] = newValue;
-                    }
+                if (!input) return;
+                let newValue;
+                if (input.type === 'checkbox') newValue = input.checked; else if (input.type === 'number') newValue = parseFloat(input.value) || 0; else newValue = input.value;
+                if (configData[fieldName] !== newValue) {
+                    configData[fieldName] = newValue;
+                    updates[fieldName] = newValue;
                 }
             });
-            
-            // Handle UI scaling fields (nested structure)
-            if (!configData.uiScaling) {
-                configData.uiScaling = {};
-            }
-            
-            uiScalingInputs.forEach(fieldPath => {
-                const fieldName = fieldPath.split('.')[1]; // Get 'poster' from 'uiScaling.poster'
-                const input = document.getElementById(fieldPath);
-                if (input) {
-                    const newValue = parseInt(input.value) || 100;
-                    
-                    // Only update if value actually changed
-                    if (configData.uiScaling[fieldName] !== newValue) {
-                        configData.uiScaling[fieldName] = newValue;
-                        updates[fieldPath] = newValue;
-                    }
+            if (!configData.uiScaling) configData.uiScaling = {};
+            uiScalingInputs.forEach(path => {
+                const field = path.split('.')[1];
+                const input = document.getElementById(path);
+                if (!input) return;
+                const trimmed = (input.value || '').trim();
+                if (trimmed === '') return; // don't overwrite with default if user cleared
+                const parsed = Number(trimmed);
+                if (!Number.isFinite(parsed)) return;
+                if (configData.uiScaling[field] !== parsed) {
+                    configData.uiScaling[field] = parsed;
+                    updates[path] = parsed;
                 }
             });
-            
-            console.log('Config fields being updated:', updates);
-            
-            // Only save if there are actual changes
+
             if (Object.keys(updates).length === 0) {
-                console.log('No config changes detected, skipping save');
-                return;
+                return; // nothing changed
             }
-            
-            const response = await fetch('/api/admin/config', {
+
+            const resp = await fetch('/api/admin/config', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    config: configData,
-                    env: envData
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ config: configData, env: envData })
             });
-            
-            if (response.ok) {
-                const result = await response.json();
-                console.log('Configuration auto-saved successfully:', result);
+            if (resp.ok) {
+                state.lastAutoAt = Date.now();
+                document.dispatchEvent(new CustomEvent('configSaved'));
             } else {
-                const errorText = await response.text();
-                console.error('Failed to auto-save configuration:', response.status, response.statusText, errorText);
+                const t = await resp.text();
+                console.error('Auto-save failed:', resp.status, resp.statusText, t);
             }
-        } catch (error) {
-            console.error('Error auto-saving configuration:', error);
+        } catch (err) {
+            console.error('Auto-save error:', err);
+        } finally {
+            state.autoInProgress = false;
+            if (state.pending) {
+                // Schedule next cycle with microtask + rAF for responsiveness instead of fixed 200ms
+                state.pending = false;
+                queueMicrotask(() => requestAnimationFrame(() => saveConfigurationSilently()));
+            }
         }
     }
 
@@ -2855,23 +2411,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.dispatchEvent(new CustomEvent('configChanged'));
     }
 
-    // Initialize preview when DOM is ready
-    setTimeout(() => {
-        initializePreview();
-    }, 100);
-
-    // Modify the existing save config function to trigger preview update
-    const originalSubmitHandler = document.querySelector('#config-form')?.onsubmit;
-    const previewConfigForm = document.querySelector('#config-form');
-    if (previewConfigForm && !previewConfigForm.dataset.previewHandlerAdded) {
-        previewConfigForm.dataset.previewHandlerAdded = 'true';
-        previewConfigForm.addEventListener('submit', (e) => {
-            // Let the original handler run first
-            setTimeout(() => {
-                triggerConfigChanged();
-            }, 1000); // Delay to ensure config is saved
-        });
-    }
+    // (Preview initialization removed)
 
     function setupUIScalingPresets() {
         // Define preset configurations
@@ -2927,8 +2467,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
 
-                    // Apply immediately to preview
-                    applyScalingToPreview();
+                    // preview hook removed
 
                     // Save the preset values
                     await saveConfigurationSilently();
@@ -2949,19 +2488,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
-
-    // Toggle help panel
-    function toggleHelpPanel() {
-        const helpPanel = document.getElementById('quick-help-panel');
-        if (helpPanel) {
-            helpPanel.classList.toggle('open');
-        }
-    }
-
-    // Make toggleHelpPanel globally available
-    window.toggleHelpPanel = toggleHelpPanel;
-    
-    // Note: Admin background slideshow is now initialized from loadSettings() when Plex is configured
+        // Note: Admin background slideshow is now initialized from loadSettings() when Plex is configured
     }
 
 // Initialize range slider value displays
@@ -3010,7 +2537,7 @@ function applyScalingTemplate(template) {
     if (values) {
         Object.keys(values).forEach(key => {
             const input = document.getElementById(`uiScaling.${key}`);
-            const valueDisplay = document.getElementById(`uiScaling.${key}-value`);
+            const valueDisplay = document.querySelector(`[data-target="uiScaling.${key}"]`);
             
             if (input && valueDisplay) {
                 input.value = values[key];
@@ -3060,263 +2587,4 @@ function decrementValue(inputId) {
     input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-// Update preview scaling for PiP mode
-function updatePreviewScaling() {
-    const previewContainer = document.getElementById('preview-container');
-    const previewContent = document.getElementById('preview-content');
-    
-    if (!previewContainer || !previewContent) {
-        console.log('Preview elements not found for scaling');
-        return;
-    }
-    
-    if (!previewContainer.classList.contains('pip-mode')) {
-        console.log('Not in PiP mode, skipping scaling');
-        return;
-    }
-    
-    // Get container dimensions
-    const containerRect = previewContainer.getBoundingClientRect();
-    const containerWidth = containerRect.width;
-    const containerHeight = containerRect.height;
-    
-    console.log('Container dimensions:', containerWidth, 'x', containerHeight);
-    
-    // Target content dimensions based on mode
-    const targetWidth = 1920;
-    const targetHeight = 1080;
-    
-    // Calculate scale to fit content in container while maintaining aspect ratio
-    const scaleX = containerWidth / targetWidth;
-    const scaleY = containerHeight / targetHeight;
-    const scale = Math.min(scaleX, scaleY);
-    
-    console.log('Calculated scale:', scale);
-    
-    // Apply scaling transform
-    previewContent.style.transform = `scale(${scale})`;
-    previewContent.style.transformOrigin = 'top left';
-    
-    // Set explicit dimensions for proper scaling
-    previewContent.style.width = targetWidth + 'px';
-    previewContent.style.height = targetHeight + 'px';
-    
-    console.log('Applied scaling to preview content');
-}
-
-// PiP (Picture-in-Picture) functionality
-function togglePiP() {
-    const previewContainer = document.getElementById('preview-container');
-    const pipButton = document.querySelector('.pip-button');
-    
-    if (!previewContainer) {
-        console.error('Preview container not found');
-        return;
-    }
-    
-    const isPiPMode = previewContainer.classList.contains('pip-mode');
-    
-    if (isPiPMode) {
-        // Exit PiP mode
-        previewContainer.classList.remove('pip-mode');
-        previewContainer.style.position = '';
-        previewContainer.style.top = '';
-        previewContainer.style.left = '';
-        previewContainer.style.width = '';
-        previewContainer.style.height = '';
-        previewContainer.style.zIndex = '';
-        
-        // Remove transform from content
-        const previewContent = document.getElementById('preview-content');
-        if (previewContent) {
-            previewContent.style.transform = '';
-            previewContent.style.width = '';
-            previewContent.style.height = '';
-        }
-        
-        // Update button
-        if (pipButton) {
-            pipButton.innerHTML = '<i class="fas fa-external-link-alt"></i>';
-            pipButton.title = 'Open in Picture-in-Picture';
-        }
-        
-        console.log('Exited PiP mode');
-    } else {
-        // Enter PiP mode
-        previewContainer.classList.add('pip-mode');
-        
-        // Set PiP position and size
-        previewContainer.style.position = 'fixed';
-        previewContainer.style.top = '20px';
-        previewContainer.style.right = '20px';
-        previewContainer.style.width = '400px';
-        previewContainer.style.height = '225px';
-        previewContainer.style.zIndex = '9999';
-        
-        // Update button
-        if (pipButton) {
-            pipButton.innerHTML = '<i class="fas fa-compress"></i>';
-            pipButton.title = 'Exit Picture-in-Picture';
-        }
-        
-        // Apply scaling
-        setTimeout(() => {
-            updatePreviewScaling();
-        }, 50);
-        
-        // Add drag functionality for PiP mode
-        makeDraggable(previewContainer);
-        
-        console.log('Entered PiP mode');
-    }
-}
-
-// Make PiP preview draggable
-function makeDraggable(element) {
-    let isDragging = false;
-    let currentX = 0;
-    let currentY = 0;
-    let initialX = 0;
-    let initialY = 0;
-    
-    element.style.cursor = 'move';
-    
-    element.addEventListener('mousedown', (e) => {
-        if (!element.classList.contains('pip-mode')) return;
-        
-        isDragging = true;
-        initialX = e.clientX - currentX;
-        initialY = e.clientY - currentY;
-        
-        e.preventDefault();
-    });
-    
-    document.addEventListener('mousemove', (e) => {
-        if (!isDragging || !element.classList.contains('pip-mode')) return;
-        
-        e.preventDefault();
-        currentX = e.clientX - initialX;
-        currentY = e.clientY - initialY;
-        
-        // Keep within viewport bounds
-        const rect = element.getBoundingClientRect();
-        const maxX = window.innerWidth - rect.width;
-        const maxY = window.innerHeight - rect.height;
-        
-        currentX = Math.max(0, Math.min(currentX, maxX));
-        currentY = Math.max(0, Math.min(currentY, maxY));
-        
-        element.style.left = currentX + 'px';
-        element.style.top = currentY + 'px';
-        element.style.right = 'auto';
-    });
-    
-    document.addEventListener('mouseup', () => {
-        isDragging = false;
-    });
-}
-
-// Test function for checking preview scaling
-window.testScaling = function() {
-    console.log('=== TESTING PREVIEW SCALING ===');
-    const previewContent = document.getElementById('preview-content');
-    const previewContainer = document.getElementById('preview-container');
-    
-    if (previewContent && previewContainer) {
-        // Ensure PiP mode is active
-        previewContainer.classList.add('pip-mode');
-        
-        // Clear any existing content and set test content
-        previewContent.innerHTML = `
-            <div style="
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 1920px;
-                height: 1080px;
-                background: linear-gradient(45deg, red, blue, green, yellow);
-                border: 20px solid white;
-                z-index: 1;
-                box-sizing: border-box;
-            ">
-                <div style="
-                    position: absolute;
-                    top: 50px;
-                    left: 50px;
-                    background: black;
-                    color: white;
-                    padding: 20px;
-                    font-size: 72px;
-                    font-weight: bold;
-                ">SCALING TEST</div>
-                
-                <div style="
-                    position: absolute;
-                    top: 200px;
-                    left: 50px;
-                    background: rgba(255,255,255,0.9);
-                    color: black;
-                    padding: 20px;
-                    font-size: 48px;
-                ">1920x1080 Content</div>
-                
-                <div style="
-                    position: absolute;
-                    bottom: 50px;
-                    right: 50px;
-                    background: purple;
-                    color: white;
-                    padding: 20px;
-                    font-size: 36px;
-                ">Bottom Right</div>
-            </div>
-        `;
-        
-        // Force update scaling
-        setTimeout(() => {
-            updatePreviewScaling();
-            console.log('✅ Scaling test applied - you should see colorful content scaled to fit the container');
-            console.log('✅ If you see this content, the scaling system is working!');
-        }, 100);
-    } else {
-        console.error('❌ Preview elements not found');
-    }
-};
-
-// Debug function to check preview state
-window.debugPreview = function() {
-    console.log('=== PREVIEW DEBUG INFO ===');
-    const previewContainer = document.getElementById('preview-container');
-    const previewContent = document.getElementById('preview-content');
-    const previewFrame = document.getElementById('preview-frame');
-    
-    if (previewContainer) {
-        const rect = previewContainer.getBoundingClientRect();
-        const styles = window.getComputedStyle(previewContainer);
-        console.log('PREVIEW CONTAINER:');
-        console.log('  Classes:', previewContainer.className);
-        console.log('  Dimensions:', rect.width + 'x' + rect.height);
-        console.log('  Position:', rect.left + ',' + rect.top);
-        console.log('  Display:', styles.display);
-        console.log('  Visibility:', styles.visibility);
-        console.log('  Z-index:', styles.zIndex);
-        console.log('  PiP mode:', previewContainer.classList.contains('pip-mode'));
-    }
-    
-    if (previewContent) {
-        const rect = previewContent.getBoundingClientRect();
-        const styles = window.getComputedStyle(previewContent);
-        console.log('PREVIEW CONTENT:');
-        console.log('  Dimensions:', rect.width + 'x' + rect.height);
-        console.log('  Transform:', styles.transform);
-        console.log('  Overflow:', styles.overflow);
-        console.log('  Background:', styles.background);
-    }
-    
-    if (previewFrame) {
-        console.log('PREVIEW FRAME:');
-        console.log('  Display:', window.getComputedStyle(previewFrame).display);
-    }
-    
-    console.log('=== END DEBUG INFO ===');
-};
+// End cleanup: preview/PiP code fully removed

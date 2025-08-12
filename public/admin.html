@@ -4,7 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Posterrama Admin Dashboard</title>
-    <link rel="stylesheet" href="/admin.css?v=1.2.5">
+        <script>
+        (function(){
+            try {
+                const t = Date.now();
+                console.log('[ADMIN EARLY] inline preflight start', t);
+                // Minimal CSS to ensure visibility if later CSS fails
+                const st = document.createElement('style');
+                st.id='early-minimal';
+                st.textContent='body{background:#000;color:#0ff;font:14px monospace !important;} .section-content{border:1px dashed #0ff;margin:8px;padding:4px;}';
+                document.head.appendChild(st);
+                window.__ADMIN_EARLY_OK = true;
+            } catch(e){
+                console.log('[ADMIN EARLY] exception', e);
+            }
+        })();
+        </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/admin.css?v=1.2.9">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* All styles moved to admin.css */
@@ -43,44 +62,39 @@
             </div>
             
             <div class="sidebar-nav">
-                <button class="nav-item active" data-section="general">
+                <button class="nav-item active" data-section="general" title="General Settings">
                     <i class="fas fa-cog nav-icon"></i>
-                    <span class="nav-text">General Settings</span>
+                    <span class="nav-text">General</span>
                 </button>
                 
-                <button class="nav-item" data-section="display">
+                <button class="nav-item" data-section="display" title="Display Settings">
                     <i class="fas fa-tv nav-icon"></i>
-                    <span class="nav-text">Display Settings</span>
+                    <span class="nav-text">Display</span>
                 </button>
                 
-                <button class="nav-item" data-section="effects">
-                    <i class="fas fa-magic nav-icon"></i>
-                    <span class="nav-text">Effects & Transitions</span>
-                </button>
-                
-                <button class="nav-item" data-section="media">
+                <button class="nav-item" data-section="media" title="Media Servers">
                     <i class="fas fa-server nav-icon"></i>
-                    <span class="nav-text">Media Servers</span>
+                    <span class="nav-text">Media</span>
                 </button>
                 
-                <button class="nav-item" data-section="authentication">
+                <button class="nav-item" data-section="authentication" title="Authentication">
                     <i class="fas fa-shield-alt nav-icon"></i>
-                    <span class="nav-text">Authentication</span>
+                    <span class="nav-text">Auth</span>
                 </button>
                 
-                <button class="nav-item" data-section="promobox">
+                <button class="nav-item" data-section="promobox" title="Promobox Site">
                     <i class="fas fa-globe nav-icon"></i>
-                    <span class="nav-text">Promobox Site</span>
+                    <span class="nav-text">Promo</span>
                 </button>
                 
-                <button class="nav-item" data-section="management">
+                <button class="nav-item" data-section="management" title="Management">
                     <i class="fas fa-tools nav-icon"></i>
-                    <span class="nav-text">Management</span>
+                    <span class="nav-text">Manage</span>
                 </button>
                 
-                <button class="nav-item" data-section="logs">
+                <button class="nav-item" data-section="logs" title="Logs & Debug">
                     <i class="fas fa-file-alt nav-icon"></i>
-                    <span class="nav-text">Logs & Debug</span>
+                    <span class="nav-text">Logs</span>
                 </button>
             </div>
         </nav>
@@ -100,96 +114,137 @@
                 <form id="config-form">
                     <!-- General Settings Section -->
                     <div class="section-content active" id="general-section">
-                        <div class="section-title">
-                            <i class="fas fa-cog"></i>
-                            General Settings
-                        </div>
+                        <div class="section-main-content">
+                            <div class="section-title">
+                                <i class="fas fa-cog"></i>
+                                General Settings
+                            </div>
                         
                         <div class="form-section">
-                            <div class="form-group">
-                                <label for="transitionIntervalSeconds" title="How many seconds each poster is visible.">Transition Interval (seconds)</label>
-                                <div class="number-input-wrapper">
-                                    <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds" min="1" max="300" step="1" required>
-                                    <div class="number-controls">
-                                        <button type="button" class="number-btn" onclick="incrementValue('transitionIntervalSeconds')">
-                                            <i class="fas fa-chevron-up"></i>
-                                        </button>
-                                        <button type="button" class="number-btn" onclick="decrementValue('transitionIntervalSeconds')">
-                                            <i class="fas fa-chevron-down"></i>
-                                        </button>
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label for="transitionIntervalSeconds" title="How many seconds each poster is visible.">Transition Interval (seconds)</label>
+                                    <div class="number-input-wrapper">
+                                        <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds" min="1" max="300" step="1" required>
+                                        <div class="number-controls">
+                                            <button type="button" class="number-btn" onclick="incrementValue('transitionIntervalSeconds')">
+                                                <i class="fas fa-chevron-up"></i>
+                                            </button>
+                                            <button type="button" class="number-btn" onclick="decrementValue('transitionIntervalSeconds')">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="backgroundRefreshMinutes">Background Refresh (minutes)</label>
-                                <div class="number-input-wrapper">
-                                    <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes" min="0" max="1440" step="1">
-                                    <div class="number-controls">
-                                        <button type="button" class="number-btn" onclick="incrementValue('backgroundRefreshMinutes')">
-                                            <i class="fas fa-chevron-up"></i>
-                                        </button>
-                                        <button type="button" class="number-btn" onclick="decrementValue('backgroundRefreshMinutes')">
-                                            <i class="fas fa-chevron-down"></i>
-                                        </button>
+                                <div class="form-group">
+                                    <label for="backgroundRefreshMinutes">Background Refresh (minutes)</label>
+                                    <div class="number-input-wrapper">
+                                        <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes" min="0" max="1440" step="1">
+                                        <div class="number-controls">
+                                            <button type="button" class="number-btn" onclick="incrementValue('backgroundRefreshMinutes')">
+                                                <i class="fas fa-chevron-up"></i>
+                                            </button>
+                                            <button type="button" class="number-btn" onclick="decrementValue('backgroundRefreshMinutes')">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="SERVER_PORT">Application Port</label>
-                                <div class="number-input-wrapper">
-                                    <input type="number" id="SERVER_PORT" name="SERVER_PORT" min="1024" max="65535" step="1" required>
-                                    <div class="number-controls">
-                                        <button type="button" class="number-btn" onclick="incrementValue('SERVER_PORT')">
-                                            <i class="fas fa-chevron-up"></i>
-                                        </button>
-                                        <button type="button" class="number-btn" onclick="decrementValue('SERVER_PORT')">
-                                            <i class="fas fa-chevron-down"></i>
-                                        </button>
+                                <div class="form-group">
+                                    <label for="SERVER_PORT">Application Port</label>
+                                    <div class="number-input-wrapper">
+                                        <input type="number" id="SERVER_PORT" name="SERVER_PORT" min="1024" max="65535" step="1" required>
+                                        <div class="number-controls">
+                                            <button type="button" class="number-btn" onclick="incrementValue('SERVER_PORT')">
+                                                <i class="fas fa-chevron-up"></i>
+                                            </button>
+                                            <button type="button" class="number-btn" onclick="decrementValue('SERVER_PORT')">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="DEBUG" name="DEBUG">
+                                    <label for="DEBUG">Enable Debug Mode</label>
+                                </div>
                             </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="DEBUG" name="DEBUG">
-                                <label for="DEBUG">Enable Debug Mode</label>
-                            </div>
+                        </div>
                         </div>
                     </div>
 
                     <!-- Display Settings Section -->
                     <div class="section-content" id="display-section">
-                        <div class="section-title">
-                            <i class="fas fa-tv"></i>
-                            Display Settings
-                        </div>
-                        
-                        <div class="form-section">
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="showClearLogo" name="showClearLogo">
-                                <label for="showClearLogo">Show ClearLogo</label>
+                        <div class="section-main-content">
+                            <div class="section-title">
+                                <i class="fas fa-tv"></i>
+                                Display Settings
                             </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="showRottenTomatoes" name="showRottenTomatoes">
-                                <label for="showRottenTomatoes">Show Rotten Tomatoes Badge</label>
+                            
+                            <!-- Cinema Mode -->
+                            <div class="form-section">
+                                <div class="subsection-title">
+                                    <i class="fas fa-film"></i>
+                                    Cinema Mode
+                                </div>
+                                
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="cinemaMode" name="cinemaMode">
+                                    <label for="cinemaMode">Enable Cinema Mode</label>
+                                </div>
+                                <div class="form-group" id="cinemaOrientationGroup" style="display: none;">
+                                    <label for="cinemaOrientation">Cinema Display Orientation</label>
+                                    <select id="cinemaOrientation" name="cinemaOrientation">
+                                        <option value="auto">Auto (use device sensor)</option>
+                                        <option value="portrait">Portrait</option>
+                                        <option value="portrait-flipped">Portrait Flipped (180°)</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes Score (0-10)</label>
-                                <input type="number" id="rottenTomatoesMinimumScore" name="rottenTomatoesMinimumScore" min="0" max="10" step="0.1">
+                            
+                            <div class="form-section">
+                                <div class="subsection-title">
+                                    <i class="fas fa-eye"></i>
+                                    Visual Elements
+                                </div>
+                                
+                                <div class="form-grid-2">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="showClearLogo" name="showClearLogo">
+                                        <label for="showClearLogo">Show ClearLogo</label>
+                                    </div>
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="showRottenTomatoes" name="showRottenTomatoes">
+                                        <label for="showRottenTomatoes">Show Rotten Tomatoes Badge</label>
+                                    </div>
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="showPoster" name="showPoster">
+                                        <label for="showPoster">Show Poster</label>
+                                    </div>
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="showMetadata" name="showMetadata">
+                                        <label for="showMetadata">Show Metadata (title, tagline, etc.)</label>
+                                    </div>
+                                    <div class="form-group full-width">
+                                        <label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes Score (0-10)</label>
+                                        <input type="number" id="rottenTomatoesMinimumScore" name="rottenTomatoesMinimumScore" min="0" max="10" step="0.1">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="showPoster" name="showPoster">
-                                <label for="showPoster">Show Poster</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="showMetadata" name="showMetadata">
-                                <label for="showMetadata">Show Metadata (title, tagline, etc.)</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="clockWidget" name="clockWidget">
-                                <label for="clockWidget">Show Clock</label>
-                            </div>
+                            
+                            <div class="form-section">
+                                <div class="subsection-title">
+                                    <i class="fas fa-clock"></i>
+                                    Clock Widget
+                                </div>
+                                
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="clockWidget" name="clockWidget">
+                                    <label for="clockWidget">Show Clock</label>
+                                </div>
                             <div class="form-group" id="clockTimezoneGroup" style="display: none;">
                                 <label for="clockTimezone">Clock Timezone</label>
-                                <select id="clockTimezone" name="clockTimezone" style="max-height: 200px; overflow-y: auto;">
+                                <select id="clockTimezone" name="clockTimezone">
                                     <option value="auto">Auto (System Timezone)</option>
                                     <optgroup label="Common Timezones">
                                         <option value="Europe/Amsterdam">Europe/Amsterdam (CET/CEST)</option>
@@ -244,7 +299,7 @@
                         </div>
                         
                         <!-- UI Scaling Settings -->
-                        <div class="subsection">
+                        <div class="form-section">
                             <div class="subsection-title">
                                 <i class="fas fa-expand-arrows-alt"></i>
                                 UI Element Scaling
@@ -257,159 +312,195 @@
                                     <button type="button" class="btn btn-secondary" onclick="applyScalingTemplate('fullhd')">Full HD</button>
                                     <button type="button" class="btn btn-secondary" onclick="applyScalingTemplate('4k')">4K</button>
                                     <button type="button" class="btn btn-secondary" onclick="applyScalingTemplate('widescreen')">Widescreen</button>
-                                    <button type="button" class="btn btn-secondary" onclick="resetScalingToDefaults()">Reset to Defaults</button>
+                                    <button type="button" class="btn btn-secondary" onclick="resetScalingToDefaults()">Reset</button>
                                 </div>
                             </div>
                             
-                            <div class="form-group">
-                                <label for="uiScaling.poster">Poster Size</label>
-                                <input type="range" id="uiScaling.poster" name="uiScaling.poster" min="50" max="200" value="100" step="5">
-                                <span class="range-value" id="uiScaling.poster-value">100%</span>
+                            <!-- Compact Scaling Grid -->
+                            <div class="scaling-grid">
+                                <div class="scaling-item">
+                                    <label for="uiScaling.poster">Poster</label>
+                                    <div class="slider-container">
+                                        <input type="range" id="uiScaling.poster" name="uiScaling.poster" min="50" max="200" value="100" step="5">
+                                        <div class="slider-track"></div>
+                                        <div class="slider-fill"></div>
+                                        <div class="slider-thumb"></div>
+                                        <span class="slider-value" data-target="uiScaling.poster">100%</span>
+                                    </div>
+                                </div>
+                                <div class="scaling-item">
+                                    <label for="uiScaling.text">Text</label>
+                                    <div class="slider-container">
+                                        <input type="range" id="uiScaling.text" name="uiScaling.text" min="50" max="200" value="100" step="5">
+                                        <div class="slider-track"></div>
+                                        <div class="slider-fill"></div>
+                                        <div class="slider-thumb"></div>
+                                        <span class="slider-value" data-target="uiScaling.text">100%</span>
+                                    </div>
+                                </div>
+                                <div class="scaling-item">
+                                    <label for="uiScaling.clearlogo">Clearlogo</label>
+                                    <div class="slider-container">
+                                        <input type="range" id="uiScaling.clearlogo" name="uiScaling.clearlogo" min="50" max="200" value="100" step="5">
+                                        <div class="slider-track"></div>
+                                        <div class="slider-fill"></div>
+                                        <div class="slider-thumb"></div>
+                                        <span class="slider-value" data-target="uiScaling.clearlogo">100%</span>
+                                    </div>
+                                </div>
+                                <div class="scaling-item">
+                                    <label for="uiScaling.clock">Clock</label>
+                                    <div class="slider-container">
+                                        <input type="range" id="uiScaling.clock" name="uiScaling.clock" min="50" max="200" value="100" step="5">
+                                        <div class="slider-track"></div>
+                                        <div class="slider-fill"></div>
+                                        <div class="slider-thumb"></div>
+                                        <span class="slider-value" data-target="uiScaling.clock">100%</span>
+                                    </div>
+                                </div>
+                                <div class="scaling-item">
+                                    <label for="uiScaling.global">Global</label>
+                                    <div class="slider-container">
+                                        <input type="range" id="uiScaling.global" name="uiScaling.global" min="50" max="200" value="100" step="5">
+                                        <div class="slider-track"></div>
+                                        <div class="slider-fill"></div>
+                                        <div class="slider-thumb"></div>
+                                        <span class="slider-value" data-target="uiScaling.global">100%</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="uiScaling.text">Text Size</label>
-                                <input type="range" id="uiScaling.text" name="uiScaling.text" min="50" max="200" value="100" step="5">
-                                <span class="range-value" id="uiScaling.text-value">100%</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="uiScaling.clearlogo">Clearlogo Size</label>
-                                <input type="range" id="uiScaling.clearlogo" name="uiScaling.clearlogo" min="50" max="200" value="100" step="5">
-                                <span class="range-value" id="uiScaling.clearlogo-value">100%</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="uiScaling.clock">Clock Size</label>
-                                <input type="range" id="uiScaling.clock" name="uiScaling.clock" min="50" max="200" value="100" step="5">
-                                <span class="range-value" id="uiScaling.clock-value">100%</span>
-                            </div>
-                            <div class="form-group">
-                                <label for="uiScaling.global">Global Scale</label>
-                                <input type="range" id="uiScaling.global" name="uiScaling.global" min="50" max="200" value="100" step="5">
-                                <span class="range-value" id="uiScaling.global-value">100%</span>
-                            </div>
-                        </div>
-                        </div>
-                    </div>
-
-                    <!-- Effects & Transitions Section -->
-                    <div class="section-content" id="effects-section">
-                        <div class="section-title">
-                            <i class="fas fa-magic"></i>
-                            Effects & Transitions
                         </div>
                         
+                        <!-- Effects & Transitions -->
                         <div class="form-section">
-                        <div class="form-group">
-                            <label for="transitionEffect">Transition Effect</label>
-                            <select id="transitionEffect" name="transitionEffect">
-                                <option value="kenburns">Ken Burns</option>
-                                <option value="fade">Fade In/Out</option>
-                                <option value="slide">Slide Transition</option>
-                            </select>
+                            <div class="subsection-title">
+                                <i class="fas fa-magic"></i>
+                                Effects & Transitions
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="transitionEffect">Transition Effect</label>
+                                <select id="transitionEffect" name="transitionEffect">
+                                    <option value="kenburns">Ken Burns</option>
+                                    <option value="fade">Fade In/Out</option>
+                                    <option value="slide">Slide Transition</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="effectPauseTime">Effect Pause Time (seconds)</label>
+                                <input type="number" id="effectPauseTime" name="effectPauseTime" min="0" max="10" step="0.5" value="2">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="effectPauseTime">Effect Pause Time (seconds)</label>
-                            <input type="number" id="effectPauseTime" name="effectPauseTime" min="0" max="10" step="0.5" value="2">
                         </div>
-                        <div class="form-group checkbox-group">
-                            <input type="checkbox" id="cinemaMode" name="cinemaMode">
-                            <label for="cinemaMode">Cinema Mode</label>
-                        </div>
-                        <div class="form-group" id="cinemaOrientationGroup" style="display: none;">
-                            <label for="cinemaOrientation">Cinema Display Orientation</label>
-                            <select id="cinemaOrientation" name="cinemaOrientation">
-                                <option value="auto">Auto (use device sensor)</option>
-                                <option value="portrait">Portrait</option>
-                                <option value="portrait-flipped">Portrait Flipped (180°)</option>
-                            </select>
-                        </div>
+                        
+                        <div class="section-sidebar">
+                            <!-- Live Preview -->
+                            <div class="form-section">
+                                <div class="subsection-title">
+                                    <i class="fas fa-eye"></i>
+                                    Live Preview
+                                </div>
+                                <!-- Preview container moved to global scope -->
+                            </div>
                         </div>
                     </div>
 
                     <!-- Media Servers Section -->
                     <div class="section-content" id="media-section">
-                        <div class="section-title">
-                            <i class="fas fa-server"></i>
-                            Media Servers
-                        </div>
-                        
-                        <div class="form-section">
-                            <h3>Plex Media Server</h3>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="mediaServers[0].enabled" name="mediaServers[0].enabled">
-                                <label for="mediaServers[0].enabled">Enable Plex Server</label>
+                        <div class="section-main-content">
+                            <div class="section-title">
+                                <i class="fas fa-server"></i>
+                                Media Servers
                             </div>
-                            <div class="form-group">
-                                <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
-                                <input type="text" id="mediaServers[0].hostname" name="mediaServers[0].hostname" placeholder="192.168.1.10 or plex.local" pattern="^[a-zA-Z0-9\.\-]+$">
-                            </div>
-                            <div class="form-group">
-                                <label for="mediaServers[0].port">Plex Port</label>
-                                <input type="number" id="mediaServers[0].port" name="mediaServers[0].port" min="1" max="65535" placeholder="32400">
-                            </div>
-                            <div class="form-group">
-                                <label for="mediaServers[0].token">Plex Token</label>
-                                <input type="password" id="mediaServers[0].token" name="mediaServers[0].token">
-                            </div>
-                            <div class="form-group">
-                                <label>Movie Library Names</label>
-                                <div id="movie-libraries-container" class="library-container">
-                                    <small>Test the connection to fetch the libraries.</small>
+                            
+                            <div class="form-section">
+                                <div class="subsection-title">
+                                    <i class="fab fa-plex"></i>
+                                    Plex Media Server
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Show Library Names</label>
-                                <div id="show-libraries-container" class="library-container">
-                                    <small>Test the connection to fetch the libraries.</small>
+                                
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="mediaServers[0].enabled" name="mediaServers[0].enabled">
+                                    <label for="mediaServers[0].enabled">Enable Plex Server</label>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="mediaServers[0].movieCount">Number of Movies to Show</label>
-                                <input type="number" id="mediaServers[0].movieCount" name="mediaServers[0].movieCount" min="1" max="10000" placeholder="100">
-                            </div>
-                            <div class="form-group">
-                                <label for="mediaServers[0].showCount">Number of Shows to Show</label>
-                                <input type="number" id="mediaServers[0].showCount" name="mediaServers[0].showCount" min="1" max="10000" placeholder="50">
-                            </div>
-                            <div class="form-group">
-                                <button type="button" id="test-plex-button" class="button-primary">
-                                    <span class="icon"><i class="fas fa-plug"></i></span>
-                                    <span>Test Plex Connection</span>
-                                </button>
-                                <small id="plex-connection-status"></small>
+                                <div class="form-group">
+                                    <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
+                                    <input type="text" id="mediaServers[0].hostname" name="mediaServers[0].hostname" placeholder="192.168.1.10 or plex.local" pattern="^[a-zA-Z0-9\.\-]+$">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mediaServers[0].port">Plex Port</label>
+                                    <input type="number" id="mediaServers[0].port" name="mediaServers[0].port" min="1" max="65535" placeholder="32400">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mediaServers[0].token">Plex Token</label>
+                                    <input type="password" id="mediaServers[0].token" name="mediaServers[0].token">
+                                </div>
+                                <div class="form-group">
+                                    <label>Movie Library Names</label>
+                                    <div id="movie-libraries-container" class="library-container">
+                                        <small>Test the connection to fetch the libraries.</small>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Show Library Names</label>
+                                    <div id="show-libraries-container" class="library-container">
+                                        <small>Test the connection to fetch the libraries.</small>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="mediaServers[0].movieCount">Number of Movies to Show</label>
+                                    <input type="number" id="mediaServers[0].movieCount" name="mediaServers[0].movieCount" min="1" max="10000" placeholder="100">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mediaServers[0].showCount">Number of Shows to Show</label>
+                                    <input type="number" id="mediaServers[0].showCount" name="mediaServers[0].showCount" min="1" max="10000" placeholder="50">
+                                </div>
+                                <div class="form-group">
+                                    <button type="button" id="test-plex-button" class="btn btn-primary">
+                                        <i class="fas fa-plug"></i>
+                                        Test Plex Connection
+                                    </button>
+                                    <small id="plex-connection-status"></small>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Authentication Section -->
                     <div class="section-content" id="authentication-section">
-                        <div class="section-title">
-                            <i class="fas fa-shield-alt"></i>
-                            Authentication & Security
-                        </div>
-                        
-                        <div class="form-section">
-                            <h3>Change Password</h3>
-                            <div id="password-form">
-                                <div class="form-group">
-                                    <label for="currentPassword">Current Password</label>
-                                    <input type="password" id="currentPassword" name="currentPassword" autocomplete="current-password">
+                        <div class="section-main-content">
+                            <div class="section-title">
+                                <i class="fas fa-shield-alt"></i>
+                                Authentication & Security
+                            </div>
+                            
+                            <div class="form-section">
+                                <div class="subsection-title">
+                                    <i class="fas fa-key"></i>
+                                    Change Password
                                 </div>
-                                <div class="form-group">
-                                    <label for="newPassword">New Password</label>
-                                    <input type="password" id="newPassword" name="newPassword" autocomplete="new-password">
-                                </div>
-                                <div class="form-group">
-                                    <label for="confirmPassword">Confirm New Password</label>
-                                    <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password">
-                                </div>
-                                <div class="form-actions">
-                                    <button type="button" id="change-password-button" class="button-primary">
-                                        <span class="icon"><i class="fas fa-lock"></i></span>
-                                        <span>Change Password</span>
-                                    </button>
+                                
+                                <div id="password-form">
+                                    <div class="form-group">
+                                        <label for="currentPassword">Current Password</label>
+                                        <input type="password" id="currentPassword" name="currentPassword" autocomplete="current-password">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newPassword">New Password</label>
+                                        <input type="password" id="newPassword" name="newPassword" autocomplete="new-password">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="confirmPassword">Confirm New Password</label>
+                                        <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password">
+                                    </div>
+                                    <div class="form-actions">
+                                        <button type="button" id="change-password-button" class="btn btn-primary">
+                                            <i class="fas fa-lock"></i>
+                                            Change Password
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
                         
                         <div class="form-section">
                             <h3>Two-Factor Authentication (2FA)</h3>
@@ -432,47 +523,55 @@
                                 <label>Current API Key:</label>
                                 <div style="display: flex; gap: 5px; align-items: center;">
                                     <input id="api-key-input" type="password" readonly style="flex-grow: 1;">
-                                    <button id="toggle-api-key-visibility-button" type="button" class="button-primary" title="Show/hide key" style="flex-shrink: 0;">
-                                        <span class="icon"><i class="fas fa-eye"></i></span>
+                                    <button id="toggle-api-key-visibility-button" type="button" class="btn btn-icon" title="Show/hide key" style="flex-shrink: 0;">
+                                        <i class="fas fa-eye"></i>
                                     </button>
-                                    <button id="copy-api-key-button" type="button" class="button-primary" title="Copy to clipboard" style="flex-shrink: 0;">
-                                        <span class="icon"><i class="fas fa-copy"></i></span>
+                                    <button id="copy-api-key-button" type="button" class="btn btn-icon" title="Copy to clipboard" style="flex-shrink: 0;">
+                                        <i class="fas fa-copy"></i>
                                     </button>
                                 </div>
                             </div>
                             <div class="form-actions">
-                                <button id="generate-api-key-button" type="button" class="button-primary">
-                                    <span class="icon"><i class="fas fa-key"></i></span>
-                                    <span>Generate New Key</span>
+                                <button id="generate-api-key-button" type="button" class="btn btn-primary">
+                                    <i class="fas fa-key"></i>
+                                    Generate New Key
                                 </button>
-                                <button id="revoke-api-key-button" type="button" class="button-primary button-danger" disabled>
-                                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                                    <span>Revoke Key</span>
+                                <button id="revoke-api-key-button" type="button" class="btn btn-danger" disabled>
+                                    <i class="fas fa-trash-alt"></i>
+                                    Revoke Key
                                 </button>
                             </div>
+                        </div>
                         </div>
                     </div>
 
                     <!-- Promobox Site Section -->
                     <div class="section-content" id="promobox-section">
-                        <div class="section-title">
-                            <i class="fas fa-globe"></i>
-                            Promobox Site
-                        </div>
-                        
-                        <div class="form-section">
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="siteServer.enabled" name="siteServer.enabled">
-                                <label for="siteServer.enabled">Enable Promobox Site</label>
+                        <div class="section-main-content">
+                            <div class="section-title">
+                                <i class="fas fa-globe"></i>
+                                Promobox Site
                             </div>
-                            <div class="form-group" id="siteServerPortGroup" style="display: none;">
-                                <label for="siteServer.port">Promobox Site Port</label>
-                                <input type="number" id="siteServer.port" name="siteServer.port" min="1024" max="65535" value="4001">
-                            </div>
-                            <div id="siteServerStatus" class="status-indicator" style="display: none;">
-                                <div class="status-badge">
-                                    <span class="status-icon">🌐</span>
-                                    <span class="status-text">Promobox site running on <a href="http://localhost:4001" target="_blank" class="status-link">http://localhost:4001</a></span>
+                            
+                            <div class="form-section">
+                                <div class="subsection-title">
+                                    <i class="fas fa-server"></i>
+                                    Site Configuration
+                                </div>
+                                
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="siteServer.enabled" name="siteServer.enabled">
+                                    <label for="siteServer.enabled">Enable Promobox Site</label>
+                                </div>
+                                <div class="form-group" id="siteServerPortGroup" style="display: none;">
+                                    <label for="siteServer.port">Promobox Site Port</label>
+                                    <input type="number" id="siteServer.port" name="siteServer.port" min="1024" max="65535" value="4001">
+                                </div>
+                                <div id="siteServerStatus" class="status-indicator" style="display: none;">
+                                    <div class="status-badge">
+                                        <span class="status-icon">🌐</span>
+                                        <span class="status-text">Promobox site running on <a href="http://localhost:4001" target="_blank" class="status-link">http://localhost:4001</a></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -480,22 +579,27 @@
 
                     <!-- Management Section -->
                     <div class="section-content" id="management-section">
-                        <div class="section-title">
-                            <i class="fas fa-tools"></i>
-                            Management & Tools
-                        </div>
-                        
-                        <div class="form-section">
-                            <h3>System Management</h3>
-                            <div id="debug-cache-action" class="management-action is-hidden">
+                        <div class="section-main-content">
+                            <div class="section-title">
+                                <i class="fas fa-tools"></i>
+                                Management & Tools
+                            </div>
+                            
+                            <div class="form-section">
+                                <div class="subsection-title">
+                                    <i class="fas fa-cogs"></i>
+                                    System Management
+                                </div>
+                                
+                                <div id="debug-cache-action" class="management-action is-hidden">
                                 <div class="action-description">
                                     <strong>View Plex Cache</strong>
                                     <p>Shows the raw JSON data of the currently cached media playlist. Only available in debug mode.</p>
                                 </div>
                                 <div class="action-button">
-                                    <a href="/admin/debug" target="_blank" class="button-primary">
-                                        <span class="icon"><i class="fas fa-database"></i></span>
-                                        <span>View Cache</span>
+                                    <a href="/admin/debug" target="_blank" class="btn btn-primary">
+                                        <i class="fas fa-database"></i>
+                                        View Cache
                                     </a>
                                 </div>
                             </div>
@@ -505,9 +609,9 @@
                                     <p>Deletes all cached images on the server, forcing them to be re-downloaded from your media server.</p>
                                 </div>
                                 <div class="action-button">
-                                    <button type="button" id="clear-cache-button" class="button-primary">
-                                        <span class="icon"><i class="fas fa-broom"></i></span>
-                                        <span>Clear Cache</span>
+                                    <button type="button" id="clear-cache-button" class="btn btn-primary">
+                                        <i class="fas fa-broom"></i>
+                                        Clear Cache
                                     </button>
                                 </div>
                             </div>
@@ -517,9 +621,9 @@
                                     <p>Forces a refetch of all media from the configured servers. Useful after adding new movies or shows.</p>
                                 </div>
                                 <div class="action-button">
-                                    <button type="button" id="refresh-media-button" class="button-primary" disabled>
-                                        <span class="icon"><i class="fas fa-sync-alt"></i></span>
-                                        <span>Refresh Media</span>
+                                    <button type="button" id="refresh-media-button" class="btn btn-primary" disabled>
+                                        <i class="fas fa-sync-alt"></i>
+                                        Refresh Media
                                     </button>
                                 </div>
                             </div>
@@ -529,32 +633,39 @@
                                     <p>Restarts the server. Necessary after changing the port or other critical settings.</p>
                                 </div>
                                 <div class="action-button">
-                                    <button type="button" id="restart-app-button" class="button-primary button-danger">
-                                        <span class="icon"><i class="fas fa-power-off"></i></span>
-                                        <span>Restart Application</span>
+                                    <button type="button" id="restart-app-button" class="btn btn-danger">
+                                        <i class="fas fa-power-off"></i>
+                                        Restart Application
                                     </button>
                                 </div>
+                            </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Logs & Debug Section -->
                     <div class="section-content" id="logs-section">
-                        <div class="section-title">
-                            <i class="fas fa-file-alt"></i>
-                            Logs & Debug
-                        </div>
-                        
-                        <div class="form-section">
-                            <div class="management-action">
+                        <div class="section-main-content">
+                            <div class="section-title">
+                                <i class="fas fa-file-alt"></i>
+                                Logs & Debug
+                            </div>
+                            
+                            <div class="form-section">
+                                <div class="subsection-title">
+                                    <i class="fas fa-bug"></i>
+                                    Debug Tools
+                                </div>
+                                
+                                <div class="management-action">
                                 <div class="action-description">
                                     <strong>View Live Logs</strong>
                                     <p>Opens a new tab with a real-time view of the server logs for debugging.</p>
                                 </div>
                                 <div class="action-button">
-                                    <a href="/admin/logs" target="_blank" class="button-primary">
-                                        <span class="icon"><i class="fas fa-terminal"></i></span>
-                                        <span>View Live Logs</span>
+                                    <a href="/admin/logs" target="_blank" class="btn btn-primary">
+                                        <i class="fas fa-terminal"></i>
+                                        View Live Logs
                                     </a>
                                 </div>
                             </div>
@@ -574,44 +685,33 @@
                                 </button>
                             </div>
                         </div>
+                        </div>
                     </div>
                 </form>
 
-                <!-- Save Button Footer -->
-                <div class="admin-footer">
-                    <div class="footer-content">
-                        <div class="footer-status">
-                            <div id="config-status" class="status-message">
-                                <i class="fas fa-check-circle"></i>
-                                Ready to save
-                            </div>
-                        </div>
-                        <div class="footer-actions">
-                            <button type="button" onclick="toggleHelpPanel()" class="btn btn-secondary">
-                                <i class="fas fa-question-circle"></i>
-                                <span>Quick Help</span>
-                            </button>
-                            <button type="submit" id="save-config-button" class="btn" form="config-form">
-                                <i class="fas fa-save"></i>
-                                <span>Save Settings</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Live Preview Section -->
-                <div class="preview-section" style="display: none;">
-                    <h2>
-                        <i class="fas fa-eye"></i>
-                        Live Preview
-                    </h2>
-                    <div id="preview-container" class="preview-container">
-                        <!-- Preview content will be loaded here by JavaScript -->
-                        <p>Live preview functionality coming soon...</p>
-                    </div>
-                </div>
-
             </main>
+            
+            <!-- Save Button Footer -->
+            <div class="admin-footer">
+                <div class="footer-content">
+                    <div class="footer-status">
+                        <div id="config-status" class="status-message">
+                            <i class="fas fa-check-circle"></i>
+                            Ready to save
+                        </div>
+                    </div>
+                    <div class="footer-actions">
+                        <button type="button" onclick="toggleHelpPanel()" class="btn btn-secondary">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Quick Help</span>
+                        </button>
+                        <button type="submit" id="save-config-button" class="btn" form="config-form">
+                            <i class="fas fa-save"></i>
+                            <span>Save Settings</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div> <!-- Close main-content -->
     </div> <!-- Close admin-layout -->
 
@@ -657,8 +757,8 @@
                     <input type="text" id="2fa-token" name="2fa-token" required pattern="\d{6}" maxlength="6" autocomplete="one-time-code" inputmode="numeric">
                 </div>
                 <div class="form-actions">
-                    <button type="button" id="cancel-2fa-button" class="button-secondary">Cancel</button>
-                    <button type="submit" class="button-primary">Verify and Enable</button>
+                    <button type="button" id="cancel-2fa-button" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Verify and Enable</button>
                 </div>
             </form>
         </div>
@@ -676,249 +776,63 @@
                     <input type="password" id="disable-2fa-password" name="password" required autocomplete="current-password">
                 </div>
                 <div class="form-actions">
-                    <button type="button" id="cancel-disable-2fa-button" class="button-secondary">Cancel</button>
-                    <button type="submit" class="button-primary button-danger">Disable 2FA</button>
+                    <button type="button" id="cancel-disable-2fa-button" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Disable 2FA</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="admin-help.js?v=1.2.5" defer></script>
-    <script src="/admin.js?v=1.2.5" defer></script>
-    
-    <script>
-        console.log('=== LAYOUT DEBUGGING ===');
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            // === ADMIN BACKGROUND SLIDESHOW DEBUGGING ===
-            let debugInterval;
-            
-            function startBackgroundDebugging() {
-                console.log('=== STARTING ADMIN BACKGROUND DEBUGGING ===');
-                
-                // Monitor the slideshow variables every 2 seconds
-                debugInterval = setInterval(() => {
-                    const activeLayer = document.getElementById('admin-background-a');
-                    const inactiveLayer = document.getElementById('admin-background-b');
-                    
-                    if (activeLayer && inactiveLayer) {
-                        const activeStyle = window.getComputedStyle(activeLayer);
-                        const inactiveStyle = window.getComputedStyle(inactiveLayer);
-                        
-                        console.log('--- SLIDESHOW STATE ---');
-                        console.log('Active layer (A):', {
-                            opacity: activeStyle.opacity,
-                            backgroundImage: activeStyle.backgroundImage,
-                            hasImage: activeStyle.backgroundImage !== 'none'
-                        });
-                        console.log('Inactive layer (B):', {
-                            opacity: inactiveStyle.opacity,
-                            backgroundImage: inactiveStyle.backgroundImage,
-                            hasImage: inactiveStyle.backgroundImage !== 'none'
-                        });
-                        
-                        // Check if slideshow variables exist
-                        if (typeof window.adminBgQueue !== 'undefined') {
-                            console.log('AdminBg Queue length:', window.adminBgQueue?.length);
-                            console.log('AdminBg Index:', window.adminBgIndex);
-                            console.log('AdminBg Timer active:', !!window.adminBgTimer);
-                        } else {
-                            console.log('AdminBg variables not accessible from window');
-                        }
-                    }
-                }, 2000);
-                
-                // Also monitor transitions
-                const layers = document.querySelectorAll('.admin-background-layer');
-                layers.forEach((layer, index) => {
-                    layer.addEventListener('transitionstart', (e) => {
-                        if (e.propertyName === 'opacity') {
-                            console.log(`Layer ${index} transition START: opacity changing from ${e.target.style.opacity}`);
-                        }
+    <script src="admin-help.js?v=1.2.9" defer></script>
+    <script src="/admin.js?v=1.2.9" defer></script>
+        <script>
+        // Emergency fallback: after load, if no active section shows visible elements, dump raw sections sequentially.
+        window.addEventListener('load', () => {
+            try {
+                const active = document.querySelector('.section-content.active');
+                if (!active) return; 
+                // Heuristic: count visible form groups
+                const visibleGroups = active.querySelectorAll('.form-group, .management-action, .log-viewer, .form-section');
+                if (visibleGroups.length === 0) {
+                    const container = document.createElement('div');
+                    container.style.cssText='position:relative;z-index:2000;padding:20px;background:#111;color:#fff;font:14px monospace;';
+                    container.innerHTML = '<h2>EMERGENCY FALLBACK RENDER</h2>';
+                    document.querySelectorAll('.section-content').forEach(sec => {
+                        const clone = sec.cloneNode(true);
+                        clone.style.display='block';
+                        clone.classList.add('force-visible');
+                        container.appendChild(clone);
                     });
-                    
-                    layer.addEventListener('transitionend', (e) => {
-                        if (e.propertyName === 'opacity') {
-                            const finalOpacity = window.getComputedStyle(e.target).opacity;
-                            console.log(`Layer ${index} transition END: opacity is now ${finalOpacity}`);
-                        }
-                    });
-                });
-            }
-            
-            // Start debugging after a short delay
-            setTimeout(startBackgroundDebugging, 1000);
-            
-            setTimeout(() => {
-                // Debug layout dimensions
-                const adminLayout = document.querySelector('.admin-layout');
-                const sidebar = document.querySelector('.sidebar');
-                const mainContent = document.querySelector('.main-content');
-                const adminMain = document.querySelector('.admin-main');
-                const header = document.querySelector('.admin-header');
-                
-                console.log('Window dimensions:', {
-                    innerWidth: window.innerWidth,
-                    innerHeight: window.innerHeight
-                });
-                
-                console.log('Admin Layout:', {
-                    element: adminLayout,
-                    width: adminLayout?.offsetWidth,
-                    height: adminLayout?.offsetHeight,
-                    clientWidth: adminLayout?.clientWidth,
-                    scrollWidth: adminLayout?.scrollWidth
-                });
-                
-                console.log('Sidebar:', {
-                    element: sidebar,
-                    width: sidebar?.offsetWidth,
-                    height: sidebar?.offsetHeight,
-                    clientWidth: sidebar?.clientWidth
-                });
-                
-                console.log('Main Content:', {
-                    element: mainContent,
-                    width: mainContent?.offsetWidth,
-                    height: mainContent?.offsetHeight,
-                    clientWidth: mainContent?.clientWidth,
-                    scrollWidth: mainContent?.scrollWidth
-                });
-                
-                console.log('Admin Main:', {
-                    element: adminMain,
-                    width: adminMain?.offsetWidth,
-                    height: adminMain?.offsetHeight,
-                    clientWidth: adminMain?.clientWidth
-                });
-                
-                console.log('Header:', {
-                    element: header,
-                    width: header?.offsetWidth,
-                    height: header?.offsetHeight,
-                    clientWidth: header?.clientWidth
-                });
-                
-                // Check grid layout
-                if (adminLayout) {
-                    const gridStyle = window.getComputedStyle(adminLayout);
-                    console.log('Grid Layout Info:', {
-                        display: gridStyle.display,
-                        gridTemplateAreas: gridStyle.gridTemplateAreas,
-                        gridTemplateColumns: gridStyle.gridTemplateColumns,
-                        gridTemplateRows: gridStyle.gridTemplateRows,
-                        width: gridStyle.width,
-                        maxWidth: gridStyle.maxWidth
-                    });
+                    document.body.appendChild(container);
                 }
-                
-                // Check computed styles
-                if (mainContent) {
-                    const mainStyle = window.getComputedStyle(mainContent);
-                    console.log('Main Content computed style:', {
-                        width: mainStyle.width,
-                        maxWidth: mainStyle.maxWidth,
-                        minWidth: mainStyle.minWidth,
-                        gridArea: mainStyle.gridArea,
-                        position: mainStyle.position
-                    });
-                }
-
-                // === FANART DEBUGGING ===
-                console.log('=== FANART DEBUGGING ===');
-                
-                const backgroundLayers = document.querySelectorAll('.admin-background-layer');
-                const backgroundOverlay = document.querySelector('.admin-background-overlay');
-                
-                console.log('Background layers found:', backgroundLayers.length);
-                
-                backgroundLayers.forEach((layer, index) => {
-                    const layerStyle = window.getComputedStyle(layer);
-                    console.log(`Background layer ${index}:`, {
-                        element: layer,
-                        id: layer.id,
-                        className: layer.className,
-                        opacity: layerStyle.opacity,
-                        backgroundImage: layerStyle.backgroundImage,
-                        zIndex: layerStyle.zIndex,
-                        position: layerStyle.position,
-                        display: layerStyle.display,
-                        visibility: layerStyle.visibility
-                    });
-                });
-                
-                if (backgroundOverlay) {
-                    const overlayStyle = window.getComputedStyle(backgroundOverlay);
-                    console.log('Background overlay:', {
-                        element: backgroundOverlay,
-                        opacity: overlayStyle.opacity,
-                        background: overlayStyle.background,
-                        zIndex: overlayStyle.zIndex,
-                        position: overlayStyle.position,
-                        display: overlayStyle.display,
-                        visibility: overlayStyle.visibility
-                    });
-                } else {
-                    console.log('Background overlay NOT FOUND!');
-                }
-                
-                // Check if fanart JavaScript is running
-                console.log('Checking for adminBgTimer...');
-                if (window.adminBgTimer) {
-                    console.log('Admin background timer is active:', window.adminBgTimer);
-                } else {
-                    console.log('Admin background timer is NOT active');
-                    
-                    // Start slideshow manually with a check to prevent duplicates
-                    console.log('Starting slideshow manually...');
-                    if (typeof initializeAdminBackground === 'function') {
-                        console.log('Calling initializeAdminBackground once...');
-                        initializeAdminBackground();
-                    } else {
-                        console.log('initializeAdminBackground function NOT found');
-                    }
-                }
-                
-                // Force check opacity after 3 seconds - DISABLED FOR NOW
-                setTimeout(() => {
-                    console.log('=== OPACITY CHECK AFTER 3 SECONDS ===');
-                    backgroundLayers.forEach((layer, index) => {
-                        const layerStyle = window.getComputedStyle(layer);
-                        console.log(`Layer ${index} opacity after delay:`, layerStyle.opacity);
-                    });
-                    
-                    // OPACITY FORCING DISABLED - slideshow is working correctly
-                    console.log('=== OPACITY FORCING DISABLED ===');
-                    console.log('Slideshow is working correctly with opacity 0.7');
-                    /*
-                    backgroundLayers.forEach((layer, index) => {
-                        if (layer.classList.contains('active') || window.getComputedStyle(layer).opacity > 0) {
-                            console.log(`Forcing layer ${index} opacity to 0.05`);
-                            layer.style.opacity = '0.05';
-                            layer.style.setProperty('opacity', '0.05', 'important');
-                        }
-                    });
-                    
-                    // Also make overlay even darker
-                    if (backgroundOverlay) {
-                        console.log('Making overlay darker...');
-                        backgroundOverlay.style.background = 'radial-gradient(circle at center, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.8) 50%, rgba(0, 0, 0, 0.95) 100%)';
-                        backgroundOverlay.style.setProperty('background', 'radial-gradient(circle at center, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.8) 50%, rgba(0, 0, 0, 0.95) 100%)', 'important');
-                    }
-                    */
-                    
-                    // Verify changes after another second
-                    setTimeout(() => {
-                        console.log('=== FINAL OPACITY CHECK ===');
-                        backgroundLayers.forEach((layer, index) => {
-                            const finalStyle = window.getComputedStyle(layer);
-                            console.log(`Layer ${index} FINAL opacity:`, finalStyle.opacity);
-                        });
-                    }, 1000);
-                }, 3000);
-                
-            }, 2000);
+            } catch(e) { console.warn('Fallback render error', e); }
         });
-    </script>
+        </script>
+        <style>
+            /* Fallback inline override to ensure visibility after cache bust */
+            .section-content.active {opacity:1 !important; visibility:visible !important;}
+        </style>
+        <script>
+        window.addEventListener('load', ()=>{
+            try {
+                console.log('[ADMIN LATE] window load diagnostics');
+                const secs = document.querySelectorAll('.section-content');
+                secs.forEach(s=>{
+                    const r = s.getBoundingClientRect();
+                    console.log('[ADMIN LATE] rect', s.id, r.width, r.height);
+                });
+                const anyVisible = Array.from(secs).some(s=>{
+                    const r=s.getBoundingClientRect();
+                    return r.width>5 && r.height>5;
+                });
+                if(!anyVisible){
+                    const dbg=document.createElement('div');
+                    dbg.style.cssText='white-space:pre;background:#111;color:#fff;padding:12px;border:2px solid #f00;';
+                    dbg.textContent='FALLBACK PLAIN TEXT LIST:\n'+Array.from(secs).map(s=>s.id+':'+s.innerHTML.slice(0,120).replace(/\n+/g,' ')).join('\n');
+                    document.body.prepend(dbg);
+                }
+            }catch(e){console.log('[ADMIN LATE] error',e);}
+        });
+        </script>
 </body>
 </html>
