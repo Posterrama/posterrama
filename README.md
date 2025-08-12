@@ -42,8 +42,7 @@ Connect to your **Plex**, **Jellyfin**, or **Emby** server and watch as Posterra
 
 ### 🔒 Security That Actually Works
 - **🔐 Two-Factor Authentication (2FA)** - Keep your setup secure
-- **👤 User Management** - Multiple users with different access levels  
-- **🔑 API Keys** - Secure integration with other tools
+- ** API Keys** - Secure integration with other tools
 - **📱 Easy Setup** - Simple web-based configuration
 
 ### 📺 Android TV Integration
@@ -122,7 +121,6 @@ Visit `http://your-server-ip:4000/admin` to:
 - Choose which libraries to display
 - Customize visual settings
 - Monitor system health
-- Manage users and security
 
 ### 📊 System Health
 Check `http://your-server-ip:4000/health` to make sure everything's running smoothly.
