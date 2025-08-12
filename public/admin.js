@@ -1996,6 +1996,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Set up PiP button functionality
+        const pipButton = document.querySelector('.pip-button');
+        if (pipButton) {
+            pipButton.addEventListener('click', togglePiP);
+            console.log('PiP button event listener added');
+        } else {
+            console.log('PiP button not found');
+        }
+
         // Set up live updates for DISPLAY SETTINGS
         setupLivePreviewUpdates();
 
@@ -2005,7 +2014,8 @@ document.addEventListener('DOMContentLoaded', () => {
         function startPreview() {
             console.log('Starting preview...');
             
-            // Show preview frame and set initial orientation
+            // Show preview container and frame
+            previewContainer.style.display = 'block';
             previewFrame.style.display = 'block';
             updatePreviewOrientation();
             
@@ -3049,3 +3059,264 @@ function decrementValue(inputId) {
     input.value = newValue;
     input.dispatchEvent(new Event('input', { bubbles: true }));
 }
+
+// Update preview scaling for PiP mode
+function updatePreviewScaling() {
+    const previewContainer = document.getElementById('preview-container');
+    const previewContent = document.getElementById('preview-content');
+    
+    if (!previewContainer || !previewContent) {
+        console.log('Preview elements not found for scaling');
+        return;
+    }
+    
+    if (!previewContainer.classList.contains('pip-mode')) {
+        console.log('Not in PiP mode, skipping scaling');
+        return;
+    }
+    
+    // Get container dimensions
+    const containerRect = previewContainer.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    console.log('Container dimensions:', containerWidth, 'x', containerHeight);
+    
+    // Target content dimensions based on mode
+    const targetWidth = 1920;
+    const targetHeight = 1080;
+    
+    // Calculate scale to fit content in container while maintaining aspect ratio
+    const scaleX = containerWidth / targetWidth;
+    const scaleY = containerHeight / targetHeight;
+    const scale = Math.min(scaleX, scaleY);
+    
+    console.log('Calculated scale:', scale);
+    
+    // Apply scaling transform
+    previewContent.style.transform = `scale(${scale})`;
+    previewContent.style.transformOrigin = 'top left';
+    
+    // Set explicit dimensions for proper scaling
+    previewContent.style.width = targetWidth + 'px';
+    previewContent.style.height = targetHeight + 'px';
+    
+    console.log('Applied scaling to preview content');
+}
+
+// PiP (Picture-in-Picture) functionality
+function togglePiP() {
+    const previewContainer = document.getElementById('preview-container');
+    const pipButton = document.querySelector('.pip-button');
+    
+    if (!previewContainer) {
+        console.error('Preview container not found');
+        return;
+    }
+    
+    const isPiPMode = previewContainer.classList.contains('pip-mode');
+    
+    if (isPiPMode) {
+        // Exit PiP mode
+        previewContainer.classList.remove('pip-mode');
+        previewContainer.style.position = '';
+        previewContainer.style.top = '';
+        previewContainer.style.left = '';
+        previewContainer.style.width = '';
+        previewContainer.style.height = '';
+        previewContainer.style.zIndex = '';
+        
+        // Remove transform from content
+        const previewContent = document.getElementById('preview-content');
+        if (previewContent) {
+            previewContent.style.transform = '';
+            previewContent.style.width = '';
+            previewContent.style.height = '';
+        }
+        
+        // Update button
+        if (pipButton) {
+            pipButton.innerHTML = '<i class="fas fa-external-link-alt"></i>';
+            pipButton.title = 'Open in Picture-in-Picture';
+        }
+        
+        console.log('Exited PiP mode');
+    } else {
+        // Enter PiP mode
+        previewContainer.classList.add('pip-mode');
+        
+        // Set PiP position and size
+        previewContainer.style.position = 'fixed';
+        previewContainer.style.top = '20px';
+        previewContainer.style.right = '20px';
+        previewContainer.style.width = '400px';
+        previewContainer.style.height = '225px';
+        previewContainer.style.zIndex = '9999';
+        
+        // Update button
+        if (pipButton) {
+            pipButton.innerHTML = '<i class="fas fa-compress"></i>';
+            pipButton.title = 'Exit Picture-in-Picture';
+        }
+        
+        // Apply scaling
+        setTimeout(() => {
+            updatePreviewScaling();
+        }, 50);
+        
+        // Add drag functionality for PiP mode
+        makeDraggable(previewContainer);
+        
+        console.log('Entered PiP mode');
+    }
+}
+
+// Make PiP preview draggable
+function makeDraggable(element) {
+    let isDragging = false;
+    let currentX = 0;
+    let currentY = 0;
+    let initialX = 0;
+    let initialY = 0;
+    
+    element.style.cursor = 'move';
+    
+    element.addEventListener('mousedown', (e) => {
+        if (!element.classList.contains('pip-mode')) return;
+        
+        isDragging = true;
+        initialX = e.clientX - currentX;
+        initialY = e.clientY - currentY;
+        
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging || !element.classList.contains('pip-mode')) return;
+        
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+        
+        // Keep within viewport bounds
+        const rect = element.getBoundingClientRect();
+        const maxX = window.innerWidth - rect.width;
+        const maxY = window.innerHeight - rect.height;
+        
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+        
+        element.style.left = currentX + 'px';
+        element.style.top = currentY + 'px';
+        element.style.right = 'auto';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+}
+
+// Test function for checking preview scaling
+window.testScaling = function() {
+    console.log('=== TESTING PREVIEW SCALING ===');
+    const previewContent = document.getElementById('preview-content');
+    const previewContainer = document.getElementById('preview-container');
+    
+    if (previewContent && previewContainer) {
+        // Ensure PiP mode is active
+        previewContainer.classList.add('pip-mode');
+        
+        // Clear any existing content and set test content
+        previewContent.innerHTML = `
+            <div style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 1920px;
+                height: 1080px;
+                background: linear-gradient(45deg, red, blue, green, yellow);
+                border: 20px solid white;
+                z-index: 1;
+                box-sizing: border-box;
+            ">
+                <div style="
+                    position: absolute;
+                    top: 50px;
+                    left: 50px;
+                    background: black;
+                    color: white;
+                    padding: 20px;
+                    font-size: 72px;
+                    font-weight: bold;
+                ">SCALING TEST</div>
+                
+                <div style="
+                    position: absolute;
+                    top: 200px;
+                    left: 50px;
+                    background: rgba(255,255,255,0.9);
+                    color: black;
+                    padding: 20px;
+                    font-size: 48px;
+                ">1920x1080 Content</div>
+                
+                <div style="
+                    position: absolute;
+                    bottom: 50px;
+                    right: 50px;
+                    background: purple;
+                    color: white;
+                    padding: 20px;
+                    font-size: 36px;
+                ">Bottom Right</div>
+            </div>
+        `;
+        
+        // Force update scaling
+        setTimeout(() => {
+            updatePreviewScaling();
+            console.log('✅ Scaling test applied - you should see colorful content scaled to fit the container');
+            console.log('✅ If you see this content, the scaling system is working!');
+        }, 100);
+    } else {
+        console.error('❌ Preview elements not found');
+    }
+};
+
+// Debug function to check preview state
+window.debugPreview = function() {
+    console.log('=== PREVIEW DEBUG INFO ===');
+    const previewContainer = document.getElementById('preview-container');
+    const previewContent = document.getElementById('preview-content');
+    const previewFrame = document.getElementById('preview-frame');
+    
+    if (previewContainer) {
+        const rect = previewContainer.getBoundingClientRect();
+        const styles = window.getComputedStyle(previewContainer);
+        console.log('PREVIEW CONTAINER:');
+        console.log('  Classes:', previewContainer.className);
+        console.log('  Dimensions:', rect.width + 'x' + rect.height);
+        console.log('  Position:', rect.left + ',' + rect.top);
+        console.log('  Display:', styles.display);
+        console.log('  Visibility:', styles.visibility);
+        console.log('  Z-index:', styles.zIndex);
+        console.log('  PiP mode:', previewContainer.classList.contains('pip-mode'));
+    }
+    
+    if (previewContent) {
+        const rect = previewContent.getBoundingClientRect();
+        const styles = window.getComputedStyle(previewContent);
+        console.log('PREVIEW CONTENT:');
+        console.log('  Dimensions:', rect.width + 'x' + rect.height);
+        console.log('  Transform:', styles.transform);
+        console.log('  Overflow:', styles.overflow);
+        console.log('  Background:', styles.background);
+    }
+    
+    if (previewFrame) {
+        console.log('PREVIEW FRAME:');
+        console.log('  Display:', window.getComputedStyle(previewFrame).display);
+    }
+    
+    console.log('=== END DEBUG INFO ===');
+};
