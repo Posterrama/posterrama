@@ -38,7 +38,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "security:audit": "audit-ci --moderate",
-    "config:check": "node scripts/config-check.js"
+  "config:check": "node scripts/config-check.js",
+  "secrets:generate": "node scripts/generate-secrets.js"
   },
   "dependencies": {
     "@jellyfin/sdk": "^0.11.0",
