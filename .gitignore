@@ -23,3 +23,18 @@ npm-debug.log*
 # Test coverage reports
 coverage/
 *.lcov
+
+# Development/test files
+test-*.html
+*test*.html
+
+# Backup files
+*.backup
+*.backup.*
+*.old
+*.tmp
+*~
+
+# Runtime cache and temporary data
+image_cache/
+logs/*.log
