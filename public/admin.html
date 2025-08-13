@@ -528,10 +528,15 @@
                                     </div>
                                     <div class="form-group">
                                         <label for="mediaServers[0].genreFilter">Genre Filter</label>
-                                        <select id="mediaServers[0].genreFilter" name="mediaServers[0].genreFilter" multiple class="genre-filter-select">
-                                            <option value="">Loading genres...</option>
-                                        </select>
-                                        <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Leave empty to show all content.</small>
+                                        <div class="genre-filter-container">
+                                            <select id="mediaServers[0].genreFilter" name="mediaServers[0].genreFilter" multiple class="genre-filter-select">
+                                                <option value="">Loading genres...</option>
+                                            </select>
+                                            <button type="button" class="btn-clear-genres" id="clearGenresBtn" title="Clear all selected genres">
+                                                <i class="fas fa-times"></i> Clear Selection
+                                            </button>
+                                        </div>
+                                        <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
                                     </div>
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="mediaServers[0].recentlyAddedOnly" name="mediaServers[0].recentlyAddedOnly">

@@ -1482,6 +1482,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             console.log(`Loaded ${genres.length} genres from Plex`);
+            
+            // Setup listeners after genres are loaded
+            setupGenreFilterListeners();
         } catch (error) {
             console.error('Error loading Plex genres:', error);
             genreSelect.innerHTML = '<option value="">Error loading genres</option>';
@@ -1507,6 +1510,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const selectedValues = Array.from(genreSelect.selectedOptions).map(option => option.value);
         return selectedValues.join(', ');
+    }
+
+    function clearGenreSelection() {
+        const genreSelect = document.getElementById('mediaServers[0].genreFilter');
+        if (!genreSelect) return;
+
+        // Deselect all options
+        Array.from(genreSelect.options).forEach(option => {
+            option.selected = false;
+        });
+
+        // Trigger a change event to ensure any listeners are notified
+        genreSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function setupGenreFilterListeners() {
+        const clearBtn = document.getElementById('clearGenresBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', clearGenreSelection);
+        }
     }
 
     async function loadConfig() {
