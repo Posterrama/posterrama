@@ -1511,8 +1511,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.warn('Admin background queue is empty.');
                     return;
                 }
-                // Start at random index instead of -1 for random fanart on refresh
-                adminBgIndex = Math.floor(Math.random() * adminBgQueue.length) - 1;
+                adminBgIndex = -1; // Start at -1 so first increment gives 0
             } catch (error) {
                 console.warn('Failed to fetch admin background media:', error);
                 return;

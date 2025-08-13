@@ -26,7 +26,31 @@ const formatMessage = winston.format((info) => {
 // Custom format for console and file output
 const customFormat = winston.format.combine(
     formatMessage(),
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.timestamp({ 
+        format: () => {
+            try {
+                const config = require('./config.json');
+                const timezone = config.clockTimezone || 'auto';
+                
+                if (timezone === 'auto') {
+                    return new Date().toLocaleString('sv-SE', { 
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        hour12: false 
+                    });
+                } else {
+                    return new Date().toLocaleString('sv-SE', { 
+                        timeZone: timezone,
+                        hour12: false 
+                    });
+                }
+            } catch (e) {
+                return new Date().toLocaleString('sv-SE', { 
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    hour12: false 
+                });
+            }
+        }
+    }),
     winston.format.errors({ stack: true }),
     winston.format.splat(),
     winston.format.json()
@@ -37,8 +61,35 @@ const memoryTransport = new winston.transports.Stream({
     format: winston.format.combine(
         formatMessage(),
         winston.format((info) => {
+            // Get the configured timezone or fallback to system timezone
+            let timestamp;
+            try {
+                const config = require('./config.json');
+                const timezone = config.clockTimezone || 'auto';
+                
+                if (timezone === 'auto') {
+                    // Use local timezone
+                    timestamp = new Date().toLocaleString('sv-SE', { 
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        hour12: false 
+                    }).replace(' ', 'T');
+                } else {
+                    // Use configured timezone
+                    timestamp = new Date().toLocaleString('sv-SE', { 
+                        timeZone: timezone,
+                        hour12: false 
+                    }).replace(' ', 'T');
+                }
+            } catch (e) {
+                // Fallback to local time if config is not available
+                timestamp = new Date().toLocaleString('sv-SE', { 
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    hour12: false 
+                }).replace(' ', 'T');
+            }
+            
             return {
-                timestamp: new Date().toISOString(),
+                timestamp: timestamp,
                 level: info.level.toUpperCase(),
                 message: info.message
             };

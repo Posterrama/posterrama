@@ -33,13 +33,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <!-- Local CSS with versioning -->
-    <link rel="stylesheet" href="/admin.css?v=1.5.0">
+    <link rel="stylesheet" href="/admin.css?v=1.4.1">
     
     <!-- Font Awesome with SRI for security -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     
     <!-- Preload critical JavaScript -->
-    <link rel="preload" href="/admin.js?v=1.4.1" as="script">
+    <link rel="preload" href="/admin.js?v=1.4.0" as="script">
 </head>
 <body>
     <!-- Skip links for accessibility -->
@@ -142,85 +142,63 @@
                                 <i class="fas fa-cog" aria-hidden="true"></i>
                                 General Settings
                             </div>
-                            
-                            <!-- Unified General Settings Container -->
-                            <div class="form-section unified-section">
-                                
-                                <!-- Application Settings Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-cogs"></i>
-                                    Application Settings
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <label for="transitionIntervalSeconds" title="How many seconds each poster is visible.">Transition Interval (seconds)</label>
-                                        <div class="number-input-wrapper">
-                                            <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds" min="1" max="300" step="1" required aria-describedby="transitionIntervalSeconds-help">
-                                            <div class="number-controls" role="group" aria-label="Adjust transition interval">
-                                                <button type="button" class="number-btn" id="increment-transitionIntervalSeconds" aria-label="Increase transition interval">
-                                                    <i class="fas fa-chevron-up" aria-hidden="true"></i>
-                                                </button>
-                                                <button type="button" class="number-btn" id="decrement-transitionIntervalSeconds" aria-label="Decrease transition interval">
-                                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                                </button>
-                                            </div>
+                        
+                        <fieldset class="form-section" aria-describedby="general-settings-description">
+                            <legend class="sr-only">General application settings</legend>
+                            <div id="general-settings-description" class="sr-only">Configure basic application behavior and timing settings</div>
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label for="transitionIntervalSeconds" title="How many seconds each poster is visible.">Transition Interval (seconds)</label>
+                                    <div class="number-input-wrapper">
+                                        <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds" min="1" max="300" step="1" required aria-describedby="transitionIntervalSeconds-help">
+                                        <div class="number-controls" role="group" aria-label="Adjust transition interval">
+                                            <button type="button" class="number-btn" id="increment-transitionIntervalSeconds" aria-label="Increase transition interval">
+                                                <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                                            </button>
+                                            <button type="button" class="number-btn" id="decrement-transitionIntervalSeconds" aria-label="Decrease transition interval">
+                                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                            </button>
                                         </div>
-                                        <div id="transitionIntervalSeconds-help" class="form-help">Time in seconds between poster transitions (1-300)</div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="backgroundRefreshMinutes">Background Refresh</label>
-                                        <div class="number-input-wrapper">
-                                            <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes" min="0" max="1440" step="1" aria-describedby="backgroundRefreshMinutes-help">
-                                            <div class="number-controls" role="group" aria-label="Adjust background refresh interval">
-                                                <button type="button" class="number-btn" id="increment-backgroundRefreshMinutes" aria-label="Increase refresh interval">
-                                                    <i class="fas fa-chevron-up" aria-hidden="true"></i>
-                                                </button>
-                                                <button type="button" class="number-btn" id="decrement-backgroundRefreshMinutes" aria-label="Decrease refresh interval">
-                                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                                </button>
-                                            </div>
+                                    <div id="transitionIntervalSeconds-help" class="form-help">Time in seconds between poster transitions (1-300)</div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="backgroundRefreshMinutes">Background Refresh</label>
+                                    <div class="number-input-wrapper">
+                                        <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes" min="0" max="1440" step="1" aria-describedby="backgroundRefreshMinutes-help">
+                                        <div class="number-controls" role="group" aria-label="Adjust background refresh interval">
+                                            <button type="button" class="number-btn" id="increment-backgroundRefreshMinutes" aria-label="Increase refresh interval">
+                                                <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                                            </button>
+                                            <button type="button" class="number-btn" id="decrement-backgroundRefreshMinutes" aria-label="Decrease refresh interval">
+                                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                            </button>
                                         </div>
-                                        <div id="backgroundRefreshMinutes-help" class="form-help">How often to refresh background images (0 to disable, max 1440 minutes)</div>
                                     </div>
+                                    <div id="backgroundRefreshMinutes-help" class="form-help">How often to refresh background images (0 to disable, max 1440 minutes)</div>
                                 </div>
-                                
-                                <!-- Server Configuration Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-server"></i>
-                                    Server Configuration
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <label for="SERVER_PORT">Application Port</label>
-                                        <div class="number-input-wrapper">
-                                            <input type="number" id="SERVER_PORT" name="SERVER_PORT" min="1024" max="65535" step="1" required aria-describedby="serverPort-help">
-                                            <div class="number-controls" role="group" aria-label="Adjust server port">
-                                                <button type="button" class="number-btn" id="increment-serverPort" aria-label="Increase port number">
-                                                    <i class="fas fa-chevron-up" aria-hidden="true"></i>
-                                                </button>
-                                                <button type="button" class="number-btn" id="decrement-serverPort" aria-label="Decrease port number">
-                                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                                </button>
-                                            </div>
+                                <div class="form-group">
+                                    <label for="SERVER_PORT">Application Port</label>
+                                    <div class="number-input-wrapper">
+                                        <input type="number" id="SERVER_PORT" name="SERVER_PORT" min="1024" max="65535" step="1" required aria-describedby="serverPort-help">
+                                        <div class="number-controls" role="group" aria-label="Adjust server port">
+                                            <button type="button" class="number-btn" id="increment-serverPort" aria-label="Increase port number">
+                                                <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                                            </button>
+                                            <button type="button" class="number-btn" id="decrement-serverPort" aria-label="Decrease port number">
+                                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                            </button>
                                         </div>
-                                        <div id="serverPort-help" class="form-help">Port number for the application server (1024-65535)</div>
                                     </div>
+                                    <div id="serverPort-help" class="form-help">Port number for the application server (1024-65535)</div>
                                 </div>
-                                
-                                <!-- Development & Debug Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-bug"></i>
-                                    Development & Debug
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group checkbox-group">
-                                        <input type="checkbox" id="DEBUG" name="DEBUG" aria-describedby="DEBUG-help">
-                                        <label for="DEBUG">Enable Debug Mode</label>
-                                    </div>
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="DEBUG" name="DEBUG" aria-describedby="DEBUG-help">
+                                    <label for="DEBUG">Enable Debug Mode</label>
                                     <div id="DEBUG-help" class="form-help">Enable detailed logging for troubleshooting</div>
                                 </div>
                             </div>
-                        </div>
+                        </fieldset>
                     </section>
 
                     <!-- Display Settings Section -->
@@ -275,7 +253,7 @@
                                         </div>
                                         <div class="form-group checkbox-group">
                                             <input type="checkbox" id="showMetadata" name="showMetadata">
-                                            <label for="showMetadata">Show Metadata</label>
+                                            <label for="showMetadata">Show Metadata (title, tagline, etc.)</label>
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -454,74 +432,54 @@
                                 Media Servers
                             </div>
                             
-                            <!-- Unified Media Servers Container -->
-                            <div class="form-section unified-section">
-                                
-                                <!-- Plex Media Server Subsection -->
-                                <div class="subsection-header">
+                            <div class="form-section">
+                                <div class="subsection-title">
                                     <i class="fab fa-plex"></i>
                                     Plex Media Server
                                 </div>
-                                <div class="subsection-content">
-                                    <div class="form-group checkbox-group">
-                                        <input type="checkbox" id="mediaServers[0].enabled" name="mediaServers[0].enabled">
-                                        <label for="mediaServers[0].enabled">Enable Plex Server</label>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
-                                        <input type="text" id="mediaServers[0].hostname" name="mediaServers[0].hostname" placeholder="192.168.1.10 or plex.local" pattern="^[a-zA-Z0-9\.\-]+$">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].port">Plex Port</label>
-                                        <input type="number" id="mediaServers[0].port" name="mediaServers[0].port" min="1" max="65535" placeholder="32400">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].token">Plex Token</label>
-                                        <input type="password" id="mediaServers[0].token" name="mediaServers[0].token">
-                                    </div>
-                                </div>
                                 
-                                <!-- Library Configuration Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-folder-open"></i>
-                                    Library Configuration
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="mediaServers[0].enabled" name="mediaServers[0].enabled">
+                                    <label for="mediaServers[0].enabled">Enable Plex Server</label>
                                 </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <label>Movie Library Names</label>
-                                        <div id="movie-libraries-container" class="library-container">
-                                            <small>Test the connection to fetch the libraries.</small>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Show Library Names</label>
-                                        <div id="show-libraries-container" class="library-container">
-                                            <small>Test the connection to fetch the libraries.</small>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].movieCount">Number of Movies to Show</label>
-                                        <input type="number" id="mediaServers[0].movieCount" name="mediaServers[0].movieCount" min="1" max="10000" placeholder="100">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].showCount">Number of Shows to Show</label>
-                                        <input type="number" id="mediaServers[0].showCount" name="mediaServers[0].showCount" min="1" max="10000" placeholder="50">
+                                <div class="form-group">
+                                    <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
+                                    <input type="text" id="mediaServers[0].hostname" name="mediaServers[0].hostname" placeholder="192.168.1.10 or plex.local" pattern="^[a-zA-Z0-9\.\-]+$">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mediaServers[0].port">Plex Port</label>
+                                    <input type="number" id="mediaServers[0].port" name="mediaServers[0].port" min="1" max="65535" placeholder="32400">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mediaServers[0].token">Plex Token</label>
+                                    <input type="password" id="mediaServers[0].token" name="mediaServers[0].token">
+                                </div>
+                                <div class="form-group">
+                                    <label>Movie Library Names</label>
+                                    <div id="movie-libraries-container" class="library-container">
+                                        <small>Test the connection to fetch the libraries.</small>
                                     </div>
                                 </div>
-                                
-                                <!-- Connection Testing Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-plug"></i>
-                                    Connection Testing
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <button type="button" id="test-plex-button" class="btn btn-primary">
-                                            <i class="fas fa-plug icon"></i>
-                                            <span>Test Plex Connection</span>
-                                        </button>
-                                        <small id="plex-connection-status"></small>
+                                <div class="form-group">
+                                    <label>Show Library Names</label>
+                                    <div id="show-libraries-container" class="library-container">
+                                        <small>Test the connection to fetch the libraries.</small>
                                     </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="mediaServers[0].movieCount">Number of Movies to Show</label>
+                                    <input type="number" id="mediaServers[0].movieCount" name="mediaServers[0].movieCount" min="1" max="10000" placeholder="100">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mediaServers[0].showCount">Number of Shows to Show</label>
+                                    <input type="number" id="mediaServers[0].showCount" name="mediaServers[0].showCount" min="1" max="10000" placeholder="50">
+                                </div>
+                                <div class="form-group">
+                                    <button type="button" id="test-plex-button" class="btn btn-primary">
+                                        <i class="fas fa-plug icon"></i>
+                                        <span>Test Plex Connection</span>
+                                    </button>
+                                    <small id="plex-connection-status"></small>
                                 </div>
                             </div>
                         </div>
@@ -535,85 +493,72 @@
                                 Authentication & Security
                             </div>
                             
-                            <!-- Unified Authentication & Security Container -->
-                            <div class="form-section unified-section">
-                                
-                                <!-- Password Management Subsection -->
-                                <div class="subsection-header">
+                            <div class="form-section">
+                                <div class="subsection-title">
                                     <i class="fas fa-key"></i>
-                                    Password Management
-                                </div>
-                                <div class="subsection-content">
-                                    <div id="password-form">
-                                        <div class="form-group">
-                                            <label for="currentPassword">Current Password</label>
-                                            <input type="password" id="currentPassword" name="currentPassword" autocomplete="current-password">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="newPassword">New Password</label>
-                                            <input type="password" id="newPassword" name="newPassword" autocomplete="new-password">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="confirmPassword">Confirm New Password</label>
-                                            <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password">
-                                        </div>
-                                        <div class="form-actions">
-                                            <button type="button" id="change-password-button" class="btn btn-primary">
-                                                <i class="fas fa-lock icon"></i>
-                                                <span>Change Password</span>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    Change Password
                                 </div>
                                 
-                                <!-- Two-Factor Authentication Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-mobile-alt"></i>
-                                    Two-Factor Authentication (2FA)
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group checkbox-group">
-                                        <input type="checkbox" id="enable2FA" name="enable2FA">
-                                        <label for="enable2FA">Enable 2FA</label>
-                                    </div>
-                                    <div id="2fa-status-text" class="status-text disabled"></div>
-                                </div>
-                                
-                                <!-- API Access Management Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-code"></i>
-                                    API Access Management
-                                </div>
-                                <div class="subsection-content">
+                                <div id="password-form">
                                     <div class="form-group">
-                                        <p>Manage a permanent API key for use with external applications or scripts (like Swagger).</p>
+                                        <label for="currentPassword">Current Password</label>
+                                        <input type="password" id="currentPassword" name="currentPassword" autocomplete="current-password">
                                     </div>
-                                    <div class="form-group" id="api-key-status">
-                                        <p>Status: <span id="api-key-status-text" class="status-text">Loading...</span></p>
+                                    <div class="form-group">
+                                        <label for="newPassword">New Password</label>
+                                        <input type="password" id="newPassword" name="newPassword" autocomplete="new-password">
                                     </div>
-                                    <div id="api-key-display-container" class="is-hidden form-group">
-                                        <label>Current API Key:</label>
-                                        <div class="api-key-display-container">
-                                            <input id="api-key-input" type="password" readonly>
-                                            <button id="toggle-api-key-visibility-button" type="button" class="btn btn-icon" title="Show/hide key">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button id="copy-api-key-button" type="button" class="btn btn-icon" title="Copy to clipboard">
-                                                <i class="fas fa-copy"></i>
-                                            </button>
-                                        </div>
+                                    <div class="form-group">
+                                        <label for="confirmPassword">Confirm New Password</label>
+                                        <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password">
                                     </div>
                                     <div class="form-actions">
-                                        <button id="generate-api-key-button" type="button" class="btn btn-primary">
-                                            <i class="fas fa-key"></i>
-                                            Generate New Key
-                                        </button>
-                                        <button id="revoke-api-key-button" type="button" class="btn btn-danger" disabled>
-                                            <i class="fas fa-trash-alt"></i>
-                                            Revoke Key
+                                        <button type="button" id="change-password-button" class="btn btn-primary">
+                                            <i class="fas fa-lock icon"></i>
+                                            <span>Change Password</span>
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+                        
+                        <div class="form-section">
+                            <h3>Two-Factor Authentication (2FA)</h3>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="enable2FA" name="enable2FA">
+                                <label for="enable2FA">Enable 2FA</label>
+                                <div id="2fa-status-text" class="status-text disabled"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h3>API Access</h3>
+                            <div class="form-group">
+                                <p>Manage a permanent API key for use with external applications or scripts (like Swagger).</p>
+                            </div>
+                            <div class="form-group" id="api-key-status">
+                                <p>Status: <span id="api-key-status-text" class="status-text">Loading...</span></p>
+                            </div>
+                            <div id="api-key-display-container" class="is-hidden form-group">
+                                <label>Current API Key:</label>
+                                <div class="api-key-display-container">
+                                    <input id="api-key-input" type="password" readonly>
+                                    <button id="toggle-api-key-visibility-button" type="button" class="btn btn-icon" title="Show/hide key">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button id="copy-api-key-button" type="button" class="btn btn-icon" title="Copy to clipboard">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button id="generate-api-key-button" type="button" class="btn btn-primary">
+                                    <i class="fas fa-key"></i>
+                                    Generate New Key
+                                </button>
+                                <button id="revoke-api-key-button" type="button" class="btn btn-danger" disabled>
+                                    <i class="fas fa-trash-alt"></i>
+                                    Revoke Key
+                                </button>
                             </div>
                         </div>
                     </section>
@@ -626,36 +571,24 @@
                                 Promobox Site
                             </div>
                             
-                            <!-- Unified Promobox Site Container -->
-                            <div class="form-section unified-section">
-                                
-                                <!-- Site Configuration Subsection -->
-                                <div class="subsection-header">
+                            <div class="form-section">
+                                <div class="subsection-title">
                                     <i class="fas fa-server"></i>
                                     Site Configuration
                                 </div>
-                                <div class="subsection-content">
-                                    <div class="form-group checkbox-group">
-                                        <input type="checkbox" id="siteServer.enabled" name="siteServer.enabled">
-                                        <label for="siteServer.enabled">Enable Promobox Site</label>
-                                    </div>
-                                    <div class="form-group site-server-port-group" id="siteServerPortGroup">
-                                        <label for="siteServer.port">Promobox Site Port</label>
-                                        <input type="number" id="siteServer.port" name="siteServer.port" min="1024" max="65535" value="4001">
-                                    </div>
-                                </div>
                                 
-                                <!-- Site Status Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-info-circle"></i>
-                                    Site Status
+                                <div class="form-group checkbox-group">
+                                    <input type="checkbox" id="siteServer.enabled" name="siteServer.enabled">
+                                    <label for="siteServer.enabled">Enable Promobox Site</label>
                                 </div>
-                                <div class="subsection-content">
-                                    <div id="siteServerStatus" class="status-indicator site-server-status">
-                                        <div class="status-badge">
-                                            <span class="status-icon">🌐</span>
-                                            <span class="status-text">Promobox site running on <a href="http://localhost:4001" target="_blank" class="status-link">http://localhost:4001</a></span>
-                                        </div>
+                                <div class="form-group site-server-port-group" id="siteServerPortGroup">
+                                    <label for="siteServer.port">Promobox Site Port</label>
+                                    <input type="number" id="siteServer.port" name="siteServer.port" min="1024" max="65535" value="4001">
+                                </div>
+                                <div id="siteServerStatus" class="status-indicator site-server-status">
+                                    <div class="status-badge">
+                                        <span class="status-icon">🌐</span>
+                                        <span class="status-text">Promobox site running on <a href="http://localhost:4001" target="_blank" class="status-link">http://localhost:4001</a></span>
                                     </div>
                                 </div>
                             </div>
@@ -670,55 +603,58 @@
                                 Management & Tools
                             </div>
                             
-                            <!-- Unified Management & Tools Container -->
-                            <div class="form-section unified-section">
-                                
-                                <!-- Cache Management Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-database"></i>
-                                    Cache Management
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-actions">
-                                        <div id="debug-cache-action" class="is-hidden">
-                                            <a href="/admin/debug" target="_blank" class="btn btn-primary">
-                                                <i class="fas fa-database"></i>
-                                                View Cache
-                                            </a>
-                                        </div>
-                                        <button type="button" id="clear-cache-button" class="btn btn-primary">
-                                            <i class="fas fa-broom icon"></i>
-                                            <span>Clear Cache</span>
-                                        </button>
-                                    </div>
+                            <div class="form-section">
+                                <div class="subsection-title">
+                                    <i class="fas fa-cogs"></i>
+                                    System Management
                                 </div>
                                 
-                                <!-- Media Management Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-sync-alt"></i>
-                                    Media Management
+                                <div id="debug-cache-action" class="management-action is-hidden">
+                                <div class="action-description">
+                                    <strong>View Plex Cache</strong>
+                                    <p>Shows the raw JSON data of the currently cached media playlist. Only available in debug mode.</p>
                                 </div>
-                                <div class="subsection-content">
-                                    <div class="form-actions">
-                                        <button type="button" id="refresh-media-button" class="btn btn-primary" disabled>
-                                            <i class="fas fa-sync-alt icon"></i>
-                                            <span>Refresh Media</span>
-                                        </button>
-                                    </div>
+                                <div class="action-button">
+                                    <a href="/admin/debug" target="_blank" class="btn btn-primary">
+                                        <i class="fas fa-database"></i>
+                                        View Cache
+                                    </a>
                                 </div>
-                                
-                                <!-- System Control Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-power-off"></i>
-                                    System Control
+                            </div>
+                            <div class="management-action">
+                                <div class="action-description">
+                                    <strong>Clear Image Cache</strong>
+                                    <p>Deletes all cached images on the server, forcing them to be re-downloaded from your media server.</p>
                                 </div>
-                                <div class="subsection-content">
-                                    <div class="form-actions">
-                                        <button type="button" id="restart-app-button" class="btn btn-danger">
-                                            <i class="fas fa-power-off icon"></i>
-                                            <span>Restart Application</span>
-                                        </button>
-                                    </div>
+                                <div class="action-button">
+                                    <button type="button" id="clear-cache-button" class="btn btn-primary">
+                                        <i class="fas fa-broom icon"></i>
+                                        <span>Clear Cache</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="management-action">
+                                <div class="action-description">
+                                    <strong>Refresh Media</strong>
+                                    <p>Forces a refetch of all media from the configured servers. Useful after adding new movies or shows.</p>
+                                </div>
+                                <div class="action-button">
+                                    <button type="button" id="refresh-media-button" class="btn btn-primary" disabled>
+                                        <i class="fas fa-sync-alt icon"></i>
+                                        <span>Refresh Media</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="management-action">
+                                <div class="action-description">
+                                    <strong>Restart Application</strong>
+                                    <p>Restarts the server. Necessary after changing the port or other critical settings.</p>
+                                </div>
+                                <div class="action-button">
+                                    <button type="button" id="restart-app-button" class="btn btn-danger">
+                                        <i class="fas fa-power-off icon"></i>
+                                        <span>Restart Application</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -732,22 +668,38 @@
                                 Logs & Debug
                             </div>
                             
-                            <!-- Unified Logs & Debug Container -->
-                            <div class="form-section unified-section">
-                                
-                                <!-- Debug Tools Subsection -->
-                                <div class="subsection-header">
+                            <div class="form-section">
+                                <div class="subsection-title">
                                     <i class="fas fa-bug"></i>
                                     Debug Tools
                                 </div>
-                                <div class="subsection-content">
-                                    <div class="form-actions">
-                                        <a href="/admin/logs" target="_blank" class="btn btn-primary">
-                                            <i class="fas fa-terminal"></i>
-                                            View Live Logs
-                                        </a>
-                                    </div>
+                                
+                                <div class="management-action">
+                                <div class="action-description">
+                                    <strong>View Live Logs</strong>
+                                    <p>Opens a new tab with a real-time view of the server logs for debugging.</p>
                                 </div>
+                                <div class="action-button">
+                                    <a href="/admin/logs" target="_blank" class="btn btn-primary">
+                                        <i class="fas fa-terminal"></i>
+                                        View Live Logs
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <h3>Live Log Viewer</h3>
+                            <div class="log-viewer" id="live-logs">
+                                <pre id="log-content">Loading logs...</pre>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="refresh-logs-button" class="btn btn-secondary">
+                                    <i class="fas fa-refresh" aria-hidden="true"></i>
+                                    Refresh Logs
+                                </button>
+                                <button type="button" id="clear-logs-button" class="btn btn-danger">
+                                    <i class="fas fa-trash" aria-hidden="true"></i>
+                                    Clear Display
+                                </button>
                             </div>
                         </div>
                     </section>
@@ -841,6 +793,6 @@
     </div>
 
     <!-- Load admin JavaScript -->
-    <script src="/admin.js?v=1.4.1" defer></script>
+    <script src="/admin.js?v=1.4.0" defer></script>
 </body>
 </html>

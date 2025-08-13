@@ -607,578 +607,6 @@ a:hover {
     }
 }
 
-/* Clean unified section - no background, just content flow */
-.unified-section {
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    margin-bottom: 2rem !important;
-}
-
-/* Simple subsection headers - no padding, just margin */
-.subsection-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 3rem 0 1rem 0;
-    padding: 0 0 1rem 0;
-    position: relative;
-    background: transparent;
-    backdrop-filter: none;
-    border-radius: 0;
-}
-
-/* Simple gradient lines - full width within container */
-.subsection-header::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent-primary), rgba(99, 102, 241, 0.6), rgba(139, 92, 246, 0.4));
-    border-radius: 1px;
-    box-shadow: none;
-}
-
-/* Different colored lines for each subsection */
-.subsection-header:nth-of-type(1)::after {
-    background: linear-gradient(90deg, #e11d48, #f97316, #eab308);
-    box-shadow: 0 2px 8px rgba(225, 29, 72, 0.3);
-}
-
-.subsection-header:nth-of-type(2)::after {
-    background: linear-gradient(90deg, #059669, #0d9488, #0891b2);
-    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
-}
-
-.subsection-header:nth-of-type(3)::after {
-    background: linear-gradient(90deg, #7c3aed, #a855f7, #c084fc);
-    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
-}
-
-.subsection-header:nth-of-type(4)::after {
-    background: linear-gradient(90deg, #dc2626, #ea580c, #d97706);
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
-}
-
-.subsection-header:nth-of-type(5)::after {
-    background: linear-gradient(90deg, #0284c7, #0369a1, #1e40af);
-    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
-}
-
-/* Alternative approach: target specific subsections by their content */
-.subsection-header:has(i.fa-film)::after {
-    background: linear-gradient(90deg, #e11d48, #f97316, #eab308) !important;
-    box-shadow: 0 2px 8px rgba(225, 29, 72, 0.3) !important;
-}
-
-/* Cinema Mode - Pink/Orange/Yellow gradient for header text and icon */
-.subsection-header:has(i.fa-film) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #e11d48, #f97316, #eab308) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-film) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #e11d48, #f97316, #eab308) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(225, 29, 72, 0.2)) !important;
-}
-
-.subsection-header:has(i.fa-eye)::after {
-    background: linear-gradient(90deg, #059669, #0d9488, #0891b2) !important;
-    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3) !important;
-}
-
-/* Fallback for browsers that don't support :has() - target Visual Elements directly */
-div:nth-of-type(2).subsection-header::after {
-    background: linear-gradient(90deg, #059669, #0d9488, #0891b2) !important;
-    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3) !important;
-}
-
-/* Ensure Visual Elements header icon gets the gradient styling */
-.subsection-header:has(i.fa-eye) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #059669, #0d9488, #0891b2) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(5, 150, 105, 0.2)) !important;
-}
-
-/* Apply same gradient styling to Visual Elements header text */
-.subsection-header:has(i.fa-eye) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #059669, #0d9488, #0891b2) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-/* Fallback text styling for Visual Elements */
-div:nth-of-type(2).subsection-header {
-    color: transparent !important;
-    background: linear-gradient(90deg, #059669, #0d9488, #0891b2) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-/* Fallback icon styling */
-div:nth-of-type(2).subsection-header i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #059669, #0d9488, #0891b2) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(5, 150, 105, 0.2)) !important;
-}
-
-.subsection-header:has(i.fa-clock)::after {
-    background: linear-gradient(90deg, #7c3aed, #a855f7, #c084fc) !important;
-    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3) !important;
-}
-
-/* Clock Widget - Purple gradient for header text and icon */
-.subsection-header:has(i.fa-clock) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #7c3aed, #a855f7, #c084fc) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-clock) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #7c3aed, #a855f7, #c084fc) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.2)) !important;
-}
-
-.subsection-header:has(i.fa-expand-arrows-alt)::after {
-    background: linear-gradient(90deg, #dc2626, #ea580c, #d97706) !important;
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3) !important;
-}
-
-/* Scaling & Layout - Red/Orange gradient for header text and icon */
-.subsection-header:has(i.fa-expand-arrows-alt) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #dc2626, #ea580c, #d97706) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-expand-arrows-alt) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #dc2626, #ea580c, #d97706) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(220, 38, 38, 0.2)) !important;
-}
-
-.subsection-header:has(i.fa-magic)::after {
-    background: linear-gradient(90deg, #0284c7, #0369a1, #1e40af) !important;
-    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3) !important;
-}
-
-/* Effects & Transitions - Blue gradient for header text and icon */
-.subsection-header:has(i.fa-magic) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #0284c7, #0369a1, #1e40af) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-magic) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #0284c7, #0369a1, #1e40af) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(2, 132, 199, 0.2)) !important;
-}
-
-/* General Configuration */
-.subsection-header:has(i.fa-cogs)::after {
-    background: linear-gradient(90deg, #6b7280, #9ca3af, #d1d5db) !important;
-    box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-cogs) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #6b7280, #9ca3af, #d1d5db) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-cogs) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #6b7280, #9ca3af, #d1d5db) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(107, 114, 128, 0.2)) !important;
-}
-
-/* Source Configuration */
-.subsection-header:has(i.fas.fa-server)::after {
-    background: linear-gradient(90deg, #dc2626, #ef4444, #f87171) !important;
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3) !important;
-}
-
-.subsection-header:has(i.fas.fa-server) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #dc2626, #ef4444, #f87171) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fas.fa-server) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #dc2626, #ef4444, #f87171) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(220, 38, 38, 0.2)) !important;
-}
-
-/* Debug Configuration */
-.subsection-header:has(i.fa-bug)::after {
-    background: linear-gradient(90deg, #f59e0b, #fbbf24, #fcd34d) !important;
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-bug) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #f59e0b, #fbbf24, #fcd34d) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-bug) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #f59e0b, #fbbf24, #fcd34d) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.2)) !important;
-}
-
-/* Plex Configuration */
-.subsection-header:has(i.fa-plex)::after {
-    background: linear-gradient(90deg, #e67e22, #f39c12, #f1c40f) !important;
-    box-shadow: 0 2px 8px rgba(230, 126, 34, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-plex) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #e67e22, #f39c12, #f1c40f) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-plex) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #e67e22, #f39c12, #f1c40f) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(230, 126, 34, 0.2)) !important;
-}
-
-/* Library Configuration */
-.subsection-header:has(i.fa-folder-open)::after {
-    background: linear-gradient(90deg, #10b981, #34d399, #6ee7b7) !important;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-folder-open) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #10b981, #34d399, #6ee7b7) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-folder-open) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #10b981, #34d399, #6ee7b7) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.2)) !important;
-}
-
-/* Integration Configuration */
-.subsection-header:has(i.fa-plug)::after {
-    background: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd) !important;
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-plug) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-plug) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(139, 92, 246, 0.2)) !important;
-}
-
-/* API Keys */
-.subsection-header:has(i.fa-key)::after {
-    background: linear-gradient(90deg, #b91c1c, #dc2626, #ef4444) !important;
-    box-shadow: 0 2px 8px rgba(185, 28, 28, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-key) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #b91c1c, #dc2626, #ef4444) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-key) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #b91c1c, #dc2626, #ef4444) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(185, 28, 28, 0.2)) !important;
-}
-
-/* Two-Factor Authentication */
-.subsection-header:has(i.fa-mobile-alt)::after {
-    background: linear-gradient(90deg, #06b6d4, #22d3ee, #67e8f9) !important;
-    box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-mobile-alt) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #06b6d4, #22d3ee, #67e8f9) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-mobile-alt) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #06b6d4, #22d3ee, #67e8f9) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(6, 182, 212, 0.2)) !important;
-}
-
-/* Manual API Configuration */
-.subsection-header:has(i.fa-code)::after {
-    background: linear-gradient(90deg, #374151, #4b5563, #6b7280) !important;
-    box-shadow: 0 2px 8px rgba(55, 65, 81, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-code) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #374151, #4b5563, #6b7280) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-code) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #374151, #4b5563, #6b7280) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(55, 65, 81, 0.2)) !important;
-}
-
-/* Promo Display */
-.subsection-header:has(i.fa-info-circle)::after {
-    background: linear-gradient(90deg, #0891b2, #0ea5e9, #38bdf8) !important;
-    box-shadow: 0 2px 8px rgba(8, 145, 178, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-info-circle) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #0891b2, #0ea5e9, #38bdf8) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-info-circle) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #0891b2, #0ea5e9, #38bdf8) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(8, 145, 178, 0.2)) !important;
-}
-
-/* Cache Management */
-.subsection-header:has(i.fa-database)::after {
-    background: linear-gradient(90deg, #047857, #059669, #10b981) !important;
-    box-shadow: 0 2px 8px rgba(4, 120, 87, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-database) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #047857, #059669, #10b981) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-database) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #047857, #059669, #10b981) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(4, 120, 87, 0.2)) !important;
-}
-
-/* Application Management */
-.subsection-header:has(i.fa-sync-alt)::after {
-    background: linear-gradient(90deg, #dc2626, #b91c1c, #991b1b) !important;
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-sync-alt) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #dc2626, #b91c1c, #991b1b) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-sync-alt) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #dc2626, #b91c1c, #991b1b) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(220, 38, 38, 0.2)) !important;
-}
-
-/* System Control */
-.subsection-header:has(i.fa-power-off)::after {
-    background: linear-gradient(90deg, #b91c1c, #7f1d1d, #450a0a) !important;
-    box-shadow: 0 2px 8px rgba(185, 28, 28, 0.3) !important;
-}
-
-.subsection-header:has(i.fa-power-off) {
-    color: transparent !important;
-    background: linear-gradient(90deg, #b91c1c, #7f1d1d, #450a0a) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-}
-
-.subsection-header:has(i.fa-power-off) i {
-    color: transparent !important;
-    background: linear-gradient(90deg, #b91c1c, #7f1d1d, #450a0a) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    filter: drop-shadow(0 2px 4px rgba(185, 28, 28, 0.2)) !important;
-}
-
-.subsection-header:first-child {
-    margin-top: 0;
-}
-
-.subsection-header i {
-    color: var(--accent-primary);
-    font-size: 1.2rem;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-}
-
-/* Simple subsection content - no padding */
-.subsection-content {
-    margin-top: 1rem;
-    padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-}
-
-.subsection-header + .form-group,
-.subsection-header + .form-grid-2,
-.subsection-header + .scaling-templates,
-.subsection-header + .scaling-grid {
-    margin-top: 1.5rem;
-    padding: 0;
-    background: transparent;
-    border-radius: 0;
-    border: none;
-    backdrop-filter: none;
-}
-
-/* Simple checkbox groups - checkbox and label side by side */
-.subsection-content .form-group.checkbox-group {
-    background: transparent;
-    border: none;
-    border-left: 2px solid var(--accent-primary);
-    padding: 0.25rem 0 0.25rem 0; /* Compact padding */
-    border-radius: 0;
-    margin-bottom: 0.25rem; /* Compact margin */
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* Simple form groups - minimal styling */
-.subsection-content .form-group {
-    background: transparent;
-    padding: 0.5rem 0;
-    border-radius: 0;
-    margin-bottom: 0.75rem;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-}
-
-.subsection-content .form-group:hover {
-    background: transparent;
-    border-bottom-color: rgba(99, 102, 241, 0.3);
-}
-
-/* Clean grid layout - compact spacing */
-.subsection-content .form-grid-2 {
-    background: transparent;
-    padding: 0;
-    border: none;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.subsection-content .form-grid-2 .form-group {
-    background: transparent;
-    padding: 0.5rem 0;
-    border-radius: 0;
-    border: none; /* No border-bottom for grid items */
-    margin-bottom: 0;
-}
-
-/* Checkbox groups within grid - apply same styling as single checkbox groups */
-.subsection-content .form-grid-2 .form-group.checkbox-group {
-    background: transparent;
-    border: none;
-    border-left: 2px solid var(--accent-primary);
-    padding: 0.25rem 0 0.25rem 0.75rem; /* Small left padding for the border */
-    border-radius: 0;
-    margin-bottom: 0.25rem; /* Compact margin */
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.subsection-content .form-grid-2 .form-group:hover {
-    background: transparent;
-    border-bottom-color: rgba(99, 102, 241, 0.3);
-}
-
-/* Override hover for checkbox groups in grid - no border-bottom needed */
-.subsection-content .form-grid-2 .form-group.checkbox-group:hover {
-    background: transparent;
-    border-bottom: none;
-    border-left-color: rgba(99, 102, 241, 0.6);
-}
-
 /* Two-column layout for larger screens */
 @media (min-width: 1200px) {
     /* Default: single column for all sections - but respect visibility */
@@ -1241,36 +669,16 @@ div:nth-of-type(2).subsection-header i {
 
 .content-section {
     display: none;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 .content-section.active {
     display: block;
 }
 
-/* Force backdrop-filter to not animate */
-.section-title::before,
-.form-section {
-    backdrop-filter: blur(10px) !important;
-}
-
-/* Disable animations and transitions for admin interface elements only */
-.section-content,
-.section-title,
-.form-section,
-.form-group,
-.btn,
-.nav-tab,
-.sidebar,
-.main-content,
-.admin-layout,
-.quick-help-panel,
-.notification-container {
-    animation: none !important;
-    animation-delay: 0s !important;
-    animation-duration: 0s !important;
-    transition: none !important;
-    transition-delay: 0s !important;
-    transition-duration: 0s !important;
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* Notification System */
@@ -1344,12 +752,6 @@ div:nth-of-type(2).subsection-header i {
         padding: 0.875rem 1rem;
         font-size: 0.9rem;
     }
-    
-    /* Responsive scaling grid - single column on mobile */
-    .scaling-grid {
-        grid-template-columns: 1fr;
-        gap: 0.75rem;
-    }
 }
 
 .section-header {
@@ -1409,7 +811,7 @@ div:nth-of-type(2).subsection-header i {
 
 /* Form Elements - Ultra clean */
 .form-section {
-    max-width: 600px; /* Match section-title width */
+    max-width: 800px; /* Match section-title width */
     margin: 0 auto; /* Center the form sections */
     padding: 0; /* No padding - align with header */
     min-height: auto; /* Remove minimum height */
@@ -1426,6 +828,7 @@ div:nth-of-type(2).subsection-header i {
 /* Section Styling */
 .section-content {
     display: none;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 .section-content.active {
@@ -1447,30 +850,29 @@ div:nth-of-type(2).subsection-header i {
     display: block !important; /* Force block display */
 }
 
-/* Reset all padding for clean alignment */
 .section-content.active .form-section {
     min-height: 200px !important;
-    padding: 1.5rem !important; /* Consistent padding all around */
+    padding: 1rem 1.5rem !important; /* Add padding for content spacing */
     margin-bottom: 2rem !important;
     
-    /* Exact same styling as section-title */
-    background: rgba(0, 0, 0, 0.2) !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    /* Same styling as section-title */
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%) !important;
+    border: 1px solid rgba(102, 126, 234, 0.2) !important;
     border-radius: 12px !important;
-    box-shadow: none !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.1) !important;
     
-    color: var(--text-primary) !important;
+    color: #ffffff !important; /* Force white text */
 }
 
 /* Save button section styling */
 .form-save-section {
-    padding: 0.5rem 1rem;
+    padding: 1rem 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 1.5rem;
-    margin-top: 0rem;
+    margin-top: 1rem;
 }
 
 .form-save-section #config-status {
@@ -1571,42 +973,21 @@ div#logs-section.section-content.active .section-main-content {
     margin-left: auto;
     margin-right: auto;
     padding: 1rem 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(102, 126, 234, 0.05);
+    border: 2px solid #667eea;
     border-radius: 12px;
-    max-width: 600px;
+    max-width: 800px;
     font-size: 1.5rem;
-    font-weight: 700;
+    font-weight: 600;
+    color: #667eea;
     letter-spacing: -0.02em;
-    /* Beautiful gradient text */
-    color: transparent;
-    background-image: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    position: relative;
-}
-
-/* Reset background for container */
-.section-title::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.25);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    z-index: -1;
+    transition: all 0.3s ease;
 }
 
 .section-title i {
     font-size: 1.5rem;
+    color: #667eea;
     flex-shrink: 0;
-    /* Same beautiful gradient for icon */
-    color: transparent;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
 }
 
 .section-main-content {
@@ -1614,8 +995,8 @@ div#logs-section.section-content.active .section-main-content {
     width: 100%;
     position: relative;
     min-height: 300px; /* Increase minimum height significantly */
-    padding: 1.5rem; /* Add consistent padding that aligns with section title */
-    background: rgba(0, 0, 0, 0.1);
+    padding-bottom: 2rem; /* Add bottom padding to ensure content is visible */
+    background: rgba(102, 126, 234, 0.05);
     border-radius: 12px;
 }
 
@@ -1647,7 +1028,7 @@ div#logs-section.section-content.active .section-main-content {
     text-transform: none; /* Remove uppercase */
     letter-spacing: 0; /* Remove letter spacing */
     backdrop-filter: none; /* Remove backdrop filter */
-    max-width: 600px; /* Match section-title width for consistent alignment */
+    max-width: 800px; /* Match section-title width for consistent alignment */
 }
 
 /* First subsection in a section should have less top margin */
@@ -1692,9 +1073,9 @@ div#logs-section.section-content.active .section-main-content {
     margin-bottom: 0.25rem;
 }
 
-/* Perfect alignment for dropdowns - no left padding */
+/* Ensure all form-groups under subsection-titles have consistent left margin */
 .form-section .form-group:not(.checkbox-group):not(.radio-group) {
-    padding-left: 0; /* Remove left padding for perfect alignment */
+    padding-left: 1.5rem;
     margin-bottom: 0.5rem;
 }
 
@@ -1734,58 +1115,30 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border: 1px solid rgba(102, 126, 234, 0.2);
 }
 
-/* Simple scaling grid - no extra padding */
-.subsection-content .scaling-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1rem;
-    margin-top: 1rem;
-    padding: 1rem 0;
-    background: transparent;
-    border-radius: 0;
-    border: none;
-    backdrop-filter: none;
-}
-
+/* Compact Scaling Grid */
 .scaling-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1rem;
-    margin-top: 1rem;
-    padding: 1rem 0;
-    background: transparent;
-    border-radius: 0;
-    border: none;
-    backdrop-filter: blur(10px);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-left: 1.5rem; /* Same left padding as checkbox-groups */
 }
 
 .scaling-item {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem 0;
-    background: transparent;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    transition: all 0.3s ease;
-    backdrop-filter: none;
-}
-
-.scaling-item:hover {
-    background: transparent;
-    border-bottom-color: rgba(99, 102, 241, 0.3);
-    transform: none;
-    box-shadow: none;
+    gap: 0.15rem;
+    padding: 0.35rem 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .scaling-item label {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-    text-align: center;
-    letter-spacing: 0.3px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #e4e4e4;
+    margin: 0 0 2px 0;
 }
 
 /* Custom Slider Container */
@@ -1897,57 +1250,33 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* Template buttons compact styling */
 .template-buttons {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
-    justify-content: center;
 }
 
 .template-buttons .btn {
-    font-size: 0.85rem;
-    padding: 0.6rem 1rem;
-    min-width: auto;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.8) 0%, rgba(139, 92, 246, 0.6) 100%);
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    color: white;
-    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
 }
 
-.template-buttons .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(139, 92, 246, 0.7) 100%);
-}
-
-/* Simple scaling templates - no extra padding */
-.subsection-content .scaling-templates {
-    margin-bottom: 1rem;
-    padding: 1rem 0;
-    background: transparent;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: none;
-}
-
+/* Scaling Templates */
 .scaling-templates {
     margin-bottom: 1rem;
-    padding: 1rem 0;
-    background: transparent;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: none;
+    padding-left: 1.5rem; /* Same left padding as checkbox-groups */
 }
 
 .scaling-templates label {
     display: block;
-    margin-bottom: 1rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: 0.3px;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #e4e4e4;
+}
+
+.template-buttons .btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+    min-width: auto;
 }
 
 .form-group {
@@ -1960,14 +1289,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Checkbox form-groups should be even more compact */
 .checkbox-group.form-group {
-    margin-bottom: 0.25rem;
-    padding: 0.25rem 0 0.25rem 0;
-}
-
-/* All checkboxes should be compact - minimal spacing everywhere */
-.checkbox-group {
-    margin-bottom: 0.25rem !important;
-    padding: 0.25rem 0 0.25rem 0 !important;
+    margin-bottom: 0.5rem;
 }
 
 /* Form help text styling */
@@ -1981,24 +1303,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .form-group .form-help {
     margin-bottom: 0;
-}
-
-/* Form actions - button groups with proper spacing */
-.form-actions {
-    display: flex;
-    gap: 1rem; /* More space between buttons */
-    align-items: center;
-    margin-top: 1rem;
-}
-
-/* Ensure all buttons in form-actions have consistent height */
-.form-actions .btn,
-.form-actions a.btn {
-    min-height: 42px !important;
-    height: 42px !important;
-    box-sizing: border-box !important;
-    display: inline-flex !important;
-    align-items: center !important;
 }
 
 /* Prevent layout shift on focus by ensuring consistent box model */
@@ -2032,19 +1336,18 @@ fieldset:focus-within {
     font-family: inherit;
 }
 
-/* Special styling for checkbox and radio labels - inline and not bold */
+/* Special styling for checkbox and radio labels */
 .checkbox-group label,
 .radio-group label {
-    display: inline;
+    display: block;
     margin: 0;
-    font-weight: 400; /* Normal weight, not bold */
+    font-weight: 500;
     color: #e0e6ed;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    line-height: 1.4; /* Better line height for vertical alignment */
+    line-height: 1.2; /* Reduced line-height for better vertical alignment */
     flex: 1; /* Take remaining space */
     padding-left: 0.5rem; /* Slightly more space from checkbox */
-    vertical-align: top; /* Align with top of checkbox */
 }
 
 .checkbox-group label:hover,
@@ -2074,30 +1377,6 @@ fieldset:focus-within {
     border-radius: 0; /* Remove border radius */
     margin-bottom: 1rem;
     transition: none; /* Remove transitions */
-}
-
-/* Improve checkbox vertical alignment */
-.checkbox-group input[type="checkbox"],
-.radio-group input[type="radio"] {
-    margin: 0;
-    padding: 0;
-    vertical-align: top;
-    margin-top: 0.125rem; /* Slight adjustment to align with first line of text */
-}
-
-/* Ensure checkbox labels align properly with checkbox */
-.checkbox-group label,
-.radio-group label {
-    display: inline;
-    margin: 0;
-    font-weight: 400; /* Normal weight, not bold */
-    color: #e0e6ed;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    line-height: 1.4; /* Better line height for vertical alignment */
-    flex: 1; /* Take remaining space */
-    padding-left: 0.5rem; /* Slightly more space from checkbox */
-    vertical-align: top; /* Align with top of checkbox */
 }
 
 .checkbox-group:hover,
@@ -2171,24 +1450,6 @@ fieldset:focus-within {
 
 /* Text inputs can be shorter too unless they're for long content */
 .form-group input[type="text"]:not([name*="token"]):not([name*="hostname"]) {
-    width: 250px;
-    max-width: 100%;
-}
-
-/* Specific width for Plex hostname field - moderately sized */
-.form-group input[name*="hostname"] {
-    width: 300px;
-    max-width: 100%;
-}
-
-/* Specific width for Plex token field - smaller than full width */
-.form-group input[name*="token"] {
-    width: 350px;
-    max-width: 100%;
-}
-
-/* Password fields should be compact - about 25 characters wide */
-.form-group input[type="password"] {
     width: 250px;
     max-width: 100%;
 }
@@ -2294,21 +1555,17 @@ fieldset:focus-within {
 /* Custom number input with styled controls */
 .number-input-wrapper {
     position: relative;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    width: auto;
-    gap: 8px;
 }
 
 .number-input-wrapper input[type="number"] {
-    padding-right: 8px; /* Remove extra space since buttons are outside */
-    width: auto;
-    min-width: 120px;
+    padding-right: 3rem; /* Make space for custom buttons */
 }
 
 .number-controls {
-    position: relative;
-    right: auto;
+    position: absolute;
+    right: 8px;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -2658,19 +1915,17 @@ fieldset:focus-within {
     font-size: 0.9rem;
 }
 
-/* Button state classes - matching new design language */
+/* Button state classes */
 .btn.is-success {
-    background: rgba(34, 197, 94, 0.15) !important;
-    border: 1px solid rgba(34, 197, 94, 0.3) !important;
-    color: rgba(34, 197, 94, 1) !important;
-    box-shadow: none !important;
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(0, 184, 148, 0.3);
 }
 
 .btn.is-danger {
-    background: rgba(239, 68, 68, 0.15) !important;
-    border: 1px solid rgba(239, 68, 68, 0.3) !important;
-    color: rgba(239, 68, 68, 1) !important;
-    box-shadow: none !important;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
 }
 
 .btn-group {
@@ -2854,7 +2109,7 @@ fieldset:focus-within {
 }
 
 .footer-content {
-    max-width: 600px;
+    max-width: 800px;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;

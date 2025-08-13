@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Logs - Posterrama</title>
-    <link rel="stylesheet" href="/admin.css?v=1.2.4">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/admin.css?v=1.4.9">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body {
@@ -17,10 +18,22 @@
         }
         .admin-header {
             flex-shrink: 0;
-            padding: 1rem;
+            padding: 1rem 2rem; /* Match admin padding */
+            position: relative !important; /* Override fixed positioning */
+            left: auto !important; /* Reset left positioning */
+            width: 100% !important; /* Full width without sidebar */
+            top: auto !important; /* Reset top positioning */
+            display: flex !important; /* Ensure flexbox layout */
+            align-items: center !important; /* Vertical center alignment */
+            justify-content: space-between !important; /* Space between title and nav */
+            height: 70px; /* Match admin header height */
+            box-sizing: border-box; /* Include padding in height */
         }
         .admin-header nav {
-            margin-top: 1rem;
+            margin-top: 0 !important; /* Remove top margin that breaks alignment */
+            display: flex !important; /* Ensure flexbox for nav items */
+            align-items: center !important; /* Vertical center alignment for nav */
+            gap: 1rem !important; /* Space between nav items */
         }
         .admin-header a {
             margin-right: 1rem;
@@ -66,7 +79,7 @@
             color: #e0e0e0;
             border: 1px solid #444;
             border-radius: 4px;
-            min-width: 150px;
+            min-width: 100px;
         }
         
         .log-viewer {
@@ -150,10 +163,16 @@
 </head>
 <body>
     <header class="admin-header">
-        <h1>Live Logs</h1>
-        <nav>
-            <a href="/admin">Back to Admin</a>
-            <a href="/admin/logout">Logout</a>
+        <h1 class="logo-text"><span class="admin-text">Live Logs</span> <span class="gradient-text">posterrama</span></h1>
+        <nav class="header-nav">
+            <a href="/admin" class="btn btn-secondary">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                Back to Admin
+            </a>
+            <a href="/admin/logout" class="btn btn-danger">
+                <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                Logout
+            </a>
         </nav>
     </header>
 
@@ -167,12 +186,12 @@
             <label>
                 Filter Level:
                 <select id="logLevel" class="log-level-select">
-                    <option value="trace">TRACE & above</option>
-                    <option value="debug">DEBUG & above</option>
-                    <option value="info" selected>INFO & above</option>
-                    <option value="warn">WARN & above</option>
-                    <option value="error">ERROR & above</option>
-                    <option value="fatal">FATAL only</option>
+                    <option value="trace">TRACE</option>
+                    <option value="debug">DEBUG</option>
+                    <option value="info" selected>INFO</option>
+                    <option value="warn">WARN</option>
+                    <option value="error">ERROR</option>
+                    <option value="fatal">FATAL</option>
                 </select>
             </label>
             

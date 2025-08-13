@@ -38,393 +38,51 @@
  */
 // Simple help panel toggle - rebuilt from scratch with original styling
 function toggleHelpPanel() {
-    console.log('toggleHelpPanel function started');
-    
-    // Get current active section
-    const activeNavItem = document.querySelector('.nav-item.active');
-    const sectionName = activeNavItem ? activeNavItem.dataset.section : 'general';
-    
-    console.log('Active section:', sectionName);
-    
-    // Use existing help panel from HTML
-    let helpPanel = document.getElementById('quick-help-panel');
+    // Create help panel if it doesn't exist
+    let helpPanel = document.getElementById('simple-help-panel');
     if (!helpPanel) {
-        console.log('ERROR: Help panel not found in DOM');
-        return;
+        helpPanel = document.createElement('div');
+        helpPanel.id = 'simple-help-panel';
+        helpPanel.className = 'quick-help-panel';
+        helpPanel.innerHTML = `
+            <div class="help-header">
+                <h3>Quick Help</h3>
+                <button class="help-close" onclick="toggleHelpPanel()">×</button>
+            </div>
+            <div class="help-content">
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #ffffff; margin: 0 0 0.5rem 0; font-size: 1rem;">General Settings</h4>
+                    <p style="margin: 0; font-size: 0.9rem;">Configure transition intervals, background refresh, and server settings.</p>
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #ffffff; margin: 0 0 0.5rem 0; font-size: 1rem;">Display Settings</h4>
+                    <p style="margin: 0; font-size: 0.9rem;">Adjust poster display, metadata visibility, and UI scaling options.</p>
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #ffffff; margin: 0 0 0.5rem 0; font-size: 1rem;">Media Servers</h4>
+                    <p style="margin: 0; font-size: 0.9rem;">Connect and configure your Plex media server settings.</p>
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #ffffff; margin: 0 0 0.5rem 0; font-size: 1rem;">Authentication</h4>
+                    <p style="margin: 0; font-size: 0.9rem;">Manage admin passwords, 2FA, and API key settings.</p>
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #ffffff; margin: 0 0 0.5rem 0; font-size: 1rem;">Management</h4>
+                    <p style="margin: 0; font-size: 0.9rem;">System controls, cache management, and app restart options.</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(helpPanel);
     }
-    
-    // Check current styles before toggle
-    const computedStyle = window.getComputedStyle(helpPanel);
-    console.log('Current transform:', computedStyle.transform);
-    console.log('Current display:', computedStyle.display);
-    console.log('Current visibility:', computedStyle.visibility);
-    console.log('Current z-index:', computedStyle.zIndex);
     
     // Toggle visibility using CSS classes
     helpPanel.classList.toggle('open');
-    
-    // Check styles after toggle
-    setTimeout(() => {
-        const newComputedStyle = window.getComputedStyle(helpPanel);
-        console.log('After toggle transform:', newComputedStyle.transform);
-        console.log('After toggle display:', newComputedStyle.display);
-    }, 100);
-    
-    // Update content based on active section - do this AFTER opening
-    if (helpPanel.classList.contains('open')) {
-        updateHelpContent(sectionName);
-    }
-    
-    console.log('Toggled help panel for section:', sectionName, 'Panel open:', helpPanel.classList.contains('open'));
-}
-
-function updateHelpContent(sectionId) {
-    console.log('updateHelpContent called with:', sectionId);
-    
-    const helpPanel = document.getElementById('quick-help-panel');
-    if (!helpPanel) {
-        console.log('Help panel not found');
-        return;
-    }
-    
-    // Only update if the help panel is currently open/visible
-    if (!helpPanel.classList.contains('open')) {
-        console.log('Help panel not open, skipping update');
-        return;
-    }
-    
-    // Call the forced update function
-    updateHelpContentForced(sectionId);
-}
-
-function updateHelpContentForced(sectionId) {
-    console.log('updateHelpContentForced called with:', sectionId);
-    
-    const helpPanel = document.getElementById('quick-help-panel');
-    if (!helpPanel) {
-        console.log('Help panel not found');
-        return;
-    }
-    
-    // Map section names to section IDs for help content lookup
-    const sectionMap = {
-        'general': 'general-section',
-        'display': 'display-section', 
-        'media': 'media-section',
-        'authentication': 'authentication-section',
-        'promobox': 'promobox-section',
-        'management': 'management-section',
-        'logs': 'logs-section'
-    };
-    
-    const mappedSectionId = sectionMap[sectionId] || 'general-section';
-    console.log('Mapped section ID:', mappedSectionId);
-    
-    const helpContent = getHelpContentForSection(mappedSectionId);
-    console.log('Help content:', helpContent);
-    
-    const newHTML = `
-        <div class="help-header">
-            <h3>${helpContent.title}</h3>
-            <button class="help-close btn btn-icon" onclick="toggleHelpPanel()" aria-label="Close help panel">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="help-content">
-            ${helpContent.sections.map(section => `
-                <div class="help-section">
-                    <h4>${section.title}</h4>
-                    <p>${section.description}</p>
-                    ${section.details ? `<ul>${section.details.map(detail => `<li>${detail}</li>`).join('')}</ul>` : ''}
-                </div>
-            `).join('')}
-        </div>
-    `;
-    
-    console.log('Generated HTML length:', newHTML.length);
-    helpPanel.innerHTML = newHTML;
-    console.log('Content FORCED update in panel for section:', sectionId);
-}
-
-function getHelpContentForSection(sectionId) {
-    const helpContent = {
-        'general-section': {
-            title: '<i class="fas fa-cog"></i>&nbsp;&nbsp;General Settings',
-            sections: [
-                {
-                    title: 'Transition Interval (seconds)',
-                    description: 'How long each poster is displayed before switching to the next one.',
-                    details: [
-                        'Set between 1 and 300 seconds',
-                        'Short intervals (1-5 sec): Dynamic slideshow for entertainment',
-                        'Medium intervals (10-30 sec): Good balance between variety and readability',
-                        'Long intervals (60+ sec): Calm display, ideal for reading information'
-                    ]
-                },
-                {
-                    title: 'Background Refresh (minutes)',
-                    description: 'How often the system fetches new content from your media server.',
-                    details: [
-                        'Set to 0 to disable automatic refresh',
-                        'Recommended: 60-180 minutes for most users',
-                        'Short intervals: New content appears faster, but more server load',
-                        'Long intervals: Less server load, but new movies/shows appear later',
-                        'Maximum: 1440 minutes (24 hours)'
-                    ]
-                },
-                {
-                    title: 'Application Port',
-                    description: 'The port number on which the admin interface and screensaver are accessible.',
-                    details: [
-                        'Default port is usually 4000',
-                        'Valid range: 1024-65535',
-                        'Make sure the port is not used by other programs',
-                        'Application restart required after change',
-                        'Update your bookmarks after port change'
-                    ]
-                },
-                {
-                    title: 'Debug Mode',
-                    description: 'Enable detailed logging for troubleshooting problems.',
-                    details: [
-                        'Shows extensive information in logs',
-                        'Useful for diagnosing connection problems',
-                        'May impact performance when enabled',
-                        'Enable only when troubleshooting, then disable again',
-                        'Check the logs section to view debug information'
-                    ]
-                }
-            ]
-        },
-        'display-section': {
-            title: '<i class="fas fa-tv"></i>&nbsp;&nbsp;Display Settings',
-            sections: [
-                {
-                    title: 'Poster Display',
-                    description: 'Determine how posters and movie covers are shown on screen.',
-                    details: [
-                        'Poster size: Adjust the size of movie posters to fit your screen',
-                        'Aspect ratio: Maintain original proportions or fill the screen',
-                        'Quality: Balance between image quality and loading speed'
-                    ]
-                },
-                {
-                    title: 'Metadata Display',
-                    description: 'Configure which movie and TV show information is displayed.',
-                    details: [
-                        'Title: Show the title of movies and series',
-                        'Year: Show the release year',
-                        'Genre: Show genres like action, comedy, drama',
-                        'Rating: Show ratings (IMDB, Rotten Tomatoes)',
-                        'Summary: Show brief description of the content',
-                        'Cast: Show main actors and director'
-                    ]
-                },
-                {
-                    title: 'Scale Settings',
-                    description: 'Adapt the interface to different screen sizes.',
-                    details: [
-                        'Full HD (1920x1080): Optimal for most TVs',
-                        '4K (3840x2160): For large 4K screens and displays',
-                        'Widescreen: For ultrawide monitors and projector screens',
-                        'Custom: Manually adjust for specific setup'
-                    ]
-                }
-            ]
-        },
-        'media-section': {
-            title: '<i class="fas fa-server"></i>&nbsp;&nbsp;Media Servers',
-            sections: [
-                {
-                    title: 'Plex Server Configuration',
-                    description: 'Connect Posterrama to your Plex Media Server to display content.',
-                    details: [
-                        'Server URL: The IP address or domain name of your Plex server (e.g. http://192.168.1.100:32400)',
-                        'Plex Token: Authentication token for access (automatically generated after login)',
-                        'Test connection: Check if the connection to Plex works before saving'
-                    ]
-                },
-                {
-                    title: 'Library Selection',
-                    description: 'Choose which Plex libraries are used for the screensaver.',
-                    details: [
-                        'Movie Libraries: Select your movie collections',
-                        'TV Show Libraries: Select your TV series collections',
-                        'Multiple libraries: You can combine multiple libraries',
-                        'Auto detection: The system detects available libraries after connection'
-                    ]
-                },
-                {
-                    title: 'Content Filtering',
-                    description: 'Filter which content is shown in the screensaver.',
-                    details: [
-                        'Rating filter: Limit content based on age classification',
-                        'Genre filter: Show only specific genres',
-                        'Recently added: Show only recently added content',
-                        'Quality filter: Filter by video quality (HD, 4K, etc.)'
-                    ]
-                }
-            ]
-        },
-        'authentication-section': {
-            title: '<i class="fas fa-shield-alt"></i>&nbsp;&nbsp;Authentication & Security',
-            sections: [
-                {
-                    title: 'Admin Password',
-                    description: 'Manage the password for access to this admin interface.',
-                    details: [
-                        'Use a strong password with at least 8 characters',
-                        'Combine uppercase, lowercase, numbers and symbols',
-                        'Change the password regularly for optimal security',
-                        'Store the password in a safe place'
-                    ]
-                },
-                {
-                    title: 'Two-Factor Authentication (2FA)',
-                    description: 'Extra security layer with an authentication app on your phone.',
-                    details: [
-                        'Requires an authentication app like Google Authenticator or Authy',
-                        'Scan the QR code with your authentication app during setup',
-                        'Enter the 6-digit code from your app at each login',
-                        'Save the backup codes in a safe place',
-                        'Recommended for all admin accounts'
-                    ]
-                },
-                {
-                    title: 'API Keys',
-                    description: 'Manage access for external applications and integrations.',
-                    details: [
-                        'Generate unique API keys for external access',
-                        'Each API key has specific rights and limitations',
-                        'Revoke old or unused API keys regularly',
-                        'Monitor API usage in the logs section',
-                        'Never share API keys publicly or via insecure channels'
-                    ]
-                }
-            ]
-        },
-        'promobox-section': {
-            title: '<i class="fas fa-globe"></i>&nbsp;&nbsp;Promobox Site',
-            sections: [
-                {
-                    title: 'Promo Message Configuration',
-                    description: 'Add custom messages and announcements to the screensaver.',
-                    details: [
-                        'Custom text: Add your own messages (e.g. "Welcome to Movie Night!")',
-                        'Scheduling: Set when messages are displayed',
-                        'Duration: How long each message remains visible',
-                        'Position: Where on screen the message appears',
-                        'Styling: Customize font, color and size'
-                    ]
-                },
-                {
-                    title: 'Announcements',
-                    description: 'Create temporary messages for special occasions.',
-                    details: [
-                        'Event announcements: "Movie night tonight at 8 PM"',
-                        'New content: "10 new movies added this week"',
-                        'System messages: "Server maintenance scheduled"',
-                        'Start/end date: Automatically show and hide',
-                        'Priority: Determine which messages are most important'
-                    ]
-                }
-            ]
-        },
-        'management-section': {
-            title: '<i class="fas fa-tools"></i>&nbsp;&nbsp;Management & Tools',
-            sections: [
-                {
-                    title: 'Cache Management',
-                    description: 'Manage stored data to optimize performance.',
-                    details: [
-                        'View cache: See which images and data are stored',
-                        'Clear cache: Remove all stored data to fix problems',
-                        'Automatic cleanup: Old cache files are automatically removed',
-                        'Cache size: Monitor how much disk space is used'
-                    ]
-                },
-                {
-                    title: 'Application Controls',
-                    description: 'Manage the Posterrama application and system status.',
-                    details: [
-                        'Restart application: Fix problems by restarting the app',
-                        'Status check: See if all systems are functioning correctly',
-                        'Update check: Check for new versions of Posterrama',
-                        'Performance monitoring: View CPU and memory usage'
-                    ]
-                },
-                {
-                    title: 'Backup & Export',
-                    description: 'Backup your settings and export configurations.',
-                    details: [
-                        'Export settings: Download your configuration as backup',
-                        'Import settings: Restore configuration from backup',
-                        'Automatic backups: Configure regular backups',
-                        'Cloud sync: Synchronize settings between devices'
-                    ]
-                }
-            ]
-        },
-        'logs-section': {
-            title: '<i class="fas fa-file-alt"></i>&nbsp;&nbsp;Logs & Debug',
-            sections: [
-                {
-                    title: 'Log Monitoring',
-                    description: 'View real-time activity and system messages.',
-                    details: [
-                        'Live logs: See messages as they happen',
-                        'Error logs: Specific errors and warnings',
-                        'Access logs: Who accessed when',
-                        'Performance logs: Performance related information'
-                    ]
-                },
-                {
-                    title: 'Troubleshooting',
-                    description: 'Use logs to identify and solve problems.',
-                    details: [
-                        'Connection problems: Check Plex server connection errors',
-                        'Performance issues: Look for slow responses',
-                        'Authentication failures: View failed login attempts',
-                        'Cache issues: Identify problems with file storage',
-                        'Filter logs: Search specific events or time periods'
-                    ]
-                },
-                {
-                    title: 'Log Management',
-                    description: 'Configure how logs are stored and managed.',
-                    details: [
-                        'Log level: Set how much detail you want to see',
-                        'Rotation: Automatically archive old logs',
-                        'Download: Export logs for external analysis',
-                        'Cleanup: Remove old logs to save space'
-                    ]
-                }
-            ]
-        }
-    };
-    
-    return helpContent[sectionId] || helpContent['general-section'];
 }
 // Expose globally
 window.toggleHelpPanel = toggleHelpPanel;
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[ADMIN SENTINEL] admin.js build 1.2.9 loaded at', new Date().toISOString());
-    
-    // Add event listener to help button as backup
-    const helpButton = document.getElementById('toggle-help-panel');
-    if (helpButton) {
-        console.log('Help button found, adding event listener');
-        helpButton.addEventListener('click', function(e) {
-            e.preventDefault(); // Prevent any default behavior
-            // Use the EXACT same call as the 'H' key
-            if (window.toggleHelpPanel) {
-                window.toggleHelpPanel();
-            }
-        });
-    } else {
-        console.log('Help button not found');
-    }
     
     // Register Service Worker for caching
     if ('serviceWorker' in navigator) {
@@ -707,33 +365,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function activateSection(targetSection) {
         if (!targetSection) return;
-        // Remove the logic that stops background slideshow - fanart should always run
+        // Stop background slideshow when leaving media section to prevent leaks/timers stacking
+        if (targetSection !== 'media' && adminBgTimer) {
+            clearInterval(adminBgTimer);
+            adminBgTimer = null;
+        }
         sectionNodes = Array.from(document.querySelectorAll('.section-content'));
         ensureAllSectionsPresent();
-        // Simple show/hide logic for sections
+        // Ensure a simple portal container exists for non-core sections
+        let portal = document.getElementById('admin-section-portal');
+        if (!portal) {
+            portal = document.createElement('div');
+            portal.id = 'admin-section-portal';
+            portal.style.cssText = 'position:relative;display:block;width:100%;min-height:400px;';
+            const formEl = document.getElementById('config-form');
+            if (formEl && formEl.parentElement) formEl.parentElement.insertBefore(portal, formEl.nextSibling); else document.body.appendChild(portal);
+        }
         sectionNodes.forEach(sec => {
             const isTarget = sec.id === `${targetSection}-section`;
             if (isTarget) {
                 sec.classList.add('active');
                 sec.style.display='block';
+                // Move non-core sections into portal (layout stability)
+                if (sec.id !== 'general-section' && sec.id !== 'display-section' && sec.parentElement !== portal) {
+                    portal.appendChild(sec);
+                } else if ((sec.id === 'general-section' || sec.id === 'display-section')) {
+                    const formEl = document.getElementById('config-form');
+                    if (formEl && sec.parentElement !== formEl) formEl.appendChild(sec);
+                }
             } else {
                 sec.classList.remove('active');
                 sec.style.display='none';
             }
         });
-        
-        // Always update help content when section changes
         updateHelpContent(targetSection);
         
-        // If help panel is open, make sure it updates immediately
-        const helpPanel = document.getElementById('quick-help-panel');
-        if (helpPanel && helpPanel.classList.contains('open')) {
-            console.log('Help panel is open, forcing content update for section:', targetSection);
-            // Force update by calling with forceUpdate parameter
-            updateHelpContentForced(targetSection);
+        // Lazy load Plex libraries + background at first media activation
+    if (targetSection === 'media' && window.__plexReady && !window.__mediaLazyLoaded) {
+            window.__mediaLazyLoaded = true;
+            const movieContainer = document.getElementById('movie-libraries-container');
+            const showContainer = document.getElementById('show-libraries-container');
+            if (movieContainer) movieContainer.innerHTML = '<small>Loading libraries...</small>';
+            if (showContainer) showContainer.innerHTML = '<small>Loading libraries...</small>';
+            setTimeout(()=>{
+                try {
+                    fetchAndDisplayPlexLibraries(window.__savedMovieLibs||[], window.__savedShowLibs||[]);
+            initializeAdminBackground(); // starts timer only while on media section
+                } catch(e){ console.warn('[ADMIN] Lazy media load failed', e); }
+            }, 30);
         }
-        
-        // Libraries are now loaded during config load, no need for lazy loading here
     }
 
     navItems.forEach(item => {
@@ -741,14 +421,24 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const targetSection = item.dataset.section;
             
-            // Update ARIA attributes and classes for tab navigation
+            // Update ARIA attributes and styling for tab navigation
             navItems.forEach(nav => {
                 nav.classList.remove('active');
                 nav.setAttribute('aria-selected', 'false');
+                // Reset to inactive styling
+                nav.style.background = 'transparent';
+                nav.style.color = '#d0d0d0';
+                nav.style.borderLeft = 'none';
+                nav.style.boxShadow = 'none';
             });
             
             item.classList.add('active');
             item.setAttribute('aria-selected', 'true');
+            // Apply active styling
+            item.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.1) 100%)';
+            item.style.color = '#ffffff';
+            item.style.borderLeft = '3px solid rgba(255,255,255,0.8)';
+            item.style.boxShadow = 'inset 0 0 10px rgba(255,255,255,0.1)';
             
             activateSection(targetSection);
         });
@@ -771,6 +461,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (index !== 0) {
                 nav.classList.remove('active');
                 nav.setAttribute('aria-selected', 'false');
+                nav.style.background = 'transparent';
+                nav.style.color = '#d0d0d0';
+                nav.style.borderLeft = 'none';
+                nav.style.boxShadow = 'none';
             }
         });
         
@@ -1067,12 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
             hasChanges = false;
             updateStatus('Configuration saved successfully', 'success');
             saveButton.classList.remove('has-changes');
-            
-            // Update saved library selections after successful save
-            const movieLibraries = getSelectedLibraries('movie');
-            const showLibraries = getSelectedLibraries('show');
-            window.__savedMovieLibs = movieLibraries;
-            window.__savedShowLibs = showLibraries;
         });
 
         window.addEventListener('beforeunload', (e) => {
@@ -1439,30 +1127,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!hasPlexToken) missing.push('PLEX_TOKEN');
                 if (missing.length < 3) console.warn('Plex not initialized — missing:', missing.join(', '));
             } else {
-                // Load Plex libraries immediately when config is loaded
+                // Placeholders until user clicks Media
                 const movieContainer = document.getElementById('movie-libraries-container');
                 const showContainer = document.getElementById('show-libraries-container');
-                if (movieContainer) movieContainer.innerHTML = '<small>Loading libraries...</small>';
-                if (showContainer) showContainer.innerHTML = '<small>Loading libraries...</small>';
-                
-                // Load libraries with saved selections
-                setTimeout(() => {
-                    try {
-                        fetchAndDisplayPlexLibraries(window.__savedMovieLibs||[], window.__savedShowLibs||[]);
-                        window.__mediaLazyLoaded = true; // Mark as loaded
-                    } catch(e) { 
-                        console.warn('[ADMIN] Library load failed during config load', e); 
-                        if (movieContainer) movieContainer.innerHTML = '<small>Failed to load libraries</small>';
-                        if (showContainer) showContainer.innerHTML = '<small>Failed to load libraries</small>';
-                    }
-                }, 100);
+                if (movieContainer && !movieContainer.dataset.lazyReady) {
+                    movieContainer.innerHTML = '<small>Libraries load on first Media tab open...</small>';
+                    movieContainer.dataset.lazyReady='true';
+                }
+                if (showContainer && !showContainer.dataset.lazyReady) {
+                    showContainer.innerHTML = '<small>Libraries load on first Media tab open...</small>';
+                    showContainer.dataset.lazyReady='true';
+                }
             }
 
             // Forcefully remove focus from any element that the browser might have auto-focused.
             if (document.activeElement) document.activeElement.blur();
-            
-            // Always initialize fanart background regardless of active section
-            initializeAdminBackground();
         } catch (error) {
             console.error('Failed to load config:', error);
             showNotification('Failed to load settings. Please try refreshing the page.', 'error');
@@ -1511,8 +1190,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.warn('Admin background queue is empty.');
                     return;
                 }
-                // Start at random index instead of -1 for random fanart on refresh
-                adminBgIndex = Math.floor(Math.random() * adminBgQueue.length) - 1;
+                adminBgIndex = -1; // Start at -1 so first increment gives 0
             } catch (error) {
                 console.warn('Failed to fetch admin background media:', error);
                 return;
@@ -2122,7 +1800,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadConfig();
     
-    // Remove automatic background initialization - it will be handled by section switching
+    // Initialize admin background slideshow after config is loaded
+    setTimeout(() => {
+        initializeAdminBackground();
+    }, 1000); // Small delay to ensure config is loaded
 
     // Cleanup timers when page unloads
     window.addEventListener('beforeunload', () => {
@@ -2173,7 +1854,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (configForm) {
         configForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const button = document.getElementById('save-config-button'); // Direct ID selector instead
+            const button = document.querySelector('button[type="submit"][form="config-form"]');
             if (!button) return;
 
             const buttonTextSpan = button.querySelector('span:last-child');
@@ -2211,22 +1892,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 // --- Validation ---
-                // Only validate Plex library selection if we're actively configuring in the media section
-                const mediaSection = document.getElementById('media-section');
-                const isMediaSectionActive = mediaSection && mediaSection.classList.contains('active');
-                const isPlexEnabled = document.getElementById('mediaServers[0].enabled')?.checked;
-                
-                // Only require library selection if user is actually in media section configuring Plex
-                if (isPlexEnabled && isMediaSectionActive) {
+                const isPlexEnabled = document.getElementById('mediaServers[0].enabled').checked;
+                if (isPlexEnabled) {
                     const selectedMovieLibs = getSelectedLibraries('movie');
                     const selectedShowLibs = getSelectedLibraries('show');
 
                     if (selectedMovieLibs.length === 0 && selectedShowLibs.length === 0) {
-                        throw new Error('When configuring Plex in the Media section, you must select at least one movie or show library.');
+                        throw new Error('If the Plex server is enabled, you must select at least one movie or show library.');
                     }
                 }
-                
-                // Allow Plex to be saved even from other sections for fanart functionality
 
                 // --- Numeric Field Validation ---
                 const numericFieldIds = [
