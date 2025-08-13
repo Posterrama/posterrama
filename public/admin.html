@@ -509,6 +509,47 @@
                                     </div>
                                 </div>
                                 
+                                <!-- Content Filtering Subsection -->
+                                <div class="subsection-header">
+                                    <i class="fas fa-filter"></i>
+                                    Content Filtering
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group">
+                                        <label for="mediaServers[0].ratingFilter">Rating Filter</label>
+                                        <select id="mediaServers[0].ratingFilter" name="mediaServers[0].ratingFilter">
+                                            <option value="">All Ratings</option>
+                                            <option value="G">G - General Audiences</option>
+                                            <option value="PG">PG - Parental Guidance</option>
+                                            <option value="PG-13">PG-13 - Parents Strongly Cautioned</option>
+                                            <option value="R">R - Restricted</option>
+                                            <option value="NC-17">NC-17 - Adults Only</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mediaServers[0].genreFilter">Genre Filter (comma-separated)</label>
+                                        <input type="text" id="mediaServers[0].genreFilter" name="mediaServers[0].genreFilter" placeholder="Action, Comedy, Drama (leave empty for all)">
+                                    </div>
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="mediaServers[0].recentlyAddedOnly" name="mediaServers[0].recentlyAddedOnly">
+                                        <label for="mediaServers[0].recentlyAddedOnly">Show Only Recently Added Content</label>
+                                    </div>
+                                    <div class="form-group recently-added-days-group hidden" id="recentlyAddedDaysContainer">
+                                        <label for="mediaServers[0].recentlyAddedDays">Recently Added (days)</label>
+                                        <input type="number" id="mediaServers[0].recentlyAddedDays" name="mediaServers[0].recentlyAddedDays" min="1" max="365" placeholder="30" value="30">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mediaServers[0].qualityFilter">Quality Filter</label>
+                                        <select id="mediaServers[0].qualityFilter" name="mediaServers[0].qualityFilter">
+                                            <option value="">All Qualities</option>
+                                            <option value="SD">SD - Standard Definition</option>
+                                            <option value="720p">720p - HD Ready</option>
+                                            <option value="1080p">1080p - Full HD</option>
+                                            <option value="4K">4K - Ultra HD</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
                                 <!-- Connection Testing Subsection -->
                                 <div class="subsection-header">
                                     <i class="fas fa-plug"></i>

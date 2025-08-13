@@ -200,24 +200,42 @@ function getHelpContentForSection(sectionId) {
             title: '<i class="fas fa-tv"></i>&nbsp;&nbsp;Display Settings',
             sections: [
                 {
-                    title: 'Poster Display',
-                    description: 'Determine how posters and movie covers are shown on screen.',
+                    title: 'Cinema Mode',
+                    description: 'Enable a special fullscreen display mode optimized for viewing.',
                     details: [
-                        'Poster size: Adjust the size of movie posters to fit your screen',
-                        'Aspect ratio: Maintain original proportions or fill the screen',
-                        'Quality: Balance between image quality and loading speed'
+                        'Cinema Mode: Enables fullscreen immersive viewing experience',
+                        'Orientation: Choose portrait, portrait-flipped, or auto-detect',
+                        'Perfect for dedicated media display screens'
                     ]
                 },
                 {
-                    title: 'Metadata Display',
-                    description: 'Configure which movie and TV show information is displayed.',
+                    title: 'Visual Elements',
+                    description: 'Choose which visual elements to display on screen.',
                     details: [
-                        'Title: Show the title of movies and series',
-                        'Year: Show the release year',
-                        'Genre: Show genres like action, comedy, drama',
-                        'Rating: Show ratings (IMDB, Rotten Tomatoes)',
-                        'Summary: Show brief description of the content',
-                        'Cast: Show main actors and director'
+                        'ClearLogo: Show high-quality transparent logos',
+                        'Rotten Tomatoes Badge: Display critic ratings and badges',
+                        'Show Poster: Display movie/TV show poster images',
+                        'Show Metadata: Display titles, descriptions and other info'
+                    ]
+                },
+                {
+                    title: 'Clock Widget',
+                    description: 'Display a clock on screen with timezone support.',
+                    details: [
+                        'Show Clock: Enable/disable the clock widget display',
+                        'Timezone: Choose from auto-detect or specific timezones',
+                        'Auto mode: Uses system timezone automatically',
+                        'Manual: Select from common timezones worldwide (CET, EST, JST, etc.)'
+                    ]
+                },
+                {
+                    title: 'Effects & Transitions',
+                    description: 'Configure visual effects and transitions between content.',
+                    details: [
+                        'Ken Burns: Slow zoom and pan effect on images',
+                        'Fade In/Out: Smooth fading transitions between content',
+                        'Slide Transition: Content slides in from different directions',
+                        'Effect Pause Time: How long effects pause between transitions (0-10 seconds)'
                     ]
                 },
                 {
@@ -678,7 +696,12 @@ document.addEventListener('DOMContentLoaded', () => {
             movieLibraryNames: ["Movies"],
             showLibraryNames: ["TV Shows"],
             movieCount: 30,
-            showCount: 15
+            showCount: 15,
+            ratingFilter: '',
+            genreFilter: '',
+            recentlyAddedOnly: false,
+            recentlyAddedDays: 30,
+            qualityFilter: ''
         }],
         siteServer: {
             enabled: false,
@@ -1187,6 +1210,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Show/hide timezone settings based on clockWidget state
         toggleClockSettings();
+        
+        // Show/hide recently added days field based on checkbox state
+        toggleRecentlyAddedDays();
     }
 
     function populateUIScalingSettings(config, defaults) {
@@ -1344,6 +1370,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setup clock widget toggle
         clockWidgetCheckbox.addEventListener('change', toggleClockSettings);
 
+        // Setup recently added toggle
+        const recentlyAddedCheckbox = document.getElementById('mediaServers[0].recentlyAddedOnly');
+        if (recentlyAddedCheckbox) {
+            recentlyAddedCheckbox.addEventListener('change', toggleRecentlyAddedDays);
+        }
+
         // Setup transition effect change to toggle effect pause time visibility
         const transitionEffectSelect = document.getElementById('transitionEffect');
         if (transitionEffectSelect) {
@@ -1366,6 +1398,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             timezoneGroup.style.display = 'none';
             formatGroup.style.display = 'none';
+        }
+    }
+
+    function toggleRecentlyAddedDays() {
+        const recentlyAddedCheckbox = document.getElementById('mediaServers[0].recentlyAddedOnly');
+        const daysContainer = document.getElementById('recentlyAddedDaysContainer');
+        
+        if (daysContainer) {
+            daysContainer.style.display = recentlyAddedCheckbox.checked ? 'block' : 'none';
         }
     }
 
@@ -1396,6 +1437,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('mediaServers[0].movieCount').value = plexServerConfig.movieCount ?? plexDefaults.movieCount;
         document.getElementById('mediaServers[0].showCount').value = plexServerConfig.showCount ?? plexDefaults.showCount;
+
+        // Content Filtering settings
+        document.getElementById('mediaServers[0].ratingFilter').value = plexServerConfig.ratingFilter ?? plexDefaults.ratingFilter;
+        document.getElementById('mediaServers[0].genreFilter').value = plexServerConfig.genreFilter ?? plexDefaults.genreFilter;
+        document.getElementById('mediaServers[0].recentlyAddedOnly').checked = plexServerConfig.recentlyAddedOnly ?? plexDefaults.recentlyAddedOnly;
+        document.getElementById('mediaServers[0].recentlyAddedDays').value = plexServerConfig.recentlyAddedDays ?? plexDefaults.recentlyAddedDays;
+        document.getElementById('mediaServers[0].qualityFilter').value = plexServerConfig.qualityFilter ?? plexDefaults.qualityFilter;
 
         return { savedMovieLibs, savedShowLibs };
     }
@@ -2315,7 +2363,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         movieLibraryNames: getSelectedLibraries('movie'),
                         showLibraryNames: getSelectedLibraries('show'),
                         movieCount: getValue('mediaServers[0].movieCount', 'number'),
-                        showCount: getValue('mediaServers[0].showCount', 'number')
+                        showCount: getValue('mediaServers[0].showCount', 'number'),
+                        ratingFilter: getValue('mediaServers[0].ratingFilter'),
+                        genreFilter: getValue('mediaServers[0].genreFilter'),
+                        recentlyAddedOnly: getValue('mediaServers[0].recentlyAddedOnly'),
+                        recentlyAddedDays: getValue('mediaServers[0].recentlyAddedDays', 'number'),
+                        qualityFilter: getValue('mediaServers[0].qualityFilter')
                     }],
                     siteServer: {
                         enabled: getValue('siteServer.enabled'),

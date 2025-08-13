@@ -803,6 +803,27 @@ div:nth-of-type(2).subsection-header i {
     filter: drop-shadow(0 2px 4px rgba(2, 132, 199, 0.2)) !important;
 }
 
+/* Content Filtering - Purple/Violet gradient */
+.subsection-header:has(i.fa-filter)::after {
+    background: linear-gradient(90deg, #7c3aed, #8b5cf6, #a855f7) !important;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3) !important;
+}
+
+.subsection-header:has(i.fa-filter) {
+    color: transparent !important;
+    background: linear-gradient(90deg, #7c3aed, #8b5cf6, #a855f7) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.subsection-header:has(i.fa-filter) i {
+    color: transparent !important;
+    background: linear-gradient(90deg, #7c3aed, #8b5cf6, #a855f7) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.2)) !important;
+}
+
 /* General Configuration */
 .subsection-header:has(i.fa-cogs)::after {
     background: linear-gradient(90deg, #6b7280, #9ca3af, #d1d5db) !important;
@@ -2169,9 +2190,21 @@ fieldset:focus-within {
     max-width: 100%;
 }
 
+/* Days input for recently added content - compact */
+.form-group input[name*="recentlyAddedDays"] {
+    width: 120px;
+    max-width: 100%;
+}
+
 /* Text inputs can be shorter too unless they're for long content */
-.form-group input[type="text"]:not([name*="token"]):not([name*="hostname"]) {
+.form-group input[type="text"]:not([name*="token"]):not([name*="hostname"]):not([name*="genreFilter"]) {
     width: 250px;
+    max-width: 100%;
+}
+
+/* Genre filter needs more space for comma-separated values */
+.form-group input[name*="genreFilter"] {
+    width: 350px;
     max-width: 100%;
 }
 
