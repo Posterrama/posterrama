@@ -49,7 +49,11 @@ class PlexSource {
 
             if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Found ${allItems.length} total items in specified libraries.`);
 
-            const shuffledItems = this.shuffleArray(allItems);
+            // Apply content filtering
+            const filteredItems = this.applyContentFiltering(allItems);
+            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] After filtering: ${filteredItems.length} items remaining.`);
+
+            const shuffledItems = this.shuffleArray(filteredItems);
             const selectedItems = count > 0 ? shuffledItems.slice(0, count) : shuffledItems;
 
             const processedItems = await Promise.all(
@@ -70,6 +74,68 @@ class PlexSource {
             console.error(`[PlexSource:${this.server.name}] Error fetching media: ${error.message}`);
             return [];
         }
+    }
+
+    /**
+     * Applies content filtering based on server configuration.
+     * @param {object[]} items - Array of Plex media items to filter.
+     * @returns {object[]} Filtered array of media items.
+     */
+    applyContentFiltering(items) {
+        let filteredItems = [...items];
+
+        // Rating filter
+        if (this.server.ratingFilter && this.server.ratingFilter.trim() !== '') {
+            filteredItems = filteredItems.filter(item => {
+                return item.contentRating === this.server.ratingFilter;
+            });
+            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Rating filter (${this.server.ratingFilter}): ${filteredItems.length} items.`);
+        }
+
+        // Genre filter
+        if (this.server.genreFilter && this.server.genreFilter.trim() !== '') {
+            const genreList = this.server.genreFilter.split(',').map(g => g.trim().toLowerCase());
+            filteredItems = filteredItems.filter(item => {
+                if (!item.Genre || !Array.isArray(item.Genre)) return false;
+                return item.Genre.some(genre => 
+                    genreList.some(filterGenre => 
+                        genre.tag.toLowerCase().includes(filterGenre)
+                    )
+                );
+            });
+            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Genre filter (${this.server.genreFilter}): ${filteredItems.length} items.`);
+        }
+
+        // Recently added filter
+        if (this.server.recentlyAddedOnly && this.server.recentlyAddedDays) {
+            const daysAgo = Date.now() - (this.server.recentlyAddedDays * 24 * 60 * 60 * 1000);
+            filteredItems = filteredItems.filter(item => {
+                if (!item.addedAt) return false;
+                const addedDate = new Date(parseInt(item.addedAt) * 1000);
+                return addedDate.getTime() >= daysAgo;
+            });
+            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Recently added filter (${this.server.recentlyAddedDays} days): ${filteredItems.length} items.`);
+        }
+
+        // Quality filter
+        if (this.server.qualityFilter && this.server.qualityFilter.trim() !== '') {
+            filteredItems = filteredItems.filter(item => {
+                if (!item.Media || !Array.isArray(item.Media)) return false;
+                return item.Media.some(media => {
+                    const resolution = media.videoResolution;
+                    switch (this.server.qualityFilter) {
+                        case 'SD': return !resolution || resolution === 'sd';
+                        case '720p': return resolution === '720' || resolution === 'hd';
+                        case '1080p': return resolution === '1080';
+                        case '4K': return resolution === '4k';
+                        default: return true;
+                    }
+                });
+            });
+            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Quality filter (${this.server.qualityFilter}): ${filteredItems.length} items.`);
+        }
+
+        return filteredItems;
     }
 }
 

@@ -279,4 +279,165 @@ describe('Plex Source', () => {
             expect(mockProcessPlexItem).toHaveBeenCalledTimes(3);
         });
     });
+
+    describe('Content Filtering', () => {
+        it('should filter by rating', async () => {
+            const serverConfigWithRating = {
+                ...mockServerConfig,
+                ratingFilter: 'PG-13'
+            };
+
+            const plexSourceWithRating = new PlexSource(
+                serverConfigWithRating, mockGetPlexClient, mockProcessPlexItem, 
+                mockGetPlexLibraries, mockShuffleArray, 0, false
+            );
+
+            const mockItems = [
+                { ratingKey: '1', title: 'Movie 1', contentRating: 'PG-13' },
+                { ratingKey: '2', title: 'Movie 2', contentRating: 'R' },
+                { ratingKey: '3', title: 'Movie 3', contentRating: 'PG-13' }
+            ];
+
+            const filteredItems = plexSourceWithRating.applyContentFiltering(mockItems);
+            expect(filteredItems).toHaveLength(2);
+            expect(filteredItems[0].title).toBe('Movie 1');
+            expect(filteredItems[1].title).toBe('Movie 3');
+        });
+
+        it('should filter by genre', async () => {
+            const serverConfigWithGenre = {
+                ...mockServerConfig,
+                genreFilter: 'Action, Comedy'
+            };
+
+            const plexSourceWithGenre = new PlexSource(
+                serverConfigWithGenre, mockGetPlexClient, mockProcessPlexItem, 
+                mockGetPlexLibraries, mockShuffleArray, 0, false
+            );
+
+            const mockItems = [
+                { 
+                    ratingKey: '1', 
+                    title: 'Action Movie', 
+                    Genre: [{ tag: 'Action' }, { tag: 'Thriller' }] 
+                },
+                { 
+                    ratingKey: '2', 
+                    title: 'Drama Movie', 
+                    Genre: [{ tag: 'Drama' }] 
+                },
+                { 
+                    ratingKey: '3', 
+                    title: 'Comedy Movie', 
+                    Genre: [{ tag: 'Comedy' }, { tag: 'Romance' }] 
+                }
+            ];
+
+            const filteredItems = plexSourceWithGenre.applyContentFiltering(mockItems);
+            expect(filteredItems).toHaveLength(2);
+            expect(filteredItems[0].title).toBe('Action Movie');
+            expect(filteredItems[1].title).toBe('Comedy Movie');
+        });
+
+        it('should filter by recently added', async () => {
+            const serverConfigWithRecent = {
+                ...mockServerConfig,
+                recentlyAddedOnly: true,
+                recentlyAddedDays: 7
+            };
+
+            const plexSourceWithRecent = new PlexSource(
+                serverConfigWithRecent, mockGetPlexClient, mockProcessPlexItem, 
+                mockGetPlexLibraries, mockShuffleArray, 0, false
+            );
+
+            const now = Math.floor(Date.now() / 1000);
+            const sixDaysAgo = now - (6 * 24 * 60 * 60);  // 6 days ago (within 7 days)
+            const monthAgo = now - (30 * 24 * 60 * 60);
+
+            const mockItems = [
+                { ratingKey: '1', title: 'Recent Movie', addedAt: now },
+                { ratingKey: '2', title: 'Old Movie', addedAt: monthAgo },
+                { ratingKey: '3', title: 'Six Days Old Movie', addedAt: sixDaysAgo }
+            ];
+
+            const filteredItems = plexSourceWithRecent.applyContentFiltering(mockItems);
+            expect(filteredItems).toHaveLength(2);
+            expect(filteredItems[0].title).toBe('Recent Movie');
+            expect(filteredItems[1].title).toBe('Six Days Old Movie');
+        });
+
+        it('should filter by quality', async () => {
+            const serverConfigWithQuality = {
+                ...mockServerConfig,
+                qualityFilter: '1080p'
+            };
+
+            const plexSourceWithQuality = new PlexSource(
+                serverConfigWithQuality, mockGetPlexClient, mockProcessPlexItem, 
+                mockGetPlexLibraries, mockShuffleArray, 0, false
+            );
+
+            const mockItems = [
+                { 
+                    ratingKey: '1', 
+                    title: 'HD Movie', 
+                    Media: [{ videoResolution: '1080' }] 
+                },
+                { 
+                    ratingKey: '2', 
+                    title: 'SD Movie', 
+                    Media: [{ videoResolution: 'sd' }] 
+                },
+                { 
+                    ratingKey: '3', 
+                    title: 'Another HD Movie', 
+                    Media: [{ videoResolution: '1080' }] 
+                }
+            ];
+
+            const filteredItems = plexSourceWithQuality.applyContentFiltering(mockItems);
+            expect(filteredItems).toHaveLength(2);
+            expect(filteredItems[0].title).toBe('HD Movie');
+            expect(filteredItems[1].title).toBe('Another HD Movie');
+        });
+
+        it('should apply multiple filters', async () => {
+            const serverConfigWithMultiple = {
+                ...mockServerConfig,
+                ratingFilter: 'PG-13',
+                genreFilter: 'Action'
+            };
+
+            const plexSourceWithMultiple = new PlexSource(
+                serverConfigWithMultiple, mockGetPlexClient, mockProcessPlexItem, 
+                mockGetPlexLibraries, mockShuffleArray, 0, false
+            );
+
+            const mockItems = [
+                { 
+                    ratingKey: '1', 
+                    title: 'PG-13 Action Movie', 
+                    contentRating: 'PG-13',
+                    Genre: [{ tag: 'Action' }] 
+                },
+                { 
+                    ratingKey: '2', 
+                    title: 'R Action Movie', 
+                    contentRating: 'R',
+                    Genre: [{ tag: 'Action' }] 
+                },
+                { 
+                    ratingKey: '3', 
+                    title: 'PG-13 Drama Movie', 
+                    contentRating: 'PG-13',
+                    Genre: [{ tag: 'Drama' }] 
+                }
+            ];
+
+            const filteredItems = plexSourceWithMultiple.applyContentFiltering(mockItems);
+            expect(filteredItems).toHaveLength(1);
+            expect(filteredItems[0].title).toBe('PG-13 Action Movie');
+        });
+    });
 });
