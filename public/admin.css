@@ -2197,15 +2197,25 @@ fieldset:focus-within {
 }
 
 /* Text inputs can be shorter too unless they're for long content */
-.form-group input[type="text"]:not([name*="token"]):not([name*="hostname"]):not([name*="genreFilter"]) {
+.form-group input[type="text"]:not([name*="token"]):not([name*="hostname"]) {
     width: 250px;
     max-width: 100%;
 }
 
-/* Genre filter needs more space for comma-separated values */
-.form-group input[name*="genreFilter"] {
+/* Multi-select genre filter styling */
+.form-group select[name*="genreFilter"] {
     width: 350px;
     max-width: 100%;
+    height: 120px;
+    resize: vertical;
+}
+
+.genre-filter-help {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-style: italic;
 }
 
 /* Specific width for Plex hostname field - moderately sized */

@@ -2224,6 +2224,41 @@ async function getPlexLibraries(serverConfig) {
     return libraries;
 }
 
+async function getPlexGenres(serverConfig) {
+    try {
+        const plex = getPlexClient(serverConfig);
+        const allLibraries = await getPlexLibraries(serverConfig);
+        const genres = new Set();
+
+        for (const [libraryName, library] of allLibraries) {
+            // Only get genres from movie and show libraries
+            if (library.type === 'movie' || library.type === 'show') {
+                try {
+                    const content = await plex.query(`/library/sections/${library.key}/all`);
+                    if (content?.MediaContainer?.Metadata) {
+                        content.MediaContainer.Metadata.forEach(item => {
+                            if (item.Genre && Array.isArray(item.Genre)) {
+                                item.Genre.forEach(genre => {
+                                    if (genre.tag) {
+                                        genres.add(genre.tag);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.warn(`[getPlexGenres] Error fetching from library ${libraryName}: ${error.message}`);
+                }
+            }
+        }
+
+        return Array.from(genres).sort();
+    } catch (error) {
+        console.error(`[getPlexGenres] Error: ${error.message}`);
+        return [];
+    }
+}
+
 // --- Main Data Aggregation ---
 
 async function getPlaylistMedia() {
@@ -3804,6 +3839,57 @@ app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(asyn
     }
 
     res.json({ message: 'Configuration saved successfully. Some changes may require an application restart.' });
+}));
+
+/**
+ * @swagger
+ * /api/admin/plex-genres:
+ *   get:
+ *     summary: Get all available genres from Plex servers
+ *     description: Retrieves a list of all genres available in the configured Plex servers.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of available genres.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 genres:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
+app.get('/api/admin/plex-genres', isAuthenticated, asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Request received for /api/admin/plex-genres.');
+    
+    const currentConfig = await readConfig();
+    const enabledServers = currentConfig.mediaServers.filter(s => s.enabled && s.type === 'plex');
+    
+    if (enabledServers.length === 0) {
+        return res.json({ genres: [] });
+    }
+    
+    let allGenres = new Set();
+    
+    for (const server of enabledServers) {
+        try {
+            const genres = await getPlexGenres(server);
+            genres.forEach(genre => allGenres.add(genre));
+        } catch (error) {
+            console.warn(`[Admin API] Failed to get genres from ${server.name}: ${error.message}`);
+        }
+    }
+    
+    const sortedGenres = Array.from(allGenres).sort();
+    if (isDebug) console.log(`[Admin API] Found ${sortedGenres.length} unique genres.`);
+    
+    res.json({ genres: sortedGenres });
 }));
 
 /**

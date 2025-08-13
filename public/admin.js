@@ -1415,7 +1415,7 @@ document.addEventListener('DOMContentLoaded', () => {
         update2FAStatusText(security.is2FAEnabled);
     }
 
-    function populatePlexSettings(config, env, defaults) {
+    async function populatePlexSettings(config, env, defaults) {
         // Prefer normalized env if available
         const nEnv = window.__normalizedEnv || {};
         const plexServerConfig = config.mediaServers && config.mediaServers[0] ? config.mediaServers[0] : {};
@@ -1440,12 +1440,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Content Filtering settings
         document.getElementById('mediaServers[0].ratingFilter').value = plexServerConfig.ratingFilter ?? plexDefaults.ratingFilter;
-        document.getElementById('mediaServers[0].genreFilter').value = plexServerConfig.genreFilter ?? plexDefaults.genreFilter;
+        
+        // Load genres first, then set selected values
+        await loadPlexGenres();
+        setGenreFilterValues(plexServerConfig.genreFilter ?? plexDefaults.genreFilter);
+        
         document.getElementById('mediaServers[0].recentlyAddedOnly').checked = plexServerConfig.recentlyAddedOnly ?? plexDefaults.recentlyAddedOnly;
         document.getElementById('mediaServers[0].recentlyAddedDays').value = plexServerConfig.recentlyAddedDays ?? plexDefaults.recentlyAddedDays;
         document.getElementById('mediaServers[0].qualityFilter').value = plexServerConfig.qualityFilter ?? plexDefaults.qualityFilter;
 
         return { savedMovieLibs, savedShowLibs };
+    }
+
+    async function loadPlexGenres() {
+        const genreSelect = document.getElementById('mediaServers[0].genreFilter');
+        if (!genreSelect) return;
+
+        try {
+            const response = await fetch('/api/admin/plex-genres');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch genres: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const genres = data.genres || [];
+
+            // Clear existing options
+            genreSelect.innerHTML = '';
+
+            if (genres.length === 0) {
+                genreSelect.innerHTML = '<option value="">No genres found</option>';
+                return;
+            }
+
+            // Add genres as options
+            genres.forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre;
+                genreSelect.appendChild(option);
+            });
+
+            console.log(`Loaded ${genres.length} genres from Plex`);
+        } catch (error) {
+            console.error('Error loading Plex genres:', error);
+            genreSelect.innerHTML = '<option value="">Error loading genres</option>';
+        }
+    }
+
+    function setGenreFilterValues(genreFilterString) {
+        const genreSelect = document.getElementById('mediaServers[0].genreFilter');
+        if (!genreSelect || !genreFilterString) return;
+
+        // Split comma-separated genres and trim whitespace
+        const selectedGenres = genreFilterString.split(',').map(g => g.trim()).filter(g => g);
+        
+        // Select matching options
+        Array.from(genreSelect.options).forEach(option => {
+            option.selected = selectedGenres.includes(option.value);
+        });
+    }
+
+    function getGenreFilterValues() {
+        const genreSelect = document.getElementById('mediaServers[0].genreFilter');
+        if (!genreSelect) return '';
+
+        const selectedValues = Array.from(genreSelect.selectedOptions).map(option => option.value);
+        return selectedValues.join(', ');
     }
 
     async function loadConfig() {
@@ -1462,7 +1523,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // (preview timers removed)
             setupCinemaModeListeners();
             populateSecuritySettings(security);
-            const { savedMovieLibs, savedShowLibs } = populatePlexSettings(config, env, defaults);
+            const { savedMovieLibs, savedShowLibs } = await populatePlexSettings(config, env, defaults);
             window.__savedMovieLibs = savedMovieLibs;
             window.__savedShowLibs = savedShowLibs;
 
@@ -2365,7 +2426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         movieCount: getValue('mediaServers[0].movieCount', 'number'),
                         showCount: getValue('mediaServers[0].showCount', 'number'),
                         ratingFilter: getValue('mediaServers[0].ratingFilter'),
-                        genreFilter: getValue('mediaServers[0].genreFilter'),
+                        genreFilter: getGenreFilterValues(),
                         recentlyAddedOnly: getValue('mediaServers[0].recentlyAddedOnly'),
                         recentlyAddedDays: getValue('mediaServers[0].recentlyAddedDays', 'number'),
                         qualityFilter: getValue('mediaServers[0].qualityFilter')

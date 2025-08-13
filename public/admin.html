@@ -527,8 +527,11 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="mediaServers[0].genreFilter">Genre Filter (comma-separated)</label>
-                                        <input type="text" id="mediaServers[0].genreFilter" name="mediaServers[0].genreFilter" placeholder="Action, Comedy, Drama (leave empty for all)">
+                                        <label for="mediaServers[0].genreFilter">Genre Filter</label>
+                                        <select id="mediaServers[0].genreFilter" name="mediaServers[0].genreFilter" multiple class="genre-filter-select">
+                                            <option value="">Loading genres...</option>
+                                        </select>
+                                        <small class="genre-filter-help">Hold Ctrl/Cmd to select multiple genres. Leave empty to show all genres.</small>
                                     </div>
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="mediaServers[0].recentlyAddedOnly" name="mediaServers[0].recentlyAddedOnly">
