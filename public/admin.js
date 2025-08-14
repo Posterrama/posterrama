@@ -7,6 +7,19 @@
 // Version check for cache busting validation
 console.log('✅ Admin script v2.2.0 loaded successfully');
 
+// Ensure all API calls use the current host
+const API_BASE = window.location.origin;
+console.log('🌐 API Base URL:', API_BASE);
+
+// Helper function to create API URLs
+function apiUrl(path) {
+    // Ensure path starts with /
+    if (!path.startsWith('/')) {
+        path = '/' + path;
+    }
+    return API_BASE + path;
+}
+
 /*
  * Key Changes (chronological/high-level):
  * - Fixed historical layout issue where only 'general' & 'display' sections rendered: introduced portal container to prevent hidden/collapsed content.
@@ -1918,7 +1931,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadConfig() {
         try {
-            const response = await fetch('/api/admin/config');
+            const response = await fetch(apiUrl('/api/admin/config'));
             if (!response.ok) {
                 throw new Error('Could not load configuration from the server.');
             }
@@ -2973,7 +2986,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Coordinate with auto-save to avoid race
                 window.__saveCoordinator = window.__saveCoordinator || { manualInProgress: false };
                 window.__saveCoordinator.manualInProgress = true;
-                const response = await fetch('/api/admin/config', {
+                const response = await fetch(apiUrl('/api/admin/config'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ config: cleanedConfig, env: newEnv }),
@@ -3964,7 +3977,7 @@ async function loadCacheStats() {
  */
 async function refreshCacheStats() {
     try {
-        const response = await fetch('/api/admin/cache-stats', {
+        const response = await fetch(apiUrl('/api/admin/cache-stats'), {
             method: 'GET',
             credentials: 'include'
         });
@@ -4140,7 +4153,7 @@ window.testCacheStats = function() {
 window.testCacheAPI = async function() {
     console.log('Testing cache API directly...');
     try {
-        const response = await fetch('/api/admin/cache-stats', {
+        const response = await fetch(apiUrl('/api/admin/cache-stats'), {
             method: 'GET',
             credentials: 'include'
         });
