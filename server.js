@@ -2810,27 +2810,56 @@ app.get('/admin', (req, res) => {
     }
     // If setup is done, the isAuthenticated middleware will handle the rest
     isAuthenticated(req, res, () => {
-        // Generate cache buster timestamp
-        const cacheBuster = Date.now();
+        // Generate cache buster based on file modification times for better caching
+        const cssPath = path.join(__dirname, 'public', 'admin.css');
+        const jsPath = path.join(__dirname, 'public', 'admin.js');
         
-        // Read admin.html and inject cache buster
-        fs.readFile(path.join(__dirname, 'public', 'admin.html'), 'utf8', (err, data) => {
-            if (err) {
-                console.error('Error reading admin.html:', err);
-                return res.status(500).send('Internal Server Error');
-            }
+        try {
+            const cssStats = fs.statSync(cssPath);
+            const jsStats = fs.statSync(jsPath);
+            const cssCacheBuster = cssStats.mtime.getTime();
+            const jsCacheBuster = jsStats.mtime.getTime();
             
-            // Replace version parameters with dynamic cache buster
-            const updatedHtml = data
-                .replace(/admin\.css\?v=[\d\.]+/g, `admin.css?v=${cacheBuster}`)
-                .replace(/admin\.js\?v=[\d\.]+/g, `admin.js?v=${cacheBuster}`);
+            // Read admin.html and inject cache busters
+            fs.readFile(path.join(__dirname, 'public', 'admin.html'), 'utf8', (err, data) => {
+                if (err) {
+                    console.error('Error reading admin.html:', err);
+                    return res.status(500).send('Internal Server Error');
+                }
+                
+                // Replace version parameters with file-based cache busters
+                const updatedHtml = data
+                    .replace(/admin\.css\?v=[\d\.]+/g, `admin.css?v=${cssCacheBuster}`)
+                    .replace(/admin\.js\?v=[\d\.]+/g, `admin.js?v=${jsCacheBuster}`);
+                
+                res.setHeader('Content-Type', 'text/html');
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+                res.send(updatedHtml);
+            });
+        } catch (error) {
+            // Fallback to timestamp-based cache buster if file stats fail
+            console.warn('Could not read file stats for cache busting, using timestamp fallback:', error.message);
+            const fallbackCacheBuster = Date.now();
             
-            res.setHeader('Content-Type', 'text/html');
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            res.setHeader('Expires', '0');
-            res.send(updatedHtml);
-        });
+            fs.readFile(path.join(__dirname, 'public', 'admin.html'), 'utf8', (err, data) => {
+                if (err) {
+                    console.error('Error reading admin.html:', err);
+                    return res.status(500).send('Internal Server Error');
+                }
+                
+                const updatedHtml = data
+                    .replace(/admin\.css\?v=[\d\.]+/g, `admin.css?v=${fallbackCacheBuster}`)
+                    .replace(/admin\.js\?v=[\d\.]+/g, `admin.js?v=${fallbackCacheBuster}`);
+                
+                res.setHeader('Content-Type', 'text/html');
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+                res.send(updatedHtml);
+            });
+        }
     });
 });
 
