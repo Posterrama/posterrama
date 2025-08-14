@@ -33,6 +33,87 @@
       "showCount": 15
     }
   ],
+  "tmdbSource": {
+    "enabled": false,
+    "apiKey": "test_key_123456789",
+    "category": "popular",
+    "movieCount": 50,
+    "showCount": 25,
+    "minRating": 0,
+    "yearFilter": null,
+    "genreFilter": ""
+  },
+  "streamingSources": [
+    {
+      "name": "Netflix Releases",
+      "enabled": false,
+      "apiKey": "test_key_123456789",
+      "category": "streaming_netflix",
+      "watchRegion": "US",
+      "movieCount": 30,
+      "showCount": 20,
+      "minRating": 0,
+      "yearFilter": null,
+      "genreFilter": ""
+    },
+    {
+      "name": "Disney+ Releases",
+      "enabled": false,
+      "apiKey": "test_key_123456789",
+      "category": "streaming_disney",
+      "watchRegion": "US",
+      "movieCount": 30,
+      "showCount": 20,
+      "minRating": 0,
+      "yearFilter": null,
+      "genreFilter": ""
+    },
+    {
+      "name": "Prime Video Releases",
+      "enabled": false,
+      "apiKey": "test_key_123456789",
+      "category": "streaming_prime",
+      "watchRegion": "US",
+      "movieCount": 30,
+      "showCount": 20,
+      "minRating": 0,
+      "yearFilter": null,
+      "genreFilter": ""
+    },
+    {
+      "name": "HBO Max Releases",
+      "enabled": false,
+      "apiKey": "test_key_123456789",
+      "category": "streaming_hbo",
+      "watchRegion": "US",
+      "movieCount": 30,
+      "showCount": 20,
+      "minRating": 0,
+      "yearFilter": null,
+      "genreFilter": ""
+    },
+    {
+      "name": "New Streaming Releases",
+      "enabled": false,
+      "apiKey": "test_key_123456789",
+      "category": "streaming_new_releases",
+      "watchRegion": "US",
+      "movieCount": 40,
+      "showCount": 30,
+      "minRating": 6.0,
+      "yearFilter": null,
+      "genreFilter": ""
+    }
+  ],
+  "tvdbSource": {
+    "enabled": true,
+    "category": "popular",
+    "movieCount": 25,
+    "showCount": 50,
+    "minRating": 0,
+    "yearFilter": null,
+    "genreFilter": ""
+  },
   "siteServer": {
     "enabled": true,
     "port": 4001

@@ -1,8 +1,13 @@
 /*
- * Posterrama Admin Panel Refactor Summary
- * Date: 2025-08-12
- * Scope: Incremental cleanup, performance, UX, and robustness improvements applied during session.
- *
+ * Posterrama Admin Panel - Version 2.2.0
+ * Date: 2025-08-14 
+ * Scope: Cache stats functionality with clearer labeling.
+ */
+
+// Version check for cache busting validation
+console.log('✅ Admin script v2.2.0 loaded successfully');
+
+/*
  * Key Changes (chronological/high-level):
  * - Fixed historical layout issue where only 'general' & 'display' sections rendered: introduced portal container to prevent hidden/collapsed content.
  * - Removed legacy preview / PiP code (dead / debug-only) reducing script size & noise.
@@ -163,7 +168,7 @@ function getHelpContentForSection(sectionId) {
                 },
                 {
                     title: 'Background Refresh (minutes)',
-                    description: 'How often the system fetches new content from your media server.',
+                    description: 'How often the system fetches new content from your content sources.',
                     details: [
                         'Set to 0 to disable automatic refresh',
                         'Recommended: 60-180 minutes for most users',
@@ -200,12 +205,15 @@ function getHelpContentForSection(sectionId) {
             title: '<i class="fas fa-tv"></i>&nbsp;&nbsp;Display Settings',
             sections: [
                 {
-                    title: 'Cinema Mode',
-                    description: 'Enable a special fullscreen display mode optimized for viewing.',
+                    title: 'Cinema Mode - Digital Movie Poster',
+                    description: 'Transform your display into a professional Digital Movie Poster for theaters, lobbies, or home cinema.',
                     details: [
-                        'Cinema Mode: Enables fullscreen immersive viewing experience',
-                        'Orientation: Choose portrait, portrait-flipped, or auto-detect',
-                        'Perfect for dedicated media display screens'
+                        'Digital Movie Poster: Creates an immersive, professional poster display experience',
+                        'Perfect for movie theaters, cinema lobbies, media rooms, or home theater setups',
+                        'Automatically cycles through your movie collection with high-quality posters and metadata',
+                        'Orientation options: Portrait (theater-style), Portrait-flipped, or Auto-detect',
+                        'Removes UI elements for clean, uninterrupted poster presentation',
+                        'Ideal for: Digital signage, theater displays, home cinema ambiance, or media showcases'
                     ]
                 },
                 {
@@ -216,6 +224,15 @@ function getHelpContentForSection(sectionId) {
                         'Rotten Tomatoes Badge: Display critic ratings and badges',
                         'Show Poster: Display movie/TV show poster images',
                         'Show Metadata: Display titles, descriptions and other info'
+                    ]
+                },
+                {
+                    title: 'Content Quality Filtering',
+                    description: 'Filter content based on rating quality.',
+                    details: [
+                        'Minimum Rotten Tomatoes Score (0-10): Only show movies/shows with RT ratings above this threshold',
+                        'Setting applies only when Rotten Tomatoes badges are enabled',
+                        'Lower values include more content, higher values show only highly-rated content'
                     ]
                 },
                 {
@@ -251,35 +268,69 @@ function getHelpContentForSection(sectionId) {
             ]
         },
         'media-section': {
-            title: '<i class="fas fa-server"></i>&nbsp;&nbsp;Media Servers',
+            title: '<i class="fas fa-database"></i>&nbsp;&nbsp;Content Sources',
             sections: [
                 {
-                    title: 'Plex Server Configuration',
-                    description: 'Connect Posterrama to your Plex Media Server to display content.',
+                    title: 'Plex Media Server',
+                    description: 'Configure your local Plex server with hostname/IP, port (usually 32400), and authentication token.',
                     details: [
                         'Server URL: The IP address or domain name of your Plex server (e.g. http://192.168.1.100:32400)',
-                        'Plex Token: Authentication token for access (automatically generated after login)',
-                        'Test connection: Check if the connection to Plex works before saving'
+                        'Plex Token: Get your authentication token from <a href="https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/" target="_blank" rel="noopener">Plex Support</a>',
+                        'Choose which libraries to include and test connection before saving',
+                        'Enable as content source to include in rotation'
                     ]
                 },
                 {
-                    title: 'Library Selection',
-                    description: 'Choose which Plex libraries are used for the screensaver.',
+                    title: 'TMDB External Source',
+                    description: 'Use The Movie Database as an external content source.',
                     details: [
-                        'Movie Libraries: Select your movie collections',
-                        'TV Show Libraries: Select your TV series collections',
-                        'Multiple libraries: You can combine multiple libraries',
-                        'Auto detection: The system detects available libraries after connection'
+                        'Get a free API key from TMDB website (developers section)',
+                        'Choose from many categories and enable advanced filtering by genre, year, and rating',
+                        'API keys are securely stored and preserved when making other changes',
+                        'Test connection validates your key and shows available genres'
                     ]
                 },
                 {
-                    title: 'Content Filtering',
-                    description: 'Filter which content is shown in the screensaver.',
+                    title: 'TMDB Categories & Configuration',
+                    description: 'Extensive category options and multi-select genre filtering.',
                     details: [
-                        'Rating filter: Limit content based on age classification',
-                        'Genre filter: Show only specific genres',
-                        'Recently added: Show only recently added content',
-                        'Quality filter: Filter by video quality (HD, 4K, etc.)'
+                        '🎬 Movies: Popular, Top Rated, Now Playing, Upcoming, Latest, Trending Daily/Weekly',
+                        '📺 TV: Popular Shows, Top Rated, Currently Airing, Airing Today, Latest, Trending Daily/Weekly',
+                        '🔍 Discover: Advanced filtering with all options combined',
+                        'Select multiple genres using the dropdown or clear all selections with the clear button'
+                    ]
+                },
+                {
+                    title: 'TVDB External Source',
+                    description: 'Use The TV Database as an external content source.',
+                    details: [
+                        'No API key required - TVDB integration works out of the box for all users',
+                        'Comprehensive database of TV shows, movies, and metadata',
+                        'Professional artwork and high-quality background images',
+                        'Test connection validates TVDB API access and shows sample data'
+                    ]
+                },
+                {
+                    title: 'TVDB Categories & Configuration',
+                    description: 'Wide variety of sorting and discovery options.',
+                    details: [
+                        '🏆 By Rating: Top Rated (highest ratings), Most Popular (popularity scores)',
+                        '📅 By Date: Recently Updated, Newest Releases, Classic Content',
+                        '📊 By Activity: Trending Now, Recently Added to TVDB',
+                        '🔤 Alphabetical: A-Z sorted content for easy browsing',
+                        'Genre filtering with multi-select support and clear selection button'
+                    ]
+                },
+                {
+                    title: 'Content Filtering & Limits',
+                    description: 'Filter content and set performance limits.',
+                    details: [
+                        'Filter by rating, genre, quality, or recently added date',
+                        'Plex filters use your server metadata while TMDB and TVDB use their rating and year filters',
+                        'Genre filtering supports multi-select for all sources (Plex, TMDB, TVDB)',
+                        'Set reasonable limits for movies and shows to maintain good performance',
+                        'TMDB has daily API limits, so moderate requests',
+                        'TVDB has no API key limitations but respects reasonable request limits'
                     ]
                 }
             ]
@@ -312,11 +363,9 @@ function getHelpContentForSection(sectionId) {
                     title: 'API Keys',
                     description: 'Manage access for external applications and integrations.',
                     details: [
-                        'Generate unique API keys for external access',
-                        'Each API key has specific rights and limitations',
-                        'Revoke old or unused API keys regularly',
-                        'Monitor API usage in the logs section',
-                        'Never share API keys publicly or via insecure channels'
+                        'Generate API keys to allow external applications to access Posterrama',
+                        'Each API key provides programmatic access to the service',
+                        'Revoke unused API keys for security'
                     ]
                 }
             ]
@@ -325,25 +374,12 @@ function getHelpContentForSection(sectionId) {
             title: '<i class="fas fa-globe"></i>&nbsp;&nbsp;Promobox Site',
             sections: [
                 {
-                    title: 'Promo Message Configuration',
-                    description: 'Add custom messages and announcements to the screensaver.',
+                    title: 'Promobox Website',
+                    description: 'Enable an additional web server that serves the Posterrama promotional website.',
                     details: [
-                        'Custom text: Add your own messages (e.g. "Welcome to Movie Night!")',
-                        'Scheduling: Set when messages are displayed',
-                        'Duration: How long each message remains visible',
-                        'Position: Where on screen the message appears',
-                        'Styling: Customize font, color and size'
-                    ]
-                },
-                {
-                    title: 'Announcements',
-                    description: 'Create temporary messages for special occasions.',
-                    details: [
-                        'Event announcements: "Movie night tonight at 8 PM"',
-                        'New content: "10 new movies added this week"',
-                        'System messages: "Server maintenance scheduled"',
-                        'Start/end date: Automatically show and hide',
-                        'Priority: Determine which messages are most important'
+                        'Starts a separate web server for promotional content',
+                        'Configure port and enable/disable the service',
+                        'Useful for showcasing Posterrama to visitors'
                     ]
                 }
             ]
@@ -370,16 +406,6 @@ function getHelpContentForSection(sectionId) {
                         'Update check: Check for new versions of Posterrama',
                         'Performance monitoring: View CPU and memory usage'
                     ]
-                },
-                {
-                    title: 'Backup & Export',
-                    description: 'Backup your settings and export configurations.',
-                    details: [
-                        'Export settings: Download your configuration as backup',
-                        'Import settings: Restore configuration from backup',
-                        'Automatic backups: Configure regular backups',
-                        'Cloud sync: Synchronize settings between devices'
-                    ]
                 }
             ]
         },
@@ -388,33 +414,11 @@ function getHelpContentForSection(sectionId) {
             sections: [
                 {
                     title: 'Log Monitoring',
-                    description: 'View real-time activity and system messages.',
+                    description: 'View real-time system activity and messages.',
                     details: [
-                        'Live logs: See messages as they happen',
-                        'Error logs: Specific errors and warnings',
-                        'Access logs: Who accessed when',
-                        'Performance logs: Performance related information'
-                    ]
-                },
-                {
-                    title: 'Troubleshooting',
-                    description: 'Use logs to identify and solve problems.',
-                    details: [
-                        'Connection problems: Check Plex server connection errors',
-                        'Performance issues: Look for slow responses',
-                        'Authentication failures: View failed login attempts',
-                        'Cache issues: Identify problems with file storage',
-                        'Filter logs: Search specific events or time periods'
-                    ]
-                },
-                {
-                    title: 'Log Management',
-                    description: 'Configure how logs are stored and managed.',
-                    details: [
-                        'Log level: Set how much detail you want to see',
-                        'Rotation: Automatically archive old logs',
-                        'Download: Export logs for external analysis',
-                        'Cleanup: Remove old logs to save space'
+                        'Live Logs: View real-time system messages and activity as they happen',
+                        'Monitor application status, errors, and performance information',
+                        'Useful for troubleshooting connection issues and system problems'
                     ]
                 }
             ]
@@ -607,66 +611,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.originalSectionContent[section.id] = section.innerHTML;
     });
 
-    // Help content for different sections (moved up to ensure available before first activation)
-    const helpContent = {
-        general: { title: "General Settings Help", sections: [
-            { title: "Transition Interval", content: "Controls how long each poster is displayed before switching to the next one. Set between 1-300 seconds. Shorter intervals create more dynamic displays, while longer intervals are better for reading metadata." },
-            { title: "Background Refresh", content: "How often the system fetches new content from your media server. Set to 0 to disable automatic refresh. Regular refreshing ensures new content appears in the rotation." },
-            { title: "Application Port", content: "The network port for the admin interface. Default is 4000. Changing this requires an application restart. Make sure the port isn't used by other applications." },
-            { title: "Debug Mode", content: "Enables detailed logging for troubleshooting. Check the live logs to see debug information. Only enable when investigating issues as it can impact performance." }
-        ]},
-        display: { title: "Display & Effects Settings Help", sections: [
-            { title: "Visual Elements", content: "Control visibility: ClearLogo (movie/show logos), Rotten Tomatoes badges, posters, metadata text." },
-            { title: "Clock Widget", content: "Shows a clock (timezone + 12/24h). Uses IANA timezone IDs or system time when set to Auto." },
-            { title: "UI Scaling", content: "Adjust element sizes. Individual sliders multiply with Global for flexible tuning across displays." },
-            { title: "Transition Effects", content: "Ken Burns: slow zoom/pan (uses full interval). Fade: cross-fade between items. Slide: horizontal slide (cinema mode friendly)." },
-            { title: "Cinema Mode", content: "Portrait-optimized layout. Optionally force orientation or use device auto. Hides non-relevant elements for a clean poster focus." },
-            { title: "Effect Timing", content: "Effect Pause Time adds a still pause after transitions (ignored by Ken Burns which animates full duration)." }
-        ]},
-        media: { title: "Media Servers Help", sections: [
-            { title: "Plex Connection", content: "Configure your Plex server hostname/IP, port (usually 32400), and authentication token. Test the connection before saving to ensure it works." },
-            { title: "Library Selection", content: "Choose which Plex libraries to include. Movie and TV show libraries are handled separately. Test connection first to populate available libraries." },
-            { title: "Content Limits", content: "Limit the number of movies and shows to prevent performance issues. Higher numbers may cause slower loading and increased memory usage." }
-        ]},
-        authentication: { title: "Authentication & Security Help", sections: [
-            { title: "Password Management", content: "Change your admin password. Enter current password first for security. Choose a strong password to protect your admin interface." },
-            { title: "Two-Factor Authentication", content: "Add an extra security layer with authenticator apps like Google Authenticator. Scan the QR code and enter the verification code to enable." },
-            { title: "API Access", content: "Generate permanent API keys for external applications or scripts. Keys can be viewed, copied, or revoked as needed. Useful for Swagger API access." }
-        ]},
-        promobox: { title: "Promobox Site Help", sections: [
-            { title: "Public Site", content: "Enable a public-facing screensaver site on port 4001 without admin access. Perfect for promotional displays or kiosks." },
-            { title: "Port Configuration", content: "Choose a different port if 4001 is unavailable. Ensure the port isn't used by other applications and is accessible to your intended users." }
-        ]},
-        management: { title: "Application Management Help", sections: [
-            { title: "Cache Management", content: "Clear image cache to free space or force re-download of images. Refresh media to update the content library from Plex immediately." },
-            { title: "Application Control", content: "Restart the application when needed (required after port changes). Use with caution as it will disconnect all users temporarily." },
-            { title: "Debugging", content: "View live logs for real-time troubleshooting. Debug cache view shows raw playlist data when debug mode is enabled." }
-        ]},
-        logs: { title: "Live Logs Help", sections: [
-            { title: "Log Monitoring", content: "Real-time view of application logs. Different log levels (info, warn, error) are color-coded for easy identification of issues." },
-            { title: "Troubleshooting", content: "Enable debug mode in General Settings for more detailed logging. Logs automatically scroll to show newest entries first." }
-        ]}
-    };
-
-    /**
-     * Update the contextual help panel.
-     * @param {string} key - Key inside helpContent (e.g. 'general', 'display').
-     */
-    function updateHelpContent(key) {
-        const helpTitle = document.getElementById('help-title');
-        const helpContentDiv = document.getElementById('help-content');
-        if (!helpTitle || !helpContentDiv) return;
-        const contentBlock = helpContent[key] || helpContent['general'];
-        if (!contentBlock) return;
-        helpTitle.textContent = contentBlock.title;
-        helpContentDiv.innerHTML = contentBlock.sections.map(sectionItem => `
-            <div class="help-section">
-                <h4>${sectionItem.title}</h4>
-                <p>${sectionItem.content}</p>
-            </div>
-        `).join('');
-    }
-
     // Default values for settings (moved up to precede any timer cleanup calls)
     const defaults = {
         transitionIntervalSeconds: 15,
@@ -703,6 +647,16 @@ document.addEventListener('DOMContentLoaded', () => {
             recentlyAddedDays: 30,
             qualityFilter: ''
         }],
+        tmdbSource: {
+            enabled: false,
+            apiKey: '',
+            category: 'popular',
+            movieCount: 50,
+            showCount: 25,
+            minRating: 0,
+            yearFilter: null,
+            genreFilter: ''
+        },
         siteServer: {
             enabled: false,
             port: 4001
@@ -729,6 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function cleanupLegacyDebug() { /* no-op after cleanup */ }
 
     function activateSection(targetSection) {
+        console.log('activateSection called with:', targetSection);
         if (!targetSection) return;
         // Remove the logic that stops background slideshow - fanart should always run
         sectionNodes = Array.from(document.querySelectorAll('.section-content'));
@@ -756,6 +711,15 @@ document.addEventListener('DOMContentLoaded', () => {
             updateHelpContentForced(targetSection);
         }
         
+        // Load cache stats when Management section is activated
+        if (targetSection === 'management') {
+            console.log('Loading cache stats for Management section');
+            setTimeout(() => {
+                console.log('Delayed loading of cache stats...');
+                loadCacheStats();
+            }, 100); // Small delay to ensure DOM is ready
+        }
+        
         // Libraries are now loaded during config load, no need for lazy loading here
     }
 
@@ -763,6 +727,8 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
             const targetSection = item.dataset.section;
+            
+            console.log('Navigation clicked for section:', targetSection);
             
             // Update ARIA attributes and classes for tab navigation
             navItems.forEach(nav => {
@@ -773,6 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
             item.classList.add('active');
             item.setAttribute('aria-selected', 'true');
             
+            console.log('About to call activateSection for:', targetSection);
             activateSection(targetSection);
         });
     });
@@ -1532,6 +1499,422 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function populateTMDBSettings(config, env, defaults) {
+        const tmdbConfig = config.tmdbSource || {};
+        const tmdbDefaults = {
+            enabled: false,
+            apiKey: '',
+            category: 'popular',
+            movieCount: 50,
+            showCount: 25,
+            minRating: 0,
+            yearFilter: null
+        };
+
+        // Populate TMDB form fields
+        const enabledField = document.getElementById('tmdbSource.enabled');
+        const apiKeyField = document.getElementById('tmdbSource.apiKey');
+        const categoryField = document.getElementById('tmdbSource.category');
+        const movieCountField = document.getElementById('tmdbSource.movieCount');
+        const showCountField = document.getElementById('tmdbSource.showCount');
+        const minRatingField = document.getElementById('tmdbSource.minRating');
+        const yearFilterField = document.getElementById('tmdbSource.yearFilter');
+
+        if (enabledField) enabledField.checked = tmdbConfig.enabled ?? tmdbDefaults.enabled;
+        if (apiKeyField) {
+            // For security, don't display the API key. Show a placeholder if it's set.
+            apiKeyField.value = '';
+            const apiKeyIsSet = tmdbConfig.apiKey && tmdbConfig.apiKey.length > 0;
+            apiKeyField.placeholder = apiKeyIsSet ? '******** (API key stored)' : 'Enter TMDB API key...';
+            apiKeyField.dataset.apiKeySet = apiKeyIsSet ? 'true' : 'false';
+        }
+        if (categoryField) categoryField.value = tmdbConfig.category ?? tmdbDefaults.category;
+        if (movieCountField) movieCountField.value = tmdbConfig.movieCount ?? tmdbDefaults.movieCount;
+        if (showCountField) showCountField.value = tmdbConfig.showCount ?? tmdbDefaults.showCount;
+        if (minRatingField) minRatingField.value = tmdbConfig.minRating ?? tmdbDefaults.minRating;
+        if (yearFilterField) yearFilterField.value = tmdbConfig.yearFilter || '';
+
+        // Load TMDB genres and set selected values
+        if (tmdbConfig.enabled && tmdbConfig.apiKey) {
+            loadTMDBGenres().then(() => {
+                setTMDBGenreFilterValues(tmdbConfig.genreFilter || '');
+            });
+        }
+
+        // Setup TMDB test button
+        setupTMDBTestButton();
+        
+        // Setup Streaming configuration
+        populateStreamingSettings(config);
+        
+        // Setup TVDB configuration
+        const tvdbConfig = config.tvdbSource || {};
+        const tvdbEnabledField = document.getElementById('tvdbSource.enabled');
+        const tvdbCategoryField = document.getElementById('tvdbSource.category');
+        const tvdbMovieCountField = document.getElementById('tvdbSource.movieCount');
+        const tvdbShowCountField = document.getElementById('tvdbSource.showCount');
+        const tvdbMinRatingField = document.getElementById('tvdbSource.minRating');
+        const tvdbYearFilterField = document.getElementById('tvdbSource.yearFilter');
+
+        if (tvdbEnabledField) tvdbEnabledField.checked = tvdbConfig.enabled || false;
+        if (tvdbCategoryField) tvdbCategoryField.value = tvdbConfig.category || 'popular';
+        if (tvdbMovieCountField) tvdbMovieCountField.value = tvdbConfig.movieCount || 25;
+        if (tvdbShowCountField) tvdbShowCountField.value = tvdbConfig.showCount || 50;
+        if (tvdbMinRatingField) tvdbMinRatingField.value = tvdbConfig.minRating || 0;
+        if (tvdbYearFilterField) tvdbYearFilterField.value = tvdbConfig.yearFilter || '';
+
+        // Load TVDB genres and set selected values
+        if (tvdbConfig.enabled) {
+            loadTVDBGenres().then(() => {
+                setTVDBGenreFilterValues(tvdbConfig.genreFilter || '');
+            });
+        }
+    }
+
+    async function loadTMDBGenres() {
+        const genreSelect = document.getElementById('tmdbSource.genreFilter');
+        if (!genreSelect) return;
+
+        try {
+            const response = await fetch('/api/admin/tmdb-genres');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch TMDB genres: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const genres = data.genres || [];
+
+            // Clear existing options
+            genreSelect.innerHTML = '';
+
+            if (genres.length === 0) {
+                genreSelect.innerHTML = '<option value="">No genres found</option>';
+                return;
+            }
+
+            // Add genres as options
+            genres.forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre;
+                genreSelect.appendChild(option);
+            });
+
+            console.log(`Loaded ${genres.length} genres from TMDB`);
+            
+            // Setup listeners after genres are loaded
+            setupTMDBGenreFilterListeners();
+        } catch (error) {
+            console.error('Error loading TMDB genres:', error);
+            genreSelect.innerHTML = '<option value="">Error loading genres</option>';
+        }
+    }
+
+    function setTMDBGenreFilterValues(genreFilterString) {
+        const genreSelect = document.getElementById('tmdbSource.genreFilter');
+        if (!genreSelect || !genreFilterString) return;
+
+        // Split comma-separated genres and trim whitespace
+        const selectedGenres = genreFilterString.split(',').map(g => g.trim()).filter(g => g);
+        
+        // Select matching options
+        Array.from(genreSelect.options).forEach(option => {
+            option.selected = selectedGenres.includes(option.value);
+        });
+    }
+
+    function getTMDBGenreFilterValues() {
+        const genreSelect = document.getElementById('tmdbSource.genreFilter');
+        if (!genreSelect) return '';
+
+        const selectedValues = Array.from(genreSelect.selectedOptions).map(option => option.value);
+        return selectedValues.join(', ');
+    }
+
+    function clearTMDBGenreSelection() {
+        const genreSelect = document.getElementById('tmdbSource.genreFilter');
+        if (!genreSelect) return;
+
+        // Deselect all options
+        Array.from(genreSelect.options).forEach(option => {
+            option.selected = false;
+        });
+
+        // Trigger a change event to ensure any listeners are notified
+        genreSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function setupTMDBGenreFilterListeners() {
+        const clearBtn = document.getElementById('clearTmdbGenresBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', clearTMDBGenreSelection);
+        }
+    }
+
+    async function loadTVDBGenres() {
+        const genreSelect = document.getElementById('tvdbSource.genreFilter');
+        if (!genreSelect) return;
+
+        try {
+            const response = await fetch('/api/admin/tvdb-genres');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch TVDB genres: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const genres = data.genres || [];
+
+            // Clear existing options
+            genreSelect.innerHTML = '';
+
+            if (genres.length === 0) {
+                genreSelect.innerHTML = '<option value="">No genres found</option>';
+                return;
+            }
+
+            // Add genres as options
+            genres.forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre.name;
+                option.textContent = genre.name;
+                option.dataset.genreId = genre.id;
+                genreSelect.appendChild(option);
+            });
+
+            console.log(`Loaded ${genres.length} genres from TVDB`);
+            
+            // Setup listeners after genres are loaded
+            setupTVDBGenreFilterListeners();
+        } catch (error) {
+            console.error('Error loading TVDB genres:', error);
+            genreSelect.innerHTML = '<option value="">Error loading genres</option>';
+        }
+    }
+
+    function setTVDBGenreFilterValues(genreFilterString) {
+        const genreSelect = document.getElementById('tvdbSource.genreFilter');
+        if (!genreSelect || !genreFilterString) return;
+
+        // Split comma-separated genres and trim whitespace
+        const selectedGenres = genreFilterString.split(',').map(g => g.trim()).filter(g => g);
+        
+        // Select matching options
+        Array.from(genreSelect.options).forEach(option => {
+            option.selected = selectedGenres.includes(option.value);
+        });
+    }
+
+    function getTVDBGenreFilterValues() {
+        const genreSelect = document.getElementById('tvdbSource.genreFilter');
+        if (!genreSelect) return '';
+
+        const selectedValues = Array.from(genreSelect.selectedOptions).map(option => option.value);
+        return selectedValues.join(', ');
+    }
+
+    function clearTVDBGenreSelection() {
+        const genreSelect = document.getElementById('tvdbSource.genreFilter');
+        if (!genreSelect) return;
+
+        // Deselect all options
+        Array.from(genreSelect.options).forEach(option => {
+            option.selected = false;
+        });
+
+        // Trigger a change event to ensure any listeners are notified
+        genreSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function setupTVDBGenreFilterListeners() {
+        const clearBtn = document.getElementById('clearTvdbGenresBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', clearTVDBGenreSelection);
+        }
+    }
+
+    function setupTMDBTestButton() {
+        const testButton = document.getElementById('test-tmdb-button');
+        const statusElement = document.getElementById('tmdb-connection-status');
+        
+        if (!testButton) return;
+
+        testButton.addEventListener('click', async () => {
+            const apiKeyField = document.getElementById('tmdbSource.apiKey');
+            const categoryField = document.getElementById('tmdbSource.category');
+            
+            // Check if API key is entered or already stored
+            let apiKey = apiKeyField?.value?.trim() || '';
+            const isApiKeyStored = apiKeyField?.dataset?.apiKeySet === 'true';
+            const category = categoryField?.value || 'popular';
+
+            // If no API key entered but one is stored, use a placeholder to indicate we should test with stored key
+            if (!apiKey && isApiKeyStored) {
+                apiKey = 'stored_key'; // This will trigger the server to use the stored key
+            }
+
+            if (!apiKey && !isApiKeyStored) {
+                if (statusElement) {
+                    statusElement.textContent = 'Please enter an API key first.';
+                    statusElement.style.color = '#ff6b6b';
+                }
+                return;
+            }
+
+            // Show loading state
+            testButton.disabled = true;
+            testButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+            if (statusElement) {
+                const keySource = isApiKeyStored && !apiKeyField?.value?.trim() ? 'stored API key' : 'provided API key';
+                statusElement.textContent = `Testing TMDB connection with ${keySource}...`;
+                statusElement.style.color = '#ffd93d';
+            }
+
+            try {
+                const response = await fetch('/api/admin/test-tmdb', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, category })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    if (statusElement) {
+                        statusElement.textContent = `✅ Connection successful! Found ${result.count || 0} ${category} items.`;
+                        statusElement.style.color = '#51cf66';
+                    }
+                } else {
+                    if (statusElement) {
+                        statusElement.textContent = `❌ Connection failed: ${result.error || 'Unknown error'}`;
+                        statusElement.style.color = '#ff6b6b';
+                    }
+                }
+            } catch (error) {
+                if (statusElement) {
+                    statusElement.textContent = `❌ Test failed: ${error.message}`;
+                    statusElement.style.color = '#ff6b6b';
+                }
+            } finally {
+                // Restore button state
+                testButton.disabled = false;
+                testButton.innerHTML = '<i class="fas fa-plug icon"></i><span>Test TMDB Connection</span>';
+            }
+        });
+    }
+
+    function populateStreamingSettings(config) {
+        const streamingConfig = config.streamingSources || {};
+        const streamingDefaults = {
+            enabled: false,
+            region: 'US',
+            maxItems: 20,
+            minRating: 6.0,
+            netflix: false,
+            disney: false,
+            prime: false,
+            hbo: false,
+            newReleases: false
+        };
+
+        // Populate streaming form fields
+        const enabledField = document.getElementById('streamingSources.enabled');
+        const regionField = document.getElementById('streamingSources.region');
+        const maxItemsField = document.getElementById('streamingSources.maxItems');
+        const minRatingField = document.getElementById('streamingSources.minRating');
+        
+        // Provider checkboxes
+        const netflixField = document.getElementById('streamingSources.netflix');
+        const disneyField = document.getElementById('streamingSources.disney');
+        const primeField = document.getElementById('streamingSources.prime');
+        const hboField = document.getElementById('streamingSources.hbo');
+        const newReleasesField = document.getElementById('streamingSources.newReleases');
+
+        if (enabledField) enabledField.checked = streamingConfig.enabled ?? streamingDefaults.enabled;
+        if (regionField) regionField.value = streamingConfig.region ?? streamingDefaults.region;
+        if (maxItemsField) maxItemsField.value = streamingConfig.maxItems ?? streamingDefaults.maxItems;
+        if (minRatingField) minRatingField.value = streamingConfig.minRating ?? streamingDefaults.minRating;
+        
+        // Set provider checkboxes
+        if (netflixField) netflixField.checked = streamingConfig.netflix ?? streamingDefaults.netflix;
+        if (disneyField) disneyField.checked = streamingConfig.disney ?? streamingDefaults.disney;
+        if (primeField) primeField.checked = streamingConfig.prime ?? streamingDefaults.prime;
+        if (hboField) hboField.checked = streamingConfig.hbo ?? streamingDefaults.hbo;
+        if (newReleasesField) newReleasesField.checked = streamingConfig.newReleases ?? streamingDefaults.newReleases;
+
+        // Setup streaming test button
+        setupStreamingTestButton();
+    }
+
+    function setupStreamingTestButton() {
+        const testButton = document.getElementById('test-streaming-button');
+        if (!testButton) return;
+
+        testButton.addEventListener('click', async () => {
+            const statusElement = document.getElementById('streaming-connection-status');
+            
+            // Disable button and show loading state
+            testButton.disabled = true;
+            testButton.innerHTML = '<i class="fas fa-spinner fa-spin icon"></i><span>Testing...</span>';
+            
+            if (statusElement) {
+                statusElement.textContent = 'Testing streaming connection...';
+                statusElement.style.color = '#94a3b8';
+            }
+
+            try {
+                // Get streaming configuration
+                const enabledField = document.getElementById('streamingSources.enabled');
+                const regionField = document.getElementById('streamingSources.region');
+                
+                if (!enabledField?.checked) {
+                    if (statusElement) {
+                        statusElement.textContent = '⚠️ Streaming sources are disabled';
+                        statusElement.style.color = '#f59e0b';
+                    }
+                    return;
+                }
+
+                const region = regionField?.value || 'US';
+                
+                // Test TMDB API (streaming uses TMDB)
+                const response = await fetch('/api/admin/test-tmdb', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        testType: 'streaming',
+                        region: region,
+                        apiKey: 'stored_key'
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (statusElement) {
+                        statusElement.textContent = `✅ Streaming API ready! Region: ${region}`;
+                        statusElement.style.color = '#51cf66';
+                    }
+                } else {
+                    if (statusElement) {
+                        statusElement.textContent = `❌ Connection failed: ${result.error || 'Unknown error'}`;
+                        statusElement.style.color = '#ff6b6b';
+                    }
+                }
+            } catch (error) {
+                if (statusElement) {
+                    statusElement.textContent = `❌ Test failed: ${error.message}`;
+                    statusElement.style.color = '#ff6b6b';
+                }
+            } finally {
+                // Restore button state
+                testButton.disabled = false;
+                testButton.innerHTML = '<i class="fas fa-stream icon"></i><span>Test Streaming Connection</span>';
+            }
+        });
+    }
+
     async function loadConfig() {
         try {
             const response = await fetch('/api/admin/config');
@@ -1549,6 +1932,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const { savedMovieLibs, savedShowLibs } = await populatePlexSettings(config, env, defaults);
             window.__savedMovieLibs = savedMovieLibs;
             window.__savedShowLibs = savedShowLibs;
+            
+            // Populate TMDB settings
+            populateTMDBSettings(config, env, defaults);
 
             // Pass server info to site server settings
             populateSiteServerSettings(config, server);
@@ -1636,17 +2022,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch(`/get-media?_=${Date.now()}`);
                 if (!response.ok) {
                     console.warn('Could not fetch media for admin background, server might be starting up.');
+                    setGradientBackground();
                     return;
                 }
                 adminBgQueue = await response.json();
                 if (adminBgQueue.length === 0) {
-                    console.warn('Admin background queue is empty.');
+                    console.warn('Admin background queue is empty. Using gradient background.');
+                    setGradientBackground();
                     return;
                 }
                 // Start at random index instead of -1 for random fanart on refresh
                 adminBgIndex = Math.floor(Math.random() * adminBgQueue.length) - 1;
             } catch (error) {
                 console.warn('Failed to fetch admin background media:', error);
+                setGradientBackground();
                 return;
             }
         }
@@ -1713,6 +2102,13 @@ document.addEventListener('DOMContentLoaded', () => {
         img.onload = () => {
             if (defaults.DEBUG) console.log('[AdminBG] image loaded');
             
+            // Show the overlay again when fanart is available (it darkens the fanart for better readability)
+            const overlay = document.querySelector('.admin-background-overlay');
+            if (overlay) {
+                overlay.style.opacity = '1';
+                if (defaults.DEBUG) console.log('Admin background overlay restored for fanart');
+            }
+            
             // Set new image on inactive layer and make it visible
             inactiveAdminLayer.style.backgroundImage = `url('${currentItem.backgroundUrl}')`;
             inactiveAdminLayer.style.opacity = 0;
@@ -1764,8 +2160,50 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1000);
         };
         
-    if (defaults.DEBUG) console.log('[AdminBG] loading image');
+        if (defaults.DEBUG) console.log('[AdminBG] loading image');
         img.src = currentItem.backgroundUrl;
+    }
+
+    /**
+     * Sets a beautiful gradient background when no fanart is available
+     */
+    function setGradientBackground() {
+        console.log('Setting gradient background - no fanart available');
+        
+        if (!activeAdminLayer || !inactiveAdminLayer) {
+            console.warn('Background layers not found for gradient');
+            return;
+        }
+
+        // Use the same static gradient as the admin login for consistency
+        const staticGradient = 'linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%)';
+        
+        // Clear any existing background images and animations
+        activeAdminLayer.style.backgroundImage = staticGradient;
+        inactiveAdminLayer.style.backgroundImage = '';
+        
+        // Ensure active layer is visible
+        activeAdminLayer.style.opacity = '1';
+        inactiveAdminLayer.style.opacity = '0';
+        
+        // Remove animation for a calm, stable background
+        activeAdminLayer.style.backgroundSize = '100% 100%';
+        activeAdminLayer.style.animation = 'none';
+        
+        // Hide the dark overlay when showing gradient fallback so it's clearly visible
+        const overlay = document.querySelector('.admin-background-overlay');
+        if (overlay) {
+            overlay.style.opacity = '0';
+            console.log('Admin background overlay hidden for gradient visibility');
+        }
+        
+        console.log('Static gradient background applied:', staticGradient);
+        
+        // Clear any existing rotation timer since we want a static background
+        if (adminBgTimer) {
+            clearInterval(adminBgTimer);
+            adminBgTimer = null;
+        }
     }
 
     /**
@@ -2454,6 +2892,60 @@ document.addEventListener('DOMContentLoaded', () => {
                         recentlyAddedDays: getValue('mediaServers[0].recentlyAddedDays', 'number'),
                         qualityFilter: getValue('mediaServers[0].qualityFilter')
                     }],
+                    tmdbSource: {
+                        enabled: getValue('tmdbSource.enabled'),
+                        apiKey: (() => {
+                            const apiKeyField = document.getElementById('tmdbSource.apiKey');
+                            const enteredKey = apiKeyField ? apiKeyField.value : '';
+                            const apiKeyIsSet = apiKeyField ? apiKeyField.dataset.apiKeySet === 'true' : false;
+                            
+                            console.log('[TMDB API Key Debug] enteredKey:', enteredKey);
+                            console.log('[TMDB API Key Debug] apiKeyIsSet:', apiKeyIsSet);
+                            
+                            // If user entered a new key, use it
+                            if (enteredKey && enteredKey.trim() !== '') {
+                                console.log('[TMDB API Key Debug] Using new entered key');
+                                return enteredKey.trim();
+                            }
+                            
+                            // If field is empty but there's an existing key, preserve it by returning null
+                            // (null means "don't change the existing value" in the backend)
+                            if (apiKeyIsSet) {
+                                console.log('[TMDB API Key Debug] Preserving existing key (returning null)');
+                                return null;
+                            }
+                            
+                            // If field is empty and no key was set, use empty string
+                            console.log('[TMDB API Key Debug] No key set, using empty string');
+                            return '';
+                        })(),
+                        category: getValue('tmdbSource.category'),
+                        movieCount: getValue('tmdbSource.movieCount', 'number'),
+                        showCount: getValue('tmdbSource.showCount', 'number'),
+                        minRating: getValue('tmdbSource.minRating', 'number'),
+                        yearFilter: getValue('tmdbSource.yearFilter', 'number'),
+                        genreFilter: getTMDBGenreFilterValues()
+                    },
+                    tvdbSource: {
+                        enabled: getValue('tvdbSource.enabled'),
+                        category: getValue('tvdbSource.category'),
+                        movieCount: getValue('tvdbSource.movieCount', 'number'),
+                        showCount: getValue('tvdbSource.showCount', 'number'),
+                        minRating: getValue('tvdbSource.minRating', 'number'),
+                        yearFilter: getValue('tvdbSource.yearFilter', 'number'),
+                        genreFilter: getTVDBGenreFilterValues()
+                    },
+                    streamingSources: {
+                        enabled: getValue('streamingSources.enabled'),
+                        region: getValue('streamingSources.region'),
+                        maxItems: getValue('streamingSources.maxItems', 'number'),
+                        minRating: getValue('streamingSources.minRating', 'number'),
+                        netflix: getValue('streamingSources.netflix'),
+                        disney: getValue('streamingSources.disney'),
+                        prime: getValue('streamingSources.prime'),
+                        hbo: getValue('streamingSources.hbo'),
+                        newReleases: getValue('streamingSources.newReleases')
+                    },
                     siteServer: {
                         enabled: getValue('siteServer.enabled'),
                         port: getValue('siteServer.port', 'number') || 4001
@@ -2667,6 +3159,60 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Status Check Button
+    const statusCheckButton = document.getElementById('status-check-button');
+    if (statusCheckButton) {
+        statusCheckButton.addEventListener('click', async () => {
+            setButtonState(statusCheckButton, 'loading', { text: 'Checking...' });
+            
+            try {
+                await performStatusCheck();
+                setButtonState(statusCheckButton, 'success', { text: 'Status Checked' });
+                setTimeout(() => setButtonState(statusCheckButton, 'revert'), 2000);
+            } catch (error) {
+                console.error('[Admin] Error during status check:', error);
+                showNotification(`Error checking status: ${error.message}`, 'error');
+                setButtonState(statusCheckButton, 'revert');
+            }
+        });
+    }
+
+    // Update Check Button
+    const updateCheckButton = document.getElementById('update-check-button');
+    if (updateCheckButton) {
+        updateCheckButton.addEventListener('click', async () => {
+            setButtonState(updateCheckButton, 'loading', { text: 'Checking...' });
+            
+            try {
+                await performUpdateCheck();
+                setButtonState(updateCheckButton, 'success', { text: 'Check Complete' });
+                setTimeout(() => setButtonState(updateCheckButton, 'revert'), 2000);
+            } catch (error) {
+                console.error('[Admin] Error during update check:', error);
+                showNotification(`Error checking updates: ${error.message}`, 'error');
+                setButtonState(updateCheckButton, 'revert');
+            }
+        });
+    }
+
+    // Performance Monitor Button
+    const performanceMonitorButton = document.getElementById('performance-monitor-button');
+    if (performanceMonitorButton) {
+        performanceMonitorButton.addEventListener('click', async () => {
+            setButtonState(performanceMonitorButton, 'loading', { text: 'Loading...' });
+            
+            try {
+                await loadPerformanceMonitor();
+                setButtonState(performanceMonitorButton, 'success', { text: 'Monitor Loaded' });
+                setTimeout(() => setButtonState(performanceMonitorButton, 'revert'), 2000);
+            } catch (error) {
+                console.error('[Admin] Error loading performance monitor:', error);
+                showNotification(`Error loading performance data: ${error.message}`, 'error');
+                setButtonState(performanceMonitorButton, 'revert');
+            }
+        });
+    }
+
     const refreshMediaButton = document.getElementById('refresh-media-button');
     if (refreshMediaButton) {
         refreshMediaButton.addEventListener('click', async () => {
@@ -2725,12 +3271,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Failed to clear cache.');
                 showNotification(result.message, 'success');
+                // Refresh cache stats after clearing
+                refreshCacheStats();
             } catch (error) {
                 showNotification(`Error: ${error.message}`, 'error');
             }
             setTimeout(() => setButtonState(clearCacheButton, 'revert'), 2000);
         });
     }
+
+    // Cache stats refresh button
+    const refreshCacheStatsButton = document.getElementById('refresh-cache-stats');
+    if (refreshCacheStatsButton) {
+        refreshCacheStatsButton.addEventListener('click', async () => {
+            setButtonState(refreshCacheStatsButton, 'loading', { text: 'Refreshing...' });
+            await refreshCacheStats();
+            setTimeout(() => setButtonState(refreshCacheStatsButton, 'revert'), 1000);
+        });
+    }
+
+    // Load cache stats when Management section is first accessed
+    // Test: Also load stats on page load for debugging
+    setTimeout(() => {
+        console.log('Testing cache stats load on page ready...');
+        // Also test if DOM elements exist
+        const diskUsageElement = document.getElementById('cache-disk-usage');
+        const itemCountElement = document.getElementById('cache-item-count');
+        console.log('Cache DOM elements found:', {
+            diskUsageElement: !!diskUsageElement,
+            itemCountElement: !!itemCountElement
+        });
+        if (diskUsageElement && itemCountElement) {
+            console.log('DOM elements found, loading cache stats...');
+            loadCacheStats();
+        } else {
+            console.log('DOM elements not found, will try when management section is activated');
+        }
+    }, 2000);
 
     updateApiKeyStatus();
 
@@ -3240,3 +3817,632 @@ document.addEventListener('DOMContentLoaded', () => {
     // Simple help panel - no complex event listeners needed
     // Button has onclick="toggleHelpPanel()" in HTML
 });
+
+// Function to scroll to a specific subsection
+function scrollToSubsection(subsectionId) {
+    const element = document.getElementById(subsectionId);
+    if (element) {
+        // Close help panel first
+        const helpPanel = document.getElementById('quick-help-panel');
+        if (helpPanel && helpPanel.classList.contains('open')) {
+            helpPanel.classList.remove('open');
+        }
+        
+        // Scroll to the subsection with smooth behavior
+        element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+        });
+        
+        // Add a subtle highlight effect
+        element.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+        element.style.transition = 'background-color 0.3s ease';
+        setTimeout(() => {
+            element.style.backgroundColor = '';
+        }, 2000);
+    }
+}
+
+// TVDB Connection Test
+async function testTVDBConnection() {
+    const testButton = document.getElementById('test-tvdb-connection');
+    const statusElement = document.getElementById('tvdb-connection-status');
+    
+    if (!testButton || !statusElement) return;
+    
+    // Disable button and show loading state
+    testButton.disabled = true;
+    testButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+    statusElement.textContent = 'Testing TVDB connection...';
+    statusElement.style.color = '#ffd93d';
+    
+    try {
+        const response = await fetch('/api/test-tvdb-connection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            statusElement.textContent = `✅ Connection successful! Found ${result.sampleData?.length || 0} sample items.`;
+            statusElement.style.color = '#51cf66';
+        } else {
+            throw new Error(result.error || 'Connection test failed');
+        }
+    } catch (error) {
+        statusElement.textContent = `❌ Connection failed: ${error.message}`;
+        statusElement.style.color = '#ff6b6b';
+    } finally {
+        // Re-enable button
+        testButton.disabled = false;
+        testButton.innerHTML = '<i class="fas fa-plug icon"></i><span>Test TVDB Connection</span>';
+    }
+}
+
+// Add event listener for TVDB test button
+document.addEventListener('DOMContentLoaded', () => {
+    const testButton = document.getElementById('test-tvdb-connection');
+    if (testButton) {
+        testButton.addEventListener('click', testTVDBConnection);
+    }
+});
+
+// ===================================
+// Cache Statistics Functions
+// ===================================
+
+/**
+ * Format bytes into human readable format
+ */
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+/**
+ * Load cache statistics
+ */
+async function loadCacheStats() {
+    try {
+        await refreshCacheStats();
+    } catch (error) {
+        console.error('Error loading cache stats:', error);
+        updateCacheStatsDisplay({ 
+            diskUsage: { total: 0 }, 
+            itemCount: { total: 0 } 
+        }, true);
+    }
+}
+
+/**
+ * Refresh cache statistics from server
+ */
+async function refreshCacheStats() {
+    try {
+        const response = await fetch('/api/admin/cache-stats', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        updateCacheStatsDisplay(data);
+        
+    } catch (error) {
+        console.error('Error refreshing cache stats:', error);
+        updateCacheStatsDisplay({ 
+            diskUsage: { total: 0 }, 
+            itemCount: { total: 0 } 
+        }, true);
+    }
+}
+
+/**
+ * Update cache statistics display
+ */
+function updateCacheStatsDisplay(data, isError = false) {
+    const diskUsageElement = document.getElementById('cache-disk-usage');
+    const itemCountElement = document.getElementById('cache-item-count');
+    
+    if (!diskUsageElement || !itemCountElement) {
+        // Retry after a delay in case DOM isn't ready
+        setTimeout(() => {
+            const retryDiskUsage = document.getElementById('cache-disk-usage');
+            const retryItemCount = document.getElementById('cache-item-count');
+            if (retryDiskUsage && retryItemCount) {
+                updateCacheStatsDisplay(data, isError);
+            }
+        }, 1000);
+        return;
+    }
+    
+    if (isError) {
+        diskUsageElement.innerHTML = '<span class="error">Error loading</span>';
+        itemCountElement.innerHTML = '<span class="error">Error loading</span>';
+        return;
+    }
+    
+    // Update disk usage
+    const totalSize = data.diskUsage?.total || 0;
+    const imageCacheSize = data.diskUsage?.imageCache || 0;
+    const logSize = data.diskUsage?.logFiles || 0;
+    
+    diskUsageElement.innerHTML = `
+        <div>${formatBytes(totalSize)}</div>
+        <div class="size-bytes">Images: ${formatBytes(imageCacheSize)} | Logs: ${formatBytes(logSize)}</div>
+    `;
+    
+    // Update item count (Memory cache items)
+    const totalItems = data.itemCount?.total || 0;
+    
+    itemCountElement.innerHTML = `
+        <div>${totalItems.toLocaleString()}</div>
+        <div class="size-bytes">Active in RAM</div>
+    `;
+}
+
+// ===================================
+// Global Test Functions for Debugging
+// ===================================
+
+console.log('🔧 Setting up global test functions...');
+
+// Add global function for testing
+window.testCacheStats = function() {
+    console.log('Testing cache stats manually...');
+    loadCacheStats();
+};
+
+// Add direct API test function
+window.testCacheAPI = async function() {
+    console.log('Testing cache API directly...');
+    try {
+        const response = await fetch('/api/admin/cache-stats', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        console.log('Response status:', response.status);
+        const data = await response.json();
+        console.log('Response data:', data);
+        updateCacheStatsDisplay(data);
+    } catch (error) {
+        console.error('Direct API test failed:', error);
+    }
+};
+
+console.log('✅ Global test functions ready! Try: testCacheAPI() or testCacheStats()');
+
+// ===================================
+// Management Section Observer  
+// ===================================
+
+// Watch for management section becoming visible
+const managementObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+            const managementSection = document.getElementById('management-section');
+            if (managementSection && managementSection.style.display !== 'none') {
+                console.log('Management section is now visible, loading cache stats...');
+                loadCacheStats();
+            }
+        }
+    });
+});
+
+// Start observing when DOM is ready
+setTimeout(() => {
+    const managementSection = document.getElementById('management-section');
+    if (managementSection) {
+        console.log('Starting management section observer...');
+        managementObserver.observe(managementSection, {
+            attributes: true,
+            attributeFilter: ['style', 'class']
+        });
+    }
+}, 1000);
+
+// ===================================
+// System Control Functions
+// ===================================
+
+/**
+ * Hide all status displays
+ */
+function hideAllStatusDisplays() {
+    // Stop any running auto-refresh when switching displays
+    stopAutoRefresh();
+    
+    const displays = ['status-display', 'update-display', 'performance-display'];
+    displays.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * Perform system status check
+ */
+async function performStatusCheck() {
+    hideAllStatusDisplays(); // Hide other displays first
+    
+    const statusDisplay = document.getElementById('status-display');
+    const statusContent = document.getElementById('status-content');
+    
+    if (!statusDisplay || !statusContent) return;
+    
+    statusDisplay.style.display = 'block';
+    statusContent.innerHTML = '<div class="loading">Checking system status...</div>';
+    
+    try {
+        const response = await fetch('/api/admin/status', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        displayStatusResults(data);
+        
+        // Start auto-refresh for status check
+        startAutoRefresh('status', 30); // Refresh every 30 seconds
+    } catch (error) {
+        console.error('Status check failed:', error);
+        statusContent.innerHTML = `<div class="status-error">Failed to check system status: ${error.message}</div>`;
+    }
+}
+
+/**
+ * Display status check results
+ */
+function displayStatusResults(data) {
+    const statusContent = document.getElementById('status-content');
+    if (!statusContent) return;
+    
+    const statusItems = [
+        { label: 'Application', value: data.app?.status || 'Unknown', icon: 'fas fa-cog', status: data.app?.status === 'running' ? 'success' : 'error' },
+        { label: 'Database', value: data.database?.status || 'Unknown', icon: 'fas fa-database', status: data.database?.status === 'connected' ? 'success' : 'error' },
+        { label: 'Cache', value: data.cache?.status || 'Unknown', icon: 'fas fa-memory', status: data.cache?.status === 'active' ? 'success' : 'warning' },
+        { label: 'Disk Space', value: data.disk?.available || 'Unknown', icon: 'fas fa-hdd', status: data.disk?.status || 'info' },
+        { label: 'Memory Usage', value: data.memory?.usage || 'Unknown', icon: 'fas fa-microchip', status: data.memory?.status || 'info' },
+        { label: 'Uptime', value: data.uptime || 'Unknown', icon: 'fas fa-clock', status: 'info' }
+    ];
+    
+    statusContent.innerHTML = `
+        <div class="status-grid">
+            ${statusItems.map(item => `
+                <div class="status-item">
+                    <div class="status-item-header">
+                        <i class="${item.icon}"></i>
+                        ${item.label}
+                    </div>
+                    <div class="status-item-value status-${item.status}">
+                        ${item.value}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+/**
+ * Check for application updates
+ */
+async function performUpdateCheck() {
+    hideAllStatusDisplays(); // Hide other displays first
+    
+    const updateDisplay = document.getElementById('update-display');
+    const updateContent = document.getElementById('update-content');
+    
+    if (!updateDisplay || !updateContent) return;
+    
+    updateDisplay.style.display = 'block';
+    updateContent.innerHTML = '<div class="loading">Checking for updates...</div>';
+    
+    try {
+        const response = await fetch('/api/admin/update-check', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        displayUpdateResults(data);
+    } catch (error) {
+        console.error('Update check failed:', error);
+        updateContent.innerHTML = `<div class="status-error">Failed to check for updates: ${error.message}</div>`;
+    }
+}
+
+/**
+ * Display update check results
+ */
+function displayUpdateResults(data) {
+    const updateContent = document.getElementById('update-content');
+    if (!updateContent) return;
+    
+    const currentVersion = data.currentVersion || 'Unknown';
+    const latestVersion = data.latestVersion || 'Unknown';
+    const updateAvailable = data.updateAvailable || false;
+    
+    updateContent.innerHTML = `
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-tag"></i>
+                    Current Version
+                </div>
+                <div class="status-item-value status-info">
+                    ${currentVersion}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-cloud-download-alt"></i>
+                    Latest Version
+                </div>
+                <div class="status-item-value status-info">
+                    ${latestVersion}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Update Status
+                </div>
+                <div class="status-item-value ${updateAvailable ? 'status-warning' : 'status-success'}">
+                    ${updateAvailable ? 'Update Available' : 'Up to Date'}
+                </div>
+            </div>
+        </div>
+        ${updateAvailable ? `
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 152, 0, 0.1); border: 1px solid rgba(255, 152, 0, 0.3); border-radius: 6px;">
+                <p style="margin: 0; color: #ff9800;">
+                    <i class="fas fa-info-circle"></i> 
+                    A new version is available. Please check the 
+                    <a href="https://github.com/Posterrama/posterrama" target="_blank" style="color: #667eea;">GitHub repository</a> 
+                    for update instructions.
+                </p>
+            </div>
+        ` : ''}
+    `;
+}
+
+/**
+ * Load performance monitoring data
+ */
+async function loadPerformanceMonitor() {
+    hideAllStatusDisplays(); // Hide other displays first
+    
+    const performanceDisplay = document.getElementById('performance-display');
+    const performanceContent = document.getElementById('performance-content');
+    
+    if (!performanceDisplay || !performanceContent) return;
+    
+    performanceDisplay.style.display = 'block';
+    performanceContent.innerHTML = '<div class="loading">Loading performance data...</div>';
+    
+    try {
+        const response = await fetch('/api/admin/performance', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        displayPerformanceResults(data);
+        
+        // Start auto-refresh for performance monitor
+        startAutoRefresh('performance', 5); // Refresh every 5 seconds
+    } catch (error) {
+        console.error('Performance monitoring failed:', error);
+        performanceContent.innerHTML = `<div class="status-error">Failed to load performance data: ${error.message}</div>`;
+    }
+}
+
+/**
+ * Display performance monitoring results
+ */
+function displayPerformanceResults(data) {
+    const performanceContent = document.getElementById('performance-content');
+    if (!performanceContent) return;
+    
+    const cpu = data.cpu || {};
+    const memory = data.memory || {};
+    const disk = data.disk || {};
+    
+    performanceContent.innerHTML = `
+        <div class="performance-metric">
+            <div class="metric-label">
+                <span><i class="fas fa-microchip"></i> CPU Usage</span>
+                <span>${cpu.usage || '0'}%</span>
+            </div>
+            <div class="metric-bar">
+                <div class="metric-fill ${getMetricClass(cpu.usage)}" style="width: ${cpu.usage || 0}%"></div>
+            </div>
+        </div>
+        
+        <div class="performance-metric">
+            <div class="metric-label">
+                <span><i class="fas fa-memory"></i> Memory Usage</span>
+                <span>${memory.usage || '0'}% (${memory.used || '0 MB'} / ${memory.total || '0 MB'})</span>
+            </div>
+            <div class="metric-bar">
+                <div class="metric-fill ${getMetricClass(memory.usage)}" style="width: ${memory.usage || 0}%"></div>
+            </div>
+        </div>
+        
+        <div class="performance-metric">
+            <div class="metric-label">
+                <span><i class="fas fa-hdd"></i> Disk Usage</span>
+                <span>${disk.usage || '0'}% (${disk.used || '0 GB'} / ${disk.total || '0 GB'})</span>
+            </div>
+            <div class="metric-bar">
+                <div class="metric-fill ${getMetricClass(disk.usage)}" style="width: ${disk.usage || 0}%"></div>
+            </div>
+        </div>
+        
+        <div class="status-grid" style="margin-top: 1.5rem;">
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-chart-line"></i>
+                    Load Average
+                </div>
+                <div class="status-item-value status-info">
+                    ${cpu.loadAverage || 'N/A'}
+                </div>
+                <div style="font-size: 0.8rem; color: #b0b0b0; margin-top: 0.5rem;">
+                    1min, 5min, 15min averages<br>
+                    <span style="color: #4caf50;">< 1.0 = Good</span> | 
+                    <span style="color: #ff9800;">1.0-2.0 = Busy</span> | 
+                    <span style="color: #f44336;">> 2.0 = Overloaded</span>
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-clock"></i>
+                    Uptime
+                </div>
+                <div class="status-item-value status-info">
+                    ${data.uptime || 'N/A'}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Get metric class based on usage percentage
+ */
+function getMetricClass(usage) {
+    const usageNum = parseFloat(usage) || 0;
+    if (usageNum >= 90) return 'danger';
+    if (usageNum >= 70) return 'warning';
+    return '';
+}
+
+// ===================================
+// Auto-refresh functionality
+// ===================================
+
+let autoRefreshInterval = null;
+let currentAutoRefreshType = null;
+
+/**
+ * Start auto-refresh for a specific monitor type
+ */
+function startAutoRefresh(type, intervalSeconds = 5) {
+    // Stop any existing auto-refresh
+    stopAutoRefresh();
+    
+    currentAutoRefreshType = type;
+    
+    autoRefreshInterval = setInterval(() => {
+        const display = document.getElementById(`${type}-display`);
+        if (display && display.style.display === 'block') {
+            console.log(`Auto-refreshing ${type} data...`);
+            
+            switch (type) {
+                case 'performance':
+                    loadPerformanceMonitorSilent();
+                    break;
+                case 'status':
+                    performStatusCheckSilent();
+                    break;
+            }
+        } else {
+            // Display is no longer visible, stop auto-refresh
+            stopAutoRefresh();
+        }
+    }, intervalSeconds * 1000);
+    
+    console.log(`Started auto-refresh for ${type} every ${intervalSeconds} seconds`);
+}
+
+/**
+ * Stop auto-refresh
+ */
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+        console.log(`Stopped auto-refresh for ${currentAutoRefreshType}`);
+        currentAutoRefreshType = null;
+    }
+}
+
+/**
+ * Silent version of loadPerformanceMonitor (no loading state change)
+ */
+async function loadPerformanceMonitorSilent() {
+    try {
+        const response = await fetch('/api/admin/performance', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        displayPerformanceResults(data);
+    } catch (error) {
+        console.error('Performance monitor auto-refresh failed:', error);
+        // Don't show error in UI for silent refresh
+    }
+}
+
+/**
+ * Silent version of performStatusCheck (no loading state change)
+ */
+async function performStatusCheckSilent() {
+    try {
+        const response = await fetch('/api/admin/status', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        displayStatusResults(data);
+    } catch (error) {
+        console.error('Status check auto-refresh failed:', error);
+        // Don't show error in UI for silent refresh
+    }
+}

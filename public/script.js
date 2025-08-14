@@ -58,9 +58,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
 
     function showError(message) {
+        // Add fallback background to body
+        document.body.classList.add('no-media-background');
+        
         const errorMessageEl = document.getElementById('error-message');
-        errorMessageEl.textContent = message;
+        errorMessageEl.innerHTML = `
+            <div class="error-icon">📺</div>
+            <div class="error-brand">Posterrama</div>
+            <div class="error-title">No Media Available</div>
+            <div class="error-text">${message}</div>
+            <div class="error-suggestions">
+                <h4>Possible solutions:</h4>
+                <ul>
+                    <li>Check if your content source is enabled and configured</li>
+                    <li>Verify the connection to your media server</li>
+                    <li>Ensure there is media in your library</li>
+                    <li>Review the configuration settings in the admin panel</li>
+                </ul>
+            </div>
+        `;
         errorMessageEl.classList.remove('is-hidden');
+        console.error('Posterrama Error:', message);
     }
 
     async function initialize() {
@@ -426,7 +444,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!mediaItem) continue;
             
             // Preload background image
-            if (!preloadedImages.backgrounds.has(mediaItem.backgroundUrl)) {
+            if (mediaItem.backgroundUrl && mediaItem.backgroundUrl !== 'null' && mediaItem.backgroundUrl !== 'undefined' && 
+                !preloadedImages.backgrounds.has(mediaItem.backgroundUrl)) {
                 const bgImg = new Image();
                 bgImg.onload = () => {
                     console.log('[PRELOAD] Background loaded:', mediaItem.title);
@@ -498,6 +517,11 @@ document.addEventListener('DOMContentLoaded', async () => {
      * @param {object} mediaItem The media item object to render.
      */
     function renderMediaItem(mediaItem) {
+        if (!mediaItem) {
+            console.error('renderMediaItem called with invalid mediaItem');
+            return;
+        }
+        
         console.log('[DEBUG] renderMediaItem called, cinemaMode:', appConfig.cinemaMode);
         
         // Apply transition effects to poster in cinema mode
@@ -523,14 +547,71 @@ document.addEventListener('DOMContentLoaded', async () => {
                 posterLink.style.cursor = 'default';
             }
         }
-        titleEl.textContent = mediaItem.title;
+        titleEl.textContent = mediaItem.title || 'Unknown Title';
         taglineEl.textContent = mediaItem.tagline || '';
         yearEl.textContent = mediaItem.year || '';
-        ratingEl.textContent = mediaItem.rating ? mediaItem.rating.toFixed(1) : '';
-        document.title = `${mediaItem.title} - posterrama.app`;
+        
+        // Process rating and streaming provider info
+        let ratingText = mediaItem.rating ? mediaItem.rating.toFixed(1) : '';
+        let streamingProvider = '';
+        
+        // Check for streaming items and get provider name
+        const isStreamingItem = (mediaItem.source && mediaItem.source.toLowerCase().includes('streaming')) || 
+                               (mediaItem.category && mediaItem.category.toLowerCase().includes('streaming'));
+        
+        if (isStreamingItem) {
+            // Try to detect provider from streaming data first
+            if (mediaItem.streaming && mediaItem.streaming.providers && mediaItem.streaming.providers.length > 0) {
+                const providers = mediaItem.streaming.providers;
+                if (providers.some(p => p.provider_name && p.provider_name.toLowerCase().includes('netflix'))) {
+                    streamingProvider = 'Netflix';
+                } else if (providers.some(p => p.provider_name && p.provider_name.toLowerCase().includes('disney'))) {
+                    streamingProvider = 'Disney+';
+                } else if (providers.some(p => p.provider_name && p.provider_name.toLowerCase().includes('prime'))) {
+                    streamingProvider = 'Prime Video';
+                } else if (providers.some(p => p.provider_name && p.provider_name.toLowerCase().includes('hbo'))) {
+                    streamingProvider = 'HBO Max';
+                } else if (providers.some(p => p.provider_name && p.provider_name.toLowerCase().includes('apple'))) {
+                    streamingProvider = 'Apple TV+';
+                }
+            }
+            
+            // Fallback: detect from source/category
+            if (!streamingProvider) {
+                const sourceText = (mediaItem.source || '').toLowerCase();
+                const categoryText = (mediaItem.category || '').toLowerCase();
+                
+                if (sourceText.includes('netflix') || categoryText.includes('netflix')) {
+                    streamingProvider = 'Netflix';
+                } else if (sourceText.includes('disney') || categoryText.includes('disney')) {
+                    streamingProvider = 'Disney+';
+                } else if (sourceText.includes('prime') || categoryText.includes('prime')) {
+                    streamingProvider = 'Prime Video';
+                } else if (sourceText.includes('hbo') || categoryText.includes('hbo')) {
+                    streamingProvider = 'HBO Max';
+                } else if (sourceText.includes('apple') || categoryText.includes('apple')) {
+                    streamingProvider = 'Apple TV+';
+                } else if (sourceText.includes('new') || categoryText.includes('new')) {
+                    streamingProvider = 'Streaming';
+                }
+            }
+        }
+        
+        // Combine rating and streaming provider
+        if (ratingText && streamingProvider) {
+            ratingEl.textContent = `${ratingText} • ${streamingProvider}`;
+        } else if (ratingText) {
+            ratingEl.textContent = ratingText;
+        } else if (streamingProvider) {
+            ratingEl.textContent = streamingProvider;
+        } else {
+            ratingEl.textContent = '';
+        }
+        
+        document.title = `${mediaItem.title || 'Unknown Title'} - posterrama.app`;
         taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
         yearEl.style.display = mediaItem.year ? 'inline' : 'none';
-        ratingEl.style.display = mediaItem.rating ? 'inline' : 'none';
+        ratingEl.style.display = (ratingText || streamingProvider) ? 'inline' : 'none';
 
         if (appConfig.showClearLogo && mediaItem.clearLogoUrl) {
             clearlogoEl.src = mediaItem.clearLogoUrl;
@@ -578,6 +659,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         console.log('[posterrama.app] Updating info for:', currentMedia);
+
+        // Check if background URL is valid before loading
+        if (!currentMedia.backgroundUrl) {
+            console.warn(`No background image for: ${currentMedia.title}. Skipping item.`);
+            changeMedia('next', false, true);
+            return;
+        }
+
+        // Check if current media has a valid background URL
+        if (!currentMedia.backgroundUrl || currentMedia.backgroundUrl === 'null' || currentMedia.backgroundUrl === 'undefined') {
+            console.warn('[DEBUG] Invalid background URL for media:', currentMedia.title, 'URL:', currentMedia.backgroundUrl);
+            changeMedia('next', false, true);
+            return;
+        }
 
         const img = new Image();
         img.onerror = () => {

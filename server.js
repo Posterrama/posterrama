@@ -130,6 +130,8 @@ const ecosystemConfig = require('./ecosystem.config.js');
 const { shuffleArray } = require('./utils.js');
 
 const PlexSource = require('./sources/plex');
+const TMDBSource = require('./sources/tmdb');
+const TVDBSource = require('./sources/tvdb');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const rateLimit = require('express-rate-limit');
@@ -2265,6 +2267,7 @@ async function getPlaylistMedia() {
     let allMedia = [];
     const enabledServers = config.mediaServers.filter(s => s.enabled);
  
+    // Process Plex/Media Servers
     for (const server of enabledServers) {
         if (isDebug) console.log(`[Debug] Fetching from server: ${server.name} (${server.type})`);
  
@@ -2284,6 +2287,94 @@ async function getPlaylistMedia() {
  
         if (isDebug) console.log(`[Debug] Fetched ${mediaFromServer.length} items from ${server.name}.`);
         allMedia = allMedia.concat(mediaFromServer);
+    }
+    
+    // Process TMDB Source
+    if (config.tmdbSource && config.tmdbSource.enabled && config.tmdbSource.apiKey) {
+        if (isDebug) console.log(`[Debug] Fetching from TMDB source`);
+        
+        // Add a name to the TMDB source for consistent logging
+        const tmdbSourceConfig = { ...config.tmdbSource, name: 'TMDB' };
+        const tmdbSource = new TMDBSource(tmdbSourceConfig, shuffleArray, isDebug);
+        
+        // Schedule periodic cache cleanup for TMDB source
+        if (!global.tmdbCacheCleanupInterval) {
+            global.tmdbCacheCleanupInterval = setInterval(() => {
+                if (global.tmdbSourceInstance) {
+                    global.tmdbSourceInstance.cleanupCache();
+                }
+            }, 10 * 60 * 1000); // Clean up every 10 minutes
+        }
+        global.tmdbSourceInstance = tmdbSource;
+        
+        const [tmdbMovies, tmdbShows] = await Promise.all([
+            tmdbSource.fetchMedia('movie', config.tmdbSource.movieCount || 0),
+            tmdbSource.fetchMedia('tv', config.tmdbSource.showCount || 0)
+        ]);
+        const tmdbMedia = tmdbMovies.concat(tmdbShows);
+        
+        if (isDebug) console.log(`[Debug] Fetched ${tmdbMedia.length} items from TMDB.`);
+        allMedia = allMedia.concat(tmdbMedia);
+    }
+
+    // Process Streaming Sources
+    if (config.streamingSources && Array.isArray(config.streamingSources)) {
+        for (const streamingConfig of config.streamingSources) {
+            if (streamingConfig.enabled && streamingConfig.apiKey) {
+                console.log(`[Streaming Debug] Fetching from: ${streamingConfig.name} (Category: ${streamingConfig.category})`);
+                console.log(`[Streaming Debug] Settings - Movies: ${streamingConfig.movieCount || 0}, Shows: ${streamingConfig.showCount || 0}, Min Rating: ${streamingConfig.minRating || 0}, Region: ${streamingConfig.watchRegion || 'US'}`);
+                
+                const streamingSource = new TMDBSource(streamingConfig, shuffleArray, isDebug);
+                
+                try {
+                    const [streamingMovies, streamingShows] = await Promise.all([
+                        streamingSource.fetchMedia('movie', streamingConfig.movieCount || 0),
+                        streamingSource.fetchMedia('tv', streamingConfig.showCount || 0)
+                    ]);
+                    const streamingMedia = streamingMovies.concat(streamingShows);
+                    
+                    console.log(`[Streaming Debug] ${streamingConfig.name} results: ${streamingMovies.length} movies + ${streamingShows.length} shows = ${streamingMedia.length} total items`);
+                    if (streamingMedia.length === 0) {
+                        console.log(`[Streaming Debug] WARNING: No content found for ${streamingConfig.name} - check provider ID or regional availability`);
+                    }
+                    allMedia = allMedia.concat(streamingMedia);
+                } catch (error) {
+                    console.error(`[Error] Failed to fetch from streaming source ${streamingConfig.name}: ${error.message}`);
+                }
+            } else {
+                if (!streamingConfig.enabled) {
+                    console.log(`[Streaming Debug] Skipping ${streamingConfig.name} - disabled`);
+                } else if (!streamingConfig.apiKey) {
+                    console.log(`[Streaming Debug] Skipping ${streamingConfig.name} - no API key`);
+                }
+            }
+        }
+    }
+    
+    // Process TVDB Source
+    if (config.tvdbSource && config.tvdbSource.enabled) {
+        if (isDebug) console.log(`[Debug] Fetching from TVDB source`);
+        
+        const tvdbSource = new TVDBSource(config.tvdbSource);
+        
+        // Schedule periodic cache cleanup for TVDB source
+        if (!global.tvdbCacheCleanupInterval) {
+            global.tvdbCacheCleanupInterval = setInterval(() => {
+                if (global.tvdbSourceInstance) {
+                    global.tvdbSourceInstance.clearCache();
+                }
+            }, 10 * 60 * 1000); // Clean up every 10 minutes
+        }
+        global.tvdbSourceInstance = tvdbSource;
+        
+        const [tvdbMovies, tvdbShows] = await Promise.all([
+            tvdbSource.getMovies(),
+            tvdbSource.getShows()
+        ]);
+        const tvdbMedia = tvdbMovies.concat(tvdbShows);
+        
+        if (isDebug) console.log(`[Debug] Fetched ${tvdbMedia.length} items from TVDB.`);
+        allMedia = allMedia.concat(tvdbMedia);
     }
  
     return allMedia;
@@ -3561,6 +3652,56 @@ app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
     const currentConfig = await readConfig();
     if (isDebug) console.log('[Admin API] Successfully read config.json.');
 
+    // Convert streaming sources array to object format for admin panel
+    if (currentConfig.streamingSources && Array.isArray(currentConfig.streamingSources)) {
+        const streamingArray = currentConfig.streamingSources;
+        const streamingObject = {
+            enabled: streamingArray.some(source => source.enabled),
+            region: 'US',
+            maxItems: 20,
+            minRating: 0,
+            netflix: false,
+            disney: false,
+            prime: false,
+            hbo: false,
+            newReleases: false
+        };
+        
+        // Extract settings from first enabled source
+        const firstEnabled = streamingArray.find(source => source.enabled);
+        if (firstEnabled) {
+            streamingObject.region = firstEnabled.watchRegion || 'US';
+            streamingObject.maxItems = (firstEnabled.movieCount + firstEnabled.showCount) || 20;
+            streamingObject.minRating = firstEnabled.minRating || 0;
+        }
+        
+        // Set provider checkboxes based on enabled sources
+        streamingArray.forEach(source => {
+            if (source.enabled) {
+                switch (source.category) {
+                    case 'streaming_netflix':
+                        streamingObject.netflix = true;
+                        break;
+                    case 'streaming_disney':
+                        streamingObject.disney = true;
+                        break;
+                    case 'streaming_prime':
+                        streamingObject.prime = true;
+                        break;
+                    case 'streaming_hbo':
+                        streamingObject.hbo = true;
+                        break;
+                    case 'streaming_new_releases':
+                        streamingObject.newReleases = true;
+                        break;
+                }
+            }
+        });
+        
+        currentConfig.streamingSources = streamingObject;
+        console.log('[Streaming Debug] Converted streaming array to object for admin panel:', JSON.stringify(streamingObject, null, 2));
+    }
+
     // WARNING: Exposing environment variables to the client can be a security risk.
     // This is done based on an explicit user request.
     const envVarsToExpose = {
@@ -3778,6 +3919,107 @@ app.post('/api/admin/plex-libraries', isAuthenticated, express.json(), asyncHand
 
 /**
  * @swagger
+ * /api/test-tvdb-connection:
+ *   post:
+ *     summary: Test TVDB connection and fetch sample data
+ *     description: >
+ *       Tests the connection to TVDB API using the hardcoded developer key and fetches sample data
+ *       to verify that the integration is working correctly.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: TVDB connection test successful.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 sampleData:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 stats:
+ *                   type: object
+ *                   properties:
+ *                     responseTime:
+ *                       type: number
+ *                     totalItems:
+ *                       type: number
+ *       400:
+ *         description: TVDB connection test failed.
+ */
+app.post('/api/test-tvdb-connection', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Received request to test TVDB connection.');
+    
+    const startTime = Date.now();
+    
+    try {
+        // Import TVDB source dynamically
+        const TVDBSource = require('./sources/tvdb');
+        
+        // Create TVDB instance with test configuration
+        const testConfig = {
+            enabled: true,
+            showCount: 5,  // Small number for testing
+            movieCount: 5, // Small number for testing
+            category: 'popular',
+            minRating: 0,
+            yearFilter: null,
+            genreFilter: ''
+        };
+        
+        const tvdbSource = new TVDBSource(testConfig);
+        
+        if (isDebug) console.log('[TVDB Test] Attempting to fetch sample data...');
+        
+        // Test both movies and shows
+        const [movies, shows] = await Promise.all([
+            tvdbSource.getMovies(),
+            tvdbSource.getShows()
+        ]);
+        
+        const sampleData = movies.concat(shows);
+        
+        const responseTime = Date.now() - startTime;
+        
+        if (sampleData && sampleData.length > 0) {
+            if (isDebug) console.log(`[TVDB Test] Successfully retrieved ${sampleData.length} items from TVDB.`);
+            
+            res.json({
+                success: true,
+                message: 'TVDB connection successful',
+                sampleData: sampleData.slice(0, 10), // Return first 10 items for display
+                stats: {
+                    responseTime,
+                    totalItems: sampleData.length,
+                    movies: movies.length,
+                    shows: shows.length
+                }
+            });
+        } else {
+            throw new Error('No data returned from TVDB API');
+        }
+        
+    } catch (error) {
+        const errorMessage = error.message || 'Unknown error occurred';
+        if (isDebug) console.error('[TVDB Test] Connection test failed:', errorMessage);
+        
+        res.status(400).json({
+            success: false,
+            error: errorMessage,
+            stats: {
+                responseTime: Date.now() - startTime
+            }
+        });
+    }
+}));
+
+/**
+ * @swagger
  * /api/admin/config:
  *   post:
  *     summary: Save the admin configuration
@@ -3815,6 +4057,77 @@ app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(asyn
     if (!newConfig || !newEnv) {
         if (isDebug) console.log('[Admin API] Invalid request body. Missing "config" or "env".');
         throw new ApiError(400, 'Invalid request body. "config" and "env" properties are required.');
+    }
+
+    // Debug: Log all TMDB config details
+    console.log('[TMDB Debug] Full newConfig.tmdbSource:', JSON.stringify(newConfig.tmdbSource, null, 2));
+    if (newConfig.tmdbSource) {
+        console.log('[TMDB Debug] API key value:', newConfig.tmdbSource.apiKey);
+        console.log('[TMDB Debug] API key type:', typeof newConfig.tmdbSource.apiKey);
+        console.log('[TMDB Debug] API key === null:', newConfig.tmdbSource.apiKey === null);
+        console.log('[TMDB Debug] API key == null:', newConfig.tmdbSource.apiKey == null);
+    }
+
+    // Handle TMDB API key preservation
+    if (newConfig.tmdbSource && (newConfig.tmdbSource.apiKey === null || newConfig.tmdbSource.apiKey === undefined)) {
+        console.log('[TMDB API Key Debug] Received null/undefined API key, preserving existing');
+        // Preserve existing API key if null/undefined is passed (meaning "don't change")
+        const existingConfig = await readConfig();
+        if (existingConfig.tmdbSource && existingConfig.tmdbSource.apiKey) {
+            newConfig.tmdbSource.apiKey = existingConfig.tmdbSource.apiKey;
+            console.log('[TMDB API Key Debug] Preserved existing key:', existingConfig.tmdbSource.apiKey.substring(0, 8) + '...');
+        } else {
+            // No existing key, use empty string
+            newConfig.tmdbSource.apiKey = '';
+            console.log('[TMDB API Key Debug] No existing key found, using empty string');
+        }
+    } else if (newConfig.tmdbSource) {
+        console.log('[TMDB API Key Debug] Received API key:', newConfig.tmdbSource.apiKey ? (newConfig.tmdbSource.apiKey.substring(0, 8) + '...') : 'empty');
+    }
+
+    // Process streaming sources configuration
+    if (newConfig.streamingSources && typeof newConfig.streamingSources === 'object' && !Array.isArray(newConfig.streamingSources)) {
+        console.log('[Streaming Debug] Converting streamingSources object to array format');
+        const streamingConfig = newConfig.streamingSources;
+        const streamingArray = [];
+        
+        // Get TMDB API key for streaming sources
+        let apiKey = '';
+        if (newConfig.tmdbSource && newConfig.tmdbSource.apiKey) {
+            apiKey = newConfig.tmdbSource.apiKey;
+        }
+        
+        if (streamingConfig.enabled && apiKey) {
+            // Create streaming source entries based on selected providers
+            const providers = [
+                { name: 'Netflix Releases', category: 'streaming_netflix', enabled: streamingConfig.netflix },
+                { name: 'Disney+ Releases', category: 'streaming_disney', enabled: streamingConfig.disney },
+                { name: 'Prime Video Releases', category: 'streaming_prime', enabled: streamingConfig.prime },
+                { name: 'HBO Max Releases', category: 'streaming_hbo', enabled: streamingConfig.hbo },
+                { name: 'New Streaming Releases', category: 'streaming_new_releases', enabled: streamingConfig.newReleases }
+            ];
+            
+            providers.forEach(provider => {
+                if (provider.enabled) {
+                    streamingArray.push({
+                        name: provider.name,
+                        enabled: true,
+                        apiKey: apiKey,
+                        category: provider.category,
+                        watchRegion: streamingConfig.region || 'US',
+                        movieCount: Math.floor((streamingConfig.maxItems || 20) / 2),
+                        showCount: Math.floor((streamingConfig.maxItems || 20) / 2),
+                        minRating: streamingConfig.minRating || 0,
+                        yearFilter: null,
+                        genreFilter: ""
+                    });
+                }
+            });
+        }
+        
+        // Replace the object with the array
+        newConfig.streamingSources = streamingArray;
+        console.log('[Streaming Debug] Created streaming sources array:', JSON.stringify(streamingArray, null, 2));
     }
 
     // Write to config.json and .env
@@ -3890,6 +4203,267 @@ app.get('/api/admin/plex-genres', isAuthenticated, asyncHandler(async (req, res)
     if (isDebug) console.log(`[Admin API] Found ${sortedGenres.length} unique genres.`);
     
     res.json({ genres: sortedGenres });
+}));
+
+/**
+ * @swagger
+ * /api/admin/test-tmdb:
+ *   post:
+ *     summary: Test TMDB API connection
+ *     description: Tests the connection to TMDB API with provided credentials.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               apiKey:
+ *                 type: string
+ *                 description: TMDB API key
+ *               category:
+ *                 type: string
+ *                 description: Content category to test
+ *             required:
+ *               - apiKey
+ *     responses:
+ *       200:
+ *         description: TMDB connection test result.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: number
+ *                 error:
+ *                   type: string
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
+app.post('/api/admin/test-tmdb', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Request received for /api/admin/test-tmdb.');
+    
+    let { apiKey, category = 'popular', testType = 'normal', region = 'US' } = req.body;
+    
+    // If apiKey is 'stored_key', use the stored API key from config
+    if (apiKey === 'stored_key') {
+        const currentConfig = await readConfig();
+        if (currentConfig.tmdbSource && currentConfig.tmdbSource.apiKey) {
+            apiKey = currentConfig.tmdbSource.apiKey;
+            if (isDebug) console.log('[Admin API] Using stored TMDB API key for test.');
+        } else {
+            return res.json({ success: false, error: 'No stored API key found. Please enter a new API key.' });
+        }
+    }
+    
+    if (!apiKey) {
+        return res.json({ success: false, error: 'API key is required' });
+    }
+    
+    try {
+        // Create a temporary TMDB source for testing
+        const testConfig = {
+            apiKey: apiKey,
+            category: category,
+            enabled: true,
+            name: testType === 'streaming' ? 'TMDB-Streaming-Test' : 'TMDB-Test'
+        };
+        
+        const tmdbSource = new TMDBSource(testConfig, shuffleArray, isDebug);
+        
+        if (testType === 'streaming') {
+            // Test streaming functionality
+            try {
+                // Test streaming discover endpoint - build full URL manually
+                const baseUrl = 'https://api.themoviedb.org/3';
+                const testUrl = `${baseUrl}/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=${region}&page=1&sort_by=popularity.desc`;
+                
+                const response = await fetch(testUrl);
+                if (!response.ok) {
+                    throw new Error(`TMDB API responded with status ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                res.json({ 
+                    success: true,
+                    message: `Streaming API test successful for region ${region}`,
+                    region: region,
+                    providersSupported: true,
+                    totalResults: data.total_results || 0
+                });
+            } catch (error) {
+                res.json({ 
+                    success: false, 
+                    error: `Streaming test failed: ${error.message}`
+                });
+            }
+        } else {
+            // Regular TMDB test
+            const testMovies = await tmdbSource.fetchMedia('movie', 5);
+            
+            if (testMovies.length > 0) {
+                res.json({ 
+                    success: true, 
+                    count: testMovies.length, 
+                    message: `Successfully connected to TMDB and fetched ${category} movies`
+                });
+            } else {
+                res.json({ 
+                    success: false, 
+                    error: 'Connected to TMDB but no movies found. Check your API key or category.'
+                });
+            }
+        }
+        
+    } catch (error) {
+        if (isDebug) console.error('[Admin API] TMDB test failed:', error);
+        res.json({ 
+            success: false, 
+            error: error.message || 'Failed to connect to TMDB API'
+        });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/tmdb-genres:
+ *   get:
+ *     summary: Get available TMDB genres
+ *     description: Fetches the list of available genres from TMDB API for filtering.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of TMDB genres.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 genres:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
+app.get('/api/admin/tmdb-genres', isAuthenticated, asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-genres.');
+    
+    const currentConfig = await readConfig();
+    
+    if (!currentConfig.tmdbSource || !currentConfig.tmdbSource.enabled || !currentConfig.tmdbSource.apiKey) {
+        return res.json({ genres: [] });
+    }
+    
+    try {
+        const tmdbSourceConfig = { ...currentConfig.tmdbSource, name: 'TMDB-Genres' };
+        const tmdbSource = new TMDBSource(tmdbSourceConfig, shuffleArray, isDebug);
+        const genres = await tmdbSource.getAvailableGenres();
+        
+        if (isDebug) console.log(`[Admin API] Found ${genres.length} TMDB genres.`);
+        res.json({ genres: genres });
+        
+    } catch (error) {
+        console.error(`[Admin API] Failed to get TMDB genres: ${error.message}`);
+        res.json({ genres: [], error: error.message });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/tvdb-genres:
+ *   get:
+ *     summary: Get available TVDB genres
+ *     description: Fetches the list of available genres from TVDB API for filtering.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of available TVDB genres.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 genres:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ */
+app.get('/api/admin/tvdb-genres', isAuthenticated, asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Request received for TVDB genres.');
+    
+    try {
+        if (!global.tvdbSourceInstance) {
+            // Create a temporary instance since API key is hardcoded
+            global.tvdbSourceInstance = new TVDBSource({ enabled: true });
+        }
+        
+        const genres = await global.tvdbSourceInstance.getGenres();
+        
+        if (isDebug) console.log(`[Admin API] Found ${genres.length} TVDB genres.`);
+        res.json({ genres });
+        
+    } catch (error) {
+        console.error(`[Admin API] Failed to get TVDB genres: ${error.message}`);
+        res.json({ genres: [], error: error.message });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/tmdb-cache-stats:
+ *   get:
+ *     summary: Get TMDB cache statistics
+ *     description: Returns cache statistics for debugging TMDB performance.
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: TMDB cache statistics.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cacheStats:
+ *                   type: object
+ *                 enabled:
+ *                   type: boolean
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
+app.get('/api/admin/tmdb-cache-stats', isAuthenticated, asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-cache-stats.');
+    
+    if (global.tmdbSourceInstance) {
+        const stats = global.tmdbSourceInstance.getCacheStats();
+        res.json({ 
+            enabled: true,
+            cacheStats: stats
+        });
+    } else {
+        res.json({ 
+            enabled: false,
+            message: 'TMDB source not initialized'
+        });
+    }
 }));
 
 /**
@@ -4004,6 +4578,296 @@ app.post('/api/admin/restart-app', isAuthenticated, asyncHandler(async (req, res
 
 /**
  * @swagger
+ * /api/admin/status:
+ *   get:
+ *     summary: Get system status information
+ *     description: >
+ *       Returns comprehensive system status including application, database, cache,
+ *       disk space, memory usage, and uptime information.
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: System status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 app:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: "running"
+ *                 database:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: "connected"
+ *                 cache:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: "active"
+ *                 uptime:
+ *                   type: string
+ *                   example: "2 days, 5 hours"
+ */
+app.get('/api/admin/status', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        const os = require('os');
+        const uptime = process.uptime();
+        const hours = Math.floor(uptime / 3600);
+        const minutes = Math.floor((uptime % 3600) / 60);
+        const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+        
+        // Check database connection (file system access)
+        let databaseStatus = 'disconnected';
+        try {
+            await fsp.access(path.join(__dirname, 'sessions'), fs.constants.F_OK);
+            databaseStatus = 'connected';
+        } catch (e) {
+            databaseStatus = 'error';
+        }
+        
+        // Check cache status
+        const cacheStatus = global.cache ? 'active' : 'inactive';
+        
+        // Get memory info
+        const totalMem = os.totalmem();
+        const freeMem = os.freemem();
+        const usedMem = totalMem - freeMem;
+        const memUsage = Math.round((usedMem / totalMem) * 100);
+        
+        // Get disk space
+        let diskUsage = { available: 'Unknown', status: 'info' };
+        try {
+            const stats = await fsp.statfs(__dirname);
+            const totalSpace = stats.bavail * stats.bsize;
+            const totalSpaceGB = (totalSpace / (1024 ** 3)).toFixed(1);
+            diskUsage = {
+                available: `${totalSpaceGB} GB available`,
+                status: totalSpaceGB > 5 ? 'success' : totalSpaceGB > 1 ? 'warning' : 'error'
+            };
+        } catch (e) {
+            // Fallback if statfs is not available
+            diskUsage = { available: 'Cannot determine', status: 'warning' };
+        }
+        
+        const statusData = {
+            app: { status: 'running' },
+            database: { status: databaseStatus },
+            cache: { status: cacheStatus },
+            disk: diskUsage,
+            memory: {
+                usage: `${memUsage}%`,
+                status: memUsage > 90 ? 'error' : memUsage > 70 ? 'warning' : 'success'
+            },
+            uptime: uptimeString
+        };
+        
+        res.json(statusData);
+    } catch (error) {
+        console.error('[Admin API] Error getting system status:', error);
+        res.status(500).json({ error: 'Failed to get system status' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/update-check:
+ *   get:
+ *     summary: Check for application updates
+ *     description: >
+ *       Checks the current version against the latest available version
+ *       and determines if an update is available.
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: Update check completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 currentVersion:
+ *                   type: string
+ *                   example: "1.0.0"
+ *                 latestVersion:
+ *                   type: string
+ *                   example: "1.1.0"
+ *                 updateAvailable:
+ *                   type: boolean
+ *                   example: true
+ */
+app.get('/api/admin/update-check', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        // Read current version from package.json
+        const packagePath = path.join(__dirname, 'package.json');
+        let currentVersion = 'Unknown';
+        
+        try {
+            const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
+            currentVersion = packageData.version || 'Unknown';
+        } catch (e) {
+            console.warn('[Admin API] Could not read package.json for version info');
+        }
+        
+        // For now, we'll simulate checking for updates
+        // In a real implementation, this would check GitHub releases or similar
+        let latestVersion = currentVersion;
+        let updateAvailable = false;
+        
+        try {
+            // This is a placeholder - in production you'd check GitHub releases API
+            // const response = await fetch('https://api.github.com/repos/posterrama/posterrama/releases/latest');
+            // const releaseData = await response.json();
+            // latestVersion = releaseData.tag_name.replace('v', '');
+            
+            // For now, just return current version info
+            updateAvailable = false; // Set to true if a newer version is found
+        } catch (e) {
+            console.warn('[Admin API] Could not check for updates:', e.message);
+        }
+        
+        const updateData = {
+            currentVersion,
+            latestVersion,
+            updateAvailable
+        };
+        
+        res.json(updateData);
+    } catch (error) {
+        console.error('[Admin API] Error checking for updates:', error);
+        res.status(500).json({ error: 'Failed to check for updates' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/performance:
+ *   get:
+ *     summary: Get system performance metrics
+ *     description: >
+ *       Returns real-time system performance data including CPU usage,
+ *       memory usage, disk usage, and load average.
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: Performance metrics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cpu:
+ *                   type: object
+ *                   properties:
+ *                     usage:
+ *                       type: number
+ *                       example: 45.2
+ *                     loadAverage:
+ *                       type: string
+ *                       example: "0.75, 0.82, 0.90"
+ *                 memory:
+ *                   type: object
+ *                   properties:
+ *                     usage:
+ *                       type: number
+ *                       example: 68.5
+ *                     used:
+ *                       type: string
+ *                       example: "2.1 GB"
+ *                     total:
+ *                       type: string
+ *                       example: "3.1 GB"
+ */
+app.get('/api/admin/performance', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        const os = require('os');
+        
+        // CPU information
+        const cpus = os.cpus();
+        let totalIdle = 0;
+        let totalTick = 0;
+        
+        cpus.forEach(cpu => {
+            for (type in cpu.times) {
+                totalTick += cpu.times[type];
+            }
+            totalIdle += cpu.times.idle;
+        });
+        
+        const idle = totalIdle / cpus.length;
+        const total = totalTick / cpus.length;
+        const cpuUsage = 100 - Math.round(100 * idle / total);
+        
+        // Load average
+        const loadAverage = os.loadavg().map(load => load.toFixed(2)).join(', ');
+        
+        // Memory information
+        const totalMem = os.totalmem();
+        const freeMem = os.freemem();
+        const usedMem = totalMem - freeMem;
+        const memUsage = Math.round((usedMem / totalMem) * 100);
+        
+        const formatBytes = (bytes) => {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        };
+        
+        // Disk information (basic)
+        let diskUsage = { usage: 0, used: '0 GB', total: '0 GB' };
+        try {
+            const stats = await fsp.statfs(__dirname);
+            const totalSpace = stats.blocks * stats.bsize;
+            const freeSpace = stats.bavail * stats.bsize;
+            const usedSpace = totalSpace - freeSpace;
+            const diskUsagePercent = Math.round((usedSpace / totalSpace) * 100);
+            
+            diskUsage = {
+                usage: diskUsagePercent,
+                used: formatBytes(usedSpace),
+                total: formatBytes(totalSpace)
+            };
+        } catch (e) {
+            console.warn('[Admin API] Could not get disk stats:', e.message);
+        }
+        
+        // Uptime
+        const uptime = process.uptime();
+        const hours = Math.floor(uptime / 3600);
+        const minutes = Math.floor((uptime % 3600) / 60);
+        const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+        
+        const performanceData = {
+            cpu: {
+                usage: cpuUsage,
+                loadAverage: loadAverage
+            },
+            memory: {
+                usage: memUsage,
+                used: formatBytes(usedMem),
+                total: formatBytes(totalMem)
+            },
+            disk: diskUsage,
+            uptime: uptimeString
+        };
+        
+        res.json(performanceData);
+    } catch (error) {
+        console.error('[Admin API] Error getting performance metrics:', error);
+        res.status(500).json({ error: 'Failed to get performance metrics' });
+    }
+}));
+
+/**
+ * @swagger
  * /api/admin/refresh-media:
  *   post:
  *     summary: Force an immediate refresh of the media playlist
@@ -4076,6 +4940,105 @@ app.post('/api/admin/clear-image-cache', isAuthenticated, asyncHandler(async (re
     } catch (error) {
         console.error('[Admin API] Error clearing image cache:', error);
         throw new ApiError(500, 'Failed to clear image cache. Check server logs for details.');
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/cache-stats:
+ *   get:
+ *     summary: Get cache statistics
+ *     description: Returns cache size and disk usage information using session authentication
+ *     tags: [Admin API]
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Cache statistics retrieved successfully
+ */
+app.get('/api/admin/cache-stats', isAuthenticated, asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Received request for cache stats');
+    
+    try {
+        // Get cache stats from cache manager
+        const cacheStats = cacheManager.getStats();
+        
+        // Calculate disk usage
+        const diskUsage = {
+            imageCache: 0,
+            logFiles: 0,
+            total: 0
+        };
+        
+        // Calculate image cache size
+        try {
+            const imageCacheDir = path.join(__dirname, 'image_cache');
+            const files = await fsp.readdir(imageCacheDir);
+            for (const file of files) {
+                try {
+                    const stats = await fsp.stat(path.join(imageCacheDir, file));
+                    diskUsage.imageCache += stats.size;
+                } catch (err) {
+                    // Skip files that can't be read
+                }
+            }
+        } catch (err) {
+            if (isDebug) console.log('[Admin API] Image cache directory not accessible:', err.message);
+        }
+        
+        // Calculate log files size
+        try {
+            const logsDir = path.join(__dirname, 'logs');
+            const files = await fsp.readdir(logsDir);
+            for (const file of files) {
+                try {
+                    const stats = await fsp.stat(path.join(logsDir, file));
+                    diskUsage.logFiles += stats.size;
+                } catch (err) {
+                    // Skip files that can't be read
+                }
+            }
+        } catch (err) {
+            if (isDebug) console.log('[Admin API] Logs directory not accessible:', err.message);
+        }
+        
+        diskUsage.total = diskUsage.imageCache + diskUsage.logFiles;
+        
+        // Count cached items by type
+        const itemCount = {
+            media: 0,
+            config: 0,
+            image: 0,
+            total: cacheStats.size
+        };
+        
+        // Count items by prefix (basic categorization)
+        for (const key of cacheManager.cache.keys()) {
+            if (key.startsWith('media:') || key.startsWith('plex:') || key.startsWith('tmdb:') || key.startsWith('tvdb:')) {
+                itemCount.media++;
+            } else if (key.startsWith('config:')) {
+                itemCount.config++;
+            } else if (key.startsWith('image:')) {
+                itemCount.image++;
+            }
+        }
+        
+        const response = {
+            diskUsage,
+            itemCount,
+            cacheStats: {
+                hits: cacheStats.hits,
+                misses: cacheStats.misses,
+                hitRate: cacheStats.hitRate
+            }
+        };
+        
+        if (isDebug) console.log('[Admin API] Cache stats calculated:', response);
+        res.json(response);
+        
+    } catch (error) {
+        console.error('[Admin API] Error getting cache stats:', error);
+        throw new ApiError(500, 'Failed to get cache statistics. Check server logs for details.');
     }
 }));
 
@@ -4161,6 +5124,136 @@ app.post('/api/v1/admin/cache/clear', isAuthenticated, express.json(), asyncHand
     } catch (error) {
         logger.error('Failed to clear cache', { type, error: error.message });
         throw new ApiError(500, 'Failed to clear cache. Check server logs for details.');
+    }
+}));
+
+/**
+ * @swagger
+ * /api/v1/admin/cache/stats:
+ *   get:
+ *     summary: Get cache statistics
+ *     description: Returns cache size and disk usage information
+ *     tags: [Admin API]
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Cache statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 diskUsage:
+ *                   type: object
+ *                   properties:
+ *                     imageCache:
+ *                       type: number
+ *                       description: Size of image cache in bytes
+ *                     logFiles:
+ *                       type: number
+ *                       description: Size of log files in bytes
+ *                     total:
+ *                       type: number
+ *                       description: Total disk usage in bytes
+ *                 itemCount:
+ *                   type: object
+ *                   properties:
+ *                     media:
+ *                       type: number
+ *                       description: Number of cached media items
+ *                     config:
+ *                       type: number
+ *                       description: Number of cached config items
+ *                     total:
+ *                       type: number
+ *                       description: Total cached items
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+app.get('/api/v1/admin/cache/stats', isAuthenticated, asyncHandler(async (req, res) => {
+    if (isDebug) console.log('[Admin API] Received request for cache stats');
+    
+    try {
+        // Get cache stats from cache manager
+        const cacheStats = cacheManager.getStats();
+        
+        // Calculate disk usage
+        const diskUsage = {
+            imageCache: 0,
+            logFiles: 0,
+            total: 0
+        };
+        
+        // Calculate image cache size
+        try {
+            const imageCacheDir = path.join(__dirname, 'image_cache');
+            const files = await fsp.readdir(imageCacheDir);
+            for (const file of files) {
+                try {
+                    const stats = await fsp.stat(path.join(imageCacheDir, file));
+                    diskUsage.imageCache += stats.size;
+                } catch (err) {
+                    // Skip files that can't be read
+                }
+            }
+        } catch (err) {
+            if (isDebug) console.log('[Admin API] Image cache directory not accessible:', err.message);
+        }
+        
+        // Calculate log files size
+        try {
+            const logsDir = path.join(__dirname, 'logs');
+            const files = await fsp.readdir(logsDir);
+            for (const file of files) {
+                try {
+                    const stats = await fsp.stat(path.join(logsDir, file));
+                    diskUsage.logFiles += stats.size;
+                } catch (err) {
+                    // Skip files that can't be read
+                }
+            }
+        } catch (err) {
+            if (isDebug) console.log('[Admin API] Logs directory not accessible:', err.message);
+        }
+        
+        diskUsage.total = diskUsage.imageCache + diskUsage.logFiles;
+        
+        // Count cached items by type
+        const itemCount = {
+            media: 0,
+            config: 0,
+            image: 0,
+            total: cacheStats.size
+        };
+        
+        // Count items by prefix (basic categorization)
+        for (const key of cacheManager.cache.keys()) {
+            if (key.startsWith('media:') || key.startsWith('plex:') || key.startsWith('tmdb:') || key.startsWith('tvdb:')) {
+                itemCount.media++;
+            } else if (key.startsWith('config:')) {
+                itemCount.config++;
+            } else if (key.startsWith('image:')) {
+                itemCount.image++;
+            }
+        }
+        
+        const response = {
+            diskUsage,
+            itemCount,
+            cacheStats: {
+                hits: cacheStats.hits,
+                misses: cacheStats.misses,
+                hitRate: cacheStats.hitRate
+            }
+        };
+        
+        if (isDebug) console.log('[Admin API] Cache stats calculated:', response);
+        res.json(response);
+        
+    } catch (error) {
+        console.error('[Admin API] Error getting cache stats:', error);
+        throw new ApiError(500, 'Failed to get cache statistics. Check server logs for details.');
     }
 }));
 

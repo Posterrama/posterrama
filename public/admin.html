@@ -39,7 +39,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     
     <!-- Preload critical JavaScript -->
-    <link rel="preload" href="/admin.js?v=1.4.1" as="script">
+    <link rel="preload" href="/admin.js?v=2.2.0" as="script">
 </head>
 <body>
     <!-- Skip links for accessibility -->
@@ -95,9 +95,9 @@
                     <span class="nav-text">Display</span>
                 </button>
                 
-                <button class="nav-item" data-section="media" title="Media Servers" role="tab" aria-selected="false" aria-controls="media-section" id="media-tab">
-                    <i class="fas fa-server nav-icon" aria-hidden="true"></i>
-                    <span class="nav-text">Media</span>
+                                <button class="nav-item" data-section="media" title="Sources" role="tab" aria-selected="false" aria-controls="media-section" id="media-tab">
+                    <i class="fas fa-database nav-icon" aria-hidden="true"></i>
+                    <span class="nav-text">Sources</span>
                 </button>
                 
                 <button class="nav-item" data-section="authentication" title="Authentication" role="tab" aria-selected="false" aria-controls="authentication-section" id="authentication-tab">
@@ -242,7 +242,7 @@
                                 <div class="subsection-content">
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="cinemaMode" name="cinemaMode">
-                                        <label for="cinemaMode">Enable Cinema Mode</label>
+                                        <label for="cinemaMode">Enable Cinema Mode (Digital Movie Poster)</label>
                                     </div>
                                     <div class="form-group cinema-orientation-group hidden" id="cinemaOrientationGroup">
                                         <label for="cinemaOrientation">Cinema Display Orientation</label>
@@ -446,26 +446,46 @@
                         </div>
                     </section>
 
-                    <!-- Media Servers Section -->
+                    <!-- Sources Section -->
                     <section class="section-content" id="media-section" role="tabpanel" aria-labelledby="media-tab">
                         <div class="section-main-content">
                             <div class="section-title">
-                                <i class="fas fa-server"></i>
-                                Media Servers
+                                <i class="fas fa-database"></i>
+                                Content Sources
                             </div>
                             
-                            <!-- Unified Media Servers Container -->
+                            <!-- Quick Navigation Links -->
+            <div class="quick-nav-links">
+                <div class="quick-nav-item">
+                    <a href="#" class="quick-nav-link" onclick="scrollToSubsection('plex-subsection'); return false;" title="Plex Configuration">
+                        <i class="fas fa-server"></i>
+                    </a>
+                    <span class="quick-nav-label">Plex</span>
+                </div>
+                <div class="quick-nav-item">
+                    <a href="#" class="quick-nav-link" onclick="scrollToSubsection('tmdb-subsection'); return false;" title="TMDB Configuration">
+                        <i class="fas fa-film"></i>
+                    </a>
+                    <span class="quick-nav-label">TMDB</span>
+                </div>
+                <div class="quick-nav-item">
+                    <a href="#" class="quick-nav-link" onclick="scrollToSubsection('tvdb-subsection'); return false;" title="TVDB Configuration">
+                        <i class="fas fa-tv"></i>
+                    </a>
+                    <span class="quick-nav-label">TVDB</span>
+                </div>
+            </div>                            <!-- Unified Sources Container -->
                             <div class="form-section unified-section">
                                 
                                 <!-- Plex Media Server Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fab fa-plex"></i>
+                                <div class="subsection-header" id="plex-subsection">
+                                    <i class="fas fa-server"></i>
                                     Plex Media Server
                                 </div>
                                 <div class="subsection-content">
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="mediaServers[0].enabled" name="mediaServers[0].enabled">
-                                        <label for="mediaServers[0].enabled">Enable Plex Server</label>
+                                        <label for="mediaServers[0].enabled">Enable Plex Server as Content Source</label>
                                     </div>
                                     <div class="form-group">
                                         <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
@@ -510,7 +530,7 @@
                                 </div>
                                 
                                 <!-- Content Filtering Subsection -->
-                                <div class="subsection-header">
+                                <div class="subsection-header" id="content-filtering-subsection">
                                     <i class="fas fa-filter"></i>
                                     Content Filtering
                                 </div>
@@ -570,6 +590,236 @@
                                             <span>Test Plex Connection</span>
                                         </button>
                                         <small id="plex-connection-status"></small>
+                                    </div>
+                                </div>
+                                
+                                <!-- TMDB External Source Subsection -->
+                                <div class="subsection-header" id="tmdb-subsection">
+                                    <i class="fas fa-film"></i>
+                                    TMDB External Source
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="tmdbSource.enabled" name="tmdbSource.enabled">
+                                        <label for="tmdbSource.enabled">Enable TMDB as Content Source</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tmdbSource.apiKey">TMDB API Key</label>
+                                        <input type="password" id="tmdbSource.apiKey" name="tmdbSource.apiKey" placeholder="Your TMDB API v3 key">
+                                        <small>Get a free API key from <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">TMDB API Settings</a></small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tmdbSource.category">Content Category</label>
+                                        <select id="tmdbSource.category" name="tmdbSource.category">
+                                            <optgroup label="🎬 Movies">
+                                                <option value="popular">🔥 Popular Movies</option>
+                                                <option value="top_rated">⭐ Top Rated Movies</option>
+                                                <option value="now_playing">🎭 Now Playing</option>
+                                                <option value="upcoming">📅 Upcoming Movies</option>
+                                                <option value="latest">🆕 Latest Movies</option>
+                                            </optgroup>
+                                            <optgroup label="📺 TV Shows">
+                                                <option value="tv_popular">🔥 Popular TV Shows</option>
+                                                <option value="tv_top_rated">⭐ Top Rated TV Shows</option>
+                                                <option value="tv_on_the_air">📡 Currently Airing</option>
+                                                <option value="tv_airing_today">📺 Airing Today</option>
+                                                <option value="tv_latest">🆕 Latest TV Shows</option>
+                                            </optgroup>
+                                            <optgroup label="🎯 Trending">
+                                                <option value="trending_all_day">📈 Trending Today (All)</option>
+                                                <option value="trending_movie_day">🎬 Trending Movies (Day)</option>
+                                                <option value="trending_tv_day">📺 Trending TV (Day)</option>
+                                                <option value="trending_all_week">📊 Trending Week (All)</option>
+                                                <option value="trending_movie_week">🎬 Trending Movies (Week)</option>
+                                                <option value="trending_tv_week">📺 Trending TV (Week)</option>
+                                            </optgroup>
+                                            <optgroup label="🏆 Collections">
+                                                <option value="discover_movie">🔍 Discover Movies</option>
+                                                <option value="discover_tv">🔍 Discover TV Shows</option>
+                                            </optgroup>
+                                        </select>
+                                        <small class="help-text">🎯 Choose the type of content to fetch from TMDB. Trending shows what's hot right now!</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tmdbSource.movieCount">Number of Movies to Show</label>
+                                        <input type="number" id="tmdbSource.movieCount" name="tmdbSource.movieCount" min="0" max="1000" placeholder="50">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tmdbSource.showCount">Number of TV Shows to Show</label>
+                                        <input type="number" id="tmdbSource.showCount" name="tmdbSource.showCount" min="0" max="1000" placeholder="25">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tmdbSource.minRating">Minimum Rating (0-10)</label>
+                                        <input type="number" id="tmdbSource.minRating" name="tmdbSource.minRating" min="0" max="10" step="0.1" placeholder="6.0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tmdbSource.yearFilter">From Year</label>
+                                        <input type="number" id="tmdbSource.yearFilter" name="tmdbSource.yearFilter" min="1900" max="2030" placeholder="2000">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tmdbSource.genreFilter">Genre Filter</label>
+                                        <div class="genre-filter-container">
+                                            <select id="tmdbSource.genreFilter" name="tmdbSource.genreFilter" multiple class="genre-filter-select">
+                                                <option value="">Loading genres...</option>
+                                            </select>
+                                            <button type="button" class="btn-clear-genres" id="clearTmdbGenresBtn" title="Clear all selected genres">
+                                                <i class="fas fa-times"></i> Clear Selection
+                                            </button>
+                                        </div>
+                                        <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <button type="button" id="test-tmdb-button" class="btn btn-primary">
+                                            <i class="fas fa-plug icon"></i>
+                                            <span>Test TMDB Connection</span>
+                                        </button>
+                                        <small id="tmdb-connection-status"></small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Streaming Releases Subsection -->
+                                <div class="external-source-subsection" data-source="streaming">
+                                    <h4><i class="fas fa-stream"></i> Streaming Releases</h4>
+                                    <p class="external-source-description">Add latest releases from popular streaming platforms using TMDB's streaming provider data.</p>
+                                    
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="streamingSources.enabled" name="streamingSources.enabled">
+                                            Enable Streaming Releases
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="streamingSources.region">Region</label>
+                                        <select id="streamingSources.region" name="streamingSources.region">
+                                            <option value="US">United States</option>
+                                            <option value="NL">Netherlands</option>
+                                            <option value="GB">United Kingdom</option>
+                                            <option value="DE">Germany</option>
+                                            <option value="FR">France</option>
+                                            <option value="CA">Canada</option>
+                                            <option value="AU">Australia</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>Streaming Providers</label>
+                                        <div class="streaming-providers-grid">
+                                            <label class="checkbox-label streaming-provider">
+                                                <input type="checkbox" id="streamingSources.netflix" name="streamingSources.netflix" value="8">
+                                                <i class="fab fa-netflix"></i> Netflix
+                                            </label>
+                                            <label class="checkbox-label streaming-provider">
+                                                <input type="checkbox" id="streamingSources.disney" name="streamingSources.disney" value="337">
+                                                <i class="fab fa-disney"></i> Disney+
+                                            </label>
+                                            <label class="checkbox-label streaming-provider">
+                                                <input type="checkbox" id="streamingSources.prime" name="streamingSources.prime" value="119">
+                                                <i class="fab fa-amazon"></i> Prime Video
+                                            </label>
+                                            <label class="checkbox-label streaming-provider">
+                                                <input type="checkbox" id="streamingSources.hbo" name="streamingSources.hbo" value="384">
+                                                <i class="fas fa-tv"></i> HBO Max
+                                            </label>
+                                            <label class="checkbox-label streaming-provider">
+                                                <input type="checkbox" id="streamingSources.newReleases" name="streamingSources.newReleases" value="new">
+                                                <i class="fas fa-star"></i> New Releases
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="streamingSources.maxItems">Maximum Items per Provider</label>
+                                        <input type="number" id="streamingSources.maxItems" name="streamingSources.maxItems" min="5" max="100" placeholder="20">
+                                        <small>Number of movies/shows to fetch from each selected streaming provider</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="streamingSources.minRating">Minimum Rating (0-10)</label>
+                                        <input type="number" id="streamingSources.minRating" name="streamingSources.minRating" min="0" max="10" step="0.1" placeholder="6.0">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <button type="button" id="test-streaming-button" class="btn btn-primary">
+                                            <i class="fas fa-stream icon"></i>
+                                            <span>Test Streaming Connection</span>
+                                        </button>
+                                        <small id="streaming-connection-status"></small>
+                                    </div>
+                                </div>
+                                
+                                <!-- TVDB External Source Subsection -->
+                                <div class="subsection-header" id="tvdb-subsection">
+                                    <i class="fas fa-tv"></i>
+                                    TVDB External Source
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="tvdbSource.enabled" name="tvdbSource.enabled">
+                                        <label for="tvdbSource.enabled">Enable TVDB as Content Source</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tvdbSource.category">Content Category</label>
+                                        <select id="tvdbSource.category" name="tvdbSource.category">
+                                            <optgroup label="🏆 By Rating & Popularity">
+                                                <option value="top_rated">⭐ Top Rated</option>
+                                                <option value="popular">🔥 Most Popular</option>
+                                            </optgroup>
+                                            <optgroup label="📅 By Date">
+                                                <option value="recently_updated">🆕 Recently Updated</option>
+                                                <option value="newest">📺 Newest Releases</option>
+                                                <option value="oldest">📼 Classic Content</option>
+                                            </optgroup>
+                                            <optgroup label="📊 By Activity">
+                                                <option value="trending">📈 Trending Now</option>
+                                                <option value="recently_added">➕ Recently Added to TVDB</option>
+                                            </optgroup>
+                                            <optgroup label="🔤 Alphabetical">
+                                                <option value="alphabetical">🔤 A-Z Order</option>
+                                            </optgroup>
+                                        </select>
+                                        <small class="help-text">🎯 Choose how to sort and discover content from TVDB's extensive database!</small>
+                                    </div>
+                                    <div class="form-group number-input-group">
+                                        <div class="form-group">
+                                            <label for="tvdbSource.movieCount">Movies to Display</label>
+                                            <input type="number" id="tvdbSource.movieCount" name="tvdbSource.movieCount" min="0" max="500" value="25">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="tvdbSource.showCount">TV Shows to Display</label>
+                                            <input type="number" id="tvdbSource.showCount" name="tvdbSource.showCount" min="0" max="500" value="50">
+                                        </div>
+                                    </div>
+                                    <div class="form-group number-input-group">
+                                        <div class="form-group">
+                                            <label for="tvdbSource.minRating">Minimum Rating</label>
+                                            <input type="number" id="tvdbSource.minRating" name="tvdbSource.minRating" min="0" max="10" step="0.1" value="0">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="tvdbSource.yearFilter">Year Filter</label>
+                                            <input type="number" id="tvdbSource.yearFilter" name="tvdbSource.yearFilter" min="1900" max="2030" placeholder="e.g. 2023">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tvdbSource.genreFilter">Genre Filter</label>
+                                        <div class="genre-filter-container">
+                                            <select id="tvdbSource.genreFilter" name="tvdbSource.genreFilter" multiple class="genre-filter-select">
+                                                <option value="">Loading genres...</option>
+                                            </select>
+                                            <button type="button" class="btn-clear-genres" id="clearTvdbGenresBtn" title="Clear all selected genres">
+                                                <i class="fas fa-times"></i> Clear Selection
+                                            </button>
+                                        </div>
+                                        <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
+                                    </div>
+                                    
+                                    <!-- TVDB Connection Test -->
+                                    <div class="form-group">
+                                        <button type="button" id="test-tvdb-connection" class="btn btn-primary">
+                                            <i class="fas fa-plug icon"></i>
+                                            <span>Test TVDB Connection</span>
+                                        </button>
+                                        <small id="tvdb-connection-status"></small>
                                     </div>
                                 </div>
                             </div>
@@ -728,6 +978,28 @@
                                     Cache Management
                                 </div>
                                 <div class="subsection-content">
+                                    <!-- Cache Size Display -->
+                                    <div class="cache-stats-container" style="margin-bottom: 1rem;">
+                                        <div class="stat-item">
+                                            <div class="stat-label">
+                                                <i class="fas fa-hdd"></i>
+                                                Physical Storage
+                                            </div>
+                                            <div class="stat-value" id="cache-disk-usage">
+                                                <span class="loading">Loading...</span>
+                                            </div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">
+                                                <i class="fas fa-memory"></i>
+                                                Memory Cache
+                                            </div>
+                                            <div class="stat-value" id="cache-item-count">
+                                                <span class="loading">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
                                     <div class="form-actions">
                                         <div id="debug-cache-action" class="is-hidden">
                                             <a href="/admin/debug" target="_blank" class="btn btn-primary">
@@ -735,6 +1007,10 @@
                                                 View Cache
                                             </a>
                                         </div>
+                                        <button type="button" id="refresh-cache-stats" class="btn btn-secondary">
+                                            <i class="fas fa-sync-alt icon"></i>
+                                            <span>Refresh Stats</span>
+                                        </button>
                                         <button type="button" id="clear-cache-button" class="btn btn-primary">
                                             <i class="fas fa-broom icon"></i>
                                             <span>Clear Cache</span>
@@ -756,17 +1032,57 @@
                                     </div>
                                 </div>
                                 
-                                <!-- System Control Subsection -->
+                                <!-- Application Controls Subsection -->
                                 <div class="subsection-header">
                                     <i class="fas fa-power-off"></i>
-                                    System Control
+                                    Application Controls
                                 </div>
                                 <div class="subsection-content">
-                                    <div class="form-actions">
+                                    <div class="form-actions form-actions-grid">
                                         <button type="button" id="restart-app-button" class="btn btn-danger">
                                             <i class="fas fa-power-off icon"></i>
                                             <span>Restart Application</span>
                                         </button>
+                                        <button type="button" id="status-check-button" class="btn btn-primary">
+                                            <i class="fas fa-heartbeat icon"></i>
+                                            <span>Status Check</span>
+                                        </button>
+                                        <button type="button" id="update-check-button" class="btn btn-secondary">
+                                            <i class="fas fa-download icon"></i>
+                                            <span>Update Check</span>
+                                        </button>
+                                        <button type="button" id="performance-monitor-button" class="btn btn-info">
+                                            <i class="fas fa-chart-line icon"></i>
+                                            <span>Performance Monitor</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Status Display Areas -->
+                                    <div id="status-display" class="status-display" style="display: none;">
+                                        <div class="status-header">
+                                            <h4><i class="fas fa-heartbeat"></i> System Status</h4>
+                                        </div>
+                                        <div id="status-content" class="status-content">
+                                            <div class="loading">Checking system status...</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="update-display" class="status-display" style="display: none;">
+                                        <div class="status-header">
+                                            <h4><i class="fas fa-download"></i> Update Check</h4>
+                                        </div>
+                                        <div id="update-content" class="status-content">
+                                            <div class="loading">Checking for updates...</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="performance-display" class="status-display" style="display: none;">
+                                        <div class="status-header">
+                                            <h4><i class="fas fa-chart-line"></i> Performance Monitor</h4>
+                                        </div>
+                                        <div id="performance-content" class="status-content">
+                                            <div class="loading">Loading performance data...</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -890,6 +1206,6 @@
     </div>
 
     <!-- Load admin JavaScript -->
-    <script src="/admin.js?v=1.4.1" defer></script>
+    <script src="/admin.js?v=2.2.0" defer></script>
 </body>
 </html>

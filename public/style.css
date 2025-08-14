@@ -78,14 +78,128 @@ html, body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: rgba(200, 0, 0, 0.85);
-    color: #fff;
-    padding: 20px 30px;
-    border-radius: 8px;
-    z-index: 101;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 16px !important;
+    padding: 2.5rem !important;
+    width: 100%;
+    max-width: 420px;
+    backdrop-filter: blur(20px) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+    z-index: 9999;
     text-align: center;
-    max-width: 80%;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    color: #e2e8f0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    animation: errorSlideIn 0.3s ease-out;
+}
+
+#error-message.is-hidden {
+    display: none !important;
+}
+
+@keyframes errorSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) translateY(0);
+    }
+}
+
+#error-message .error-icon {
+    font-size: 2.5rem;
+    color: #64748b;
+    margin-bottom: 1rem;
+}
+
+#error-message .error-brand {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+#error-message .error-title {
+    text-align: center !important;
+    margin-bottom: 2rem !important;
+    font-size: 1.875rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    color: #e2e8f0 !important;
+}
+
+#error-message .error-text {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #cbd5e1;
+    margin-bottom: 1.5rem;
+}
+
+#error-message .error-suggestions {
+    text-align: left;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#error-message .error-suggestions h4 {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #e2e8f0;
+}
+
+#error-message .error-suggestions ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    list-style: none;
+}
+
+#error-message .error-suggestions li {
+    margin-bottom: 0.5rem;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    position: relative;
+}
+
+#error-message .error-suggestions li:before {
+    content: "•";
+    position: absolute;
+    left: -1.2rem;
+    color: #64748b;
+}
+
+/* Beautiful fallback background when no media is found - same as admin login */
+body.no-media-background {
+    background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%) !important;
+    background-color: transparent !important;
+}
+
+@keyframes gradientShift {
+    0% { 
+        background-position: 0% 50%, 0% 0%, 100% 100%, 0% 100%, 100% 0%; 
+    }
+    25% { 
+        background-position: 50% 100%, 25% 25%, 75% 75%, 25% 75%, 75% 25%; 
+    }
+    50% { 
+        background-position: 100% 50%, 50% 50%, 50% 50%, 50% 50%, 50% 50%; 
+    }
+    75% { 
+        background-position: 50% 0%, 75% 75%, 25% 25%, 75% 25%, 25% 75%; 
+    }
+    100% { 
+        background-position: 0% 50%, 100% 100%, 0% 0%, 100% 0%, 0% 100%; 
+    }
 }
 
 /* --- Promo Box for /site page --- */
