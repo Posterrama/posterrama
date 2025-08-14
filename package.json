@@ -33,15 +33,16 @@
     "test:coverage:watch": "jest --coverage --watch",
     "test:coverage:html": "jest --coverage && open coverage/lcov-report/index.html",
     "test:coverage:report": "./scripts/coverage-report.sh",
-  "test:ci": "jest --coverage --ci --watchAll=false",
+    "test:ci": "jest --coverage --ci --watchAll=false",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "security:audit": "audit-ci --moderate",
-  "config:check": "node scripts/config-check.js",
-  "secrets:generate": "node scripts/generate-secrets.js"
+    "config:check": "node scripts/config-check.js",
+    "secrets:generate": "node scripts/generate-secrets.js"
   },
   "dependencies": {
     "@jellyfin/sdk": "^0.11.0",
+    "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "dompurify": "^3.2.6",
     "dotenv": "^16.4.5",
