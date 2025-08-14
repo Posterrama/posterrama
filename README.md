@@ -58,11 +58,11 @@ Posterrama connects to multiple sources to bring your media library to life:
 - Curated collections and trending content
 - Professional movie posters and backdrops
 Posterrama connects to **The Movie Database (TMDB)** for enhanced content discovery:
-- **🎬 Curated Collections** - Browse "New Releases" and trending content
-- **🌍 Global Streaming Providers** - Support for Netflix, Disney+, Prime Video, Apple TV+, Max (HBO), Hulu, Paramount+, and Crunchyroll
-- **�️ Worldwide Regions** - Choose from 49+ countries to see region-specific content
-- **⚙️ Smart Filtering** - Customize by rating, genre, and streaming availability
-- **📊 Rich Metadata** - Complete movie descriptions, cast info, and detailed ratings
+- **Curated Collections** - Browse "New Releases" and trending content
+- **Global Streaming Providers** - Support for Netflix, Disney+, Prime Video, Apple TV+, Max (HBO), Hulu, Paramount+, and Crunchyroll
+- **Worldwide Regions** - Choose from 49+ countries to see region-specific content
+- **Smart Filtering** - Customize by rating, genre, and streaming availability
+- **Rich Metadata** - Complete movie descriptions, cast info, and detailed ratings
 
 ### 📱 Responsive Design
 Posterrama works perfectly on any device:
