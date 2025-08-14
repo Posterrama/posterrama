@@ -36,14 +36,24 @@
         }
         .auth-box h1 {
             text-align: center !important;
-            margin-bottom: 1rem !important;
-            font-size: 1.5rem !important;
+            margin-bottom: 2rem !important;
+            font-size: 1.875rem !important;
             font-weight: 600 !important;
             letter-spacing: -0.02em !important;
             color: #e2e8f0 !important;
+            white-space: nowrap !important;
+        }
+        .admin-text {
             font-family: 'Orbitron', 'Courier New', monospace !important;
+            font-weight: 700 !important;
             text-transform: uppercase !important;
-            letter-spacing: 0.05em !important;
+            letter-spacing: 0.1em !important;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            background-clip: text !important;
         }
         .auth-box p {
             text-align: center !important;
@@ -61,6 +71,7 @@
             color: #e2e8f0 !important;
             font-weight: 500 !important;
             font-size: 0.875rem !important;
+            white-space: nowrap !important;
         }
         .auth-box .form-group input {
             width: 100% !important;
@@ -97,7 +108,7 @@
 <body>
     <div class="auth-container">
         <div class="auth-box">
-            <h1>Two-Factor Authentication</h1>
+            <h1><span class="admin-text">2FA</span> <span class="gradient-text">Code</span></h1>
             <p>Enter the 6-digit code from your authenticator app to complete your login.</p>
 
             <!-- Error message placeholder -->
@@ -110,6 +121,9 @@
                 </div>
                 <button type="submit" class="btn btn-primary">Verify</button>
             </form>
+        </div>
+        <div class="auth-footer">
+            <a href="/admin/login" class="btn btn-secondary">← Back to Login</a>
         </div>
     </div>
     <script src="login.js"></script>

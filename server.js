@@ -1833,6 +1833,26 @@ app.get('/api/v1/admin/auth-logs', jwtAuth, requireRole('admin'), async (req, re
     }
 });
 
+// Redirect /setup.html to /admin/setup for consistency (must be before static middleware)
+app.get('/setup.html', (req, res) => {
+    res.redirect('/admin/setup');
+});
+
+// Redirect /login.html to /admin/login for consistency (must be before static middleware)
+app.get('/login.html', (req, res) => {
+    res.redirect('/admin/login');
+});
+
+// Redirect /2fa-verify.html to /admin/login if not in 2FA flow (must be before static middleware)
+app.get('/2fa-verify.html', (req, res) => {
+    // Only allow access to 2FA page if user is in the middle of 2FA verification
+    if (req.session && req.session.tfa_required) {
+        res.sendFile(path.join(__dirname, 'public', '2fa-verify.html'));
+    } else {
+        res.redirect('/admin/login');
+    }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true })); // For parsing form data
 

@@ -598,7 +598,7 @@ class TMDBSource {
             backgroundUrl: item.backdrop_path ? `${this.imageBaseUrl}original${item.backdrop_path}` : null,
             posterUrl: item.poster_path ? `${this.imageBaseUrl}w500${item.poster_path}` : null,
             clearLogoUrl: null, // TMDB doesn't provide clear logos
-            tagline: item.overview ? item.overview.substring(0, 150) + '...' : '',
+            tagline: item.overview || '',
             rating: item.vote_average || 0,
             year: year,
             genres: genres, // Add genre information
