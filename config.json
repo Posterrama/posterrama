@@ -21,12 +21,12 @@
     {
       "name": "Plex Server",
       "type": "plex",
-      "enabled": true,
+      "enabled": false,
       "hostnameEnvVar": "PLEX_HOSTNAME",
       "portEnvVar": "PLEX_PORT",
       "tokenEnvVar": "PLEX_TOKEN",
       "movieLibraryNames": [
-        "Certified Fresh"
+        "Movies"
       ],
       "showLibraryNames": [],
       "movieCount": 30,
