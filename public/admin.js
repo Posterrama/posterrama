@@ -1438,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!genreSelect) return;
 
         try {
-            const response = await fetch('/api/admin/plex-genres');
+            const response = await fetch(apiUrl('/api/admin/plex-genres'));
             if (!response.ok) {
                 throw new Error(`Failed to fetch genres: ${response.status}`);
             }
@@ -1590,7 +1590,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!genreSelect) return;
 
         try {
-            const response = await fetch('/api/admin/tmdb-genres');
+            const response = await fetch(apiUrl('/api/admin/tmdb-genres'));
             if (!response.ok) {
                 throw new Error(`Failed to fetch TMDB genres: ${response.status}`);
             }
@@ -1670,7 +1670,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!genreSelect) return;
 
         try {
-            const response = await fetch('/api/admin/tvdb-genres');
+            const response = await fetch(apiUrl('/api/admin/tvdb-genres'));
             if (!response.ok) {
                 throw new Error(`Failed to fetch TVDB genres: ${response.status}`);
             }
@@ -1784,7 +1784,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const response = await fetch('/api/admin/test-tmdb', {
+                const response = await fetch(apiUrl('/api/admin/test-tmdb', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ apiKey, category })
@@ -1891,7 +1891,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const region = regionField?.value || 'US';
                 
                 // Test TMDB API (streaming uses TMDB)
-                const response = await fetch('/api/admin/test-tmdb', {
+                const response = await fetch(apiUrl('/api/admin/test-tmdb', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2244,7 +2244,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error('A new token is required to test the connection, as none is set yet.');
                 }
 
-                const response = await fetch('/api/admin/test-plex', {
+                const response = await fetch(apiUrl('/api/admin/test-plex', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ hostname, port, token: token || undefined }) // Send token only if it has a value
@@ -2327,7 +2327,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const port = document.getElementById('mediaServers[0].port').value;
             const token = document.getElementById('mediaServers[0].token').value;
 
-            const response = await fetch('/api/admin/plex-libraries', {
+            const response = await fetch(apiUrl('/api/admin/plex-libraries', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -2459,7 +2459,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleEnable2FA() {
         try {
-            const response = await fetch('/api/admin/2fa/generate', { method: 'POST' });
+            const response = await fetch(apiUrl('/api/admin/2fa/generate', { method: 'POST' });
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'Could not generate QR code.');
 
@@ -2501,7 +2501,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const token = tokenInput.value;
 
             try {
-                const response = await fetch('/api/admin/2fa/verify', {
+                const response = await fetch(apiUrl('/api/admin/2fa/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token })
@@ -2527,7 +2527,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = passwordInput.value;
 
             try {
-                const response = await fetch('/api/admin/2fa/disable', {
+                const response = await fetch(apiUrl('/api/admin/2fa/disable', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
@@ -2610,7 +2610,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function updateApiKeyStatus() {
         try {
-            const response = await fetch('/api/admin/api-key/status');
+            const response = await fetch(apiUrl('/api/admin/api-key/status');
             if (!response.ok) throw new Error('Could not fetch status.');
             const { hasKey } = await response.json();
 
@@ -2620,7 +2620,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 revokeApiKeyButton.disabled = false;
 
                 // Fetch the key and display it
-                const keyResponse = await fetch('/api/admin/api-key');
+                const keyResponse = await fetch(apiUrl('/api/admin/api-key');
                 if (!keyResponse.ok) throw new Error('Could not fetch API key.');
                 const { apiKey } = await keyResponse.json();
 
@@ -2646,7 +2646,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (generateApiKeyButton) {
         addConfirmClickHandler(generateApiKeyButton, 'Are you sure? Click again', async () => {
             try {
-                const response = await fetch('/api/admin/api-key/generate', { method: 'POST' });
+                const response = await fetch(apiUrl('/api/admin/api-key/generate', { method: 'POST' });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Genereren mislukt.');
 
@@ -2663,7 +2663,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (revokeApiKeyButton) {
         addConfirmClickHandler(revokeApiKeyButton, 'Are you sure? Click again', async () => {
             try {
-                const response = await fetch('/api/admin/api-key/revoke', { method: 'POST' });
+                const response = await fetch(apiUrl('/api/admin/api-key/revoke', { method: 'POST' });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Revoke failed.');
 
@@ -3053,7 +3053,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error('New password must be different from the current password.');
                 }
 
-                const response = await fetch('/api/admin/change-password', {
+                const response = await fetch(apiUrl('/api/admin/change-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -3155,7 +3155,7 @@ document.addEventListener('DOMContentLoaded', () => {
              };
  
              try {
-                 const response = await fetch('/api/admin/restart-app', { method: 'POST' });
+                 const response = await fetch(apiUrl('/api/admin/restart-app', { method: 'POST' });
                  const result = await response.json();
  
                  if (!response.ok) {
@@ -3236,7 +3236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 console.log('[Admin Debug] Sending POST request to /api/admin/refresh-media');
-                const response = await fetch('/api/admin/refresh-media', { method: 'POST' });
+                const response = await fetch(apiUrl('/api/admin/refresh-media', { method: 'POST' });
 
                 if (!response.ok) {
                     console.error(`[Admin Debug] API call failed. Status: ${response.status} ${response.statusText}`);
@@ -3281,7 +3281,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addConfirmClickHandler(clearCacheButton, 'Are you sure? Click again', async () => {
             setButtonState(clearCacheButton, 'loading', { text: 'Clearing...' });
             try {
-                const response = await fetch('/api/admin/clear-image-cache', { method: 'POST' });
+                const response = await fetch(apiUrl('/api/admin/clear-image-cache', { method: 'POST' });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Failed to clear cache.');
                 showNotification(result.message, 'success');
@@ -3310,7 +3310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cleanupCacheButton.addEventListener('click', async () => {
             setButtonState(cleanupCacheButton, 'loading', { text: 'Cleaning...' });
             try {
-                const response = await fetch('/api/admin/cleanup-cache', { method: 'POST' });
+                const response = await fetch(apiUrl('/api/admin/cleanup-cache', { method: 'POST' });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Failed to cleanup cache.');
                 showNotification(result.message, 'success');
@@ -3560,7 +3560,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.pending = false;
         try {
             // Fetch latest to merge safely
-            const currentConfigResponse = await fetch('/api/admin/config');
+            const currentConfigResponse = await fetch(apiUrl('/api/admin/config');
             if (!currentConfigResponse.ok) {
                 console.error('Auto-save: failed to fetch current config for merge');
                 return;
@@ -3604,7 +3604,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return; // nothing changed
             }
 
-            const resp = await fetch('/api/admin/config', {
+            const resp = await fetch(apiUrl('/api/admin/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ config: configData, env: envData })
@@ -3907,7 +3907,7 @@ async function testTVDBConnection() {
     statusElement.style.color = '#ffd93d';
     
     try {
-        const response = await fetch('/api/test-tvdb-connection', {
+        const response = await fetch(apiUrl('/api/test-tvdb-connection'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -4055,7 +4055,7 @@ function updateCacheStatsDisplay(data, isError = false) {
  */
 async function loadCacheConfig() {
     try {
-        const response = await fetch('/api/admin/cache/config', {
+        const response = await fetch(apiUrl('/api/admin/cache/config', {
             method: 'GET',
             credentials: 'include'
         });
@@ -4107,7 +4107,7 @@ async function saveCacheConfig() {
             throw new Error('Minimum free disk space must be between 100MB and 5000MB');
         }
         
-        const response = await fetch('/api/admin/cache/config', {
+        const response = await fetch(apiUrl('/api/admin/cache/config', {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -4232,7 +4232,7 @@ async function performStatusCheck() {
     statusContent.innerHTML = '<div class="loading">Checking system status...</div>';
     
     try {
-        const response = await fetch('/api/admin/status', {
+        const response = await fetch(apiUrl('/api/admin/status', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -4302,7 +4302,7 @@ async function performUpdateCheck() {
     updateContent.innerHTML = '<div class="loading">Checking for updates...</div>';
     
     try {
-        const response = await fetch('/api/admin/update-check', {
+        const response = await fetch(apiUrl('/api/admin/update-check', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -4390,7 +4390,7 @@ async function loadPerformanceMonitor() {
     performanceContent.innerHTML = '<div class="loading">Loading performance data...</div>';
     
     try {
-        const response = await fetch('/api/admin/performance', {
+        const response = await fetch(apiUrl('/api/admin/performance', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -4548,7 +4548,7 @@ function stopAutoRefresh() {
  */
 async function loadPerformanceMonitorSilent() {
     try {
-        const response = await fetch('/api/admin/performance', {
+        const response = await fetch(apiUrl('/api/admin/performance', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -4572,7 +4572,7 @@ async function loadPerformanceMonitorSilent() {
  */
 async function performStatusCheckSilent() {
     try {
-        const response = await fetch('/api/admin/status', {
+        const response = await fetch(apiUrl('/api/admin/status', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
