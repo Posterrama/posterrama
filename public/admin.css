@@ -52,9 +52,9 @@
 /* Reset & Base */
 * {
     box-sizing: border-box;
-}
-
-html, body {
+    top: 0;
+    left: 180px; /* Offset by sidebar width */
+    right: 0;
     margin: 0;
     padding: 0;
     height: 100%;
@@ -67,6 +67,8 @@ body {
     color: #d0d0d0;
     line-height: 1.6;
     min-height: 100vh;
+    /* Provide safe area so initial scroll position shows full content below fixed header */
+    padding-top: 70px;
 }
 
 /* Emergency fallback visibility class */
@@ -222,6 +224,7 @@ a:hover {
 }
 
 /* Sidebar */
+/* Sidebar - now fixed so it remains visible while content scrolls */
 .sidebar {
     background: linear-gradient(180deg, rgba(10, 10, 10, 0.8) 0%, rgba(15, 15, 15, 0.8) 100%);
     backdrop-filter: blur(20px);
@@ -233,11 +236,14 @@ a:hover {
     transition: width 0.3s ease; /* Synchronized with header and main content */
     display: flex;
     flex-direction: column;
-    min-height: 100vh; /* Full height including header area */
+    height: 100vh; /* Full viewport height */
     will-change: width; /* Optimize for width transitions */
     transform: translateZ(0); /* Force hardware acceleration */
-    position: relative; /* Ensure proper positioning */
-    flex-shrink: 0; /* Prevent sidebar from shrinking */
+    position: fixed; /* Keep sidebar fixed on the left */
+    top: 0;
+    left: 0;
+    z-index: 120; /* Above overlays/background, below modals */
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 .sidebar.collapsed {
@@ -258,11 +264,12 @@ a:hover {
 
 /* Alternative for browsers that don't support :has() */
 .sidebar.collapsed ~ .main-content {
-    margin-left: 20px; /* Consistent reduced margin */
+    /* Override previous margin when fixed: align directly after collapsed sidebar */
+    margin-left: 60px;
 }
 
 .sidebar.collapsed ~ * .admin-header {
-    left: 60px;
+    left: 60px; /* Adjust header offset when sidebar collapsed */
     width: calc(100% - 60px);
 }
 
@@ -555,6 +562,7 @@ a:hover {
     display: flex;
     flex-direction: column;
     transition: margin-left 0.3s ease; /* Synchronized transition timing */
+    margin-left: 180px; /* Account for fixed sidebar width */
 }
 
 .admin-main {
@@ -571,40 +579,29 @@ a:hover {
 @media (min-width: 768px) {
     .form-grid-2 {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, 1fr);
         gap: 1.5rem;
     }
-    
     .form-grid-3 {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 1.5rem;
     }
-    
     .form-grid-auto {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
         gap: 1.5rem;
     }
-    
+
     /* Special cases for certain input types */
     .form-grid-2 .form-group.full-width,
     .form-grid-3 .form-group.full-width,
     .form-grid-auto .form-group.full-width {
         grid-column: 1 / -1;
     }
-    
-    .form-grid-2 .form-group.span-2 {
-        grid-column: span 2;
-    }
-    
-    .form-grid-3 .form-group.span-2 {
-        grid-column: span 2;
-    }
-    
-    .form-grid-3 .form-group.span-3 {
-        grid-column: span 3;
-    }
+    .form-grid-2 .form-group.span-2 { grid-column: span 2; }
+    .form-grid-3 .form-group.span-2 { grid-column: span 2; }
+    .form-grid-3 .form-group.span-3 { grid-column: span 3; }
 }
 
 /* Single column on smaller screens */

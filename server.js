@@ -131,6 +131,9 @@ const pkg = require('./package.json');
 const ecosystemConfig = require('./ecosystem.config.js');
 const { shuffleArray } = require('./utils.js');
 
+// Asset version (can later be replaced by build hash); fallback to package.json version
+const ASSET_VERSION = pkg.version || '1.0.0';
+
 const PlexSource = require('./sources/plex');
 const TMDBSource = require('./sources/tmdb');
 const TVDBSource = require('./sources/tvdb');
@@ -293,6 +296,29 @@ if (isDebug) console.log('--- DEBUG MODE IS ACTIVE ---');
 // as it allows the app to correctly identify the client's IP address.
 app.set('trust proxy', 1);
 
+// --- Static Asset Cache Busting Middleware ---
+// Allows appending ?v=<pkg.version> to static asset URLs and strips it so the real file is served.
+// Also sets long-term caching headers with immutable if version param present.
+app.use((req, res, next) => {
+    if (req.method === 'GET' && req.url.includes('?')) {
+        // Separate path and query
+        const [pathname, queryString] = req.url.split('?');
+        if (queryString) {
+            const params = new URLSearchParams(queryString);
+            const v = params.get('v');
+            if (v) {
+                // Remove v param for static handler
+                params.delete('v');
+                const remaining = params.toString();
+                req.url = remaining ? `${pathname}?${remaining}` : pathname;
+                // Strong caching only when version param supplied (asset fingerprinting)
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            }
+        }
+    }
+    next();
+});
+
 // Rate Limiting
 const { createRateLimiter } = require('./middleware/rateLimiter');
 
@@ -323,6 +349,17 @@ app.use('/get-config', apiLimiter);
 app.use('/get-media', apiLimiter);
 app.use('/get-media-by-key', apiLimiter);
 app.use('/image', apiLimiter);
+
+// Lightweight template injection for admin.html to stamp asset version
+app.get(['/admin','/admin.html'], (req, res, next) => {
+    const filePath = path.join(__dirname, 'public', 'admin.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) return next(err);
+        const stamped = contents.replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION);
+        res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
+        res.send(stamped);
+    });
+});
 
 // Add metrics collection middleware
 app.use(metricsMiddleware);

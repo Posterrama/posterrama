@@ -1,0 +1,10 @@
+{
+  "key": "GET:/hello",
+  "value": "{\"msg\":\"world\",\"t\":1755207737709}",
+  "etag": "\"2c5d02d0b5c442ca682dbc811ee79876\"",
+  "createdAt": 1755207737710,
+  "expiresAt": 1755207737760,
+  "accessCount": 0,
+  "lastAccessed": 1755207737710
+}37710
+}

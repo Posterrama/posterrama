@@ -11,7 +11,7 @@ module.exports = {
   forceExit: true,    // Force exit after tests complete
   
   // Coverage configuration
-  collectCoverage: false, // Set to true by default if you want coverage always
+  collectCoverage: true, // Always collect coverage to enforce thresholds
   collectCoverageFrom: [
     // Include these files in coverage
     '*.js',
@@ -26,34 +26,21 @@ module.exports = {
     '!validate-env.js', // Already has dedicated tests
   ],
   
-  // Coverage thresholds - tests will fail if coverage is below these percentages
-  // Adjusted to realistic levels based on current coverage
+  // Updated coverage thresholds – set just below current levels to prevent regressions while allowing minor variance.
+  // (Current approx: statements 88.85, lines 89.5, functions 92.05, branches 75.68)
   coverageThreshold: {
     global: {
-      branches: 35,  // Current: 37.68%
-      functions: 50,  // Current: 53.61%
-      lines: 50,     // Current: 53.22%
-      statements: 50  // Current: 52.71%
+      // Updated thresholds based on current ~91.15 statements / 91.81 lines / 94.22 funcs / 79.57 branches
+      branches: 79,      // small safety margin under 79.57
+      functions: 94,     // just below 94.22
+      lines: 91,         // below 91.81
+      statements: 91     // below 91.15
     },
-    // Per-file thresholds for critical modules (adjusted to realistic levels)
-    './utils/auth.js': {
-      branches: 10,   // Current: 12.04%
-      functions: 25,  // Current: 25.64%
-      lines: 25,     // Current: 29.46%
-      statements: 25  // Current: 28.7%
-    },
-    './utils/cache.js': {
-      branches: 45,   // Current: 47.56%
-      functions: 40,  // Current: 44%
-      lines: 45,     // Current: 47.55%
-      statements: 45  // Current: 46.57%
-    },
-    './middleware/errorHandler.js': {
-      branches: 75,
-      functions: 65,
-      lines: 75,
-      statements: 75
-    }
+    'sources/tmdb.js': { branches: 70, functions: 95, lines: 85, statements: 85 },
+    'sources/tvdb.js': { branches: 73, functions: 89, lines: 80, statements: 80 },
+    'sources/plex.js': { branches: 70, functions: 100, lines: 85, statements: 85 },
+    'utils/cache.js': { branches: 87, functions: 90, lines: 95, statements: 95 },
+    'logger.js': { branches: 88, functions: 100, lines: 93, statements: 94 }
   },
   
   // Coverage output formats
@@ -85,6 +72,9 @@ module.exports = {
   // Test timeout (in milliseconds)
   testTimeout: 30000,
   
+  // Simplify module resolution so tests can use root-relative paths (e.g. require('sources/tmdb'))
+  modulePaths: ['<rootDir>'],
+
   // Verbose output
   verbose: true
 };
