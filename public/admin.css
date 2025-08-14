@@ -40,25 +40,18 @@
     border: 0;
 }
 
-/* Layout Container - FIXED: Use flexbox instead of problematic grid */
+/* Layout Container - Fixed layout with sidebar and content */
 .admin-layout {
-    display: flex;
+    position: relative;
     min-height: 100vh;
     width: 100%;
 }
 
-/* Collapsed sidebar layout - not needed with flexbox */
-
 /* Reset & Base */
 * {
     box-sizing: border-box;
-    top: 0;
-    left: 180px; /* Offset by sidebar width */
-    right: 0;
     margin: 0;
     padding: 0;
-    height: 100%;
-    overflow-x: hidden;
 }
 
 body {
@@ -67,8 +60,7 @@ body {
     color: #d0d0d0;
     line-height: 1.6;
     min-height: 100vh;
-    /* Provide safe area so initial scroll position shows full content below fixed header */
-    padding-top: 70px;
+    overflow-x: hidden;
 }
 
 /* Emergency fallback visibility class */
@@ -253,19 +245,20 @@ a:hover {
 
 /* Adjust main content when sidebar is collapsed */
 .admin-layout:has(.sidebar.collapsed) .main-content {
-    margin-left: 20px; /* Reduced margin for better space utilization */
+    margin-left: 60px;
+    width: calc(100% - 60px);
 }
 
 /* Adjust header when sidebar is collapsed */
 .admin-layout:has(.sidebar.collapsed) .admin-header {
-    left: 60px; /* Header still needs to clear the sidebar */
+    left: 60px;
     width: calc(100% - 60px);
 }
 
 /* Alternative for browsers that don't support :has() */
 .sidebar.collapsed ~ .main-content {
-    /* Override previous margin when fixed: align directly after collapsed sidebar */
     margin-left: 60px;
+    width: calc(100% - 60px);
 }
 
 .sidebar.collapsed ~ * .admin-header {
@@ -551,28 +544,32 @@ a:hover {
     transition: color 0.2s ease;
 }
 
-/* Main Content - FIXED: Use flex instead of grid-area */
+/* Main Content - positioned to the right of fixed sidebar */
 .main-content {
-    flex: 1;
     position: relative;
-    overflow-y: auto;
-    background: transparent; /* Completely transparent */
-    width: 100%;
-    min-width: 500px;
-    display: flex;
-    flex-direction: column;
-    transition: margin-left 0.3s ease; /* Synchronized transition timing */
     margin-left: 180px; /* Account for fixed sidebar width */
+    margin-top: 70px; /* Account for fixed header height */
+    min-height: calc(100vh - 70px);
+    overflow-y: auto;
+    background: transparent;
+    width: calc(100% - 180px);
+    transition: margin-left 0.3s ease, width 0.3s ease;
 }
 
 .admin-main {
-    padding: calc(70px + 1rem) 1rem 8rem 1rem; /* Reduced padding for better space usage */
+    padding: 2rem 1rem 8rem 1rem; /* Remove top padding since main-content already has margin-top */
     height: 100%;
     width: 100%;
-    max-width: 1400px; /* Increased for better use of space */
+    max-width: 1400px;
     margin: 0 auto; /* Center the content */
     min-height: calc(100vh - 70px); /* Ensure minimum height */
-    display: block; /* Force block display */
+    display: block;
+}
+
+/* Main Layout Container */
+.admin-container {
+    position: relative;
+    min-height: calc(100vh - 70px);
 }
 
 /* Form grid layouts for better space utilization */
