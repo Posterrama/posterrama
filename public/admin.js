@@ -27,6 +27,28 @@ function apiUrlWithCacheBust(path) {
     return `${url}${separator}_t=${Date.now()}`;
 }
 
+// Helper for authenticated fetch calls with proper error handling
+async function authenticatedFetch(url, options = {}) {
+    const defaultOptions = {
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    };
+    
+    const response = await fetch(url, { ...defaultOptions, ...options });
+    
+    // Handle authentication errors
+    if (response.status === 401) {
+        console.warn('Authentication failed - redirecting to login');
+        window.location.href = '/admin/login';
+        throw new Error('Authentication required');
+    }
+    
+    return response;
+}
+
 // Global cache management functions for debugging
 window.clearBrowserCache = function() {
     console.log('🧹 Clearing browser cache...');
@@ -66,6 +88,33 @@ window.clearBrowserCache = function() {
 window.hardRefresh = function() {
     console.log('🔄 Performing hard refresh...');
     window.location.reload(true);
+};
+
+// Debug function to check authentication status
+window.checkAuthStatus = async function() {
+    console.log('🔍 Checking authentication status...');
+    try {
+        const response = await fetch(apiUrl('/api/admin/config'), {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        console.log('Auth Status:', response.status);
+        if (response.status === 401) {
+            console.log('❌ Not authenticated - redirecting to login');
+            window.location.href = '/admin/login';
+            return false;
+        } else if (response.ok) {
+            console.log('✅ Authenticated successfully');
+            return true;
+        } else {
+            console.log('⚠️ Unexpected response:', response.status, response.statusText);
+            return false;
+        }
+    } catch (error) {
+        console.error('🚨 Auth check failed:', error);
+        return false;
+    }
 };
 
 /*
@@ -1979,7 +2028,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadConfig() {
         try {
-            const response = await fetch(apiUrlWithCacheBust('/api/admin/config'));
+            const response = await authenticatedFetch(apiUrlWithCacheBust('/api/admin/config'));
             if (!response.ok) {
                 throw new Error('Could not load configuration from the server.');
             }
@@ -3034,10 +3083,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Coordinate with auto-save to avoid race
                 window.__saveCoordinator = window.__saveCoordinator || { manualInProgress: false };
                 window.__saveCoordinator.manualInProgress = true;
-                const response = await fetch(apiUrl('/api/admin/config'), {
+                const response = await authenticatedFetch(apiUrl('/api/admin/config'), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ config: cleanedConfig, env: newEnv }),
+                    body: JSON.stringify({ config: cleanedConfig, env: newEnv })
                 });
 
                 const result = await response.json();
@@ -4025,9 +4073,8 @@ async function loadCacheStats() {
  */
 async function refreshCacheStats() {
     try {
-        const response = await fetch(apiUrlWithCacheBust('/api/admin/cache-stats'), {
-            method: 'GET',
-            credentials: 'include'
+        const response = await authenticatedFetch(apiUrlWithCacheBust('/api/admin/cache-stats'), {
+            method: 'GET'
         });
         
         if (!response.ok) {
