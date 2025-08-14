@@ -118,6 +118,11 @@
     "enabled": true,
     "port": 4001
   },
+  "cache": {
+    "maxSizeGB": 2,
+    "minFreeDiskSpaceMB": 500,
+    "autoCleanup": true
+  },
   "cinemaMode": true,
   "cinemaOrientation": "auto"
 }

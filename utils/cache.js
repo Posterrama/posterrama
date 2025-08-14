@@ -402,8 +402,200 @@ function cacheMiddleware(options = {}) {
     };
 }
 
+/**
+ * Cache disk management utilities
+ */
+class CacheDiskManager {
+    constructor(imageCacheDir, config = {}) {
+        this.imageCacheDir = imageCacheDir;
+        this.maxSizeBytes = (config.maxSizeGB || 2) * 1024 * 1024 * 1024; // Convert GB to bytes
+        this.minFreeDiskSpaceBytes = (config.minFreeDiskSpaceMB || 500) * 1024 * 1024; // Convert MB to bytes
+        this.autoCleanup = config.autoCleanup !== false;
+    }
+
+    /**
+     * Get disk usage for image cache directory
+     */
+    async getDiskUsage() {
+        try {
+            const fs = require('fs').promises;
+            const path = require('path');
+            
+            let totalSize = 0;
+            let fileCount = 0;
+
+            const files = await fs.readdir(this.imageCacheDir, { withFileTypes: true });
+            
+            for (const file of files) {
+                if (file.isFile()) {
+                    const filePath = path.join(this.imageCacheDir, file.name);
+                    const stats = await fs.stat(filePath);
+                    totalSize += stats.size;
+                    fileCount++;
+                }
+            }
+
+            return {
+                totalSizeBytes: totalSize,
+                totalSizeMB: Math.round(totalSize / (1024 * 1024) * 100) / 100,
+                totalSizeGB: Math.round(totalSize / (1024 * 1024 * 1024) * 100) / 100,
+                fileCount,
+                maxSizeBytes: this.maxSizeBytes,
+                maxSizeGB: this.maxSizeBytes / (1024 * 1024 * 1024),
+                usagePercentage: Math.round((totalSize / this.maxSizeBytes) * 100)
+            };
+        } catch (error) {
+            logger.error('Failed to get cache disk usage', { error: error.message });
+            return {
+                totalSizeBytes: 0,
+                totalSizeMB: 0,
+                totalSizeGB: 0,
+                fileCount: 0,
+                maxSizeBytes: this.maxSizeBytes,
+                maxSizeGB: this.maxSizeBytes / (1024 * 1024 * 1024),
+                usagePercentage: 0
+            };
+        }
+    }
+
+    /**
+     * Get available disk space
+     */
+    async getFreeDiskSpace() {
+        try {
+            const { execSync } = require('child_process');
+            const command = process.platform === 'win32' 
+                ? `powershell "Get-PSDrive C | Select-Object Free"`
+                : `df -k "${this.imageCacheDir}" | tail -1 | awk '{print $4}'`;
+            
+            const output = execSync(command, { encoding: 'utf8' });
+            
+            if (process.platform === 'win32') {
+                // Parse PowerShell output for Windows
+                const match = output.match(/(\d+)/);
+                return match ? parseInt(match[1]) : 0;
+            } else {
+                // Parse df output for Unix-like systems (result in KB)
+                return parseInt(output.trim()) * 1024; // Convert KB to bytes
+            }
+        } catch (error) {
+            logger.warn('Failed to get free disk space', { error: error.message });
+            return 0;
+        }
+    }
+
+    /**
+     * Clean up old cache files to stay within limits
+     */
+    async cleanupCache() {
+        try {
+            const fs = require('fs').promises;
+            const path = require('path');
+            
+            const usage = await this.getDiskUsage();
+            const freeDiskSpace = await this.getFreeDiskSpace();
+            
+            // Check if cleanup is needed
+            const needsCleanup = 
+                usage.totalSizeBytes > this.maxSizeBytes || 
+                freeDiskSpace < this.minFreeDiskSpaceBytes;
+            
+            if (!needsCleanup) {
+                return { cleaned: false, reason: 'No cleanup needed', deletedFiles: 0, freedSpaceBytes: 0 };
+            }
+
+            // Get all files with their access times
+            const files = await fs.readdir(this.imageCacheDir, { withFileTypes: true });
+            const fileStats = [];
+
+            for (const file of files) {
+                if (file.isFile()) {
+                    const filePath = path.join(this.imageCacheDir, file.name);
+                    const stats = await fs.stat(filePath);
+                    fileStats.push({
+                        name: file.name,
+                        path: filePath,
+                        size: stats.size,
+                        atime: stats.atime,
+                        mtime: stats.mtime
+                    });
+                }
+            }
+
+            // Sort by oldest access time first
+            fileStats.sort((a, b) => a.atime - b.atime);
+
+            let deletedFiles = 0;
+            let freedSpaceBytes = 0;
+            let currentSize = usage.totalSizeBytes;
+
+            // Delete files until we're within limits
+            for (const file of fileStats) {
+                const shouldDelete = 
+                    currentSize > this.maxSizeBytes ||
+                    (freeDiskSpace + freedSpaceBytes) < this.minFreeDiskSpaceBytes;
+
+                if (!shouldDelete) break;
+
+                try {
+                    await fs.unlink(file.path);
+                    deletedFiles++;
+                    freedSpaceBytes += file.size;
+                    currentSize -= file.size;
+                    
+                    logger.debug('Deleted cache file', { 
+                        file: file.name, 
+                        size: file.size,
+                        freedTotal: freedSpaceBytes 
+                    });
+                } catch (deleteError) {
+                    logger.warn('Failed to delete cache file', { 
+                        file: file.name, 
+                        error: deleteError.message 
+                    });
+                }
+            }
+
+            logger.info('Cache cleanup completed', {
+                deletedFiles,
+                freedSpaceMB: Math.round(freedSpaceBytes / (1024 * 1024) * 100) / 100,
+                newSizeGB: Math.round(currentSize / (1024 * 1024 * 1024) * 100) / 100
+            });
+
+            return {
+                cleaned: true,
+                deletedFiles,
+                freedSpaceBytes,
+                freedSpaceMB: Math.round(freedSpaceBytes / (1024 * 1024) * 100) / 100,
+                newSizeBytes: currentSize,
+                newSizeGB: Math.round(currentSize / (1024 * 1024 * 1024) * 100) / 100
+            };
+
+        } catch (error) {
+            logger.error('Failed to cleanup cache', { error: error.message });
+            return { cleaned: false, error: error.message, deletedFiles: 0, freedSpaceBytes: 0 };
+        }
+    }
+
+    /**
+     * Update cache configuration
+     */
+    updateConfig(config) {
+        this.maxSizeBytes = (config.maxSizeGB || 2) * 1024 * 1024 * 1024;
+        this.minFreeDiskSpaceBytes = (config.minFreeDiskSpaceMB || 500) * 1024 * 1024;
+        this.autoCleanup = config.autoCleanup !== false;
+        
+        logger.info('Cache configuration updated', {
+            maxSizeGB: config.maxSizeGB,
+            minFreeDiskSpaceMB: config.minFreeDiskSpaceMB,
+            autoCleanup: this.autoCleanup
+        });
+    }
+}
+
 module.exports = {
     cacheManager,
     cacheMiddleware,
-    initializeCache
+    initializeCache,
+    CacheDiskManager
 };

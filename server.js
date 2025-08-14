@@ -49,13 +49,15 @@ const crypto = require('crypto');
 const { PassThrough } = require('stream');
 const fsp = fs.promises;
 
+// Define paths early
+const imageCacheDir = path.join(__dirname, 'image_cache');
+
 // --- Environment Initialization ---
 // Automatically create and configure the .env file on first run.
 (function initializeEnvironment() {
     const envPath = path.join(__dirname, '.env');
     const exampleEnvPath = path.join(__dirname, 'config.example.env');
     const sessionsPath = path.join(__dirname, 'sessions');
-    const imageCacheDir = path.join(__dirname, 'image_cache');
 
     try {
         // Ensure the sessions directory exists before the session store tries to use it.
@@ -165,8 +167,11 @@ function getLocalIPAddress() {
 const serverIPAddress = getLocalIPAddress();
 
 // Caching system
-const { cacheManager, cacheMiddleware, initializeCache } = require('./utils/cache');
+const { cacheManager, cacheMiddleware, initializeCache, CacheDiskManager } = require('./utils/cache');
 initializeCache(logger);
+
+// Initialize cache disk manager
+const cacheDiskManager = new CacheDiskManager(imageCacheDir, config.cache || {});
 
 // Metrics system
 const metricsManager = require('./utils/metrics');
@@ -1853,6 +1858,21 @@ app.get('/2fa-verify.html', (req, res) => {
     }
 });
 
+// Cache busting middleware for admin assets
+app.get('/admin.css', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(path.join(__dirname, 'public', 'admin.css'));
+});
+
+app.get('/admin.js', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(path.join(__dirname, 'public', 'admin.js'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true })); // For parsing form data
 
@@ -2752,7 +2772,29 @@ app.get('/admin', (req, res) => {
         return res.redirect('/admin/setup');
     }
     // If setup is done, the isAuthenticated middleware will handle the rest
-    isAuthenticated(req, res, () => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+    isAuthenticated(req, res, () => {
+        // Generate cache buster timestamp
+        const cacheBuster = Date.now();
+        
+        // Read admin.html and inject cache buster
+        fs.readFile(path.join(__dirname, 'public', 'admin.html'), 'utf8', (err, data) => {
+            if (err) {
+                console.error('Error reading admin.html:', err);
+                return res.status(500).send('Internal Server Error');
+            }
+            
+            // Replace version parameters with dynamic cache buster
+            const updatedHtml = data
+                .replace(/admin\.css\?v=[\d\.]+/g, `admin.css?v=${cacheBuster}`)
+                .replace(/admin\.js\?v=[\d\.]+/g, `admin.js?v=${cacheBuster}`);
+            
+            res.setHeader('Content-Type', 'text/html');
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.send(updatedHtml);
+        });
+    });
 });
 
 /**
@@ -3211,8 +3253,28 @@ app.get('/image',
         passthrough.pipe(fileStream);
         passthrough.pipe(res);
 
-        fileStream.on('finish', () => {
+        fileStream.on('finish', async () => {
             if (isDebug) console.log(`[Image Cache] SUCCESS: Saved "${imagePath}" to cache: ${cachedFilePath}`);
+            
+            // Check if auto cleanup is enabled and perform cleanup if needed
+            const config = await readConfig();
+            if (config.cache?.autoCleanup !== false) {
+                try {
+                    const cleanupResult = await cacheDiskManager.cleanupCache();
+                    if (cleanupResult.cleaned && cleanupResult.deletedFiles > 0) {
+                        logger.info('Automatic cache cleanup performed', {
+                            trigger: 'image_cache_write',
+                            deletedFiles: cleanupResult.deletedFiles,
+                            freedSpaceMB: cleanupResult.freedSpaceMB
+                        });
+                    }
+                } catch (cleanupError) {
+                    logger.warn('Automatic cache cleanup failed', { 
+                        error: cleanupError.message,
+                        trigger: 'image_cache_write'
+                    });
+                }
+            }
         });
 
         fileStream.on('error', (err) => {
@@ -5149,6 +5211,158 @@ app.post('/api/v1/admin/cache/clear', isAuthenticated, express.json(), asyncHand
 
 /**
  * @swagger
+ * /api/admin/cache/config:
+ *   get:
+ *     summary: Get cache configuration
+ *     description: Returns current cache configuration settings
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cache configuration retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 maxSizeGB:
+ *                   type: number
+ *                   description: Maximum cache size in gigabytes
+ *                 minFreeDiskSpaceMB:
+ *                   type: number
+ *                   description: Minimum free disk space in megabytes
+ *                 autoCleanup:
+ *                   type: boolean
+ *                   description: Whether automatic cleanup is enabled
+ */
+app.get('/api/admin/cache/config', isAuthenticated, asyncHandler(async (req, res) => {
+    const config = await getConfig();
+    const cacheConfig = config.cache || {
+        maxSizeGB: 2,
+        minFreeDiskSpaceMB: 500,
+        autoCleanup: true
+    };
+    
+    res.json(cacheConfig);
+}));
+
+/**
+ * @swagger
+ * /api/admin/cache/config:
+ *   post:
+ *     summary: Update cache configuration
+ *     description: Updates cache size limits and cleanup settings
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               maxSizeGB:
+ *                 type: number
+ *                 minimum: 0.5
+ *                 maximum: 100
+ *               minFreeDiskSpaceMB:
+ *                 type: number
+ *                 minimum: 100
+ *                 maximum: 5000
+ *               autoCleanup:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Cache configuration updated successfully
+ */
+app.post('/api/admin/cache/config', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    const { maxSizeGB, minFreeDiskSpaceMB, autoCleanup } = req.body;
+    
+    // Validate input
+    if (maxSizeGB !== undefined && (maxSizeGB < 0.5 || maxSizeGB > 100)) {
+        throw new ApiError(400, 'Cache size must be between 0.5GB and 100GB');
+    }
+    
+    if (minFreeDiskSpaceMB !== undefined && (minFreeDiskSpaceMB < 100 || minFreeDiskSpaceMB > 5000)) {
+        throw new ApiError(400, 'Minimum free disk space must be between 100MB and 5000MB');
+    }
+    
+    // Update configuration
+    const config = await getConfig();
+    config.cache = config.cache || {};
+    
+    if (maxSizeGB !== undefined) config.cache.maxSizeGB = maxSizeGB;
+    if (minFreeDiskSpaceMB !== undefined) config.cache.minFreeDiskSpaceMB = minFreeDiskSpaceMB;
+    if (autoCleanup !== undefined) config.cache.autoCleanup = autoCleanup;
+    
+    await saveConfig(config);
+    
+    // Update cache disk manager configuration
+    cacheDiskManager.updateConfig(config.cache);
+    
+    logger.info('Cache configuration updated by admin', config.cache);
+    
+    res.json({ 
+        success: true, 
+        message: 'Cache configuration updated successfully',
+        config: config.cache
+    });
+}));
+
+/**
+ * @swagger
+ * /api/admin/cache/disk-usage:
+ *   get:
+ *     summary: Get cache disk usage
+ *     description: Returns detailed disk usage information for the image cache
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cache disk usage retrieved successfully
+ */
+app.get('/api/admin/cache/disk-usage', isAuthenticated, asyncHandler(async (req, res) => {
+    const usage = await cacheDiskManager.getDiskUsage();
+    const freeDiskSpace = await cacheDiskManager.getFreeDiskSpace();
+    
+    res.json({
+        ...usage,
+        freeDiskSpaceBytes: freeDiskSpace,
+        freeDiskSpaceMB: Math.round(freeDiskSpace / (1024 * 1024) * 100) / 100,
+        freeDiskSpaceGB: Math.round(freeDiskSpace / (1024 * 1024 * 1024) * 100) / 100,
+        needsCleanup: usage.totalSizeBytes > usage.maxSizeBytes || freeDiskSpace < cacheDiskManager.minFreeDiskSpaceBytes
+    });
+}));
+
+/**
+ * @swagger
+ * /api/admin/cache/cleanup:
+ *   post:
+ *     summary: Clean up cache files
+ *     description: Manually trigger cache cleanup to remove old files and free disk space
+ *     tags: [Admin API]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cache cleanup completed successfully
+ */
+app.post('/api/admin/cache/cleanup', isAuthenticated, asyncHandler(async (req, res) => {
+    const result = await cacheDiskManager.cleanupCache();
+    
+    logger.info('Manual cache cleanup triggered by admin', result);
+    
+    res.json({
+        success: true,
+        ...result
+    });
+}));
+
+/**
+ * @swagger
  * /api/v1/admin/cache/stats:
  *   get:
  *     summary: Get cache statistics
@@ -5465,6 +5679,29 @@ if (require.main === module) {
         if (refreshInterval > 0) {
             setInterval(refreshPlaylistCache, refreshInterval);
             console.log(`Playlist will be refreshed in the background every ${config.backgroundRefreshMinutes} minutes.`);
+        }
+
+        // Set up automatic cache cleanup every 30 minutes
+        if (config.cache?.autoCleanup !== false) {
+            const cacheCleanupInterval = 30 * 60 * 1000; // 30 minutes
+            setInterval(async () => {
+                try {
+                    const cleanupResult = await cacheDiskManager.cleanupCache();
+                    if (cleanupResult.cleaned && cleanupResult.deletedFiles > 0) {
+                        logger.info('Scheduled cache cleanup performed', {
+                            trigger: 'scheduled',
+                            deletedFiles: cleanupResult.deletedFiles,
+                            freedSpaceMB: cleanupResult.freedSpaceMB
+                        });
+                    }
+                } catch (cleanupError) {
+                    logger.warn('Scheduled cache cleanup failed', { 
+                        error: cleanupError.message,
+                        trigger: 'scheduled'
+                    });
+                }
+            }, cacheCleanupInterval);
+            console.log('Automatic cache cleanup scheduled every 30 minutes.');
         }
     });
 

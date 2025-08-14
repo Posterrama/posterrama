@@ -717,6 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 console.log('Delayed loading of cache stats...');
                 loadCacheStats();
+                loadCacheConfig();
             }, 100); // Small delay to ensure DOM is ready
         }
         
@@ -3290,6 +3291,41 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Cache cleanup button
+    const cleanupCacheButton = document.getElementById('cleanup-cache-button');
+    if (cleanupCacheButton) {
+        cleanupCacheButton.addEventListener('click', async () => {
+            setButtonState(cleanupCacheButton, 'loading', { text: 'Cleaning...' });
+            try {
+                const response = await fetch('/api/admin/cleanup-cache', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to cleanup cache.');
+                showNotification(result.message, 'success');
+                // Refresh cache stats after cleanup
+                refreshCacheStats();
+            } catch (error) {
+                showNotification(`Error: ${error.message}`, 'error');
+            }
+            setTimeout(() => setButtonState(cleanupCacheButton, 'revert'), 2000);
+        });
+    }
+
+    // Cache configuration event listeners
+    const maxSizeInput = document.getElementById('cache-max-size');
+    const minFreeSpaceInput = document.getElementById('min-free-space');
+    
+    if (maxSizeInput) {
+        maxSizeInput.addEventListener('change', () => {
+            saveCacheConfig();
+        });
+    }
+    
+    if (minFreeSpaceInput) {
+        minFreeSpaceInput.addEventListener('change', () => {
+            saveCacheConfig();
+        });
+    }
+
     // Load cache stats when Management section is first accessed
     // Test: Also load stats on page load for debugging
     setTimeout(() => {
@@ -3974,14 +4010,22 @@ function updateCacheStatsDisplay(data, isError = false) {
         return;
     }
     
-    // Update disk usage
+    // Update disk usage with combined format: "1.2 GB / 2.0 GB (60%)"
     const totalSize = data.diskUsage?.total || 0;
     const imageCacheSize = data.diskUsage?.imageCache || 0;
     const logSize = data.diskUsage?.logFiles || 0;
     
+    // Get max cache size from form (fallback to 2GB)
+    const maxSizeInput = document.getElementById('cache-max-size');
+    const maxSizeGB = maxSizeInput ? parseFloat(maxSizeInput.value) : 2;
+    const maxSizeBytes = maxSizeGB * 1024 * 1024 * 1024; // Convert GB to bytes
+    
+    // Calculate usage percentage
+    const usagePercentage = maxSizeBytes > 0 ? Math.round((imageCacheSize / maxSizeBytes) * 100) : 0;
+    
     diskUsageElement.innerHTML = `
-        <div>${formatBytes(totalSize)}</div>
-        <div class="size-bytes">Images: ${formatBytes(imageCacheSize)} | Logs: ${formatBytes(logSize)}</div>
+        <div>${formatBytes(imageCacheSize)} / ${formatBytes(maxSizeBytes)} (${usagePercentage}%)</div>
+        <div class="size-bytes">Logs: ${formatBytes(logSize)} | Total: ${formatBytes(totalSize)}</div>
     `;
     
     // Update item count (Memory cache items)
@@ -3991,6 +4035,93 @@ function updateCacheStatsDisplay(data, isError = false) {
         <div>${totalItems.toLocaleString()}</div>
         <div class="size-bytes">Active in RAM</div>
     `;
+}
+
+/**
+ * Load cache configuration from server
+ */
+async function loadCacheConfig() {
+    try {
+        const response = await fetch('/api/admin/cache/config', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const config = await response.json();
+        
+        // Update form fields with loaded config
+        const maxSizeInput = document.getElementById('cache-max-size');
+        const minFreeSpaceInput = document.getElementById('min-free-space');
+        
+        if (maxSizeInput) maxSizeInput.value = config.maxSizeGB || 2;
+        if (minFreeSpaceInput) minFreeSpaceInput.value = config.minFreeDiskSpaceMB || 500;
+        
+        console.log('Cache configuration loaded:', config);
+        
+    } catch (error) {
+        console.error('Error loading cache configuration:', error);
+        // Safe check for showNotification function
+        if (typeof showNotification === 'function') {
+            showNotification('Failed to load cache configuration', 'error');
+        }
+    }
+}
+
+/**
+ * Save cache configuration to server
+ */
+async function saveCacheConfig() {
+    try {
+        const maxSizeInput = document.getElementById('cache-max-size');
+        const minFreeSpaceInput = document.getElementById('min-free-space');
+        
+        const config = {
+            maxSizeGB: parseFloat(maxSizeInput?.value || 2),
+            minFreeDiskSpaceMB: parseInt(minFreeSpaceInput?.value || 500),
+            autoCleanup: true
+        };
+        
+        // Validate inputs
+        if (config.maxSizeGB < 0.5 || config.maxSizeGB > 100) {
+            throw new Error('Cache size must be between 0.5GB and 100GB');
+        }
+        
+        if (config.minFreeDiskSpaceMB < 100 || config.minFreeDiskSpaceMB > 5000) {
+            throw new Error('Minimum free disk space must be between 100MB and 5000MB');
+        }
+        
+        const response = await fetch('/api/admin/cache/config', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(config)
+        });
+        
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to save cache configuration');
+        }
+        
+        const result = await response.json();
+        if (typeof showNotification === 'function') {
+            showNotification('Cache configuration saved successfully', 'success');
+        }
+        
+        // Refresh cache stats to show updated limits
+        setTimeout(() => refreshCacheStats(), 1000);
+        
+    } catch (error) {
+        console.error('Error saving cache configuration:', error);
+        if (typeof showNotification === 'function') {
+            showNotification(`Error: ${error.message}`, 'error');
+        }
+    }
 }
 
 // ===================================
