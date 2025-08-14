@@ -37,16 +37,34 @@ async function authenticatedFetch(url, options = {}) {
         }
     };
     
-    const response = await fetch(url, { ...defaultOptions, ...options });
+    console.log('🌐 Making authenticated request:', {
+        url,
+        method: options.method || 'GET',
+        hasBody: !!options.body,
+        bodySize: options.body ? options.body.length : 0
+    });
     
-    // Handle authentication errors
-    if (response.status === 401) {
-        console.warn('Authentication failed - redirecting to login');
-        window.location.href = '/admin/login';
-        throw new Error('Authentication required');
+    try {
+        const response = await fetch(url, { ...defaultOptions, ...options });
+        
+        console.log('📡 Response received:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok
+        });
+        
+        // Handle authentication errors
+        if (response.status === 401) {
+            console.warn('Authentication failed - redirecting to login');
+            window.location.href = '/admin/login';
+            throw new Error('Authentication required');
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('🚨 Fetch error:', error.name, error.message);
+        throw error;
     }
-    
-    return response;
 }
 
 // Global cache management functions for debugging
@@ -3083,6 +3101,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Coordinate with auto-save to avoid race
                 window.__saveCoordinator = window.__saveCoordinator || { manualInProgress: false };
                 window.__saveCoordinator.manualInProgress = true;
+                
+                // Debug: Log request data
+                console.log('🔍 Saving config with data:', {
+                    configSize: JSON.stringify(cleanedConfig).length,
+                    envSize: JSON.stringify(newEnv).length,
+                    totalSize: JSON.stringify({ config: cleanedConfig, env: newEnv }).length
+                });
+                
                 const response = await authenticatedFetch(apiUrl('/api/admin/config'), {
                     method: 'POST',
                     body: JSON.stringify({ config: cleanedConfig, env: newEnv })

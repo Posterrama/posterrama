@@ -4197,9 +4197,14 @@ app.post('/api/test-tvdb-connection', isAuthenticated, express.json(), asyncHand
  *         description: Niet geautoriseerd.
  */
 app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    console.log('[Admin API] Received POST request to /api/admin/config');
+    console.log('[Admin API] Request body exists:', !!req.body);
+    console.log('[Admin API] Request body size:', JSON.stringify(req.body).length);
+    
     if (isDebug) {
-        console.log('[Admin API] Received POST request to /api/admin/config to save settings. Body:', JSON.stringify(req.body, null, 2));
+        console.log('[Admin API] Full request body:', JSON.stringify(req.body, null, 2));
     }
+    
     const { config: newConfig, env: newEnv } = req.body;
 
     if (!newConfig || !newEnv) {
