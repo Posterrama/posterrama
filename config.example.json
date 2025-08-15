@@ -9,6 +9,8 @@
   "clockWidget": false,
   "clockTimezone": "auto",
   "clockFormat": "24h",
+  "cinemaMode": false,
+  "cinemaOrientation": "auto",
   "transitionEffect": "slide",
   "effectPauseTime": 3,
   "uiScaling": {
@@ -25,35 +27,33 @@
       "hostnameEnvVar": "PLEX_HOSTNAME",
       "portEnvVar": "PLEX_PORT",
       "tokenEnvVar": "PLEX_TOKEN",
-      "movieLibraryNames": [
-        "Movies"
-      ],
+      "movieLibraryNames": [],
       "showLibraryNames": [],
       "movieCount": 30,
-      "showCount": 15
+      "showCount": 15,
+      "recentlyAddedOnly": false,
+      "recentlyAddedDays": 30
     }
   ],
   "tmdbSource": {
     "enabled": false,
-    "apiKey": "",
     "category": "popular",
     "movieCount": 50,
     "showCount": 25,
-    "minRating": 0,
-    "yearFilter": null,
-    "genreFilter": ""
+    "minRating": 0
   },
   "tvdbSource": {
     "enabled": false,
-    "category": "top_shows",
+    "category": "popular",
     "movieCount": 10,
     "showCount": 20,
-    "minRating": 0,
-    "yearFilter": null,
-    "genreFilter": ""
+    "minRating": 0
   },
   "streamingSources": {
     "enabled": false,
+    "region": "US",
+    "maxItems": 20,
+    "minRating": 0,
     "netflix": false,
     "disney": false,
     "prime": false,
@@ -63,6 +63,5 @@
   "siteServer": {
     "enabled": false,
     "port": 4001
-  },
-  "plexClientOptions": {}
+  }
 }

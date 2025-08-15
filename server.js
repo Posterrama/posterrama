@@ -124,6 +124,31 @@ const bcrypt = require('bcrypt');
 const { exec } = require('child_process');
 const PlexAPI = require('plex-api');
 const fetch = require('node-fetch');
+
+// Check if config.json exists, if not copy from config.example.json
+(function ensureConfigExists() {
+    const configPath = './config.json';
+    const exampleConfigPath = './config.example.json';
+    
+    try {
+        fs.accessSync(configPath);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            console.log('config.json not found, creating from config.example.json...');
+            try {
+                fs.copyFileSync(exampleConfigPath, configPath);
+                console.log('config.json created successfully from example.');
+            } catch (copyError) {
+                console.error('FATAL ERROR: Could not create config.json from config.example.json:', copyError);
+                process.exit(1);
+            }
+        } else {
+            console.error('Error checking config.json:', error);
+            process.exit(1);
+        }
+    }
+})();
+
 const config = require('./config.json');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./swagger.js');

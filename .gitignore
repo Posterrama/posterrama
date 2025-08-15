@@ -1,6 +1,7 @@
-# Environment variables
+# Environment variables and config files
 # Prevent sensitive data from being committed to Git
 .env
+config.json
 
 # Node dependencies
 # These are installed via `npm install`

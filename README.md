@@ -134,7 +134,12 @@ While Apple TV doesn't support custom screensavers directly, you can still enjoy
    pm2 start ecosystem.config.js
    ```
 
-4. **Complete Setup Through Web Interface**
+4. **Configuration Setup**
+   - On first run, Posterrama automatically creates `config.json` from `config.example.json`
+   - Your personal `config.json` is **not** tracked in Git, so your settings stay private
+   - Safe to pull updates without losing your configuration!
+
+5. **Complete Setup Through Web Interface**
    - Open `http://your-server-ip:4000/admin/setup`
    - Create your admin account (don't forget to enable 2FA!)
    - Connect your media servers (Plex, TMDB, etc.)
