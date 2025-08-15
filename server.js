@@ -49,6 +49,32 @@ const crypto = require('crypto');
 const { PassThrough } = require('stream');
 const fsp = fs.promises;
 
+// --- Auto-create .env if missing ---
+const envPath = path.join(__dirname, '.env');
+const exampleEnvPath = path.join(__dirname, 'config.example.env');
+if (!fs.existsSync(envPath)) {
+  if (fs.existsSync(exampleEnvPath)) {
+    fs.copyFileSync(exampleEnvPath, envPath);
+    console.log('[Config] .env aangemaakt op basis van config.example.env');
+  } else {
+    console.error('[Config] config.example.env ontbreekt, kan geen .env aanmaken!');
+    process.exit(1);
+  }
+}
+
+// --- Auto-create config.json if missing ---
+const configPath = path.join(__dirname, 'config.json');
+const exampleConfigPath = path.join(__dirname, 'config.example.json');
+if (!fs.existsSync(configPath)) {
+  if (fs.existsSync(exampleConfigPath)) {
+    fs.copyFileSync(exampleConfigPath, configPath);
+    console.log('[Config] config.json aangemaakt op basis van config.example.json');
+  } else {
+    console.error('[Config] config.example.json ontbreekt, kan geen config.json aanmaken!');
+    process.exit(1);
+  }
+}
+
 // Define paths early
 const imageCacheDir = path.join(__dirname, 'image_cache');
 
@@ -2248,7 +2274,7 @@ async function testServerConnection(serverConfig) {
             });
 
             // Log warning if connection was slow
-            if (responseTime > 1000) { // 1 second threshold
+            if (responseTime > 1000) { //  1 second threshold
                 logger.warn('Slow Plex server response detected', {
                     action: 'plex_connection_slow',
                     server: {
@@ -3021,6 +3047,12 @@ app.get('/health', (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/HealthCheckResponse'
+ *       503:
+ *         description: One or more systems are not operational.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthCheckResponse'
  */
 app.get('/api/health', asyncHandler(async (req, res) => {
     const health = await getDetailedHealth();
@@ -3476,7 +3508,7 @@ app.post('/admin/setup', express.urlencoded({ extended: true }), asyncHandler(as
     
     if (isDebug) console.log(`[Admin Setup] Successfully created admin user "${username}". 2FA is not enabled by default.`);
     
-    res.send('Setup complete! You can now log in. You will be redirected shortly. <script>setTimeout(() => window.location.href="/admin/login", 3000);</script>');
+    res.redirect('/setup.html?complete=1');
 }));
 
 /**
@@ -4002,7 +4034,6 @@ app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(a
 }));
 
 
-
 /**
  * @swagger
  * /api/admin/plex-libraries:
@@ -4151,8 +4182,8 @@ app.post('/api/test-tvdb-connection', isAuthenticated, express.json(), asyncHand
         
         // Test both movies and shows
         const [movies, shows] = await Promise.all([
-            tvdbSource.getMovies(),
-            tvdbSource.getShows()
+            tvdbSource.fetchMedia('movie', 5),
+            tvdbSource.fetchMedia('tv', 5)
         ]);
         
         const sampleData = movies.concat(shows);
@@ -4172,6 +4203,7 @@ app.post('/api/test-tvdb-connection', isAuthenticated, express.json(), asyncHand
                     movies: movies.length,
                     shows: shows.length
                 }
+
             });
         } else {
             throw new Error('No data returned from TVDB API');
@@ -5135,373 +5167,6 @@ app.post('/api/admin/clear-image-cache', isAuthenticated, asyncHandler(async (re
  *         description: Cache statistics retrieved successfully
  */
 app.get('/api/admin/cache-stats', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Received request for cache stats');
-    
-    try {
-        // Get cache stats from cache manager
-        const cacheStats = cacheManager.getStats();
-        
-        // Calculate disk usage
-        const diskUsage = {
-            imageCache: 0,
-            logFiles: 0,
-            total: 0
-        };
-        
-        // Calculate image cache size
-        try {
-            const imageCacheDir = path.join(__dirname, 'image_cache');
-            const files = await fsp.readdir(imageCacheDir);
-            for (const file of files) {
-                try {
-                    const stats = await fsp.stat(path.join(imageCacheDir, file));
-                    diskUsage.imageCache += stats.size;
-                } catch (err) {
-                    // Skip files that can't be read
-                }
-            }
-        } catch (err) {
-            if (isDebug) console.log('[Admin API] Image cache directory not accessible:', err.message);
-        }
-        
-        // Calculate log files size
-        try {
-            const logsDir = path.join(__dirname, 'logs');
-            const files = await fsp.readdir(logsDir);
-            for (const file of files) {
-                try {
-                    const stats = await fsp.stat(path.join(logsDir, file));
-                    diskUsage.logFiles += stats.size;
-                } catch (err) {
-                    // Skip files that can't be read
-                }
-            }
-        } catch (err) {
-            if (isDebug) console.log('[Admin API] Logs directory not accessible:', err.message);
-        }
-        
-        diskUsage.total = diskUsage.imageCache + diskUsage.logFiles;
-        
-        // Count cached items by type
-        const itemCount = {
-            media: 0,
-            config: 0,
-            image: 0,
-            total: cacheStats.size
-        };
-        
-        // Count items by prefix (basic categorization)
-        for (const key of cacheManager.cache.keys()) {
-            if (key.startsWith('media:') || key.startsWith('plex:') || key.startsWith('tmdb:') || key.startsWith('tvdb:')) {
-                itemCount.media++;
-            } else if (key.startsWith('config:')) {
-                itemCount.config++;
-            } else if (key.startsWith('image:')) {
-                itemCount.image++;
-            }
-        }
-        
-        const response = {
-            diskUsage,
-            itemCount,
-            cacheStats: {
-                hits: cacheStats.hits,
-                misses: cacheStats.misses,
-                hitRate: cacheStats.hitRate
-            }
-        };
-        
-        if (isDebug) console.log('[Admin API] Cache stats calculated:', response);
-        res.json(response);
-        
-    } catch (error) {
-        console.error('[Admin API] Error getting cache stats:', error);
-        throw new ApiError(500, 'Failed to get cache statistics. Check server logs for details.');
-    }
-}));
-
-/**
- * @swagger
- * /api/v1/admin/cache/clear:
- *   post:
- *     summary: Clear application cache
- *     description: Clears the application cache, optionally for specific types of content
- *     tags: [Admin API]
- *     security:
- *       - sessionAuth: []
- *     requestBody:
- *       required: false
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               type:
- *                 type: string
- *                 enum: [media, config, image, all]
- *                 description: The type of cache to clear (defaults to 'all')
- *     responses:
- *       200:
- *         description: Cache cleared successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AdminApiResponse'
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
- */
-app.post('/api/v1/admin/cache/clear', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    const { type = 'all' } = req.body;
-    
-    if (isDebug) console.log('[Admin API] Received request to clear cache', { type });
-    
-    let cleared = 0;
-    let message = '';
-
-    try {
-        switch (type) {
-            case 'media':
-                cleared = cacheManager.clear('media');
-                message = `Cleared ${cleared} media cache entries`;
-                break;
-            case 'config':
-                cleared = cacheManager.clear('config');
-                message = `Cleared ${cleared} config cache entries`;
-                break;
-            case 'image':
-                cleared = cacheManager.clear('image');
-                // Also clear filesystem image cache
-                const imageCacheDir = path.join(__dirname, 'image_cache');
-                try {
-                    const files = await fsp.readdir(imageCacheDir);
-                    const unlinkPromises = files.map(file =>
-                        fsp.unlink(path.join(imageCacheDir, file))
-                    );
-                    await Promise.all(unlinkPromises);
-                    message = `Cleared ${cleared} image cache entries and ${files.length} cached image files`;
-                } catch (err) {
-                    logger.warn('Could not clear filesystem image cache', { error: err.message });
-                    message = `Cleared ${cleared} image cache entries (filesystem cache unchanged)`;
-                }
-                break;
-            case 'all':
-            default:
-                cleared = cacheManager.clear();
-                message = `Cleared all ${cleared} cache entries`;
-                break;
-        }
-
-        logger.info('Cache cleared by admin', { type, cleared });
-        
-        res.json({ 
-            success: true, 
-            message,
-            cleared,
-            type 
-        });
-    } catch (error) {
-        logger.error('Failed to clear cache', { type, error: error.message });
-        throw new ApiError(500, 'Failed to clear cache. Check server logs for details.');
-    }
-}));
-
-/**
- * @swagger
- * /api/admin/cache/config:
- *   get:
- *     summary: Get cache configuration
- *     description: Returns current cache configuration settings
- *     tags: [Admin API]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Cache configuration retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 maxSizeGB:
- *                   type: number
- *                   description: Maximum cache size in gigabytes
- *                 minFreeDiskSpaceMB:
- *                   type: number
- *                   description: Minimum free disk space in megabytes
- *                 autoCleanup:
- *                   type: boolean
- *                   description: Whether automatic cleanup is enabled
- */
-app.get('/api/admin/cache/config', isAuthenticated, asyncHandler(async (req, res) => {
-    const config = await getConfig();
-    const cacheConfig = config.cache || {
-        maxSizeGB: 2,
-        minFreeDiskSpaceMB: 500,
-        autoCleanup: true
-    };
-    
-    res.json(cacheConfig);
-}));
-
-/**
- * @swagger
- * /api/admin/cache/config:
- *   post:
- *     summary: Update cache configuration
- *     description: Updates cache size limits and cleanup settings
- *     tags: [Admin API]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               maxSizeGB:
- *                 type: number
- *                 minimum: 0.5
- *                 maximum: 100
- *               minFreeDiskSpaceMB:
- *                 type: number
- *                 minimum: 100
- *                 maximum: 5000
- *               autoCleanup:
- *                 type: boolean
- *     responses:
- *       200:
- *         description: Cache configuration updated successfully
- */
-app.post('/api/admin/cache/config', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    const { maxSizeGB, minFreeDiskSpaceMB, autoCleanup } = req.body;
-    
-    // Validate input
-    if (maxSizeGB !== undefined && (maxSizeGB < 0.5 || maxSizeGB > 100)) {
-        throw new ApiError(400, 'Cache size must be between 0.5GB and 100GB');
-    }
-    
-    if (minFreeDiskSpaceMB !== undefined && (minFreeDiskSpaceMB < 100 || minFreeDiskSpaceMB > 5000)) {
-        throw new ApiError(400, 'Minimum free disk space must be between 100MB and 5000MB');
-    }
-    
-    // Update configuration
-    const config = await getConfig();
-    config.cache = config.cache || {};
-    
-    if (maxSizeGB !== undefined) config.cache.maxSizeGB = maxSizeGB;
-    if (minFreeDiskSpaceMB !== undefined) config.cache.minFreeDiskSpaceMB = minFreeDiskSpaceMB;
-    if (autoCleanup !== undefined) config.cache.autoCleanup = autoCleanup;
-    
-    await saveConfig(config);
-    
-    // Update cache disk manager configuration
-    cacheDiskManager.updateConfig(config.cache);
-    
-    logger.info('Cache configuration updated by admin', config.cache);
-    
-    res.json({ 
-        success: true, 
-        message: 'Cache configuration updated successfully',
-        config: config.cache
-    });
-}));
-
-/**
- * @swagger
- * /api/admin/cache/disk-usage:
- *   get:
- *     summary: Get cache disk usage
- *     description: Returns detailed disk usage information for the image cache
- *     tags: [Admin API]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Cache disk usage retrieved successfully
- */
-app.get('/api/admin/cache/disk-usage', isAuthenticated, asyncHandler(async (req, res) => {
-    const usage = await cacheDiskManager.getDiskUsage();
-    const freeDiskSpace = await cacheDiskManager.getFreeDiskSpace();
-    
-    res.json({
-        ...usage,
-        freeDiskSpaceBytes: freeDiskSpace,
-        freeDiskSpaceMB: Math.round(freeDiskSpace / (1024 * 1024) * 100) / 100,
-        freeDiskSpaceGB: Math.round(freeDiskSpace / (1024 * 1024 * 1024) * 100) / 100,
-        needsCleanup: usage.totalSizeBytes > usage.maxSizeBytes || freeDiskSpace < cacheDiskManager.minFreeDiskSpaceBytes
-    });
-}));
-
-/**
- * @swagger
- * /api/admin/cache/cleanup:
- *   post:
- *     summary: Clean up cache files
- *     description: Manually trigger cache cleanup to remove old files and free disk space
- *     tags: [Admin API]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Cache cleanup completed successfully
- */
-app.post('/api/admin/cache/cleanup', isAuthenticated, asyncHandler(async (req, res) => {
-    const result = await cacheDiskManager.cleanupCache();
-    
-    logger.info('Manual cache cleanup triggered by admin', result);
-    
-    res.json({
-        success: true,
-        ...result
-    });
-}));
-
-/**
- * @swagger
- * /api/v1/admin/cache/stats:
- *   get:
- *     summary: Get cache statistics
- *     description: Returns cache size and disk usage information
- *     tags: [Admin API]
- *     security:
- *       - sessionAuth: []
- *     responses:
- *       200:
- *         description: Cache statistics retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 diskUsage:
- *                   type: object
- *                   properties:
- *                     imageCache:
- *                       type: number
- *                       description: Size of image cache in bytes
- *                     logFiles:
- *                       type: number
- *                       description: Size of log files in bytes
- *                     total:
- *                       type: number
- *                       description: Total disk usage in bytes
- *                 itemCount:
- *                   type: object
- *                   properties:
- *                     media:
- *                       type: number
- *                       description: Number of cached media items
- *                     config:
- *                       type: number
- *                       description: Number of cached config items
- *                     total:
- *                       type: number
- *                       description: Total cached items
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
- */
-app.get('/api/v1/admin/cache/stats', isAuthenticated, asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Received request for cache stats');
     
     try {

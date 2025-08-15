@@ -1388,6 +1388,27 @@ div:nth-of-type(2).subsection-header i {
     border-left: 4px solid #10b981;
 }
 
+.notification.setup-complete {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-left: 5px solid #6366f1;
+    color: #e0e7ff;
+    font-size: 1.08rem;
+    font-weight: 500;
+    box-shadow: 0 8px 32px rgba(99,102,241,0.18);
+    letter-spacing: 0.01em;
+}
+.notification.setup-complete strong {
+    color: #a5b4fc;
+    font-weight: 600;
+}
+.notification.setup-complete i.fa-rocket {
+    color: #6366f1;
+    margin-right: 0.8rem;
+    font-size: 1.2rem;
+    vertical-align: middle;
+/* End of setup-complete block */
+}
+
 .notification.success::before {
     content: '\f058'; /* FontAwesome check-circle */
     font-family: 'Font Awesome 5 Free';

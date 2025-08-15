@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../admin.css">
+    <link rel="stylesheet" href="../admin.css?v=20250815">
     <style>
         body {
             background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%) !important;
@@ -124,5 +124,18 @@
             <a href="/" class="btn btn-secondary">← Back to Screensaver</a>
         </div>
     </div>
+    <!-- Setup complete message, only tonen als ?complete=1 in de URL staat -->
+    <script>
+        if (window.location.search.includes('complete=1')) {
+            const msg = document.createElement('div');
+            msg.className = 'setup-complete-message';
+            msg.innerHTML = `<i class='fas fa-rocket'></i> <strong>Setup complete!<br>You can now log in.<br>Redirecting shortly...</strong>`;
+            document.querySelector('.auth-container').prepend(msg);
+            const style = document.createElement('style');
+            style.textContent = `.setup-complete-message {\n  margin: 2rem auto 1rem auto;\n  padding: 2rem 1.5rem;\n  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);\n  border-left: 5px solid #6366f1;\n  color: #e0e7ff;\n  font-size: 1.15rem;\n  font-weight: 500;\n  box-shadow: 0 8px 32px rgba(99,102,241,0.18);\n  border-radius: 14px;\n  text-align: center;\n  letter-spacing: 0.01em;\n  max-width: 400px;\n}\n.setup-complete-message strong {\n  color: #a5b4fc;\n  font-weight: 600;\n  display: block;\n  margin-top: 0.5rem;\n}\n.setup-complete-message i.fa-rocket {\n  color: #6366f1;\n  margin-right: 0.8rem;\n  font-size: 1.5rem;\n  vertical-align: middle;\n}`;
+            document.head.appendChild(style);
+            setTimeout(function() { window.location.href = '/admin/login'; }, 4000);
+        }
+    </script>
 </body>
 </html>

@@ -3022,8 +3022,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
 
         const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
+        // Special styling for setup complete message
+        if (message.includes('Setup complete!')) {
+            notification.className = `notification ${type} setup-complete`;
+            notification.innerHTML = `<i class='fas fa-rocket'></i> <strong>${message}</strong>`;
+        } else {
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+        }
 
         container.appendChild(notification);
 
@@ -3032,11 +3038,12 @@ document.addEventListener('DOMContentLoaded', () => {
             notification.classList.add('show');
         }, 10);
 
-        // Hide and remove the notification after 5 seconds
+        // Setup complete message stays longer (8s), others 5s
+        const timeout = notification.classList.contains('setup-complete') ? 8000 : 5000;
         setTimeout(() => {
             notification.classList.remove('show');
             notification.addEventListener('transitionend', () => notification.remove());
-        }, 5000);
+        }, timeout);
     }
 
      const configForm = document.getElementById('config-form');

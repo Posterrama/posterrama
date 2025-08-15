@@ -5,6 +5,31 @@
 
 const fs = require('fs');
 const path = require('path');
+// --- Auto-create .env if missing ---
+const envPath = path.join(__dirname, '.env');
+const exampleEnvPath = path.join(__dirname, 'config.example.env');
+if (!fs.existsSync(envPath)) {
+  if (fs.existsSync(exampleEnvPath)) {
+    fs.copyFileSync(exampleEnvPath, envPath);
+    console.log('[Config] .env aangemaakt op basis van config.example.env');
+  } else {
+    console.error('[Config] config.example.env ontbreekt, kan geen .env aanmaken!');
+    process.exit(1);
+  }
+}
+// --- Auto-create config.json if missing ---
+const configPath = path.join(__dirname, 'config.json');
+const exampleConfigPath = path.join(__dirname, 'config.example.json');
+if (!fs.existsSync(configPath)) {
+  if (fs.existsSync(exampleConfigPath)) {
+    fs.copyFileSync(exampleConfigPath, configPath);
+    console.log('[Config] config.json aangemaakt op basis van config.example.json');
+  } else {
+    console.error('[Config] config.example.json ontbreekt, kan geen config.json aanmaken!');
+    process.exit(1);
+  }
+}
+
 const Ajv = require('ajv');
 require('dotenv').config();
 
@@ -15,7 +40,6 @@ const validate = ajv.compile(configSchema);
 
 let config;
 try {
-    const configPath = path.join(__dirname, 'config.json');
     config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 } catch (error) {
     console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: Could not read or parse config.json.');
