@@ -4633,44 +4633,21 @@ document.addEventListener('DOMContentLoaded', () => {
  * Setup event listeners for cache configuration inputs
  */
 function setupCacheConfigEventListeners() {
-    // Cache configuration event listeners - configuration is now hardcoded
-    const maxSizeInput = document.getElementById('cache-max-size');
-    const minFreeSpaceInput = document.getElementById('min-free-space');
-    const saveCacheConfigButton = document.getElementById('save-cache-config');
+    console.log('[Cache Config] Cache configuration fields have been removed from UI');
     
-    console.log('[Cache Config] Setting up cache config (hardcoded mode)');
+    // Since cache configuration fields have been removed, just log that cache is auto-managed
+    console.log('[Cache Config] Cache is auto-managed with fixed settings: 5GB max, 500MB min free space');
     
-    // Hide or disable the save button since configuration is now hardcoded
-    if (saveCacheConfigButton) {
-        saveCacheConfigButton.style.display = 'none';
-        console.log('[Cache Config] Save button hidden (configuration is hardcoded)');
-    }
+    // Add info message about automatic cache management if there's a cache section
+    const cacheSection = document.querySelector('.cache-stats-container');
     
-    // Disable input fields since they're now read-only
-    if (maxSizeInput) {
-        maxSizeInput.disabled = true;
-        maxSizeInput.title = 'Cache size is fixed at 5GB';
-        console.log('[Cache Config] Max size input disabled');
-    }
-    
-    if (minFreeSpaceInput) {
-        minFreeSpaceInput.disabled = true;
-        minFreeSpaceInput.title = 'Minimum free space is fixed at 500MB';
-        console.log('[Cache Config] Min free space input disabled');
-    }
-    
-    // Add info message about hardcoded configuration
-    const cacheConfigSection = document.querySelector('.cache-config-section') || 
-                              document.querySelector('#cache-config') ||
-                              saveCacheConfigButton?.parentElement;
-    
-    if (cacheConfigSection && !cacheConfigSection.querySelector('.hardcoded-notice')) {
+    if (cacheSection && !cacheSection.querySelector('.auto-managed-notice')) {
         const notice = document.createElement('div');
-        notice.className = 'hardcoded-notice';
-        notice.style.cssText = 'background: #f0f8ff; border: 1px solid #4a90e2; border-radius: 4px; padding: 10px; margin: 10px 0; color: #2c5aa0; font-size: 14px;';
-        notice.innerHTML = '<strong>ℹ️ Cache Settings</strong><br>Cache is now configured with fixed limits: 5GB maximum size and 500MB minimum free disk space for optimal performance and security.';
-        cacheConfigSection.appendChild(notice);
-        console.log('[Cache Config] Added hardcoded configuration notice');
+        notice.className = 'auto-managed-notice';
+        notice.style.cssText = 'background: #f0f8ff; border: 1px solid #4a90e2; border-radius: 4px; padding: 8px; margin: 8px 0; color: #2c5aa0; font-size: 13px; text-align: center;';
+        notice.innerHTML = '<i class="fas fa-cog"></i> <strong>Auto-Managed:</strong> Cache optimized automatically (5GB max, 500MB min free)';
+        cacheSection.parentNode.insertBefore(notice, cacheSection);
+        console.log('[Cache Config] Added auto-managed cache notice');
     }
 }
 
@@ -5409,66 +5386,22 @@ function updateCacheStatsDisplay(data, isError = false) {
 
 /**
  * Load hardcoded cache configuration
- * Cache limits are now fixed for simplicity and security
+ * Cache limits are now fixed and hidden from the UI
  */
 async function loadCacheConfig() {
-    console.log('[Cache Config] Using hardcoded cache configuration...');
-    
-    try {
-        // Hardcoded cache configuration - no longer user configurable
-        const config = {
-            maxSizeGB: 5,
-            minFreeDiskSpaceMB: 500
-        };
-        
-        console.log('[Cache Config] Hardcoded configuration:', config);
-        
-        // Update display fields with hardcoded config (make them read-only)
-        const maxSizeInput = document.getElementById('cache-max-size');
-        const minFreeSpaceInput = document.getElementById('min-free-space');
-        
-        if (maxSizeInput) {
-            maxSizeInput.value = config.maxSizeGB;
-            maxSizeInput.disabled = true;
-            maxSizeInput.title = 'Cache size is now fixed at 5GB';
-            console.log('[Cache Config] Set max size to:', maxSizeInput.value, '(disabled)');
-        }
-        
-        if (minFreeSpaceInput) {
-            minFreeSpaceInput.value = config.minFreeDiskSpaceMB;
-            minFreeSpaceInput.disabled = true;
-            minFreeSpaceInput.title = 'Minimum free space is now fixed at 500MB';
-            console.log('[Cache Config] Set min free space to:', minFreeSpaceInput.value, '(disabled)');
-        }
-        
-        console.log('[Cache Config] Hardcoded cache configuration loaded');
-        
-    } catch (error) {
-        console.error('[Cache Config] Error setting up cache configuration:', error);
-        
-        // Set default values if something fails
-        const maxSizeInput = document.getElementById('cache-max-size');
-        const minFreeSpaceInput = document.getElementById('min-free-space');
-        
-        if (maxSizeInput) {
-            maxSizeInput.value = 5;
-            maxSizeInput.disabled = true;
-        }
-        if (minFreeSpaceInput) {
-            minFreeSpaceInput.value = 500;
-            minFreeSpaceInput.disabled = true;
-        }
-    }
+    console.log('[Cache Config] Cache configuration is hardcoded (5GB max, 500MB min free)');
+    // Cache configuration fields have been removed from the UI
+    // Configuration is now hardcoded in the backend
 }
 
 /**
- * Cache configuration save function - now shows message that config is hardcoded
+ * Cache configuration save function - no longer needed since fields are removed
  */
 async function saveCacheConfig() {
-    console.log('[Cache Config] Save attempted - configuration is now hardcoded');
+    console.log('[Cache Config] Save attempted - cache configuration fields have been removed');
     
     if (typeof showNotification === 'function') {
-        showNotification('Cache configuration is now fixed at 5GB max size and 500MB minimum free space', 'info');
+        showNotification('Cache is automatically managed with optimal settings (5GB max, 500MB min free)', 'info');
     }
 }
 
