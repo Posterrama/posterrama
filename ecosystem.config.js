@@ -10,7 +10,7 @@ module.exports = {
     script: 'npm',
     args: 'start',
     version: pkg.version,
-    watch: ['server.js', 'config.json', 'validate-env.js'],
+    watch: false, // Disabled auto-restart to prevent conflicts during config saves
     ignore_watch: ['node_modules', 'public', 'README.md', 'sessions', '.env', 'logs'],
     env: {
       NODE_ENV: 'production',

@@ -11,12 +11,22 @@ console.log('✅ Admin script v2.2.0 loaded successfully');
 const API_BASE = window.location.origin;
 console.log('🌐 API Base URL:', API_BASE);
 
-// Helper function to create API URLs
+// Helper function to create API URLs with localhost fallback for dev environments
 function apiUrl(path) {
     // Ensure path starts with /
     if (!path.startsWith('/')) {
         path = '/' + path;
     }
+    
+    // Check if we should use localhost fallback for dev environments with proxy issues
+    const currentHost = window.location.hostname;
+    const isDev = currentHost.includes('dev.') || currentHost.includes('staging.');
+    
+    if (isDev && window.__useLocalhostFallback) {
+        console.log('🔄 Using localhost fallback for API call');
+        return `http://localhost:4000${path}`;
+    }
+    
     return API_BASE + path;
 }
 
@@ -29,10 +39,17 @@ function apiUrlWithCacheBust(path) {
 
 // Helper for authenticated fetch calls with proper error handling
 async function authenticatedFetch(url, options = {}) {
+    // Track HTTP/2 errors to enable automatic localhost fallback
+    window.__http2ErrorCount = window.__http2ErrorCount || 0;
+    
     const defaultOptions = {
         credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
+            'Connection': 'close', // Force HTTP/1.1 behavior
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'HTTP-Version': '1.1', // Request HTTP/1.1
             ...options.headers
         }
     };
@@ -41,7 +58,8 @@ async function authenticatedFetch(url, options = {}) {
         url,
         method: options.method || 'GET',
         hasBody: !!options.body,
-        bodySize: options.body ? options.body.length : 0
+        bodySize: options.body ? options.body.length : 0,
+        localhostFallback: window.__useLocalhostFallback || false
     });
     
     try {
@@ -53,6 +71,11 @@ async function authenticatedFetch(url, options = {}) {
             ok: response.ok
         });
         
+        // Reset error count on successful request
+        if (response.ok) {
+            window.__http2ErrorCount = 0;
+        }
+        
         // Handle authentication errors
         if (response.status === 401) {
             console.warn('Authentication failed - redirecting to login');
@@ -63,6 +86,76 @@ async function authenticatedFetch(url, options = {}) {
         return response;
     } catch (error) {
         console.error('🚨 Fetch error:', error.name, error.message);
+        
+        // Track HTTP/2 errors
+        if (error.message.includes('ERR_HTTP2_PROTOCOL_ERROR')) {
+            window.__http2ErrorCount++;
+            console.warn(`⚠️ HTTP/2 error count: ${window.__http2ErrorCount}`);
+            
+            // Enable localhost fallback after 2 HTTP/2 errors
+            if (window.__http2ErrorCount >= 2 && !window.__useLocalhostFallback) {
+                window.__useLocalhostFallback = true;
+                console.warn('🔄 Enabling localhost fallback due to repeated HTTP/2 errors');
+                
+                // Retry the request with localhost
+                const localhostUrl = url.replace(window.location.origin, 'http://localhost:4000');
+                console.log('🏠 Retrying with localhost:', localhostUrl);
+                
+                try {
+                    const localhostResponse = await fetch(localhostUrl, { ...defaultOptions, ...options });
+                    console.log('✅ Localhost request succeeded');
+                    return localhostResponse;
+                } catch (localhostError) {
+                    console.error('❌ Localhost request also failed:', localhostError.message);
+                }
+            }
+        }
+        
+        // For any network error, try a simplified request
+        if (error.message.includes('ERR_HTTP2_PROTOCOL_ERROR') || 
+            error.message.includes('Failed to fetch') ||
+            error.message.includes('502') ||
+            error.message.includes('503')) {
+            
+            console.warn('🔄 Network error detected, attempting simplified request...');
+            try {
+                // Wait a moment before retry
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Try with absolute minimal headers and explicit HTTP/1.1
+                const simplifiedOptions = {
+                    method: options.method || 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Connection': 'close'
+                    },
+                    body: options.body
+                };
+                
+                const fallbackResponse = await fetch(url, simplifiedOptions);
+                console.log(`📡 Simplified response: ${fallbackResponse.status} ${fallbackResponse.statusText}`);
+                
+                // Check if fallback response is also an error
+                if (fallbackResponse.status === 401) {
+                    console.warn('Authentication failed in fallback - redirecting to login');
+                    window.location.href = '/admin/login';
+                    throw new Error('Authentication required');
+                }
+                
+                if (!fallbackResponse.ok) {
+                    console.error(`❌ Simplified request failed with HTTP ${fallbackResponse.status}: ${fallbackResponse.statusText}`);
+                    throw new Error(`HTTP ${fallbackResponse.status}: ${fallbackResponse.statusText}`);
+                }
+                
+                console.log('✅ Simplified request succeeded');
+                return fallbackResponse;
+            } catch (fallbackError) {
+                console.error('❌ Simplified request also failed:', fallbackError.message);
+                throw fallbackError;
+            }
+        }
+        
         throw error;
     }
 }
@@ -108,8 +201,86 @@ window.hardRefresh = function() {
     window.location.reload(true);
 };
 
-// Debug function to check authentication status
-window.checkAuthStatus = async function() {
+// Network debugging functions
+window.enableLocalhostFallback = function() {
+    window.__useLocalhostFallback = true;
+    console.log('🏠 Localhost fallback enabled - API calls will use http://localhost:4000');
+    return 'Localhost fallback enabled';
+};
+
+window.disableLocalhostFallback = function() {
+    window.__useLocalhostFallback = false;
+    console.log('🌐 Localhost fallback disabled - API calls will use current domain');
+    return 'Localhost fallback disabled';
+};
+
+window.checkNetworkStatus = function() {
+    console.log('📊 Network Status:', {
+        http2ErrorCount: window.__http2ErrorCount || 0,
+        localhostFallback: window.__useLocalhostFallback || false,
+        currentDomain: window.location.hostname,
+        apiBase: API_BASE
+    });
+    return {
+        http2ErrorCount: window.__http2ErrorCount || 0,
+        localhostFallback: window.__useLocalhostFallback || false,
+        currentDomain: window.location.hostname,
+        apiBase: API_BASE
+    };
+};
+
+// Debug function to test config save with different methods
+window.testConfigSave = async function() {
+    console.log('🧪 Testing config save with minimal data...');
+    
+    const testConfig = {
+        transitionIntervalSeconds: 10,
+        backgroundRefreshMinutes: 30,
+        showMetadata: true,
+        clockWidget: false,
+        transitionEffect: "slide",
+        effectPauseTime: 3,
+        mediaServers: []
+    };
+    
+    const testEnv = {
+        DEBUG: "false"
+    };
+    
+    try {
+        console.log('Method 1: Normal authenticatedFetch');
+        const response1 = await authenticatedFetch(apiUrl('/api/admin/config'), {
+            method: 'POST',
+            body: JSON.stringify({ config: testConfig, env: testEnv })
+        });
+        console.log('✅ Method 1 succeeded:', response1.status);
+        return 'Test passed with normal method';
+    } catch (error1) {
+        console.log('❌ Method 1 failed:', error1.message);
+        
+        try {
+            console.log('Method 2: Direct fetch with HTTP/1.1 headers');
+            const response2 = await fetch(apiUrl('/api/admin/config'), {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Connection': 'close',
+                    'HTTP-Version': '1.1'
+                },
+                body: JSON.stringify({ config: testConfig, env: testEnv })
+            });
+            console.log('✅ Method 2 succeeded:', response2.status);
+            return 'Test passed with HTTP/1.1 fallback';
+        } catch (error2) {
+            console.log('❌ Method 2 also failed:', error2.message);
+            return 'Both methods failed: ' + error2.message;
+        }
+    }
+};
+
+// Check authentication status
+async function checkAuthStatus() {
     console.log('🔍 Checking authentication status...');
     try {
         const response = await fetch(apiUrl('/api/admin/config'), {
@@ -133,7 +304,7 @@ window.checkAuthStatus = async function() {
         console.error('🚨 Auth check failed:', error);
         return false;
     }
-};
+}
 
 /*
  * Key Changes (chronological/high-level):
@@ -3099,8 +3270,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cleanedConfig = cleanNulls(newConfig);
 
                 // Coordinate with auto-save to avoid race
-                window.__saveCoordinator = window.__saveCoordinator || { manualInProgress: false };
+                window.__saveCoordinator = window.__saveCoordinator || { 
+                    manualInProgress: false,
+                    lastRequestAt: 0,
+                    lastManualAt: 0
+                };
                 window.__saveCoordinator.manualInProgress = true;
+                // Don't set lastRequestAt for manual saves - only auto-saves use this for rate limiting
+                
+                console.log('🔧 Manual save initiated');
                 
                 // Debug: Log request data
                 console.log('🔍 Saving config with data:', {
@@ -3109,22 +3287,95 @@ document.addEventListener('DOMContentLoaded', () => {
                     totalSize: JSON.stringify({ config: cleanedConfig, env: newEnv }).length
                 });
                 
-                const response = await authenticatedFetch(apiUrl('/api/admin/config'), {
+                const requestBody = JSON.stringify({ config: cleanedConfig, env: newEnv });
+                
+                // If request is large, add additional headers to help with HTTP/2 issues
+                const requestOptions = {
                     method: 'POST',
-                    body: JSON.stringify({ config: cleanedConfig, env: newEnv })
-                });
-
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Failed to save settings.');
-
-                // Since PM2 watches config.json, saving settings will trigger a restart.
-                // Provide feedback; delay auto-saves shortly.
-                showNotification('Settings saved! The application is restarting. Please refresh the page in a few seconds.', 'success');
-                if (window.__saveCoordinator) {
-                    window.__saveCoordinator.lastManualAt = Date.now();
+                    body: requestBody
+                };
+                
+                if (requestBody.length > 50000) {
+                    console.warn('⚠️ Large request detected, adding HTTP/2 compatibility headers');
+                    requestOptions.headers = {
+                        'Content-Length': requestBody.length.toString(),
+                        'Transfer-Encoding': 'chunked'
+                    };
                 }
-                // Notify form tracking listeners
-                document.dispatchEvent(new CustomEvent('configSaved'));
+                
+                
+                // Retry mechanism for network errors
+                let lastError;
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (retryCount <= maxRetries) {
+                    try {
+                        if (retryCount > 0) {
+                            console.log(`🔄 Retry attempt ${retryCount}/${maxRetries} after ${retryCount * 1000}ms delay`);
+                            buttonTextSpan.textContent = `Retrying... (${retryCount}/${maxRetries})`;
+                            await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
+                        }
+                        
+                        const response = await authenticatedFetch(apiUrl('/api/admin/config'), requestOptions);
+
+                        if (!response.ok) {
+                            // Try to get error message from response
+                            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                            try {
+                                const errorResult = await response.json();
+                                if (errorResult.error) {
+                                    errorMessage = errorResult.error;
+                                }
+                            } catch (jsonError) {
+                                // If response is not JSON, use status text
+                                console.warn('Response is not JSON, using status text as error');
+                            }
+                            
+                            // Retry on 502 Bad Gateway or 503 Service Unavailable
+                            if ((response.status === 502 || response.status === 503) && retryCount < maxRetries) {
+                                lastError = new Error(errorMessage);
+                                retryCount++;
+                                continue;
+                            }
+                            
+                            throw new Error(errorMessage);
+                        }
+
+                        const result = await response.json();
+
+                        // Config saved successfully - show restart banner
+                        showNotification('Settings saved successfully!', 'success');
+                        showRestartButton();
+                        
+                        if (window.__saveCoordinator) {
+                            window.__saveCoordinator.lastManualAt = Date.now();
+                        }
+                        // Notify form tracking listeners
+                        document.dispatchEvent(new CustomEvent('configSaved'));
+                        return; // Success - exit retry loop
+                        
+                    } catch (error) {
+                        lastError = error;
+                        
+                        // Check if this is a retryable error
+                        const isRetryable = error.message.includes('502') || 
+                                          error.message.includes('503') || 
+                                          error.message.includes('Failed to fetch') ||
+                                          error.message.includes('ERR_HTTP2_PROTOCOL_ERROR');
+                        
+                        if (isRetryable && retryCount < maxRetries) {
+                            retryCount++;
+                            continue;
+                        }
+                        
+                        // Not retryable or max retries reached
+                        break;
+                    }
+                }
+                
+                // If we get here, all retries failed
+                throw lastError;
 
             } catch (error) {
                 console.error('Failed to save config:', error);
@@ -3665,12 +3916,22 @@ document.addEventListener('DOMContentLoaded', () => {
             autoInProgress: false,
             pending: false,
             lastManualAt: 0,
-            lastAutoAt: 0
+            lastAutoAt: 0,
+            lastRequestAt: 0
         };
         const state = window.__saveCoordinator;
 
-        // If a manual save just happened (<2s), skip
-        if (Date.now() - state.lastManualAt < 2000) {
+        // Add rate limiting: don't allow AUTO-SAVE requests more than once per second
+        // (Manual saves should not be rate limited)
+        const now = Date.now();
+        if (now - state.lastRequestAt < 1000) {
+            console.log('⏳ Rate limiting: skipping auto-save (too soon since last request)');
+            return;
+        }
+
+        // If a manual save just happened (<2s), skip auto-save
+        if (now - state.lastManualAt < 2000) {
+            console.log('⏳ Skipping auto-save: manual save happened recently');
             return;
         }
         // If another auto save is running, mark pending and exit
@@ -3680,6 +3941,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         state.autoInProgress = true;
         state.pending = false;
+        state.lastRequestAt = now;
+        
+        console.log('🔄 Auto-save initiated');
+        
         try {
             // Fetch latest to merge safely
             const currentConfigResponse = await fetch('/api/admin/config');
@@ -4711,3 +4976,71 @@ async function performStatusCheckSilent() {
         // Don't show error in UI for silent refresh
     }
 }
+
+// Restart Button Management
+function showRestartButton() {
+    const restartBtn = document.getElementById('restart-now-btn');
+    
+    if (restartBtn) {
+        restartBtn.style.display = 'flex';
+        
+        // Store in sessionStorage so button persists across page navigation
+        sessionStorage.setItem('restartButtonVisible', 'true');
+    }
+}
+
+function hideRestartButton() {
+    const restartBtn = document.getElementById('restart-now-btn');
+    
+    if (restartBtn) {
+        restartBtn.style.display = 'none';
+        
+        // Remove from sessionStorage
+        sessionStorage.removeItem('restartButtonVisible');
+    }
+}
+
+function performRestart() {
+    const restartBtn = document.getElementById('restart-now-btn');
+    const originalText = restartBtn.innerHTML;
+    
+    // Show loading state
+    restartBtn.disabled = true;
+    restartBtn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Restarting...';
+    
+    // Trigger restart
+    fetch('/api/admin/restart-app', { 
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+    }).then(() => {
+        showNotification('Server is restarting... Please refresh the page in a few seconds.', 'info');
+        hideRestartButton();
+        
+        // Auto-refresh after 3 seconds
+        setTimeout(() => {
+            window.location.reload();
+        }, 3000);
+    }).catch(error => {
+        console.error('Restart failed:', error);
+        showNotification('Could not restart server automatically. Please restart manually if needed.', 'warning');
+        
+        // Restore button state
+        restartBtn.disabled = false;
+        restartBtn.innerHTML = originalText;
+    });
+}
+
+// Initialize restart button functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if restart button should be visible (from sessionStorage)
+    if (sessionStorage.getItem('restartButtonVisible') === 'true') {
+        showRestartButton();
+    }
+    
+    // Restart now button handler
+    const restartNowBtn = document.getElementById('restart-now-btn');
+    if (restartNowBtn) {
+        restartNowBtn.addEventListener('click', performRestart);
+    }
+});
