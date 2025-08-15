@@ -328,12 +328,60 @@ app.use('/api', (req, res, next) => {
 });
 
 // Version-specific route aliases - redirect to actual endpoints
+/**
+ * @swagger
+ * /api/v1/config:
+ *   get:
+ *     summary: Get configuration (v1 API alias)
+ *     description: Version 1 API alias that redirects to the main configuration endpoint /get-config
+ *     tags: [Public API]
+ *     responses:
+ *       200:
+ *         description: Configuration data (handled by /get-config endpoint)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Config'
+ */
 app.get('/api/v1/config', (req, res) => {
     req.url = '/get-config';
     req.originalUrl = '/get-config';
     app._router.handle(req, res);
 });
 
+/**
+ * @swagger
+ * /api/v1/media:
+ *   get:
+ *     summary: Get media data (v1 API alias)
+ *     description: Version 1 API alias that redirects to the main media endpoint /get-media
+ *     tags: [Public API]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term to filter media
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *         description: Filter by year
+ *       - in: query
+ *         name: genre
+ *         schema:
+ *           type: string
+ *         description: Filter by genre
+ *     responses:
+ *       200:
+ *         description: Media data (handled by /get-media endpoint)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MediaItem'
+ */
 app.get('/api/v1/media', (req, res) => {
     req.url = '/get-media';
     req.originalUrl = '/get-media';
@@ -402,6 +450,35 @@ app.use('/get-media-by-key', apiLimiter);
 app.use('/image', apiLimiter);
 
 // Lightweight template injection for admin.html to stamp asset version
+/**
+ * @swagger
+ * /admin:
+ *   get:
+ *     summary: Serve admin panel HTML
+ *     description: >
+ *       Serves the admin panel HTML with asset version stamping for cache busting.
+ *       Injects the ASSET_VERSION into the HTML template before serving.
+ *     tags: [Frontend]
+ *     responses:
+ *       200:
+ *         description: Admin panel HTML
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ * /admin.html:
+ *   get:
+ *     summary: Serve admin panel HTML (alternative route)
+ *     description: Alternative route for admin panel HTML with asset version stamping
+ *     tags: [Frontend]
+ *     responses:
+ *       200:
+ *         description: Admin panel HTML
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ */
 app.get(['/admin','/admin.html'], (req, res, next) => {
     const filePath = path.join(__dirname, 'public', 'admin.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
@@ -1927,16 +2004,57 @@ app.get('/api/v1/admin/auth-logs', jwtAuth, requireRole('admin'), async (req, re
 });
 
 // Redirect /setup.html to /admin/setup for consistency (must be before static middleware)
+/**
+ * @swagger
+ * /setup.html:
+ *   get:
+ *     summary: Redirect to admin setup
+ *     description: Redirects legacy setup.html requests to the unified admin setup route
+ *     tags: [Frontend]
+ *     responses:
+ *       302:
+ *         description: Redirect to /admin/setup
+ */
 app.get('/setup.html', (req, res) => {
     res.redirect('/admin/setup');
 });
 
 // Redirect /login.html to /admin/login for consistency (must be before static middleware)
+/**
+ * @swagger
+ * /login.html:
+ *   get:
+ *     summary: Redirect to admin login
+ *     description: Redirects legacy login.html requests to the unified admin login route
+ *     tags: [Frontend]
+ *     responses:
+ *       302:
+ *         description: Redirect to /admin/login
+ */
 app.get('/login.html', (req, res) => {
     res.redirect('/admin/login');
 });
 
 // Redirect /2fa-verify.html to /admin/login if not in 2FA flow (must be before static middleware)
+/**
+ * @swagger
+ * /2fa-verify.html:
+ *   get:
+ *     summary: Serve 2FA verification page or redirect
+ *     description: >
+ *       Serves the 2FA verification page if user is in an active 2FA flow,
+ *       otherwise redirects to login page for security.
+ *     tags: [Frontend]
+ *     responses:
+ *       200:
+ *         description: 2FA verification page HTML
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ *       302:
+ *         description: Redirect to /admin/login if not in 2FA flow
+ */
 app.get('/2fa-verify.html', (req, res) => {
     // Only allow access to 2FA page if user is in the middle of 2FA verification
     if (req.session && req.session.tfa_required) {
@@ -1947,6 +2065,21 @@ app.get('/2fa-verify.html', (req, res) => {
 });
 
 // Cache busting middleware for admin assets
+/**
+ * @swagger
+ * /admin.css:
+ *   get:
+ *     summary: Serve admin CSS with cache busting
+ *     description: Serves the admin panel CSS file with no-cache headers to ensure latest version is always loaded
+ *     tags: [Frontend]
+ *     responses:
+ *       200:
+ *         description: Admin CSS file
+ *         content:
+ *           text/css:
+ *             schema:
+ *               type: string
+ */
 app.get('/admin.css', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -1954,6 +2087,21 @@ app.get('/admin.css', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.css'));
 });
 
+/**
+ * @swagger
+ * /admin.js:
+ *   get:
+ *     summary: Serve admin JavaScript with cache busting
+ *     description: Serves the admin panel JavaScript file with no-cache headers to ensure latest version is always loaded
+ *     tags: [Frontend]
+ *     responses:
+ *       200:
+ *         description: Admin JavaScript file
+ *         content:
+ *           application/javascript:
+ *             schema:
+ *               type: string
+ */
 app.get('/admin.js', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
