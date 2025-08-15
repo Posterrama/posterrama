@@ -65,29 +65,16 @@ function compressionMiddleware() {
  */
 function corsMiddleware() {
     return cors({
-        origin: function(origin, callback) {
-            // Allow same-origin and null origin (for local file access)
+        origin: function (origin, callback) {
+            // Allow requests with no origin (mobile apps, curl, Postman, etc.)
             if (!origin || origin === 'null') {
                 callback(null, true);
                 return;
             }
             
-            // Parse request origin
-            try {
-                const url = new URL(origin);
-                // Allow localhost, same host, and dev domains
-                if (url.hostname === 'localhost' || 
-                    url.hostname === '127.0.0.1' ||
-                    url.hostname === process.env.HOST ||
-                    url.hostname.endsWith('.posterrama.app') ||
-                    url.hostname === 'dev.posterrama.app') {
-                    callback(null, true);
-                } else {
-                    callback(new Error('Not allowed by CORS'));
-                }
-            } catch (err) {
-                callback(new Error('Invalid origin'));
-            }
+            // Allow all origins for self-hosted applications
+            // Users can host Posterrama on any domain they want
+            callback(null, true);
         },
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
