@@ -88,12 +88,15 @@ describe('CacheManager core operations', () => {
 
   test('getStats returns structured data with hitRate', () => {
     cacheManager.set('s1', 'v1');
-    cacheManager.get('s1');
+    cacheManager.get('s1'); // This should create a hit
     const stats = cacheManager.getStats();
     expect(stats.size).toBe(1);
     expect(stats.entries[0].accessCount).toBe(1);
     expect(stats.totalAccess).toBe(1);
-    expect(stats.hitRate).toBeGreaterThanOrEqual(1);
+    expect(stats.hitRate).toBeGreaterThan(0);
+    expect(stats.hitRate).toBeLessThanOrEqual(1);
+    expect(stats.hits).toBeGreaterThan(0);
+    expect(stats.totalRequests).toBeGreaterThan(0);
   });
 
   test('set handles serialization error (circular object) gracefully', () => {

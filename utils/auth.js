@@ -78,6 +78,28 @@ class AuthenticationManager {
             lastUsed: null
         });
 
+        // Start periodic cleanup (every hour)
+        this.startCleanupScheduler();
+    }
+
+    startCleanupScheduler() {
+        // Run cleanup every hour
+        this.cleanupInterval = setInterval(() => {
+            this.cleanupExpiredSessions();
+        }, 60 * 60 * 1000); // 1 hour
+        
+        // Initial cleanup
+        setTimeout(() => {
+            this.cleanupExpiredSessions();
+        }, 5000); // Wait 5 seconds after startup
+    }
+
+    stopCleanupScheduler() {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
+        }
+        
         logger.info('Authentication Manager initialized with default users and roles');
     }
 
@@ -102,10 +124,58 @@ class AuthenticationManager {
         return refreshToken;
     }
 
+    // Input validation helper
+    validateInput(input, fieldName, options = {}) {
+        if (input === null || input === undefined) {
+            throw new Error(`${fieldName} is required`);
+        }
+        
+        if (typeof input !== 'string') {
+            throw new Error(`${fieldName} must be a string`);
+        }
+        
+        if (input.trim().length === 0) {
+            throw new Error(`${fieldName} cannot be empty`);
+        }
+        
+        if (options.minLength && input.length < options.minLength) {
+            throw new Error(`${fieldName} must be at least ${options.minLength} characters`);
+        }
+        
+        if (options.maxLength && input.length > options.maxLength) {
+            throw new Error(`${fieldName} must be no more than ${options.maxLength} characters`);
+        }
+        
+        if (options.pattern && !options.pattern.test(input)) {
+            throw new Error(`${fieldName} format is invalid`);
+        }
+        
+        return input.trim();
+    }
+
     verifyToken(token) {
         try {
-            return jwt.verify(token, this.jwtSecret);
+            // Input validation
+            if (!token || typeof token !== 'string') {
+                throw new Error('Token is required and must be a string');
+            }
+            
+            const decoded = jwt.verify(token, this.jwtSecret);
+            
+            // Additional validation
+            if (!decoded.userId || !decoded.username) {
+                throw new Error('Invalid token payload');
+            }
+            
+            // Check if user still exists and is not locked
+            const user = Array.from(this.users.values()).find(u => u.id === decoded.userId);
+            if (!user || user.locked) {
+                throw new Error('User no longer valid');
+            }
+            
+            return decoded;
         } catch (error) {
+            logger.warn(`Token verification failed: ${error.message}`);
             throw new Error('Invalid token');
         }
     }
@@ -138,6 +208,22 @@ class AuthenticationManager {
 
     // User Authentication
     async authenticateUser(username, password) {
+        // Input validation
+        try {
+            username = this.validateInput(username, 'Username', { 
+                minLength: 2, 
+                maxLength: 50,
+                pattern: /^[a-zA-Z0-9_-]+$/ 
+            });
+            password = this.validateInput(password, 'Password', { 
+                minLength: 3, 
+                maxLength: 128 
+            });
+        } catch (error) {
+            logger.warn(`Authentication failed due to invalid input: ${error.message}`);
+            throw new Error('Invalid credentials');
+        }
+
         const user = this.users.get(username);
         if (!user || user.locked) {
             this.recordFailedAttempt(username);
@@ -203,8 +289,49 @@ class AuthenticationManager {
         this.authAttempts.set(key, attempts);
     }
 
+    // Session cleanup - remove expired sessions
+    cleanupExpiredSessions() {
+        const now = new Date();
+        const sessionTimeout = 24 * 60 * 60 * 1000; // 24 hours
+        let cleanedCount = 0;
+        
+        for (const [sessionId, session] of this.sessions.entries()) {
+            if (now - session.lastActivity > sessionTimeout) {
+                this.sessions.delete(sessionId);
+                cleanedCount++;
+            }
+        }
+        
+        // Also cleanup expired refresh tokens
+        for (const [token, data] of this.refreshTokens.entries()) {
+            if (data.expiresAt < now) {
+                this.refreshTokens.delete(token);
+                cleanedCount++;
+            }
+        }
+        
+        // Cleanup old failed attempts (after 1 hour)
+        const attemptTimeout = 60 * 60 * 1000; // 1 hour
+        for (const [key, attempt] of this.authAttempts.entries()) {
+            if (now - attempt.lastAttempt > attemptTimeout) {
+                this.authAttempts.delete(key);
+            }
+        }
+        
+        if (cleanedCount > 0) {
+            logger.info(`Cleaned up ${cleanedCount} expired auth entries`);
+        }
+        
+        return cleanedCount;
+    }
+
     // API Key Authentication
     authenticateApiKey(apiKey) {
+        // Input validation
+        if (!apiKey || typeof apiKey !== 'string') {
+            throw new Error('Invalid API key');
+        }
+        
         const keyData = this.apiKeys.get(apiKey);
         if (!keyData) {
             throw new Error('Invalid API key');
@@ -308,10 +435,11 @@ class AuthenticationManager {
             throw new Error('Two-factor authentication not enabled');
         }
 
-        // Tests expect verify to be called without explicit encoding property
+        // Specify encoding explicitly to match secret generation
         const verifyArgs = {
             secret: twoFactorData.secret,
             token: token,
+            encoding: 'base32',
             window: 2
         };
         const verified = speakeasy.totp.verify(verifyArgs);

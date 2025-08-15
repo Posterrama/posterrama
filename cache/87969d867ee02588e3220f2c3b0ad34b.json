@@ -1,10 +1,10 @@
 {
   "key": "GET:/hello",
-  "value": "{\"msg\":\"world\",\"t\":1755275178717}",
-  "etag": "\"fc1fc6eed77fd941de4957a3930b26ec\"",
-  "createdAt": 1755275178718,
-  "expiresAt": 1755275178768,
+  "value": "{\"msg\":\"world\",\"t\":1755277437384}",
+  "etag": "\"d275a540876af71a1580fb896bc0c0fd\"",
+  "createdAt": 1755277437384,
+  "expiresAt": 1755277437434,
   "accessCount": 0,
-  "lastAccessed": 1755275178718
-}78717
+  "lastAccessed": 1755277437384
+}37384
 }

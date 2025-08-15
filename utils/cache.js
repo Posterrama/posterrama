@@ -17,19 +17,78 @@ class CacheManager {
     constructor(options = {}) {
         this.cache = new Map();
         this.timers = new Map();
+        this.stats = {
+            hits: 0,
+            misses: 0,
+            sets: 0,
+            deletes: 0,
+            errors: 0,
+            lastReset: Date.now()
+        };
         this.config = {
             defaultTTL: options.defaultTTL || 300000, // 5 minutes default
             maxSize: options.maxSize || 100, // Max cache entries
             persistPath: options.persistPath || path.resolve(__dirname, '../cache'),
-            enablePersistence: options.enablePersistence || false
+            enablePersistence: options.enablePersistence || false,
+            enableCompression: options.enableCompression || false
         };
+        
+        // Start periodic cleanup
+        this.startPeriodicCleanup();
         
         logger.debug('Cache manager initialized', {
             defaultTTL: this.config.defaultTTL,
             maxSize: this.config.maxSize,
             persistPath: this.config.persistPath,
-            enablePersistence: this.config.enablePersistence
+            enablePersistence: this.config.enablePersistence,
+            enableCompression: this.config.enableCompression
         });
+    }
+
+    /**
+     * Start periodic cleanup of expired entries
+     */
+    startPeriodicCleanup() {
+        // Run cleanup every 5 minutes
+        this.cleanupInterval = setInterval(() => {
+            this.cleanupExpired();
+        }, 5 * 60 * 1000);
+        
+        // Initial cleanup after 30 seconds
+        setTimeout(() => {
+            this.cleanupExpired();
+        }, 30000);
+    }
+
+    /**
+     * Stop periodic cleanup
+     */
+    stopPeriodicCleanup() {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
+        }
+    }
+
+    /**
+     * Cleanup expired entries manually
+     */
+    cleanupExpired() {
+        let expired = 0;
+        const now = Date.now();
+        
+        for (const [key, entry] of this.cache.entries()) {
+            if (now >= entry.expiresAt) {
+                this.delete(key);
+                expired++;
+            }
+        }
+        
+        if (expired > 0) {
+            logger.info(`Cache cleanup: removed ${expired} expired entries`);
+        }
+        
+        return expired;
     }
 
     /**
@@ -46,9 +105,11 @@ class CacheManager {
      */
     set(key, value, ttl) {
         try {
+            this.stats.sets++;
+            
             // Check cache size limit
             if (this.cache.size >= this.config.maxSize && !this.cache.has(key)) {
-                // Remove oldest entry
+                // Remove oldest entry (LRU-like)
                 const firstKey = this.cache.keys().next().value;
                 this.delete(firstKey);
                 logger.debug('Cache size limit reached, removed oldest entry', { removedKey: firstKey });
@@ -103,6 +164,7 @@ class CacheManager {
 
             return entry;
         } catch (error) {
+            this.stats.errors++;
             logger.error('Failed to set cache entry', { key, error: error.message });
             return null;
         }
@@ -116,6 +178,7 @@ class CacheManager {
             const entry = this.cache.get(key);
             
             if (!entry) {
+                this.stats.misses++;
                 logger.debug('Cache miss', { key });
                 return null;
             }
@@ -123,6 +186,7 @@ class CacheManager {
             // Check if expired
             if (Date.now() >= entry.expiresAt) {
                 this.delete(key);
+                this.stats.misses++;
                 logger.debug('Cache entry expired on access', { key });
                 return null;
             }
@@ -130,6 +194,7 @@ class CacheManager {
             // Update access statistics
             entry.accessCount++;
             entry.lastAccessed = Date.now();
+            this.stats.hits++;
 
             logger.debug('Cache hit', { 
                 key, 
@@ -139,6 +204,7 @@ class CacheManager {
 
             return entry;
         } catch (error) {
+            this.stats.errors++;
             logger.error('Failed to get cache entry', { key, error: error.message });
             return null;
         }
@@ -167,11 +233,13 @@ class CacheManager {
             const deleted = this.cache.delete(key);
             
             if (deleted) {
+                this.stats.deletes++;
                 logger.debug('Cache entry deleted', { key, cacheSize: this.cache.size });
             }
 
             return deleted;
         } catch (error) {
+            this.stats.errors++;
             logger.error('Failed to delete cache entry', { key, error: error.message });
             return false;
         }
@@ -218,20 +286,58 @@ class CacheManager {
     getStats() {
         const entries = Array.from(this.cache.values());
         const now = Date.now();
+        const totalRequests = this.stats.hits + this.stats.misses;
         
         return {
+            // Basic stats
             size: this.cache.size,
             maxSize: this.config.maxSize,
+            hitRate: totalRequests > 0 ? (this.stats.hits / totalRequests) : 0,
+            
+            // Request stats
+            totalRequests,
+            hits: this.stats.hits,
+            misses: this.stats.misses,
+            
+            // Entry details
             entries: entries.map(entry => ({
-                age: now - entry.createdAt,
-                ttl: entry.expiresAt - now,
+                age: Math.round((now - entry.createdAt) / 1000), // seconds
+                ttl: Math.max(0, Math.round((entry.expiresAt - now) / 1000)), // seconds
                 accessCount: entry.accessCount,
-                lastAccessed: now - entry.lastAccessed
+                lastAccessed: Math.round((now - entry.lastAccessed) / 1000) // seconds ago
             })),
+            
+            // Performance metrics
             totalAccess: entries.reduce((sum, entry) => sum + entry.accessCount, 0),
-            hitRate: entries.length > 0 ? 
-                entries.reduce((sum, entry) => sum + entry.accessCount, 0) / entries.length : 0
+            averageAccessCount: entries.length > 0 ? 
+                Math.round(entries.reduce((sum, entry) => sum + entry.accessCount, 0) / entries.length * 100) / 100 : 0,
+            
+            // Memory usage
+            memoryUsage: this.cache.size * 1024, // rough estimate in bytes
+            
+            // Cleanup stats
+            lastCleanup: this.stats.lastCleanup,
+            cleanupCount: this.stats.cleanups
         };
+    }
+
+    /**
+     * Reset cache statistics
+     */
+    resetStats() {
+        this.stats = {
+            hits: 0,
+            misses: 0,
+            cleanups: 0,
+            lastCleanup: null
+        };
+        
+        // Reset access counts for all entries
+        for (const entry of this.cache.values()) {
+            entry.accessCount = 0;
+        }
+        
+        logger.info('Cache statistics reset');
     }
 
     /**
