@@ -32,6 +32,30 @@ const options = {
             {
                 name: 'Admin API',
                 description: 'Secured endpoints for managing the application. Requires an active admin session.'
+            },
+            {
+                name: 'Authentication',
+                description: 'User authentication and authorization endpoints.'
+            },
+            {
+                name: 'Validation',
+                description: 'Configuration and data validation endpoints.'
+            },
+            {
+                name: 'Testing',
+                description: 'Development and testing endpoints.'
+            },
+            {
+                name: 'Metrics',
+                description: 'Performance monitoring and metrics endpoints.'
+            },
+            {
+                name: 'Frontend',
+                description: 'Frontend asset serving and template endpoints.'
+            },
+            {
+                name: 'Cache',
+                description: 'Cache management and configuration endpoints.'
             }
         ],
         servers: [
@@ -46,6 +70,12 @@ const options = {
                     type: 'http',
                     scheme: 'bearer',
                     description: 'API access token. Enter the token with the "Bearer " prefix, e.g., "Bearer abcde12345"'
+                },
+                sessionAuth: {
+                    type: 'apiKey',
+                    in: 'cookie',
+                    name: 'connect.sid',
+                    description: 'Session-based authentication using cookies'
                 }
             },
             schemas: {
@@ -262,6 +292,84 @@ const options = {
                         timestamp: { type: 'string', format: 'date-time', description: 'Timestamp when the health check was performed', example: '2025-07-27T12:00:00Z' },
                         checks: { type: 'array', description: 'List of individual health check results', items: { $ref: '#/components/schemas/HealthCheckResult' } }
                     }
+                },
+                ValidationResponse: {
+                    type: 'object',
+                    properties: {
+                        valid: { type: 'boolean', description: 'Whether the data is valid' },
+                        message: { type: 'string', description: 'Validation result message' },
+                        sanitized: { type: 'object', description: 'Sanitized data if validation passed' },
+                        errors: { type: 'array', items: { type: 'string' }, description: 'List of validation errors if any' }
+                    }
+                },
+                PlexTestResponse: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean', description: 'Whether the connection test was successful' },
+                        message: { type: 'string', description: 'Result message' },
+                        serverInfo: { type: 'object', description: 'Plex server information if successful' }
+                    }
+                },
+                CacheConfigResponse: {
+                    type: 'object',
+                    properties: {
+                        maxSizeGB: { type: 'number', description: 'Maximum cache size in GB' },
+                        minFreeDiskSpaceMB: { type: 'number', description: 'Minimum free disk space in MB' },
+                        currentSizeGB: { type: 'number', description: 'Current cache size in GB' },
+                        freeSpaceGB: { type: 'number', description: 'Available free disk space in GB' }
+                    }
+                },
+                CacheConfigRequest: {
+                    type: 'object',
+                    properties: {
+                        maxSizeGB: { type: 'number', description: 'Maximum cache size in GB' },
+                        minFreeDiskSpaceMB: { type: 'number', description: 'Minimum free disk space in MB' }
+                    }
+                },
+                ApiKeyStatusResponse: {
+                    type: 'object',
+                    properties: {
+                        hasApiKey: { type: 'boolean', description: 'Whether an API key is configured' },
+                        keyId: { type: 'string', description: 'ID of the current API key' }
+                    }
+                },
+                MetricsResponse: {
+                    type: 'object',
+                    properties: {
+                        performance: { type: 'object', description: 'Performance metrics' },
+                        endpoints: { type: 'object', description: 'Endpoint usage metrics' },
+                        system: { type: 'object', description: 'System resource metrics' },
+                        cache: { type: 'object', description: 'Cache usage metrics' }
+                    }
+                },
+                GenreResponse: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean', description: 'Whether the genre fetch was successful' },
+                        genres: { type: 'array', items: { type: 'string' }, description: 'List of available genres' }
+                    }
+                },
+                LoginRequest: {
+                    type: 'object',
+                    required: ['username', 'password'],
+                    properties: {
+                        username: { type: 'string', description: 'Username for authentication' },
+                        password: { type: 'string', format: 'password', description: 'Password for authentication' }
+                    }
+                },
+                LoginResponse: {
+                    type: 'object',
+                    properties: {
+                        token: { type: 'string', description: 'JWT authentication token' },
+                        user: { type: 'object', description: 'User information' },
+                        twoFactorRequired: { type: 'boolean', description: 'Whether 2FA verification is required' }
+                    }
+                },
+                SessionResponse: {
+                    type: 'object',
+                    properties: {
+                        sessions: { type: 'array', description: 'List of active user sessions' }
+                    }
                 }
             }
         }
@@ -332,6 +440,424 @@ const options = {
                         content: {
                             'application/json': {
                                 schema: { $ref: '#/components/schemas/BasicHealthResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/config': {
+            get: {
+                summary: 'Get admin configuration',
+                description: 'Retrieve the current configuration for the admin panel including config.json and environment variables.',
+                tags: ['Admin API'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'Configuration retrieved successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/AdminConfigResponse' }
+                            }
+                        }
+                    },
+                    401: {
+                        description: 'Authentication required',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' }
+                            }
+                        }
+                    }
+                }
+            },
+            post: {
+                summary: 'Save admin configuration',
+                description: 'Save configuration changes to config.json and environment variables.',
+                tags: ['Admin API'],
+                security: [{ sessionAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/SaveConfigRequest' }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: 'Configuration saved successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/AdminApiResponse' }
+                            }
+                        }
+                    },
+                    400: {
+                        description: 'Invalid configuration data',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ErrorResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/cache/config': {
+            get: {
+                summary: 'Get cache configuration',
+                description: 'Retrieve current cache configuration settings.',
+                tags: ['Cache', 'Admin API'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'Cache configuration retrieved successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/CacheConfigResponse' }
+                            }
+                        }
+                    }
+                }
+            },
+            post: {
+                summary: 'Update cache configuration',
+                description: 'Update cache size limits and disk space requirements.',
+                tags: ['Cache', 'Admin API'],
+                security: [{ sessionAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/CacheConfigRequest' }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: 'Cache configuration updated successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/AdminApiResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/plex-libraries': {
+            post: {
+                summary: 'Get Plex libraries',
+                description: 'Retrieve available libraries from the configured Plex server.',
+                tags: ['Admin API'],
+                security: [{ sessionAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/PlexConnectionRequest' }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: 'Libraries retrieved successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/PlexLibrariesResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/test-plex': {
+            post: {
+                summary: 'Test Plex connection',
+                description: 'Test connection to Plex server with provided credentials.',
+                tags: ['Admin API', 'Testing'],
+                security: [{ sessionAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/PlexConnectionRequest' }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: 'Connection test completed',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/PlexTestResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/api-key/status': {
+            get: {
+                summary: 'Get API key status',
+                description: 'Check if an API key is configured.',
+                tags: ['Admin API'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'API key status retrieved',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ApiKeyStatusResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/api-key': {
+            get: {
+                summary: 'Get current API key',
+                description: 'Retrieve the current API key information.',
+                tags: ['Admin API'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'API key information',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ApiKeyResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/api-key/generate': {
+            post: {
+                summary: 'Generate new API key',
+                description: 'Generate a new API access token. The old token will be invalidated.',
+                tags: ['Admin API'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'New API key generated successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/ApiKeyResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/api-key/revoke': {
+            post: {
+                summary: 'Revoke current API key',
+                description: 'Revoke the current API access token, making it unusable.',
+                tags: ['Admin API'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'API key revoked successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/AdminApiResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/2fa/generate': {
+            post: {
+                summary: 'Generate 2FA setup',
+                description: 'Generate QR code and secret for 2FA setup.',
+                tags: ['Admin API', 'Authentication'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: '2FA setup data generated',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/Generate2FAResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/2fa/verify': {
+            post: {
+                summary: 'Verify 2FA setup',
+                description: 'Verify 2FA token to complete setup or authentication.',
+                tags: ['Admin API', 'Authentication'],
+                security: [{ sessionAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/Verify2FARequest' }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: '2FA verification successful',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/AdminApiResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/2fa/disable': {
+            post: {
+                summary: 'Disable 2FA',
+                description: 'Disable two-factor authentication for the admin account.',
+                tags: ['Admin API', 'Authentication'],
+                security: [{ sessionAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/Disable2FARequest' }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: '2FA disabled successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/AdminApiResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/plex-genres': {
+            get: {
+                summary: 'Get Plex genres',
+                description: 'Retrieve available genres from Plex server.',
+                tags: ['Admin API'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'Genres retrieved successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/GenreResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/plex-genres-test': {
+            post: {
+                summary: 'Test Plex genres connection',
+                description: 'Test retrieval of genres from Plex server with provided credentials.',
+                tags: ['Admin API', 'Testing'],
+                security: [{ sessionAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/PlexConnectionRequest' }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: 'Genre test completed',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/GenreResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/tmdb-genres': {
+            get: {
+                summary: 'Get TMDB genres',
+                description: 'Retrieve available genres from The Movie Database.',
+                tags: ['Admin API'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'TMDB genres retrieved successfully',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/GenreResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/tmdb-genres-test': {
+            post: {
+                summary: 'Test TMDB genres connection',
+                description: 'Test retrieval of genres from TMDB with provided API key.',
+                tags: ['Admin API', 'Testing'],
+                security: [{ sessionAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    apiKey: { type: 'string', description: 'TMDB API key' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: 'TMDB genre test completed',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/GenreResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/test-tmdb': {
+            post: {
+                summary: 'Test TMDB connection',
+                description: 'Test connection to The Movie Database API.',
+                tags: ['Admin API', 'Testing'],
+                security: [{ sessionAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    apiKey: { type: 'string', description: 'TMDB API key' }
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    200: {
+                        description: 'TMDB connection test completed',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/AdminApiResponse' }
                             }
                         }
                     }
