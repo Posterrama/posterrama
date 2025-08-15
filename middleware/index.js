@@ -75,10 +75,12 @@ function corsMiddleware() {
             // Parse request origin
             try {
                 const url = new URL(origin);
-                // Allow localhost and same host
+                // Allow localhost, same host, and dev domains
                 if (url.hostname === 'localhost' || 
                     url.hostname === '127.0.0.1' ||
-                    url.hostname === process.env.HOST) {
+                    url.hostname === process.env.HOST ||
+                    url.hostname.endsWith('.posterrama.app') ||
+                    url.hostname === 'dev.posterrama.app') {
                     callback(null, true);
                 } else {
                     callback(new Error('Not allowed by CORS'));

@@ -2123,6 +2123,7 @@ const { validationRules, createValidationMiddleware: newValidationMiddleware } =
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true })); // For parsing form data
+app.use(express.json({ limit: '10mb' })); // For parsing JSON payloads
 
 // Apply new optimization middleware
 app.use(compressionMiddleware());
