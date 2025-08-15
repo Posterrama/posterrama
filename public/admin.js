@@ -2362,10 +2362,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     try {
                         const hostname = document.getElementById('mediaServers[0].hostname')?.value;
                         const port = document.getElementById('mediaServers[0].port')?.value;
-                        const token = document.getElementById('mediaServers[0].token')?.value;
+                        const tokenInput = document.getElementById('mediaServers[0].token');
+                        const tokenIsSet = tokenInput?.dataset.tokenSet === 'true';
                         
                         // Only fetch libraries if we have valid Plex configuration
-                        if (hostname && hostname.trim() && port && port.trim() && token && token.trim()) {
+                        if (hostname && hostname.trim() && port && port.trim() && tokenIsSet) {
                             fetchAndDisplayPlexLibraries(window.__savedMovieLibs||[], window.__savedShowLibs||[]);
                         } else {
                             // Show placeholder message instead of trying to connect
