@@ -4809,17 +4809,9 @@ function setupCacheConfigEventListeners() {
     // Since cache configuration fields have been removed, just log that cache is auto-managed
     console.log('[Cache Config] Cache is auto-managed with fixed settings: 5GB max, 500MB min free space');
     
-    // Add info message about automatic cache management if there's a cache section
-    const cacheSection = document.querySelector('.cache-stats-container');
-    
-    if (cacheSection && !cacheSection.querySelector('.auto-managed-notice')) {
-        const notice = document.createElement('div');
-        notice.className = 'auto-managed-notice';
-        notice.style.cssText = 'background: #f0f8ff; border: 1px solid #4a90e2; border-radius: 4px; padding: 8px; margin: 8px 0; color: #2c5aa0; font-size: 13px; text-align: center;';
-        notice.innerHTML = '<i class="fas fa-cog"></i> <strong>Auto-Managed:</strong> Cache optimized automatically (5GB max, 500MB min free)';
-        cacheSection.parentNode.insertBefore(notice, cacheSection);
-        console.log('[Cache Config] Added auto-managed cache notice');
-    }
+    // Clean up any existing auto-managed notices (user requested removal)
+    const existingNotices = document.querySelectorAll('.auto-managed-notice');
+    existingNotices.forEach(notice => notice.remove());
 }
 
     // Load cache stats when Management section is first accessed
