@@ -1169,6 +1169,43 @@
                                     </div>
                                 </div>
                                 
+                                <!-- GitHub Integration Subsection -->
+                                <div class="subsection-header">
+                                    <i class="fab fa-github"></i>
+                                    GitHub Integration
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                                        <button type="button" id="github-releases-button" class="btn btn-secondary">
+                                            <i class="fas fa-tags icon"></i>
+                                            <span>View Releases</span>
+                                        </button>
+                                        <button type="button" id="github-repo-info-button" class="btn btn-secondary">
+                                            <i class="fas fa-info-circle icon"></i>
+                                            <span>Repository Info</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- GitHub Data Display Areas -->
+                                    <div id="github-releases-display" class="status-display" style="display: none;">
+                                        <div class="status-header">
+                                            <h4><i class="fas fa-tags"></i> Recent Releases</h4>
+                                        </div>
+                                        <div id="github-releases-content" class="status-content">
+                                            <div class="loading">Loading releases...</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="github-repo-display" class="status-display" style="display: none;">
+                                        <div class="status-header">
+                                            <h4><i class="fas fa-info-circle"></i> Repository Information</h4>
+                                        </div>
+                                        <div id="github-repo-content" class="status-content">
+                                            <div class="loading">Loading repository information...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <!-- Project & Support Subsection -->
                                 <div class="subsection-header">
                                     <i class="fab fa-github"></i>

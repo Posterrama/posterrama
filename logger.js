@@ -140,10 +140,13 @@ if (process.env.NODE_ENV !== 'test') {
 
 // Create the logger instance
 const logger = winston.createLogger({
-    level: process.env.LOG_LEVEL || 'info',
+    level: process.env.NODE_ENV === 'test' ? 'warn' : (process.env.LOG_LEVEL || 'info'), // Suppress debug/info during tests
     levels: winston.config.npm.levels,
     format: customFormat,
-    transports
+    transports: process.env.NODE_ENV === 'test' ? 
+        [memoryTransport] : // Only memory transport during tests to suppress console output
+        transports,
+    silent: process.env.NODE_ENV === 'test' && process.env.TEST_SILENT === 'true' // Allow complete silence for tests
 });
 
 // Store logs in memory for admin panel access

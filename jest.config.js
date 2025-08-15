@@ -67,14 +67,21 @@ module.exports = {
   ],
   
   // Test setup and teardown
-  setupFilesAfterEnv: [], // Add global test setup files here if needed
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'], // Global test setup for timer cleanup
+  globalTeardown: '<rootDir>/jest.teardown.js', // Global teardown for complete cleanup
   
   // Test timeout (in milliseconds)
   testTimeout: 30000,
   
+  // Memory leak detection and cleanup
+  detectOpenHandles: true, // Detect open handles that prevent Jest from exiting
+  clearMocks: true,       // Clear mock calls and instances between tests
+  resetMocks: true,       // Reset mock implementations between tests
+  restoreMocks: true,     // Restore original implementations after tests
+  
   // Simplify module resolution so tests can use root-relative paths (e.g. require('sources/tmdb'))
   modulePaths: ['<rootDir>'],
 
-  // Verbose output
-  verbose: true
+  // Verbose output - reduced for cleaner test output
+  verbose: false
 };

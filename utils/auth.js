@@ -99,8 +99,29 @@ class AuthenticationManager {
             clearInterval(this.cleanupInterval);
             this.cleanupInterval = null;
         }
+    }
+
+    /**
+     * Complete cleanup of all resources
+     */
+    cleanup() {
+        this.stopCleanupScheduler();
         
-        logger.info('Authentication Manager initialized with default users and roles');
+        // Stop the additional cleanup interval
+        if (this.additionalCleanupInterval) {
+            clearInterval(this.additionalCleanupInterval);
+            this.additionalCleanupInterval = null;
+        }
+        
+        // Clear all data structures
+        this.sessions.clear();
+        this.refreshTokens.clear();
+        this.blacklistedTokens.clear();
+        this.loginAttempts.clear();
+        this.rateLimitData.clear();
+        this.twoFactorSecrets.clear();
+        
+        logger.debug('Authentication manager cleaned up');
     }
 
     // JWT Token Management
@@ -685,7 +706,7 @@ class AuthenticationManager {
 
     // Start cleanup interval
     startCleanupInterval() {
-        setInterval(() => {
+        this.additionalCleanupInterval = setInterval(() => {
             this.cleanup();
         }, 60 * 60 * 1000); // Every hour
     }

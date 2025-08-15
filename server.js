@@ -24,7 +24,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Track memory usage
 const MEMORY_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
-setInterval(() => {
+global.memoryCheckInterval = setInterval(() => {
     const used = process.memoryUsage();
     logger.debug('Memory Usage:', {
         rss: `${Math.round(used.rss / 1024 / 1024)}MB`,
@@ -230,6 +230,9 @@ const cacheDiskManager = new CacheDiskManager(imageCacheDir, config.cache || {})
 // Metrics system
 const metricsManager = require('./utils/metrics');
 const { metricsMiddleware } = require('./middleware/metrics');
+
+// GitHub integration
+const githubService = require('./utils/github');
 
 // Authentication system
 const authManager = require('./utils/auth');
@@ -4115,6 +4118,114 @@ app.post('/api/admin/2fa/disable', isAuthenticated, express.json(), asyncHandler
  *                       type: boolean
  *                       description: Whether Plex token is configured (boolean only)
  */
+
+/**
+ * @swagger
+ * /api/version:
+ *   get:
+ *     summary: Get application version
+ *     description: Returns the current version of the Posterrama application
+ *     tags: [Public]
+ *     responses:
+ *       200:
+ *         description: Application version information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 version:
+ *                   type: string
+ *                   description: The current version number
+ *                 name:
+ *                   type: string
+ *                   description: Application name
+ */
+app.get('/api/version', asyncHandler(async (req, res) => {
+    const packageJson = require('./package.json');
+    res.json({
+        version: packageJson.version,
+        name: packageJson.name
+    });
+}));
+
+/**
+ * @swagger
+ * /api/github/latest:
+ *   get:
+ *     summary: Get latest release information (public)
+ *     description: >
+ *       Public endpoint to check for the latest GitHub release.
+ *       Returns basic version comparison without authentication.
+ *     tags: [Public API]
+ *     responses:
+ *       200:
+ *         description: Latest release information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 currentVersion:
+ *                   type: string
+ *                 latestVersion:
+ *                   type: string
+ *                 hasUpdate:
+ *                   type: boolean
+ *                 releaseUrl:
+ *                   type: string
+ */
+app.get('/api/github/latest', asyncHandler(async (req, res) => {
+    try {
+        // Read current version from package.json
+        const packagePath = path.join(__dirname, 'package.json');
+        let currentVersion = 'Unknown';
+        
+        try {
+            const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
+            currentVersion = packageData.version || 'Unknown';
+        } catch (e) {
+            logger.warn('Could not read package.json for version info', { error: e.message });
+        }
+
+        // Check for updates using GitHub service
+        const updateInfo = await githubService.checkForUpdates(currentVersion);
+        
+        // Return simplified public data
+        const publicInfo = {
+            currentVersion: updateInfo.currentVersion,
+            latestVersion: updateInfo.latestVersion,
+            hasUpdate: updateInfo.hasUpdate,
+            releaseUrl: updateInfo.releaseUrl,
+            publishedAt: updateInfo.publishedAt,
+            releaseName: updateInfo.releaseName
+        };
+        
+        res.json(publicInfo);
+    } catch (error) {
+        logger.error('Failed to check for latest release', { error: error.message });
+        
+        // Fallback response when GitHub is unavailable
+        try {
+            const packagePath = path.join(__dirname, 'package.json');
+            const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
+            const currentVersion = packageData.version || 'Unknown';
+            
+            res.json({
+                currentVersion,
+                latestVersion: currentVersion,
+                hasUpdate: false,
+                releaseUrl: null,
+                publishedAt: null,
+                releaseName: null,
+                error: 'Could not connect to GitHub'
+            });
+        } catch (fallbackError) {
+            res.status(500).json({ error: 'Failed to check for latest release' });
+        }
+    }
+}));
+
 app.get('/api/config', asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Public API] Request received for /api/config.');
     
@@ -5465,8 +5576,9 @@ app.get('/api/admin/status', isAuthenticated, asyncHandler(async (req, res) => {
  *   get:
  *     summary: Check for application updates
  *     description: >
- *       Checks the current version against the latest available version
- *       and determines if an update is available.
+ *       Checks the current version against the latest GitHub release
+ *       and determines if an update is available. Returns detailed
+ *       version information and release notes.
  *     tags: [Admin API]
  *     responses:
  *       200:
@@ -5478,32 +5590,33 @@ app.get('/api/admin/status', isAuthenticated, asyncHandler(async (req, res) => {
  *               properties:
  *                 currentVersion:
  *                   type: string
- *                   example: "1.0.0"
+ *                   example: "1.3.9"
  *                 latestVersion:
  *                   type: string
- *                   example: "1.1.0"
- *                 updateAvailable:
+ *                   example: "1.4.0"
+ *                 hasUpdate:
  *                   type: boolean
  *                   example: true
+ *                 updateType:
+ *                   type: string
+ *                   example: "minor"
+ *                 releaseUrl:
+ *                   type: string
+ *                   example: "https://github.com/Posterrama/posterrama/releases/tag/v1.4.0"
+ *                 downloadUrl:
+ *                   type: string
+ *                   example: "https://github.com/Posterrama/posterrama/archive/v1.4.0.tar.gz"
+ *                 releaseNotes:
+ *                   type: string
+ *                   example: "### New Features\n- Added GitHub integration"
+ *                 publishedAt:
+ *                   type: string
+ *                   example: "2025-08-15T20:00:00Z"
+ *                 releaseName:
+ *                   type: string
+ *                   example: "Version 1.4.0 - GitHub Integration"
  */
 app.get('/api/admin/update-check', isAuthenticated, asyncHandler(async (req, res) => {
-    
-    // Simple version comparison function
-    function compareVersions(version1, version2) {
-        const v1Parts = version1.split('.').map(Number);
-        const v2Parts = version2.split('.').map(Number);
-        const maxLength = Math.max(v1Parts.length, v2Parts.length);
-        
-        for (let i = 0; i < maxLength; i++) {
-            const v1Part = v1Parts[i] || 0;
-            const v2Part = v2Parts[i] || 0;
-            
-            if (v1Part > v2Part) return 1;
-            if (v1Part < v2Part) return -1;
-        }
-        return 0;
-    }
-    
     try {
         // Read current version from package.json
         const packagePath = path.join(__dirname, 'package.json');
@@ -5513,70 +5626,186 @@ app.get('/api/admin/update-check', isAuthenticated, asyncHandler(async (req, res
             const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
             currentVersion = packageData.version || 'Unknown';
         } catch (e) {
-            console.warn('[Admin API] Could not read package.json for version info');
+            logger.warn('Could not read package.json for version info', { error: e.message });
         }
+
+        // Check for updates using GitHub service
+        const updateInfo = await githubService.checkForUpdates(currentVersion);
         
-        // Check for latest version from GitHub
-        let latestVersion = currentVersion;
-        let updateAvailable = false;
-        
-        try {
-            // Check GitHub releases API for the latest version
-            const https = require('https');
-            const githubUrl = 'https://api.github.com/repos/Posterrama/posterrama/releases/latest';
-            
-            const response = await new Promise((resolve, reject) => {
-                const req = https.get(githubUrl, {
-                    headers: {
-                        'User-Agent': 'Posterrama-App/1.0',
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                }, (res) => {
-                    let data = '';
-                    res.on('data', chunk => data += chunk);
-                    res.on('end', () => {
-                        try {
-                            resolve(JSON.parse(data));
-                        } catch (e) {
-                            reject(new Error('Invalid JSON response'));
-                        }
-                    });
-                });
-                req.on('error', reject);
-                req.setTimeout(5000, () => {
-                    req.destroy();
-                    reject(new Error('GitHub API request timeout'));
-                });
+        if (isDebug) {
+            console.log('[Admin API] Update check completed:', {
+                current: updateInfo.currentVersion,
+                latest: updateInfo.latestVersion,
+                hasUpdate: updateInfo.hasUpdate,
+                updateType: updateInfo.updateType
             });
-            
-            if (response.tag_name) {
-                latestVersion = response.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
-                
-                // Compare versions (simple string comparison for now)
-                if (latestVersion !== currentVersion) {
-                    updateAvailable = compareVersions(latestVersion, currentVersion) > 0;
-                }
-            }
-            
-            if (isDebug) console.log('[Admin API] Version check:', { currentVersion, latestVersion, updateAvailable });
-            
-        } catch (e) {
-            if (isDebug) console.warn('[Admin API] Could not check GitHub for updates:', e.message);
-            // Fallback: assume no update available if we can't check
-            latestVersion = currentVersion;
-            updateAvailable = false;
         }
         
-        const updateData = {
-            currentVersion,
-            latestVersion,
-            updateAvailable
-        };
-        
-        res.json(updateData);
+        res.json(updateInfo);
     } catch (error) {
-        console.error('[Admin API] Error checking for updates:', error);
-        res.status(500).json({ error: 'Failed to check for updates' });
+        logger.error('Failed to check for updates', { error: error.message });
+        
+        // Fallback response when GitHub is unavailable
+        try {
+            const packagePath = path.join(__dirname, 'package.json');
+            const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
+            const currentVersion = packageData.version || 'Unknown';
+            
+            res.json({
+                currentVersion,
+                latestVersion: currentVersion,
+                hasUpdate: false,
+                updateType: null,
+                releaseUrl: null,
+                downloadUrl: null,
+                releaseNotes: null,
+                publishedAt: null,
+                releaseName: null,
+                error: 'Could not connect to GitHub to check for updates'
+            });
+        } catch (fallbackError) {
+            res.status(500).json({ error: 'Failed to check for updates and could not read current version' });
+        }
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/github/releases:
+ *   get:
+ *     summary: Get recent GitHub releases
+ *     description: >
+ *       Fetches recent releases from the GitHub repository.
+ *       Useful for displaying a changelog or release history.
+ *     tags: [Admin API]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *           minimum: 1
+ *           maximum: 20
+ *         description: Maximum number of releases to fetch
+ *     responses:
+ *       200:
+ *         description: List of recent releases
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   tag_name:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   body:
+ *                     type: string
+ *                   published_at:
+ *                     type: string
+ *                   html_url:
+ *                     type: string
+ */
+app.get('/api/admin/github/releases', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        const limit = Math.min(Math.max(parseInt(req.query.limit) || 5, 1), 20);
+        const releases = await githubService.getReleases(limit);
+        
+        // Return simplified release data
+        const simplifiedReleases = releases.map(release => ({
+            tagName: release.tag_name,
+            name: release.name || release.tag_name,
+            body: release.body || '',
+            publishedAt: release.published_at,
+            url: release.html_url,
+            prerelease: release.prerelease,
+            draft: release.draft
+        }));
+        
+        res.json(simplifiedReleases);
+    } catch (error) {
+        logger.error('Failed to fetch GitHub releases', { error: error.message });
+        res.status(500).json({ error: 'Failed to fetch releases from GitHub' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/github/repository:
+ *   get:
+ *     summary: Get repository information
+ *     description: >
+ *       Fetches general information about the GitHub repository,
+ *       including stars, forks, and other metadata.
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: Repository information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                 fullName:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 url:
+ *                   type: string
+ *                 stars:
+ *                   type: integer
+ *                 forks:
+ *                   type: integer
+ *                 issues:
+ *                   type: integer
+ *                 language:
+ *                   type: string
+ *                 license:
+ *                   type: string
+ */
+app.get('/api/admin/github/repository', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        const repoInfo = await githubService.getRepositoryInfo();
+        res.json(repoInfo);
+    } catch (error) {
+        logger.error('Failed to fetch repository information', { error: error.message });
+        res.status(500).json({ error: 'Failed to fetch repository information from GitHub' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/github/clear-cache:
+ *   post:
+ *     summary: Clear GitHub API cache
+ *     description: >
+ *       Clears the internal cache for GitHub API responses.
+ *       This forces fresh data to be fetched on the next request.
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: Cache cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "GitHub cache cleared successfully"
+ */
+app.post('/api/admin/github/clear-cache', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        githubService.clearCache();
+        logger.info('GitHub API cache cleared by admin user');
+        res.json({ message: 'GitHub cache cleared successfully' });
+    } catch (error) {
+        logger.error('Failed to clear GitHub cache', { error: error.message });
+        res.status(500).json({ error: 'Failed to clear GitHub cache' });
     }
 }));
 
@@ -6199,14 +6428,14 @@ if (require.main === module) {
 
         const refreshInterval = (config.backgroundRefreshMinutes || 30) * 60 * 1000;
         if (refreshInterval > 0) {
-            setInterval(refreshPlaylistCache, refreshInterval);
+            global.playlistRefreshInterval = setInterval(refreshPlaylistCache, refreshInterval);
             console.log(`Playlist will be refreshed in the background every ${config.backgroundRefreshMinutes} minutes.`);
         }
 
         // Set up automatic cache cleanup every 30 minutes
         if (config.cache?.autoCleanup !== false) {
             const cacheCleanupInterval = 30 * 60 * 1000; // 30 minutes
-            setInterval(async () => {
+            global.cacheCleanupInterval = setInterval(async () => {
                 try {
                     const cleanupResult = await cacheDiskManager.cleanupCache();
                     if (cleanupResult.cleaned && cleanupResult.deletedFiles > 0) {
@@ -6289,6 +6518,79 @@ if (require.main === module) {
         });
     }
 }
+
+// Cleanup function for proper shutdown and test cleanup
+function cleanup() {
+    logger.info('Cleaning up server resources...');
+    
+    // Clear global intervals
+    if (global.memoryCheckInterval) {
+        clearInterval(global.memoryCheckInterval);
+        global.memoryCheckInterval = null;
+    }
+    
+    if (global.tmdbCacheCleanupInterval) {
+        clearInterval(global.tmdbCacheCleanupInterval);
+        global.tmdbCacheCleanupInterval = null;
+    }
+    
+    if (global.tvdbCacheCleanupInterval) {
+        clearInterval(global.tvdbCacheCleanupInterval);
+        global.tvdbCacheCleanupInterval = null;
+    }
+    
+    if (global.playlistRefreshInterval) {
+        clearInterval(global.playlistRefreshInterval);
+        global.playlistRefreshInterval = null;
+    }
+    
+    if (global.cacheCleanupInterval) {
+        clearInterval(global.cacheCleanupInterval);
+        global.cacheCleanupInterval = null;
+    }
+    
+    // Cleanup source instances
+    if (global.tmdbSourceInstance && typeof global.tmdbSourceInstance.cleanup === 'function') {
+        global.tmdbSourceInstance.cleanup();
+        global.tmdbSourceInstance = null;
+    }
+    
+    if (global.tvdbSourceInstance && typeof global.tvdbSourceInstance.cleanup === 'function') {
+        global.tvdbSourceInstance.cleanup();
+        global.tvdbSourceInstance = null;
+    }
+    
+    // Cleanup cache and auth managers
+    if (cacheManager && typeof cacheManager.cleanup === 'function') {
+        cacheManager.cleanup();
+    }
+    
+    if (authManager && typeof authManager.cleanup === 'function') {
+        authManager.cleanup();
+    }
+    
+    if (cacheDiskManager && typeof cacheDiskManager.cleanup === 'function') {
+        cacheDiskManager.cleanup();
+    }
+    
+    logger.info('Server cleanup completed');
+}
+
+// Export cleanup function for tests
+app.cleanup = cleanup;
+
+// Handle process termination
+process.on('SIGTERM', () => {
+    logger.info('SIGTERM received, shutting down gracefully');
+    cleanup();
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    logger.info('SIGINT received, shutting down gracefully');
+    cleanup();
+    process.exit(0);
+});
 
 // Error handling middleware (must be last)
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');

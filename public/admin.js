@@ -4533,6 +4533,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // GitHub Releases Button
+    const githubReleasesButton = document.getElementById('github-releases-button');
+    if (githubReleasesButton) {
+        githubReleasesButton.addEventListener('click', async () => {
+            setButtonState(githubReleasesButton, 'loading', { text: 'Loading...' });
+            
+            try {
+                await loadGithubReleases();
+                setButtonState(githubReleasesButton, 'success', { text: 'Releases Loaded' });
+                setTimeout(() => setButtonState(githubReleasesButton, 'revert'), 2000);
+            } catch (error) {
+                console.error('[Admin] Error loading GitHub releases:', error);
+                showNotification(`Error loading releases: ${error.message}`, 'error');
+                setButtonState(githubReleasesButton, 'revert');
+            }
+        });
+    }
+
+    // GitHub Repository Info Button
+    const githubRepoInfoButton = document.getElementById('github-repo-info-button');
+    if (githubRepoInfoButton) {
+        githubRepoInfoButton.addEventListener('click', async () => {
+            setButtonState(githubRepoInfoButton, 'loading', { text: 'Loading...' });
+            
+            try {
+                await loadGithubRepositoryInfo();
+                setButtonState(githubRepoInfoButton, 'success', { text: 'Info Loaded' });
+                setTimeout(() => setButtonState(githubRepoInfoButton, 'revert'), 2000);
+            } catch (error) {
+                console.error('[Admin] Error loading repository info:', error);
+                showNotification(`Error loading repository info: ${error.message}`, 'error');
+                setButtonState(githubRepoInfoButton, 'revert');
+            }
+        });
+    }
+
     const refreshMediaButton = document.getElementById('refresh-media-button');
     if (refreshMediaButton) {
         refreshMediaButton.addEventListener('click', async () => {
@@ -5598,7 +5634,23 @@ function displayUpdateResults(data) {
     
     const currentVersion = data.currentVersion || 'Unknown';
     const latestVersion = data.latestVersion || 'Unknown';
-    const updateAvailable = data.updateAvailable || false;
+    const hasUpdate = data.hasUpdate || data.updateAvailable || false; // Support both old and new format
+    const updateType = data.updateType || null;
+    const releaseUrl = data.releaseUrl || null;
+    const publishedAt = data.publishedAt || null;
+    const releaseName = data.releaseName || null;
+    const releaseNotes = data.releaseNotes || null;
+    
+    // Format published date
+    let publishedText = '';
+    if (publishedAt) {
+        try {
+            const date = new Date(publishedAt);
+            publishedText = date.toLocaleDateString();
+        } catch (e) {
+            publishedText = publishedAt;
+        }
+    }
     
     updateContent.innerHTML = `
         <div class="status-grid">
@@ -5613,11 +5665,11 @@ function displayUpdateResults(data) {
             </div>
             <div class="status-item">
                 <div class="status-item-header">
-                    <i class="fas fa-cloud-download-alt"></i>
-                    Latest Version
+                    <i class="fab fa-github"></i>
+                    Latest Release
                 </div>
                 <div class="status-item-value status-info">
-                    ${latestVersion}
+                    ${latestVersion}${publishedText ? ` (${publishedText})` : ''}
                 </div>
             </div>
             <div class="status-item">
@@ -5625,18 +5677,41 @@ function displayUpdateResults(data) {
                     <i class="fas fa-exclamation-circle"></i>
                     Update Status
                 </div>
-                <div class="status-item-value ${updateAvailable ? 'status-warning' : 'status-success'}">
-                    ${updateAvailable ? 'Update Available' : 'Up to Date'}
+                <div class="status-item-value ${hasUpdate ? 'status-warning' : 'status-success'}">
+                    ${hasUpdate ? `Update Available${updateType ? ` (${updateType})` : ''}` : 'Up to Date'}
                 </div>
             </div>
         </div>
-        ${updateAvailable ? `
+        ${hasUpdate ? `
             <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 152, 0, 0.1); border: 1px solid rgba(255, 152, 0, 0.3); border-radius: 6px;">
-                <p style="margin: 0; color: #ff9800;">
-                    <i class="fas fa-info-circle"></i> 
-                    A new version is available. Please check the 
-                    <a href="https://github.com/Posterrama/posterrama" target="_blank" style="color: #667eea;">GitHub repository</a> 
-                    for update instructions.
+                <div style="margin-bottom: 1rem;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #ff9800;">
+                        <i class="fas fa-download"></i> 
+                        ${releaseName || `Version ${latestVersion}`} Available
+                    </h4>
+                    ${releaseNotes ? `
+                        <div style="margin: 0.5rem 0; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 0.85rem; color: #ccc; white-space: pre-wrap; max-height: 150px; overflow-y: auto;">
+                            ${releaseNotes.substring(0, 500)}${releaseNotes.length > 500 ? '...' : ''}
+                        </div>
+                    ` : ''}
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    ${releaseUrl ? `
+                        <a href="${releaseUrl}" target="_blank" class="btn btn-primary" style="flex: 1; min-width: 120px; text-align: center;">
+                            <i class="fab fa-github"></i> View Release
+                        </a>
+                    ` : ''}
+                    <a href="https://github.com/Posterrama/posterrama/releases/latest" target="_blank" class="btn btn-secondary" style="flex: 1; min-width: 120px; text-align: center;">
+                        <i class="fas fa-download"></i> Download
+                    </a>
+                </div>
+            </div>
+        ` : ''}
+        ${data.error ? `
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.3); border-radius: 6px;">
+                <p style="margin: 0; color: #f44336;">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    ${data.error}
                 </p>
             </div>
         ` : ''}
@@ -6007,3 +6082,200 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔧 Restart button click handler attached');
     }
 });
+
+/**
+ * Load GitHub releases data
+ */
+async function loadGithubReleases() {
+    hideAllStatusDisplays(); // Hide other displays first
+    
+    const githubReleasesDisplay = document.getElementById('github-releases-display');
+    const githubReleasesContent = document.getElementById('github-releases-content');
+    
+    if (!githubReleasesDisplay || !githubReleasesContent) return;
+    
+    githubReleasesDisplay.style.display = 'block';
+    githubReleasesContent.innerHTML = '<div class="loading">Loading releases...</div>';
+    
+    try {
+        const response = await authenticatedFetch(apiUrl('/api/admin/github/releases?limit=10'));
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const releases = await response.json();
+        displayGithubReleases(releases);
+    } catch (error) {
+        console.error('GitHub releases loading failed:', error);
+        githubReleasesContent.innerHTML = `<div class="status-error">Failed to load releases: ${error.message}</div>`;
+    }
+}
+
+/**
+ * Display GitHub releases data
+ */
+function displayGithubReleases(releases) {
+    const githubReleasesContent = document.getElementById('github-releases-content');
+    if (!githubReleasesContent) return;
+    
+    if (!releases || releases.length === 0) {
+        githubReleasesContent.innerHTML = '<div class="status-info">No releases found.</div>';
+        return;
+    }
+    
+    const releasesHtml = releases.map(release => {
+        const publishedDate = release.publishedAt ? new Date(release.publishedAt).toLocaleDateString() : 'Unknown';
+        const releaseBody = release.body ? release.body.substring(0, 200) + (release.body.length > 200 ? '...' : '') : '';
+        
+        return `
+            <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h4 style="margin: 0; color: #fff; font-size: 0.95rem;">
+                        <i class="fas fa-tag" style="color: #667eea; margin-right: 0.5rem;"></i>
+                        ${release.name}
+                    </h4>
+                    <span style="color: #b3b3b3; font-size: 0.8rem;">${publishedDate}</span>
+                </div>
+                ${releaseBody ? `
+                    <p style="margin: 0.5rem 0; color: #ccc; font-size: 0.85rem; line-height: 1.4;">
+                        ${releaseBody}
+                    </p>
+                ` : ''}
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <a href="${release.url}" target="_blank" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
+                        <i class="fab fa-github"></i> View Release
+                    </a>
+                    ${release.prerelease ? '<span style="color: #ff9800; font-size: 0.8rem;"><i class="fas fa-flask"></i> Pre-release</span>' : ''}
+                    ${release.draft ? '<span style="color: #f44336; font-size: 0.8rem;"><i class="fas fa-edit"></i> Draft</span>' : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    githubReleasesContent.innerHTML = releasesHtml;
+}
+
+/**
+ * Load GitHub repository information
+ */
+async function loadGithubRepositoryInfo() {
+    hideAllStatusDisplays(); // Hide other displays first
+    
+    const githubRepoDisplay = document.getElementById('github-repo-display');
+    const githubRepoContent = document.getElementById('github-repo-content');
+    
+    if (!githubRepoDisplay || !githubRepoContent) return;
+    
+    githubRepoDisplay.style.display = 'block';
+    githubRepoContent.innerHTML = '<div class="loading">Loading repository information...</div>';
+    
+    try {
+        const response = await authenticatedFetch(apiUrl('/api/admin/github/repository'));
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const repoInfo = await response.json();
+        displayGithubRepositoryInfo(repoInfo);
+    } catch (error) {
+        console.error('GitHub repository info loading failed:', error);
+        githubRepoContent.innerHTML = `<div class="status-error">Failed to load repository info: ${error.message}</div>`;
+    }
+}
+
+/**
+ * Display GitHub repository information
+ */
+function displayGithubRepositoryInfo(repoInfo) {
+    const githubRepoContent = document.getElementById('github-repo-content');
+    if (!githubRepoContent) return;
+    
+    const updatedDate = repoInfo.updatedAt ? new Date(repoInfo.updatedAt).toLocaleDateString() : 'Unknown';
+    
+    githubRepoContent.innerHTML = `
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fab fa-github"></i>
+                    Repository
+                </div>
+                <div class="status-item-value status-info">
+                    ${repoInfo.fullName || 'Unknown'}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-star"></i>
+                    Stars
+                </div>
+                <div class="status-item-value status-success">
+                    ${repoInfo.stars || 0}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-code-branch"></i>
+                    Forks
+                </div>
+                <div class="status-item-value status-info">
+                    ${repoInfo.forks || 0}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Open Issues
+                </div>
+                <div class="status-item-value ${(repoInfo.issues || 0) > 10 ? 'status-warning' : 'status-success'}">
+                    ${repoInfo.issues || 0}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-code"></i>
+                    Language
+                </div>
+                <div class="status-item-value status-info">
+                    ${repoInfo.language || 'Unknown'}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-balance-scale"></i>
+                    License
+                </div>
+                <div class="status-item-value status-info">
+                    ${repoInfo.license || 'Unknown'}
+                </div>
+            </div>
+        </div>
+        ${repoInfo.description ? `
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.95rem;">
+                    <i class="fas fa-info-circle"></i> Description
+                </h4>
+                <p style="margin: 0; color: #ccc; font-size: 0.85rem; line-height: 1.4;">
+                    ${repoInfo.description}
+                </p>
+            </div>
+        ` : ''}
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(103, 126, 234, 0.1); border: 1px solid rgba(103, 126, 234, 0.3); border-radius: 6px;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a href="${repoInfo.url}" target="_blank" class="btn btn-primary" style="flex: 1; min-width: 120px; text-align: center;">
+                    <i class="fab fa-github"></i> View Repository
+                </a>
+                <a href="${repoInfo.url}/issues" target="_blank" class="btn btn-secondary" style="flex: 1; min-width: 120px; text-align: center;">
+                    <i class="fas fa-bug"></i> Report Issue
+                </a>
+                <a href="${repoInfo.url}/releases" target="_blank" class="btn btn-secondary" style="flex: 1; min-width: 120px; text-align: center;">
+                    <i class="fas fa-tags"></i> All Releases
+                </a>
+            </div>
+            <div style="margin-top: 0.5rem; color: #b3b3b3; font-size: 0.8rem; text-align: center;">
+                Last updated: ${updatedDate}
+            </div>
+        </div>
+    `;
+}

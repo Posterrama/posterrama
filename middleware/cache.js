@@ -17,7 +17,18 @@ class ApiCache {
         };
         
         // Cleanup expired entries every 2 minutes
-        setInterval(() => this.cleanup(), 2 * 60 * 1000);
+        this.cleanupInterval = setInterval(() => this.cleanup(), 2 * 60 * 1000);
+    }
+
+    /**
+     * Stop cleanup interval and clean resources
+     */
+    destroy() {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
+        }
+        this.cache.clear();
     }
 
     /**

@@ -71,6 +71,24 @@ class CacheManager {
     }
 
     /**
+     * Cleanup all resources
+     */
+    cleanup() {
+        this.stopPeriodicCleanup();
+        
+        // Clear all timers
+        for (const [key, timer] of this.timers) {
+            clearTimeout(timer);
+        }
+        this.timers.clear();
+        
+        // Clear cache
+        this.cache.clear();
+        
+        logger.debug('Cache manager cleaned up');
+    }
+
+    /**
      * Cleanup expired entries manually
      */
     cleanupExpired() {
@@ -696,6 +714,14 @@ class CacheDiskManager {
             minFreeDiskSpaceMB: config.minFreeDiskSpaceMB,
             autoCleanup: this.autoCleanup
         });
+    }
+
+    /**
+     * Cleanup all resources
+     */
+    cleanup() {
+        // No timers to cleanup for disk manager currently
+        logger.debug('Cache disk manager cleaned up');
     }
 }
 
