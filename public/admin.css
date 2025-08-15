@@ -4604,3 +4604,360 @@ body:has(.auth-container),
     border: 1px solid rgba(16, 185, 129, 0.3);
     box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
 }
+
+/* === PROGRESS BAR STYLES === */
+.progress-container {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #e5e5e5;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, 
+        rgba(255, 255, 255, 0.1) 25%, 
+        transparent 25%, 
+        transparent 50%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        rgba(255, 255, 255, 0.1) 75%, 
+        transparent 75%);
+    background-size: 12px 12px;
+    animation: progress-animation 1s linear infinite;
+}
+
+@keyframes progress-animation {
+    0% { background-position: 0 0; }
+    100% { background-position: 12px 0; }
+}
+
+/* Update status specific styles */
+.update-phase-idle { color: #9ca3af; }
+.update-phase-checking { color: #3b82f6; }
+.update-phase-backup { color: #f59e0b; }
+.update-phase-download { color: #06b6d4; }
+.update-phase-validation { color: #8b5cf6; }
+.update-phase-stopping { color: #ef4444; }
+.update-phase-applying { color: #10b981; }
+.update-phase-dependencies { color: #f97316; }
+.update-phase-starting { color: #22c55e; }
+.update-phase-verification { color: #14b8a6; }
+.update-phase-completed { color: #22c55e; }
+.update-phase-error { color: #ef4444; }
+.update-phase-rollback { color: #f59e0b; }
+
+/* Backup item styles */
+.backup-item {
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.backup-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.backup-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.backup-item-title {
+    font-weight: 600;
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.backup-item-version {
+    background: rgba(103, 126, 234, 0.2);
+    color: #667eea;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.backup-item-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: #b3b3b3;
+}
+
+.backup-item-actions {
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Update confirmation styles */
+.update-confirmation {
+    padding: 1rem;
+    background: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+.update-confirmation-title {
+    font-weight: 600;
+    color: #ff9800;
+    margin-bottom: 0.5rem;
+}
+
+.update-confirmation-text {
+    color: #e5e5e5;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+}
+
+.update-confirmation-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Success/Error states for update */
+.update-success {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.update-success .update-confirmation-title {
+    color: #22c55e;
+}
+
+.update-error {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: rgba(244, 67, 54, 0.3);
+}
+
+.update-error .update-confirmation-title {
+    color: #f44336;
+}
+
+/* Auto-Update Progress Styles */
+.update-progress-container {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+}
+
+.update-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-fill.error {
+    background: linear-gradient(90deg, #f44336, #d32f2f);
+}
+
+.progress-fill.success {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.update-message {
+    font-size: 0.85rem;
+    color: #b3b3b3;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border-left: 3px solid #667eea;
+}
+
+.update-message.error {
+    border-left-color: #f44336;
+    color: #ffcdd2;
+}
+
+.update-message.success {
+    border-left-color: #22c55e;
+    color: #c8e6c9;
+}
+
+/* Backup List Styles */
+.backup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.backup-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.backup-info {
+    flex: 1;
+}
+
+.backup-name {
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 0.25rem;
+}
+
+.backup-details {
+    font-size: 0.8rem;
+    color: #b3b3b3;
+}
+
+.backup-version {
+    color: #667eea;
+    font-weight: 500;
+}
+
+.backup-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.backup-actions .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Update Phase Indicators */
+.update-phase-checking {
+    border-left-color: #3b82f6;
+}
+
+.update-phase-backup {
+    border-left-color: #f59e0b;
+}
+
+.update-phase-download {
+    border-left-color: #8b5cf6;
+}
+
+.update-phase-applying {
+    border-left-color: #06b6d4;
+}
+
+.update-phase-verification {
+    border-left-color: #10b981;
+}
+
+.update-phase-error {
+    border-left-color: #ef4444;
+}
+
+.update-phase-rollback {
+    border-left-color: #f97316;
+}
+
+/* Auto-update button states */
+.btn[data-updating="true"] {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn[data-updating="true"] .icon {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Update status alerts */
+.update-alert {
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 6px;
+    border-left: 4px solid;
+}
+
+.update-alert.info {
+    background: rgba(59, 130, 246, 0.1);
+    border-left-color: #3b82f6;
+    color: #dbeafe;
+}
+
+.update-alert.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-left-color: #f59e0b;
+    color: #fef3c7;
+}
+
+.update-alert.error {
+    background: rgba(239, 68, 68, 0.1);
+    border-left-color: #ef4444;
+    color: #fecaca;
+}
+
+.update-alert.success {
+    background: rgba(16, 185, 129, 0.1);
+    border-left-color: #10b981;
+    color: #d1fae5;
+}

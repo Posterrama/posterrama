@@ -234,6 +234,9 @@ const { metricsMiddleware } = require('./middleware/metrics');
 // GitHub integration
 const githubService = require('./utils/github');
 
+// Auto-updater system
+const autoUpdater = require('./utils/updater');
+
 // Authentication system
 const authManager = require('./utils/auth');
 const { 
@@ -5806,6 +5809,511 @@ app.post('/api/admin/github/clear-cache', isAuthenticated, asyncHandler(async (r
     } catch (error) {
         logger.error('Failed to clear GitHub cache', { error: error.message });
         res.status(500).json({ error: 'Failed to clear GitHub cache' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/updater/status:
+ *   get:
+ *     summary: Get update status
+ *     description: Returns the current status of any ongoing update process
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: Update status information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 phase:
+ *                   type: string
+ *                   example: "idle"
+ *                 progress:
+ *                   type: number
+ *                   example: 0
+ *                 message:
+ *                   type: string
+ *                   example: ""
+ *                 error:
+ *                   type: string
+ *                   nullable: true
+ *                 startTime:
+ *                   type: string
+ *                   nullable: true
+ *                 backupPath:
+ *                   type: string
+ *                   nullable: true
+ */
+app.get('/api/admin/updater/status', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        const status = autoUpdater.getStatus();
+        res.json(status);
+    } catch (error) {
+        logger.error('Failed to get updater status', { error: error.message });
+        res.status(500).json({ error: 'Failed to get updater status' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/updater/start:
+ *   post:
+ *     summary: Start automatic update
+ *     description: >
+ *       Starts the automatic update process. This will download the latest
+ *       version, create a backup, and apply the update.
+ *     tags: [Admin API]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               targetVersion:
+ *                 type: string
+ *                 description: Specific version to update to (optional)
+ *                 example: "1.4.0"
+ *     responses:
+ *       200:
+ *         description: Update started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Update started"
+ *       409:
+ *         description: Update already in progress
+ *       500:
+ *         description: Failed to start update
+ */
+app.post('/api/admin/updater/start', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    try {
+        if (autoUpdater.isUpdating()) {
+            return res.status(409).json({ error: 'Update already in progress' });
+        }
+
+        const { targetVersion } = req.body;
+        
+        logger.info('Starting update process via API', { 
+            targetVersion,
+            adminUser: req.session.username 
+        });
+
+        // Start update in background
+        autoUpdater.startUpdate(targetVersion).catch(error => {
+            logger.error('Background update failed', { error: error.message });
+        });
+
+        res.json({ 
+            message: 'Update started', 
+            targetVersion: targetVersion || 'latest'
+        });
+    } catch (error) {
+        logger.error('Failed to start update', { error: error.message });
+        res.status(500).json({ error: `Failed to start update: ${error.message}` });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/updater/rollback:
+ *   post:
+ *     summary: Rollback to previous version
+ *     description: >
+ *       Rolls back to the most recent backup. Only available if a backup
+ *       exists from a recent update.
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: Rollback completed successfully
+ *       400:
+ *         description: No backup available for rollback
+ *       500:
+ *         description: Rollback failed
+ */
+app.post('/api/admin/updater/rollback', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        logger.info('Starting rollback via API', { adminUser: req.session.username });
+        
+        await autoUpdater.rollback();
+        res.json({ message: 'Rollback completed successfully' });
+    } catch (error) {
+        logger.error('Rollback failed', { error: error.message });
+        res.status(500).json({ error: `Rollback failed: ${error.message}` });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/updater/backups:
+ *   get:
+ *     summary: List available backups
+ *     description: Returns a list of all available backups
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: List of backups
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                   path:
+ *                     type: string
+ *                   version:
+ *                     type: string
+ *                   timestamp:
+ *                     type: string
+ *                   size:
+ *                     type: number
+ *                   created:
+ *                     type: string
+ */
+app.get('/api/admin/updater/backups', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        const backups = await autoUpdater.listBackups();
+        res.json(backups);
+    } catch (error) {
+        logger.error('Failed to list backups', { error: error.message });
+        res.status(500).json({ error: 'Failed to list backups' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/updater/cleanup-backups:
+ *   post:
+ *     summary: Clean up old backups
+ *     description: >
+ *       Removes old backups, keeping only the most recent ones.
+ *       By default keeps the last 5 backups.
+ *     tags: [Admin API]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               keepCount:
+ *                 type: integer
+ *                 default: 5
+ *                 minimum: 1
+ *                 maximum: 20
+ *     responses:
+ *       200:
+ *         description: Cleanup completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 deleted:
+ *                   type: integer
+ *                 kept:
+ *                   type: integer
+ */
+app.post('/api/admin/updater/cleanup-backups', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    try {
+        const { keepCount = 5 } = req.body;
+        const result = await autoUpdater.cleanupOldBackups(keepCount);
+        
+        logger.info('Backup cleanup completed', { 
+            deleted: result.deleted, 
+            kept: result.kept,
+            adminUser: req.session.username 
+        });
+        
+        res.json(result);
+    } catch (error) {
+        logger.error('Failed to cleanup backups', { error: error.message });
+        res.status(500).json({ error: 'Failed to cleanup backups' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/update/start:
+ *   post:
+ *     summary: Start automatic update process
+ *     description: >
+ *       Initiates the automatic update process. This will download the latest
+ *       version, create a backup, and update the application. The process
+ *       includes rollback capability in case of failure.
+ *     tags: [Admin API]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               version:
+ *                 type: string
+ *                 description: Specific version to update to (optional)
+ *                 example: "1.4.0"
+ *               force:
+ *                 type: boolean
+ *                 description: Force update even if already on latest version
+ *                 default: false
+ *     responses:
+ *       200:
+ *         description: Update process started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 updateId:
+ *                   type: string
+ *       400:
+ *         description: Update already in progress or invalid request
+ *       500:
+ *         description: Failed to start update process
+ */
+app.post('/api/admin/update/start', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    try {
+        const { version, force } = req.body;
+        
+        if (autoUpdater.isUpdating()) {
+            return res.status(400).json({ error: 'Update already in progress' });
+        }
+
+        logger.info('Update process initiated by admin', { version, force, user: req.user?.username });
+
+        // Start update process in background
+        const updatePromise = autoUpdater.startUpdate(version);
+        
+        // Don't wait for completion, return immediately
+        res.json({
+            success: true,
+            message: 'Update process started',
+            updateId: Date.now().toString()
+        });
+
+        // Handle update completion/failure in background
+        updatePromise.then((result) => {
+            logger.info('Background update completed successfully', result);
+        }).catch((error) => {
+            logger.error('Background update failed', { error: error.message });
+        });
+
+    } catch (error) {
+        logger.error('Failed to start update process', { error: error.message });
+        res.status(500).json({ error: 'Failed to start update process' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/update/status:
+ *   get:
+ *     summary: Get update process status
+ *     description: >
+ *       Returns the current status of any ongoing update process,
+ *       including progress, current phase, and any errors.
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: Update status information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 phase:
+ *                   type: string
+ *                   enum: [idle, checking, backup, download, validation, stopping, applying, dependencies, starting, verification, completed, error, rollback]
+ *                 progress:
+ *                   type: integer
+ *                   minimum: 0
+ *                   maximum: 100
+ *                 message:
+ *                   type: string
+ *                 error:
+ *                   type: string
+ *                   nullable: true
+ *                 startTime:
+ *                   type: string
+ *                   format: date-time
+ *                   nullable: true
+ *                 backupPath:
+ *                   type: string
+ *                   nullable: true
+ *                 isUpdating:
+ *                   type: boolean
+ */
+app.get('/api/admin/update/status', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        const status = autoUpdater.getStatus();
+        const isUpdating = autoUpdater.isUpdating();
+        
+        res.json({
+            ...status,
+            isUpdating
+        });
+    } catch (error) {
+        logger.error('Failed to get update status', { error: error.message });
+        res.status(500).json({ error: 'Failed to get update status' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/update/rollback:
+ *   post:
+ *     summary: Rollback to previous version
+ *     description: >
+ *       Rollback to the most recent backup created during an update.
+ *       This is useful if an update causes issues.
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: Rollback completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: No backup available for rollback
+ *       500:
+ *         description: Rollback failed
+ */
+app.post('/api/admin/update/rollback', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        if (autoUpdater.isUpdating()) {
+            return res.status(400).json({ error: 'Cannot rollback while update is in progress' });
+        }
+
+        logger.info('Rollback initiated by admin', { user: req.user?.username });
+
+        await autoUpdater.rollback();
+        
+        res.json({
+            success: true,
+            message: 'Rollback completed successfully'
+        });
+    } catch (error) {
+        logger.error('Failed to rollback', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/update/backups:
+ *   get:
+ *     summary: List available backups
+ *     description: >
+ *       Returns a list of all available backups that can be used
+ *       for rollback or manual restoration.
+ *     tags: [Admin API]
+ *     responses:
+ *       200:
+ *         description: List of available backups
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                   version:
+ *                     type: string
+ *                   timestamp:
+ *                     type: string
+ *                     format: date-time
+ *                   size:
+ *                     type: integer
+ *                   created:
+ *                     type: string
+ *                     format: date-time
+ */
+app.get('/api/admin/update/backups', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        const backups = await autoUpdater.listBackups();
+        res.json(backups);
+    } catch (error) {
+        logger.error('Failed to list backups', { error: error.message });
+        res.status(500).json({ error: 'Failed to list backups' });
+    }
+}));
+
+/**
+ * @swagger
+ * /api/admin/update/cleanup:
+ *   post:
+ *     summary: Cleanup old backups
+ *     description: >
+ *       Remove old backups to free up disk space, keeping only
+ *       the most recent backups as specified.
+ *     tags: [Admin API]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               keepCount:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 20
+ *                 default: 5
+ *                 description: Number of recent backups to keep
+ *     responses:
+ *       200:
+ *         description: Cleanup completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 deleted:
+ *                   type: integer
+ *                 kept:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ */
+app.post('/api/admin/update/cleanup', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+    try {
+        const { keepCount = 5 } = req.body;
+        
+        if (keepCount < 1 || keepCount > 20) {
+            return res.status(400).json({ error: 'keepCount must be between 1 and 20' });
+        }
+
+        logger.info('Backup cleanup initiated by admin', { keepCount, user: req.user?.username });
+
+        const result = await autoUpdater.cleanupOldBackups(keepCount);
+        
+        res.json({
+            ...result,
+            message: `Deleted ${result.deleted} old backups, kept ${result.kept} recent backups`
+        });
+    } catch (error) {
+        logger.error('Failed to cleanup backups', { error: error.message });
+        res.status(500).json({ error: 'Failed to cleanup backups' });
     }
 }));
 

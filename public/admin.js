@@ -4569,6 +4569,141 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Auto-Update: Start Auto-Update Button
+    const startAutoUpdateButton = document.getElementById('start-auto-update-button');
+    if (startAutoUpdateButton) {
+        startAutoUpdateButton.addEventListener('click', async () => {
+            const confirmation = confirm('Are you sure you want to start the automatic update? This will:\n\n• Create a backup of your current installation\n• Download and install the latest version\n• Restart the application\n\nThe process may take several minutes.');
+            
+            if (!confirmation) return;
+            
+            await startAutoUpdate();
+        });
+    }
+
+    // Auto-Update: Rollback Button
+    const rollbackUpdateButton = document.getElementById('rollback-update-button');
+    if (rollbackUpdateButton) {
+        rollbackUpdateButton.addEventListener('click', rollbackUpdate);
+    }
+
+    // Auto-Update: List Backups Button
+    const listBackupsButton = document.getElementById('list-backups-button');
+    if (listBackupsButton) {
+        listBackupsButton.addEventListener('click', async () => {
+            setButtonState(listBackupsButton, 'loading', { text: 'Loading...' });
+            
+            try {
+                await loadBackupList();
+                setButtonState(listBackupsButton, 'success', { text: 'Backups Loaded' });
+                setTimeout(() => setButtonState(listBackupsButton, 'revert'), 2000);
+            } catch (error) {
+                console.error('[Admin] Error loading backups:', error);
+                showNotification(`Error loading backups: ${error.message}`, 'error');
+                setButtonState(listBackupsButton, 'revert');
+            }
+        });
+    }
+
+    // Auto-Update: Cleanup Backups Button
+    const cleanupBackupsButton = document.getElementById('cleanup-backups-button');
+    if (cleanupBackupsButton) {
+        cleanupBackupsButton.addEventListener('click', cleanupBackups);
+    }
+
+    // Auto-Update: Start Update Button (legacy)
+    const startUpdateButton = document.getElementById('start-update-button');
+    if (startUpdateButton) {
+        startUpdateButton.addEventListener('click', async () => {
+            const confirmation = confirm('Are you sure you want to start the automatic update? This will:\n\n• Create a backup of your current installation\n• Download and install the latest version\n• Restart the application\n\nThe process may take several minutes.');
+            
+            if (!confirmation) return;
+
+            setButtonState(startUpdateButton, 'loading', { text: 'Starting...' });
+            
+            try {
+                const response = await authenticatedFetch(apiUrl('/api/admin/update/start'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                showNotification('Update process started successfully! Monitor progress below.', 'success');
+                setButtonState(startUpdateButton, 'success', { text: 'Started' });
+                
+                // Show progress container and start monitoring
+                document.getElementById('update-progress-container').style.display = 'block';
+                startUpdateStatusMonitoring();
+                
+                setTimeout(() => setButtonState(startUpdateButton, 'revert'), 3000);
+            } catch (error) {
+                console.error('[Admin] Error starting update:', error);
+                showNotification(`Error starting update: ${error.message}`, 'error');
+                setButtonState(startUpdateButton, 'revert');
+            }
+        });
+    }
+
+    // Auto-Update: Status Button
+    const updateStatusButton = document.getElementById('update-status-button');
+    if (updateStatusButton) {
+        updateStatusButton.addEventListener('click', async () => {
+            setButtonState(updateStatusButton, 'loading', { text: 'Loading...' });
+            
+            try {
+                await loadUpdateStatus();
+                setButtonState(updateStatusButton, 'success', { text: 'Status Loaded' });
+                setTimeout(() => setButtonState(updateStatusButton, 'revert'), 2000);
+            } catch (error) {
+                console.error('[Admin] Error loading update status:', error);
+                showNotification(`Error loading update status: ${error.message}`, 'error');
+                setButtonState(updateStatusButton, 'revert');
+            }
+        });
+    }
+
+    // Auto-Update: Rollback Button
+    const rollbackButton = document.getElementById('rollback-button');
+    if (rollbackButton) {
+        rollbackButton.addEventListener('click', async () => {
+            const confirmation = confirm('Are you sure you want to rollback to the previous version? This will:\n\n• Stop the current application\n• Restore from the most recent backup\n• Restart the application\n\nThis action cannot be undone.');
+            
+            if (!confirmation) return;
+
+            setButtonState(rollbackButton, 'loading', { text: 'Rolling back...' });
+            
+            try {
+                const response = await authenticatedFetch(apiUrl('/api/admin/update/rollback'), {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                showNotification('Rollback completed successfully!', 'success');
+                setButtonState(rollbackButton, 'success', { text: 'Rolled Back' });
+                setTimeout(() => {
+                    setButtonState(rollbackButton, 'revert');
+                    // Refresh the page after rollback
+                    window.location.reload();
+                }, 3000);
+            } catch (error) {
+                console.error('[Admin] Error during rollback:', error);
+                showNotification(`Error during rollback: ${error.message}`, 'error');
+                setButtonState(rollbackButton, 'revert');
+            }
+        });
+    }
+
     const refreshMediaButton = document.getElementById('refresh-media-button');
     if (refreshMediaButton) {
         refreshMediaButton.addEventListener('click', async () => {
@@ -6279,3 +6414,701 @@ function displayGithubRepositoryInfo(repoInfo) {
         </div>
     `;
 }
+
+// Update status monitoring
+let updateStatusInterval = null;
+
+/**
+ * Start monitoring update status
+ */
+function startUpdateStatusMonitoring() {
+    if (updateStatusInterval) {
+        clearInterval(updateStatusInterval);
+    }
+
+    updateStatusInterval = setInterval(async () => {
+        try {
+            await updateProgressBar();
+        } catch (error) {
+            console.error('[Admin] Error monitoring update status:', error);
+        }
+    }, 2000); // Check every 2 seconds
+}
+
+/**
+ * Stop monitoring update status
+ */
+function stopUpdateStatusMonitoring() {
+    if (updateStatusInterval) {
+        clearInterval(updateStatusInterval);
+        updateStatusInterval = null;
+    }
+}
+
+/**
+ * Update the progress bar with current status
+ */
+async function updateProgressBar() {
+    try {
+        const response = await authenticatedFetch(apiUrl('/api/admin/update/status'));
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const status = await response.json();
+        
+        const progressContainer = document.getElementById('update-progress-container');
+        const progressLabel = document.getElementById('update-progress-label');
+        const progressPercentage = document.getElementById('update-progress-percentage');
+        const progressFill = document.getElementById('update-progress-fill');
+        
+        if (!progressContainer) return;
+        
+        // Update progress bar
+        if (progressLabel) progressLabel.textContent = status.message || 'Update in progress...';
+        if (progressPercentage) progressPercentage.textContent = `${status.progress || 0}%`;
+        if (progressFill) progressFill.style.width = `${status.progress || 0}%`;
+        
+        // Apply phase-specific styling
+        progressLabel.className = `update-phase-${status.phase || 'idle'}`;
+        
+        // Stop monitoring if update is complete or failed
+        if (status.phase === 'completed' || status.phase === 'error' || !status.isUpdating) {
+            stopUpdateStatusMonitoring();
+            
+            if (status.phase === 'completed') {
+                showNotification('Update completed successfully!', 'success');
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 5000);
+            } else if (status.phase === 'error') {
+                showNotification(`Update failed: ${status.error}`, 'error');
+            }
+        }
+        
+    } catch (error) {
+        console.error('[Admin] Error updating progress bar:', error);
+        stopUpdateStatusMonitoring();
+    }
+}
+
+/**
+ * Load update status data
+ */
+async function loadUpdateStatus() {
+    hideAllStatusDisplays();
+    
+    const updateStatusDisplay = document.getElementById('update-status-display');
+    const updateStatusContent = document.getElementById('update-status-content');
+    
+    if (!updateStatusDisplay || !updateStatusContent) return;
+    
+    updateStatusDisplay.style.display = 'block';
+    updateStatusContent.innerHTML = '<div class="loading">Loading update status...</div>';
+    
+    try {
+        const response = await authenticatedFetch(apiUrl('/api/admin/update/status'));
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const status = await response.json();
+        displayUpdateStatus(status);
+    } catch (error) {
+        console.error('Update status loading failed:', error);
+        updateStatusContent.innerHTML = `<div class="status-error">Failed to load update status: ${error.message}</div>`;
+    }
+}
+
+/**
+ * Display update status information
+ */
+function displayUpdateStatus(status) {
+    const updateStatusContent = document.getElementById('update-status-content');
+    if (!updateStatusContent) return;
+    
+    const startTime = status.startTime ? new Date(status.startTime).toLocaleString() : 'Not started';
+    const duration = status.startTime ? Math.floor((Date.now() - new Date(status.startTime)) / 1000) : 0;
+    
+    updateStatusContent.innerHTML = `
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-info-circle"></i>
+                    Current Phase
+                </div>
+                <div class="status-item-value update-phase-${status.phase}">
+                    ${status.phase ? status.phase.charAt(0).toUpperCase() + status.phase.slice(1) : 'Idle'}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-percentage"></i>
+                    Progress
+                </div>
+                <div class="status-item-value status-info">
+                    ${status.progress || 0}%
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-play"></i>
+                    Status
+                </div>
+                <div class="status-item-value ${status.isUpdating ? 'status-warning' : 'status-success'}">
+                    ${status.isUpdating ? 'In Progress' : 'Idle'}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-clock"></i>
+                    Start Time
+                </div>
+                <div class="status-item-value status-info">
+                    ${startTime}
+                </div>
+            </div>
+        </div>
+        ${status.message ? `
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.95rem;">
+                    <i class="fas fa-comment"></i> Current Message
+                </h4>
+                <p style="margin: 0; color: #ccc; font-size: 0.85rem;">
+                    ${status.message}
+                </p>
+            </div>
+        ` : ''}
+        ${status.error ? `
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.3); border-radius: 6px;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #f44336; font-size: 0.95rem;">
+                    <i class="fas fa-exclamation-triangle"></i> Error Details
+                </h4>
+                <p style="margin: 0; color: #f44336; font-size: 0.85rem;">
+                    ${status.error}
+                </p>
+            </div>
+        ` : ''}
+        ${status.backupPath ? `
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(103, 126, 234, 0.1); border: 1px solid rgba(103, 126, 234, 0.3); border-radius: 6px;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #667eea; font-size: 0.95rem;">
+                    <i class="fas fa-archive"></i> Backup Information
+                </h4>
+                <p style="margin: 0; color: #ccc; font-size: 0.85rem; word-break: break-all;">
+                    Backup location: ${status.backupPath}
+                </p>
+            </div>
+        ` : ''}
+        ${duration > 0 ? `
+            <div style="margin-top: 1rem; color: #b3b3b3; font-size: 0.85rem; text-align: center;">
+                Duration: ${Math.floor(duration / 60)}m ${duration % 60}s
+            </div>
+        ` : ''}
+    `;
+}
+
+/**
+ * Load backups list
+ */
+async function loadBackupsList() {
+    hideAllStatusDisplays();
+    
+    const backupsListDisplay = document.getElementById('backups-list-display');
+    const backupsListContent = document.getElementById('backups-list-content');
+    
+    if (!backupsListDisplay || !backupsListContent) return;
+    
+    backupsListDisplay.style.display = 'block';
+    backupsListContent.innerHTML = '<div class="loading">Loading backups...</div>';
+    
+    try {
+        const response = await authenticatedFetch(apiUrl('/api/admin/update/backups'));
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const backups = await response.json();
+        displayBackupsList(backups);
+    } catch (error) {
+        console.error('Backups list loading failed:', error);
+        backupsListContent.innerHTML = `<div class="status-error">Failed to load backups: ${error.message}</div>`;
+    }
+}
+
+/**
+ * Display backups list
+ */
+function displayBackupsList(backups) {
+    const backupsListContent = document.getElementById('backups-list-content');
+    if (!backupsListContent) return;
+    
+    if (!backups || backups.length === 0) {
+        backupsListContent.innerHTML = '<div class="status-info">No backups found.</div>';
+        return;
+    }
+    
+    const backupsHtml = backups.map(backup => {
+        const createdDate = backup.created ? new Date(backup.created).toLocaleDateString() : 'Unknown';
+        const createdTime = backup.created ? new Date(backup.created).toLocaleTimeString() : '';
+        const sizeKB = backup.size ? Math.round(backup.size / 1024) : 0;
+        const sizeMB = sizeKB > 1024 ? (sizeKB / 1024).toFixed(1) + ' MB' : sizeKB + ' KB';
+        
+        return `
+            <div class="backup-item">
+                <div class="backup-item-header">
+                    <div class="backup-item-title">
+                        <i class="fas fa-archive" style="color: #667eea; margin-right: 0.5rem;"></i>
+                        ${backup.name}
+                    </div>
+                    <div class="backup-item-version">
+                        v${backup.version}
+                    </div>
+                </div>
+                <div class="backup-item-meta">
+                    <div>
+                        <i class="fas fa-calendar"></i> 
+                        ${createdDate} ${createdTime}
+                    </div>
+                    <div>
+                        <i class="fas fa-database"></i> 
+                        ${sizeMB}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    backupsListContent.innerHTML = `
+        <div style="margin-bottom: 1rem; color: #b3b3b3; font-size: 0.9rem;">
+            <i class="fas fa-info-circle"></i> 
+            Found ${backups.length} backup${backups.length !== 1 ? 's' : ''} (sorted by date, newest first)
+        </div>
+        ${backupsHtml}
+    `;
+}
+
+/**
+ * Auto-Update Functionality
+ */
+
+/**
+ * Initialize auto-update functionality
+ */
+function initializeAutoUpdate() {
+    // Start monitoring update status
+    startUpdateStatusMonitoring();
+    
+    // Initial status check
+    checkUpdateStatus();
+}
+
+/**
+ * Start monitoring update status
+ */
+function startUpdateStatusMonitoring() {
+    if (updateStatusInterval) {
+        clearInterval(updateStatusInterval);
+    }
+    
+    // Check status every 2 seconds during updates
+    updateStatusInterval = setInterval(checkUpdateStatus, 2000);
+}
+
+/**
+ * Stop monitoring update status
+ */
+function stopUpdateStatusMonitoring() {
+    if (updateStatusInterval) {
+        clearInterval(updateStatusInterval);
+        updateStatusInterval = null;
+    }
+}
+
+/**
+ * Check current update status
+ */
+async function checkUpdateStatus() {
+    try {
+        const response = await authenticatedFetch(apiUrl('/api/admin/updater/status'));
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const status = await response.json();
+        updateStatusDisplay(status);
+        
+        // Stop monitoring if update is complete or idle
+        if (status.phase === 'completed' || status.phase === 'idle' || status.phase === 'error') {
+            stopUpdateStatusMonitoring();
+        }
+        
+    } catch (error) {
+        console.error('Failed to check update status:', error);
+        // Continue monitoring even on error
+    }
+}
+
+/**
+ * Update the status display
+ */
+function updateStatusDisplay(status) {
+    const idleState = document.getElementById('update-idle-state');
+    const progressState = document.getElementById('update-progress-state');
+    const phaseText = document.getElementById('update-phase-text');
+    const progressPercent = document.getElementById('update-progress-percent');
+    const progressBar = document.getElementById('update-progress-bar');
+    const messageText = document.getElementById('update-message');
+    const startButton = document.getElementById('start-auto-update-button');
+    const rollbackButton = document.getElementById('rollback-update-button');
+    
+    if (!idleState || !progressState) return;
+    
+    // Update button states
+    const isUpdating = status.phase !== 'idle' && status.phase !== 'completed' && status.phase !== 'error';
+    
+    if (startButton) {
+        startButton.setAttribute('data-updating', isUpdating.toString());
+        if (isUpdating) {
+            startButton.querySelector('span').textContent = 'Updating...';
+            startButton.querySelector('i').className = 'fas fa-spinner icon';
+        } else {
+            startButton.querySelector('span').textContent = 'Start Auto-Update';
+            startButton.querySelector('i').className = 'fas fa-download icon';
+        }
+    }
+    
+    if (rollbackButton) {
+        rollbackButton.style.display = status.backupPath ? 'block' : 'none';
+    }
+    
+    if (status.phase === 'idle' || status.phase === 'completed') {
+        // Show idle state
+        idleState.style.display = 'block';
+        progressState.style.display = 'none';
+        
+        if (status.phase === 'completed') {
+            const statusValue = idleState.querySelector('.status-item-value');
+            if (statusValue) {
+                statusValue.textContent = status.message || 'Update completed';
+                statusValue.className = 'status-item-value status-success';
+            }
+        }
+    } else {
+        // Show progress state
+        idleState.style.display = 'none';
+        progressState.style.display = 'block';
+        
+        // Update progress elements
+        if (phaseText) {
+            phaseText.textContent = getPhaseDisplayText(status.phase);
+        }
+        
+        if (progressPercent) {
+            progressPercent.textContent = `${status.progress || 0}%`;
+        }
+        
+        if (progressBar) {
+            progressBar.style.width = `${status.progress || 0}%`;
+            
+            // Update progress bar class based on phase
+            progressBar.className = 'progress-fill';
+            if (status.phase === 'error') {
+                progressBar.classList.add('error');
+            } else if (status.phase === 'completed') {
+                progressBar.classList.add('success');
+            }
+        }
+        
+        if (messageText) {
+            messageText.textContent = status.message || 'Processing...';
+            messageText.className = 'update-message';
+            
+            if (status.error) {
+                messageText.classList.add('error');
+                messageText.textContent = status.error;
+            } else if (status.phase === 'completed') {
+                messageText.classList.add('success');
+            }
+            
+            // Add phase-specific class
+            messageText.classList.add(`update-phase-${status.phase}`);
+        }
+    }
+}
+
+/**
+ * Get display text for update phase
+ */
+function getPhaseDisplayText(phase) {
+    const phaseTexts = {
+        'checking': 'Checking for Updates',
+        'backup': 'Creating Backup',
+        'download': 'Downloading Update',
+        'validation': 'Validating Download',
+        'stopping': 'Stopping Services',
+        'applying': 'Applying Update',
+        'dependencies': 'Updating Dependencies',
+        'starting': 'Starting Services',
+        'verification': 'Verifying Update',
+        'completed': 'Update Completed',
+        'error': 'Update Failed',
+        'rollback': 'Rolling Back'
+    };
+    
+    return phaseTexts[phase] || phase;
+}
+
+/**
+ * Start automatic update
+ */
+async function startAutoUpdate(targetVersion = null) {
+    try {
+        const startButton = document.getElementById('start-auto-update-button');
+        setButtonState(startButton, 'loading', { text: 'Starting...' });
+        
+        const requestBody = targetVersion ? { targetVersion } : {};
+        
+        const response = await authenticatedFetch(apiUrl('/api/admin/updater/start'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        showNotification(`Update started: ${result.message}`, 'success');
+        
+        // Start monitoring
+        startUpdateStatusMonitoring();
+        
+        // Initial status check
+        setTimeout(checkUpdateStatus, 1000);
+        
+    } catch (error) {
+        console.error('Failed to start update:', error);
+        showNotification(`Failed to start update: ${error.message}`, 'error');
+        
+        const startButton = document.getElementById('start-auto-update-button');
+        setButtonState(startButton, 'revert');
+    }
+}
+
+/**
+ * Rollback to previous version
+ */
+async function rollbackUpdate() {
+    if (!confirm('Are you sure you want to rollback to the previous version? This will restore the last backup.')) {
+        return;
+    }
+    
+    try {
+        const rollbackButton = document.getElementById('rollback-update-button');
+        setButtonState(rollbackButton, 'loading', { text: 'Rolling back...' });
+        
+        const response = await authenticatedFetch(apiUrl('/api/admin/updater/rollback'), {
+            method: 'POST'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        showNotification('Rollback completed successfully', 'success');
+        
+        setButtonState(rollbackButton, 'success', { text: 'Rollback Complete' });
+        setTimeout(() => setButtonState(rollbackButton, 'revert'), 3000);
+        
+        // Refresh page after rollback
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Rollback failed:', error);
+        showNotification(`Rollback failed: ${error.message}`, 'error');
+        
+        const rollbackButton = document.getElementById('rollback-update-button');
+        setButtonState(rollbackButton, 'revert');
+    }
+}
+
+/**
+ * Load and display backup list
+ */
+async function loadBackupList() {
+    hideAllStatusDisplays(); // Hide other displays first
+    
+    const backupsDisplay = document.getElementById('backups-display');
+    const backupsContent = document.getElementById('backups-content');
+    
+    if (!backupsDisplay || !backupsContent) return;
+    
+    backupsDisplay.style.display = 'block';
+    backupsContent.innerHTML = '<div class="loading">Loading backups...</div>';
+    
+    try {
+        const response = await authenticatedFetch(apiUrl('/api/admin/updater/backups'));
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const backups = await response.json();
+        displayBackupList(backups);
+    } catch (error) {
+        console.error('Failed to load backups:', error);
+        backupsContent.innerHTML = `<div class="status-error">Failed to load backups: ${error.message}</div>`;
+    }
+}
+
+/**
+ * Display backup list
+ */
+function displayBackupList(backups) {
+    const backupsContent = document.getElementById('backups-content');
+    if (!backupsContent) return;
+    
+    if (!backups || backups.length === 0) {
+        backupsContent.innerHTML = '<div class="status-info">No backups found.</div>';
+        return;
+    }
+    
+    const backupsHtml = backups.map(backup => {
+        const createdDate = new Date(backup.timestamp).toLocaleDateString();
+        const createdTime = new Date(backup.timestamp).toLocaleTimeString();
+        const sizeMB = (backup.size / (1024 * 1024)).toFixed(1) + ' MB';
+        
+        return `
+            <div class="backup-item">
+                <div class="backup-info">
+                    <div class="backup-name">
+                        <i class="fas fa-archive" style="color: #667eea; margin-right: 0.5rem;"></i>
+                        ${backup.name}
+                    </div>
+                    <div class="backup-details">
+                        <span class="backup-version">v${backup.version}</span> • 
+                        ${createdDate} ${createdTime} • 
+                        ${sizeMB}
+                    </div>
+                </div>
+                <div class="backup-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="restoreFromBackup('${backup.path}', '${backup.version}')" title="Restore this backup">
+                        <i class="fas fa-undo"></i> Restore
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    backupsContent.innerHTML = `
+        <div style="margin-bottom: 1rem; color: #b3b3b3; font-size: 0.9rem;">
+            <i class="fas fa-info-circle"></i> 
+            Found ${backups.length} backup${backups.length !== 1 ? 's' : ''} (sorted by date, newest first)
+        </div>
+        ${backupsHtml}
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px;">
+            <div style="color: #f59e0b; font-weight: 500; margin-bottom: 0.5rem;">
+                <i class="fas fa-exclamation-triangle"></i> Backup Management
+            </div>
+            <p style="margin: 0; color: #fef3c7; font-size: 0.85rem;">
+                Backups are automatically created before each update. You can restore any backup or clean up old ones to save disk space.
+            </p>
+        </div>
+    `;
+}
+
+/**
+ * Restore from a specific backup
+ */
+async function restoreFromBackup(backupPath, version) {
+    if (!confirm(`Are you sure you want to restore from backup version ${version}? This will replace the current installation.`)) {
+        return;
+    }
+    
+    try {
+        showNotification('Restoring from backup...', 'info');
+        
+        // Note: This would require a new API endpoint for restoring specific backups
+        // For now, we'll show a message that this feature is coming soon
+        showNotification('Specific backup restoration is not yet implemented. Use the general rollback function instead.', 'warning');
+        
+    } catch (error) {
+        console.error('Failed to restore backup:', error);
+        showNotification(`Failed to restore backup: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Cleanup old backups
+ */
+async function cleanupBackups() {
+    const keepCount = prompt('How many recent backups would you like to keep? (default: 5)', '5');
+    
+    if (keepCount === null) return; // Cancelled
+    
+    const keepCountNum = parseInt(keepCount) || 5;
+    
+    if (keepCountNum < 1) {
+        showNotification('Please enter a number greater than 0', 'error');
+        return;
+    }
+    
+    if (!confirm(`This will delete old backups, keeping only the ${keepCountNum} most recent ones. Continue?`)) {
+        return;
+    }
+    
+    try {
+        const cleanupButton = document.getElementById('cleanup-backups-button');
+        setButtonState(cleanupButton, 'loading', { text: 'Cleaning...' });
+        
+        const response = await authenticatedFetch(apiUrl('/api/admin/updater/cleanup-backups'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ keepCount: keepCountNum })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        showNotification(`Cleanup complete: ${result.deleted} backups deleted, ${result.kept} kept`, 'success');
+        
+        setButtonState(cleanupButton, 'success', { text: 'Cleaned Up' });
+        setTimeout(() => setButtonState(cleanupButton, 'revert'), 2000);
+        
+        // Refresh backup list if it's currently displayed
+        const backupsDisplay = document.getElementById('backups-display');
+        if (backupsDisplay && backupsDisplay.style.display !== 'none') {
+            setTimeout(loadBackupList, 1000);
+        }
+        
+    } catch (error) {
+        console.error('Failed to cleanup backups:', error);
+        showNotification(`Failed to cleanup backups: ${error.message}`, 'error');
+        
+        const cleanupButton = document.getElementById('cleanup-backups-button');
+        setButtonState(cleanupButton, 'revert');
+    }
+}
+
+// Initialize auto-update functionality when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize auto-update monitoring
+    initializeAutoUpdate();
+});
