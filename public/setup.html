@@ -7,6 +7,59 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesh                console.log                // Step 1: Login with username/password (will redirect to 2FA verify)
+                console.log('🔑 Step 1: Logging in with credentials...');
+                const loginResponse = await fetch('/admin/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        username: adminCredentials.username,
+                        password: adminCredentials.password
+                    })
+                });
+
+                console.log('🔑 Login response status:', loginResponse.status);ponse status:', loginResponse.status);
+
+                // Step 2: Submit 2FA code
+                console.log('🔐 Step 2: Submitting 2FA code...');
+                const tfaResponse = await fetch('/admin/2fa-verify', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        totp_code: token
+                    }),
+                    redirect: 'follow' // Follow redirects to see final URL
+                });
+
+                console.log('🔐 2FA verification response status:', tfaResponse.status);
+                console.log('🔐 Final URL after redirects:', tfaResponse.url);
+
+                // Check the final URL after all redirects
+                if (tfaResponse.url.endsWith('/admin') || tfaResponse.url.includes('/admin?')) {
+                    console.log('✅ 2FA verification successful - redirected to admin panel');
+                    console.log('🎉 Setup complete! 2FA has been successfully configured.');
+                    
+                    // Show success message and give user time to see it
+                    alert('🎉 2FA Setup Complete!\n\nYour account has been created with 2FA enabled.\nClick OK to continue to the setup completion page.');
+                    
+                    // Redirect to setup complete after user closes alert
+                    window.location.href = '/setup.html?complete=1';
+                    
+                } else if (tfaResponse.url.includes('2fa-verify')) {
+                    console.log('❌ 2FA verification failed - redirected back to verify page');
+                    if (tfaResponse.url.includes('error=invalid_code')) {
+                        alert('Verification failed: Invalid code. Please try again.');
+                    } else if (tfaResponse.url.includes('error=rate_limited')) {
+                        alert('Verification failed: Too many attempts. Please wait a moment and try again.');
+                    } else {
+                        alert('Verification failed: Please try again.');
+                    }
+                } else {
+                    console.log('❌ Unexpected redirect URL:', tfaResponse.url);
+                    alert('Verification failed: Unexpected response. Please try again.');
+                }tps://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../admin.css?v=20250815">
     <style>
         body {
@@ -100,15 +153,94 @@
             border-color: #667eea !important;
             background: rgba(102, 126, 234, 0.1) !important;
         }
+        .setup-choice {
+            margin: 1rem 0;
+        }
+        .choice-compact {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+        }
+        .choice-info {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .choice-info h3 {
+            color: #e2e8f0;
+            margin: 0 0 0.75rem 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .choice-info p {
+            color: #94a3b8;
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .choice-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        .choice-buttons .btn {
+            flex: 1;
+            max-width: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            padding: 0.75rem 1.25rem;
+        }
+        .setup-note {
+            margin-top: 1.5rem;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+        .setup-note i {
+            margin-right: 0.5rem;
+            color: #94a3b8;
+        }
+        .choice-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .choice-box h3 {
+            color: #e2e8f0;
+            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+        }
+        .choice-box p {
+            color: #94a3b8;
+            margin: 0 0 1rem 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .choice-box .btn {
+            width: 100%;
+        }
+        #qr-container img {
+            max-width: 200px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
     <div class="auth-container">
-        <div class="auth-box">
+        <!-- Step 1: Admin Account -->
+        <div id="step1" class="auth-box">
             <h1><span class="admin-text">Setup</span> <span class="gradient-text">posterrama</span></h1>
-            <h2>First-Time Setup</h2>
+            <h2>Step 1: Create Admin Account</h2>
             <p>Create an administrator account to continue.</p>
-            <form action="/admin/setup" method="POST">
+            <form id="admin-form">
                 <div class="form-group">
                     <label for="username">Admin Username</label>
                     <input type="text" id="username" name="username" required>
@@ -117,24 +249,299 @@
                     <label for="password">Admin Password</label>
                     <input type="password" id="password" name="password" required>
                 </div>
-                <button type="submit" class="btn btn-primary">Create Admin User</button>
+                <button type="submit" class="btn btn-primary">Continue</button>
             </form>
         </div>
+
+        <!-- Step 2: 2FA Setup (Initially Hidden) -->
+        <div id="step2" class="auth-box" style="display: none;">
+            <h1><span class="admin-text">Setup</span> <span class="gradient-text">posterrama</span></h1>
+            <h2>Step 2: Two-Factor Authentication</h2>
+            <p style="margin-bottom: 2rem;">Would you like to enable 2FA to secure your admin panel?</p>
+            
+            <div class="setup-choice">
+                <div class="choice-compact">
+                    <div class="choice-info">
+                        <h3>🔒 Two-Factor Authentication</h3>
+                        <p>Adds an extra layer of security using an authenticator app. <strong>Recommended for production environments.</strong></p>
+                    </div>
+                    <div class="choice-buttons">
+                        <button type="button" id="enable-2fa-btn" class="btn btn-primary">
+                            <i class="fas fa-shield-alt"></i> Enable 2FA
+                        </button>
+                        <button type="button" id="skip-2fa-btn" class="btn btn-secondary">
+                            <i class="fas fa-forward"></i> Skip for Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setup-note">
+                <small><i class="fas fa-info-circle"></i> You can always enable 2FA later from the admin panel settings.</small>
+            </div>
+        </div>
+
+        <!-- Step 3: 2FA Configuration (Initially Hidden) -->
+        <div id="step3" class="auth-box" style="display: none;">
+            <h1><span class="admin-text">Setup</span> <span class="gradient-text">posterrama</span></h1>
+            <h2>Step 3: Configure 2FA</h2>
+            <ol style="color: #b3b3b3; margin: 1rem 0; padding-left: 1.5rem; text-align: left;">
+                <li>Install an authenticator app (Google Authenticator, Authy, Microsoft Authenticator, etc.)</li>
+                <li>Scan the QR code below with your authenticator app</li>
+                <li>Enter the 6-digit code from your app to complete setup</li>
+                <li><strong>Note:</strong> The verification code will also test your first login with 2FA</li>
+            </ol>
+            <div id="qr-container" style="text-align: center; margin: 1.5rem 0;">
+                <!-- QR code will be inserted here -->
+            </div>
+            <form id="verify-2fa-form" onsubmit="event.preventDefault(); verify2FA(document.getElementById('token').value);">
+                <div class="form-group">
+                    <label for="token">6-Digit Code</label>
+                    <input type="text" id="token" name="token" maxlength="6" placeholder="000000" required style="text-align: center; letter-spacing: 0.2rem;">
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="button" id="back-to-choice" class="btn btn-secondary" onclick="goBackToStep2()">← Back</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Verify & Complete Setup</button>
+                </div>
+            </form>
+        </div>
+
         <div class="auth-footer">
             <a href="/" class="btn btn-secondary">← Back to Screensaver</a>
         </div>
     </div>
     <!-- Setup complete message, only tonen als ?complete=1 in de URL staat -->
     <script>
+        let adminCredentials = null;
+
+        // Setup wizard functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            const adminForm = document.getElementById('admin-form');
+            const enable2faBtn = document.getElementById('enable-2fa-btn');
+            const skip2faBtn = document.getElementById('skip-2fa-btn');
+            const verify2faForm = document.getElementById('verify-2fa-form');
+            const backToChoiceBtn = document.getElementById('back-to-choice');
+
+            // Step 1: Admin account creation
+            adminForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                if (!username || !password) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+                
+                // Store credentials for later use
+                adminCredentials = { username, password };
+                
+                // Move to step 2
+                step1.style.display = 'none';
+                step2.style.display = 'block';
+            });
+
+            // Step 2: 2FA choice
+            skip2faBtn.addEventListener('click', async function() {
+                // Complete setup without 2FA
+                await completeSetup(false);
+            });
+
+            enable2faBtn.addEventListener('click', async function() {
+                // Move to step 3 and setup 2FA
+                step2.style.display = 'none';
+                step3.style.display = 'block';
+                await initiate2FASetup();
+            });
+
+            // Step 3: 2FA verification
+            verify2faForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const token = document.getElementById('token').value;
+                if (token.length !== 6) {
+                    alert('Please enter a 6-digit code');
+                    return;
+                }
+                await verify2FA(token);
+            });
+
+            backToChoiceBtn.addEventListener('click', function() {
+                step3.style.display = 'none';
+                step2.style.display = 'block';
+            });
+        });
+
+        async function completeSetup(with2FA = false) {
+            try {
+                console.log('🏁 Completing setup, with2FA:', with2FA);
+                
+                const response = await fetch('/admin/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        username: adminCredentials.username,
+                        password: adminCredentials.password,
+                        enable2fa: with2FA ? 'true' : 'false'
+                    })
+                });
+
+                if (response.ok) {
+                    console.log('✅ Setup completed successfully');
+                    window.location.href = '/setup.html?complete=1';
+                } else {
+                    const error = await response.text();
+                    console.error('❌ Setup failed:', error);
+                    alert('Setup failed: ' + error);
+                }
+            } catch (error) {
+                console.error('💥 Setup error:', error);
+                alert('Setup failed: ' + error.message);
+            }
+        }
+
+        async function initiate2FASetup() {
+            try {
+                console.log('🔧 Starting 2FA setup process...');
+                
+                // Create admin account with 2FA enabled
+                console.log('👤 Creating admin account with 2FA...');
+                const setupResponse = await fetch('/admin/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        username: adminCredentials.username,
+                        password: adminCredentials.password,
+                        enable2fa: 'true' // Create account with 2FA enabled
+                    })
+                });
+
+                console.log('👤 Setup response status:', setupResponse.status);
+                
+                if (!setupResponse.ok) {
+                    const errorText = await setupResponse.text();
+                    console.error('❌ Admin account creation failed:', errorText);
+                    throw new Error('Failed to create admin account: ' + errorText);
+                }
+                
+                const setupData = await setupResponse.json();
+                console.log('✅ Admin account created successfully with 2FA');
+
+                // If setup included QR code, show it
+                if (setupData.qrCodeDataUrl) {
+                    console.log('✅ QR code received from setup');
+                    document.getElementById('qr-container').innerHTML = 
+                        `<img src="${setupData.qrCodeDataUrl}" alt="QR Code">`;
+                } else {
+                    console.log('⚠️ No QR code in setup response, requesting separate 2FA setup');
+                    
+                    // Login first to get session
+                    const loginResponse = await fetch('/admin/login', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({
+                            username: adminCredentials.username,
+                            password: adminCredentials.password
+                        })
+                    });
+
+                    if (!loginResponse.ok) {
+                        throw new Error('Failed to login after account creation');
+                    }
+
+                    // Now request 2FA setup
+                    const tfaResponse = await fetch('/api/admin/2fa/setup', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Cache-Control': 'no-cache' }
+                    });
+
+                    if (!tfaResponse.ok) {
+                        const errorText = await tfaResponse.text();
+                        throw new Error('Failed to setup 2FA: ' + errorText);
+                    }
+
+                    const tfaData = await tfaResponse.json();
+                    document.getElementById('qr-container').innerHTML = 
+                        `<img src="${tfaData.qrCodeDataUrl}" alt="QR Code">`;
+                }
+
+            } catch (error) {
+                console.error('💥 2FA setup error:', error);
+                alert('2FA setup failed: ' + error.message + '\n\nWould you like to continue without 2FA?');
+                
+                // Return to step 2 for user to choose again
+                document.getElementById('step3').style.display = 'none';
+                document.getElementById('step2').style.display = 'block';
+            }
+        }
+
+        function goBackToStep2() {
+            console.log('🔙 Going back to step 2');
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        }
+
+        async function verify2FA(token) {
+            // Prevent double execution
+            if (verify2FA.isRunning) {
+                console.log('⚠️ 2FA verification already in progress, ignoring duplicate call');
+                return;
+            }
+            verify2FA.isRunning = true;
+            
+            try {
+                console.log('🔐 Verifying 2FA code:', token);
+                
+                // First, we need to login to establish a session for 2FA verification
+                console.log('🔑 Logging in to verify 2FA...');
+                const loginResponse = await fetch('/admin/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        username: adminCredentials.username,
+                        password: adminCredentials.password,
+                        totp_code: token // Include 2FA code in login
+                    })
+                });
+
+                console.log('� Login response status:', loginResponse.status);
+
+                if (!loginResponse.ok) {
+                    const errorText = await loginResponse.text();
+                    console.error('❌ Login with 2FA failed:', errorText);
+                    alert('Verification failed: Invalid code or login error');
+                    return;
+                }
+
+                console.log('✅ Login with 2FA successful');
+                
+                // Login successful with 2FA, setup is complete
+                window.location.href = '/setup.html?complete=1';
+
+            } catch (error) {
+                console.error('💥 2FA verification error:', error);
+                alert('Verification failed: ' + error.message);
+            } finally {
+                verify2FA.isRunning = false;
+            }
+        }
+
+        // Original setup complete handling
         if (window.location.search.includes('complete=1')) {
             const msg = document.createElement('div');
             msg.className = 'setup-complete-message';
-            msg.innerHTML = `<i class='fas fa-rocket'></i> <strong>Setup complete!<br>You can now log in.<br>Redirecting shortly...</strong>`;
+            msg.innerHTML = `<i class='fas fa-rocket'></i> <strong>Setup complete with 2FA!<br>You can now log in.<br>Redirecting shortly...</strong>`;
             document.querySelector('.auth-container').prepend(msg);
             const style = document.createElement('style');
             style.textContent = `.setup-complete-message {\n  margin: 2rem auto 1rem auto;\n  padding: 2rem 1.5rem;\n  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);\n  border-left: 5px solid #6366f1;\n  color: #e0e7ff;\n  font-size: 1.15rem;\n  font-weight: 500;\n  box-shadow: 0 8px 32px rgba(99,102,241,0.18);\n  border-radius: 14px;\n  text-align: center;\n  letter-spacing: 0.01em;\n  max-width: 400px;\n}\n.setup-complete-message strong {\n  color: #a5b4fc;\n  font-weight: 600;\n  display: block;\n  margin-top: 0.5rem;\n}\n.setup-complete-message i.fa-rocket {\n  color: #6366f1;\n  margin-right: 0.8rem;\n  font-size: 1.5rem;\n  vertical-align: middle;\n}`;
             document.head.appendChild(style);
-            setTimeout(function() { window.location.href = '/admin/login'; }, 4000);
+            setTimeout(function() { window.location.href = '/admin/login'; }, 5000);
         }
     </script>
 </body>

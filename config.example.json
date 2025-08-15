@@ -11,7 +11,7 @@
   "clockFormat": "24h",
   "cinemaMode": false,
   "cinemaOrientation": "auto",
-  "transitionEffect": "slide",
+  "transitionEffect": "kenburns",
   "effectPauseTime": 3,
   "uiScaling": {
     "content": 100,

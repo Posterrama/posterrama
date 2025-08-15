@@ -1,6 +1,7 @@
 # Posterrama - Bring your media library to life
 
 [![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](https://github.com/Posterrama/posterrama)
+[![Downloads](https://img.shields.io/github/downloads/Posterrama/posterrama/total?style=flat&logo=github&label=Downloads&color=brightgreen)](https://github.com/Posterrama/posterrama/releases)
 [![Tests](https://img.shields.io/badge/tests-479%20passing-brightgreen)](#testing)
 [![Node.js](https://img.shields.io/badge/node.js-%E2%89%A518.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
@@ -158,7 +159,39 @@ Visit `http://your-server-ip:4000/admin` to:
 - Customize visual settings
 - Monitor system health
 
-## 🔧 Troubleshooting Made Simple
+## � Download & Installation
+
+Ready to get started? Download the latest version of Posterrama:
+
+[![Download Latest Release](https://img.shields.io/github/v/release/Posterrama/posterrama?style=for-the-badge&logo=github&label=Download%20Latest&color=brightgreen)](https://github.com/Posterrama/posterrama/releases/latest)
+
+### Quick Installation Options:
+
+**Option 1: Direct Download**
+- Download the latest release from [GitHub Releases](https://github.com/Posterrama/posterrama/releases/latest)
+- Extract the files to your preferred directory
+- Follow the included installation guide
+
+**Option 2: Git Clone**
+```bash
+git clone https://github.com/Posterrama/posterrama.git
+cd posterrama
+npm install
+npm start
+```
+
+**Option 3: Docker** *(Coming Soon)*
+```bash
+docker run -p 4000:4000 posterrama/posterrama
+```
+
+### System Requirements:
+- **Node.js** 18.0.0 or higher
+- **Operating System**: Linux, Windows, macOS
+- **Hardware**: Works great on Raspberry Pi 4+ for dedicated displays
+- **Browser**: Modern web browser with JavaScript enabled
+
+## �🔧 Troubleshooting Made Simple
 
 **Not seeing any movies?**
 - Check your media server connection in the admin panel

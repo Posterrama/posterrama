@@ -1678,8 +1678,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateSecuritySettings(security) {
-        twoFaCheckbox.checked = security.is2FAEnabled;
-        update2FAStatusText(security.is2FAEnabled);
+        const is2FAEnabled = security.is2FAEnabled || false;
+        update2FAStatusText(is2FAEnabled);
     }
 
     async function populatePlexSettings(config, env, defaults) {
@@ -1723,8 +1723,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const genreSelect = document.getElementById('mediaServers[0].genreFilter');
         if (!genreSelect) return;
 
+        // Save currently selected genres before clearing
+        const currentlySelected = Array.from(genreSelect.selectedOptions).map(option => option.value);
+
         try {
-            const response = await fetch('/api/admin/plex-genres');
+            // Get connection parameters for testing (same as libraries)
+            const hostname = document.getElementById('mediaServers[0].hostname').value;
+            const port = document.getElementById('mediaServers[0].port').value;
+            const token = document.getElementById('mediaServers[0].token').value;
+
+            console.log('Loading genres with:', { hostname, port, token: token ? '***' : 'empty' });
+
+            // If we have test parameters, use the test endpoint, otherwise use the regular endpoint
+            let response;
+            if (hostname && port) {
+                response = await fetch('/api/admin/plex-genres-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        hostname: hostname || undefined,
+                        port: port || undefined,
+                        token: token || undefined
+                    })
+                });
+            } else {
+                response = await fetch('/api/admin/plex-genres');
+            }
+
             if (!response.ok) {
                 throw new Error(`Failed to fetch genres: ${response.status}`);
             }
@@ -1732,11 +1757,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const genres = data.genres || [];
 
+            console.log('Received genres:', genres);
+
             // Clear existing options
             genreSelect.innerHTML = '';
 
             if (genres.length === 0) {
                 genreSelect.innerHTML = '<option value="">No genres found</option>';
+                console.log('No genres found, showing placeholder');
                 return;
             }
 
@@ -1745,10 +1773,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const option = document.createElement('option');
                 option.value = genre;
                 option.textContent = genre;
+                // Restore previous selection if this genre was selected
+                option.selected = currentlySelected.includes(genre);
                 genreSelect.appendChild(option);
             });
 
-            console.log(`Loaded ${genres.length} genres from Plex`);
+            console.log(`Successfully loaded ${genres.length} genres into dropdown`);
             
             // Setup listeners after genres are loaded
             setupGenreFilterListeners();
@@ -1798,6 +1828,9 @@ document.addEventListener('DOMContentLoaded', () => {
             clearBtn.addEventListener('click', clearGenreSelection);
         }
     }
+
+    // Make loadPlexGenres globally accessible
+    window.loadPlexGenres = loadPlexGenres;
 
     function populateTMDBSettings(config, env, defaults) {
         const tmdbConfig = config.tmdbSource || {};
@@ -1875,8 +1908,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const genreSelect = document.getElementById('tmdbSource.genreFilter');
         if (!genreSelect) return;
 
+        // Save currently selected genres before clearing
+        const currentlySelected = Array.from(genreSelect.selectedOptions).map(option => option.value);
+
         try {
-            const response = await fetch('/api/admin/tmdb-genres');
+            // Get API key and category for testing (same as test connection)
+            const apiKey = document.getElementById('tmdbSource.apiKey').value;
+            const category = document.getElementById('tmdbSource.category').value;
+
+            // If we have test parameters, use the test endpoint, otherwise use the regular endpoint
+            let response;
+            if (apiKey) {
+                response = await fetch('/api/admin/tmdb-genres-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        apiKey: apiKey || undefined,
+                        category: category || 'popular'
+                    })
+                });
+            } else {
+                response = await fetch('/api/admin/tmdb-genres');
+            }
+
             if (!response.ok) {
                 throw new Error(`Failed to fetch TMDB genres: ${response.status}`);
             }
@@ -1884,11 +1938,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const genres = data.genres || [];
 
+            console.log('TMDB Received genres:', genres);
+
             // Clear existing options
             genreSelect.innerHTML = '';
 
             if (genres.length === 0) {
                 genreSelect.innerHTML = '<option value="">No genres found</option>';
+                console.log('No TMDB genres found, showing placeholder');
                 return;
             }
 
@@ -1897,10 +1954,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const option = document.createElement('option');
                 option.value = genre;
                 option.textContent = genre;
+                // Restore previous selection if this genre was selected
+                option.selected = currentlySelected.includes(genre);
                 genreSelect.appendChild(option);
             });
 
-            console.log(`Loaded ${genres.length} genres from TMDB`);
+            console.log(`Successfully loaded ${genres.length} TMDB genres into dropdown`);
             
             // Setup listeners after genres are loaded
             setupTMDBGenreFilterListeners();
@@ -1909,6 +1968,9 @@ document.addEventListener('DOMContentLoaded', () => {
             genreSelect.innerHTML = '<option value="">Error loading genres</option>';
         }
     }
+
+    // Make loadTMDBGenres globally accessible  
+    window.loadTMDBGenres = loadTMDBGenres;
 
     function setTMDBGenreFilterValues(genreFilterString) {
         const genreSelect = document.getElementById('tmdbSource.genreFilter');
@@ -1955,8 +2017,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const genreSelect = document.getElementById('tvdbSource.genreFilter');
         if (!genreSelect) return;
 
+        // Save currently selected genres before clearing
+        const currentlySelected = Array.from(genreSelect.selectedOptions).map(option => option.value);
+
         try {
-            const response = await fetch('/api/admin/tvdb-genres');
+            // Since TVDB has a hardcoded API key, we can always call the test endpoint
+            const response = await fetch('/api/admin/tvdb-genres-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}) // Empty body since API key is hardcoded
+            });
+
             if (!response.ok) {
                 throw new Error(`Failed to fetch TVDB genres: ${response.status}`);
             }
@@ -1964,24 +2035,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const genres = data.genres || [];
 
+            console.log('TVDB Received genres:', genres);
+
             // Clear existing options
             genreSelect.innerHTML = '';
 
             if (genres.length === 0) {
                 genreSelect.innerHTML = '<option value="">No genres found</option>';
+                console.log('No TVDB genres found, showing placeholder');
                 return;
             }
 
             // Add genres as options
             genres.forEach(genre => {
                 const option = document.createElement('option');
-                option.value = genre.name;
-                option.textContent = genre.name;
-                option.dataset.genreId = genre.id;
+                const genreName = genre.name || genre;
+                option.value = genreName;
+                option.textContent = genreName;
+                if (genre.id) option.dataset.genreId = genre.id;
+                // Restore previous selection if this genre was selected
+                option.selected = currentlySelected.includes(genreName);
                 genreSelect.appendChild(option);
             });
 
-            console.log(`Loaded ${genres.length} genres from TVDB`);
+            console.log(`Successfully loaded ${genres.length} TVDB genres into dropdown`);
             
             // Setup listeners after genres are loaded
             setupTVDBGenreFilterListeners();
@@ -1990,6 +2067,9 @@ document.addEventListener('DOMContentLoaded', () => {
             genreSelect.innerHTML = '<option value="">Error loading genres</option>';
         }
     }
+
+    // Make loadTVDBGenres globally accessible
+    window.loadTVDBGenres = loadTVDBGenres;
 
     function setTVDBGenreFilterValues(genreFilterString) {
         const genreSelect = document.getElementById('tvdbSource.genreFilter');
@@ -2083,17 +2163,28 @@ document.addEventListener('DOMContentLoaded', () => {
                         statusElement.textContent = `✅ Connection successful! Found ${result.count || 0} ${category} items.`;
                         statusElement.style.color = '#51cf66';
                     }
+                    
+                    // Automatically load TMDB genres after successful connection
+                    try {
+                        await loadTMDBGenres();
+                        showNotification('TMDB connection successful and genres loaded', 'success');
+                    } catch (genreError) {
+                        console.warn('Failed to load TMDB genres:', genreError);
+                        showNotification('TMDB connection successful, but genres could not be loaded', 'error');
+                    }
                 } else {
                     if (statusElement) {
                         statusElement.textContent = `❌ Connection failed: ${result.error || 'Unknown error'}`;
                         statusElement.style.color = '#ff6b6b';
                     }
+                    showNotification(`TMDB connection failed: ${result.error || 'Unknown error'}`, 'error');
                 }
             } catch (error) {
                 if (statusElement) {
                     statusElement.textContent = `❌ Test failed: ${error.message}`;
                     statusElement.style.color = '#ff6b6b';
                 }
+                showNotification(`TMDB connection failed: ${error.message}`, 'error');
             } finally {
                 // Restore button state
                 testButton.disabled = false;
@@ -2263,10 +2354,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (movieContainer) movieContainer.innerHTML = '<small>Loading libraries...</small>';
                 if (showContainer) showContainer.innerHTML = '<small>Loading libraries...</small>';
                 
-                // Load libraries with saved selections
+                // Load libraries with saved selections - only if Plex is properly configured
                 setTimeout(() => {
                     try {
-                        fetchAndDisplayPlexLibraries(window.__savedMovieLibs||[], window.__savedShowLibs||[]);
+                        const hostname = document.getElementById('mediaServers[0].hostname')?.value;
+                        const port = document.getElementById('mediaServers[0].port')?.value;
+                        const token = document.getElementById('mediaServers[0].token')?.value;
+                        
+                        // Only fetch libraries if we have valid Plex configuration
+                        if (hostname && hostname.trim() && port && port.trim() && token && token.trim()) {
+                            fetchAndDisplayPlexLibraries(window.__savedMovieLibs||[], window.__savedShowLibs||[]);
+                        } else {
+                            // Show placeholder message instead of trying to connect
+                            if (movieContainer) movieContainer.innerHTML = '<small>Configure Plex connection to load libraries</small>';
+                            if (showContainer) showContainer.innerHTML = '<small>Configure Plex connection to load libraries</small>';
+                        }
                         window.__mediaLazyLoaded = true; // Mark as loaded
                     } catch(e) { 
                         console.warn('[ADMIN] Library load failed during config load', e); 
@@ -2541,7 +2643,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(result.error || 'Unknown error');
                 }
 
-                setButtonState(testButton, 'success', { text: result.message });
+                setButtonState(testButton, 'success', { text: 'Connection successful' });
 
                 // Enable the "Refresh Media" button
                 const refreshButton = document.getElementById('refresh-media-button');
@@ -2551,11 +2653,22 @@ document.addEventListener('DOMContentLoaded', () => {
                  const currentMovieLibs = getSelectedLibraries('movie');
                  const currentShowLibs = getSelectedLibraries('show');
                  fetchAndDisplayPlexLibraries(currentMovieLibs, currentShowLibs);
+                 
+                 // Load genres after successful connection test
+                 try {
+                     await window.loadPlexGenres();
+                     showNotification('Plex connection successful and genres loaded', 'success');
+                 } catch (genreError) {
+                     console.warn('Failed to load genres after connection test:', genreError);
+                     showNotification('Plex connection successful, but genres could not be loaded', 'warning');
+                 }
+                 
                  adminBgQueue = []; // Force a re-fetch of the media queue
                  initializeAdminBackground();
 
             } catch (error) {
-                setButtonState(testButton, 'error');
+                setButtonState(testButton, 'error', { text: 'Connection failed' });
+                showNotification(`Plex connection failed: ${error.message}`, 'error');
 
                 // Disable the "Refresh Media" button
                 const refreshButton = document.getElementById('refresh-media-button');
@@ -2674,6 +2787,21 @@ document.addEventListener('DOMContentLoaded', () => {
         input.name = `${type}Library`;
         input.value = name;
         input.checked = isChecked;
+        
+        // Add change listener to automatically load genres when a library is selected
+        input.addEventListener('change', async () => {
+            const hasAnyLibrarySelected = getSelectedLibraries('movie').length > 0 || getSelectedLibraries('show').length > 0;
+            if (hasAnyLibrarySelected) {
+                // Load genres immediately when a library is selected
+                try {
+                    await loadPlexGenres();
+                    showNotification('Genres updated based on selected libraries', 'success');
+                } catch (error) {
+                    console.warn('Failed to load genres after library selection:', error);
+                }
+            }
+        });
+        
         const label = document.createElement('label');
         label.htmlFor = id;
         label.textContent = name;
@@ -2711,62 +2839,783 @@ document.addEventListener('DOMContentLoaded', () => {
     const disable2FAForm = document.getElementById('disable-2fa-form');
     const cancelDisable2FAButton = document.getElementById('cancel-disable-2fa-button');
 
+    // Debug logging for 2FA modal elements
+    console.log('🔍 2FA Modal Elements Check:');
+    console.log('- twoFaCheckbox:', twoFaCheckbox);
+    console.log('- twoFaStatusText:', twoFaStatusText);
+    console.log('- disable2FAModal:', disable2FAModal);
+    console.log('- disable2FAForm:', disable2FAForm);
+    console.log('- cancelDisable2FAButton:', cancelDisable2FAButton);
+
     function show2FAModal() {
-        if (twoFaModal) twoFaModal.classList.remove('is-hidden');
+        console.log('🔐 Showing 2FA modal...');
+        
+        // NUCLEAR OPTION: Create a completely new modal element
+        console.log('💥 NUCLEAR OPTION: Creating brand new modal element');
+        
+        // Remove any existing custom modal
+        const existingCustomModal = document.getElementById('custom-2fa-modal');
+        if (existingCustomModal) {
+            existingCustomModal.remove();
+        }
+        
+        // Create completely new modal
+        const customModal = document.createElement('div');
+        customModal.id = 'custom-2fa-modal';
+        customModal.innerHTML = `
+            <div style="
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                z-index: 99999999 !important;
+                background: rgba(0, 0, 0, 0.7) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                backdrop-filter: blur(5px) !important;
+            ">
+                <div style="
+                    background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(20, 20, 20, 0.95) 100%) !important;
+                    border: 1px solid rgba(102, 126, 234, 0.3) !important;
+                    border-radius: 16px !important;
+                    padding: 2rem !important;
+                    max-width: 500px !important;
+                    width: 90% !important;
+                    text-align: center !important;
+                    backdrop-filter: blur(20px) !important;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 8px 32px rgba(102, 126, 234, 0.2) !important;
+                ">
+                    <h2 style="
+                        color: #ffffff !important; 
+                        font-size: 1.5rem !important;
+                        font-weight: 600 !important;
+                        margin-bottom: 1rem !important;
+                        text-align: center !important;
+                    ">
+                        Setup Two-Factor Authentication
+                    </h2>
+                    <ol style="
+                        color: #b3b3b3 !important; 
+                        margin: 1rem 0 !important; 
+                        padding-left: 1.5rem !important;
+                        text-align: left !important;
+                    ">
+                        <li>Install an authenticator app (Google Authenticator, Authy, Microsoft Authenticator, etc.)</li>
+                        <li>Scan the QR code below with your authenticator app</li>
+                        <li>Enter the 6-digit code from your app to complete setup</li>
+                    </ol>
+                    <div id="custom-qr-container" style="
+                        text-align: center !important;
+                        margin: 1.5rem 0 !important;
+                    ">
+                        <!-- QR code will be inserted here -->
+                    </div>
+                    <input type="text" id="custom-2fa-token" placeholder="000000" maxlength="6" style="
+                        display: block !important;
+                        width: 200px !important;
+                        margin: 1rem auto !important;
+                        padding: 10px !important;
+                        text-align: center !important;
+                        font-size: 1.2rem !important;
+                        letter-spacing: 0.2rem !important;
+                        border: 2px solid rgba(102, 126, 234, 0.3) !important;
+                        border-radius: 8px !important;
+                        background: rgba(40, 40, 40, 0.8) !important;
+                        color: #ffffff !important;
+                        outline: none !important;
+                    ">
+                    <div style="margin-top: 1.5rem !important;">
+                        <button id="custom-cancel-2fa" style="
+                            margin-right: 10px !important;
+                            padding: 12px 24px !important;
+                            background: rgba(60, 60, 60, 0.8) !important;
+                            color: #ffffff !important;
+                            border: 1px solid rgba(102, 126, 234, 0.3) !important;
+                            border-radius: 8px !important;
+                            cursor: pointer !important;
+                            font-size: 1rem !important;
+                            transition: all 0.3s ease !important;
+                        ">Cancel Setup</button>
+                        <button id="custom-verify-2fa" style="
+                            padding: 12px 24px !important;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                            color: white !important;
+                            border: none !important;
+                            border-radius: 8px !important;
+                            cursor: pointer !important;
+                            font-size: 1rem !important;
+                            font-weight: 600 !important;
+                            transition: all 0.3s ease !important;
+                        ">Complete Setup</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-5px); }
+                    75% { transform: translateX(5px); }
+                }
+            </style>
+        `;
+        
+        // Add to body directly
+        document.body.appendChild(customModal);
+        console.log('✅ Custom modal added to body');
+        
+        // Add QR code to custom modal
+        const customQrContainer = document.getElementById('custom-qr-container');
+        if (customQrContainer && qrCodeContainer && qrCodeContainer.innerHTML) {
+            // Copy QR code with better styling
+            const qrImg = qrCodeContainer.querySelector('img');
+            if (qrImg) {
+                const styledQrCode = `
+                    <img src="${qrImg.src}" alt="2FA QR Code" style="
+                        max-width: 200px !important;
+                        border: 1px solid rgba(102, 126, 234, 0.3) !important;
+                        border-radius: 8px !important;
+                        padding: 10px !important;
+                        background: white !important;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+                    ">
+                `;
+                customQrContainer.innerHTML = styledQrCode;
+            } else {
+                customQrContainer.innerHTML = qrCodeContainer.innerHTML;
+            }
+            console.log('📱 QR code copied to custom modal');
+        }
+        
+        // Add event listeners
+        const cancelBtn = document.getElementById('custom-cancel-2fa');
+        const verifyBtn = document.getElementById('custom-verify-2fa');
+        const tokenInput = document.getElementById('custom-2fa-token');
+        
+        // Add hover effects
+        if (cancelBtn) {
+            cancelBtn.addEventListener('mouseenter', () => {
+                cancelBtn.style.background = 'rgba(80, 80, 80, 0.9)';
+            });
+            cancelBtn.addEventListener('mouseleave', () => {
+                cancelBtn.style.background = 'rgba(60, 60, 60, 0.8)';
+            });
+            cancelBtn.addEventListener('click', () => {
+                customModal.remove();
+                update2FAStatusText(false);
+                console.log('❌ Custom modal cancelled');
+            });
+        }
+        
+        if (verifyBtn) {
+            verifyBtn.addEventListener('mouseenter', () => {
+                verifyBtn.style.transform = 'translateY(-2px)';
+                verifyBtn.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.3)';
+            });
+            verifyBtn.addEventListener('mouseleave', () => {
+                verifyBtn.style.transform = 'translateY(0)';
+                verifyBtn.style.boxShadow = 'none';
+            });
+        }
+        
+        // Add input focus effects
+        if (tokenInput) {
+            tokenInput.addEventListener('focus', () => {
+                tokenInput.style.borderColor = 'rgba(102, 126, 234, 0.8)';
+                tokenInput.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.2)';
+            });
+            tokenInput.addEventListener('blur', () => {
+                tokenInput.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+                tokenInput.style.boxShadow = 'none';
+            });
+            // Auto-format input (digits only)
+            tokenInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '').substring(0, 6);
+            });
+        }
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                customModal.remove();
+                update2FAStatusText(false);
+                console.log('❌ Custom modal cancelled');
+            });
+        }
+        
+        if (verifyBtn && tokenInput) {
+            verifyBtn.addEventListener('click', async () => {
+                const token = tokenInput.value;
+                if (token.length === 6) {
+                    console.log('� Verifying token...');
+                    // Show loading state
+                    const originalText = verifyBtn.innerHTML;
+                    verifyBtn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⟳</span> Verifying...';
+                    verifyBtn.disabled = true;
+                    verifyBtn.style.opacity = '0.7';
+                    
+                    // Use the existing verification logic
+                    try {
+                        const response = await authenticatedFetch('/api/admin/2fa/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token })
+                        });
+                        const result = await response.json();
+                        
+                        if (response.status === 401) {
+                            throw new Error('Your session has expired. Please log in again.');
+                        }
+                        if (!response.ok) throw new Error(result.error || 'Verification failed.');
+
+                        customModal.remove();
+                        showNotification('🎉 Two-Factor Authentication enabled successfully!', 'success');
+                        update2FAStatusText(true);
+                        console.log('✅ 2FA setup completed via custom modal');
+                    } catch (error) {
+                        showNotification(`❌ ${error.message}`, 'error');
+                        tokenInput.value = '';
+                        tokenInput.focus();
+                        
+                        // Reset button state
+                        verifyBtn.innerHTML = '✓ Verify Code';
+                        verifyBtn.disabled = false;
+                        verifyBtn.style.opacity = '1';
+                    }
+                } else {
+                    // Simple validation feedback
+                    tokenInput.style.borderColor = '#ff4757';
+                    tokenInput.style.animation = 'shake 0.5s ease-in-out';
+                    setTimeout(() => {
+                        tokenInput.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+                        tokenInput.style.animation = '';
+                        tokenInput.focus();
+                    }, 500);
+                }
+            });
+            
+            // Allow Enter key to submit
+            tokenInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && tokenInput.value.length === 6) {
+                    verifyBtn.click();
+                }
+            });
+        }
+        
+        // Focus on input
+        if (tokenInput) {
+            setTimeout(() => tokenInput.focus(), 100);
+        }
+        
+        console.log('🎯 Custom modal should be DEFINITELY visible now!');
     }
 
     function hide2FAModal() {
-        if (twoFaModal) twoFaModal.classList.add('is-hidden');
+        // Hide original modal
+        if (twoFaModal) {
+            twoFaModal.classList.add('is-hidden');
+            twoFaModal.setAttribute('aria-hidden', 'true');
+        }
         if (qrCodeContainer) qrCodeContainer.innerHTML = '';
         const tokenInput = document.getElementById('2fa-token');
         if (tokenInput) tokenInput.value = '';
+        
+        // Also remove custom modal if it exists
+        const customModal = document.getElementById('custom-2fa-modal');
+        if (customModal) {
+            customModal.remove();
+            console.log('🗑️ Removed custom modal');
+        }
     }
 
     // New functions for the disable modal
     function showDisable2FAModal() {
-        if (disable2FAModal) disable2FAModal.classList.remove('is-hidden');
+        console.log('🔓 showDisable2FAModal called - ULTRA PROTECTED VERSION');
+        
+        // Remove any existing custom disable modal
+        const existingCustomModal = document.getElementById('ultra-protected-disable-2fa-modal');
+        if (existingCustomModal) {
+            existingCustomModal.remove();
+        }
+        
+        // Create completely new disable modal with ULTRA protection
+        const customDisableModal = document.createElement('div');
+        customDisableModal.id = 'ultra-protected-disable-2fa-modal';
+        
+        // Make it nearly impossible to remove accidentally
+        Object.defineProperty(customDisableModal, 'remove', {
+            value: function() {
+                console.log('🛡️ PROTECTED: Attempt to remove disable modal blocked');
+                // Only allow removal if explicitly called with the secret key
+                if (arguments[0] === 'ALLOW_REMOVE_SECRET_KEY_2FA_DISABLE') {
+                    Element.prototype.remove.call(this);
+                    console.log('✅ Modal removal allowed with secret key');
+                } else {
+                    console.log('❌ Modal removal blocked - no secret key');
+                }
+            },
+            writable: false,
+            configurable: false
+        });
+        
+        customDisableModal.innerHTML = `
+            <div style="
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                z-index: 2147483647 !important;
+                background: rgba(0, 0, 0, 0.7) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                backdrop-filter: blur(5px) !important;
+            ">
+                <div style="
+                    background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(20, 20, 20, 0.95) 100%) !important;
+                    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+                    border-radius: 16px !important;
+                    padding: 2rem !important;
+                    max-width: 500px !important;
+                    width: 90% !important;
+                    text-align: center !important;
+                    backdrop-filter: blur(20px) !important;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 8px 32px rgba(239, 68, 68, 0.2) !important;
+                ">
+                    <h2 style="
+                        color: #ffffff !important; 
+                        font-size: 1.5rem !important;
+                        font-weight: 600 !important;
+                        margin-bottom: 1rem !important;
+                        text-align: center !important;
+                    ">
+                        Disable Two-Factor Authentication
+                    </h2>
+                    <div style="
+                        color: #ff6b6b !important;
+                        background: rgba(239, 68, 68, 0.1) !important;
+                        border: 1px solid rgba(239, 68, 68, 0.3) !important;
+                        border-radius: 8px !important;
+                        padding: 1rem !important;
+                        margin-bottom: 1.5rem !important;
+                        text-align: left !important;
+                    ">
+                        <strong>⚠️ Warning:</strong> Disabling 2FA will make your account less secure.
+                    </div>
+                    <p style="
+                        color: #b3b3b3 !important; 
+                        margin-bottom: 1.5rem !important;
+                        text-align: center !important;
+                    ">
+                        Please enter your current password to confirm this change:
+                    </p>
+                    <input type="password" id="ultra-disable-password" placeholder="Current Password" style="
+                        display: block !important;
+                        width: 100% !important;
+                        max-width: 300px !important;
+                        margin: 1rem auto !important;
+                        padding: 12px !important;
+                        text-align: center !important;
+                        font-size: 1rem !important;
+                        border: 2px solid rgba(239, 68, 68, 0.3) !important;
+                        border-radius: 8px !important;
+                        background: rgba(40, 40, 40, 0.8) !important;
+                        color: #ffffff !important;
+                        outline: none !important;
+                        transition: border-color 0.3s ease !important;
+                    ">
+                    <div id="ultra-disable-error" style="
+                        display: none !important;
+                        color: #ff6b6b !important;
+                        background: rgba(239, 68, 68, 0.1) !important;
+                        border: 1px solid rgba(239, 68, 68, 0.3) !important;
+                        border-radius: 8px !important;
+                        padding: 0.75rem !important;
+                        margin: 1rem auto !important;
+                        max-width: 300px !important;
+                        font-size: 0.9rem !important;
+                        text-align: center !important;
+                    "></div>
+                    <div style="margin-top: 1.5rem !important;">
+                        <button id="ultra-cancel-disable" style="
+                            margin-right: 10px !important;
+                            padding: 12px 24px !important;
+                            background: rgba(60, 60, 60, 0.8) !important;
+                            color: #ffffff !important;
+                            border: 1px solid rgba(102, 126, 234, 0.3) !important;
+                            border-radius: 8px !important;
+                            cursor: pointer !important;
+                            font-size: 1rem !important;
+                            transition: all 0.3s ease !important;
+                        ">Keep 2FA Enabled</button>
+                        <button id="ultra-confirm-disable" style="
+                            padding: 12px 24px !important;
+                            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+                            color: white !important;
+                            border: none !important;
+                            border-radius: 8px !important;
+                            cursor: pointer !important;
+                            font-size: 1rem !important;
+                            font-weight: 600 !important;
+                            transition: all 0.3s ease !important;
+                        ">Disable 2FA</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                #ultra-disable-password:focus {
+                    border-color: rgba(239, 68, 68, 0.6) !important;
+                    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+                }
+                #ultra-cancel-disable:hover {
+                    background: rgba(80, 80, 80, 0.9) !important;
+                    transform: translateY(-1px) !important;
+                }
+                #ultra-confirm-disable:hover {
+                    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+                }
+            </style>
+        `;
+        
+        // Inject into body
+        document.body.appendChild(customDisableModal);
+        console.log('✅ ULTRA PROTECTED disable modal injected into body');
+        
+        // Prevent accidental closing - even more aggressive
+        customDisableModal.addEventListener('click', (e) => {
+            console.log('🚫 All clicks on modal background are ignored');
+            e.stopPropagation();
+            e.preventDefault();
+        });
+        
+        // Get elements from the new modal
+        const passwordInput = document.getElementById('ultra-disable-password');
+        const cancelBtn = document.getElementById('ultra-cancel-disable');
+        const confirmBtn = document.getElementById('ultra-confirm-disable');
+        const errorDiv = document.getElementById('ultra-disable-error');
+        
+        // Add event listeners
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                console.log('❌ User cancelled 2FA disable via cancel button');
+                // Use the secret key to allow removal
+                customDisableModal.remove('ALLOW_REMOVE_SECRET_KEY_2FA_DISABLE');
+                console.log('✅ Modal removed after cancel with secret key');
+                // Reset checkbox to enabled state
+                update2FAStatusText(true);
+            });
+        }
+        
+        if (confirmBtn && passwordInput) {
+            confirmBtn.addEventListener('click', async () => {
+                const password = passwordInput.value;
+                if (!password) {
+                    passwordInput.style.borderColor = '#ff4757';
+                    passwordInput.style.animation = 'shake 0.5s ease-in-out';
+                    setTimeout(() => {
+                        passwordInput.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                        passwordInput.style.animation = '';
+                        passwordInput.focus();
+                    }, 500);
+                    return;
+                }
+                
+                console.log('🔓 Disabling 2FA...');
+                
+                // HIDE modal from querySelector/getElementById during request
+                const originalId = customDisableModal.id;
+                customDisableModal.id = 'hidden-during-request-' + Date.now();
+                console.log('🫥 Modal temporarily hidden with ID:', customDisableModal.id);
+                
+                // Show loading state
+                const originalText = confirmBtn.innerHTML;
+                confirmBtn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⟳</span> Disabling...';
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.7';
+                
+                // Hide any previous error
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                }
+                
+                try {
+                    // Use pure fetch to avoid any side effects from authenticatedFetch
+                    console.log('🔓 Making PURE fetch request to disable 2FA...');
+                    const response = await fetch('/api/admin/2fa/disable', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        body: JSON.stringify({ password })
+                    });
+                    
+                    console.log('📡 Pure fetch response:', response.status, response.statusText);
+                    
+                    const result = await response.json();
+                    
+                    // Handle different types of 401 errors
+                    if (response.status === 401) {
+                        if (result.error && result.error.includes('Authentication required')) {
+                            throw new Error('Your session has expired. Please refresh the page and log in again.');
+                        } else if (result.error && result.error.includes('Incorrect password')) {
+                            throw new Error('Incorrect password');
+                        } else {
+                            throw new Error(result.error || 'Authentication failed');
+                        }
+                    }
+                    if (!response.ok) throw new Error(result.error || 'Failed to disable 2FA');
+
+                    // Restore modal ID before removing
+                    customDisableModal.id = originalId;
+                    console.log('✅ Modal ID restored for successful removal');
+                    
+                    // Use secret key to allow removal on success
+                    customDisableModal.remove('ALLOW_REMOVE_SECRET_KEY_2FA_DISABLE');
+                    update2FAStatusText(false);
+                    showNotification('🔓 Two-Factor Authentication disabled successfully.', 'success');
+                    console.log('✅ 2FA disabled successfully via ultra protected modal');
+                } catch (error) {
+                    // RESTORE modal ID immediately in error case
+                    customDisableModal.id = originalId;
+                    console.log('🔄 Modal ID restored after error for retry');
+                    
+                    // COMPLETELY BYPASS normal error handling
+                    console.log('❌ 2FA disable error (INTERCEPTED):', error.message);
+                    
+                    // Reset button state IMMEDIATELY
+                    confirmBtn.innerHTML = originalText;
+                    confirmBtn.disabled = false;
+                    confirmBtn.style.opacity = '1';
+                    
+                    // Handle error WITHOUT any external calls that might close modal
+                    let errorMessage = error.message;
+                    
+                    // Customize error messages for better UX
+                    if (errorMessage.includes('Incorrect password')) {
+                        errorMessage = '❌ Incorrect password. Please try again.';
+                    } else if (errorMessage.includes('session has expired') || errorMessage.includes('Authentication required')) {
+                        errorMessage = '⚠️ Your session has expired. Please refresh the page and log in again.';
+                        // For session expiry, we should probably close the modal and redirect
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
+                    } else if (errorMessage.includes('Failed to disable 2FA')) {
+                        errorMessage = '❌ Failed to disable 2FA. Please check your password and try again.';
+                    } else {
+                        errorMessage = `❌ ${errorMessage}`;
+                    }
+                    
+                    // Show error ONLY in modal - NO external calls whatsoever
+                    if (errorDiv) {
+                        errorDiv.textContent = errorMessage;
+                        errorDiv.style.display = 'block';
+                        // Hide error after 8 seconds
+                        setTimeout(() => {
+                            if (errorDiv && document.body.contains(errorDiv)) {
+                                errorDiv.style.display = 'none';
+                            }
+                        }, 8000);
+                    }
+                    
+                    // Clear password and focus for retry
+                    passwordInput.value = '';
+                    passwordInput.style.borderColor = '#ff4757';
+                    passwordInput.focus();
+                    
+                    // Reset border color after animation
+                    setTimeout(() => {
+                        if (passwordInput && document.body.contains(passwordInput)) {
+                            passwordInput.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                        }
+                    }, 1000);
+                    
+                    // DO NOT close modal - NO external notifications - PURE inline handling
+                    console.log('🔄 Modal kept open for retry - NO external calls made');
+                    
+                    // Prevent any further error propagation
+                    return false;
+                }
+            });
+            
+            // Allow Enter key to submit
+            passwordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && passwordInput.value) {
+                    confirmBtn.click();
+                }
+            });
+            
+            // Hide error message when user starts typing
+            passwordInput.addEventListener('input', () => {
+                if (errorDiv && errorDiv.style.display === 'block') {
+                    errorDiv.style.display = 'none';
+                }
+                // Reset border color when typing
+                passwordInput.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            });
+        }
+        
+        // Focus on password input
+        if (passwordInput) {
+            setTimeout(() => passwordInput.focus(), 100);
+        }
     }
 
     function hideDisable2FAModal() {
+        // Hide original modal if it exists
         if (disable2FAModal) disable2FAModal.classList.add('is-hidden');
         if (disable2FAForm) disable2FAForm.reset();
+        
+        // Remove ultra protected modal if it exists
+        const ultraProtectedModal = document.getElementById('ultra-protected-disable-2fa-modal');
+        if (ultraProtectedModal) {
+            // Use secret key to allow removal
+            ultraProtectedModal.remove('ALLOW_REMOVE_SECRET_KEY_2FA_DISABLE');
+            console.log('✅ Ultra protected modal removed with secret key');
+        }
+        
+        // Also try to remove old custom modal if it exists
+        const customDisableModal = document.getElementById('custom-disable-2fa-modal');
+        if (customDisableModal) {
+            customDisableModal.remove();
+        }
+        
+        // Always restore the checkbox to enabled state when modal is hidden
+        // (unless 2FA was actually successfully disabled)
+        const actuallyEnabled = twoFaCheckbox && twoFaCheckbox.dataset.actuallyEnabled === 'true';
+        if (actuallyEnabled && twoFaCheckbox.checked === false) {
+            // User cancelled the disable process, restore the enabled state
+            update2FAStatusText(true);
+        }
     }
 
     function update2FAStatusText(isEnabled) {
         if (!twoFaStatusText) return;
+        
+        // Update the visual status
         if (isEnabled) {
-            twoFaStatusText.textContent = '2FA is currently enabled.';
+            twoFaStatusText.innerHTML = '<i class="fas fa-shield-alt" style="color: #28a745;"></i> Two-Factor Authentication is <strong>enabled</strong> and protecting your account.';
             twoFaStatusText.className = 'status-text enabled';
         } else {
-            twoFaStatusText.textContent = '2FA is currently disabled.';
+            twoFaStatusText.innerHTML = '<i class="fas fa-shield-alt" style="color: #6c757d;"></i> Two-Factor Authentication is <strong>disabled</strong>. Click above to set it up.';
             twoFaStatusText.className = 'status-text disabled';
+        }
+        
+        // Update checkbox state and store actual status
+        if (twoFaCheckbox) {
+            twoFaCheckbox.checked = isEnabled;
+            twoFaCheckbox.dataset.actuallyEnabled = isEnabled.toString();
         }
     }
 
     async function handleEnable2FA() {
+        console.log('🚀 Starting 2FA setup process...');
+        
+        // Show loading notification
+        const loadingNotification = showNotification('🔄 Generating 2FA setup...', 'info');
+        
         try {
-            const response = await fetch('/api/admin/2fa/generate', { method: 'POST' });
+            console.log('📡 Making API call to generate 2FA...');
+            const response = await authenticatedFetch('/api/admin/2fa/generate', { method: 'POST' });
             const result = await response.json();
+            
+            console.log('📦 API Response:', { status: response.status, ok: response.ok });
+            
+            if (response.status === 401) {
+                throw new Error('Your session has expired. Please log in again.');
+            }
             if (!response.ok) throw new Error(result.error || 'Could not generate QR code.');
 
-            qrCodeContainer.innerHTML = `<img src="${result.qrCodeDataUrl}" alt="QR Code">`;
+            // Hide loading notification immediately
+            if (loadingNotification) {
+                loadingNotification.classList.remove('show');
+                setTimeout(() => {
+                    if (loadingNotification && loadingNotification.parentNode) {
+                        loadingNotification.remove();
+                    }
+                }, 300); // Give time for transition
+            }
+
+            console.log('🖼️ Setting QR code content...');
+            qrCodeContainer.innerHTML = `<img src="${result.qrCodeDataUrl}" alt="QR Code" style="max-width: 200px; border: 1px solid #ddd; padding: 10px; background: white;">`;
+            
+            console.log('🎭 Attempting to show 2FA modal...');
             show2FAModal();
+            
+            // Focus is now handled in show2FAModal function
         } catch (error) {
-            showNotification(`Error enabling 2FA: ${error.message}`, 'error');
-            twoFaCheckbox.checked = false;
+            console.error('❌ Error in 2FA setup:', error);
+            // Hide loading notification immediately
+            if (loadingNotification) {
+                loadingNotification.classList.remove('show');
+                setTimeout(() => {
+                    if (loadingNotification && loadingNotification.parentNode) {
+                        loadingNotification.remove();
+                    }
+                }, 300);
+            }
+            showNotification(`❌ Error enabling 2FA: ${error.message}`, 'error');
+            // Reset checkbox to original state on error
+            update2FAStatusText(false);
         }
     }
 
     async function handleDisable2FA() {
+        console.log('🔓 handleDisable2FA called');
+        
+        // First check if we're still authenticated
+        try {
+            const testResponse = await fetch('/api/admin/config', {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
+            
+            if (testResponse.status === 401) {
+                showNotification('⚠️ Your session has expired. Please refresh the page and log in again.', 'error');
+                setTimeout(() => window.location.reload(), 2000);
+                return;
+            }
+        } catch (error) {
+            console.warn('Failed to test authentication:', error);
+            // Continue anyway, the actual request will handle auth errors
+        }
+        
         // This function now just shows the modal. The logic is moved to the form submit handler.
         showDisable2FAModal();
     }
 
     if (twoFaCheckbox) {
-        twoFaCheckbox.addEventListener('change', (event) => {
-            if (event.target.checked) {
+        twoFaCheckbox.addEventListener('click', (event) => {
+            // Prevent the default checkbox behavior
+            event.preventDefault();
+            
+            // Check current actual state from server
+            const currentlyEnabled = twoFaCheckbox.dataset.actuallyEnabled === 'true';
+            const clickedToEnable = !currentlyEnabled;
+            
+            if (clickedToEnable) {
+                // User wants to enable 2FA - start wizard
                 handleEnable2FA();
             } else {
+                // User wants to disable 2FA - immediately update visual state and show confirmation
+                // Temporarily update the checkbox to show unchecked state
+                twoFaCheckbox.checked = false;
+                twoFaStatusText.innerHTML = '<i class="fas fa-shield-alt" style="color: #ffc107;"></i> Two-Factor Authentication is being <strong>disabled</strong>... Please confirm below.';
+                twoFaStatusText.className = 'status-text warning';
+                
                 handleDisable2FA();
             }
         });
@@ -2775,7 +3624,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancel2faButton) {
         cancel2faButton.addEventListener('click', () => {
             hide2FAModal();
-            twoFaCheckbox.checked = false;
+            // Reset to actual current state (disabled)
             update2FAStatusText(false);
         });
     }
@@ -2784,24 +3633,38 @@ document.addEventListener('DOMContentLoaded', () => {
         twoFaVerifyForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const tokenInput = document.getElementById('2fa-token');
+            const submitButton = event.target.querySelector('button[type="submit"]');
             const token = tokenInput.value;
 
+            // Show loading state
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            submitButton.disabled = true;
+
             try {
-                const response = await fetch('/api/admin/2fa/verify', {
+                const response = await authenticatedFetch('/api/admin/2fa/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token })
                 });
                 const result = await response.json();
+                
+                if (response.status === 401) {
+                    throw new Error('Your session has expired. Please log in again.');
+                }
                 if (!response.ok) throw new Error(result.error || 'Verification failed.');
 
                 hide2FAModal();
-                showNotification('2FA enabled successfully!', 'success');
+                showNotification('🎉 Two-Factor Authentication enabled successfully!', 'success');
                 update2FAStatusText(true);
             } catch (error) {
-                showNotification(`Error: ${error.message}`, 'error');
+                showNotification(`❌ ${error.message}`, 'error');
                 tokenInput.value = '';
                 tokenInput.focus();
+            } finally {
+                // Reset button state
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
             }
         });
     }
@@ -2810,25 +3673,41 @@ document.addEventListener('DOMContentLoaded', () => {
         disable2FAForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const passwordInput = document.getElementById('disable-2fa-password');
+            const submitButton = event.target.querySelector('button[type="submit"]');
             const password = passwordInput.value;
 
+            // Show loading state
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Disabling...';
+            submitButton.disabled = true;
+
             try {
-                const response = await fetch('/api/admin/2fa/disable', {
+                const response = await authenticatedFetch('/api/admin/2fa/disable', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
                 });
                 const result = await response.json();
+                
+                if (response.status === 401) {
+                    throw new Error('Your session has expired. Please log in again.');
+                }
                 if (!response.ok) throw new Error(result.error || 'Disable failed.');
 
+                // Update status first before hiding modal
+                update2FAStatusText(false);
                 hideDisable2FAModal();
-                showNotification('2FA disabled successfully.', 'success');
+                showNotification('🔓 Two-Factor Authentication disabled successfully.', 'success');
                 update2FAStatusText(false);
             } catch (error) {
-                showNotification(`Error disabling 2FA: ${error.message}`, 'error');
+                showNotification(`❌ Error disabling 2FA: ${error.message}`, 'error');
                 // Don't hide the modal on error, so the user can try again.
                 passwordInput.value = '';
                 passwordInput.focus();
+            } finally {
+                // Reset button state
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
             }
         });
     }
@@ -2836,8 +3715,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelDisable2FAButton) {
         cancelDisable2FAButton.addEventListener('click', () => {
             hideDisable2FAModal();
-            twoFaCheckbox.checked = true; // Revert the checkbox state since the user cancelled
-            update2FAStatusText(true);
         });
     }
 
@@ -2992,6 +3869,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadConfig();
     
+    // Track original form values to detect actual changes
+    let originalConfigValues = {};
+    
+    // Function to capture current form state
+    function captureFormState() {
+        const form = document.getElementById('config-form');
+        if (!form) return {};
+        
+        const formData = new FormData(form);
+        const values = {};
+        
+        // Get all form inputs
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            if (input.type === 'checkbox') {
+                values[input.id || input.name] = input.checked;
+            } else if (input.type === 'radio') {
+                if (input.checked) {
+                    values[input.name] = input.value;
+                }
+            } else {
+                values[input.id || input.name] = input.value;
+            }
+        });
+        
+        return values;
+    }
+    
+    // Capture initial state after config loads
+    setTimeout(() => {
+        originalConfigValues = captureFormState();
+        console.log('📋 Original config values captured');
+    }, 1000);
+    
+    // Function to check if form has actually changed
+    function hasFormChanged() {
+        const currentValues = captureFormState();
+        
+        // Compare with original values
+        for (const key in currentValues) {
+            if (originalConfigValues[key] !== currentValues[key]) {
+                console.log('🔄 Form change detected:', key, originalConfigValues[key], '→', currentValues[key]);
+                return true;
+            }
+        }
+        
+        // Check for new keys
+        for (const key in originalConfigValues) {
+            if (!(key in currentValues)) {
+                console.log('🔄 Form field removed:', key);
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     // Remove automatic background initialization - it will be handled by section switching
 
     // Cleanup timers when page unloads
@@ -3010,40 +3944,6 @@ document.addEventListener('DOMContentLoaded', () => {
         debugCheckbox.addEventListener('change', () => {
             debugAction.classList.toggle('is-hidden', !debugCheckbox.checked);
         });
-    }
-
-    /**
-     * Displays a notification message on the screen.
-     * @param {string} message The message to display.
-     * @param {string} type The type of notification ('success' or 'error').
-     */
-    function showNotification(message, type = 'success') {
-        const container = document.getElementById('notification-area');
-        if (!container) return;
-
-        const notification = document.createElement('div');
-        // Special styling for setup complete message
-        if (message.includes('Setup complete!')) {
-            notification.className = `notification ${type} setup-complete`;
-            notification.innerHTML = `<i class='fas fa-rocket'></i> <strong>${message}</strong>`;
-        } else {
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-        }
-
-        container.appendChild(notification);
-
-        // Trigger the transition for appearing
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 10);
-
-        // Setup complete message stays longer (8s), others 5s
-        const timeout = notification.classList.contains('setup-complete') ? 8000 : 5000;
-        setTimeout(() => {
-            notification.classList.remove('show');
-            notification.addEventListener('transitionend', () => notification.remove());
-        }, timeout);
     }
 
      const configForm = document.getElementById('config-form');
@@ -3351,9 +4251,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const result = await response.json();
 
-                        // Config saved successfully - show restart banner
+                        // Config saved successfully - check if restart is needed
                         showNotification('Settings saved successfully!', 'success');
-                        showRestartButton();
+                        
+                        // Only show restart button if form actually changed
+                        if (hasFormChanged()) {
+                            console.log('🔧 Config changed, showing restart button');
+                            showRestartButton();
+                        } else {
+                            console.log('ℹ️ No config changes detected, no restart needed');
+                        }
+                        
+                        // Update original values after successful save
+                        originalConfigValues = captureFormState();
                         
                         if (window.__saveCoordinator) {
                             window.__saveCoordinator.lastManualAt = Date.now();
@@ -4313,12 +5223,22 @@ async function testTVDBConnection() {
         if (response.ok && result.success) {
             statusElement.textContent = `✅ Connection successful! Found ${result.sampleData?.length || 0} sample items.`;
             statusElement.style.color = '#51cf66';
+            
+            // Automatically load TVDB genres after successful connection
+            try {
+                await window.loadTVDBGenres();
+                showNotification('TVDB connection successful and genres loaded', 'success');
+            } catch (genreError) {
+                console.warn('Failed to load TVDB genres:', genreError);
+                showNotification('TVDB connection successful, but genres could not be loaded', 'error');
+            }
         } else {
             throw new Error(result.error || 'Connection test failed');
         }
     } catch (error) {
         statusElement.textContent = `❌ Connection failed: ${error.message}`;
         statusElement.style.color = '#ff6b6b';
+        showNotification(`TVDB connection failed: ${error.message}`, 'error');
     } finally {
         // Re-enable button
         testButton.disabled = false;
@@ -4730,7 +5650,7 @@ function displayUpdateResults(data) {
             <div class="status-item">
                 <div class="status-item-header">
                     <i class="fas fa-tag"></i>
-                    Current Version
+                    Installed Version
                 </div>
                 <div class="status-item-value status-info">
                     ${currentVersion}
@@ -4984,15 +5904,66 @@ async function performStatusCheckSilent() {
     }
 }
 
+/**
+ * Displays a notification message on the screen.
+ * @param {string} message The message to display.
+ * @param {string} type The type of notification ('success' or 'error').
+ */
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('notification-area');
+    if (!container) return;
+
+    const notification = document.createElement('div');
+    // Special styling for setup complete message
+    if (message.includes('Setup complete!')) {
+        notification.className = `notification ${type} setup-complete`;
+        notification.innerHTML = `<i class='fas fa-rocket'></i> <strong>${message}</strong>`;
+    } else {
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+    }
+
+    container.appendChild(notification);
+
+    // Trigger the transition for appearing
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+
+    // Setup complete message stays longer (8s), others 5s
+    const timeout = notification.classList.contains('setup-complete') ? 8000 : 5000;
+    setTimeout(() => {
+        notification.classList.remove('show');
+        notification.addEventListener('transitionend', () => notification.remove());
+    }, timeout);
+    
+    // Return the notification element so it can be managed externally
+    return notification;
+}
+
 // Restart Button Management
 function showRestartButton() {
     const restartBtn = document.getElementById('restart-now-btn');
     
     if (restartBtn) {
-        restartBtn.style.display = 'flex';
+        // Force show the button by removing all hiding styles
+        restartBtn.removeAttribute('style');
+        restartBtn.removeAttribute('hidden');
+        restartBtn.classList.remove('hidden');
+        
+        // Add specific show styles
+        restartBtn.style.setProperty('display', 'inline-flex', 'important');
+        restartBtn.style.setProperty('visibility', 'visible', 'important');
+        restartBtn.style.setProperty('opacity', '1', 'important');
         
         // Store in sessionStorage so button persists across page navigation
         sessionStorage.setItem('restartButtonVisible', 'true');
+        console.log('🔄 Restart button shown dynamically and sessionStorage set');
+        
+        // Force a reflow to ensure changes are applied
+        restartBtn.offsetHeight;
+    } else {
+        console.warn('⚠️ Restart button element not found when trying to show!');
     }
 }
 
@@ -5000,10 +5971,21 @@ function hideRestartButton() {
     const restartBtn = document.getElementById('restart-now-btn');
     
     if (restartBtn) {
-        restartBtn.style.display = 'none';
+        // Force hide with multiple methods to override any CSS
+        restartBtn.style.setProperty('display', 'none', 'important');
+        restartBtn.style.setProperty('visibility', 'hidden', 'important');
+        restartBtn.style.setProperty('opacity', '0', 'important');
+        restartBtn.setAttribute('hidden', 'true');
+        restartBtn.classList.add('hidden');
         
         // Remove from sessionStorage
         sessionStorage.removeItem('restartButtonVisible');
+        console.log('🔄 Restart button forcefully hidden dynamically and sessionStorage cleared');
+        
+        // Force a reflow to ensure changes are applied
+        restartBtn.offsetHeight;
+    } else {
+        console.warn('⚠️ Restart button element not found!');
     }
 }
 
@@ -5021,17 +6003,24 @@ function performRestart() {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' }
     }).then(() => {
-        showNotification('Server is restarting... Please refresh the page in a few seconds.', 'info');
+        console.log('✅ Restart request sent successfully');
         hideRestartButton();
+        sessionStorage.removeItem('restartButtonVisible'); // Verwijder flag zodat knop niet terugkomt na reload
         
-        // Auto-refresh after 3 seconds
+        // Show notification and auto-refresh
+        if (typeof showNotification === 'function') {
+            showNotification('Server is restarting... Please refresh the page in a few seconds.', 'success');
+        }
+        
+        // Auto-refresh na 3 seconden
         setTimeout(() => {
             window.location.reload();
         }, 3000);
     }).catch(error => {
         console.error('Restart failed:', error);
-        showNotification('Could not restart server automatically. Please restart manually if needed.', 'warning');
-        
+        if (typeof showNotification === 'function') {
+            showNotification('Could not restart server automatically. Please restart manually if needed.', 'error');
+        }
         // Restore button state
         restartBtn.disabled = false;
         restartBtn.innerHTML = originalText;
@@ -5040,14 +6029,26 @@ function performRestart() {
 
 // Initialize restart button functionality
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Admin page loaded, checking restart button status...');
+    
     // Check if restart button should be visible (from sessionStorage)
-    if (sessionStorage.getItem('restartButtonVisible') === 'true') {
+    const shouldShowRestart = sessionStorage.getItem('restartButtonVisible') === 'true';
+    console.log('🔍 Restart button should be visible:', shouldShowRestart);
+    
+    if (shouldShowRestart) {
+        // Show the button because restart is still needed
         showRestartButton();
+        console.log('✅ Restart button restored - restart still needed');
+    } else {
+        // Make sure button is hidden
+        hideRestartButton();
+        console.log('✅ No restart needed - button hidden');
     }
     
     // Restart now button handler
     const restartNowBtn = document.getElementById('restart-now-btn');
     if (restartNowBtn) {
         restartNowBtn.addEventListener('click', performRestart);
+        console.log('🔧 Restart button click handler attached');
     }
 });
