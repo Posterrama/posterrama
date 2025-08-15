@@ -2787,9 +2787,12 @@ async function writeConfig(newConfig) {
         changes: Object.keys(newConfig).filter(key => !key.startsWith('_'))
     });
 
+    // Create a deep copy to avoid mutating the original config
+    const configCopy = JSON.parse(JSON.stringify(newConfig));
+    
     // Remove metadata before writing
-    delete newConfig._metadata;
-    const newContent = JSON.stringify(newConfig, null, 2);
+    delete configCopy._metadata;
+    const newContent = JSON.stringify(configCopy, null, 2);
     const tempPath = './config.json.tmp';
     const finalPath = './config.json';
 

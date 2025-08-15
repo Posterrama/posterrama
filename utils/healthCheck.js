@@ -1,13 +1,26 @@
 const fsModule = require('fs');
 const fs = fsModule.promises;
 const path = require('path');
-const config = require('../config');
 const logger = require('../logger');
 const pkg = require('../package.json');
 
 // Health check cache to avoid expensive checks on every request
 let healthCheckCache = null;
 let cacheTimestamp = 0;
+
+/**
+ * Read the current configuration from config.json
+ * @returns {Promise<object>} The current configuration
+ */
+async function readConfig() {
+    try {
+        const content = await fs.readFile(path.join(__dirname, '../config.json'), 'utf-8');
+        return JSON.parse(content);
+    } catch (error) {
+        logger.error('Failed to read config.json in healthCheck', { error: error.message });
+        return { mediaServers: [] }; // fallback to prevent crashes
+    }
+}
 const CACHE_DURATION = 30000; // 30 seconds
 
 /**
@@ -28,6 +41,7 @@ function getBasicHealth() {
  */
 async function checkConfiguration() {
     try {
+        const config = await readConfig();
         const enabledServers = (config.mediaServers || []).filter(s => s.enabled);
         
         if (enabledServers.length === 0) {
@@ -130,6 +144,7 @@ async function checkMediaCache() {
 async function checkPlexConnectivity() {
     try {
         const { testServerConnection } = require('../sources/plex');
+        const config = await readConfig();
         const enabledServers = (config.mediaServers || []).filter(s => s.enabled && s.type === 'plex');
         
         if (enabledServers.length === 0) {
