@@ -2795,6 +2795,12 @@ async function writeConfig(newConfig) {
 
     try {
         // Write to a temporary file first
+        logger.debug('About to write temp config file', {
+            action: 'config_write_start',
+            tempPath,
+            contentLength: newContent.length
+        });
+        
         await fsp.writeFile(tempPath, newContent, 'utf-8');
         
         // Log backup creation
@@ -2804,6 +2810,12 @@ async function writeConfig(newConfig) {
         });
 
         // Atomically rename the temp file to the final file
+        logger.debug('About to rename temp file', {
+            action: 'config_rename_start',
+            tempPath,
+            finalPath
+        });
+        
         await fsp.rename(tempPath, finalPath);
         
         // Update the in-memory config for the current running instance
@@ -2827,7 +2839,11 @@ async function writeConfig(newConfig) {
         logger.error('Failed to update configuration', {
             action: 'config_update_error',
             error: error.message,
-            stack: error.stack
+            stack: error.stack,
+            code: error.code,
+            errno: error.errno,
+            syscall: error.syscall,
+            path: error.path
         });
 
         // Attempt to clean up the temporary file on error
@@ -5789,6 +5805,12 @@ app.post('/api/admin/cache/config', isAuthenticated, express.json(), asyncHandle
         
     } catch (error) {
         if (isDebug) console.error('[Admin API] Error updating cache config:', error);
+        logger.error('Cache config update failed', {
+            action: 'cache_config_update_error',
+            error: error.message,
+            stack: error.stack,
+            requestBody: req.body
+        });
         throw new ApiError(500, 'Failed to update cache configuration.');
     }
 }));

@@ -3070,6 +3070,32 @@ fieldset:focus-within {
     color: rgba(239, 68, 68, 1) !important;
 }
 
+/* Restart Now button specific styling - orange/warning theme */
+#restart-now-btn {
+    background: rgba(249, 115, 22, 0.15) !important;
+    border: 1px solid rgba(249, 115, 22, 0.3) !important;
+    color: rgba(249, 115, 22, 1) !important;
+}
+
+#restart-now-btn:hover {
+    background: rgba(249, 115, 22, 0.25) !important;
+    border-color: rgba(249, 115, 22, 0.4) !important;
+    color: rgba(249, 115, 22, 1) !important;
+}
+
+/* GitHub button specific styling - gray theme */
+#github-btn {
+    background: rgba(107, 114, 128, 0.15) !important;
+    border: 1px solid rgba(107, 114, 128, 0.3) !important;
+    color: rgba(107, 114, 128, 1) !important;
+}
+
+#github-btn:hover {
+    background: rgba(107, 114, 128, 0.25) !important;
+    border-color: rgba(107, 114, 128, 0.4) !important;
+    color: rgba(107, 114, 128, 1) !important;
+}
+
 /* ===== DESIGN LANGUAGE: Button Styling System ===== */
 
 /* Primary buttons - Blue theme (main actions like Save, Test, etc.) */

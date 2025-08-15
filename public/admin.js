@@ -4635,157 +4635,48 @@ function setupCacheConfigEventListeners() {
     // Cache configuration event listeners
     const maxSizeInput = document.getElementById('cache-max-size');
     const minFreeSpaceInput = document.getElementById('min-free-space');
+    const saveCacheConfigButton = document.getElementById('save-cache-config');
     
     console.log('[Cache Config] Setting up event listeners for cache config inputs');
     
-    if (maxSizeInput) {
-        console.log('[Cache Config] Adding listeners to max size input');
-        
-        // Remove existing listeners to prevent duplicates
-        maxSizeInput.removeEventListener('change', saveCacheConfig);
-        maxSizeInput.removeEventListener('input', saveCacheConfig);
-        maxSizeInput.removeEventListener('keydown', saveCacheConfig);
-        
-        // Save on change (when field loses focus)
-        maxSizeInput.addEventListener('change', () => {
-            console.log('[Cache Config] Max size change event triggered');
+    // Add save button event listener
+    if (saveCacheConfigButton) {
+        saveCacheConfigButton.addEventListener('click', () => {
+            console.log('[Cache Config] Save button clicked');
             saveCacheConfig();
         });
-        
-        // Save on input (real-time typing) with debounce
-        let maxSizeTimeout;
-        maxSizeInput.addEventListener('input', () => {
-            console.log('[Cache Config] Max size input event triggered');
-            clearTimeout(maxSizeTimeout);
-            maxSizeTimeout = setTimeout(() => {
-                console.log('[Cache Config] Max size input debounced save');
-                saveCacheConfig();
-            }, 1000); // 1 second debounce
-        });
-        
-        // Save on Enter key
+        console.log('[Cache Config] Save button listener added');
+    } else {
+        console.warn('[Cache Config] Save button not found');
+    }
+    
+    // Optional: Save on Enter key in inputs as shortcut
+    if (maxSizeInput) {
         maxSizeInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 console.log('[Cache Config] Max size Enter key pressed');
                 e.preventDefault();
-                clearTimeout(maxSizeTimeout);
                 saveCacheConfig();
             }
         });
+        console.log('[Cache Config] Max size Enter key listener added');
     } else {
         console.warn('[Cache Config] Max size input not found');
     }
     
     if (minFreeSpaceInput) {
-        console.log('[Cache Config] Adding listeners to min free space input');
-        
-        // Remove existing listeners to prevent duplicates
-        minFreeSpaceInput.removeEventListener('change', saveCacheConfig);
-        minFreeSpaceInput.removeEventListener('input', saveCacheConfig);
-        minFreeSpaceInput.removeEventListener('keydown', saveCacheConfig);
-        
-        // Save on change (when field loses focus)
-        minFreeSpaceInput.addEventListener('change', () => {
-            console.log('[Cache Config] Min free space change event triggered');
-            saveCacheConfig();
-        });
-        
-        // Save on input (real-time typing) with debounce
-        let minFreeSpaceTimeout;
-        minFreeSpaceInput.addEventListener('input', () => {
-            console.log('[Cache Config] Min free space input event triggered');
-            clearTimeout(minFreeSpaceTimeout);
-            minFreeSpaceTimeout = setTimeout(() => {
-                console.log('[Cache Config] Min free space input debounced save');
-                saveCacheConfig();
-            }, 1000); // 1 second debounce
-        });
-        
-        // Save on Enter key
         minFreeSpaceInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 console.log('[Cache Config] Min free space Enter key pressed');
                 e.preventDefault();
-                clearTimeout(minFreeSpaceTimeout);
                 saveCacheConfig();
             }
         });
+        console.log('[Cache Config] Min free space Enter key listener added');
     } else {
         console.warn('[Cache Config] Min free space input not found');
     }
 }
-
-    // Cache configuration event listeners
-    const maxSizeInput = document.getElementById('cache-max-size');
-    const minFreeSpaceInput = document.getElementById('min-free-space');
-    
-    console.log('[Cache Config] Setting up event listeners for cache config inputs');
-    
-    if (maxSizeInput) {
-        console.log('[Cache Config] Adding listeners to max size input');
-        
-        // Save on change (when field loses focus)
-        maxSizeInput.addEventListener('change', () => {
-            console.log('[Cache Config] Max size change event triggered');
-            saveCacheConfig();
-        });
-        
-        // Save on input (real-time typing) with debounce
-        let maxSizeTimeout;
-        maxSizeInput.addEventListener('input', () => {
-            console.log('[Cache Config] Max size input event triggered');
-            clearTimeout(maxSizeTimeout);
-            maxSizeTimeout = setTimeout(() => {
-                console.log('[Cache Config] Max size input debounced save');
-                saveCacheConfig();
-            }, 1000); // 1 second debounce
-        });
-        
-        // Save on Enter key
-        maxSizeInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                console.log('[Cache Config] Max size Enter key pressed');
-                e.preventDefault();
-                clearTimeout(maxSizeTimeout);
-                saveCacheConfig();
-            }
-        });
-    } else {
-        console.warn('[Cache Config] Max size input not found');
-    }
-    
-    if (minFreeSpaceInput) {
-        console.log('[Cache Config] Adding listeners to min free space input');
-        
-        // Save on change (when field loses focus)
-        minFreeSpaceInput.addEventListener('change', () => {
-            console.log('[Cache Config] Min free space change event triggered');
-            saveCacheConfig();
-        });
-        
-        // Save on input (real-time typing) with debounce
-        let minFreeSpaceTimeout;
-        minFreeSpaceInput.addEventListener('input', () => {
-            console.log('[Cache Config] Min free space input event triggered');
-            clearTimeout(minFreeSpaceTimeout);
-            minFreeSpaceTimeout = setTimeout(() => {
-                console.log('[Cache Config] Min free space input debounced save');
-                saveCacheConfig();
-            }, 1000); // 1 second debounce
-        });
-        
-        // Save on Enter key
-        minFreeSpaceInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                console.log('[Cache Config] Min free space Enter key pressed');
-                e.preventDefault();
-                clearTimeout(minFreeSpaceTimeout);
-                saveCacheConfig();
-            }
-        });
-    } else {
-        console.warn('[Cache Config] Min free space input not found');
-    }
 
     // Load cache stats when Management section is first accessed
     // Test: Also load stats on page load for debugging

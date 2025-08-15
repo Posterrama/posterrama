@@ -63,5 +63,9 @@
   "siteServer": {
     "enabled": false,
     "port": 4001
+  },
+  "cache": {
+    "maxSizeGB": 2,
+    "minFreeDiskSpaceMB": 500
   }
 }
