@@ -1017,6 +1017,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Delayed loading of cache stats...');
                 loadCacheStats();
                 loadCacheConfig();
+                
+                // Also ensure cache config event listeners are attached
+                setupCacheConfigEventListeners();
             }, 100); // Small delay to ensure DOM is ready
         }
         
@@ -3869,6 +3872,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadConfig();
     
+    // Load cache configuration on page load with multiple attempts
+    setTimeout(() => {
+        console.log('[Cache Config] First attempt to load cache configuration...');
+        loadCacheConfig();
+    }, 500); // Small delay to ensure main config is loaded first
+    
+    // Additional attempt when management section is first viewed
+    setTimeout(() => {
+        console.log('[Cache Config] Backup attempt to load cache configuration...');
+        loadCacheConfig();
+    }, 2000); // Longer delay as backup
+    
     // Track original form values to detect actual changes
     let originalConfigValues = {};
     
@@ -4613,20 +4628,163 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+/**
+ * Setup event listeners for cache configuration inputs
+ */
+function setupCacheConfigEventListeners() {
     // Cache configuration event listeners
     const maxSizeInput = document.getElementById('cache-max-size');
     const minFreeSpaceInput = document.getElementById('min-free-space');
     
+    console.log('[Cache Config] Setting up event listeners for cache config inputs');
+    
     if (maxSizeInput) {
+        console.log('[Cache Config] Adding listeners to max size input');
+        
+        // Remove existing listeners to prevent duplicates
+        maxSizeInput.removeEventListener('change', saveCacheConfig);
+        maxSizeInput.removeEventListener('input', saveCacheConfig);
+        maxSizeInput.removeEventListener('keydown', saveCacheConfig);
+        
+        // Save on change (when field loses focus)
         maxSizeInput.addEventListener('change', () => {
+            console.log('[Cache Config] Max size change event triggered');
             saveCacheConfig();
         });
+        
+        // Save on input (real-time typing) with debounce
+        let maxSizeTimeout;
+        maxSizeInput.addEventListener('input', () => {
+            console.log('[Cache Config] Max size input event triggered');
+            clearTimeout(maxSizeTimeout);
+            maxSizeTimeout = setTimeout(() => {
+                console.log('[Cache Config] Max size input debounced save');
+                saveCacheConfig();
+            }, 1000); // 1 second debounce
+        });
+        
+        // Save on Enter key
+        maxSizeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                console.log('[Cache Config] Max size Enter key pressed');
+                e.preventDefault();
+                clearTimeout(maxSizeTimeout);
+                saveCacheConfig();
+            }
+        });
+    } else {
+        console.warn('[Cache Config] Max size input not found');
     }
     
     if (minFreeSpaceInput) {
+        console.log('[Cache Config] Adding listeners to min free space input');
+        
+        // Remove existing listeners to prevent duplicates
+        minFreeSpaceInput.removeEventListener('change', saveCacheConfig);
+        minFreeSpaceInput.removeEventListener('input', saveCacheConfig);
+        minFreeSpaceInput.removeEventListener('keydown', saveCacheConfig);
+        
+        // Save on change (when field loses focus)
         minFreeSpaceInput.addEventListener('change', () => {
+            console.log('[Cache Config] Min free space change event triggered');
             saveCacheConfig();
         });
+        
+        // Save on input (real-time typing) with debounce
+        let minFreeSpaceTimeout;
+        minFreeSpaceInput.addEventListener('input', () => {
+            console.log('[Cache Config] Min free space input event triggered');
+            clearTimeout(minFreeSpaceTimeout);
+            minFreeSpaceTimeout = setTimeout(() => {
+                console.log('[Cache Config] Min free space input debounced save');
+                saveCacheConfig();
+            }, 1000); // 1 second debounce
+        });
+        
+        // Save on Enter key
+        minFreeSpaceInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                console.log('[Cache Config] Min free space Enter key pressed');
+                e.preventDefault();
+                clearTimeout(minFreeSpaceTimeout);
+                saveCacheConfig();
+            }
+        });
+    } else {
+        console.warn('[Cache Config] Min free space input not found');
+    }
+}
+
+    // Cache configuration event listeners
+    const maxSizeInput = document.getElementById('cache-max-size');
+    const minFreeSpaceInput = document.getElementById('min-free-space');
+    
+    console.log('[Cache Config] Setting up event listeners for cache config inputs');
+    
+    if (maxSizeInput) {
+        console.log('[Cache Config] Adding listeners to max size input');
+        
+        // Save on change (when field loses focus)
+        maxSizeInput.addEventListener('change', () => {
+            console.log('[Cache Config] Max size change event triggered');
+            saveCacheConfig();
+        });
+        
+        // Save on input (real-time typing) with debounce
+        let maxSizeTimeout;
+        maxSizeInput.addEventListener('input', () => {
+            console.log('[Cache Config] Max size input event triggered');
+            clearTimeout(maxSizeTimeout);
+            maxSizeTimeout = setTimeout(() => {
+                console.log('[Cache Config] Max size input debounced save');
+                saveCacheConfig();
+            }, 1000); // 1 second debounce
+        });
+        
+        // Save on Enter key
+        maxSizeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                console.log('[Cache Config] Max size Enter key pressed');
+                e.preventDefault();
+                clearTimeout(maxSizeTimeout);
+                saveCacheConfig();
+            }
+        });
+    } else {
+        console.warn('[Cache Config] Max size input not found');
+    }
+    
+    if (minFreeSpaceInput) {
+        console.log('[Cache Config] Adding listeners to min free space input');
+        
+        // Save on change (when field loses focus)
+        minFreeSpaceInput.addEventListener('change', () => {
+            console.log('[Cache Config] Min free space change event triggered');
+            saveCacheConfig();
+        });
+        
+        // Save on input (real-time typing) with debounce
+        let minFreeSpaceTimeout;
+        minFreeSpaceInput.addEventListener('input', () => {
+            console.log('[Cache Config] Min free space input event triggered');
+            clearTimeout(minFreeSpaceTimeout);
+            minFreeSpaceTimeout = setTimeout(() => {
+                console.log('[Cache Config] Min free space input debounced save');
+                saveCacheConfig();
+            }, 1000); // 1 second debounce
+        });
+        
+        // Save on Enter key
+        minFreeSpaceInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                console.log('[Cache Config] Min free space Enter key pressed');
+                e.preventDefault();
+                clearTimeout(minFreeSpaceTimeout);
+                saveCacheConfig();
+            }
+        });
+    } else {
+        console.warn('[Cache Config] Min free space input not found');
     }
 
     // Load cache stats when Management section is first accessed
@@ -5368,6 +5526,8 @@ function updateCacheStatsDisplay(data, isError = false) {
  */
 async function loadCacheConfig() {
     try {
+        console.log('[Cache Config] Loading cache configuration from server...');
+        
         const response = await fetch('/api/admin/cache/config', {
             method: 'GET',
             credentials: 'include'
@@ -5378,22 +5538,41 @@ async function loadCacheConfig() {
         }
         
         const config = await response.json();
+        console.log('[Cache Config] Configuration received:', config);
         
         // Update form fields with loaded config
         const maxSizeInput = document.getElementById('cache-max-size');
         const minFreeSpaceInput = document.getElementById('min-free-space');
         
-        if (maxSizeInput) maxSizeInput.value = config.maxSizeGB || 2;
-        if (minFreeSpaceInput) minFreeSpaceInput.value = config.minFreeDiskSpaceMB || 500;
+        if (maxSizeInput) {
+            maxSizeInput.value = config.maxSizeGB || 2;
+            console.log('[Cache Config] Set max size to:', maxSizeInput.value);
+        } else {
+            console.warn('[Cache Config] Max size input not found');
+        }
         
-        console.log('Cache configuration loaded:', config);
+        if (minFreeSpaceInput) {
+            minFreeSpaceInput.value = config.minFreeDiskSpaceMB || 500;
+            console.log('[Cache Config] Set min free space to:', minFreeSpaceInput.value);
+        } else {
+            console.warn('[Cache Config] Min free space input not found');
+        }
+        
+        console.log('[Cache Config] Cache configuration loaded successfully');
         
     } catch (error) {
-        console.error('Error loading cache configuration:', error);
+        console.error('[Cache Config] Error loading cache configuration:', error);
         // Safe check for showNotification function
         if (typeof showNotification === 'function') {
             showNotification('Failed to load cache configuration', 'error');
         }
+        
+        // Set default values if loading fails
+        const maxSizeInput = document.getElementById('cache-max-size');
+        const minFreeSpaceInput = document.getElementById('min-free-space');
+        
+        if (maxSizeInput && !maxSizeInput.value) maxSizeInput.value = 2;
+        if (minFreeSpaceInput && !minFreeSpaceInput.value) minFreeSpaceInput.value = 500;
     }
 }
 
@@ -5402,14 +5581,25 @@ async function loadCacheConfig() {
  */
 async function saveCacheConfig() {
     try {
+        console.log('[Cache Config] Starting save cache configuration...');
+        
         const maxSizeInput = document.getElementById('cache-max-size');
         const minFreeSpaceInput = document.getElementById('min-free-space');
+        
+        console.log('[Cache Config] Input elements:', {
+            maxSizeInput: !!maxSizeInput,
+            minFreeSpaceInput: !!minFreeSpaceInput,
+            maxSizeValue: maxSizeInput?.value,
+            minFreeSpaceValue: minFreeSpaceInput?.value
+        });
         
         const config = {
             maxSizeGB: parseFloat(maxSizeInput?.value || 2),
             minFreeDiskSpaceMB: parseInt(minFreeSpaceInput?.value || 500),
             autoCleanup: true
         };
+        
+        console.log('[Cache Config] Config to save:', config);
         
         // Validate inputs
         if (config.maxSizeGB < 0.5 || config.maxSizeGB > 100) {
@@ -5420,6 +5610,8 @@ async function saveCacheConfig() {
             throw new Error('Minimum free disk space must be between 100MB and 5000MB');
         }
         
+        console.log('[Cache Config] Making POST request to /api/admin/cache/config');
+        
         const response = await fetch('/api/admin/cache/config', {
             method: 'POST',
             credentials: 'include',
@@ -5429,12 +5621,21 @@ async function saveCacheConfig() {
             body: JSON.stringify(config)
         });
         
+        console.log('[Cache Config] POST response:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok
+        });
+        
         if (!response.ok) {
             const result = await response.json();
+            console.error('[Cache Config] POST failed:', result);
             throw new Error(result.error || 'Failed to save cache configuration');
         }
         
         const result = await response.json();
+        console.log('[Cache Config] POST success:', result);
+        
         if (typeof showNotification === 'function') {
             showNotification('Cache configuration saved successfully', 'success');
         }
@@ -5443,7 +5644,7 @@ async function saveCacheConfig() {
         setTimeout(() => refreshCacheStats(), 1000);
         
     } catch (error) {
-        console.error('Error saving cache configuration:', error);
+        console.error('[Cache Config] Error saving cache configuration:', error);
         if (typeof showNotification === 'function') {
             showNotification(`Error: ${error.message}`, 'error');
         }
