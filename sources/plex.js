@@ -2,6 +2,8 @@
  * Plex media source for posterrama.app
  * Handles fetching and processing media from a Plex server.
  */
+const logger = require('../logger');
+
 class PlexSource {
     constructor(serverConfig, getPlexClient, processPlexItem, getPlexLibraries, shuffleArray, rtMinScore, isDebug) {
         this.server = serverConfig;
@@ -12,6 +14,42 @@ class PlexSource {
         this.rtMinScore = rtMinScore;
         this.isDebug = isDebug;
         this.plex = this.getPlexClient(this.server);
+        
+        // Performance metrics
+        this.metrics = {
+            requestCount: 0,
+            itemsProcessed: 0,
+            itemsFiltered: 0,
+            averageProcessingTime: 0,
+            lastRequestTime: null,
+            errorCount: 0
+        };
+    }
+
+    /**
+     * Get performance metrics
+     * @returns {object} Current performance metrics
+     */
+    getMetrics() {
+        return {
+            ...this.metrics,
+            filterEfficiency: this.metrics.itemsProcessed > 0 ? 
+                (this.metrics.itemsFiltered / this.metrics.itemsProcessed) : 0
+        };
+    }
+
+    /**
+     * Reset performance metrics
+     */
+    resetMetrics() {
+        this.metrics = {
+            requestCount: 0,
+            itemsProcessed: 0,
+            itemsFiltered: 0,
+            averageProcessingTime: 0,
+            lastRequestTime: null,
+            errorCount: 0
+        };
     }
 
     /**
@@ -27,7 +65,12 @@ class PlexSource {
         }
 
         if (this.isDebug) {
-            console.log(`[PlexSource:${this.server.name}] Fetching ${count} ${type}(s) from libraries: ${libraryNames.join(', ')}`);
+            logger.info(`Fetching media from Plex`, { 
+                server: this.server.name, 
+                type, 
+                count, 
+                libraries: libraryNames 
+            });
         }
 
         try {

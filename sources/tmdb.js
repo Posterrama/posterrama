@@ -2,6 +2,8 @@
  * TMDB media source for posterrama.app
  * Handles fetching and processing media from The Movie Database API.
  */
+const logger = require('../logger');
+
 class TMDBSource {
     constructor(sourceConfig, shuffleArray, isDebug) {
         this.source = sourceConfig;
@@ -22,6 +24,46 @@ class TMDBSource {
         // Retry configuration
         this.maxRetries = 3;
         this.retryDelay = 1000; // Start with 1 second delay
+        
+        // Performance metrics
+        this.metrics = {
+            requestCount: 0,
+            cacheHits: 0,
+            cacheMisses: 0,
+            averageResponseTime: 0,
+            lastRequestTime: null,
+            errorCount: 0
+        };
+    }
+
+    /**
+     * Get performance metrics
+     * @returns {object} Current performance metrics
+     */
+    getMetrics() {
+        return {
+            ...this.metrics,
+            cacheHitRate: this.metrics.requestCount > 0 ? 
+                (this.metrics.cacheHits / this.metrics.requestCount) : 0,
+            cacheSizes: {
+                genres: this.genreCache.size,
+                responses: this.responseCache.size
+            }
+        };
+    }
+
+    /**
+     * Reset performance metrics
+     */
+    resetMetrics() {
+        this.metrics = {
+            requestCount: 0,
+            cacheHits: 0,
+            cacheMisses: 0,
+            averageResponseTime: 0,
+            lastRequestTime: null,
+            errorCount: 0
+        };
     }
 
     /**

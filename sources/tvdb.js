@@ -24,6 +24,46 @@ class TVDBSource {
         // Genre mapping cache
         this.genreMap = new Map();
         this.genresLoaded = false;
+        
+        // Performance metrics
+        this.metrics = {
+            requestCount: 0,
+            authCount: 0,
+            cacheHits: 0,
+            cacheMisses: 0,
+            averageResponseTime: 0,
+            lastRequestTime: null,
+            errorCount: 0
+        };
+    }
+
+    /**
+     * Get performance metrics
+     * @returns {object} Current performance metrics
+     */
+    getMetrics() {
+        return {
+            ...this.metrics,
+            cacheHitRate: this.metrics.requestCount > 0 ? 
+                (this.metrics.cacheHits / this.metrics.requestCount) : 0,
+            cacheSize: this.cache.size,
+            genreMapSize: this.genreMap.size
+        };
+    }
+
+    /**
+     * Reset performance metrics
+     */
+    resetMetrics() {
+        this.metrics = {
+            requestCount: 0,
+            authCount: 0,
+            cacheHits: 0,
+            cacheMisses: 0,
+            averageResponseTime: 0,
+            lastRequestTime: null,
+            errorCount: 0
+        };
     }
 
     async authenticate() {

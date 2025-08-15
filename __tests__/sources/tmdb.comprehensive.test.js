@@ -340,4 +340,21 @@ describe('TMDBSource edge cases (merged)', () => {
 		source.cleanupCache();
 		expect(source.responseCache.has(key)).toBe(false);
 	});
+
+	test('getMetrics and resetMetrics work correctly', () => {
+		const metrics = source.getMetrics();
+		expect(metrics).toHaveProperty('requestCount');
+		expect(metrics).toHaveProperty('cacheHits');
+		expect(metrics).toHaveProperty('cacheMisses');
+		expect(metrics).toHaveProperty('cacheHitRate');
+		expect(metrics).toHaveProperty('cacheSizes');
+		expect(typeof metrics.cacheHitRate).toBe('number');
+		
+		// Test metrics reset
+		source.resetMetrics();
+		const resetMetrics = source.getMetrics();
+		expect(resetMetrics.requestCount).toBe(0);
+		expect(resetMetrics.cacheHits).toBe(0);
+		expect(resetMetrics.cacheMisses).toBe(0);
+	});
 });

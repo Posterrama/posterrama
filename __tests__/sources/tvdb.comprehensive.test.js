@@ -34,5 +34,22 @@ describe('TVDBSource comprehensive', () => {
   test('extractYear and getImageUrl edge cases', ()=>{ expect(src.extractYear('1999-12-31')).toBe(1999); expect(src.extractYear('bad')).toBeNull(); expect(src.getImageUrl('/path.jpg')).toMatch(/artworks/); expect(src.getImageUrl('http://full/url.jpg')).toBe('http://full/url.jpg'); expect(src.getImageUrl(null)).toBeNull(); });
   test('testConnection success and failure', async ()=>{ queueAuth(['t']); axios.get.mockResolvedValueOnce({ data:{ data:[{ id:1 }] } }); const ok = await src.testConnection(); expect(ok.success).toBe(true); queueAuth([new Error('auth fail')]); const fail = await src.testConnection(); expect(fail.success).toBe(false); });
   test('cache stats and clearCache', ()=>{ src.setCachedData('x', { a:1 }); const stats = src.getCacheStats(); expect(stats.totalEntries).toBeGreaterThan(0); src.clearCache(); expect(src.getCacheStats().totalEntries).toBe(0); });
+
+  test('getMetrics and resetMetrics work correctly', () => {
+    const metrics = src.getMetrics();
+    expect(metrics).toHaveProperty('requestCount');
+    expect(metrics).toHaveProperty('cacheHits');
+    expect(metrics).toHaveProperty('cacheMisses');
+    expect(metrics).toHaveProperty('cacheHitRate');
+    expect(metrics).toHaveProperty('cacheSize');
+    expect(typeof metrics.cacheHitRate).toBe('number');
+    
+    // Test metrics reset
+    src.resetMetrics();
+    const resetMetrics = src.getMetrics();
+    expect(resetMetrics.requestCount).toBe(0);
+    expect(resetMetrics.cacheHits).toBe(0);
+    expect(resetMetrics.cacheMisses).toBe(0);
+  });
  });
 });
