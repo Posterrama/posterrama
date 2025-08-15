@@ -310,22 +310,6 @@ const options = {
                         serverInfo: { type: 'object', description: 'Plex server information if successful' }
                     }
                 },
-                CacheConfigResponse: {
-                    type: 'object',
-                    properties: {
-                        maxSizeGB: { type: 'number', description: 'Maximum cache size in GB' },
-                        minFreeDiskSpaceMB: { type: 'number', description: 'Minimum free disk space in MB' },
-                        currentSizeGB: { type: 'number', description: 'Current cache size in GB' },
-                        freeSpaceGB: { type: 'number', description: 'Available free disk space in GB' }
-                    }
-                },
-                CacheConfigRequest: {
-                    type: 'object',
-                    properties: {
-                        maxSizeGB: { type: 'number', description: 'Maximum cache size in GB' },
-                        minFreeDiskSpaceMB: { type: 'number', description: 'Minimum free disk space in MB' }
-                    }
-                },
                 ApiKeyStatusResponse: {
                     type: 'object',
                     properties: {
@@ -498,48 +482,6 @@ const options = {
                         content: {
                             'application/json': {
                                 schema: { $ref: '#/components/schemas/ErrorResponse' }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/admin/cache/config': {
-            get: {
-                summary: 'Get cache configuration',
-                description: 'Retrieve current cache configuration settings.',
-                tags: ['Cache', 'Admin API'],
-                security: [{ sessionAuth: [] }],
-                responses: {
-                    200: {
-                        description: 'Cache configuration retrieved successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/CacheConfigResponse' }
-                            }
-                        }
-                    }
-                }
-            },
-            post: {
-                summary: 'Update cache configuration',
-                description: 'Update cache size limits and disk space requirements.',
-                tags: ['Cache', 'Admin API'],
-                security: [{ sessionAuth: [] }],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: { $ref: '#/components/schemas/CacheConfigRequest' }
-                        }
-                    }
-                },
-                responses: {
-                    200: {
-                        description: 'Cache configuration updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/AdminApiResponse' }
                             }
                         }
                     }

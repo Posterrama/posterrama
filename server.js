@@ -5844,127 +5844,19 @@ app.get('/api/admin/cache-stats', isAuthenticated, asyncHandler(async (req, res)
     }
 }));
 
-/**
- * @swagger
- * /api/admin/cache/config:
- *   get:
- *     summary: Get cache configuration
- *     description: Retrieves the current cache configuration settings
- *     tags: [Admin API]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Cache configuration
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 maxSizeGB:
- *                   type: number
- *                   description: Maximum cache size in GB
- *                 minFreeDiskSpaceMB:
- *                   type: number
- *                   description: Minimum free disk space in MB
- *       401:
- *         description: Unauthorized
- *   post:
- *     summary: Update cache configuration
- *     description: Updates the cache configuration settings
- *     tags: [Admin API]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               maxSizeGB:
- *                 type: number
- *                 description: Maximum cache size in GB
- *               minFreeDiskSpaceMB:
- *                 type: number
- *                 description: Minimum free disk space in MB
- *     responses:
- *       200:
- *         description: Cache configuration updated successfully
- *       400:
- *         description: Invalid configuration data
- *       401:
- *         description: Unauthorized
- */
-app.get('/api/admin/cache/config', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for /api/admin/cache/config.');
-    
-    try {
-        const currentConfig = await readConfig();
-        
-        // Return cache-specific configuration
-        const cacheConfig = {
-            maxSizeGB: currentConfig.cache?.maxSizeGB || 2,
-            minFreeDiskSpaceMB: currentConfig.cache?.minFreeDiskSpaceMB || 500
-        };
-        
-        if (isDebug) console.log('[Admin API] Returning cache config:', cacheConfig);
-        res.json(cacheConfig);
-        
-    } catch (error) {
-        if (isDebug) console.error('[Admin API] Error reading cache config:', error);
-        throw new ApiError(500, 'Failed to read cache configuration.');
-    }
-}));
+// Cache configuration is now hardcoded for simplicity and security
+const CACHE_CONFIG = {
+    maxSizeGB: 5,
+    minFreeDiskSpaceMB: 500
+};
 
-app.post('/api/admin/cache/config', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received to update cache config:', req.body);
-    
-    const { maxSizeGB, minFreeDiskSpaceMB } = req.body;
-    
-    // Validate input
-    if (typeof maxSizeGB !== 'number' || maxSizeGB < 0.1 || maxSizeGB > 100) {
-        throw new ApiError(400, 'maxSizeGB must be a number between 0.1 and 100');
-    }
-    
-    if (typeof minFreeDiskSpaceMB !== 'number' || minFreeDiskSpaceMB < 100 || minFreeDiskSpaceMB > 10000) {
-        throw new ApiError(400, 'minFreeDiskSpaceMB must be a number between 100 and 10000');
-    }
-    
-    try {
-        const currentConfig = await readConfig();
-        
-        // Update cache configuration
-        if (!currentConfig.cache) {
-            currentConfig.cache = {};
-        }
-        
-        currentConfig.cache.maxSizeGB = maxSizeGB;
-        currentConfig.cache.minFreeDiskSpaceMB = minFreeDiskSpaceMB;
-        
-        await writeConfig(currentConfig);
-        
-        if (isDebug) console.log('[Admin API] Cache configuration updated successfully');
-        res.json({ 
-            success: true, 
-            message: 'Cache configuration updated successfully',
-            config: {
-                maxSizeGB,
-                minFreeDiskSpaceMB
-            }
-        });
-        
-    } catch (error) {
-        if (isDebug) console.error('[Admin API] Error updating cache config:', error);
-        logger.error('Cache config update failed', {
-            action: 'cache_config_update_error',
-            error: error.message,
-            stack: error.stack,
-            requestBody: req.body
-        });
-        throw new ApiError(500, 'Failed to update cache configuration.');
-    }
-}));
+/**
+ * Get hardcoded cache configuration
+ * @returns {Object} Cache configuration with maxSizeGB and minFreeDiskSpaceMB
+ */
+function getCacheConfig() {
+    return { ...CACHE_CONFIG };
+}
 
 /**
  * @swagger
@@ -6000,9 +5892,9 @@ app.post('/api/admin/cleanup-cache', isAuthenticated, asyncHandler(async (req, r
     if (isDebug) console.log('[Admin API] Request received for cache cleanup.');
     
     try {
-        const currentConfig = await readConfig();
-        const maxSizeGB = currentConfig.cache?.maxSizeGB || 2;
-        const minFreeDiskSpaceMB = currentConfig.cache?.minFreeDiskSpaceMB || 500;
+        const cacheConfig = getCacheConfig();
+        const maxSizeGB = cacheConfig.maxSizeGB;
+        const minFreeDiskSpaceMB = cacheConfig.minFreeDiskSpaceMB;
         
         let totalFilesRemoved = 0;
         let totalSpaceSaved = 0;

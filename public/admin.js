@@ -4633,49 +4633,44 @@ document.addEventListener('DOMContentLoaded', () => {
  * Setup event listeners for cache configuration inputs
  */
 function setupCacheConfigEventListeners() {
-    // Cache configuration event listeners
+    // Cache configuration event listeners - configuration is now hardcoded
     const maxSizeInput = document.getElementById('cache-max-size');
     const minFreeSpaceInput = document.getElementById('min-free-space');
     const saveCacheConfigButton = document.getElementById('save-cache-config');
     
-    console.log('[Cache Config] Setting up event listeners for cache config inputs');
+    console.log('[Cache Config] Setting up cache config (hardcoded mode)');
     
-    // Add save button event listener
+    // Hide or disable the save button since configuration is now hardcoded
     if (saveCacheConfigButton) {
-        saveCacheConfigButton.addEventListener('click', () => {
-            console.log('[Cache Config] Save button clicked');
-            saveCacheConfig();
-        });
-        console.log('[Cache Config] Save button listener added');
-    } else {
-        console.warn('[Cache Config] Save button not found');
+        saveCacheConfigButton.style.display = 'none';
+        console.log('[Cache Config] Save button hidden (configuration is hardcoded)');
     }
     
-    // Optional: Save on Enter key in inputs as shortcut
+    // Disable input fields since they're now read-only
     if (maxSizeInput) {
-        maxSizeInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                console.log('[Cache Config] Max size Enter key pressed');
-                e.preventDefault();
-                saveCacheConfig();
-            }
-        });
-        console.log('[Cache Config] Max size Enter key listener added');
-    } else {
-        console.warn('[Cache Config] Max size input not found');
+        maxSizeInput.disabled = true;
+        maxSizeInput.title = 'Cache size is fixed at 5GB';
+        console.log('[Cache Config] Max size input disabled');
     }
     
     if (minFreeSpaceInput) {
-        minFreeSpaceInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                console.log('[Cache Config] Min free space Enter key pressed');
-                e.preventDefault();
-                saveCacheConfig();
-            }
-        });
-        console.log('[Cache Config] Min free space Enter key listener added');
-    } else {
-        console.warn('[Cache Config] Min free space input not found');
+        minFreeSpaceInput.disabled = true;
+        minFreeSpaceInput.title = 'Minimum free space is fixed at 500MB';
+        console.log('[Cache Config] Min free space input disabled');
+    }
+    
+    // Add info message about hardcoded configuration
+    const cacheConfigSection = document.querySelector('.cache-config-section') || 
+                              document.querySelector('#cache-config') ||
+                              saveCacheConfigButton?.parentElement;
+    
+    if (cacheConfigSection && !cacheConfigSection.querySelector('.hardcoded-notice')) {
+        const notice = document.createElement('div');
+        notice.className = 'hardcoded-notice';
+        notice.style.cssText = 'background: #f0f8ff; border: 1px solid #4a90e2; border-radius: 4px; padding: 10px; margin: 10px 0; color: #2c5aa0; font-size: 14px;';
+        notice.innerHTML = '<strong>ℹ️ Cache Settings</strong><br>Cache is now configured with fixed limits: 5GB maximum size and 500MB minimum free disk space for optimal performance and security.';
+        cacheConfigSection.appendChild(notice);
+        console.log('[Cache Config] Added hardcoded configuration notice');
     }
 }
 
@@ -5386,14 +5381,13 @@ function updateCacheStatsDisplay(data, isError = false) {
         return;
     }
     
-    // Update disk usage with combined format: "1.2 GB / 2.0 GB (60%)"
+    // Update disk usage with combined format: "1.2 GB / 5.0 GB (24%)"
     const totalSize = data.diskUsage?.total || 0;
     const imageCacheSize = data.diskUsage?.imageCache || 0;
     const logSize = data.diskUsage?.logFiles || 0;
     
-    // Get max cache size from form (fallback to 2GB)
-    const maxSizeInput = document.getElementById('cache-max-size');
-    const maxSizeGB = maxSizeInput ? parseFloat(maxSizeInput.value) : 2;
+    // Use hardcoded max cache size (5GB)
+    const maxSizeGB = 5;
     const maxSizeBytes = maxSizeGB * 1024 * 1024 * 1024; // Convert GB to bytes
     
     // Calculate usage percentage
@@ -5414,132 +5408,67 @@ function updateCacheStatsDisplay(data, isError = false) {
 }
 
 /**
- * Load cache configuration from server
+ * Load hardcoded cache configuration
+ * Cache limits are now fixed for simplicity and security
  */
 async function loadCacheConfig() {
+    console.log('[Cache Config] Using hardcoded cache configuration...');
+    
     try {
-        console.log('[Cache Config] Loading cache configuration from server...');
+        // Hardcoded cache configuration - no longer user configurable
+        const config = {
+            maxSizeGB: 5,
+            minFreeDiskSpaceMB: 500
+        };
         
-        const response = await fetch('/api/admin/cache/config', {
-            method: 'GET',
-            credentials: 'include'
-        });
+        console.log('[Cache Config] Hardcoded configuration:', config);
         
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const config = await response.json();
-        console.log('[Cache Config] Configuration received:', config);
-        
-        // Update form fields with loaded config
+        // Update display fields with hardcoded config (make them read-only)
         const maxSizeInput = document.getElementById('cache-max-size');
         const minFreeSpaceInput = document.getElementById('min-free-space');
         
         if (maxSizeInput) {
-            maxSizeInput.value = config.maxSizeGB || 2;
-            console.log('[Cache Config] Set max size to:', maxSizeInput.value);
-        } else {
-            console.warn('[Cache Config] Max size input not found');
+            maxSizeInput.value = config.maxSizeGB;
+            maxSizeInput.disabled = true;
+            maxSizeInput.title = 'Cache size is now fixed at 5GB';
+            console.log('[Cache Config] Set max size to:', maxSizeInput.value, '(disabled)');
         }
         
         if (minFreeSpaceInput) {
-            minFreeSpaceInput.value = config.minFreeDiskSpaceMB || 500;
-            console.log('[Cache Config] Set min free space to:', minFreeSpaceInput.value);
-        } else {
-            console.warn('[Cache Config] Min free space input not found');
+            minFreeSpaceInput.value = config.minFreeDiskSpaceMB;
+            minFreeSpaceInput.disabled = true;
+            minFreeSpaceInput.title = 'Minimum free space is now fixed at 500MB';
+            console.log('[Cache Config] Set min free space to:', minFreeSpaceInput.value, '(disabled)');
         }
         
-        console.log('[Cache Config] Cache configuration loaded successfully');
+        console.log('[Cache Config] Hardcoded cache configuration loaded');
         
     } catch (error) {
-        console.error('[Cache Config] Error loading cache configuration:', error);
-        // Safe check for showNotification function
-        if (typeof showNotification === 'function') {
-            showNotification('Failed to load cache configuration', 'error');
-        }
+        console.error('[Cache Config] Error setting up cache configuration:', error);
         
-        // Set default values if loading fails
+        // Set default values if something fails
         const maxSizeInput = document.getElementById('cache-max-size');
         const minFreeSpaceInput = document.getElementById('min-free-space');
         
-        if (maxSizeInput && !maxSizeInput.value) maxSizeInput.value = 2;
-        if (minFreeSpaceInput && !minFreeSpaceInput.value) minFreeSpaceInput.value = 500;
+        if (maxSizeInput) {
+            maxSizeInput.value = 5;
+            maxSizeInput.disabled = true;
+        }
+        if (minFreeSpaceInput) {
+            minFreeSpaceInput.value = 500;
+            minFreeSpaceInput.disabled = true;
+        }
     }
 }
 
 /**
- * Save cache configuration to server
+ * Cache configuration save function - now shows message that config is hardcoded
  */
 async function saveCacheConfig() {
-    try {
-        console.log('[Cache Config] Starting save cache configuration...');
-        
-        const maxSizeInput = document.getElementById('cache-max-size');
-        const minFreeSpaceInput = document.getElementById('min-free-space');
-        
-        console.log('[Cache Config] Input elements:', {
-            maxSizeInput: !!maxSizeInput,
-            minFreeSpaceInput: !!minFreeSpaceInput,
-            maxSizeValue: maxSizeInput?.value,
-            minFreeSpaceValue: minFreeSpaceInput?.value
-        });
-        
-        const config = {
-            maxSizeGB: parseFloat(maxSizeInput?.value || 2),
-            minFreeDiskSpaceMB: parseInt(minFreeSpaceInput?.value || 500),
-            autoCleanup: true
-        };
-        
-        console.log('[Cache Config] Config to save:', config);
-        
-        // Validate inputs
-        if (config.maxSizeGB < 0.5 || config.maxSizeGB > 100) {
-            throw new Error('Cache size must be between 0.5GB and 100GB');
-        }
-        
-        if (config.minFreeDiskSpaceMB < 100 || config.minFreeDiskSpaceMB > 5000) {
-            throw new Error('Minimum free disk space must be between 100MB and 5000MB');
-        }
-        
-        console.log('[Cache Config] Making POST request to /api/admin/cache/config');
-        
-        const response = await fetch('/api/admin/cache/config', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(config)
-        });
-        
-        console.log('[Cache Config] POST response:', {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok
-        });
-        
-        if (!response.ok) {
-            const result = await response.json();
-            console.error('[Cache Config] POST failed:', result);
-            throw new Error(result.error || 'Failed to save cache configuration');
-        }
-        
-        const result = await response.json();
-        console.log('[Cache Config] POST success:', result);
-        
-        if (typeof showNotification === 'function') {
-            showNotification('Cache configuration saved successfully', 'success');
-        }
-        
-        // Refresh cache stats to show updated limits
-        setTimeout(() => refreshCacheStats(), 1000);
-        
-    } catch (error) {
-        console.error('[Cache Config] Error saving cache configuration:', error);
-        if (typeof showNotification === 'function') {
-            showNotification(`Error: ${error.message}`, 'error');
-        }
+    console.log('[Cache Config] Save attempted - configuration is now hardcoded');
+    
+    if (typeof showNotification === 'function') {
+        showNotification('Cache configuration is now fixed at 5GB max size and 500MB minimum free space', 'info');
     }
 }
 
