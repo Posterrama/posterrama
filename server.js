@@ -2109,8 +2109,43 @@ app.get('/admin.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.js'));
 });
 
+// Import optimized middleware
+const { 
+    securityMiddleware, 
+    compressionMiddleware, 
+    corsMiddleware,
+    requestLoggingMiddleware,
+    errorHandlingMiddleware,
+    healthCheckMiddleware
+} = require('./middleware/index');
+const { cacheMiddleware: apiCacheMiddleware, apiCache } = require('./middleware/cache');
+const { validationRules, createValidationMiddleware: newValidationMiddleware } = require('./middleware/validation');
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true })); // For parsing form data
+
+// Apply new optimization middleware
+app.use(compressionMiddleware());
+app.use(securityMiddleware());
+app.use(corsMiddleware());
+app.use(requestLoggingMiddleware());
+
+// Health check endpoint
+app.get('/health', healthCheckMiddleware());
+
+// API cache stats endpoint (admin only)
+app.get('/api/admin/cache/stats', 
+    sessionAuth, 
+    requireRole(['admin']),
+    newValidationMiddleware(validationRules.adminRequest),
+    apiCacheMiddleware.short,
+    (req, res) => {
+    const stats = apiCache.getStats();
+    res.json({
+        success: true,
+        data: stats
+    });
+});
 
 // Swagger API documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
@@ -3360,11 +3395,8 @@ app.get('/get-config',
  *               $ref: '#/components/schemas/ApiMessage'
  */
 app.get('/get-media', 
-    cacheMiddleware({
-        ttl: 300000, // 5 minutes
-        cacheControl: 'public, max-age=300',
-        varyHeaders: ['Accept-Encoding']
-    }),
+    newValidationMiddleware(validationRules.mediaRequest),
+    apiCacheMiddleware.media,
     asyncHandler(async (req, res) => {
         // Skip caching if nocache param is present (for admin invalidation)
         if (req.query.nocache === '1') {
