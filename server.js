@@ -84,14 +84,22 @@ const imageCacheDir = path.join(__dirname, 'image_cache');
     const envPath = path.join(__dirname, '.env');
     const exampleEnvPath = path.join(__dirname, 'config.example.env');
     const sessionsPath = path.join(__dirname, 'sessions');
+    const cacheDir = path.join(__dirname, 'cache');
+    const logsDir = path.join(__dirname, 'logs');
 
     try {
-        // Ensure the sessions directory exists before the session store tries to use it.
-        // Using sync methods here prevents a race condition with session middleware initialization.
+        // Ensure all required directories exist before the application starts.
+        // Using sync methods here prevents race conditions with middleware initialization.
+        console.log('Creating required directories...');
+        
         fs.mkdirSync(sessionsPath, { recursive: true });
         fs.mkdirSync(imageCacheDir, { recursive: true });
+        fs.mkdirSync(cacheDir, { recursive: true });
+        fs.mkdirSync(logsDir, { recursive: true });
+        
+        console.log('✓ All required directories created/verified: sessions, image_cache, cache, logs');
     } catch (error) {
-        console.error('FATAL ERROR: Could not create sessions directory.', error);
+        console.error('FATAL ERROR: Could not create required directories.', error);
         process.exit(1);
     }
 
