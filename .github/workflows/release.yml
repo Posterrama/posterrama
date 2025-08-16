@@ -6,6 +6,12 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  packages: write
+  pull-requests: read
+  issues: read
+
 jobs:
   release:
     runs-on: ubuntu-latest
