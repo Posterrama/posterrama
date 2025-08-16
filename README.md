@@ -2,18 +2,56 @@
 
 [![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](https://github.com/Posterrama/posterrama)
 [![Downloads](https://img.shields.io/github/downloads/Posterrama/posterrama/total?style=flat&logo=github&label=Downloads&color=brightgreen)](https://github.com/Posterrama/posterrama/releases)
-[![Tests](https://img.shields.io/badge/tests-365%20tests%20in%2021%20suites-brightgreen)](#testing)
-[![Coverage](https://img.shields.io/badge/coverage-45%25-orange)](#testing)
+[![Tests](https://img.shields.io/badge/tests-726%20tests%20in%2049%20suites-brightgreen)](#testing)
+[![Coverage](https://img.shields.io/badge/coverage-84.06%25-brightgreen)](#testing)
 [![Node.js](https://img.shields.io/badge/node.js-%E2%89%A518.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
 [![Plex](https://img.shields.io/badge/Plex-Compatible-orange.svg)](https://www.plex.tv/)
-[![Jellyfin](https://img.shields.io/badge/Jellyfin-Compatible-purple.svg)](https://jellyfin.org/)
-[![Emby](https://img.shields.io/badge/Emby-Compatible-green.svg)](https://emby.media/)
 [![TMDB](https://img.shields.io/badge/TMDB-Powered-blue.svg)](https://www.themoviedb.org/)
 
 Transform any screen into a **stunning digital movie poster display** that showcases your personal media collection! Perfect for TV screensavers, wall-mounted tablets, or creating your own cinema lobby experience at home.
 
 ![Screenshot of screensaver](./screenshots/screensaver.png)
+
+## 🚀 August 2025 - Major Backend Milestone Achieved!
+
+**We've just completed a massive backend overhaul that transforms Posterrama into a rock-solid foundation!** With comprehensive test coverage now at **84%+** across **726 automated tests**, robust error handling, and enterprise-grade reliability - we're ready to build the future of digital cinema displays.
+
+**What's Next?** The exciting part begins now! 🎬
+
+### 🎯 **Immediate Focus: Polish & Performance**
+- **Code cleanup & optimization** - Streamlined debugging and refined architecture
+- **Performance enhancements** - Lightning-fast load times and smooth transitions
+- **Developer experience** - Clean, maintainable codebase for rapid feature development
+
+### 🌟 **Coming Soon: Game-Changing Features**
+Get ready for an explosion of **cinema magic**:
+
+#### **🎭 Cinema Mode Revolution**
+- **Movie Trailers Integration** - Watch trailers directly in your poster displays
+- **Motion Posters** - Animated movie artwork that brings posters to life
+- **Real-time Preview** - See your changes instantly as you configure settings
+- **Advanced Animations** - Stunning transitions and cinematic effects
+
+#### **🔌 Universal Content Sources** 
+- **Emby & Jellyfin Support** - Connect to any media server you love
+- **Kodi Integration** - Seamless integration with your existing setup
+- **Radarr, Sonarr & Lidarr** - Rich metadata from your *arr stack
+- **Multi-Content Types** - Movies, TV shows, music, and gaming collections
+
+#### **🖥️ Multi-Display Ecosystem**
+- **Multiple Screens** - Manage different displays with unique configurations
+- **Gaming Collections** - Showcase your Steam, PlayStation, Xbox libraries
+- **Music Visualizations** - Album art displays for your music collection
+- **Smart Sync** - Coordinated displays across your entire home
+
+#### **✨ Enhanced User Experience**
+- **Intuitive Admin Panel** - Beautiful, user-friendly interface redesign
+- **Mobile-First Design** - Perfect control from any device
+- **One-Click Setup** - Get started in minutes, not hours
+- **Smart Recommendations** - AI-powered content curation
+
+**The foundation is set. The future is bright. The next versions will be absolutely incredible!** 🎆
 
 ## ✨ What Makes Posterrama Special?
 
@@ -36,7 +74,7 @@ Imagine walking into a movie theater and seeing those beautiful, professional mo
 ## ✨ Cool Features That Make It Awesome
 
 ### 🎭 Media Server Magic
-Connect to your **Plex**, **Jellyfin**, or **Emby** server and watch as Posterrama automatically:
+Connect to your **Plex** server and watch as Posterrama automatically:
 - Discovers all your movies and TV shows
 - Downloads beautiful backdrop images and movie posters
 - Shows ratings, release years, and movie taglines
@@ -47,8 +85,6 @@ Posterrama connects to multiple sources to bring your media library to life:
 
 **Supported Media Servers:**
 - **Plex** - Your personal media server
-- **Jellyfin** - Open source media system  
-- **Emby** - Personal media server
 
 **Enhanced Metadata Sources:**
 - **TMDB** - Rich movie and TV show information
@@ -76,7 +112,7 @@ Posterrama works perfectly on any device:
 ### Clean Admin Interface
 Posterrama features a beautifully designed administration panel that makes configuration effortless:
 - **Intuitive Dashboard** - Easy-to-navigate interface with clear sections for all settings
-- **Media Server Management** - Simple connection setup for Plex, Jellyfin, and Emby servers
+- **Media Server Management** - Simple connection setup for Plex servers
 - **Library Selection** - Choose exactly which movie and TV libraries to display
 - **Visual Customization** - Adjust display timing, transitions, and layout preferences
 - **Smart Configuration** - Pre-configured with sensible defaults that work out of the box
@@ -114,7 +150,7 @@ While Apple TV doesn't support custom screensavers directly, you can still enjoy
 
 ### What You'll Need
 - **Node.js 18+** (the engine that runs Posterrama)
-- **A Media Server** (Plex, Jellyfin, or Emby)
+- **A Media Server** (Plex)
 - **5 minutes** of your time!
 
 ### Quick Start Guide
@@ -197,7 +233,7 @@ docker run -p 4000:4000 posterrama/posterrama
 **Not seeing any movies?**
 - Check your media server connection in the admin panel
 - Make sure you've selected at least one library to display
-- Verify your Plex/Jellyfin/Emby token has the right permissions
+- Verify your Plex token has the right permissions
 
 **Display looks weird?**
 - Try different screen resolutions

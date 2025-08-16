@@ -2137,9 +2137,6 @@ app.use(securityMiddleware());
 app.use(corsMiddleware());
 app.use(requestLoggingMiddleware());
 
-// Health check endpoint
-app.get('/health', healthCheckMiddleware());
-
 // API cache stats endpoint (admin only)
 app.get('/api/admin/cache/stats', 
     sessionAuth, 

@@ -3031,17 +3031,15 @@ fieldset:focus-within {
     color: rgba(59, 130, 246, 1) !important;
 }
 
-/* View Screensaver button specific styling - green theme */
-#view-screensaver-btn {
-    background: rgba(34, 197, 94, 0.15) !important;
-    border: 1px solid rgba(34, 197, 94, 0.3) !important;
-    color: rgba(34, 197, 94, 1) !important;
-}
+/* View Posterrama button - uses default secondary button styling */
 
-#view-screensaver-btn:hover {
-    background: rgba(34, 197, 94, 0.25) !important;
-    border-color: rgba(34, 197, 94, 0.4) !important;
-    color: rgba(34, 197, 94, 1) !important;
+/* Ensure gradient text in View Posterrama button matches brand styling */
+#view-posterrama-btn .gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    font-weight: 600 !important;
 }
 
 /* API Docs button specific styling - purple theme */
@@ -3112,13 +3110,13 @@ fieldset:focus-within {
 }
 
 /* Secondary buttons - Slate theme (secondary actions) */
-.btn-secondary:not(#toggle-help-panel):not(#view-screensaver-btn):not(#api-docs-btn):not(.sidebar-toggle) {
+.btn-secondary:not(#toggle-help-panel):not(#api-docs-btn):not(.sidebar-toggle) {
     background: rgba(148, 163, 184, 0.15) !important;
     border: 1px solid rgba(148, 163, 184, 0.3) !important;
     color: rgba(148, 163, 184, 1) !important;
 }
 
-.btn-secondary:not(#toggle-help-panel):not(#view-screensaver-btn):not(#api-docs-btn):not(.sidebar-toggle):hover {
+.btn-secondary:not(#toggle-help-panel):not(#api-docs-btn):not(.sidebar-toggle):hover {
     background: rgba(148, 163, 184, 0.25) !important;
     border-color: rgba(148, 163, 184, 0.4) !important;
     color: rgba(148, 163, 184, 1) !important;
