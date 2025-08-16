@@ -38,4 +38,8 @@ test-*.html
 
 # Runtime cache and temporary data
 image_cache/
+cache/
 logs/*.log
+
+# Session data (runtime generated)
+sessions/*.json
