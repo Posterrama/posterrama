@@ -6,18 +6,23 @@
  */
 
 const swaggerJSDoc = require('swagger-jsdoc');
-const pkg = require('./package.json');
 
-const options = {
-    definition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'Posterrama API',
-            version: pkg.version,
-            description: 'API documentation for the posterrama.app screensaver application. This documents the public API used by the frontend to retrieve media and configuration.',
-            contact: {
-                name: 'Posterrama',
-                url: 'https://github.com/Posterrama/posterrama',
+// Function to generate swagger spec with current package.json version
+function generateSwaggerSpec() {
+    // Always read fresh package.json to avoid caching issues
+    delete require.cache[require.resolve('./package.json')];
+    const pkg = require('./package.json');
+
+    const options = {
+        definition: {
+            openapi: '3.0.0',
+            info: {
+                title: 'Posterrama API',
+                version: pkg.version,
+                description: 'API documentation for the posterrama.app screensaver application. This documents the public API used by the frontend to retrieve media and configuration.',
+                contact: {
+                    name: 'Posterrama',
+                    url: 'https://github.com/Posterrama/posterrama',
             },
             license: {
                 name: 'GPL-3.0-or-later',
@@ -893,8 +898,10 @@ const options = {
             }
         }
     }
-};
+    };
 
-const swaggerSpec = swaggerJSDoc(options);
+    return swaggerJSDoc(options);
+}
 
-module.exports = swaggerSpec;
+// Generate and export swagger spec
+module.exports = generateSwaggerSpec();

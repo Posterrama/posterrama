@@ -2154,8 +2154,25 @@ app.get('/api/admin/cache/stats',
     });
 });
 
-// Swagger API documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+// Swagger API documentation with cache busting
+app.use('/api-docs', (req, res, next) => {
+    // Prevent caching of API documentation
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+}, swaggerUi.serve, (req, res, next) => {
+    // Generate fresh swagger spec on each request to avoid version caching
+    delete require.cache[require.resolve('./swagger.js')];
+    const freshSwaggerSpecs = require('./swagger.js');
+    
+    swaggerUi.setup(freshSwaggerSpecs, {
+        // Remove custom CSS since version is now correct in spec
+        swaggerOptions: {
+            persistAuthorization: true
+        }
+    })(req, res, next);
+});
 
 // General request logger for debugging
 if (isDebug) {
