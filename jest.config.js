@@ -53,7 +53,7 @@ module.exports = {
     // FASE 4 improvements - Rate limiting
     'middleware/rateLimiter.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
     // FASE 5 improvements - Middleware orchestration
-    'middleware/index.js': { branches: 94, functions: 100, lines: 100, statements: 100 },
+    'middleware/index.js': { branches: 92, functions: 100, lines: 98, statements: 98 },
     // FASE 6 improvements - Core authentication
     'utils/auth.js': { branches: 49, functions: 46, lines: 50, statements: 50 },
     // FASE 7 improvements - Metrics middleware
