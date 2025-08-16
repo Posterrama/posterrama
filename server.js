@@ -2154,12 +2154,26 @@ app.get('/api/admin/cache/stats',
     });
 });
 
+// Direct swagger spec endpoint for debugging
+app.get('/api-docs/swagger.json', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
+    // Generate fresh swagger spec
+    delete require.cache[require.resolve('./swagger.js')];
+    const freshSwaggerSpecs = require('./swagger.js');
+    
+    res.json(freshSwaggerSpecs);
+});
+
 // Swagger API documentation with cache busting
 app.use('/api-docs', (req, res, next) => {
     // Prevent caching of API documentation
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+    res.setHeader('ETag', Math.random().toString()); // Force unique response
     next();
 }, swaggerUi.serve, (req, res, next) => {
     // Generate fresh swagger spec on each request to avoid version caching
@@ -2167,10 +2181,19 @@ app.use('/api-docs', (req, res, next) => {
     const freshSwaggerSpecs = require('./swagger.js');
     
     swaggerUi.setup(freshSwaggerSpecs, {
-        // Remove custom CSS since version is now correct in spec
+        // Force Swagger UI to use our custom endpoint with cache busting
         swaggerOptions: {
-            persistAuthorization: true
-        }
+            url: `/api-docs/swagger.json?t=${Date.now()}`,
+            persistAuthorization: true,
+            // Disable all caching in Swagger UI
+            requestInterceptor: function(request) {
+                request.headers['Cache-Control'] = 'no-cache';
+                return request;
+            }
+        },
+        // Add custom HTML to override any cached content
+        customSiteTitle: `Posterrama API v${require('./package.json').version}`,
+        customfavIcon: '/favicon.ico'
     })(req, res, next);
 });
 
@@ -5610,10 +5633,10 @@ app.get('/api/admin/status', isAuthenticated, asyncHandler(async (req, res) => {
  *               properties:
  *                 currentVersion:
  *                   type: string
- *                   example: "1.3.9"
+ *                   example: "1.5.0"
  *                 latestVersion:
  *                   type: string
- *                   example: "1.4.0"
+ *                   example: "1.6.0"
  *                 hasUpdate:
  *                   type: boolean
  *                   example: true
@@ -5622,10 +5645,10 @@ app.get('/api/admin/status', isAuthenticated, asyncHandler(async (req, res) => {
  *                   example: "minor"
  *                 releaseUrl:
  *                   type: string
- *                   example: "https://github.com/Posterrama/posterrama/releases/tag/v1.4.0"
+ *                   example: "https://github.com/Posterrama/posterrama/releases/tag/v1.6.0"
  *                 downloadUrl:
  *                   type: string
- *                   example: "https://github.com/Posterrama/posterrama/archive/v1.4.0.tar.gz"
+ *                   example: "https://github.com/Posterrama/posterrama/archive/v1.6.0.tar.gz"
  *                 releaseNotes:
  *                   type: string
  *                   example: "### New Features\n- Added GitHub integration"
@@ -5634,7 +5657,7 @@ app.get('/api/admin/status', isAuthenticated, asyncHandler(async (req, res) => {
  *                   example: "2025-08-15T20:00:00Z"
  *                 releaseName:
  *                   type: string
- *                   example: "Version 1.4.0 - GitHub Integration"
+ *                   example: "Version 1.6.0 - GitHub Integration"
  */
 app.get('/api/admin/update-check', isAuthenticated, asyncHandler(async (req, res) => {
     try {
@@ -5891,7 +5914,7 @@ app.get('/api/admin/updater/status', isAuthenticated, asyncHandler(async (req, r
  *               targetVersion:
  *                 type: string
  *                 description: Specific version to update to (optional)
- *                 example: "1.4.0"
+ *                 example: "1.6.0"
  *     responses:
  *       200:
  *         description: Update started successfully
@@ -6076,7 +6099,7 @@ app.post('/api/admin/updater/cleanup-backups', isAuthenticated, express.json(), 
  *               version:
  *                 type: string
  *                 description: Specific version to update to (optional)
- *                 example: "1.4.0"
+ *                 example: "1.6.0"
  *               force:
  *                 type: boolean
  *                 description: Force update even if already on latest version

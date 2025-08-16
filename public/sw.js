@@ -1,7 +1,7 @@
 // Posterrama Admin Service Worker
-// Version 1.3.0
+// Version 1.5.0
 
-const CACHE_NAME = 'posterrama-admin-v1.3.0';
+const CACHE_NAME = 'posterrama-admin-v1.5.0';
 const STATIC_ASSETS = [
     '/admin.css',
     '/admin.js',
