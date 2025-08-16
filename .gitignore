@@ -37,8 +37,11 @@ test-*.html
 *~
 
 # Runtime cache and temporary data
+# These directories contain runtime generated cache files and should never be committed
 image_cache/
 cache/
+temp/
+*.cache
 logs/*.log
 
 # Session data (runtime generated)
