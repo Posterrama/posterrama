@@ -56,6 +56,14 @@ const options = {
             {
                 name: 'Cache',
                 description: 'Cache management and configuration endpoints.'
+            },
+            {
+                name: 'GitHub Integration',
+                description: 'GitHub API integration for releases and updates.'
+            },
+            {
+                name: 'Auto-Update',
+                description: 'Automatic application update management endpoints.'
             }
         ],
         servers: [
@@ -800,6 +808,84 @@ const options = {
                         content: {
                             'application/json': {
                                 schema: { $ref: '#/components/schemas/AdminApiResponse' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/github/latest': {
+            get: {
+                summary: 'Get latest release',
+                description: 'Get the latest release information from GitHub.',
+                tags: ['GitHub Integration'],
+                responses: {
+                    200: {
+                        description: 'Latest release information',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        tag_name: { type: 'string', description: 'Release tag' },
+                                        name: { type: 'string', description: 'Release name' },
+                                        published_at: { type: 'string', description: 'Publish date' },
+                                        html_url: { type: 'string', description: 'Release URL' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/update-check': {
+            get: {
+                summary: 'Check for updates',
+                description: 'Check if a new version is available.',
+                tags: ['Auto-Update', 'Admin API'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'Update status',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        updateAvailable: { type: 'boolean' },
+                                        currentVersion: { type: 'string' },
+                                        latestVersion: { type: 'string' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/admin/github/releases': {
+            get: {
+                summary: 'Get GitHub releases',
+                description: 'Get all releases from GitHub repository.',
+                tags: ['GitHub Integration', 'Admin API'],
+                security: [{ sessionAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'List of releases',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            tag_name: { type: 'string' },
+                                            name: { type: 'string' },
+                                            published_at: { type: 'string' }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

@@ -40,7 +40,8 @@
     "category": "popular",
     "movieCount": 50,
     "showCount": 25,
-    "minRating": 0
+    "minRating": 0,
+    "apiKey": ""
   },
   "tvdbSource": {
     "enabled": false,
