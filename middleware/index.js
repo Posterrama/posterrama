@@ -41,22 +41,30 @@ function securityMiddleware() {
  * Compresses responses when appropriate
  */
 function compressionMiddleware() {
-    return compression({
-        filter: (req, res) => {
-            // Don't compress already compressed content or images
-            if (req.headers['x-no-compression'] || 
-                req.url.includes('/image/') ||
-                req.url.endsWith('.jpg') || 
-                req.url.endsWith('.png') ||
-                req.url.endsWith('.gif') ||
-                req.url.endsWith('.webp')) {
-                return false;
-            }
-            return compression.filter(req, res);
-        },
-        level: 6, // Good balance between compression and CPU usage
-        threshold: 1024 // Only compress if response is larger than 1KB
-    });
+    return (req, res, next) => {
+        // Skip compression for specific problematic endpoints
+        if (req.path === '/get-media' || req.path.includes('get-media')) {
+            return next();
+        }
+        
+        // Use default compression for other routes
+        return compression({
+            filter: (req, res) => {
+                // Don't compress already compressed content or images
+                if (req.headers['x-no-compression'] || 
+                    req.url.includes('/image/') ||
+                    req.url.endsWith('.jpg') || 
+                    req.url.endsWith('.png') ||
+                    req.url.endsWith('.gif') ||
+                    req.url.endsWith('.webp')) {
+                    return false;
+                }
+                return compression.filter(req, res);
+            },
+            level: 6,
+            threshold: 1024
+        })(req, res, next);
+    };
 }
 
 /**

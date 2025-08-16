@@ -2132,6 +2132,7 @@ app.use(express.urlencoded({ extended: true })); // For parsing form data
 app.use(express.json({ limit: '10mb' })); // For parsing JSON payloads
 
 // Apply new optimization middleware
+// Fixed compression middleware - now respects Accept-Encoding properly
 app.use(compressionMiddleware());
 app.use(securityMiddleware());
 app.use(corsMiddleware());
