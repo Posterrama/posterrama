@@ -69,6 +69,14 @@ function generateSwaggerSpec() {
             {
                 name: 'Auto-Update',
                 description: 'Automatic application update management endpoints.'
+            },
+            {
+                name: 'Documentation',
+                description: 'API documentation and specification endpoints.'
+            },
+            {
+                name: 'Admin Setup',
+                description: 'Initial admin setup and configuration endpoints.'
             }
         ],
         servers: [

@@ -33,13 +33,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <!-- Local CSS with versioning -->
-    <link rel="stylesheet" href="/admin.css?v=20250815">
+    <link rel="stylesheet" href="/admin.css?v=20250816m">
     
     <!-- Font Awesome with SRI for security -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     
     <!-- Preload critical JavaScript -->
-    <link rel="preload" href="/admin.js?v=20250815" as="script">
+    <link rel="preload" href="/admin.js?v=20250816c" as="script">
 </head>
 <body>
     <!-- Skip links for accessibility -->
@@ -1130,10 +1130,6 @@
                                             <i class="fas fa-heartbeat icon"></i>
                                             <span>Status Check</span>
                                         </button>
-                                        <button type="button" id="update-check-button" class="btn btn-secondary">
-                                            <i class="fas fa-download icon"></i>
-                                            <span>Update Check</span>
-                                        </button>
                                         <button type="button" id="performance-monitor-button" class="btn btn-info">
                                             <i class="fas fa-chart-line icon"></i>
                                             <span>Performance Monitor</span>
@@ -1150,14 +1146,6 @@
                                         </div>
                                     </div>
                                     
-                                    <div id="update-display" class="status-display" style="display: none;">
-                                        <div class="status-header">
-                                            <h4><i class="fas fa-download"></i> Update Check</h4>
-                                        </div>
-                                        <div id="update-content" class="status-content">
-                                            <div class="loading">Checking for updates...</div>
-                                        </div>
-                                    </div>
                                     
                                     <div id="performance-display" class="status-display" style="display: none;">
                                         <div class="status-header">
@@ -1217,14 +1205,10 @@
                                     </div>
                                     
                                     <!-- Backup Management -->
-                                    <div class="form-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
-                                        <button type="button" id="list-backups-button" class="btn btn-secondary">
+                                    <div class="form-actions" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                        <button type="button" id="list-backups-button" class="btn btn-secondary" style="flex: 1;">
                                             <i class="fas fa-archive icon"></i>
                                             <span>View Backups</span>
-                                        </button>
-                                        <button type="button" id="cleanup-backups-button" class="btn btn-secondary">
-                                            <i class="fas fa-trash icon"></i>
-                                            <span>Cleanup Backups</span>
                                         </button>
                                     </div>
                                     
@@ -1235,107 +1219,6 @@
                                         </div>
                                         <div id="backups-content" class="status-content">
                                             <div class="loading">Loading backups...</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- GitHub Integration Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fab fa-github"></i>
-                                    GitHub Integration
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
-                                        <button type="button" id="github-releases-button" class="btn btn-secondary">
-                                            <i class="fas fa-tags icon"></i>
-                                            <span>View Releases</span>
-                                        </button>
-                                        <button type="button" id="github-repo-info-button" class="btn btn-secondary">
-                                            <i class="fas fa-info-circle icon"></i>
-                                            <span>Repository Info</span>
-                                        </button>
-                                    </div>
-                                    
-                                    <!-- GitHub Data Display Areas -->
-                                    <div id="github-releases-display" class="status-display" style="display: none;">
-                                        <div class="status-header">
-                                            <h4><i class="fas fa-tags"></i> Recent Releases</h4>
-                                        </div>
-                                        <div id="github-releases-content" class="status-content">
-                                            <div class="loading">Loading releases...</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div id="github-repo-display" class="status-display" style="display: none;">
-                                        <div class="status-header">
-                                            <h4><i class="fas fa-info-circle"></i> Repository Information</h4>
-                                        </div>
-                                        <div id="github-repo-content" class="status-content">
-                                            <div class="loading">Loading repository information...</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Automatic Updates Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-download"></i>
-                                    Automatic Updates
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-actions" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
-                                        <button type="button" id="start-update-button" class="btn btn-primary">
-                                            <i class="fas fa-download icon"></i>
-                                            <span>Start Update</span>
-                                        </button>
-                                        <button type="button" id="update-status-button" class="btn btn-secondary">
-                                            <i class="fas fa-info-circle icon"></i>
-                                            <span>Update Status</span>
-                                        </button>
-                                        <button type="button" id="rollback-button" class="btn btn-warning">
-                                            <i class="fas fa-undo icon"></i>
-                                            <span>Rollback</span>
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="form-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
-                                        <button type="button" id="list-backups-button" class="btn btn-secondary">
-                                            <i class="fas fa-archive icon"></i>
-                                            <span>View Backups</span>
-                                        </button>
-                                        <button type="button" id="cleanup-backups-button" class="btn btn-secondary">
-                                            <i class="fas fa-trash icon"></i>
-                                            <span>Cleanup Old Backups</span>
-                                        </button>
-                                    </div>
-                                    
-                                    <!-- Update Status Display -->
-                                    <div id="update-status-display" class="status-display" style="display: none;">
-                                        <div class="status-header">
-                                            <h4><i class="fas fa-download"></i> Update Status</h4>
-                                        </div>
-                                        <div id="update-status-content" class="status-content">
-                                            <div class="loading">Loading update status...</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Backups List Display -->
-                                    <div id="backups-list-display" class="status-display" style="display: none;">
-                                        <div class="status-header">
-                                            <h4><i class="fas fa-archive"></i> Available Backups</h4>
-                                        </div>
-                                        <div id="backups-list-content" class="status-content">
-                                            <div class="loading">Loading backups...</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Update Progress Bar -->
-                                    <div id="update-progress-container" class="progress-container" style="display: none; margin-top: 1rem;">
-                                        <div class="progress-label">
-                                            <span id="update-progress-label">Update in progress...</span>
-                                            <span id="update-progress-percentage">0%</span>
-                                        </div>
-                                        <div class="progress-bar">
-                                            <div id="update-progress-fill" class="progress-fill" style="width: 0%;"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -1495,7 +1378,32 @@
         </div>
     </div>
 
+    <!-- Auto-Update Confirmation Modal -->
+    <div id="update-confirmation-modal" class="modal is-hidden">
+        <div class="modal-background" onclick="closeUpdateConfirmationModal()"></div>
+        <div class="modal-content">
+            <span class="close" onclick="closeUpdateConfirmationModal()">&times;</span>
+            <h3><i class="fas fa-download"></i> Confirm Automatic Update</h3>
+            <div id="update-confirmation-content">
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #667eea;"></i>
+                    <p style="margin: 1rem 0 0 0; color: #ccc;">Loading update information...</p>
+                </div>
+            </div>
+            <div class="form-actions" style="margin-top: 1.5rem;">
+                <button type="button" id="confirm-update-button" class="btn btn-primary" onclick="confirmAutoUpdate()" disabled>
+                    <i class="fas fa-download icon"></i>
+                    <span>Start Update</span>
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeUpdateConfirmationModal()">
+                    <i class="fas fa-times icon"></i>
+                    <span>Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Load admin JavaScript -->
-    <script src="/admin.js?v=20250815" defer></script>
+    <script src="/admin.js?v=20250816q" defer></script>
 </body>
 </html>

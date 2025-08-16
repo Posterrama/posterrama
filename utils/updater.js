@@ -224,6 +224,16 @@ class AutoUpdater {
         );
 
         logger.info('Backup created successfully', { backupPath, manifest });
+        
+        // Automatically cleanup old backups (keep only 5)
+        try {
+            const cleanupResult = await this.cleanupOldBackups(5);
+            logger.info('Automatic backup cleanup completed', cleanupResult);
+        } catch (cleanupError) {
+            logger.warn('Automatic backup cleanup failed', { error: cleanupError.message });
+            // Don't throw - backup creation is still successful
+        }
+        
         return backupPath;
     }
 

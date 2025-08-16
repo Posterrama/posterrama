@@ -2147,6 +2147,33 @@ app.use(corsMiddleware());
 app.use(requestLoggingMiddleware());
 
 // API cache stats endpoint (admin only)
+/**
+ * @swagger
+ * /api/admin/cache/stats:
+ *   get:
+ *     summary: Get API cache statistics
+ *     description: Retrieve detailed statistics about API cache performance and usage
+ *     tags: [Admin API]
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Cache statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   description: Cache statistics data
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin role required
+ */
 app.get('/api/admin/cache/stats', 
     sessionAuth, 
     requireRole(['admin']),
@@ -2161,6 +2188,22 @@ app.get('/api/admin/cache/stats',
 });
 
 // Direct swagger spec endpoint for debugging
+/**
+ * @swagger
+ * /api-docs/swagger.json:
+ *   get:
+ *     summary: Get OpenAPI/Swagger specification
+ *     description: Returns the complete OpenAPI specification for the API
+ *     tags: [Documentation]
+ *     responses:
+ *       200:
+ *         description: OpenAPI specification
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               description: OpenAPI 3.0 specification
+ */
 app.get('/api-docs/swagger.json', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -4275,6 +4318,46 @@ app.get('/api/github/latest', asyncHandler(async (req, res) => {
     }
 }));
 
+/**
+ * @swagger
+ * /api/config:
+ *   get:
+ *     summary: Get public configuration
+ *     description: >
+ *       Public endpoint that returns non-sensitive configuration data,
+ *       such as server availability and enabled services status.
+ *     tags: [Public API]
+ *     responses:
+ *       200:
+ *         description: Public configuration data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 plex:
+ *                   type: object
+ *                   properties:
+ *                     server:
+ *                       type: string
+ *                       nullable: true
+ *                       description: Plex server address
+ *                     token:
+ *                       type: boolean
+ *                       description: Whether Plex token is configured
+ *                 tmdb:
+ *                   type: object
+ *                   properties:
+ *                     enabled:
+ *                       type: boolean
+ *                       description: Whether TMDB API is enabled
+ *                 tvdb:
+ *                   type: object
+ *                   properties:
+ *                     enabled:
+ *                       type: boolean
+ *                       description: Whether TVDB API is enabled
+ */
 app.get('/api/config', asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Public API] Request received for /api/config.');
     
@@ -4640,7 +4723,7 @@ app.post('/api/admin/plex-libraries', isAuthenticated, express.json(), asyncHand
  *       400:
  *         description: TVDB connection test failed.
  */
-app.post('/api/test-tvdb-connection', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
+app.post('/api/admin/test-tvdb', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
     if (isDebug) console.log('[Admin API] Received request to test TVDB connection.');
     
     const startTime = Date.now();
@@ -5621,6 +5704,43 @@ app.get('/api/admin/status', isAuthenticated, asyncHandler(async (req, res) => {
 
 /**
  * @swagger
+ * /api/admin/version:
+ *   get:
+ *     summary: Get current application version
+ *     description: Returns the current version of the application from package.json
+ *     tags: [Admin]
+ *     security:
+ *       - ApiKeyAuth: []
+ *     responses:
+ *       200:
+ *         description: Current version retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 version:
+ *                   type: string
+ *                   example: "1.7.6"
+ *       401:
+ *         description: Unauthorized
+ */
+app.get('/api/admin/version', isAuthenticated, asyncHandler(async (req, res) => {
+    try {
+        // Read current version from package.json
+        const packagePath = path.join(__dirname, 'package.json');
+        const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
+        const version = packageData.version || 'Unknown';
+        
+        res.json({ version });
+    } catch (error) {
+        logger.error('Failed to read version', { error: error.message });
+        res.json({ version: 'Unknown' });
+    }
+}));
+
+/**
+ * @swagger
  * /api/admin/update-check:
  *   get:
  *     summary: Check for application updates
@@ -5855,233 +5975,6 @@ app.post('/api/admin/github/clear-cache', isAuthenticated, asyncHandler(async (r
     } catch (error) {
         logger.error('Failed to clear GitHub cache', { error: error.message });
         res.status(500).json({ error: 'Failed to clear GitHub cache' });
-    }
-}));
-
-/**
- * @swagger
- * /api/admin/updater/status:
- *   get:
- *     summary: Get update status
- *     description: Returns the current status of any ongoing update process
- *     tags: [Admin API]
- *     responses:
- *       200:
- *         description: Update status information
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 phase:
- *                   type: string
- *                   example: "idle"
- *                 progress:
- *                   type: number
- *                   example: 0
- *                 message:
- *                   type: string
- *                   example: ""
- *                 error:
- *                   type: string
- *                   nullable: true
- *                 startTime:
- *                   type: string
- *                   nullable: true
- *                 backupPath:
- *                   type: string
- *                   nullable: true
- */
-app.get('/api/admin/updater/status', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        const status = autoUpdater.getStatus();
-        res.json(status);
-    } catch (error) {
-        logger.error('Failed to get updater status', { error: error.message });
-        res.status(500).json({ error: 'Failed to get updater status' });
-    }
-}));
-
-/**
- * @swagger
- * /api/admin/updater/start:
- *   post:
- *     summary: Start automatic update
- *     description: >
- *       Starts the automatic update process. This will download the latest
- *       version, create a backup, and apply the update.
- *     tags: [Admin API]
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               targetVersion:
- *                 type: string
- *                 description: Specific version to update to (optional)
- *                 example: "1.6.0"
- *     responses:
- *       200:
- *         description: Update started successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Update started"
- *       409:
- *         description: Update already in progress
- *       500:
- *         description: Failed to start update
- */
-app.post('/api/admin/updater/start', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    try {
-        if (autoUpdater.isUpdating()) {
-            return res.status(409).json({ error: 'Update already in progress' });
-        }
-
-        const { targetVersion } = req.body;
-        
-        logger.info('Starting update process via API', { 
-            targetVersion,
-            adminUser: req.session.username 
-        });
-
-        // Start update in background
-        autoUpdater.startUpdate(targetVersion).catch(error => {
-            logger.error('Background update failed', { error: error.message });
-        });
-
-        res.json({ 
-            message: 'Update started', 
-            targetVersion: targetVersion || 'latest'
-        });
-    } catch (error) {
-        logger.error('Failed to start update', { error: error.message });
-        res.status(500).json({ error: `Failed to start update: ${error.message}` });
-    }
-}));
-
-/**
- * @swagger
- * /api/admin/updater/rollback:
- *   post:
- *     summary: Rollback to previous version
- *     description: >
- *       Rolls back to the most recent backup. Only available if a backup
- *       exists from a recent update.
- *     tags: [Admin API]
- *     responses:
- *       200:
- *         description: Rollback completed successfully
- *       400:
- *         description: No backup available for rollback
- *       500:
- *         description: Rollback failed
- */
-app.post('/api/admin/updater/rollback', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        logger.info('Starting rollback via API', { adminUser: req.session.username });
-        
-        await autoUpdater.rollback();
-        res.json({ message: 'Rollback completed successfully' });
-    } catch (error) {
-        logger.error('Rollback failed', { error: error.message });
-        res.status(500).json({ error: `Rollback failed: ${error.message}` });
-    }
-}));
-
-/**
- * @swagger
- * /api/admin/updater/backups:
- *   get:
- *     summary: List available backups
- *     description: Returns a list of all available backups
- *     tags: [Admin API]
- *     responses:
- *       200:
- *         description: List of backups
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   name:
- *                     type: string
- *                   path:
- *                     type: string
- *                   version:
- *                     type: string
- *                   timestamp:
- *                     type: string
- *                   size:
- *                     type: number
- *                   created:
- *                     type: string
- */
-app.get('/api/admin/updater/backups', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        const backups = await autoUpdater.listBackups();
-        res.json(backups);
-    } catch (error) {
-        logger.error('Failed to list backups', { error: error.message });
-        res.status(500).json({ error: 'Failed to list backups' });
-    }
-}));
-
-/**
- * @swagger
- * /api/admin/updater/cleanup-backups:
- *   post:
- *     summary: Clean up old backups
- *     description: >
- *       Removes old backups, keeping only the most recent ones.
- *       By default keeps the last 5 backups.
- *     tags: [Admin API]
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               keepCount:
- *                 type: integer
- *                 default: 5
- *                 minimum: 1
- *                 maximum: 20
- *     responses:
- *       200:
- *         description: Cleanup completed
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 deleted:
- *                   type: integer
- *                 kept:
- *                   type: integer
- */
-app.post('/api/admin/updater/cleanup-backups', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    try {
-        const { keepCount = 5 } = req.body;
-        const result = await autoUpdater.cleanupOldBackups(keepCount);
-        
-        logger.info('Backup cleanup completed', { 
-            deleted: result.deleted, 
-            kept: result.kept,
-            adminUser: req.session.username 
-        });
-        
-        res.json(result);
-    } catch (error) {
-        logger.error('Failed to cleanup backups', { error: error.message });
-        res.status(500).json({ error: 'Failed to cleanup backups' });
     }
 }));
 

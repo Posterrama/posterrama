@@ -7,26 +7,33 @@
 // Version check for cache busting validation
 console.log('✅ Admin script v2.2.0 loaded successfully');
 
+// Make version available globally (will be updated by server)
+window.POSTERRAMA_VERSION = 'Loading...';
+
+// Fetch current version immediately
+fetch('/api/admin/version')
+    .then(response => response.json())
+    .then(data => {
+        window.POSTERRAMA_VERSION = data.version || 'Unknown';
+        console.log(`📦 Posterrama version: ${window.POSTERRAMA_VERSION}`);
+    })
+    .catch(error => {
+        console.warn('Could not fetch version:', error);
+        window.POSTERRAMA_VERSION = 'Unknown';
+    });
+
 // Ensure all API calls use the current host
 const API_BASE = window.location.origin;
 console.log('🌐 API Base URL:', API_BASE);
 
-// Helper function to create API URLs with localhost fallback for dev environments
+// Helper function to create API URLs - always use current host
 function apiUrl(path) {
     // Ensure path starts with /
     if (!path.startsWith('/')) {
         path = '/' + path;
     }
     
-    // Check if we should use localhost fallback for dev environments with proxy issues
-    const currentHost = window.location.hostname;
-    const isDev = currentHost.includes('dev.') || currentHost.includes('staging.');
-    
-    if (isDev && window.__useLocalhostFallback) {
-        console.log('🔄 Using localhost fallback for API call');
-        return `http://localhost:4000${path}`;
-    }
-    
+    // Always use the current host - no hardcoded URLs or special cases
     return API_BASE + path;
 }
 
@@ -39,17 +46,12 @@ function apiUrlWithCacheBust(path) {
 
 // Helper for authenticated fetch calls with proper error handling
 async function authenticatedFetch(url, options = {}) {
-    // Track HTTP/2 errors to enable automatic localhost fallback
-    window.__http2ErrorCount = window.__http2ErrorCount || 0;
-    
     const defaultOptions = {
         credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
-            'Connection': 'close', // Force HTTP/1.1 behavior
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache',
-            'HTTP-Version': '1.1', // Request HTTP/1.1
             ...options.headers
         }
     };
@@ -58,8 +60,7 @@ async function authenticatedFetch(url, options = {}) {
         url,
         method: options.method || 'GET',
         hasBody: !!options.body,
-        bodySize: options.body ? options.body.length : 0,
-        localhostFallback: window.__useLocalhostFallback || false
+        bodySize: options.body ? options.body.length : 0
     });
     
     try {
@@ -71,11 +72,6 @@ async function authenticatedFetch(url, options = {}) {
             ok: response.ok
         });
         
-        // Reset error count on successful request
-        if (response.ok) {
-            window.__http2ErrorCount = 0;
-        }
-        
         // Handle authentication errors
         if (response.status === 401) {
             console.warn('Authentication failed - redirecting to login');
@@ -86,76 +82,6 @@ async function authenticatedFetch(url, options = {}) {
         return response;
     } catch (error) {
         console.error('🚨 Fetch error:', error.name, error.message);
-        
-        // Track HTTP/2 errors
-        if (error.message.includes('ERR_HTTP2_PROTOCOL_ERROR')) {
-            window.__http2ErrorCount++;
-            console.warn(`⚠️ HTTP/2 error count: ${window.__http2ErrorCount}`);
-            
-            // Enable localhost fallback after 2 HTTP/2 errors
-            if (window.__http2ErrorCount >= 2 && !window.__useLocalhostFallback) {
-                window.__useLocalhostFallback = true;
-                console.warn('🔄 Enabling localhost fallback due to repeated HTTP/2 errors');
-                
-                // Retry the request with localhost
-                const localhostUrl = url.replace(window.location.origin, 'http://localhost:4000');
-                console.log('🏠 Retrying with localhost:', localhostUrl);
-                
-                try {
-                    const localhostResponse = await fetch(localhostUrl, { ...defaultOptions, ...options });
-                    console.log('✅ Localhost request succeeded');
-                    return localhostResponse;
-                } catch (localhostError) {
-                    console.error('❌ Localhost request also failed:', localhostError.message);
-                }
-            }
-        }
-        
-        // For any network error, try a simplified request
-        if (error.message.includes('ERR_HTTP2_PROTOCOL_ERROR') || 
-            error.message.includes('Failed to fetch') ||
-            error.message.includes('502') ||
-            error.message.includes('503')) {
-            
-            console.warn('🔄 Network error detected, attempting simplified request...');
-            try {
-                // Wait a moment before retry
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                // Try with absolute minimal headers and explicit HTTP/1.1
-                const simplifiedOptions = {
-                    method: options.method || 'GET',
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Connection': 'close'
-                    },
-                    body: options.body
-                };
-                
-                const fallbackResponse = await fetch(url, simplifiedOptions);
-                console.log(`📡 Simplified response: ${fallbackResponse.status} ${fallbackResponse.statusText}`);
-                
-                // Check if fallback response is also an error
-                if (fallbackResponse.status === 401) {
-                    console.warn('Authentication failed in fallback - redirecting to login');
-                    window.location.href = '/admin/login';
-                    throw new Error('Authentication required');
-                }
-                
-                if (!fallbackResponse.ok) {
-                    console.error(`❌ Simplified request failed with HTTP ${fallbackResponse.status}: ${fallbackResponse.statusText}`);
-                    throw new Error(`HTTP ${fallbackResponse.status}: ${fallbackResponse.statusText}`);
-                }
-                
-                console.log('✅ Simplified request succeeded');
-                return fallbackResponse;
-            } catch (fallbackError) {
-                console.error('❌ Simplified request also failed:', fallbackError.message);
-                throw fallbackError;
-            }
-        }
-        
         throw error;
     }
 }
@@ -201,29 +127,110 @@ window.hardRefresh = function() {
     window.location.reload(true);
 };
 
-// Network debugging functions
-window.enableLocalhostFallback = function() {
-    window.__useLocalhostFallback = true;
-    console.log('🏠 Localhost fallback enabled - API calls will use http://localhost:4000');
-    return 'Localhost fallback enabled';
+// DEBUGGING: Force show modal function
+window.forceShowModal = function() {
+    console.log('🚀 FORCE SHOWING MODAL');
+    const modal = document.getElementById('update-confirmation-modal');
+    console.log('Modal element:', modal);
+    
+    if (modal) {
+        // Try all possible ways to show it
+        modal.style.display = 'flex';
+        modal.style.visibility = 'visible';
+        modal.style.opacity = '1';
+        modal.style.zIndex = '99999';
+        modal.classList.remove('is-hidden');
+        modal.classList.add('force-visible');
+        
+        console.log('Modal styles applied:', {
+            display: modal.style.display,
+            visibility: modal.style.visibility,
+            opacity: modal.style.opacity,
+            zIndex: modal.style.zIndex,
+            classes: modal.className
+        });
+        
+        // Add inline CSS as fallback
+        modal.setAttribute('style', `
+            display: flex !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 999999 !important;
+            background: rgba(0,0,0,0.8) !important;
+            align-items: center !important;
+            justify-content: center !important;
+        `);
+        
+        const content = modal.querySelector('.modal-content');
+        if (content) {
+            content.innerHTML = '<h2 style="color: white;">TEST MODAL - IF YOU SEE THIS, MODAL WORKS!</h2>';
+        }
+        
+        return 'Modal force shown';
+    } else {
+        console.error('Modal not found!');
+        return 'Modal not found';
+    }
+};
+// DEBUGGING: Advanced modal debugging
+window.debugModal = function() {
+    console.log('🔍 ADVANCED MODAL DEBUGGING');
+    const modal = document.getElementById('update-confirmation-modal');
+    
+    if (modal) {
+        const computed = window.getComputedStyle(modal);
+        const rect = modal.getBoundingClientRect();
+        
+        console.log('🎯 Modal computed styles:', {
+            display: computed.display,
+            position: computed.position,
+            visibility: computed.visibility,
+            opacity: computed.opacity,
+            zIndex: computed.zIndex,
+            top: computed.top,
+            left: computed.left,
+            width: computed.width,
+            height: computed.height
+        });
+        
+        console.log('📐 Modal bounding rect:', rect);
+        
+        console.log('🌍 Modal in DOM:', {
+            parentElement: modal.parentElement?.tagName,
+            childElementCount: modal.childElementCount,
+            innerHTML: modal.innerHTML.substring(0, 100) + '...'
+        });
+        
+        // Check for elements that might be on top
+        const elementsAtCenter = document.elementsFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+        console.log('🎭 Elements at screen center:', elementsAtCenter.map(el => el.tagName + (el.id ? '#' + el.id : '') + (el.className ? '.' + el.className : '')));
+        
+        // Try to make it bright red and huge to see if it shows
+        modal.style.background = 'red !important';
+        modal.style.border = '10px solid yellow !important';
+        
+        return 'Advanced debugging complete';
+    }
+    
+    return 'Modal not found';
 };
 
-window.disableLocalhostFallback = function() {
-    window.__useLocalhostFallback = false;
-    console.log('🌐 Localhost fallback disabled - API calls will use current domain');
-    return 'Localhost fallback disabled';
+// DEBUGGING: Force call displayIdleUpdateStatus directly
+window.testUpdateStatus = function() {
+    console.log('🧪 Testing update status display...');
+    displayIdleUpdateStatus({ isUpdating: false });
+    return 'Update status test initiated';
 };
 
 window.checkNetworkStatus = function() {
     console.log('📊 Network Status:', {
-        http2ErrorCount: window.__http2ErrorCount || 0,
-        localhostFallback: window.__useLocalhostFallback || false,
         currentDomain: window.location.hostname,
         apiBase: API_BASE
     });
     return {
-        http2ErrorCount: window.__http2ErrorCount || 0,
-        localhostFallback: window.__useLocalhostFallback || false,
         currentDomain: window.location.hostname,
         apiBase: API_BASE
     };
@@ -4497,23 +4504,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Update Check Button
-    const updateCheckButton = document.getElementById('update-check-button');
-    if (updateCheckButton) {
-        updateCheckButton.addEventListener('click', async () => {
-            setButtonState(updateCheckButton, 'loading', { text: 'Checking...' });
-            
-            try {
-                await performUpdateCheck();
-                setButtonState(updateCheckButton, 'success', { text: 'Check Complete' });
-                setTimeout(() => setButtonState(updateCheckButton, 'revert'), 2000);
-            } catch (error) {
-                console.error('[Admin] Error during update check:', error);
-                showNotification(`Error checking updates: ${error.message}`, 'error');
-                setButtonState(updateCheckButton, 'revert');
-            }
-        });
-    }
+    // Update Check Button - REMOVED (functionality moved to Automatic Updates section)
+    // const updateCheckButton = document.getElementById('update-check-button');
+    // Button removed from HTML to avoid duplication with Automatic Updates
 
     // Performance Monitor Button
     const performanceMonitorButton = document.getElementById('performance-monitor-button');
@@ -4533,52 +4526,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // GitHub Releases Button
-    const githubReleasesButton = document.getElementById('github-releases-button');
-    if (githubReleasesButton) {
-        githubReleasesButton.addEventListener('click', async () => {
-            setButtonState(githubReleasesButton, 'loading', { text: 'Loading...' });
-            
-            try {
-                await loadGithubReleases();
-                setButtonState(githubReleasesButton, 'success', { text: 'Releases Loaded' });
-                setTimeout(() => setButtonState(githubReleasesButton, 'revert'), 2000);
-            } catch (error) {
-                console.error('[Admin] Error loading GitHub releases:', error);
-                showNotification(`Error loading releases: ${error.message}`, 'error');
-                setButtonState(githubReleasesButton, 'revert');
-            }
-        });
-    }
-
-    // GitHub Repository Info Button
-    const githubRepoInfoButton = document.getElementById('github-repo-info-button');
-    if (githubRepoInfoButton) {
-        githubRepoInfoButton.addEventListener('click', async () => {
-            setButtonState(githubRepoInfoButton, 'loading', { text: 'Loading...' });
-            
-            try {
-                await loadGithubRepositoryInfo();
-                setButtonState(githubRepoInfoButton, 'success', { text: 'Info Loaded' });
-                setTimeout(() => setButtonState(githubRepoInfoButton, 'revert'), 2000);
-            } catch (error) {
-                console.error('[Admin] Error loading repository info:', error);
-                showNotification(`Error loading repository info: ${error.message}`, 'error');
-                setButtonState(githubRepoInfoButton, 'revert');
-            }
-        });
-    }
-
-    // Auto-Update: Start Auto-Update Button
+    // Auto-Update: Start Auto-Update Button - NUCLEAR OPTION: Clear all existing listeners
     const startAutoUpdateButton = document.getElementById('start-auto-update-button');
     if (startAutoUpdateButton) {
-        startAutoUpdateButton.addEventListener('click', async () => {
-            const confirmation = confirm('Are you sure you want to start the automatic update? This will:\n\n• Create a backup of your current installation\n• Download and install the latest version\n• Restart the application\n\nThe process may take several minutes.');
+        // Remove any existing event listeners by cloning the element
+        const newButton = startAutoUpdateButton.cloneNode(true);
+        startAutoUpdateButton.parentNode.replaceChild(newButton, startAutoUpdateButton);
+        
+        // Add single clean event listener
+        newButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('🔄 Start Auto-Update button clicked (NUCLEAR OPTION)');
             
-            if (!confirmation) return;
+            // Check if button is in updating state
+            if (newButton.getAttribute('data-updating') === 'true') {
+                console.log('⚠️ Button is in updating state, ignoring click');
+                return;
+            }
             
-            await startAutoUpdate();
+            // Open the confirmation modal
+            openUpdateConfirmationModal();
         });
+        
+        console.log('✅ Clean event listener attached to Start Auto-Update button');
     }
 
     // Auto-Update: Rollback Button
@@ -4601,105 +4572,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('[Admin] Error loading backups:', error);
                 showNotification(`Error loading backups: ${error.message}`, 'error');
                 setButtonState(listBackupsButton, 'revert');
-            }
-        });
-    }
-
-    // Auto-Update: Cleanup Backups Button
-    const cleanupBackupsButton = document.getElementById('cleanup-backups-button');
-    if (cleanupBackupsButton) {
-        cleanupBackupsButton.addEventListener('click', cleanupBackups);
-    }
-
-    // Auto-Update: Start Update Button (legacy)
-    const startUpdateButton = document.getElementById('start-update-button');
-    if (startUpdateButton) {
-        startUpdateButton.addEventListener('click', async () => {
-            const confirmation = confirm('Are you sure you want to start the automatic update? This will:\n\n• Create a backup of your current installation\n• Download and install the latest version\n• Restart the application\n\nThe process may take several minutes.');
-            
-            if (!confirmation) return;
-
-            setButtonState(startUpdateButton, 'loading', { text: 'Starting...' });
-            
-            try {
-                const response = await authenticatedFetch(apiUrl('/api/admin/update/start'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || `HTTP ${response.status}`);
-                }
-
-                const result = await response.json();
-                showNotification('Update process started successfully! Monitor progress below.', 'success');
-                setButtonState(startUpdateButton, 'success', { text: 'Started' });
-                
-                // Show progress container and start monitoring
-                document.getElementById('update-progress-container').style.display = 'block';
-                startUpdateStatusMonitoring();
-                
-                setTimeout(() => setButtonState(startUpdateButton, 'revert'), 3000);
-            } catch (error) {
-                console.error('[Admin] Error starting update:', error);
-                showNotification(`Error starting update: ${error.message}`, 'error');
-                setButtonState(startUpdateButton, 'revert');
-            }
-        });
-    }
-
-    // Auto-Update: Status Button
-    const updateStatusButton = document.getElementById('update-status-button');
-    if (updateStatusButton) {
-        updateStatusButton.addEventListener('click', async () => {
-            setButtonState(updateStatusButton, 'loading', { text: 'Loading...' });
-            
-            try {
-                await loadUpdateStatus();
-                setButtonState(updateStatusButton, 'success', { text: 'Status Loaded' });
-                setTimeout(() => setButtonState(updateStatusButton, 'revert'), 2000);
-            } catch (error) {
-                console.error('[Admin] Error loading update status:', error);
-                showNotification(`Error loading update status: ${error.message}`, 'error');
-                setButtonState(updateStatusButton, 'revert');
-            }
-        });
-    }
-
-    // Auto-Update: Rollback Button
-    const rollbackButton = document.getElementById('rollback-button');
-    if (rollbackButton) {
-        rollbackButton.addEventListener('click', async () => {
-            const confirmation = confirm('Are you sure you want to rollback to the previous version? This will:\n\n• Stop the current application\n• Restore from the most recent backup\n• Restart the application\n\nThis action cannot be undone.');
-            
-            if (!confirmation) return;
-
-            setButtonState(rollbackButton, 'loading', { text: 'Rolling back...' });
-            
-            try {
-                const response = await authenticatedFetch(apiUrl('/api/admin/update/rollback'), {
-                    method: 'POST'
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || `HTTP ${response.status}`);
-                }
-
-                const result = await response.json();
-                showNotification('Rollback completed successfully!', 'success');
-                setButtonState(rollbackButton, 'success', { text: 'Rolled Back' });
-                setTimeout(() => {
-                    setButtonState(rollbackButton, 'revert');
-                    // Refresh the page after rollback
-                    window.location.reload();
-                }, 3000);
-            } catch (error) {
-                console.error('[Admin] Error during rollback:', error);
-                showNotification(`Error during rollback: ${error.message}`, 'error');
-                setButtonState(rollbackButton, 'revert');
             }
         });
     }
@@ -5396,7 +5268,7 @@ async function testTVDBConnection() {
     statusElement.style.color = '#ffd93d';
     
     try {
-        const response = await fetch('/api/test-tvdb-connection', {
+        const response = await fetch('/api/admin/test-tvdb', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -5609,8 +5481,9 @@ const managementObserver = new MutationObserver((mutations) => {
         if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
             const managementSection = document.getElementById('management-section');
             if (managementSection && managementSection.style.display !== 'none') {
-                console.log('Management section is now visible, loading cache stats...');
+                console.log('Management section is now visible, loading cache stats and update status...');
                 loadCacheStats();
+                loadUpdateStatus();
             }
         }
     });
@@ -5625,6 +5498,13 @@ setTimeout(() => {
             attributes: true,
             attributeFilter: ['style', 'class']
         });
+        
+        // Check if management section is already visible
+        if (managementSection.style.display !== 'none' && managementSection.classList.contains('active')) {
+            console.log('Management section is already visible, loading cache stats and update status...');
+            loadCacheStats();
+            loadUpdateStatus();
+        }
     }
 }, 1000);
 
@@ -6509,8 +6389,9 @@ async function loadUpdateStatus() {
         const status = await response.json();
         displayUpdateStatus(status);
     } catch (error) {
-        console.error('Update status loading failed:', error);
-        updateStatusContent.innerHTML = `<div class="status-error">Failed to load update status: ${error.message}</div>`;
+        console.error('Update status loading failed, showing idle status:', error);
+        // If the update status API fails, show idle status by default
+        displayIdleUpdateStatus({ isUpdating: false });
     }
 }
 
@@ -6520,6 +6401,12 @@ async function loadUpdateStatus() {
 function displayUpdateStatus(status) {
     const updateStatusContent = document.getElementById('update-status-content');
     if (!updateStatusContent) return;
+    
+    // If not updating, show version info and update check
+    if (!status.isUpdating) {
+        displayIdleUpdateStatus(status);
+        return;
+    }
     
     const startTime = status.startTime ? new Date(status.startTime).toLocaleString() : 'Not started';
     const duration = status.startTime ? Math.floor((Date.now() - new Date(status.startTime)) / 1000) : 0;
@@ -6598,6 +6485,167 @@ function displayUpdateStatus(status) {
                 Duration: ${Math.floor(duration / 60)}m ${duration % 60}s
             </div>
         ` : ''}
+    `;
+}
+
+/**
+ * Display idle update status with version information
+ */
+async function displayIdleUpdateStatus(status) {
+    const updateStatusContent = document.getElementById('update-status-content');
+    if (!updateStatusContent) return;
+    
+    // Show loading state first with current version if available
+    updateStatusContent.innerHTML = `
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-tag"></i>
+                    Current Version
+                </div>
+                <div class="status-item-value status-info">
+                    v${window.POSTERRAMA_VERSION || 'Loading...'}
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-item-header">
+                    <i class="fas fa-cloud-download-alt"></i>
+                    Update Status
+                </div>
+                <div class="status-item-value status-info">
+                    <i class="fas fa-spinner fa-spin"></i> Checking for updates...
+                </div>
+            </div>
+        </div>
+    `;
+    
+    try {
+        // Check for available updates
+        const updateCheckResponse = await authenticatedFetch(apiUrl('/api/admin/update-check'));
+        const updateInfo = await updateCheckResponse.json();
+        
+        const hasUpdate = updateInfo.hasUpdate;
+        const currentVersion = updateInfo.currentVersion;
+        const latestVersion = updateInfo.latestVersion;
+        const releaseNotes = updateInfo.releaseNotes;
+        
+        updateStatusContent.innerHTML = `
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-item-header">
+                        <i class="fas fa-tag"></i>
+                        Current Version
+                    </div>
+                    <div class="status-item-value status-info">
+                        v${currentVersion}
+                    </div>
+                </div>
+                ${hasUpdate ? `
+                    <div class="status-item">
+                        <div class="status-item-header">
+                            <i class="fas fa-download"></i>
+                            Available Version
+                        </div>
+                        <div class="status-item-value status-warning">
+                            v${latestVersion}
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-item-header">
+                            <i class="fas fa-chart-line"></i>
+                            Update Type
+                        </div>
+                        <div class="status-item-value status-info">
+                            ${updateInfo.updateType || 'Unknown'}
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-item-header">
+                            <i class="fas fa-check-circle"></i>
+                            Status
+                        </div>
+                        <div class="status-item-value status-warning">
+                            Update Available
+                        </div>
+                    </div>
+                ` : `
+                    <div class="status-item">
+                        <div class="status-item-header">
+                            <i class="fas fa-check-circle"></i>
+                            Status
+                        </div>
+                        <div class="status-item-value status-success">
+                            Up to Date
+                        </div>
+                    </div>
+                `}
+            </div>
+            ${hasUpdate && releaseNotes ? `
+                <div style="margin-top: 1rem; padding: 1rem; background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 6px;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #4caf50; font-size: 0.95rem;">
+                        <i class="fas fa-list"></i> Release Notes for v${latestVersion}
+                    </h4>
+                    <div style="color: #ccc; font-size: 0.85rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">${releaseNotes}</div>
+                </div>
+            ` : ''}
+            ${!hasUpdate ? `
+                <div style="margin-top: 1rem; padding: 1rem; background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 6px; text-align: center;">
+                    <i class="fas fa-check-circle" style="color: #4caf50; font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                    <p style="margin: 0; color: #4caf50; font-weight: 600;">Your installation is up to date!</p>
+                    <p style="margin: 0.5rem 0 0 0; color: #ccc; font-size: 0.85rem;">Running the latest version v${currentVersion}</p>
+                </div>
+            ` : ''}
+        `;
+    } catch (error) {
+        console.error('Failed to check for updates:', error);
+        updateStatusContent.innerHTML = `
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-item-header">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Status
+                    </div>
+                    <div class="status-item-value status-error">
+                        Unable to check for updates
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.3); border-radius: 6px;">
+                <p style="margin: 0; color: #f44336; font-size: 0.85rem;">
+                    <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
+                </p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Show version information in update status
+ */
+function showVersion(currentVersion, availableVersion = null) {
+    const updateStatusDisplay = document.getElementById('update-status-display');
+    if (!updateStatusDisplay) return;
+    
+    updateStatusDisplay.innerHTML = `
+        <div class="status-card">
+            <div class="status-header">
+                <i class="fas fa-info-circle"></i>
+                <span>Version Information</span>
+            </div>
+            <div class="status-content">
+                <div style="margin-bottom: 1rem;">
+                    <strong>Current Version:</strong> <span class="version-tag">${currentVersion}</span>
+                </div>
+                ${availableVersion ? `
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Available Version:</strong> <span class="version-tag">${availableVersion}</span>
+                    </div>
+                ` : ''}
+                <div style="color: #b3b3b3; font-size: 0.85rem; margin-top: 1rem;">
+                    Click "Check for Updates" to check for new versions
+                </div>
+            </div>
+        </div>
     `;
 }
 
@@ -6695,6 +6743,18 @@ function initializeAutoUpdate() {
     
     // Initial status check
     checkUpdateStatus();
+    
+    // Show current version info initially
+    fetch('/api/v1/config')
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.version) {
+                showVersion(data.version);
+            }
+        })
+        .catch(error => {
+            console.log('Could not load version info:', error.message);
+        });
 }
 
 /**
@@ -6724,7 +6784,7 @@ function stopUpdateStatusMonitoring() {
  */
 async function checkUpdateStatus() {
     try {
-        const response = await authenticatedFetch(apiUrl('/api/admin/updater/status'));
+        const response = await authenticatedFetch(apiUrl('/api/admin/update/status'));
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -6864,7 +6924,7 @@ async function startAutoUpdate(targetVersion = null) {
         
         const requestBody = targetVersion ? { targetVersion } : {};
         
-        const response = await authenticatedFetch(apiUrl('/api/admin/updater/start'), {
+        const response = await authenticatedFetch(apiUrl('/api/admin/update/start'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -6896,19 +6956,176 @@ async function startAutoUpdate(targetVersion = null) {
 }
 
 /**
- * Rollback to previous version
+ * Show rollback modal with backup selection
  */
 async function rollbackUpdate() {
-    if (!confirm('Are you sure you want to rollback to the previous version? This will restore the last backup.')) {
+    try {
+        // Load backup list first
+        const response = await authenticatedFetch(apiUrl('/api/admin/update/backups'));
+        
+        if (!response.ok) {
+            throw new Error(`Failed to load backups: HTTP ${response.status}`);
+        }
+        
+        const backups = await response.json();
+        
+        if (!backups || backups.length === 0) {
+            showNotification('No backups available for rollback', 'warning');
+            return;
+        }
+        
+        // Show modal with backup selection
+        showRollbackModal(backups);
+        
+    } catch (error) {
+        console.error('Failed to load backups for rollback:', error);
+        showNotification(`Failed to load backups: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Show rollback modal with backup selection
+ */
+function showRollbackModal(backups) {
+    // Create modal HTML
+    const modalHTML = `
+        <div id="rollback-modal" class="modal" style="display: block;">
+            <div class="modal-content" style="max-width: 700px;">
+                <span class="close" onclick="closeRollbackModal()">&times;</span>
+                <h3><i class="fas fa-undo"></i> Select Backup to Restore</h3>
+                <p style="color: #ccc; margin-bottom: 1.5rem;">Choose a backup to rollback to. This will replace your current installation with the selected backup.</p>
+                
+                <div id="backup-selection-list" style="max-height: 400px; overflow-y: auto; margin-bottom: 1.5rem;">
+                    ${backups.map((backup, index) => `
+                        <div class="backup-selection-item" data-backup-path="${backup.path}" data-backup-version="${backup.version}" 
+                             style="margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.05); border: 2px solid transparent; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                             onclick="selectBackupForRollback(this)">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <div style="font-weight: 600; color: #fff;">
+                                    <i class="fas fa-archive" style="color: #667eea; margin-right: 0.5rem;"></i>
+                                    ${backup.name}
+                                </div>
+                                <div style="background: rgba(103, 126, 234, 0.2); color: #667eea; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
+                                    v${backup.version}
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; font-size: 0.85rem; color: #ccc;">
+                                <div>
+                                    <i class="fas fa-calendar"></i> 
+                                    ${backup.created ? new Date(backup.created).toLocaleDateString() : 'Unknown date'}
+                                </div>
+                                <div>
+                                    <i class="fas fa-clock"></i> 
+                                    ${backup.created ? new Date(backup.created).toLocaleTimeString() : ''}
+                                </div>
+                                <div>
+                                    <i class="fas fa-database"></i> 
+                                    ${backup.size ? (backup.size > 1024 * 1024 ? (backup.size / (1024 * 1024)).toFixed(1) + ' MB' : Math.round(backup.size / 1024) + ' KB') : 'Unknown size'}
+                                </div>
+                            </div>
+                            ${index === 0 ? `
+                                <div style="margin-top: 0.5rem; color: #4caf50; font-size: 0.8rem; font-weight: 600;">
+                                    <i class="fas fa-star"></i> Most Recent Backup
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div style="padding: 1rem; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 6px; margin-bottom: 1.5rem;">
+                    <p style="margin: 0; color: #ffc107; font-size: 0.85rem;">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>Warning:</strong> Rolling back will stop the current application, restore the selected backup, and restart. This process cannot be undone.
+                    </p>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" id="confirm-rollback-button" class="btn btn-danger" onclick="confirmRollback()" disabled>
+                        <i class="fas fa-undo icon"></i>
+                        <span>Rollback to Selected Backup</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRollbackModal()">
+                        <i class="fas fa-times icon"></i>
+                        <span>Cancel</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if present
+    const existingModal = document.getElementById('rollback-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Add click outside to close
+    const modal = document.getElementById('rollback-modal');
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            closeRollbackModal();
+        }
+    });
+}
+
+/**
+ * Select backup for rollback
+ */
+function selectBackupForRollback(element) {
+    // Remove selection from all items
+    document.querySelectorAll('.backup-selection-item').forEach(item => {
+        item.style.border = '2px solid transparent';
+        item.style.background = 'rgba(255, 255, 255, 0.05)';
+    });
+    
+    // Select current item
+    element.style.border = '2px solid #667eea';
+    element.style.background = 'rgba(103, 126, 234, 0.1)';
+    
+    // Enable confirm button
+    const confirmButton = document.getElementById('confirm-rollback-button');
+    if (confirmButton) {
+        confirmButton.disabled = false;
+        
+        const version = element.getAttribute('data-backup-version');
+        confirmButton.querySelector('span').textContent = `Rollback to v${version}`;
+        
+        // Store selected backup info
+        confirmButton.setAttribute('data-backup-path', element.getAttribute('data-backup-path'));
+        confirmButton.setAttribute('data-backup-version', version);
+    }
+}
+
+/**
+ * Confirm rollback with selected backup
+ */
+async function confirmRollback() {
+    const confirmButton = document.getElementById('confirm-rollback-button');
+    const backupPath = confirmButton.getAttribute('data-backup-path');
+    const backupVersion = confirmButton.getAttribute('data-backup-version');
+    
+    if (!backupPath) {
+        showNotification('Please select a backup first', 'warning');
         return;
     }
     
+    closeRollbackModal();
+    
     try {
-        const rollbackButton = document.getElementById('rollback-update-button');
-        setButtonState(rollbackButton, 'loading', { text: 'Rolling back...' });
+        setButtonState(confirmButton, 'loading', { text: 'Rolling back...' });
         
-        const response = await authenticatedFetch(apiUrl('/api/admin/updater/rollback'), {
-            method: 'POST'
+        const response = await authenticatedFetch(apiUrl('/api/admin/update/rollback'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                backupPath: backupPath,
+                version: backupVersion
+            })
         });
         
         if (!response.ok) {
@@ -6917,10 +7134,7 @@ async function rollbackUpdate() {
         }
         
         const result = await response.json();
-        showNotification('Rollback completed successfully', 'success');
-        
-        setButtonState(rollbackButton, 'success', { text: 'Rollback Complete' });
-        setTimeout(() => setButtonState(rollbackButton, 'revert'), 3000);
+        showNotification(`Rollback to v${backupVersion} completed successfully`, 'success');
         
         // Refresh page after rollback
         setTimeout(() => {
@@ -6930,9 +7144,16 @@ async function rollbackUpdate() {
     } catch (error) {
         console.error('Rollback failed:', error);
         showNotification(`Rollback failed: ${error.message}`, 'error');
-        
-        const rollbackButton = document.getElementById('rollback-update-button');
-        setButtonState(rollbackButton, 'revert');
+    }
+}
+
+/**
+ * Close rollback modal
+ */
+function closeRollbackModal() {
+    const modal = document.getElementById('rollback-modal');
+    if (modal) {
+        modal.remove();
     }
 }
 
@@ -6951,7 +7172,7 @@ async function loadBackupList() {
     backupsContent.innerHTML = '<div class="loading">Loading backups...</div>';
     
     try {
-        const response = await authenticatedFetch(apiUrl('/api/admin/updater/backups'));
+        const response = await authenticatedFetch(apiUrl('/api/admin/update/backups'));
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -7042,65 +7263,157 @@ async function restoreFromBackup(backupPath, version) {
     }
 }
 
-/**
- * Cleanup old backups
- */
-async function cleanupBackups() {
-    const keepCount = prompt('How many recent backups would you like to keep? (default: 5)', '5');
-    
-    if (keepCount === null) return; // Cancelled
-    
-    const keepCountNum = parseInt(keepCount) || 5;
-    
-    if (keepCountNum < 1) {
-        showNotification('Please enter a number greater than 0', 'error');
-        return;
-    }
-    
-    if (!confirm(`This will delete old backups, keeping only the ${keepCountNum} most recent ones. Continue?`)) {
-        return;
-    }
-    
-    try {
-        const cleanupButton = document.getElementById('cleanup-backups-button');
-        setButtonState(cleanupButton, 'loading', { text: 'Cleaning...' });
-        
-        const response = await authenticatedFetch(apiUrl('/api/admin/updater/cleanup-backups'), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ keepCount: keepCountNum })
-        });
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        showNotification(`Cleanup complete: ${result.deleted} backups deleted, ${result.kept} kept`, 'success');
-        
-        setButtonState(cleanupButton, 'success', { text: 'Cleaned Up' });
-        setTimeout(() => setButtonState(cleanupButton, 'revert'), 2000);
-        
-        // Refresh backup list if it's currently displayed
-        const backupsDisplay = document.getElementById('backups-display');
-        if (backupsDisplay && backupsDisplay.style.display !== 'none') {
-            setTimeout(loadBackupList, 1000);
-        }
-        
-    } catch (error) {
-        console.error('Failed to cleanup backups:', error);
-        showNotification(`Failed to cleanup backups: ${error.message}`, 'error');
-        
-        const cleanupButton = document.getElementById('cleanup-backups-button');
-        setButtonState(cleanupButton, 'revert');
-    }
-}
-
 // Initialize auto-update functionality when the page loads
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize auto-update monitoring
     initializeAutoUpdate();
 });
+
+/**
+ * Modal functions for update confirmation
+ */
+async function openUpdateConfirmationModal() {
+    console.log('📂 Opening update confirmation modal');
+    
+    const modal = document.getElementById('update-confirmation-modal');
+    const content = document.getElementById('update-confirmation-content');
+    const confirmButton = document.getElementById('confirm-update-button');
+    
+    console.log('🔍 Modal elements:', {
+        modal: modal ? 'found' : 'NOT FOUND',
+        content: content ? 'found' : 'NOT FOUND',
+        confirmButton: confirmButton ? 'found' : 'NOT FOUND'
+    });
+    
+    if (!modal || !content) {
+        console.error('❌ Modal elements not found!');
+        return;
+    }
+    
+    // NUCLEAR FIX: Move modal to body if it's not already there
+    if (modal.parentElement !== document.body) {
+        console.log('🚀 Moving modal to body...');
+        document.body.appendChild(modal);
+    }
+    
+    console.log('🎭 Showing modal...');
+    modal.classList.remove('is-hidden');
+    modal.style.display = 'flex'; // Use flex as per CSS
+    confirmButton.disabled = true;
+    
+    // Prevent body scrolling when modal is open - use CSS classes
+    document.body.classList.add('modal-open');
+    document.documentElement.classList.add('modal-open');
+    modal.classList.add('modal-open');
+    
+    // Load update information
+    try {
+        console.log('🔄 Fetching update information...');
+        const updateCheckResponse = await authenticatedFetch(apiUrl('/api/admin/update-check'));
+        console.log('📡 Update check response:', updateCheckResponse.status, updateCheckResponse.statusText);
+        
+        const updateInfo = await updateCheckResponse.json();
+        console.log('📊 Update info:', updateInfo);
+        
+        const hasUpdate = updateInfo.hasUpdate;
+        const currentVersion = updateInfo.currentVersion;
+        const latestVersion = updateInfo.latestVersion;
+        const releaseNotes = updateInfo.releaseNotes;
+        
+        if (!hasUpdate) {
+            content.innerHTML = `
+                <div style="text-align: center; padding: 1rem;">
+                    <i class="fas fa-check-circle" style="color: #4caf50; font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <h4 style="color: #4caf50; margin: 0 0 0.5rem 0;">Already Up to Date</h4>
+                    <p style="margin: 0; color: #ccc;">You are already running the latest version v${currentVersion}</p>
+                </div>
+            `;
+            confirmButton.disabled = true;
+            confirmButton.querySelector('span').textContent = 'No Update Needed';
+        } else {
+            content.innerHTML = `
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 6px;">
+                            <div style="color: #ccc; font-size: 0.85rem; margin-bottom: 0.5rem;">Current Version</div>
+                            <div style="font-size: 1.2rem; font-weight: 600; color: #667eea;">v${currentVersion}</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: rgba(76, 175, 80, 0.1); border-radius: 6px; border: 1px solid rgba(76, 175, 80, 0.3);">
+                            <div style="color: #4caf50; font-size: 0.85rem; margin-bottom: 0.5rem;">Available Version</div>
+                            <div style="font-size: 1.2rem; font-weight: 600; color: #4caf50;">v${latestVersion}</div>
+                        </div>
+                    </div>
+                    ${releaseNotes ? `
+                        <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.95rem;">
+                                <i class="fas fa-list"></i> What's New in v${latestVersion}
+                            </h4>
+                            <div style="color: #ccc; font-size: 0.85rem; white-space: pre-wrap; max-height: 150px; overflow-y: auto;">${releaseNotes}</div>
+                        </div>
+                    ` : ''}
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.95rem;">
+                        <i class="fas fa-info-circle"></i> Update Process
+                    </h4>
+                    <p style="margin: 0 0 0.5rem 0; color: #ccc; font-size: 0.85rem;">The update will automatically:</p>
+                    <ul style="margin: 0; padding-left: 1.5rem; color: #ccc; font-size: 0.85rem;">
+                        <li>Create a backup of your current installation</li>
+                        <li>Download version v${latestVersion} from GitHub</li>
+                        <li>Stop the application safely</li>
+                        <li>Install the new version</li>
+                        <li>Update dependencies</li>
+                        <li>Restart the application</li>
+                    </ul>
+                    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 4px;">
+                        <p style="margin: 0; color: #ffc107; font-size: 0.85rem;">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>Important:</strong> The process may take several minutes. Do not close this page or stop the server during the update.
+                        </p>
+                    </div>
+                </div>
+            `;
+            confirmButton.disabled = false;
+            confirmButton.querySelector('span').textContent = `Update to v${latestVersion}`;
+        }
+    } catch (error) {
+        console.error('❌ Failed to load update info for modal:', error);
+        content.innerHTML = `
+            <div style="text-align: center; padding: 1rem;">
+                <i class="fas fa-exclamation-triangle" style="color: #f44336; font-size: 2rem; margin-bottom: 1rem;"></i>
+                <h4 style="color: #f44336; margin: 0 0 0.5rem 0;">Update Check Failed</h4>
+                <p style="margin: 0; color: #ccc;">Failed to load update information: ${error.message}</p>
+                <p style="margin: 0.5rem 0 0 0; color: #999; font-size: 0.85rem;">Please check your internet connection and try again.</p>
+            </div>
+        `;
+        confirmButton.disabled = true;
+        confirmButton.querySelector('span').textContent = 'Unable to Check';
+    }
+    
+    // Add event listener for clicking outside modal
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            closeUpdateConfirmationModal();
+        }
+    });
+}
+
+function closeUpdateConfirmationModal() {
+    console.log('❌ Closing update confirmation modal');
+    const modal = document.getElementById('update-confirmation-modal');
+    if (modal) {
+        modal.classList.add('is-hidden');
+        modal.style.display = 'none';
+        
+        // Re-enable body scrolling when modal closes - remove CSS classes
+        document.body.classList.remove('modal-open');
+        document.documentElement.classList.remove('modal-open');
+        modal.classList.remove('modal-open');
+    }
+}
+
+function confirmAutoUpdate() {
+    closeUpdateConfirmationModal();
+    // Call the actual update function
+    startAutoUpdate();
+}
