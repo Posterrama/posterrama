@@ -3515,24 +3515,144 @@ fieldset:focus-within {
 }
 
 @media (max-width: 768px) {
+    /* Mobile Header Adjustments */
     .admin-header {
         padding: 0 1rem;
         height: 60px;
         left: 0; /* On mobile, header spans full width */
         width: 100%;
+        justify-content: center; /* Center content on mobile */
     }
     
     .admin-header h1 {
         font-size: 1.25rem;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
     }
     
+    /* Hide "Admin" text on mobile to save space */
+    .admin-header h1 .admin-text {
+        display: none;
+    }
+    
+    /* Mobile navigation - icons only */
     .admin-header nav {
-        gap: 0.5rem; /* Reduce gap between nav items on mobile */
+        gap: 0.25rem;
+        margin-left: auto; /* Push nav to the right */
     }
     
-    .admin-header nav a {
-        padding: 0.5rem; /* Reduce padding on mobile */
-        font-size: 0.85rem;
+    .admin-header nav a,
+    .admin-header nav button {
+        padding: 0.5rem !important;
+        font-size: 1rem !important;
+        min-width: 44px; /* Touch target size */
+        height: 44px;
+        justify-content: center !important;
+    }
+    
+    /* Hide text in header buttons on mobile, show icons only */
+    .admin-header nav a span:not(.fa):not(.fab):not(.fas):not(.far),
+    .admin-header nav button span:not(.fa):not(.fab):not(.fas):not(.far) {
+        display: none;
+    }
+    
+    /* Ensure icons are visible and centered */
+    .admin-header nav a i,
+    .admin-header nav button i {
+        margin: 0 !important;
+        font-size: 1.1rem !important;
+    }
+    
+    /* Mobile Sidebar - Transform to bottom navigation */
+    .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        width: 100%;
+        height: 70px;
+        background: linear-gradient(180deg, rgba(10, 10, 10, 0.95) 0%, rgba(15, 15, 15, 0.95) 100%);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: none;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        z-index: 1001;
+        transform: translateY(100%); /* Hidden by default */
+        transition: transform 0.3s ease;
+    }
+    
+    /* Show sidebar when not collapsed */
+    .sidebar:not(.collapsed) {
+        transform: translateY(0);
+    }
+    
+    /* Mobile sidebar should be collapsed by default */
+    .sidebar.collapsed {
+        transform: translateY(100%);
+        width: 100%;
+        height: 70px;
+    }
+    
+    /* Hide sidebar header on mobile */
+    .sidebar .sidebar-header {
+        display: none;
+    }
+    
+    /* Mobile navigation items - horizontal layout */
+    .sidebar-nav {
+        display: flex !important;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+        width: 100%;
+        padding: 0 1rem;
+        height: 100%;
+    }
+    
+    .sidebar .nav-item {
+        flex: 1;
+        min-width: 60px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        border-radius: 0;
+        gap: 0.25rem;
+    }
+    
+    .sidebar .nav-item .nav-icon {
+        font-size: 1.2rem;
+        margin: 0;
+    }
+    
+    .sidebar .nav-item .nav-text {
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-align: center;
+        line-height: 1;
+        display: block !important; /* Override collapsed state */
+    }
+    
+    /* Active nav item styling for mobile */
+    .sidebar .nav-item.active {
+        background: rgba(102, 126, 234, 0.2);
+        color: #667eea;
+    }
+    
+    /* MOBILE HAMBURGER MENU COMPLETELY REMOVED - NO LONGER NEEDED */
+    
+    /* Main content adjustments for mobile */
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+        margin-top: 60px; /* Account for fixed header */
+        padding-bottom: 90px; /* Account for bottom navigation */
     }
     
     .logo-text {
@@ -3540,7 +3660,7 @@ fieldset:focus-within {
     }
     
     .admin-main {
-        padding: 1rem 1rem 7rem 1rem; /* Extra bottom padding for mobile footer */
+        padding: 1rem 1rem 2rem 1rem;
     }
     
     .settings-card {
@@ -5002,3 +5122,525 @@ html.modal-open {
     border-left-color: #10b981;
     color: #d1fae5;
 }
+
+/* === MOBILE OPTIMIZATIONS === */
+@media (max-width: 768px) {
+    /* HIDE desktop-only elements completely on mobile */
+    .desktop-only {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        width: 0 !important;
+        height: 0 !important;
+        pointer-events: none !important;
+        z-index: -9999 !important;
+        transform: scale(0) !important;
+        overflow: hidden !important;
+    }
+
+    /* COMPLETELY hide desktop sidebar toggle on mobile - NUCLEAR OPTION */
+    html body .sidebar-toggle,
+    html body #sidebar-toggle,
+    html body .sidebar .sidebar-toggle,
+    html body .sidebar-header .sidebar-toggle,
+    html body button.sidebar-toggle,
+    html body .btn.sidebar-toggle,
+    html body .sidebar-header button,
+    html body .sidebar-header .btn,
+    .sidebar-toggle,
+    #sidebar-toggle,
+    .sidebar .sidebar-toggle,
+    .sidebar-header .sidebar-toggle,
+    button.sidebar-toggle,
+    .btn.sidebar-toggle,
+    .sidebar-header button,
+    .sidebar-header .btn {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        width: 0 !important;
+        height: 0 !important;
+        pointer-events: none !important;
+        z-index: -9999 !important;
+        transform: scale(0) !important;
+        overflow: hidden !important;
+    }
+
+    /* Hide entire sidebar header completely on mobile */
+    html body .sidebar .sidebar-header,
+    html body .sidebar-header,
+    .sidebar .sidebar-header,
+    .sidebar-header {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        transform: scale(0) !important;
+        position: absolute !important;
+        left: -9999px !important;
+    }
+
+    /* Hide admin title on mobile */
+    .admin-header h1,
+    .admin-header .logo-text {
+        display: none !important;
+    }
+
+    /* Mobile header - make buttons icon only */
+    .admin-header .btn,
+    .admin-header .header-nav .btn {
+        padding: 0 !important;
+        min-width: auto !important;
+        width: 32px !important;
+        height: 32px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 6px !important;
+        margin: 0 2px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Hide ALL text content in header buttons on mobile */
+    .admin-header .btn::after,
+    .admin-header .header-nav .btn::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: transparent;
+        z-index: 1;
+    }
+
+    .admin-header .btn *:not(i),
+    .admin-header .header-nav .btn *:not(i) {
+        color: transparent !important;
+    }
+
+    .admin-header .btn i,
+    .admin-header .header-nav .btn i {
+        margin: 0 !important;
+        font-size: 13px !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        z-index: 2 !important;
+        color: inherit !important;
+        opacity: 1 !important;
+    }
+
+    /* Specific overrides for buttons with text (EXCLUDE help button) */
+    #view-posterrama-btn,
+    #api-docs-btn,
+    #github-btn,
+    #logout-btn,
+    #restart-now-btn {
+        font-size: 0 !important;
+        text-indent: -9999px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        width: 32px !important;
+        height: 32px !important;
+    }
+
+    /* Icon positioning for text-hidden buttons (EXCLUDE help button) */
+    #view-posterrama-btn i,
+    #api-docs-btn i,
+    #github-btn i,
+    #logout-btn i,
+    #restart-now-btn i {
+        font-size: 13px !important;
+        text-indent: 0 !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        z-index: 3 !important;
+        color: inherit !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    /* Help button icon - positioned absolutely for icon-only display */
+    #toggle-help-panel i {
+        font-size: 13px !important;
+        margin: 0 !important;
+        color: rgba(59, 130, 246, 1) !important;
+        z-index: 10 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: block !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        text-indent: 0 !important;
+    }
+
+    /* Force Help button to stay in line with others */
+    #toggle-help-panel {
+        align-self: center !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Extra force for help button icon on mobile */
+    #toggle-help-panel i.fa-question-circle {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: rgba(59, 130, 246, 1) !important;
+        font-size: 13px !important;
+        z-index: 10 !important;
+    }
+
+    /* FORCE help button to always be visible on mobile - ICON ONLY */
+    #toggle-help-panel {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        overflow: hidden !important; /* Hide text overflow */
+        width: 32px !important;
+        height: 32px !important;
+        background: rgba(59, 130, 246, 0.15) !important;
+        border: 1px solid rgba(59, 130, 246, 0.3) !important;
+        color: rgba(59, 130, 246, 1) !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
+        font-size: 0 !important; /* Hide text */
+        text-indent: -9999px !important; /* Move text off-screen */
+        margin: 0 2px !important;
+    }
+
+    /* Ensure header buttons container allows wrapping if needed */
+    .admin-header .header-nav,
+    .admin-header nav {
+        display: flex !important;
+        flex-wrap: nowrap !important; /* Don't wrap, keep all buttons on one line */
+        gap: 2px !important;
+        align-items: center !important;
+        overflow: visible !important;
+        min-height: 42px !important; /* Ensure enough height */
+    }
+
+    /* Force header to have enough height for buttons */
+    .admin-header {
+        min-height: 42px !important;
+        height: auto !important;
+        overflow: visible !important;
+        padding: 5px 12px 5px 48px !important; /* Leave space for hamburger menu */
+    }
+
+    /* Mobile sidebar - vertical and collapsed by default */
+    .sidebar {
+        position: fixed !important;
+        top: 42px !important;
+        left: 0 !important;
+        width: 60px !important;
+        height: calc(100vh - 42px) !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.3s ease !important;
+        z-index: 1000 !important;
+        background: var(--bg-secondary) !important;
+        border-right: 1px solid var(--border-color) !important;
+        overflow-y: auto !important;
+        flex-direction: column !important;
+        padding: 8px 0 8px 0 !important;
+    }
+
+    /* Force collapsed state on mobile */
+    .sidebar {
+        transform: translateX(-100%) !important;
+    }
+
+    /* Only show when explicitly not collapsed */
+    .sidebar:not(.collapsed).mobile-open {
+        transform: translateX(0) !important;
+    }
+
+    /* Force sidebar nav items to be vertical on mobile */
+    .sidebar .sidebar-nav {
+        flex-direction: column !important;
+        width: 100% !important;
+        display: flex !important;
+        padding: 8px 0 !important;
+        margin: 0 !important;
+        gap: 2px !important;
+    }
+
+    .sidebar .nav-item {
+        display: block !important;
+        width: 40px !important;
+        height: 36px !important;
+        margin: 0 auto !important;
+        text-align: center !important;
+        padding: 0 !important;
+        border-radius: 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 14px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .sidebar .nav-item i {
+        margin: 0 !important;
+        width: auto !important;
+        text-align: center !important;
+        font-size: 14px !important;
+    }
+
+    /* Hide text on mobile sidebar - keep only icons */
+    .sidebar .nav-item .nav-text {
+        display: none !important;
+    }
+
+    /* Hide sidebar header elements on mobile */
+    .sidebar .sidebar-header {
+        display: none !important;
+    }
+
+    .sidebar .sidebar-logo {
+        display: none !important;
+    }
+
+    /* Mobile sidebar overlay */
+    .sidebar:not(.collapsed)::before {
+        content: '';
+        position: fixed;
+        top: 60px;
+        left: 60px;
+        width: calc(100vw - 60px);
+        height: calc(100vh - 60px);
+        background: rgba(0, 0, 0, 0.3);
+        z-index: -1;
+        backdrop-filter: blur(1px);
+    }
+
+    /* Main content on mobile */
+    .main {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 10px 12px !important;
+        margin-top: 42px !important;
+        min-height: calc(100vh - 42px) !important;
+    }
+
+    /* FUNCTIONAL MOBILE HAMBURGER MENU - PROPERLY IMPLEMENTED */
+    
+    /* Mobile hamburger menu button */
+    .mobile-menu-btn {
+        display: block !important;
+        position: absolute !important;
+        left: 12px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: 32px !important;
+        height: 32px !important;
+        background: none !important;
+        border: none !important;
+        color: var(--text-primary) !important;
+        cursor: pointer !important;
+        border-radius: 6px !important;
+        transition: background 0.2s ease !important;
+        z-index: 1001 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .mobile-menu-btn:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .mobile-menu-btn i {
+        font-size: 16px !important;
+        margin: 0 !important;
+    }
+    
+    /* PREVENT header shifting on mobile */
+    .admin-header {
+        position: fixed !important;
+        transform: none !important;
+        transition: none !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+    }
+    
+    /* Prevent any layout shifts when sidebar opens */
+    .admin-layout {
+        transform: none !important;
+        transition: none !important;
+    }
+    
+    /* Remove the click blocking layers */
+
+    /* Ensure header has proper layout for mobile menu + buttons */
+    .admin-header {
+        display: flex !important;
+        align-items: center !important;
+        padding: 6px 60px 6px 60px !important;
+        min-height: 42px !important;
+        box-sizing: border-box !important;
+        justify-content: space-between !important;
+        position: relative !important;
+    }
+
+    .admin-header .header-nav {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 4px !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+    }
+
+    /* Ensure all header buttons have consistent styling */
+    .admin-header .header-nav .btn {
+        flex-shrink: 0 !important;
+    }
+
+    /* Adjust cards and forms for mobile */
+    .card {
+        margin: 0.5rem 0 !important;
+        padding: 1rem !important;
+    }
+
+    /* Adjust form elements for mobile */
+    .form-group {
+        margin-bottom: 1rem !important;
+    }
+
+    /* Responsive buttons */
+    .btn-group {
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+    }
+
+    .btn-group .btn {
+        flex: 1 !important;
+        min-width: 120px !important;
+    }
+
+    /* Mobile modal adjustments */
+    .modal-content {
+        margin: 10px !important;
+        max-height: calc(100vh - 40px) !important;
+        overflow-y: auto !important;
+    }
+
+    /* Adjust subsection headers */
+    .subsection-header {
+        font-size: 1.1rem !important;
+        padding: 0.75rem 0 !important;
+    }
+
+    /* Mobile table adjustments */
+    .table-responsive {
+        font-size: 0.9rem !important;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem !important;
+    }
+
+    /* Progress bars on mobile */
+    .progress-container {
+        padding: 0.75rem !important;
+    }
+
+    /* Backup items on mobile */
+    .backup-item {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .backup-item-meta {
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    .backup-actions {
+        margin-top: 0.75rem !important;
+        justify-content: stretch !important;
+    }
+
+    .backup-actions .btn {
+        flex: 1 !important;
+    }
+
+    /* Admin header smaller on mobile for more space */
+    .admin-header {
+        height: 50px !important; /* Reduce header height */
+        min-height: 50px !important;
+        padding: 0.25rem 0.5rem !important;
+    }
+
+    /* Main content - NO margin-top for maximum mobile space */
+    body .admin-layout .main-content,
+    .admin-layout .main-content,
+    .main-content {
+        margin-top: 0 !important; /* NO margin - content starts immediately */
+        padding-top: 0 !important;
+    }
+
+    /* NUCLEAR OPTION - Remove ALL top spacing sources */
+    .admin-main {
+        padding-top: 0 !important; /* Remove 2rem top padding */
+    }
+
+    .subsection-header {
+        margin-top: 0 !important; /* Remove 3rem top margin */
+        margin-bottom: 1rem !important; /* Keep bottom margin for spacing */
+    }
+
+    .section-content {
+        padding-top: 0 !important; /* Remove any section top padding */
+        margin-top: 0 !important; /* Remove any section top margin */
+    }
+
+    .section-main-content {
+        padding-top: 0 !important; /* Remove any section main top padding */
+        margin-top: 0 !important; /* Remove any section main top margin */
+    }
+}
+/* Cache buster - Sat Aug 16 22:58:13 CEST 2025 */
+/* Cache bust: 1755378159 */
+/* URGENT FIX - Content width restored: 1755378262 */
+/* EMERGENCY FIX - Mobile layout repaired: 1755378529 */
+/* SPACING FIX - Reduced header gap: 1755378787 */
+/* OPTIMAL MOBILE - Minimal gap 2px: 1755378877 */
+/* ZERO GAP - Content direct under header: 1755379228 */
+/* NO PADDING - Absolute direct contact: 1755379299 */
+/* ULTRA SPECIFIC OVERRIDE - Force 50px margin: 1755379428 */
+/* WIDTH FIX - Only margin-top override: 1755379503 */
+/* EXTREME TEST - 10px margin to test if override works: 1755379591 */
+/* CULPRIT FOUND - Reduced subsection header margin: 1755379704 */
+/* NUCLEAR OPTION - Remove ALL top spacing: 1755379788 */
+/* AGGRESSIVE HAMBURGER REMOVAL - Interval + multiple selectors: 1755379955 */
+/* FIXED DOUBLE SCRIPT TAG + ULTRA SPECIFIC CSS: 1755380097 */
+/* BACK TO NUCLEAR SPACING - Remove all top spacing: 1755380197 */
+/* ULTRA AGGRESSIVE - Only 2px gap after header: 1755380310 */
+/* ZERO MARGIN-TOP - Content starts immediately: 1755380428 */
+/* ULTRA AGGRESSIVE JS - 4 removal strategies: 1755380586 */
+/* DESKTOP-ONLY CLASS - HTML level hiding: 1755380811 */
+/* DESKTOP HAMBURGER COMPLETELY REMOVED FROM HTML: 1755381071 */

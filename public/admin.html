@@ -33,13 +33,85 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <!-- Local CSS with versioning -->
-    <link rel="stylesheet" href="/admin.css?v=20250816m">
+    <link rel="stylesheet" href="/admin.css?v=20250817b&cb=1755384925&mobilefinal=1">
     
     <!-- Font Awesome with SRI for security -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     
     <!-- Preload critical JavaScript -->
-    <link rel="preload" href="/admin.js?v=20250816c" as="script">
+    <link rel="preload" href="/admin.js?v=20250817b&cb=1755384925&mobilefinal=1" as="script">
+    
+    <!-- IMMEDIATE mobile sidebar toggle fix - execute before DOM is ready -->
+    <script>
+        (function() {
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+            
+            function removeDesktopToggles() {
+                if (isMobile()) {
+                    // ULTRA AGGRESSIVE removal - multiple strategies
+                    
+                    // Strategy 1: Remove by ID first
+                    const toggleById = document.getElementById('sidebar-toggle');
+                    if (toggleById) {
+                        toggleById.remove();
+                        console.log('Removed desktop toggle by ID');
+                    }
+                    
+                    // Strategy 2: Remove all elements with sidebar-toggle class
+                    const togglesByClass = document.querySelectorAll('.sidebar-toggle');
+                    togglesByClass.forEach(toggle => {
+                        toggle.remove();
+                        console.log('Removed desktop toggle by class');
+                    });
+                    
+                    // Strategy 3: Remove the entire sidebar header
+                    const sidebarHeaders = document.querySelectorAll('.sidebar-header');
+                    sidebarHeaders.forEach(header => {
+                        header.remove();
+                        console.log('Removed sidebar header');
+                    });
+                    
+                    // Strategy 4: Find any button with fa-bars in sidebar and remove it
+                    const barsButtons = document.querySelectorAll('.sidebar .fa-bars');
+                    barsButtons.forEach(btn => {
+                        const button = btn.closest('button');
+                        if (button) {
+                            button.remove();
+                            console.log('Removed button with fa-bars');
+                        }
+                    });
+                    
+                    console.log('Mobile: Applied all removal strategies');
+                }
+            }
+            
+            // Execute immediately
+            removeDesktopToggles();
+            
+            // Execute on DOM ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', removeDesktopToggles);
+            } else {
+                removeDesktopToggles();
+            }
+            
+            // Execute on window resize
+            window.addEventListener('resize', removeDesktopToggles);
+            
+            // ULTRA AGGRESSIVE: Execute every 50ms for the first 5 seconds
+            let attempts = 0;
+            const intervalId = setInterval(() => {
+                removeDesktopToggles();
+                attempts++;
+                if (attempts >= 100) { // Stop after 5 seconds (100 * 50ms)
+                    clearInterval(intervalId);
+                    console.log('Stopped aggressive removal after 5 seconds');
+                }
+            }, 50);
+        })();
+    </script>
 </head>
 <body>
     <!-- Skip links for accessibility -->
@@ -84,8 +156,9 @@
 
         <!-- Sidebar Navigation -->
         <nav class="sidebar" id="sidebar" role="navigation" aria-label="Settings sections">
-            <div class="sidebar-header">
-                <button class="sidebar-toggle btn btn-secondary" id="sidebar-toggle" aria-label="Toggle sidebar navigation" aria-expanded="true" aria-controls="sidebar">
+            <!-- Desktop sidebar header - RESTORED -->
+            <div class="sidebar-header desktop-only">
+                <button class="sidebar-toggle btn btn-secondary desktop-only" id="sidebar-toggle" aria-label="Toggle sidebar navigation" aria-expanded="true" aria-controls="sidebar">
                     <i class="fas fa-bars nav-icon" aria-hidden="true"></i>
                 </button>
                 <div class="sidebar-logo">
@@ -1404,6 +1477,6 @@
     </div>
 
     <!-- Load admin JavaScript -->
-    <script src="/admin.js?v=20250816q" defer></script>
+    <script src="/admin.js?v=20250817b&cb=1755384925&mobilefinal=1" defer></script>
 </body>
 </html>

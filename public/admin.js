@@ -812,6 +812,134 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const expectedSectionKeys = ['general','display','media','authentication','promobox','management','logs'];
 
+    // Mobile detection and initialization
+    function isMobile() {
+        return window.innerWidth <= 768;
+    }
+
+    // Initialize mobile state
+    function initializeMobileState() {
+        if (isMobile()) {
+            // On mobile, sidebar should ALWAYS be collapsed by default
+            sidebar.classList.add('collapsed');
+            sidebar.classList.remove('mobile-open');
+            // Remove any saved state that might override this on mobile
+            if (localStorage.getItem('sidebarCollapsed')) {
+                localStorage.removeItem('sidebarCollapsed');
+            }
+            
+            // PHYSICALLY remove ALL desktop sidebar toggles on mobile (more aggressive)
+            const desktopToggle = document.getElementById('sidebar-toggle');
+            if (desktopToggle) {
+                desktopToggle.remove();
+                console.log('🗑️ Removed desktop toggle by ID');
+            }
+            
+            // Remove any remaining desktop toggles (BUT NOT the help button!)
+            const allDesktopToggles = document.querySelectorAll('.sidebar-toggle, .sidebar-header button, #sidebar-toggle, button[class*="toggle"]:not(#toggle-help-panel)');
+            allDesktopToggles.forEach((toggle, index) => {
+                // Double check we're not removing the help button
+                if (toggle.id !== 'toggle-help-panel') {
+                    toggle.remove();
+                    console.log(`🗑️ Removed desktop toggle ${index + 1}`);
+                } else {
+                    console.log('✅ Preserved help button from removal');
+                }
+            });
+            
+            // Remove the entire sidebar header to prevent any lingering event handlers
+            const sidebarHeader = document.querySelector('.sidebar-header');
+            if (sidebarHeader) {
+                sidebarHeader.remove();
+                console.log('🗑️ Removed entire sidebar header on mobile');
+            }
+            
+            // CREATE FUNCTIONAL MOBILE HAMBURGER MENU
+            const header = document.querySelector('.admin-header');
+            if (header) {
+                // Create mobile menu button
+                const mobileMenuBtn = document.createElement('button');
+                mobileMenuBtn.className = 'mobile-menu-btn';
+                mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                mobileMenuBtn.setAttribute('aria-label', 'Toggle navigation menu');
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                
+                // Insert button into header
+                header.appendChild(mobileMenuBtn);
+                
+                // Add click handler for hamburger menu
+                mobileMenuBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation(); // Stop ALL other event handlers
+                    
+                    const isOpen = !sidebar.classList.contains('collapsed');
+                    
+                    console.log('🍔 Hamburger clicked, isOpen:', isOpen);
+                    
+                    if (isOpen) {
+                        // Close sidebar
+                        sidebar.classList.add('collapsed');
+                        sidebar.classList.remove('mobile-open');
+                        mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                        mobileMenuBtn.querySelector('i').className = 'fas fa-bars';
+                        console.log('📱 Mobile menu closed via hamburger button');
+                    } else {
+                        // Open sidebar  
+                        sidebar.classList.remove('collapsed');
+                        sidebar.classList.add('mobile-open');
+                        mobileMenuBtn.setAttribute('aria-expanded', 'true');
+                        mobileMenuBtn.querySelector('i').className = 'fas fa-times';
+                        console.log('📱 Mobile menu opened via hamburger button');
+                    }
+                }, true); // Use capture phase to intercept before other handlers
+                
+                console.log('✅ Functional mobile hamburger menu created');
+            }
+            
+            // REMOVE SWIPE FUNCTIONALITY (replaced by hamburger menu)
+            console.log('📱 Mobile hamburger menu functionality enabled');
+            
+        } else {
+            // Remove mobile menu button on desktop
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            if (mobileMenuBtn) {
+                mobileMenuBtn.remove();
+            }
+            console.log('🖥️ Desktop mode - mobile menu removed');
+        }
+    }
+
+    // Handle window resize
+    function handleResize() {
+        const wasMobile = false; // No mobile menu anymore
+        const nowMobile = isMobile();
+        
+        if (wasMobile !== nowMobile) {
+            if (nowMobile) {
+                // Switching to mobile - remove desktop toggle
+                const desktopToggle = document.getElementById('sidebar-toggle');
+                if (desktopToggle) {
+                    desktopToggle.remove();
+                }
+                
+                // Remove all desktop sidebar toggles
+                const allDesktopToggles = document.querySelectorAll('.sidebar-toggle');
+                allDesktopToggles.forEach(toggle => {
+                    toggle.remove();
+                });
+            }
+            
+            initializeMobileState();
+        }
+    }
+
+    // Initialize mobile state on load
+    initializeMobileState();
+    
+    // Listen for window resize
+    window.addEventListener('resize', handleResize);
+
     function ensureAllSectionsPresent() {
         sections = document.querySelectorAll('.section-content');
         const presentIds = Array.from(sections).map(s=>s.id);
@@ -854,8 +982,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebarToggle.setAttribute('aria-expanded', isExpanded);
     }
 
-    // Toggle sidebar
-    if (sidebarToggle) {
+    // Toggle sidebar - ONLY on desktop
+    if (sidebarToggle && !isMobile()) {
         sidebarToggle.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
             
@@ -863,17 +991,46 @@ document.addEventListener('DOMContentLoaded', () => {
             const isExpanded = !sidebar.classList.contains('collapsed');
             sidebarToggle.setAttribute('aria-expanded', isExpanded);
             
-            // Save the new state to localStorage
-            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            // Save the new state to localStorage (only on desktop)
+            if (!isMobile()) {
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            }
         });
     }
 
-    // Mobile overlay
+    // Mobile overlay and click outside functionality
     if (sidebarOverlay) {
         sidebarOverlay.addEventListener('click', () => {
-            sidebar.classList.remove('open');
+            sidebar.classList.add('collapsed');
+            sidebar.classList.remove('mobile-open');
         });
     }
+    
+    // Click outside to close mobile sidebar
+    document.addEventListener('click', (e) => {
+        if (isMobile() && !sidebar.classList.contains('collapsed')) {
+            const isClickInsideSidebar = sidebar.contains(e.target);
+            const isClickOnMobileMenuBtn = e.target.closest('.mobile-menu-btn');
+            
+            // Close sidebar if clicking outside of sidebar and not on hamburger button
+            if (!isClickInsideSidebar && !isClickOnMobileMenuBtn) {
+                sidebar.classList.add('collapsed');
+                sidebar.classList.remove('mobile-open');
+                
+                // Update hamburger icon back to bars
+                const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                    const icon = mobileMenuBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fas fa-bars';
+                    }
+                }
+                
+                console.log('📱 Mobile menu closed by clicking outside');
+            }
+        }
+    });
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -2318,11 +2475,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadConfig() {
         try {
+            console.log('[loadConfig] Starting configuration load...');
             const response = await authenticatedFetch(apiUrlWithCacheBust('/api/admin/config'));
+            console.log('[loadConfig] Response received:', response.status, response.statusText);
             if (!response.ok) {
-                throw new Error('Could not load configuration from the server.');
+                throw new Error(`Could not load configuration from the server. Status: ${response.status} ${response.statusText}`);
             }
             const { config = {}, env = {}, security = {}, server = {} } = await response.json();
+            console.log('[loadConfig] Configuration data parsed successfully');
 
             populateGeneralSettings(config, env, defaults);
             populateDisplaySettings(config, defaults);
