@@ -726,6 +726,7 @@ class CacheDiskManager {
 }
 
 module.exports = {
+    CacheManager,
     cacheManager,
     cacheMiddleware,
     initializeCache,
