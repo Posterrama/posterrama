@@ -18,11 +18,12 @@ describe('GitHub Service - checkForUpdates', () => {
 
     test('should compare versions and detect update', async () => {
         const currentVersion = '0.9.0';
+        
         const mockRelease = {
-            tag_name: 'v1.0.0',
+            tag_name: '1.0.0',
             html_url: 'https://github.com/Posterrama/posterrama/releases/tag/v1.0.0',
             assets: [
-                { name: 'posterrama-v1.0.0.tar.gz', browser_download_url: 'https://download.url' }
+                { name: 'posterrama-v1.0.0.zip', browser_download_url: 'https://download.url' }
             ],
             body: 'Release notes',
             published_at: '2023-01-01T00:00:00Z',
@@ -75,12 +76,12 @@ describe('GitHub Service - checkForUpdates', () => {
         expect(semver.lt).toHaveBeenCalledWith('0.9.0', '1.0.0');
     });
 
-    test('should use tarball_url when no assets available', async () => {
+    test('should use zipball_url when no zip assets available', async () => {
         const mockRelease = {
             tag_name: '1.0.0',
             html_url: 'https://github.com/test',
             assets: [],
-            tarball_url: 'https://tarball.url',
+            zipball_url: 'https://zipball.url',
             body: 'Notes',
             published_at: '2023-01-01T00:00:00Z',
             name: null
@@ -90,18 +91,18 @@ describe('GitHub Service - checkForUpdates', () => {
 
         const result = await GitHubService.checkForUpdates('0.9.0');
 
-        expect(result.downloadUrl).toBe('https://tarball.url');
+        expect(result.downloadUrl).toBe('https://zipball.url');
         expect(result.releaseName).toBe('1.0.0'); // Falls back to tag_name
     });
 
-    test('should find zip asset when tar.gz not available', async () => {
+    test('should find zip asset when available', async () => {
         const mockRelease = {
             tag_name: '1.0.0',
             html_url: 'https://github.com/test',
             assets: [
                 { name: 'posterrama-v1.0.0.zip', browser_download_url: 'https://zip.url' }
             ],
-            tarball_url: 'https://tarball.url',
+            zipball_url: 'https://zipball.url',
             body: 'Notes',
             published_at: '2023-01-01T00:00:00Z',
             name: 'Release'
@@ -119,7 +120,7 @@ describe('GitHub Service - checkForUpdates', () => {
             tag_name: '0.9.0',
             html_url: 'https://github.com/test',
             assets: [],
-            tarball_url: 'https://tarball.url',
+            zipball_url: 'https://zipball.url',
             body: 'Notes',
             published_at: '2023-01-01T00:00:00Z',
             name: 'Release'
