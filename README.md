@@ -1,9 +1,9 @@
-# Posterrama - Bring your media library to life
+# [![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](https://github.com/Posterrama/posterrama)osterrama - Bring your media library to life
 
 [![Version](https://img.shields.io/badge/version-1.7.9-blue.svg)](https://github.com/Posterrama/posterrama)
 [![Downloads](https://img.shields.io/github/downloads/Posterrama/posterrama/total?style=flat&logo=github&label=Downloads&color=brightgreen)](https://github.com/Posterrama/posterrama/releases)
 [![Tests](https://img.shields.io/badge/tests-726%20tests%20in%2049%20suites-brightgreen)](#testing)
-[![Coverage](https://img.shields.io/badge/coverage-84.15%25-brightgreen)](#testing)
+[![Coverage](https://img.shields.io/badge/coverage-83.14%25-brightgreen)](#testing)
 [![Node.js](https://img.shields.io/badge/node.js-%E2%89%A518.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
 [![Plex](https://img.shields.io/badge/Plex-Compatible-orange.svg)](https://www.plex.tv/)
