@@ -1,6 +1,6 @@
-# [![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](https://github.com/Posterrama/posterrama)osterrama - Bring your media library to life
+# Posterrama - Bring your media library to life
 
-[![Version](https://img.shields.io/badge/version-1.7.9-blue.svg)](https://github.com/Posterrama/posterrama)
+[![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](https://github.com/Posterrama/posterrama)
 [![Downloads](https://img.shields.io/github/downloads/Posterrama/posterrama/total?style=flat&logo=github&label=Downloads&color=brightgreen)](https://github.com/Posterrama/posterrama/releases)
 [![Tests](https://img.shields.io/badge/tests-726%20tests%20in%2049%20suites-brightgreen)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-83.14%25-brightgreen)](#testing)
