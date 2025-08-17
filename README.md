@@ -13,17 +13,7 @@ Transform any screen into a **stunning digital movie poster display** that showc
 
 ![Screenshot of screensaver](./screenshots/screensaver.png)
 
-## 🚀 August 2025 - Major Backend Milestone Achieved!
 
-**We've just completed a massive backend overhaul that transforms Posterrama into a rock-solid foundation!
-We're ready to build the future of digital cinema displays.**
-
-**What's Next?** The exciting part begins now! 🎬
-
-### 🎯 **Immediate Focus: Polish & Performance**
-- **Code cleanup & optimization** - Streamlined debugging and refined architecture
-- **Performance enhancements** - Lightning-fast load times and smooth transitions
-- **Developer experience** - Clean, maintainable codebase for rapid feature development
 
 ### 🌟 **Coming Soon: Game-Changing Features**
 Get ready for an explosion of **cinema magic**:
@@ -45,14 +35,6 @@ Get ready for an explosion of **cinema magic**:
 - **Gaming Collections** - Showcase your Steam, PlayStation, Xbox libraries
 - **Music Visualizations** - Album art displays for your music collection
 - **Smart Sync** - Coordinated displays across your entire home
-
-#### **✨ Enhanced User Experience**
-- **Intuitive Admin Panel** - Beautiful, user-friendly interface redesign
-- **Mobile-First Design** - Perfect control from any device
-- **One-Click Setup** - Get started in minutes, not hours
-- **Smart Recommendations** - AI-powered content curation
-
-**The foundation is set. The future is bright. The next versions will be absolutely incredible!** 🎆
 
 ## ✨ What Makes Posterrama Special?
 
@@ -110,22 +92,6 @@ Posterrama works perfectly on any device:
 - **TV Optimization** - Clean, readable layouts for large screens
 - **Smart Text Display** - Titles and ratings always visible, descriptions intelligently managed
 
-### Clean Admin Interface
-Posterrama features a beautifully designed administration panel that makes configuration effortless:
-- **Intuitive Dashboard** - Easy-to-navigate interface with clear sections for all settings
-- **Media Server Management** - Simple connection setup for Plex servers
-- **Library Selection** - Choose exactly which movie and TV libraries to display
-- **Visual Customization** - Adjust display timing, transitions, and layout preferences
-- **Smart Configuration** - Pre-configured with sensible defaults that work out of the box
-- **Responsive Design** - Admin panel works perfectly on desktop, tablet, and mobile devices
-- **Secure Access** - Protected with authentication and optional two-factor security
-
-### Security Features
-- **Two-Factor Authentication (2FA)** - Keep your setup secure
-- **Secure API Keys** - Protected integration with other tools
-- **Easy Setup** - Simple web-based configuration
-- **Session Management** - Proper authentication and access control
-
 ### Android TV Integration
 Turn your **Android TV** into a movie poster screensaver using the **Dashboard** screensaver app:
 
@@ -151,7 +117,10 @@ While Apple TV doesn't support custom screensavers directly, you can still enjoy
 
 ### What You'll Need
 - **Node.js 18+** (the engine that runs Posterrama)
+  - Download from [nodejs.org](https://nodejs.org/) - choose the LTS version
+  - This is like installing a program that lets Posterrama run on your computer
 - **A Media Server** (Plex)
+  - Your existing Plex server with movies and TV shows
 - **5 minutes** of your time!
 
 ### Quick Start Guide
@@ -196,23 +165,6 @@ Visit `http://your-server-ip:4000/admin` to:
 - Choose which libraries to display
 - Customize visual settings
 - Monitor system health
-
-## �🔧 Troubleshooting Made Simple
-
-**Not seeing any movies?**
-- Check your media server connection in the admin panel
-- Make sure you've selected at least one library to display
-- Verify your Plex token has the right permissions
-
-**Display looks weird?**
-- Try different screen resolutions
-- Check if your browser supports modern web features
-- Clear your browser cache
-
-**Can't access admin panel?**
-- Make sure you're using the right IP address and port
-- Check if 2FA is enabled and you have the right code
-- Try clearing cookies and logging in again
 
 ## 💡 Pro Tips
 
