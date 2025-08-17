@@ -86,6 +86,74 @@ async function authenticatedFetch(url, options = {}) {
     }
 }
 
+/**
+ * Global setButtonState function - manages visual state of buttons during async operations
+ * @param {HTMLButtonElement} button The button element
+ * @param {'loading' | 'success' | 'error' | 'revert'} state The state to set
+ * @param {object} [options] Options for text and classes
+ */
+window.setButtonState = function(button, state, options = {}) {
+    if (!button) {
+        console.warn('setButtonState: button is null or undefined');
+        return;
+    }
+    
+    const buttonTextSpan = button.querySelector('span:last-child');
+    const icon = button.querySelector('.icon i');
+
+    // Store original state if not already stored
+    if (!button.dataset.originalText) {
+        button.dataset.originalText = buttonTextSpan ? buttonTextSpan.textContent : button.textContent;
+        button.dataset.originalIconClass = icon ? icon.className : '';
+        button.dataset.originalButtonClass = button.className;
+    }
+
+    switch (state) {
+        case 'loading':
+            button.disabled = true;
+            if (buttonTextSpan) {
+                buttonTextSpan.textContent = options.text || 'Working...';
+            } else {
+                button.textContent = options.text || 'Working...';
+            }
+            if (icon) {
+                icon.className = options.iconClass || 'fas fa-spinner fa-spin';
+            }
+            button.className = button.dataset.originalButtonClass;
+            break;
+        case 'success':
+        case 'error':
+            button.disabled = true;
+            if (buttonTextSpan) {
+                buttonTextSpan.textContent = options.text || (state === 'success' ? 'Success!' : 'Failed');
+            } else {
+                button.textContent = options.text || (state === 'success' ? 'Success!' : 'Failed');
+            }
+            if (icon) {
+                icon.className = options.iconClass || (state === 'success' ? 'fas fa-check' : 'fas fa-times');
+            }
+            button.className = options.buttonClass || (state === 'success' ? 
+                button.dataset.originalButtonClass.replace('is-primary', 'is-success') : 
+                button.dataset.originalButtonClass.replace('is-primary', 'is-danger'));
+            break;
+        case 'revert':
+            button.disabled = false;
+            if (buttonTextSpan) {
+                buttonTextSpan.textContent = button.dataset.originalText;
+            } else {
+                button.textContent = button.dataset.originalText;
+            }
+            if (icon) {
+                icon.className = button.dataset.originalIconClass;
+            }
+            button.className = button.dataset.originalButtonClass;
+            break;
+    }
+};
+
+// Make it available as both global and local alias
+const setButtonState = window.setButtonState;
+
 // Global cache management functions for debugging
 window.clearBrowserCache = function() {
     console.log('🧹 Clearing browser cache...');
