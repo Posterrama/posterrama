@@ -144,8 +144,8 @@ class GitHubService {
                 updateType: versionDiff, // 'major', 'minor', 'patch', etc.
                 releaseUrl: latestRelease.html_url,
                 downloadUrl: latestRelease.assets.find(asset => 
-                    asset.name.includes('.tar.gz') || asset.name.includes('.zip')
-                )?.browser_download_url || latestRelease.tarball_url,
+                    asset.name.includes('.zip')
+                )?.browser_download_url || latestRelease.zipball_url,
                 releaseNotes: latestRelease.body,
                 publishedAt: latestRelease.published_at,
                 releaseName: latestRelease.name || latestRelease.tag_name
