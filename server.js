@@ -2428,6 +2428,11 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             }
         }
 
+        // Process genres from Plex data
+        const genres = sourceItem.Genre && Array.isArray(sourceItem.Genre) 
+            ? sourceItem.Genre.map(genre => genre.tag)
+            : null;
+
         return {
             key: uniqueKey,
             title: sourceItem.title,
@@ -2439,6 +2444,10 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             year: sourceItem.year,
             imdbUrl: imdbUrl,
             rottenTomatoes: rottenTomatoesData,
+            genres: genres,
+            genre_ids: sourceItem.Genre && Array.isArray(sourceItem.Genre) 
+                ? sourceItem.Genre.map(genre => genre.id)
+                : null,
             _raw: isDebug ? item : undefined
         };
     } catch (e) {
@@ -3426,9 +3435,16 @@ app.get('/get-config',
     cacheMiddleware({
         ttl: 30000, // 30 seconds instead of 10 minutes
         cacheControl: 'public, max-age=30',
-        varyHeaders: ['Accept-Encoding']
+        varyHeaders: ['Accept-Encoding', 'User-Agent'] // Add User-Agent to vary headers
     }),
     (req, res) => {
+        const userAgent = req.get('user-agent') || '';
+        const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+        
+        if (isDebug) {
+            console.log(`[get-config] Request from ${isMobile ? 'mobile' : 'desktop'} device: ${userAgent.substring(0, 50)}...`);
+        }
+        
         res.json({
             clockWidget: config.clockWidget !== false,
             clockTimezone: config.clockTimezone || 'auto',
@@ -3450,7 +3466,13 @@ app.get('/get-config',
                 clearlogo: 100,
                 clock: 100,
                 global: 100
-            }
+            },
+            // Debug info for mobile genre filtering issue
+            _debug: isDebug ? {
+                isMobile,
+                userAgent: userAgent.substring(0, 100),
+                configTimestamp: Date.now()
+            } : undefined
         });
     });
 
@@ -3503,7 +3525,25 @@ app.get('/get-media',
         // An empty array is a valid state if no servers are configured or no media is found.
         if (playlistCache !== null) {
             const itemCount = playlistCache.length;
-            if (isDebug) console.log(`[Debug] Serving ${itemCount} items from cache. Cache is ${itemCount > 0 ? 'populated' : 'empty'}.`);
+            const userAgent = req.get('user-agent') || '';
+            const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+            
+            if (isDebug) {
+                console.log(`[Debug] Serving ${itemCount} items from cache to ${isMobile ? 'mobile' : 'desktop'} device.`);
+                
+                // Extra debug for mobile devices showing empty results
+                if (isMobile && itemCount === 0) {
+                    console.log(`[Debug] WARNING: Empty cache for mobile device. User-Agent: ${userAgent.substring(0, 100)}`);
+                    console.log(`[Debug] Current config.mediaServers:`, JSON.stringify(config.mediaServers?.map(s => ({
+                        name: s.name,
+                        enabled: s.enabled,
+                        genreFilter: s.genreFilter,
+                        movieCount: s.movieCount,
+                        showCount: s.showCount
+                    })), null, 2));
+                }
+            }
+            
             return res.json(playlistCache);
         }
 
@@ -6413,6 +6453,57 @@ app.post('/api/admin/refresh-media', isAuthenticated, asyncHandler(async (req, r
     if (isDebug) console.log(`[Admin API] ${message}`);
 
     res.json({ success: true, message: message, itemCount: itemCount, cacheCleared: cleared });
+}));
+
+/**
+ * @swagger
+ * /api/admin/debug-cache:
+ *   get:
+ *     summary: Debug cache status and configuration
+ *     tags: [Admin]
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Cache debug information
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
+app.get('/api/admin/debug-cache', isAuthenticated, asyncHandler(async (req, res) => {
+    const userAgent = req.get('user-agent') || '';
+    const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+    
+    res.json({
+        cache: {
+            itemCount: playlistCache ? playlistCache.length : null,
+            isNull: playlistCache === null,
+            isRefreshing,
+            timestamp: cacheTimestamp,
+            age: cacheTimestamp ? Date.now() - cacheTimestamp : null
+        },
+        request: {
+            userAgent: userAgent.substring(0, 100),
+            isMobile
+        },
+        config: {
+            mediaServers: config.mediaServers?.map(s => ({
+                name: s.name,
+                enabled: s.enabled,
+                type: s.type,
+                genreFilter: s.genreFilter,
+                movieCount: s.movieCount,
+                showCount: s.showCount,
+                movieLibraryNames: s.movieLibraryNames,
+                showLibraryNames: s.showLibraryNames
+            })),
+            tmdbSource: config.tmdbSource ? {
+                enabled: config.tmdbSource.enabled,
+                genreFilter: config.tmdbSource.genreFilter,
+                movieCount: config.tmdbSource.movieCount,
+                showCount: config.tmdbSource.showCount
+            } : null
+        }
+    });
 }));
 
 /**
