@@ -3934,9 +3934,10 @@ const loginLimiter = rateLimit({
 	max: 10, // Limit each IP to 10 login requests per windowMs
 	standardHeaders: true,
 	legacyHeaders: false,
-    message: (req, res) => {
-        // This ensures we still send a user-friendly HTML error page
-        throw new ApiError(429, 'Too many login attempts from this IP, please try again after 15 minutes. <a href="/admin/login">Try again</a>.');
+    handler: (req, res) => {
+        // Redirect to error page instead of throwing ApiError
+        const errorMessage = encodeURIComponent('Too many login attempts from this IP. Please try again after 15 minutes.');
+        return res.redirect(`/error.html?error=${errorMessage}`);
     },
 });
 
@@ -3979,13 +3980,15 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
     const isValidUser = (username === process.env.ADMIN_USERNAME);
     if (!isValidUser) {
         if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid username.`);
-        throw new ApiError(401, 'Invalid username or password. <a href="/admin/login">Try again</a>.');
+        const errorMessage = encodeURIComponent('Invalid username or password. Please try again.');
+        return res.redirect(`/error.html?error=${errorMessage}`);
     }
 
     const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
     if (!isValidPassword) {
         if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid credentials.`);
-        throw new ApiError(401, 'Invalid username or password. <a href="/admin/login">Try again</a>.');
+        const errorMessage = encodeURIComponent('Invalid username or password. Please try again.');
+        return res.redirect(`/error.html?error=${errorMessage}`);
     }
 
     // --- Check if 2FA is enabled ---

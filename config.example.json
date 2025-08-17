@@ -41,26 +41,20 @@
     "movieCount": 50,
     "showCount": 25,
     "minRating": 0,
-    "apiKey": ""
+    "apiKey": "",
+    "yearFilter": null,
+    "genreFilter": ""
   },
   "tvdbSource": {
     "enabled": false,
     "category": "popular",
     "movieCount": 10,
     "showCount": 20,
-    "minRating": 0
-  },
-  "streamingSources": {
-    "enabled": false,
-    "region": "US",
-    "maxItems": 20,
     "minRating": 0,
-    "netflix": false,
-    "disney": false,
-    "prime": false,
-    "hbo": false,
-    "newReleases": false
+    "yearFilter": null,
+    "genreFilter": ""
   },
+  "streamingSources": [],
   "siteServer": {
     "enabled": false,
     "port": 4001

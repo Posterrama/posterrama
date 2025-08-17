@@ -41,7 +41,7 @@
     <!-- Preload critical JavaScript -->
     <link rel="preload" href="/admin.js?v=20250817b&cb=1755384925&mobilefinal=1" as="script">
     
-    <!-- IMMEDIATE mobile sidebar toggle fix - execute before DOM is ready -->
+    <!-- IMMEDIATE desktop sidebar fix - disable toggle functionality on desktop -->
     <script>
         (function() {
             function isMobile() {
@@ -50,33 +50,43 @@
             
             function removeDesktopToggles() {
                 if (isMobile()) {
-                    // ULTRA AGGRESSIVE removal - multiple strategies
-                    
-                    // Strategy 1: Remove by ID first
-                    const toggleById = document.getElementById('sidebar-toggle');
-                    if (toggleById) {
-                        toggleById.remove();
+                    // On mobile: Hide entire sidebar
+                    const sidebar = document.getElementById('sidebar');
+                    if (sidebar) {
+                        sidebar.style.display = 'none';
                     }
                     
-                    // Strategy 2: Remove all elements with sidebar-toggle class
-                    const togglesByClass = document.querySelectorAll('.sidebar-toggle');
-                    togglesByClass.forEach(toggle => {
-                        toggle.remove();
-                    });
+                    // Hide sidebar overlay
+                    const overlay = document.getElementById('sidebar-overlay');
+                    if (overlay) {
+                        overlay.style.display = 'none';
+                    }
                     
-                    // Strategy 3: Remove the entire sidebar header
-                    const sidebarHeaders = document.querySelectorAll('.sidebar-header');
-                    sidebarHeaders.forEach(header => {
-                        header.remove();
-                    });
+                    // Adjust main content to full width
+                    const mainContent = document.querySelector('.admin-main');
+                    if (mainContent) {
+                        mainContent.style.marginLeft = '0';
+                        mainContent.style.width = '100%';
+                    }
                     
-                    // Strategy 4: Find any button with fa-bars in sidebar and remove it
-                    const barsButtons = document.querySelectorAll('.sidebar .fa-bars');
-                    barsButtons.forEach(btn => {
-                        const button = btn.closest('button');
-                        if (button) {
-                            button.remove();
-                        }
+                    // Adjust header to full width
+                    const header = document.querySelector('.admin-header');
+                    if (header) {
+                        header.style.left = '0';
+                        header.style.width = '100%';
+                    }
+                } else {
+                    // On desktop: Disable toggle functionality
+                    const sidebar = document.getElementById('sidebar');
+                    if (sidebar && !sidebar.classList.contains('sidebar-always-open')) {
+                        sidebar.classList.add('sidebar-always-open');
+                    }
+                    
+                    // Disable any toggle buttons
+                    const toggleButtons = document.querySelectorAll('.sidebar-toggle');
+                    toggleButtons.forEach(button => {
+                        button.disabled = true;
+                        button.style.display = 'none';
                     });
                 }
             }
@@ -93,128 +103,118 @@
             
             // Execute on window resize
             window.addEventListener('resize', removeDesktopToggles);
-            
-            // ULTRA AGGRESSIVE: Execute every 50ms for the first 5 seconds
-            let attempts = 0;
-            const intervalId = setInterval(() => {
-                removeDesktopToggles();
-                attempts++;
-                if (attempts >= 100) { // Stop after 5 seconds (100 * 50ms)
-                    clearInterval(intervalId);
-                }
-            }, 50);
         })();
+    </script>
     </script>
 </head>
 <body>
-    <!-- Skip links for accessibility -->
-    <div class="skip-links" aria-label="Skip navigation">
-        <a href="#main-content" class="skip-link">Skip to main content</a>
-        <a href="#sidebar" class="skip-link">Skip to navigation</a>
-        <a href="#config-form" class="skip-link">Skip to settings</a>
-    </div>
     
     <div class="admin-layout">
         <!-- Header -->
         <header class="admin-header" role="banner">
-            <h1 class="logo-text"><span class="admin-text">Admin</span> <span class="gradient-text">posterrama</span></h1>
-            <nav role="navigation" aria-label="Main navigation" class="header-nav">
+            <!-- Mobile menu button - only visible on mobile -->
+            <button type="button" id="mobile-nav-toggle" class="mobile-nav-btn mobile-only">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M6 2H16L14 22H4L6 2Z"/>
+                    <path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6;"/>
+                </svg>
+            </button>
+            
+            <h1 class="logo-text"><span class="admin-text">Admin</span></h1>
+            <nav role="navigation" class="header-nav">
                 <!-- Restart Now button - only shown when restart is needed -->
                 <button type="button" id="restart-now-btn" class="btn btn-warning" style="display: none;">
-                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                    <i class="fas fa-sync-alt"></i>
                     Restart Now
                 </button>
                 <button type="button" id="toggle-help-panel" class="btn btn-secondary">
-                    <i class="fas fa-question-circle" aria-hidden="true"></i>
+                    <i class="fas fa-question-circle"></i>
                     Help
                 </button>
-                <a href="/" target="_blank" aria-label="View posterrama in new tab" class="btn btn-secondary" id="view-posterrama-btn">
-                    <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                <a href="/" target="_blank" class="btn btn-secondary" id="view-posterrama-btn">
+                    <i class="fas fa-external-link-alt"></i>
                     View <span class="gradient-text">posterrama</span>
                 </a>
-                <a href="/api-docs" target="_blank" aria-label="View API documentation in new tab" class="btn btn-secondary" id="api-docs-btn">
-                    <i class="fas fa-book" aria-hidden="true"></i>
+                <a href="/api-docs" target="_blank" class="btn btn-secondary" id="api-docs-btn">
+                    <i class="fas fa-book"></i>
                     API Docs
                 </a>
-                <a href="https://github.com/Posterrama/posterrama" target="_blank" aria-label="View Posterrama on GitHub" class="btn btn-secondary" id="github-btn">
-                    <i class="fab fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/Posterrama/posterrama" target="_blank" class="btn btn-secondary" id="github-btn">
+                    <i class="fab fa-github"></i>
                     GitHub
                 </a>
-                <a href="/admin/logout" aria-label="Logout from admin panel" class="btn btn-danger" id="logout-btn">
-                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                <a href="/admin/logout" class="btn btn-danger" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
                     Logout
                 </a>
             </nav>
         </header>
 
         <!-- Sidebar Navigation -->
-        <nav class="sidebar" id="sidebar" role="navigation" aria-label="Settings sections">
-            <!-- Desktop sidebar header - RESTORED -->
+        <nav class="sidebar sidebar-always-open" id="sidebar" role="navigation">
+            <!-- Desktop sidebar header - Fixed open -->
             <div class="sidebar-header desktop-only">
-                <button class="sidebar-toggle btn btn-secondary desktop-only" id="sidebar-toggle" aria-label="Toggle sidebar navigation" aria-expanded="true" aria-controls="sidebar">
-                    <i class="fas fa-bars nav-icon" aria-hidden="true"></i>
-                </button>
                 <div class="sidebar-logo">
-                    <span class="logo-text"></span>
+                    <span class="logo-text">posterrama</span>
                 </div>
             </div>
             
-            <div class="sidebar-nav" role="tablist" aria-orientation="vertical">
-                <button class="nav-item active" data-section="general" title="General Settings" role="tab" aria-selected="true" aria-controls="general-section" id="general-tab">
-                    <i class="fas fa-cog nav-icon" aria-hidden="true"></i>
+            <div class="sidebar-nav" role="tablist">
+                <button class="nav-item active" data-section="general" title="General Settings" role="tab" id="general-tab">
+                    <i class="fas fa-cog nav-icon"></i>
                     <span class="nav-text">General</span>
                 </button>
                 
-                <button class="nav-item" data-section="display" title="Display Settings" role="tab" aria-selected="false" aria-controls="display-section" id="display-tab">
-                    <i class="fas fa-tv nav-icon" aria-hidden="true"></i>
+                <button class="nav-item" data-section="display" title="Display Settings" role="tab" id="display-tab">
+                    <i class="fas fa-tv nav-icon"></i>
                     <span class="nav-text">Display</span>
                 </button>
                 
-                                <button class="nav-item" data-section="media" title="Sources" role="tab" aria-selected="false" aria-controls="media-section" id="media-tab">
-                    <i class="fas fa-database nav-icon" aria-hidden="true"></i>
+                                <button class="nav-item" data-section="media" title="Sources" role="tab" id="media-tab">
+                    <i class="fas fa-database nav-icon"></i>
                     <span class="nav-text">Sources</span>
                 </button>
                 
-                <button class="nav-item" data-section="authentication" title="Authentication" role="tab" aria-selected="false" aria-controls="authentication-section" id="authentication-tab">
-                    <i class="fas fa-shield-alt nav-icon" aria-hidden="true"></i>
-                    <span class="nav-text">Auth</span>
+                <button class="nav-item" data-section="authentication" title="Authentication" role="tab" id="authentication-tab">
+                    <i class="fas fa-shield-alt nav-icon"></i>
+                    <span class="nav-text">Authentication</span>
                 </button>
                 
-                <button class="nav-item" data-section="promobox" title="Promobox Site" role="tab" aria-selected="false" aria-controls="promobox-section" id="promobox-tab">
-                    <i class="fas fa-globe nav-icon" aria-hidden="true"></i>
-                    <span class="nav-text">Promo</span>
+                <button class="nav-item" data-section="promobox" title="Promobox Site" role="tab" id="promobox-tab">
+                    <i class="fas fa-globe nav-icon"></i>
+                    <span class="nav-text">Promobox Site</span>
                 </button>
                 
-                <button class="nav-item" data-section="management" title="Management" role="tab" aria-selected="false" aria-controls="management-section" id="management-tab">
-                    <i class="fas fa-tools nav-icon" aria-hidden="true"></i>
-                    <span class="nav-text">Manage</span>
+                <button class="nav-item" data-section="management" title="Management" role="tab" id="management-tab">
+                    <i class="fas fa-tools nav-icon"></i>
+                    <span class="nav-text">Management</span>
                 </button>
                 
-                <button class="nav-item" data-section="logs" title="Logs & Debug" role="tab" aria-selected="false" aria-controls="logs-section" id="logs-tab">
-                    <i class="fas fa-file-alt nav-icon" aria-hidden="true"></i>
-                    <span class="nav-text">Logs</span>
+                <button class="nav-item" data-section="logs" title="Logs & Debug" role="tab" id="logs-tab">
+                    <i class="fas fa-file-alt nav-icon"></i>
+                    <span class="nav-text">Logs & Debug</span>
                 </button>
             </div>
         </nav>
 
         <!-- Sidebar overlay for mobile -->
-        <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
         <!-- Main Content Area -->
         <div class="main-content">
-            <div id="admin-background-a" class="admin-background-layer" aria-hidden="true"></div>
-            <div id="admin-background-b" class="admin-background-layer" aria-hidden="true"></div>
-            <div class="admin-background-overlay" aria-hidden="true"></div>
+            <div id="admin-background-a" class="admin-background-layer"></div>
+            <div id="admin-background-b" class="admin-background-layer"></div>
+            <div class="admin-background-overlay"></div>
 
-            <main class="admin-main" role="main" id="main-content" tabindex="-1" aria-label="Admin dashboard settings">
-                <div id="notification-area" class="notification-container" role="region" aria-label="Status notifications" aria-live="polite" aria-atomic="true"></div>
+            <main class="admin-main" role="main" id="main-content" tabindex="-1">
+                <div id="notification-area" class="notification-container" role="region"></div>
 
-                <form id="config-form" role="form" aria-label="Configuration settings" novalidate>
+                <form id="config-form" role="form" novalidate>
                     <!-- General Settings Section -->
-                    <section class="section-content active" id="general-section" role="tabpanel" aria-labelledby="general-tab" tabindex="0">
+                    <section class="section-content active" id="general-section" role="tabpanel" tabindex="0">
                         <div class="section-main-content">
                             <div class="section-title">
-                                <i class="fas fa-cog" aria-hidden="true"></i>
+                                <i class="fas fa-cog"></i>
                                 General Settings
                             </div>
                             
@@ -230,13 +230,13 @@
                                     <div class="form-group">
                                         <label for="transitionIntervalSeconds" title="How many seconds each poster is visible.">Transition Interval (seconds)</label>
                                         <div class="number-input-wrapper">
-                                            <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds" min="1" max="300" step="1" required aria-describedby="transitionIntervalSeconds-help">
-                                            <div class="number-controls" role="group" aria-label="Adjust transition interval">
-                                                <button type="button" class="number-btn" id="increment-transitionIntervalSeconds" aria-label="Increase transition interval">
-                                                    <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                                            <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds" min="1" max="300" step="1" required>
+                                            <div class="number-controls" role="group">
+                                                <button type="button" class="number-btn" id="increment-transitionIntervalSeconds">
+                                                    <i class="fas fa-chevron-up"></i>
                                                 </button>
-                                                <button type="button" class="number-btn" id="decrement-transitionIntervalSeconds" aria-label="Decrease transition interval">
-                                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                                <button type="button" class="number-btn" id="decrement-transitionIntervalSeconds">
+                                                    <i class="fas fa-chevron-down"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -245,13 +245,13 @@
                                     <div class="form-group">
                                         <label for="backgroundRefreshMinutes">Background Refresh</label>
                                         <div class="number-input-wrapper">
-                                            <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes" min="0" max="1440" step="1" aria-describedby="backgroundRefreshMinutes-help">
-                                            <div class="number-controls" role="group" aria-label="Adjust background refresh interval">
-                                                <button type="button" class="number-btn" id="increment-backgroundRefreshMinutes" aria-label="Increase refresh interval">
-                                                    <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                                            <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes" min="0" max="1440" step="1">
+                                            <div class="number-controls" role="group">
+                                                <button type="button" class="number-btn" id="increment-backgroundRefreshMinutes">
+                                                    <i class="fas fa-chevron-up"></i>
                                                 </button>
-                                                <button type="button" class="number-btn" id="decrement-backgroundRefreshMinutes" aria-label="Decrease refresh interval">
-                                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                                <button type="button" class="number-btn" id="decrement-backgroundRefreshMinutes">
+                                                    <i class="fas fa-chevron-down"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -268,13 +268,13 @@
                                     <div class="form-group">
                                         <label for="SERVER_PORT">Application Port</label>
                                         <div class="number-input-wrapper">
-                                            <input type="number" id="SERVER_PORT" name="SERVER_PORT" min="1024" max="65535" step="1" required aria-describedby="serverPort-help">
-                                            <div class="number-controls" role="group" aria-label="Adjust server port">
-                                                <button type="button" class="number-btn" id="increment-serverPort" aria-label="Increase port number">
-                                                    <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                                            <input type="number" id="SERVER_PORT" name="SERVER_PORT" min="1024" max="65535" step="1" required>
+                                            <div class="number-controls" role="group">
+                                                <button type="button" class="number-btn" id="increment-serverPort">
+                                                    <i class="fas fa-chevron-up"></i>
                                                 </button>
-                                                <button type="button" class="number-btn" id="decrement-serverPort" aria-label="Decrease port number">
-                                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                                <button type="button" class="number-btn" id="decrement-serverPort">
+                                                    <i class="fas fa-chevron-down"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -289,7 +289,7 @@
                                 </div>
                                 <div class="subsection-content">
                                     <div class="form-group checkbox-group">
-                                        <input type="checkbox" id="DEBUG" name="DEBUG" aria-describedby="DEBUG-help">
+                                        <input type="checkbox" id="DEBUG" name="DEBUG">
                                         <label for="DEBUG">Enable Debug Mode</label>
                                     </div>
                                     <div id="DEBUG-help" class="form-help">Enable detailed logging for troubleshooting</div>
@@ -299,10 +299,10 @@
                     </section>
 
                     <!-- Display Settings Section -->
-                    <section class="section-content" id="display-section" role="tabpanel" aria-labelledby="display-tab">
+                    <section class="section-content" id="display-section" role="tabpanel">
                         <div class="section-main-content">
                             <div class="section-title">
-                                <i class="fas fa-tv" aria-hidden="true"></i>
+                                <i class="fas fa-tv"></i>
                                 Display Settings
                             </div>
                             
@@ -435,11 +435,11 @@
                             <!-- Scaling Templates -->
                             <div class="scaling-templates">
                                 <label>Quick Templates:</label>
-                                <div class="template-buttons" role="group" aria-label="UI scaling templates">
-                                    <button type="button" class="btn btn-secondary" id="apply-fullhd-template" aria-label="Apply Full HD scaling template">Full HD</button>
-                                    <button type="button" class="btn btn-secondary" id="apply-4k-template" aria-label="Apply 4K scaling template">4K</button>
-                                    <button type="button" class="btn btn-secondary" id="apply-widescreen-template" aria-label="Apply widescreen scaling template">Widescreen</button>
-                                    <button type="button" class="btn btn-secondary" id="reset-scaling-defaults" aria-label="Reset scaling to default values">Reset</button>
+                                <div class="template-buttons" role="group">
+                                    <button type="button" class="btn btn-secondary" id="apply-fullhd-template">Full HD</button>
+                                    <button type="button" class="btn btn-secondary" id="apply-4k-template">4K</button>
+                                    <button type="button" class="btn btn-secondary" id="apply-widescreen-template">Widescreen</button>
+                                    <button type="button" class="btn btn-secondary" id="reset-scaling-defaults">Reset</button>
                                 </div>
                             </div>
                             
@@ -522,7 +522,7 @@
                     </section>
 
                     <!-- Sources Section -->
-                    <section class="section-content" id="media-section" role="tabpanel" aria-labelledby="media-tab">
+                    <section class="section-content" id="media-section" role="tabpanel">
                         <div class="section-main-content">
                             <div class="section-title">
                                 <i class="fas fa-database"></i>
@@ -971,7 +971,7 @@
                     </section>
 
                     <!-- Authentication Section -->
-                    <section class="section-content" id="authentication-section" role="tabpanel" aria-labelledby="authentication-tab">
+                    <section class="section-content" id="authentication-section" role="tabpanel">
                         <div class="section-main-content">
                             <div class="section-title">
                                 <i class="fas fa-shield-alt"></i>
@@ -1062,7 +1062,7 @@
                     </section>
 
                     <!-- Promobox Site Settings Section -->
-                    <section class="section-content" id="promobox-section" role="tabpanel" aria-labelledby="promobox-tab">
+                    <section class="section-content" id="promobox-section" role="tabpanel">
                         <div class="section-main-content">
                             <div class="section-title">
                                 <i class="fas fa-globe"></i>
@@ -1106,7 +1106,7 @@
                     </section>
 
                     <!-- Management Section -->
-                    <section class="section-content" id="management-section" role="tabpanel" aria-labelledby="management-tab">
+                    <section class="section-content" id="management-section" role="tabpanel">
                         <div class="section-main-content">
                             <div class="section-title">
                                 <i class="fas fa-tools"></i>
@@ -1324,7 +1324,7 @@
                     </section>
 
                     <!-- Logs & Debug Section -->
-                    <section class="section-content" id="logs-section" role="tabpanel" aria-labelledby="logs-tab">
+                    <section class="section-content" id="logs-section" role="tabpanel">
                         <div class="section-main-content">
                             <div class="section-title">
                                 <i class="fas fa-file-alt"></i>
@@ -1369,11 +1369,79 @@
         
     </div> <!-- Close admin-layout -->
 
+    <!-- Mobile Navigation Panel - similar to help panel but for navigation -->
+    <aside id="mobile-nav-panel" class="mobile-nav-panel mobile-only">
+        <div class="mobile-nav-header">
+            <h3>Navigation</h3>
+            <button class="btn btn-icon" id="close-mobile-nav">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <nav class="mobile-nav-content">
+            <button class="mobile-nav-item active" data-section="general">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.06 1.56V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.35a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.56-1.06H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.65 9 1.65 1.65 0 0 0 4.32 7.18l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1.06-1.56V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.06 1.56 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.56 1.06H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.56 1.06z"></path>
+                </svg>
+                <span>General</span>
+            </button>
+            <button class="mobile-nav-item" data-section="display">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <span>Display</span>
+            </button>
+            <button class="mobile-nav-item" data-section="media">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                </svg>
+                <span>Sources</span>
+            </button>
+            <button class="mobile-nav-item" data-section="authentication">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Authentication</span>
+            </button>
+            <button class="mobile-nav-item" data-section="promobox">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                <span>Promobox Site</span>
+            </button>
+            <button class="mobile-nav-item" data-section="management">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+                <span>Management</span>
+            </button>
+            <button class="mobile-nav-item" data-section="logs">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14,2 14,8 20,8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10,9 9,9 8,9"></polyline>
+                </svg>
+                <span>Logs & Debug</span>
+            </button>
+        </nav>
+    </aside>
+
     <!-- Quick Help Panel -->
-    <aside id="quick-help-panel" class="quick-help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title" aria-hidden="true">
+    <aside id="quick-help-panel" class="quick-help-panel" role="dialog">
         <div class="help-header">
             <h3 id="help-title">General Settings Help</h3>
-            <button class="btn btn-icon" id="close-help-panel" aria-label="Close help panel">
+            <button class="btn btn-icon" id="close-help-panel">
                 <i class="fas fa-times"></i>
             </button>
         </div>

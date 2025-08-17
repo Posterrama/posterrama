@@ -791,47 +791,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 sidebarHeader.remove();
             }
             
-            // CREATE FUNCTIONAL MOBILE HAMBURGER MENU
-            const header = document.querySelector('.admin-header');
-            if (header) {
-                // Create mobile menu button
-                const mobileMenuBtn = document.createElement('button');
-                mobileMenuBtn.className = 'mobile-menu-btn';
-                mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
-                mobileMenuBtn.setAttribute('aria-label', 'Toggle navigation menu');
-                mobileMenuBtn.setAttribute('aria-expanded', 'false');
-                
-                // Insert button into header
-                header.appendChild(mobileMenuBtn);
-                
-                // Add click handler for hamburger menu
-                mobileMenuBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation(); // Stop ALL other event handlers
-                    
-                    const isOpen = !sidebar.classList.contains('collapsed');
-                    
-                    if (isOpen) {
-                        // Close sidebar
-                        sidebar.classList.add('collapsed');
-                        sidebar.classList.remove('mobile-open');
-                        mobileMenuBtn.setAttribute('aria-expanded', 'false');
-                        mobileMenuBtn.querySelector('i').className = 'fas fa-bars';
-                    } else {
-                        // Open sidebar  
-                        sidebar.classList.remove('collapsed');
-                        sidebar.classList.add('mobile-open');
-                        mobileMenuBtn.setAttribute('aria-expanded', 'true');
-                        mobileMenuBtn.querySelector('i').className = 'fas fa-times';
-                    }
-                }, true); // Use capture phase to intercept before other handlers
-            }
-            
-            // REMOVE SWIPE FUNCTIONALITY (replaced by hamburger menu)
+            // REMOVED: Mobile menu button creation
+            // We no longer create a hamburger menu on mobile
+            // The sidebar is completely hidden on mobile via CSS and HTML changes
             
         } else {
-            // Remove mobile menu button on desktop
+            // Remove mobile menu button on desktop (cleanup)
             const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
             if (mobileMenuBtn) {
                 mobileMenuBtn.remove();
@@ -932,26 +897,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Click outside to close mobile sidebar
     document.addEventListener('click', (e) => {
-        if (isMobile() && !sidebar.classList.contains('collapsed')) {
-            const isClickInsideSidebar = sidebar.contains(e.target);
-            const isClickOnMobileMenuBtn = e.target.closest('.mobile-menu-btn');
-            
-            // Close sidebar if clicking outside of sidebar and not on hamburger button
-            if (!isClickInsideSidebar && !isClickOnMobileMenuBtn) {
-                sidebar.classList.add('collapsed');
-                sidebar.classList.remove('mobile-open');
-                
-                // Update hamburger icon back to bars
-                const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-                if (mobileMenuBtn) {
-                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
-                    const icon = mobileMenuBtn.querySelector('i');
-                    if (icon) {
-                        icon.className = 'fas fa-bars';
-                    }
-                }
-            }
-        }
+        // Mobile sidebar is now completely hidden via CSS
+        // No click handling needed for mobile menu
     });
 
     // Keyboard shortcuts
@@ -1107,6 +1054,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Libraries are now loaded during config load, no need for lazy loading here
     }
+
+    // Make activateSection globally available
+    window.activateSection = activateSection;
 
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
@@ -7317,4 +7267,81 @@ function confirmAutoUpdate() {
     closeUpdateConfirmationModal();
     // Call the actual update function
     startAutoUpdate();
+}
+
+// Mobile Navigation Panel Management
+function initMobileNavPanel() {
+    const mobileNavToggle = document.getElementById('mobile-nav-toggle');
+    const mobileNavPanel = document.getElementById('mobile-nav-panel');
+    const closeMobileNav = document.getElementById('close-mobile-nav');
+    const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
+
+    if (!mobileNavToggle || !mobileNavPanel) return;
+
+    // Open mobile nav panel
+    mobileNavToggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        mobileNavPanel.classList.add('open');
+    });
+
+    // Close mobile nav panel
+    if (closeMobileNav) {
+        closeMobileNav.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            mobileNavPanel.classList.remove('open');
+        });
+    }
+
+    // Handle navigation item clicks
+    mobileNavItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const sectionId = item.getAttribute('data-section');
+            
+            // Remove active class from all mobile nav items
+            mobileNavItems.forEach(navItem => navItem.classList.remove('active'));
+            
+            // Add active class to clicked mobile nav item
+            item.classList.add('active');
+            
+            // Also update desktop nav items
+            const desktopNavItems = document.querySelectorAll('.nav-item');
+            desktopNavItems.forEach(nav => {
+                nav.classList.remove('active');
+                nav.setAttribute('aria-selected', 'false');
+            });
+            
+            const correspondingDesktopItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+            if (correspondingDesktopItem) {
+                correspondingDesktopItem.classList.add('active');
+                correspondingDesktopItem.setAttribute('aria-selected', 'true');
+            }
+            
+            // Switch to the selected section (same logic as desktop sidebar)
+            if (window.activateSection) {
+                window.activateSection(sectionId);
+            }
+            
+            // Close the mobile nav panel
+            mobileNavPanel.classList.remove('open');
+        });
+    });
+
+    // Close mobile nav when clicking outside
+    document.addEventListener('click', (e) => {
+        if (mobileNavPanel.classList.contains('open') && 
+            !mobileNavPanel.contains(e.target) && 
+            !mobileNavToggle.contains(e.target)) {
+            mobileNavPanel.classList.remove('open');
+        }
+    });
+}
+
+// Initialize mobile nav panel when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileNavPanel);
+} else {
+    initMobileNavPanel();
 }

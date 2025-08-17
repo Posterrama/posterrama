@@ -1,32 +1,5 @@
 /* === POSTERRAMA ADMIN DARK THEME === */
 
-/* Skip links for accessibility */
-.skip-links {
-    position: absolute;
-    top: -40px;
-    left: 6px;
-    z-index: 9999;
-}
-
-.skip-link {
-    position: absolute;
-    top: -40px;
-    left: 6px;
-    background: #000;
-    color: #fff;
-    padding: 8px;
-    text-decoration: none;
-    border-radius: 4px;
-    font-weight: bold;
-    transition: top 0.2s ease;
-}
-
-.skip-link:focus {
-    top: 6px;
-    outline: 2px solid #007cba;
-    outline-offset: 2px;
-}
-
 /* Screen reader only content */
 .sr-only {
     position: absolute;
@@ -292,6 +265,33 @@ a:hover {
     min-width: 60px;
 }
 
+/* Desktop: Always open sidebar - no collapse functionality */
+@media (min-width: 769px) {
+    /* Hide mobile-only elements on desktop */
+    .mobile-only {
+        display: none !important;
+    }
+    
+    .sidebar-always-open {
+        width: 180px !important;
+        min-width: 180px !important;
+    }
+    
+    .sidebar-always-open .sidebar-toggle {
+        display: none !important; /* Hide toggle button on desktop */
+    }
+    
+    .admin-layout:has(.sidebar-always-open) .main-content {
+        margin-left: 180px !important;
+        width: calc(100% - 180px) !important;
+    }
+    
+    .admin-layout:has(.sidebar-always-open) .admin-header {
+        left: 180px !important;
+        width: calc(100% - 180px) !important;
+    }
+}
+
 /* Adjust main content when sidebar is collapsed */
 .admin-layout:has(.sidebar.collapsed) .main-content {
     margin-left: 60px;
@@ -313,6 +313,21 @@ a:hover {
 .sidebar.collapsed ~ * .admin-header {
     left: 60px; /* Adjust header offset when sidebar collapsed */
     width: calc(100% - 60px);
+}
+
+/* Alternative for always open sidebar (browsers without :has() support) */
+@media (min-width: 769px) {
+    .sidebar-always-open ~ .admin-content .main-content,
+    .sidebar-always-open ~ * .main-content {
+        margin-left: 180px !important;
+        width: calc(100% - 180px) !important;
+    }
+    
+    .sidebar-always-open ~ .admin-content .admin-header,
+    .sidebar-always-open ~ * .admin-header {
+        left: 180px !important;
+        width: calc(100% - 180px) !important;
+    }
 }
 
 .sidebar.collapsed .sidebar-header {
@@ -3243,10 +3258,11 @@ fieldset:focus-within {
     top: 70px;
     right: 0;
     width: 320px;
-    height: calc(100vh - 70px); /* Only account for header (70px), no footer space */
+    height: calc(100vh - 140px); /* 70px from top + 70px from bottom = symmetrical spacing */
     background: linear-gradient(180deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
     backdrop-filter: blur(20px);
     border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px 0 0 12px; /* Rounded corners on the left side */
     padding: 1.5rem;
     overflow-y: auto;
     transform: translateX(100%) !important;
@@ -3256,6 +3272,101 @@ fieldset:focus-within {
     display: block !important; /* Force visibility */
     visibility: visible !important; /* Force visibility */
     opacity: 1 !important; /* Force opacity */
+}
+
+/* Mobile Navigation Panel - similar to help panel but smaller and left-positioned */
+.mobile-nav-panel {
+    position: fixed;
+    top: 70px;
+    left: 0;
+    width: 240px; /* Smaller than help panel (320px) */
+    height: calc(100vh - 140px); /* 70px from top + 70px from bottom = symmetrical spacing */
+    background: linear-gradient(180deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0 12px 12px 0; /* Rounded corners on the right side */
+    padding: 1.5rem;
+    overflow-y: auto;
+    transform: translateX(-100%) !important; /* Start hidden on the left */
+    transition: transform 0.3s ease !important;
+    z-index: 9999999; /* High z-index but lower than help panel */
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.mobile-nav-panel.open {
+    transform: translateX(0) !important; /* Slide in from left */
+}
+
+.mobile-nav-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav-header h3 {
+    color: #ffffff;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.mobile-nav-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mobile-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    width: 100%;
+    text-align: left;
+}
+
+.mobile-nav-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    transform: translateX(4px);
+}
+
+.mobile-nav-item.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+}
+
+.mobile-nav-item svg {
+    width: 18px;
+    height: 18px;
+    opacity: 0.8;
+    flex-shrink: 0;
+}
+
+.mobile-nav-item:hover svg,
+.mobile-nav-item.active svg {
+    opacity: 1;
+}
+
+.mobile-nav-item span {
+    flex: 1;
 }
 
 .quick-help-panel.open {
@@ -3487,15 +3598,113 @@ fieldset:focus-within {
         justify-content: center;
         text-align: center;
         min-height: auto;
+        flex-wrap: wrap; /* Allow wrapping */
+    }
+    
+    .footer-status .status-message {
+        white-space: normal; /* Allow text wrapping */
+        word-wrap: break-word; /* Break long words if needed */
+        hyphens: auto; /* Add hyphens for better breaking */
+        max-width: 100%; /* Ensure it doesn't exceed container */
+        text-align: center;
+        font-size: 0.85rem; /* Slightly smaller font on mobile */
+        padding: 0.5rem 0.75rem; /* Adjust padding for mobile */
+        line-height: 1.4; /* Better line spacing for wrapped text */
     }
     
     .footer-actions {
         justify-content: center;
-        gap: 0.75rem;
+        gap: 0.5rem; /* Reduced gap for mobile */
+        flex-direction: column; /* Stack buttons vertically on very small screens */
+        flex-wrap: wrap; /* Allow wrapping */
+    }
+    
+    .footer-actions .btn {
+        min-width: auto; /* Remove fixed min-width on mobile */
+        width: 100%; /* Full width buttons on mobile */
+        flex: 1; /* Equal width buttons */
+        white-space: normal; /* Allow button text to wrap */
+        word-wrap: break-word; /* Break long button text if needed */
+        text-align: center;
+        padding: 0.75rem 0.5rem; /* Adjust padding for wrapped text */
+        line-height: 1.3; /* Better line spacing in buttons */
     }
     
     .admin-footer {
         padding: 1rem;
+    }
+}
+
+/* Mobile responsiveness for form-save-section */
+@media (max-width: 768px) {
+    .form-save-section {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+        align-items: stretch;
+    }
+    
+    .form-save-section #config-status {
+        white-space: normal; /* Allow text wrapping */
+        word-wrap: break-word; /* Break long words if needed */
+        hyphens: auto; /* Add hyphens for better breaking */
+        text-align: center;
+        font-size: 0.8rem; /* Slightly smaller font on mobile */
+        padding: 0.75rem 1rem; /* More padding for wrapped text */
+        line-height: 1.4; /* Better line spacing for wrapped text */
+        min-height: auto; /* Remove fixed height */
+        width: 100%; /* Full width */
+    }
+    
+    .form-save-section .btn {
+        white-space: normal; /* Allow button text to wrap */
+        word-wrap: break-word; /* Break long button text if needed */
+        text-align: center;
+        padding: 0.875rem 1rem; /* Adjust padding for wrapped text */
+        line-height: 1.3; /* Better line spacing in buttons */
+        min-width: auto; /* Remove fixed min-width on mobile */
+        width: 100%; /* Full width button on mobile */
+    }
+    
+    /* Ensure button icon and text wrap nicely */
+    .form-save-section .btn i {
+        margin-right: 0.5rem;
+    }
+}
+
+/* For very small screens */
+@media (max-width: 480px) {
+    .form-save-section {
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+    
+    .form-save-section #config-status {
+        font-size: 0.75rem; /* Even smaller font for very small screens */
+        padding: 0.625rem 0.75rem;
+    }
+    
+    .form-save-section .btn {
+        font-size: 0.85rem; /* Smaller button text */
+        padding: 0.75rem 0.75rem;
+    }
+}
+@media (min-width: 480px) and (max-width: 768px) {
+    .footer-actions {
+        flex-direction: row; /* Horizontal layout for larger mobile */
+        gap: 0.75rem;
+    }
+    
+    .footer-actions .btn {
+        min-width: 120px; /* Smaller min-width than desktop */
+        width: auto;
+        white-space: nowrap; /* Prevent wrapping on larger mobile screens */
+        font-size: 0.9rem; /* Slightly smaller font to fit better */
+    }
+    
+    .footer-status .status-message {
+        font-size: 0.9rem; /* Normal size for larger mobile */
+        max-width: 80%; /* Limit width to prevent too wide messages */
     }
 }
 
@@ -3515,13 +3724,72 @@ fieldset:focus-within {
 }
 
 @media (max-width: 768px) {
-    /* Mobile Header Adjustments */
+    /* Hide desktop-only elements on mobile */
+    .desktop-only {
+        display: none !important;
+    }
+    
+    /* Mobile: Hide sidebar completely */
+    .sidebar {
+        display: none !important;
+    }
+    
+    .sidebar-overlay {
+        display: none !important;
+    }
+    
+    /* Mobile navigation button - exactly like other mobile header buttons */
+    .mobile-nav-btn {
+        padding: 0.5rem !important;
+        font-size: 1rem !important;
+        min-width: 33px;
+        height: 33px;
+        justify-content: center !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+        border: none !important;
+        border-radius: 8px !important;
+        color: #ffffff !important;
+        font-weight: 500 !important;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none !important;
+        white-space: nowrap;
+        flex-shrink: 0;
+        box-sizing: border-box;
+    }
+    
+    .mobile-nav-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .mobile-nav-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .mobile-nav-btn svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+    
+    /* Mobile Header Adjustments - full width */
     .admin-header {
         padding: 0 1rem;
         height: 60px;
-        left: 0; /* On mobile, header spans full width */
-        width: 100%;
-        justify-content: center; /* Center content on mobile */
+        left: 0 !important; /* Full width on mobile */
+        width: 100% !important;
+        justify-content: space-between; /* Space between left and right content */
+    }
+    
+    /* Mobile main content - full width */
+    .admin-main {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding-top: 60px; /* Account for fixed header */
     }
     
     .admin-header h1 {
