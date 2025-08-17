@@ -4,9 +4,6 @@
  * Scope: Cache stats functionality with clearer labeling.
  */
 
-// Version check for cache busting validation
-console.log('✅ Admin script v2.2.0 loaded successfully');
-
 // Make version available globally (will be updated by server)
 window.POSTERRAMA_VERSION = 'Loading...';
 
@@ -15,16 +12,13 @@ fetch('/api/admin/version')
     .then(response => response.json())
     .then(data => {
         window.POSTERRAMA_VERSION = data.version || 'Unknown';
-        console.log(`📦 Posterrama version: ${window.POSTERRAMA_VERSION}`);
     })
     .catch(error => {
-        console.warn('Could not fetch version:', error);
         window.POSTERRAMA_VERSION = 'Unknown';
     });
 
 // Ensure all API calls use the current host
 const API_BASE = window.location.origin;
-console.log('🌐 API Base URL:', API_BASE);
 
 // Helper function to create API URLs - always use current host
 function apiUrl(path) {
@@ -56,25 +50,11 @@ async function authenticatedFetch(url, options = {}) {
         }
     };
     
-    console.log('🌐 Making authenticated request:', {
-        url,
-        method: options.method || 'GET',
-        hasBody: !!options.body,
-        bodySize: options.body ? options.body.length : 0
-    });
-    
     try {
         const response = await fetch(url, { ...defaultOptions, ...options });
         
-        console.log('📡 Response received:', {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok
-        });
-        
         // Handle authentication errors
         if (response.status === 401) {
-            console.warn('Authentication failed - redirecting to login');
             window.location.href = '/admin/login';
             throw new Error('Authentication required');
         }
@@ -156,22 +136,17 @@ const setButtonState = window.setButtonState;
 
 // Global cache management functions for debugging
 window.clearBrowserCache = function() {
-    console.log('🧹 Clearing browser cache...');
-    
     // Clear localStorage
     localStorage.clear();
-    console.log('✅ localStorage cleared');
     
     // Clear sessionStorage
     sessionStorage.clear();
-    console.log('✅ sessionStorage cleared');
     
     // Unregister service workers
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
             for(let registration of registrations) {
                 registration.unregister();
-                console.log('✅ Service worker unregistered');
             }
         });
     }
@@ -181,25 +156,20 @@ window.clearBrowserCache = function() {
         caches.keys().then(function(names) {
             names.forEach(function(name) {
                 caches.delete(name);
-                console.log('✅ Cache storage cleared:', name);
             });
         });
     }
     
-    console.log('🎯 Browser cache cleared! Refresh the page to see changes.');
     return 'Cache cleared! Please refresh the page.';
 };
 
 window.hardRefresh = function() {
-    console.log('🔄 Performing hard refresh...');
     window.location.reload(true);
 };
 
 // DEBUGGING: Force show modal function
 window.forceShowModal = function() {
-    console.log('🚀 FORCE SHOWING MODAL');
     const modal = document.getElementById('update-confirmation-modal');
-    console.log('Modal element:', modal);
     
     if (modal) {
         // Try all possible ways to show it
@@ -209,14 +179,6 @@ window.forceShowModal = function() {
         modal.style.zIndex = '99999';
         modal.classList.remove('is-hidden');
         modal.classList.add('force-visible');
-        
-        console.log('Modal styles applied:', {
-            display: modal.style.display,
-            visibility: modal.style.visibility,
-            opacity: modal.style.opacity,
-            zIndex: modal.style.zIndex,
-            classes: modal.className
-        });
         
         // Add inline CSS as fallback
         modal.setAttribute('style', `
@@ -239,42 +201,16 @@ window.forceShowModal = function() {
         
         return 'Modal force shown';
     } else {
-        console.error('Modal not found!');
         return 'Modal not found';
     }
 };
 // DEBUGGING: Advanced modal debugging
 window.debugModal = function() {
-    console.log('🔍 ADVANCED MODAL DEBUGGING');
     const modal = document.getElementById('update-confirmation-modal');
     
     if (modal) {
         const computed = window.getComputedStyle(modal);
         const rect = modal.getBoundingClientRect();
-        
-        console.log('🎯 Modal computed styles:', {
-            display: computed.display,
-            position: computed.position,
-            visibility: computed.visibility,
-            opacity: computed.opacity,
-            zIndex: computed.zIndex,
-            top: computed.top,
-            left: computed.left,
-            width: computed.width,
-            height: computed.height
-        });
-        
-        console.log('📐 Modal bounding rect:', rect);
-        
-        console.log('🌍 Modal in DOM:', {
-            parentElement: modal.parentElement?.tagName,
-            childElementCount: modal.childElementCount,
-            innerHTML: modal.innerHTML.substring(0, 100) + '...'
-        });
-        
-        // Check for elements that might be on top
-        const elementsAtCenter = document.elementsFromPoint(window.innerWidth / 2, window.innerHeight / 2);
-        console.log('🎭 Elements at screen center:', elementsAtCenter.map(el => el.tagName + (el.id ? '#' + el.id : '') + (el.className ? '.' + el.className : '')));
         
         // Try to make it bright red and huge to see if it shows
         modal.style.background = 'red !important';
@@ -288,16 +224,11 @@ window.debugModal = function() {
 
 // DEBUGGING: Force call displayIdleUpdateStatus directly
 window.testUpdateStatus = function() {
-    console.log('🧪 Testing update status display...');
     displayIdleUpdateStatus({ isUpdating: false });
     return 'Update status test initiated';
 };
 
 window.checkNetworkStatus = function() {
-    console.log('📊 Network Status:', {
-        currentDomain: window.location.hostname,
-        apiBase: API_BASE
-    });
     return {
         currentDomain: window.location.hostname,
         apiBase: API_BASE
@@ -306,8 +237,6 @@ window.checkNetworkStatus = function() {
 
 // Debug function to test config save with different methods
 window.testConfigSave = async function() {
-    console.log('🧪 Testing config save with minimal data...');
-    
     const testConfig = {
         transitionIntervalSeconds: 10,
         backgroundRefreshMinutes: 30,
@@ -323,18 +252,14 @@ window.testConfigSave = async function() {
     };
     
     try {
-        console.log('Method 1: Normal authenticatedFetch');
         const response1 = await authenticatedFetch(apiUrl('/api/admin/config'), {
             method: 'POST',
             body: JSON.stringify({ config: testConfig, env: testEnv })
         });
-        console.log('✅ Method 1 succeeded:', response1.status);
         return 'Test passed with normal method';
     } catch (error1) {
-        console.log('❌ Method 1 failed:', error1.message);
         
         try {
-            console.log('Method 2: Direct fetch with HTTP/1.1 headers');
             const response2 = await fetch(apiUrl('/api/admin/config'), {
                 method: 'POST',
                 credentials: 'include',
@@ -345,10 +270,8 @@ window.testConfigSave = async function() {
                 },
                 body: JSON.stringify({ config: testConfig, env: testEnv })
             });
-            console.log('✅ Method 2 succeeded:', response2.status);
             return 'Test passed with HTTP/1.1 fallback';
         } catch (error2) {
-            console.log('❌ Method 2 also failed:', error2.message);
             return 'Both methods failed: ' + error2.message;
         }
     }
@@ -356,23 +279,18 @@ window.testConfigSave = async function() {
 
 // Check authentication status
 async function checkAuthStatus() {
-    console.log('🔍 Checking authentication status...');
     try {
         const response = await fetch(apiUrl('/api/admin/config'), {
             method: 'GET',
             credentials: 'include'
         });
         
-        console.log('Auth Status:', response.status);
         if (response.status === 401) {
-            console.log('❌ Not authenticated - redirecting to login');
             window.location.href = '/admin/login';
             return false;
         } else if (response.ok) {
-            console.log('✅ Authenticated successfully');
             return true;
         } else {
-            console.log('⚠️ Unexpected response:', response.status, response.statusText);
             return false;
         }
     } catch (error) {
@@ -417,58 +335,33 @@ async function checkAuthStatus() {
  */
 // Simple help panel toggle - rebuilt from scratch with original styling
 function toggleHelpPanel() {
-    console.log('toggleHelpPanel function started');
-    
     // Get current active section
     const activeNavItem = document.querySelector('.nav-item.active');
     const sectionName = activeNavItem ? activeNavItem.dataset.section : 'general';
     
-    console.log('Active section:', sectionName);
-    
     // Use existing help panel from HTML
     let helpPanel = document.getElementById('quick-help-panel');
     if (!helpPanel) {
-        console.log('ERROR: Help panel not found in DOM');
         return;
     }
     
-    // Check current styles before toggle
-    const computedStyle = window.getComputedStyle(helpPanel);
-    console.log('Current transform:', computedStyle.transform);
-    console.log('Current display:', computedStyle.display);
-    console.log('Current visibility:', computedStyle.visibility);
-    console.log('Current z-index:', computedStyle.zIndex);
-    
     // Toggle visibility using CSS classes
     helpPanel.classList.toggle('open');
-    
-    // Check styles after toggle
-    setTimeout(() => {
-        const newComputedStyle = window.getComputedStyle(helpPanel);
-        console.log('After toggle transform:', newComputedStyle.transform);
-        console.log('After toggle display:', newComputedStyle.display);
-    }, 100);
     
     // Update content based on active section - do this AFTER opening
     if (helpPanel.classList.contains('open')) {
         updateHelpContent(sectionName);
     }
-    
-    console.log('Toggled help panel for section:', sectionName, 'Panel open:', helpPanel.classList.contains('open'));
 }
 
 function updateHelpContent(sectionId) {
-    console.log('updateHelpContent called with:', sectionId);
-    
     const helpPanel = document.getElementById('quick-help-panel');
     if (!helpPanel) {
-        console.log('Help panel not found');
         return;
     }
     
     // Only update if the help panel is currently open/visible
     if (!helpPanel.classList.contains('open')) {
-        console.log('Help panel not open, skipping update');
         return;
     }
     
@@ -477,11 +370,8 @@ function updateHelpContent(sectionId) {
 }
 
 function updateHelpContentForced(sectionId) {
-    console.log('updateHelpContentForced called with:', sectionId);
-    
     const helpPanel = document.getElementById('quick-help-panel');
     if (!helpPanel) {
-        console.log('Help panel not found');
         return;
     }
     
@@ -497,10 +387,8 @@ function updateHelpContentForced(sectionId) {
     };
     
     const mappedSectionId = sectionMap[sectionId] || 'general-section';
-    console.log('Mapped section ID:', mappedSectionId);
     
     const helpContent = getHelpContentForSection(mappedSectionId);
-    console.log('Help content:', helpContent);
     
     const newHTML = `
         <div class="help-header">
@@ -520,9 +408,7 @@ function updateHelpContentForced(sectionId) {
         </div>
     `;
     
-    console.log('Generated HTML length:', newHTML.length);
     helpPanel.innerHTML = newHTML;
-    console.log('Content FORCED update in panel for section:', sectionId);
 }
 
 function getHelpContentForSection(sectionId) {
@@ -805,12 +691,9 @@ function getHelpContentForSection(sectionId) {
 window.toggleHelpPanel = toggleHelpPanel;
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[ADMIN SENTINEL] admin.js build 1.2.9 loaded at', new Date().toISOString());
-    
     // Add event listener to help button as backup
     const helpButton = document.getElementById('toggle-help-panel');
     if (helpButton) {
-        console.log('Help button found, adding event listener');
         helpButton.addEventListener('click', function(e) {
             e.preventDefault(); // Prevent any default behavior
             // Use the EXACT same call as the 'H' key
@@ -818,18 +701,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.toggleHelpPanel();
             }
         });
-    } else {
-        console.log('Help button not found');
     }
     
     // Register Service Worker for caching
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
-                console.log('[SW] Registration successful:', registration.scope);
+                // Service worker registered successfully
             })
             .catch((error) => {
-                console.log('[SW] Registration failed:', error);
+                // Service worker registration failed
             });
     }
     
@@ -837,14 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('performance' in window) {
         window.addEventListener('load', () => {
             const perfData = performance.getEntriesByType('navigation')[0];
-            if (perfData) {
-                console.log('[PERF] Page load metrics:', {
-                    domContentLoaded: Math.round(perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart),
-                    loadComplete: Math.round(perfData.loadEventEnd - perfData.loadEventStart),
-                    domInteractive: Math.round(perfData.domInteractive - perfData.fetchStart),
-                    totalTime: Math.round(perfData.loadEventEnd - perfData.fetchStart)
-                });
-            }
+            // Performance data collected but not logged in production
         });
     }
     
@@ -900,7 +774,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const desktopToggle = document.getElementById('sidebar-toggle');
             if (desktopToggle) {
                 desktopToggle.remove();
-                console.log('🗑️ Removed desktop toggle by ID');
             }
             
             // Remove any remaining desktop toggles (BUT NOT the help button!)
@@ -909,9 +782,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Double check we're not removing the help button
                 if (toggle.id !== 'toggle-help-panel') {
                     toggle.remove();
-                    console.log(`🗑️ Removed desktop toggle ${index + 1}`);
-                } else {
-                    console.log('✅ Preserved help button from removal');
                 }
             });
             
@@ -919,7 +789,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const sidebarHeader = document.querySelector('.sidebar-header');
             if (sidebarHeader) {
                 sidebarHeader.remove();
-                console.log('🗑️ Removed entire sidebar header on mobile');
             }
             
             // CREATE FUNCTIONAL MOBILE HAMBURGER MENU
@@ -943,30 +812,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     const isOpen = !sidebar.classList.contains('collapsed');
                     
-                    console.log('🍔 Hamburger clicked, isOpen:', isOpen);
-                    
                     if (isOpen) {
                         // Close sidebar
                         sidebar.classList.add('collapsed');
                         sidebar.classList.remove('mobile-open');
                         mobileMenuBtn.setAttribute('aria-expanded', 'false');
                         mobileMenuBtn.querySelector('i').className = 'fas fa-bars';
-                        console.log('📱 Mobile menu closed via hamburger button');
                     } else {
                         // Open sidebar  
                         sidebar.classList.remove('collapsed');
                         sidebar.classList.add('mobile-open');
                         mobileMenuBtn.setAttribute('aria-expanded', 'true');
                         mobileMenuBtn.querySelector('i').className = 'fas fa-times';
-                        console.log('📱 Mobile menu opened via hamburger button');
                     }
                 }, true); // Use capture phase to intercept before other handlers
-                
-                console.log('✅ Functional mobile hamburger menu created');
             }
             
             // REMOVE SWIPE FUNCTIONALITY (replaced by hamburger menu)
-            console.log('📱 Mobile hamburger menu functionality enabled');
             
         } else {
             // Remove mobile menu button on desktop
@@ -974,7 +836,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (mobileMenuBtn) {
                 mobileMenuBtn.remove();
             }
-            console.log('🖥️ Desktop mode - mobile menu removed');
         }
     }
 
@@ -1026,11 +887,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 sections = document.querySelectorAll('.section-content');
             }
         }
-        // Log diagnostics table
-        try {
-            const diag = Array.from(sections).map(sec=>({id:sec.id,len:sec.innerHTML.length}));
-            console.table(diag);
-        } catch(_) {}
     }
 
     // Run once at startup
@@ -1094,8 +950,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         icon.className = 'fas fa-bars';
                     }
                 }
-                
-                console.log('📱 Mobile menu closed by clicking outside');
             }
         }
     });
@@ -1214,7 +1068,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function cleanupLegacyDebug() { /* no-op after cleanup */ }
 
     function activateSection(targetSection) {
-        console.log('activateSection called with:', targetSection);
         if (!targetSection) return;
         // Remove the logic that stops background slideshow - fanart should always run
         sectionNodes = Array.from(document.querySelectorAll('.section-content'));
@@ -1237,16 +1090,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // If help panel is open, make sure it updates immediately
         const helpPanel = document.getElementById('quick-help-panel');
         if (helpPanel && helpPanel.classList.contains('open')) {
-            console.log('Help panel is open, forcing content update for section:', targetSection);
             // Force update by calling with forceUpdate parameter
             updateHelpContentForced(targetSection);
         }
         
         // Load cache stats when Management section is activated
         if (targetSection === 'management') {
-            console.log('Loading cache stats for Management section');
             setTimeout(() => {
-                console.log('Delayed loading of cache stats...');
                 loadCacheStats();
                 loadCacheConfig();
                 
@@ -1263,8 +1113,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const targetSection = item.dataset.section;
             
-            console.log('Navigation clicked for section:', targetSection);
-            
             // Update ARIA attributes and classes for tab navigation
             navItems.forEach(nav => {
                 nav.classList.remove('active');
@@ -1274,7 +1122,6 @@ document.addEventListener('DOMContentLoaded', () => {
             item.classList.add('active');
             item.setAttribute('aria-selected', 'true');
             
-            console.log('About to call activateSection for:', targetSection);
             activateSection(targetSection);
         });
     });
@@ -1832,8 +1679,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Show success notification
                 showNotification('UI scaling reset to defaults', 'success');
-                
-                console.log('UI scaling reset to defaults');
             } catch (error) {
                 console.error('Failed to save reset values:', error);
                 showNotification('Failed to save reset values', 'error');
@@ -1967,8 +1812,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const port = document.getElementById('mediaServers[0].port').value;
             const token = document.getElementById('mediaServers[0].token').value;
 
-            console.log('Loading genres with:', { hostname, port, token: token ? '***' : 'empty' });
-
             // If we have test parameters, use the test endpoint, otherwise use the regular endpoint
             let response;
             if (hostname && port) {
@@ -1992,14 +1835,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const genres = data.genres || [];
 
-            console.log('Received genres:', genres);
-
             // Clear existing options
             genreSelect.innerHTML = '';
 
             if (genres.length === 0) {
                 genreSelect.innerHTML = '<option value="">No genres found</option>';
-                console.log('No genres found, showing placeholder');
                 return;
             }
 
@@ -2013,7 +1853,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 genreSelect.appendChild(option);
             });
 
-            console.log(`Successfully loaded ${genres.length} genres into dropdown`);
             
             // Setup listeners after genres are loaded
             setupGenreFilterListeners();
@@ -2173,14 +2012,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const genres = data.genres || [];
 
-            console.log('TMDB Received genres:', genres);
-
             // Clear existing options
             genreSelect.innerHTML = '';
 
             if (genres.length === 0) {
                 genreSelect.innerHTML = '<option value="">No genres found</option>';
-                console.log('No TMDB genres found, showing placeholder');
                 return;
             }
 
@@ -2194,8 +2030,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 genreSelect.appendChild(option);
             });
 
-            console.log(`Successfully loaded ${genres.length} TMDB genres into dropdown`);
-            
             // Setup listeners after genres are loaded
             setupTMDBGenreFilterListeners();
         } catch (error) {
@@ -2270,14 +2104,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const genres = data.genres || [];
 
-            console.log('TVDB Received genres:', genres);
-
             // Clear existing options
             genreSelect.innerHTML = '';
 
             if (genres.length === 0) {
                 genreSelect.innerHTML = '<option value="">No genres found</option>';
-                console.log('No TVDB genres found, showing placeholder');
                 return;
             }
 
@@ -2293,8 +2124,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 genreSelect.appendChild(option);
             });
 
-            console.log(`Successfully loaded ${genres.length} TVDB genres into dropdown`);
-            
             // Setup listeners after genres are loaded
             setupTVDBGenreFilterListeners();
         } catch (error) {
@@ -2543,14 +2372,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadConfig() {
         try {
-            console.log('[loadConfig] Starting configuration load...');
             const response = await authenticatedFetch(apiUrlWithCacheBust('/api/admin/config'));
-            console.log('[loadConfig] Response received:', response.status, response.statusText);
             if (!response.ok) {
                 throw new Error(`Could not load configuration from the server. Status: ${response.status} ${response.statusText}`);
             }
             const { config = {}, env = {}, security = {}, server = {} } = await response.json();
-            console.log('[loadConfig] Configuration data parsed successfully');
 
             populateGeneralSettings(config, env, defaults);
             populateDisplaySettings(config, defaults);
@@ -2632,9 +2458,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Initializes and starts the admin background slideshow.
      * Fetches the media list if not already present and starts a timer.
      */
-    async function initializeAdminBackground() {
-        console.log('Initializing admin background slideshow...');
-        
+    async function initializeAdminBackground() {        
         // Clear any existing timer
         if (adminBgTimer) {
             clearInterval(adminBgTimer);
@@ -2702,12 +2526,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (adminBgQueue.length === 0 || !activeAdminLayer || !inactiveAdminLayer) {
-            if (defaults.DEBUG) {
-                console.log('Admin background change skipped - missing elements or empty queue');
-                console.log('Queue length:', adminBgQueue.length);
-                console.log('Active layer:', activeAdminLayer);
-                console.log('Inactive layer:', inactiveAdminLayer);
-            }
             return;
         }
 
@@ -2720,10 +2538,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!currentItem || !currentItem.backgroundUrl) {
-            if (defaults.DEBUG) {
-                console.log('Admin background change skipped - invalid item');
-                console.log('Current item:', currentItem);
-            }
             return;
         }
 
@@ -2796,7 +2610,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn(`Failed to load admin background image: ${currentItem.backgroundUrl}`);
             // Try next image
             setTimeout(() => {
-                console.log('Retrying with next image due to load error...');
                 changeAdminBackground();
             }, 1000);
         };
@@ -3078,16 +2891,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const disable2FAForm = document.getElementById('disable-2fa-form');
     const cancelDisable2FAButton = document.getElementById('cancel-disable-2fa-button');
 
-    // Debug logging for 2FA modal elements
-    console.log('🔍 2FA Modal Elements Check:');
-    console.log('- twoFaCheckbox:', twoFaCheckbox);
-    console.log('- twoFaStatusText:', twoFaStatusText);
-    console.log('- disable2FAModal:', disable2FAModal);
-    console.log('- disable2FAForm:', disable2FAForm);
-    console.log('- cancelDisable2FAButton:', cancelDisable2FAButton);
-
     function show2FAModal() {
-        console.log('🔐 Showing 2FA modal...');
         
         // NUCLEAR OPTION: Create a completely new modal element
         console.log('💥 NUCLEAR OPTION: Creating brand new modal element');
@@ -4110,13 +3914,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load cache configuration on page load with multiple attempts
     setTimeout(() => {
-        console.log('[Cache Config] First attempt to load cache configuration...');
         loadCacheConfig();
     }, 500); // Small delay to ensure main config is loaded first
     
     // Additional attempt when management section is first viewed
     setTimeout(() => {
-        console.log('[Cache Config] Backup attempt to load cache configuration...');
         loadCacheConfig();
     }, 2000); // Longer delay as backup
     
@@ -4151,7 +3953,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Capture initial state after config loads
     setTimeout(() => {
         originalConfigValues = captureFormState();
-        console.log('📋 Original config values captured');
     }, 1000);
     
     // Function to check if form has actually changed
@@ -4776,8 +4577,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Open the confirmation modal
             openUpdateConfirmationModal();
         });
-        
-        console.log('✅ Clean event listener attached to Start Auto-Update button');
     }
 
     // Auto-Update: Rollback Button
@@ -4917,19 +4716,11 @@ function setupCacheConfigEventListeners() {
     // Load cache stats when Management section is first accessed
     // Test: Also load stats on page load for debugging
     setTimeout(() => {
-        console.log('Testing cache stats load on page ready...');
         // Also test if DOM elements exist
         const diskUsageElement = document.getElementById('cache-disk-usage');
         const itemCountElement = document.getElementById('cache-item-count');
-        console.log('Cache DOM elements found:', {
-            diskUsageElement: !!diskUsageElement,
-            itemCountElement: !!itemCountElement
-        });
         if (diskUsageElement && itemCountElement) {
-            console.log('DOM elements found, loading cache stats...');
             loadCacheStats();
-        } else {
-            console.log('DOM elements not found, will try when management section is activated');
         }
     }, 2000);
 
@@ -5038,7 +4829,6 @@ function setupCacheConfigEventListeners() {
                     if (window.__wantedKenBurnsBeforeCinema) {
                         transitionEffectSelect.value = 'kenburns';
                         delete window.__wantedKenBurnsBeforeCinema;
-                        console.log('[CinemaMode] Restored Ken Burns effect');
                     }
                 }
             }
@@ -5103,7 +4893,6 @@ function setupCacheConfigEventListeners() {
             
             if (formGroup) {
                 formGroup.style.display = isKenBurns ? 'none' : 'block';
-                console.log('Effect Pause Time visibility:', isKenBurns ? 'hidden' : 'visible', 'for effect:', transitionEffectSelect.value);
             }
         }
     }
@@ -5652,7 +5441,6 @@ function updateCacheStatsDisplay(data, isError = false) {
  * Cache limits are now fixed and hidden from the UI
  */
 async function loadCacheConfig() {
-    console.log('[Cache Config] Cache configuration is hardcoded (5GB max, 500MB min free)');
     // Cache configuration fields have been removed from the UI
     // Configuration is now hardcoded in the backend
 }
@@ -5670,35 +5458,6 @@ async function saveCacheConfig() {
 
 // ===================================
 // Global Test Functions for Debugging
-// ===================================
-
-console.log('🔧 Setting up global test functions...');
-
-// Add global function for testing
-window.testCacheStats = function() {
-    console.log('Testing cache stats manually...');
-    loadCacheStats();
-};
-
-// Add direct API test function
-window.testCacheAPI = async function() {
-    console.log('Testing cache API directly...');
-    try {
-        const response = await fetch(apiUrl('/api/admin/cache-stats'), {
-            method: 'GET',
-            credentials: 'include'
-        });
-        console.log('Response status:', response.status);
-        const data = await response.json();
-        console.log('Response data:', data);
-        updateCacheStatsDisplay(data);
-    } catch (error) {
-        console.error('Direct API test failed:', error);
-    }
-};
-
-console.log('✅ Global test functions ready! Try: testCacheAPI() or testCacheStats()');
-
 // ===================================
 // Management Section Observer  
 // ===================================
@@ -5721,7 +5480,6 @@ const managementObserver = new MutationObserver((mutations) => {
 setTimeout(() => {
     const managementSection = document.getElementById('management-section');
     if (managementSection) {
-        console.log('Starting management section observer...');
         managementObserver.observe(managementSection, {
             attributes: true,
             attributeFilter: ['style', 'class']
@@ -6245,7 +6003,6 @@ function hideRestartButton() {
         
         // Remove from sessionStorage
         sessionStorage.removeItem('restartButtonVisible');
-        console.log('🔄 Restart button forcefully hidden dynamically and sessionStorage cleared');
         
         // Force a reflow to ensure changes are applied
         restartBtn.offsetHeight;
@@ -6294,27 +6051,21 @@ function performRestart() {
 
 // Initialize restart button functionality
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔧 Admin page loaded, checking restart button status...');
-    
     // Check if restart button should be visible (from sessionStorage)
     const shouldShowRestart = sessionStorage.getItem('restartButtonVisible') === 'true';
-    console.log('🔍 Restart button should be visible:', shouldShowRestart);
     
     if (shouldShowRestart) {
         // Show the button because restart is still needed
         showRestartButton();
-        console.log('✅ Restart button restored - restart still needed');
     } else {
         // Make sure button is hidden
         hideRestartButton();
-        console.log('✅ No restart needed - button hidden');
     }
     
     // Restart now button handler
     const restartNowBtn = document.getElementById('restart-now-btn');
     if (restartNowBtn) {
         restartNowBtn.addEventListener('click', performRestart);
-        console.log('🔧 Restart button click handler attached');
     }
 });
 
