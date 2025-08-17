@@ -143,6 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function applyUIScaling(config) {
         // Apply UI scaling from configuration
         if (!config.uiScaling) {
+            console.log('No UI scaling configuration found, using defaults');
             return;
         }
 
@@ -159,6 +160,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         root.style.setProperty('--content-scale', contentScale / 100);
         root.style.setProperty('--clearlogo-scale', clearlogoScale / 100);
         root.style.setProperty('--clock-scale', clockScale / 100);
+
+        console.log('Applied UI scaling:', {
+            content: contentScale,
+            clearlogo: clearlogoScale,
+            clock: clockScale
+        });
     }
 
     function applyCinemaMode(config) {
@@ -168,6 +175,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         body.classList.remove('cinema-mode', 'cinema-auto', 'cinema-portrait', 'cinema-portrait-flipped');
         
         if (config.cinemaMode) {
+            console.log('Applying cinema mode with orientation:', config.cinemaOrientation);
+            
             // Add cinema mode base class
             body.classList.add('cinema-mode');
             
@@ -197,6 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const configChanged = JSON.stringify(appConfig) !== JSON.stringify(newConfig);
             
             if (configChanged) {
+                console.log('Configuration changed, applying updates...');
                 const oldConfig = { ...appConfig };
                 appConfig = newConfig;
                 
@@ -276,6 +286,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             oldConfig.cinemaOrientation !== newConfig.cinemaOrientation) {
             applyCinemaMode(newConfig);
         }
+
+        console.log('Configuration changes applied successfully');
     }
 
     function applyUIScaling(config) {
@@ -306,8 +318,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             root.style.setProperty('--content-scale', contentScale);
             root.style.setProperty('--clearlogo-scale', clearlogoScale);
             root.style.setProperty('--clock-scale', clockScale);
+            
+            console.log('Applied UI scaling:', {
+                content: contentScale,
+                clearlogo: clearlogoScale,
+                clock: clockScale
+            });
         } else {
-            // No UI scaling configuration found, using defaults
+            console.log('No UI scaling configuration found, using defaults');
         }
     }
 
@@ -317,6 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const currentMedia = mediaQueue[currentIndex];
             if (currentMedia) {
                 renderMediaItem(currentMedia);
+                console.log('Updated current media display with new configuration');
             }
         }
     }
@@ -330,6 +349,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (mediaResponse.status === 202) {
                 // Server is still building the playlist, let's wait and retry.
                 const data = await mediaResponse.json();
+                console.log('Server is preparing media, retrying in a moment...');
                 // Keep the loader visible if it's the initial load.
                 if (isInitialLoad && loader.style.opacity !== '1') {
                     loader.style.opacity = '1';
@@ -350,6 +370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             mediaQueue = newMediaQueue;
+            console.log(`Playlist updated with ${mediaQueue.length} items.`);
 
             // Clean up any existing preloaded images when playlist changes
             if (!isInitialLoad) {
@@ -386,7 +407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (newIndex > -1) {
             jump(newIndex);
         } else {
-            // Item not found in playlist, try to fetch it
+            console.warn(`Item with key ${key} not in playlist, fetching...`);
             try {
                 const response = await fetch(`/get-media-by-key/${key}`);
                 if (!response.ok) throw new Error('Media not found on server.');
@@ -426,10 +447,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 !preloadedImages.backgrounds.has(mediaItem.backgroundUrl)) {
                 const bgImg = new Image();
                 bgImg.onload = () => {
-                    // Background loaded successfully
+                    console.log('[PRELOAD] Background loaded:', mediaItem.title);
                 };
                 bgImg.onerror = () => {
-                    // Background failed to load
+                    console.warn('[PRELOAD] Background failed to load:', mediaItem.backgroundUrl);
                 };
                 bgImg.src = mediaItem.backgroundUrl;
                 preloadedImages.backgrounds.set(mediaItem.backgroundUrl, bgImg);
@@ -439,10 +460,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!preloadedImages.posters.has(mediaItem.posterUrl)) {
                 const posterImg = new Image();
                 posterImg.onload = () => {
-                    // Poster loaded successfully
+                    console.log('[PRELOAD] Poster loaded:', mediaItem.title);
                 };
                 posterImg.onerror = () => {
-                    // Poster failed to load
+                    console.warn('[PRELOAD] Poster failed to load:', mediaItem.posterUrl);
                 };
                 posterImg.src = mediaItem.posterUrl;
                 preloadedImages.posters.set(mediaItem.posterUrl, posterImg);
@@ -471,7 +492,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (const [url] of preloadedImages.backgrounds) {
             if (!currentUrls.has(url)) {
                 preloadedImages.backgrounds.delete(url);
-                // Background cleaned up
+                console.log('[PRELOAD] Cleaned up background:', url);
             }
         }
         
@@ -479,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (const [url] of preloadedImages.posters) {
             if (!currentUrls.has(url)) {
                 preloadedImages.posters.delete(url);
-                // Poster cleaned up
+                console.log('[PRELOAD] Cleaned up poster:', url);
             }
         }
     }
@@ -632,9 +653,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        console.log('[posterrama.app] Updating info for:', currentMedia);
+
         // Check if background URL is valid before loading
         if (!currentMedia.backgroundUrl) {
-            // No background image available, skip to next item
+            console.warn(`No background image for: ${currentMedia.title}. Skipping item.`);
             changeMedia('next', false, true);
             return;
         }
@@ -852,6 +875,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         // NEW LOGIC: effect duration = total interval - pause time
         const effectDuration = Math.max(1, transitionInterval - pauseTime);
 
+        console.log('[DEBUG] Applying transition effect:', {
+            transitionEffect,
+            transitionInterval,
+            pauseTime,
+            effectDuration,
+            isPoster,
+            hasOldKenBurns: !!(appConfig.kenBurnsEffect && appConfig.kenBurnsEffect.enabled)
+        });
+
         // For posters in cinema mode, use shorter duration for better UX
         const actualDuration = isPoster ? effectDuration : effectDuration;
         const actualPauseTime = isPoster ? pauseTime : pauseTime;
@@ -1005,12 +1037,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const slideDirections = ['slide-in-left', 'slide-in-right', 'slide-in-up', 'slide-in-down'];
                 const randomSlide = slideDirections[Math.floor(Math.random() * slideDirections.length)];
                 
+                console.log('[DEBUG] Starting slide animation:', randomSlide);
+                console.log('[DEBUG] newLayer (will slide in):', newLayer.id);
+                console.log('[DEBUG] oldLayer (background):', oldLayer ? oldLayer.id : 'none');
+                console.log('[DEBUG] newLayer background image:', newLayer.style.backgroundImage ? 'set' : 'not set');
+                
                 // Ensure old layer is visible and positioned correctly as background
                 if (oldLayer) {
                     oldLayer.style.transform = 'none';
                     oldLayer.style.animation = 'none';
                     oldLayer.style.transition = 'none';
                     oldLayer.style.opacity = 1;
+                    console.log('[DEBUG] oldLayer set to visible as background');
                 }
                 
                 // Prepare new layer for slide animation - start with opacity 1 so it's visible during slide
@@ -1026,11 +1064,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Force a reflow
                 newLayer.offsetHeight;
                 
+                console.log('[DEBUG] About to start animation:', randomSlide);
+                
                 // Apply slide animation
                 newLayer.style.animation = `${randomSlide} ${actualDuration}s ease-out forwards`;
                 
                 // After animation completes, clean up
                 setTimeout(() => {
+                    console.log('[DEBUG] Slide animation complete, cleaning up');
+                    
                     // Reset the new layer completely
                     newLayer.style.animation = 'none';
                     newLayer.style.transform = 'none';
@@ -1049,6 +1091,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const tempLayer = activeLayer;
                     activeLayer = inactiveLayer;
                     inactiveLayer = tempLayer;
+                    
+                    console.log('[DEBUG] Layer swap complete. New activeLayer:', activeLayer.id);
                     
                 }, actualDuration * 1000);
                 
@@ -1139,6 +1183,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const totalInterval = transitionInterval; // User sets total time
         const interval = totalInterval * 1000;
         
+        console.log('[TIMER] Starting timer with total interval:', totalInterval + 's', 'effect pause:', effectPauseTime + 's');
+        
         timerId = setInterval(() => changeMedia('next'), interval);
     }
 
@@ -1167,9 +1213,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Use Intl.DateTimeFormat for better browser compatibility
                 const formatter = new Intl.DateTimeFormat('en-US', timeOptions);
                 timeString = formatter.format(now);
+                console.debug('[Clock] Using Intl.DateTimeFormat:', { timezone, format, timeString, timeOptions });
             } else {
                 // Fallback to toLocaleTimeString
                 timeString = now.toLocaleTimeString('en-US', timeOptions);
+                console.debug('[Clock] Using toLocaleTimeString fallback:', { timezone, format, timeString, timeOptions });
             }
             
             if (format === '12h') {
@@ -1205,6 +1253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (error) {
             // Fallback to basic formatting if timezone is invalid
+            console.warn('Invalid timezone configuration, falling back to system timezone:', error);
             const hours = now.getHours().toString().padStart(2, '0');
             const minutes = now.getMinutes().toString().padStart(2, '0');
             timeHours.textContent = hours;
@@ -1295,9 +1344,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (Math.abs(deltaX) > swipeThreshold) {
                 if (deltaX < 0) {
                     // Swipe left -> Next media
+                    console.log('Swipe Left detected, showing next media.');
                     changeMedia('next');
                 } else {
                     // Swipe right -> Previous media
+                    console.log('Swipe Right detected, showing previous media.');
                     changeMedia('prev');
                 }
             }

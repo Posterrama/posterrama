@@ -143,6 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function applyUIScaling(config) {
         // Apply UI scaling from configuration
         if (!config.uiScaling) {
+            console.log('No UI scaling configuration found, using defaults');
             return;
         }
 
@@ -159,6 +160,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         root.style.setProperty('--content-scale', contentScale / 100);
         root.style.setProperty('--clearlogo-scale', clearlogoScale / 100);
         root.style.setProperty('--clock-scale', clockScale / 100);
+
+        console.log('Applied UI scaling:', {
+            content: contentScale,
+            clearlogo: clearlogoScale,
+            clock: clockScale
+        });
     }
 
     function applyCinemaMode(config) {
@@ -168,6 +175,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         body.classList.remove('cinema-mode', 'cinema-auto', 'cinema-portrait', 'cinema-portrait-flipped');
         
         if (config.cinemaMode) {
+            console.log('Applying cinema mode with orientation:', config.cinemaOrientation);
+            
             // Add cinema mode base class
             body.classList.add('cinema-mode');
             
@@ -197,6 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const configChanged = JSON.stringify(appConfig) !== JSON.stringify(newConfig);
             
             if (configChanged) {
+                console.log('Configuration changed, applying updates...');
                 const oldConfig = { ...appConfig };
                 appConfig = newConfig;
                 
@@ -276,6 +286,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             oldConfig.cinemaOrientation !== newConfig.cinemaOrientation) {
             applyCinemaMode(newConfig);
         }
+
+        console.log('Configuration changes applied successfully');
     }
 
     function applyUIScaling(config) {
@@ -306,8 +318,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             root.style.setProperty('--content-scale', contentScale);
             root.style.setProperty('--clearlogo-scale', clearlogoScale);
             root.style.setProperty('--clock-scale', clockScale);
+            
+            console.log('Applied UI scaling:', {
+                content: contentScale,
+                clearlogo: clearlogoScale,
+                clock: clockScale
+            });
         } else {
-            // No UI scaling configuration found, using defaults
+            console.log('No UI scaling configuration found, using defaults');
         }
     }
 
@@ -317,6 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const currentMedia = mediaQueue[currentIndex];
             if (currentMedia) {
                 renderMediaItem(currentMedia);
+                console.log('Updated current media display with new configuration');
             }
         }
     }
@@ -330,6 +349,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (mediaResponse.status === 202) {
                 // Server is still building the playlist, let's wait and retry.
                 const data = await mediaResponse.json();
+                console.log('Server is preparing media, retrying in a moment...');
                 // Keep the loader visible if it's the initial load.
                 if (isInitialLoad && loader.style.opacity !== '1') {
                     loader.style.opacity = '1';
@@ -350,9 +370,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             mediaQueue = newMediaQueue;
+            console.log(`Playlist updated with ${mediaQueue.length} items.`);
 
             // Clean up any existing preloaded images when playlist changes
             if (!isInitialLoad) {
+                console.log('[DEBUG] Cleaning up preloaded images due to playlist change');
                 cleanupPreloadedImages();
             }
 
@@ -386,7 +408,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (newIndex > -1) {
             jump(newIndex);
         } else {
-            // Item not found in playlist, try to fetch it
+            console.warn(`Item with key ${key} not in playlist, fetching...`);
             try {
                 const response = await fetch(`/get-media-by-key/${key}`);
                 if (!response.ok) throw new Error('Media not found on server.');
@@ -426,10 +448,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 !preloadedImages.backgrounds.has(mediaItem.backgroundUrl)) {
                 const bgImg = new Image();
                 bgImg.onload = () => {
-                    // Background loaded successfully
+                    console.log('[PRELOAD] Background loaded:', mediaItem.title);
                 };
                 bgImg.onerror = () => {
-                    // Background failed to load
+                    console.warn('[PRELOAD] Background failed to load:', mediaItem.backgroundUrl);
                 };
                 bgImg.src = mediaItem.backgroundUrl;
                 preloadedImages.backgrounds.set(mediaItem.backgroundUrl, bgImg);
@@ -439,10 +461,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!preloadedImages.posters.has(mediaItem.posterUrl)) {
                 const posterImg = new Image();
                 posterImg.onload = () => {
-                    // Poster loaded successfully
+                    console.log('[PRELOAD] Poster loaded:', mediaItem.title);
                 };
                 posterImg.onerror = () => {
-                    // Poster failed to load
+                    console.warn('[PRELOAD] Poster failed to load:', mediaItem.posterUrl);
                 };
                 posterImg.src = mediaItem.posterUrl;
                 preloadedImages.posters.set(mediaItem.posterUrl, posterImg);
@@ -471,7 +493,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (const [url] of preloadedImages.backgrounds) {
             if (!currentUrls.has(url)) {
                 preloadedImages.backgrounds.delete(url);
-                // Background cleaned up
+                console.log('[PRELOAD] Cleaned up background:', url);
             }
         }
         
@@ -479,7 +501,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (const [url] of preloadedImages.posters) {
             if (!currentUrls.has(url)) {
                 preloadedImages.posters.delete(url);
-                // Poster cleaned up
+                console.log('[PRELOAD] Cleaned up poster:', url);
             }
         }
     }
@@ -500,10 +522,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
+        console.log('[DEBUG] renderMediaItem called, cinemaMode:', appConfig.cinemaMode);
+        
         // Apply transition effects to poster in cinema mode
         if (appConfig.cinemaMode) {
+            console.log('[DEBUG] Cinema mode is active, applying poster layer effects');
             applyPosterTransitionEffect(mediaItem.posterUrl);
         } else {
+            console.log('[DEBUG] Cinema mode is OFF, using original poster');
             posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
         }
         
@@ -632,15 +658,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        console.log('[posterrama.app] Updating info for:', currentMedia);
+
         // Check if background URL is valid before loading
         if (!currentMedia.backgroundUrl) {
-            // No background image available, skip to next item
+            console.warn(`No background image for: ${currentMedia.title}. Skipping item.`);
             changeMedia('next', false, true);
             return;
         }
 
         // Check if current media has a valid background URL
         if (!currentMedia.backgroundUrl || currentMedia.backgroundUrl === 'null' || currentMedia.backgroundUrl === 'undefined') {
+            console.warn('[DEBUG] Invalid background URL for media:', currentMedia.title, 'URL:', currentMedia.backgroundUrl);
             changeMedia('next', false, true);
             return;
         }
@@ -654,6 +683,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         img.onload = () => {
             // Set the background image first
             inactiveLayer.style.backgroundImage = `url('${currentMedia.backgroundUrl}')`;
+            
+            console.log('[DEBUG] Background image set on layer:', inactiveLayer.id, 'Image URL:', currentMedia.backgroundUrl);
             
             // Apply transition effects with proper layering
             applyTransitionEffect(inactiveLayer, activeLayer, false);
@@ -683,15 +714,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Apply transition effects specifically for posters in cinema mode
     function applyPosterTransitionEffect(newPosterUrl) {
+        console.log('[DEBUG] applyPosterTransitionEffect called with URL:', newPosterUrl);
         
         // Check if poster is already preloaded
         const isPreloaded = preloadedImages.posters.has(newPosterUrl);
+        console.log('[DEBUG] Poster preloaded:', isPreloaded ? 'YES' : 'NO');
         
         // Get poster layer elements
         const posterA = document.getElementById('poster-a');
         const posterB = document.getElementById('poster-b');
         
         if (!posterA || !posterB) {
+            console.warn('[DEBUG] Poster layers not found, falling back to original poster');
             const originalPoster = document.getElementById('poster');
             if (originalPoster) {
                 if (isPreloaded) {
@@ -704,7 +738,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         originalPoster.style.backgroundImage = `url('${newPosterUrl}')`;
                     };
                     img.onerror = () => {
-                        // Keep existing poster on error
+                        console.warn('[DEBUG] Failed to load poster:', newPosterUrl);
                     };
                     img.src = newPosterUrl;
                 }
@@ -724,9 +758,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         const actualDuration = effectDuration; // Use calculated effect duration
         const actualPauseTime = pauseTime; // Use full pause time
 
+        console.log('[DEBUG] Poster effect config:', {
+            transitionEffect,
+            transitionInterval,
+            pauseTime,
+            effectDuration,
+            actualDuration,
+            actualPauseTime
+        });
+
         // Determine which layer is currently active and which is new
         const currentLayer = posterA.style.opacity === '1' ? posterA : posterB;
         const newLayer = currentLayer === posterA ? posterB : posterA;
+        
+        console.log('[DEBUG] Layer setup:', {
+            currentLayer: currentLayer.id,
+            newLayer: newLayer.id,
+            currentOpacity: currentLayer.style.opacity,
+            newOpacity: newLayer.style.opacity
+        });
 
         // Set the new image on the new layer
         newLayer.style.backgroundImage = `url('${newPosterUrl}')`;
@@ -736,20 +786,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         newLayer.style.transition = 'none';
         newLayer.style.transform = 'none';
         newLayer.style.opacity = '0';
+        
+        console.log('[DEBUG] After reset - newLayer opacity:', newLayer.style.opacity, 'animation:', newLayer.style.animation);
 
         // Force reflow to ensure styles are applied
         newLayer.offsetHeight;
 
         if (transitionEffect === 'none') {
+            console.log('[DEBUG] Applying NONE effect to poster layers');
             newLayer.style.transition = 'opacity 0.8s ease-in-out';
             
             setTimeout(() => {
+                console.log('[DEBUG] Setting new layer opacity to 1');
                 newLayer.style.opacity = '1';
                 currentLayer.style.opacity = '0';
                 
                 // Hold for pause time
                 setTimeout(() => {
-                    // Pause complete
+                    console.log('[DEBUG] Pause complete for NONE effect');
                 }, actualPauseTime * 1000);
             }, 100);
             return;
@@ -759,6 +813,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if ((transitionEffect === 'kenburns' || 
             (!appConfig.transitionEffect && appConfig.kenBurnsEffect && appConfig.kenBurnsEffect.enabled))) {
             
+            console.log('[DEBUG] Ken Burns disabled for cinema mode - using fade instead');
             // Fall through to fade behavior
         }
 
@@ -766,7 +821,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         switch (transitionEffect) {
             case 'kenburns':
                 // Ken Burns disabled for cinema mode - fall through to fade
+                console.log('[DEBUG] Ken Burns effect redirected to fade for cinema mode');
             case 'fade':
+                console.log('[DEBUG] Applying FADE effect to poster layers');
                 const fadeInDuration = 1.5; // Fixed fade in duration
                 const holdDuration = actualDuration - actualPauseTime - fadeInDuration; // Hold visible
                 
@@ -775,22 +832,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 currentLayer.style.transition = `opacity ${fadeInDuration}s ease-in-out`;
                 
                 setTimeout(() => {
+                    console.log('[DEBUG] Cross-fading poster layers, duration:', fadeInDuration + 's', 'hold:', holdDuration + 's', 'pause:', actualPauseTime + 's');
                     newLayer.style.opacity = '1';
                     currentLayer.style.opacity = '0';
                     
                     // Hold visible for calculated time
                     setTimeout(() => {
-                        // Fade hold complete
+                        console.log('[DEBUG] Fade hold time complete');
                     }, holdDuration * 1000);
                 }, 100);
                 break;
                 
             case 'slide':
+                console.log('[DEBUG] Applying SLIDE effect to poster layers');
                 const slideDuration = actualDuration - actualPauseTime;
                 
                 // Only left/right slides for cinema mode with cinema-specific animations
                 const slideDirections = ['cinema-slide-in-left', 'cinema-slide-in-right'];
                 const slideDirection = slideDirections[Math.floor(Math.random() * slideDirections.length)];
+                
+                console.log('[DEBUG] Starting cinema slide animation:', slideDirection, 'duration:', slideDuration + 's', 'pause:', actualPauseTime + 's');
                 
                 // Set initial state for slide - new layer starts off-screen
                 newLayer.style.opacity = '1';
@@ -807,6 +868,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 newLayer.offsetHeight;
                 
                 setTimeout(() => {
+                    console.log('[DEBUG] Starting slide animation on both layers');
+                    
                     // Animate new layer sliding in
                     newLayer.style.animation = `${slideDirection} ${slideDuration}s ease-out forwards`;
                     
@@ -816,6 +879,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     // After animation + pause
                     setTimeout(() => {
+                        console.log('[DEBUG] Cinema slide animation + pause complete');
                         newLayer.style.animation = 'none';
                         newLayer.style.transform = 'translateX(0)';
                         currentLayer.style.animation = 'none';
@@ -826,7 +890,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 break;
                 
             default:
-                // Fallback to fade for unimplemented effects
+                console.warn(`[DEBUG] Poster effect not implemented for: ${transitionEffect}, using fade`);
                 newLayer.style.transition = 'opacity 1s ease-in-out';
                 
                 setTimeout(() => {
@@ -851,6 +915,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // NEW LOGIC: effect duration = total interval - pause time
         const effectDuration = Math.max(1, transitionInterval - pauseTime);
+
+        console.log('[DEBUG] Applying transition effect:', {
+            transitionEffect,
+            transitionInterval,
+            pauseTime,
+            effectDuration,
+            isPoster,
+            hasOldKenBurns: !!(appConfig.kenBurnsEffect && appConfig.kenBurnsEffect.enabled)
+        });
 
         // For posters in cinema mode, use shorter duration for better UX
         const actualDuration = isPoster ? effectDuration : effectDuration;
@@ -1005,12 +1078,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const slideDirections = ['slide-in-left', 'slide-in-right', 'slide-in-up', 'slide-in-down'];
                 const randomSlide = slideDirections[Math.floor(Math.random() * slideDirections.length)];
                 
+                console.log('[DEBUG] Starting slide animation:', randomSlide);
+                console.log('[DEBUG] newLayer (will slide in):', newLayer.id);
+                console.log('[DEBUG] oldLayer (background):', oldLayer ? oldLayer.id : 'none');
+                console.log('[DEBUG] newLayer background image:', newLayer.style.backgroundImage ? 'set' : 'not set');
+                
                 // Ensure old layer is visible and positioned correctly as background
                 if (oldLayer) {
                     oldLayer.style.transform = 'none';
                     oldLayer.style.animation = 'none';
                     oldLayer.style.transition = 'none';
                     oldLayer.style.opacity = 1;
+                    console.log('[DEBUG] oldLayer set to visible as background');
                 }
                 
                 // Prepare new layer for slide animation - start with opacity 1 so it's visible during slide
@@ -1026,11 +1105,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Force a reflow
                 newLayer.offsetHeight;
                 
+                console.log('[DEBUG] About to start animation:', randomSlide);
+                
                 // Apply slide animation
                 newLayer.style.animation = `${randomSlide} ${actualDuration}s ease-out forwards`;
                 
                 // After animation completes, clean up
                 setTimeout(() => {
+                    console.log('[DEBUG] Slide animation complete, cleaning up');
+                    
                     // Reset the new layer completely
                     newLayer.style.animation = 'none';
                     newLayer.style.transform = 'none';
@@ -1049,6 +1132,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const tempLayer = activeLayer;
                     activeLayer = inactiveLayer;
                     inactiveLayer = tempLayer;
+                    
+                    console.log('[DEBUG] Layer swap complete. New activeLayer:', activeLayer.id);
                     
                 }, actualDuration * 1000);
                 
@@ -1139,6 +1224,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const totalInterval = transitionInterval; // User sets total time
         const interval = totalInterval * 1000;
         
+        console.log('[TIMER] Starting timer with total interval:', totalInterval + 's', 'effect pause:', effectPauseTime + 's');
+        
         timerId = setInterval(() => changeMedia('next'), interval);
     }
 
@@ -1167,9 +1254,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Use Intl.DateTimeFormat for better browser compatibility
                 const formatter = new Intl.DateTimeFormat('en-US', timeOptions);
                 timeString = formatter.format(now);
+                console.debug('[Clock] Using Intl.DateTimeFormat:', { timezone, format, timeString, timeOptions });
             } else {
                 // Fallback to toLocaleTimeString
                 timeString = now.toLocaleTimeString('en-US', timeOptions);
+                console.debug('[Clock] Using toLocaleTimeString fallback:', { timezone, format, timeString, timeOptions });
             }
             
             if (format === '12h') {
@@ -1205,6 +1294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (error) {
             // Fallback to basic formatting if timezone is invalid
+            console.warn('Invalid timezone configuration, falling back to system timezone:', error);
             const hours = now.getHours().toString().padStart(2, '0');
             const minutes = now.getMinutes().toString().padStart(2, '0');
             timeHours.textContent = hours;
@@ -1295,9 +1385,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (Math.abs(deltaX) > swipeThreshold) {
                 if (deltaX < 0) {
                     // Swipe left -> Next media
+                    console.log('Swipe Left detected, showing next media.');
                     changeMedia('next');
                 } else {
                     // Swipe right -> Previous media
+                    console.log('Swipe Right detected, showing previous media.');
                     changeMedia('prev');
                 }
             }

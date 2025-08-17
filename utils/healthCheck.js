@@ -143,7 +143,13 @@ async function checkMediaCache() {
  */
 async function checkPlexConnectivity() {
     try {
-        const { testServerConnection } = require('../sources/plex');
+        // Import the testServerConnection function from server utilities
+        const testServerConnection = require('../server').testServerConnection;
+        if (!testServerConnection) {
+            // Fallback: create a simple connection test
+            return await checkPlexConnectivityFallback();
+        }
+        
         const config = await readConfig();
         const enabledServers = (config.mediaServers || []).filter(s => s.enabled && s.type === 'plex');
         
@@ -179,6 +185,115 @@ async function checkPlexConnectivity() {
             name: 'plex_connectivity',
             status: 'error',
             message: `Plex connectivity check failed: ${error.message}`,
+            details: { error: error.message }
+        };
+    }
+}
+
+/**
+ * Fallback Plex connectivity check when main function is not available
+ */
+async function checkPlexConnectivityFallback() {
+    try {
+        const config = await readConfig();
+        const enabledServers = (config.mediaServers || []).filter(s => s.enabled && s.type === 'plex');
+        
+        if (enabledServers.length === 0) {
+            return {
+                name: 'plex_connectivity',
+                status: 'ok',
+                message: 'No Plex servers are configured.',
+                details: { servers: [] }
+            };
+        }
+
+        // Simple connectivity check using basic HTTP request
+        const https = require('https');
+        const http = require('http');
+        
+        const checks = [];
+        for (const server of enabledServers) {
+            const startTime = Date.now();
+            const hostname = process.env[server.hostnameEnvVar];
+            const port = process.env[server.portEnvVar] || '32400';
+            
+            if (!hostname) {
+                checks.push({
+                    server: server.name,
+                    status: 'error',
+                    message: 'Hostname not configured',
+                    responseTime: 0
+                });
+                continue;
+            }
+
+            try {
+                // Simple connection test
+                const protocol = port === '443' ? https : http;
+                const result = await new Promise((resolve, reject) => {
+                    const req = protocol.request({
+                        hostname,
+                        port,
+                        path: '/',
+                        method: 'HEAD',
+                        timeout: 5000
+                    }, (res) => {
+                        resolve({
+                            status: res.statusCode < 400 ? 'ok' : 'warning',
+                            message: `HTTP ${res.statusCode}`,
+                            responseTime: Date.now() - startTime
+                        });
+                    });
+                    
+                    req.on('error', (error) => {
+                        resolve({
+                            status: 'error',
+                            message: error.message,
+                            responseTime: Date.now() - startTime
+                        });
+                    });
+                    
+                    req.on('timeout', () => {
+                        resolve({
+                            status: 'error',
+                            message: 'Connection timeout',
+                            responseTime: Date.now() - startTime
+                        });
+                    });
+                    
+                    req.end();
+                });
+                
+                checks.push({
+                    server: server.name,
+                    ...result
+                });
+                
+            } catch (error) {
+                checks.push({
+                    server: server.name,
+                    status: 'error',
+                    message: error.message,
+                    responseTime: Date.now() - startTime
+                });
+            }
+        }
+        
+        const hasErrors = checks.some(check => check.status === 'error');
+        const hasWarnings = checks.some(check => check.status === 'warning');
+        
+        return {
+            name: 'plex_connectivity',
+            status: hasErrors ? 'error' : hasWarnings ? 'warning' : 'ok',
+            message: `Checked ${checks.length} Plex server(s) using fallback method.`,
+            details: { servers: checks }
+        };
+        
+    } catch (error) {
+        return {
+            name: 'plex_connectivity',
+            status: 'error',
+            message: `Plex connectivity fallback failed: ${error.message}`,
             details: { error: error.message }
         };
     }

@@ -56,21 +56,18 @@
                     const toggleById = document.getElementById('sidebar-toggle');
                     if (toggleById) {
                         toggleById.remove();
-                        console.log('Removed desktop toggle by ID');
                     }
                     
                     // Strategy 2: Remove all elements with sidebar-toggle class
                     const togglesByClass = document.querySelectorAll('.sidebar-toggle');
                     togglesByClass.forEach(toggle => {
                         toggle.remove();
-                        console.log('Removed desktop toggle by class');
                     });
                     
                     // Strategy 3: Remove the entire sidebar header
                     const sidebarHeaders = document.querySelectorAll('.sidebar-header');
                     sidebarHeaders.forEach(header => {
                         header.remove();
-                        console.log('Removed sidebar header');
                     });
                     
                     // Strategy 4: Find any button with fa-bars in sidebar and remove it
@@ -79,11 +76,8 @@
                         const button = btn.closest('button');
                         if (button) {
                             button.remove();
-                            console.log('Removed button with fa-bars');
                         }
                     });
-                    
-                    console.log('Mobile: Applied all removal strategies');
                 }
             }
             
@@ -107,7 +101,6 @@
                 attempts++;
                 if (attempts >= 100) { // Stop after 5 seconds (100 * 50ms)
                     clearInterval(intervalId);
-                    console.log('Stopped aggressive removal after 5 seconds');
                 }
             }, 50);
         })();

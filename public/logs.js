@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fetch logs immediately on load, then poll every 5 seconds
     fetchLogs();
-    const pollInterval = setInterval(fetchLogs, 5000);
+    let pollInterval = setInterval(fetchLogs, 5000);
     
     // Clean up interval when page is hidden
     document.addEventListener('visibilitychange', () => {
