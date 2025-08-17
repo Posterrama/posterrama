@@ -9,6 +9,12 @@
   "clockWidget": false,
   "clockTimezone": "auto",
   "clockFormat": "24h",
+  "wallartMode": {
+    "enabled": false,
+    "itemsPerScreen": 30,
+    "columns": 6,
+    "transitionInterval": 30
+  },
   "cinemaMode": false,
   "cinemaOrientation": "auto",
   "transitionEffect": "kenburns",

@@ -51,6 +51,37 @@
             "enum": ["12h", "24h"],
             "default": "24h"
         },
+        "wallartMode": {
+            "description": "Enable wallart mode - displays multiple posters/covers in a grid layout. Shows many items simultaneously like a digital art gallery.",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "itemsPerScreen": {
+                    "type": "number",
+                    "minimum": 4,
+                    "maximum": 100,
+                    "default": 30,
+                    "description": "Number of posters to display simultaneously in grid layout"
+                },
+                "columns": {
+                    "type": "number",
+                    "minimum": 2,
+                    "maximum": 12,
+                    "default": 6,
+                    "description": "Number of columns in the grid layout"
+                },
+                "transitionInterval": {
+                    "type": "number",
+                    "minimum": 5,
+                    "maximum": 300,
+                    "default": 30,
+                    "description": "Seconds between grid updates (replacing old posters with new ones)"
+                }
+            }
+        },
         "cinemaMode": {
             "description": "Enable cinema mode for portrait displays with fullscreen poster layout.",
             "type": "boolean",

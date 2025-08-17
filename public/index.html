@@ -35,9 +35,25 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=1.5.2">
+    <link rel="stylesheet" href="style.css?v=20250817e">
     
-    <!-- Structured Data / JSON-LD -->
+    <!-- Clean wallart mode styles -->
+    <style>
+        /* Hide everything in wallart mode */
+        body.wallart-mode #poster-wrapper,
+        body.wallart-mode #layer-a,
+        body.wallart-mode #layer-b,
+        body.wallart-mode #background-image,
+        body.wallart-mode .background-layer,
+        body.wallart-mode #clearlogo,
+        body.wallart-mode #clear-logo,
+        body.wallart-mode #info-container,
+        body.wallart-mode #controls-container,
+        body.wallart-mode #widget-container,
+        body.wallart-mode #promo-box {
+            display: none !important;
+        }
+    </style>    <!-- Structured Data / JSON-LD -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -171,6 +187,6 @@
         </a>
     </div>
 
-        <script src="script.js?v=1.0.28"></script>
+            <script src="script.js?v=20250817f"></script>
 </body>
 </html>

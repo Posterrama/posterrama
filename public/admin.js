@@ -369,6 +369,13 @@ function updateHelpContent(sectionId) {
     updateHelpContentForced(sectionId);
 }
 
+function updateRandomnessLabel(value) {
+    const label = document.getElementById('wallartRandomnessValue');
+    if (label) {
+        label.textContent = value;
+    }
+}
+
 function updateHelpContentForced(sectionId) {
     const helpPanel = document.getElementById('quick-help-panel');
     if (!helpPanel) {
@@ -1469,6 +1476,21 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('clockTimezone').value = config.clockTimezone ?? defaults.clockTimezone;
         document.getElementById('clockFormat').value = config.clockFormat ?? defaults.clockFormat;
         
+        // Wallart Mode (object-based)
+        const wallartMode = config.wallartMode ?? defaults.wallartMode ?? { 
+            enabled: false, 
+            density: 'medium', 
+            randomness: 5,
+            animationType: 'fade'
+        };
+        document.getElementById('wallartModeEnabled').checked = wallartMode.enabled;
+        document.getElementById('wallartDensity').value = wallartMode.density ?? 'medium';
+        document.getElementById('wallartRandomness').value = wallartMode.randomness ?? 5;
+        document.getElementById('wallartAnimationType').value = wallartMode.animationType ?? 'fade';
+        
+        // Update randomness label
+        updateRandomnessLabel(wallartMode.randomness ?? 5);
+        
         // Handle backward compatibility: convert old kenBurnsEffect to new transitionEffect
         let transitionEffect = config.transitionEffect ?? defaults.transitionEffect;
 
@@ -1484,8 +1506,23 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set cinema mode state from config
         isCinemaMode = config.cinemaMode ?? defaults.cinemaMode;
         
+        // Set wallart mode state from config
+        const wallartModeState = config.wallartMode ?? defaults.wallartMode ?? { enabled: false };
+        const isWallartMode = wallartModeState.enabled;
+        
         // Show/hide effect pause time based on transition effect
         toggleEffectPauseTime();
+        
+        // Show/hide wallart settings based on wallart mode
+        const wallartSettingsGroup = document.getElementById('wallartSettingsGroup');
+        if (wallartSettingsGroup) {
+            wallartSettingsGroup.style.display = isWallartMode ? 'block' : 'none';
+            if (isWallartMode) {
+                wallartSettingsGroup.classList.remove('hidden');
+            } else {
+                wallartSettingsGroup.classList.add('hidden');
+            }
+        }
         
         // Show/hide cinema orientation settings based on cinema mode
         const cinemaOrientationGroup = document.getElementById('cinemaOrientationGroup');
@@ -1495,6 +1532,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
     // Apply cinema mode settings (including Ken Burns dropdown handling) - single invocation
     toggleCinemaModeSettings(isCinemaMode);
+    
+    // Apply wallart mode settings 
+    toggleWallartModeSettings(isWallartMode);
         
         // Set up real-time input validation
         setupInputValidation();
@@ -2336,6 +2376,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setupDisplaySettingListeners();
             // (preview timers removed)
             setupCinemaModeListeners();
+            setupWallartModeListeners();
             populateSecuritySettings(security);
             const { savedMovieLibs, savedShowLibs } = await populatePlexSettings(config, env, defaults);
             window.__savedMovieLibs = savedMovieLibs;
@@ -3958,6 +3999,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'transitionIntervalSeconds', 'backgroundRefreshMinutes',
                     'SERVER_PORT', 'rottenTomatoesMinimumScore', 'effectPauseTime',
                     'mediaServers[0].movieCount', 'mediaServers[0].showCount',
+                    'wallartItemsPerScreen', 'wallartColumns', 'wallartTransitionInterval',
                     'siteServer.port'
                 ];
 
@@ -3988,6 +4030,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         if ((id === 'mediaServers[0].movieCount' || id === 'mediaServers[0].showCount') && (value < 1 || value > 10000)) {
                             throw new Error('Movie/Show count must be between 1 and 10,000.');
+                        }
+                        if (id === 'wallartItemsPerScreen' && (value < 4 || value > 100)) {
+                            throw new Error('Wallart items per screen must be between 4 and 100.');
+                        }
+                        if (id === 'wallartColumns' && (value < 2 || value > 12)) {
+                            throw new Error('Wallart columns must be between 2 and 12.');
+                        }
+                        if (id === 'wallartTransitionInterval' && (value < 5 || value > 300)) {
+                            throw new Error('Wallart transition interval must be between 5 and 300 seconds.');
                         }
                     }
                 }
@@ -4020,6 +4071,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     clockWidget: getValue('clockWidget'),
                     clockTimezone: getValue('clockTimezone'),
                     clockFormat: getValue('clockFormat'),
+                    wallartMode: {
+                        enabled: getValue('wallartModeEnabled'),
+                        density: getValue('wallartDensity'),
+                        randomness: getValue('wallartRandomness', 'number'),
+                        animationType: getValue('wallartAnimationType')
+                    },
                     cinemaMode: getValue('cinemaMode'),
                     cinemaOrientation: getValue('cinemaOrientation'),
                     transitionEffect: getValue('transitionEffect'),
@@ -4666,6 +4723,70 @@ function setupCacheConfigEventListeners() {
                 console.log('Cinema orientation changed:', cinemaOrientationSelect.value);
                 updatePreviewOrientation();
             });
+        }
+    }
+
+    function setupWallartModeListeners() {
+        const wallartModeCheckbox = document.getElementById('wallartModeEnabled');
+        const wallartSettingsGroup = document.getElementById('wallartSettingsGroup');
+        const randomnessSlider = document.getElementById('wallartRandomness');
+        
+        if (wallartModeCheckbox) {
+            wallartModeCheckbox.addEventListener('change', () => {
+                const isWallartMode = wallartModeCheckbox.checked;
+                
+                // Show/hide wallart settings
+                if (wallartSettingsGroup) {
+                    wallartSettingsGroup.style.display = isWallartMode ? 'block' : 'none';
+                    if (isWallartMode) {
+                        wallartSettingsGroup.classList.remove('hidden');
+                    } else {
+                        wallartSettingsGroup.classList.add('hidden');
+                    }
+                }
+                
+                // Show/hide cinema mode and visual elements when wallart mode is active
+                toggleWallartModeSettings(isWallartMode);
+                
+                console.log('Wallart mode toggled:', isWallartMode ? 'enabled' : 'disabled');
+            });
+        }
+        
+        // Setup randomness slider
+        if (randomnessSlider) {
+            randomnessSlider.addEventListener('input', () => {
+                updateRandomnessLabel(randomnessSlider.value);
+            });
+        }
+    }
+
+    function toggleWallartModeSettings(isWallartMode) {
+        // Hide Cinema Mode section when wallart mode is active
+        const cinemaModeHeader = document.getElementById('cinemaModeHeader');
+        const cinemaModeContent = document.getElementById('cinemaModeContent');
+        
+        if (cinemaModeHeader && cinemaModeContent) {
+            cinemaModeHeader.style.display = isWallartMode ? 'none' : 'block';
+            cinemaModeContent.style.display = isWallartMode ? 'none' : 'block';
+        }
+        
+        // Hide Visual Elements section when wallart mode is active
+        const visualElementsHeader = document.getElementById('visualElementsHeader');
+        const visualElementsContent = document.getElementById('visualElementsContent');
+        
+        if (visualElementsHeader && visualElementsContent) {
+            visualElementsHeader.style.display = isWallartMode ? 'none' : 'block';
+            visualElementsContent.style.display = isWallartMode ? 'none' : 'block';
+        }
+        
+        // If wallart mode is enabled, disable cinema mode
+        if (isWallartMode) {
+            const cinemaModeCheckbox = document.getElementById('cinemaMode');
+            if (cinemaModeCheckbox && cinemaModeCheckbox.checked) {
+                cinemaModeCheckbox.checked = false;
+                // Reset cinema mode settings
+                toggleCinemaModeSettings(false);
+            }
         }
     }
 

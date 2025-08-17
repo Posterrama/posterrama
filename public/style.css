@@ -1483,3 +1483,134 @@ body.cinema-mode .poster-effect-blur {
 body.cinema-mode .poster-effect-rotate {
     animation: rotate-in var(--effect-duration, 3s) ease-out forwards;
 }
+
+/* ==========================================
+   WALLART MODE STYLES - Multi-poster grid
+   ========================================== */
+
+/* Wallart mode - display multiple posters in grid layout */
+body.wallart-mode {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+body.wallart-mode #background-image,
+body.wallart-mode .background-layer,
+body.wallart-mode #layer-a,
+body.wallart-mode #layer-b {
+    display: none !important; /* Hide all background layers in wallart mode */
+}
+
+body.wallart-mode #poster-wrapper {
+    display: none !important; /* Hide single poster display */
+}
+
+/* Wallart grid container - SUPER SIMPLE VERSION */
+#wallart-grid {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 9999 !important;
+    display: block !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.wallart-mode #wallart-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+    grid-auto-rows: auto !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #000 !important;
+    align-content: start !important;
+}
+
+/* Individual wallart poster items - Clean, edge-to-edge layout */
+.wallart-poster-item {
+    background: #111 !important;
+    overflow: hidden !important;
+    opacity: 1 !important;
+    display: block !important;
+    width: 100% !important;
+    aspect-ratio: 2/3 !important;
+    position: relative !important;
+}
+
+/* Allow overflow during animations */
+.wallart-poster-item.animating {
+    overflow: visible !important;
+    z-index: 10 !important;
+}
+
+.wallart-poster-item img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    display: block !important;
+    transform: scale(1.05) !important;
+    will-change: transform, opacity !important;
+}
+
+/* Fade in animation for wallart items */
+@keyframes wallartFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+
+
+
+
+/* Hide all UI elements in wallart mode */
+body.wallart-mode #info-panel,
+body.wallart-mode #info-container,
+body.wallart-mode #clear-logo,
+body.wallart-mode #clearlogo,
+body.wallart-mode #rotten-tomatoes,
+body.wallart-mode #clock-widget,
+body.wallart-mode #widget-container,
+body.wallart-mode #controls-container,
+body.wallart-mode #rt-badge,
+body.wallart-mode #promo-box,
+body.wallart-mode .metadata-overlay {
+    display: none !important;
+}
+
+/* Responsive wallart grid */
+@media (max-width: 1200px) {
+    body.wallart-mode #wallart-grid {
+        grid-template-columns: repeat(4, 1fr);
+        --wallart-columns: 4;
+    }
+}
+
+@media (max-width: 768px) {
+    body.wallart-mode #wallart-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        padding: 15px;
+        --wallart-columns: 3;
+    }
+}
+
+@media (max-width: 480px) {
+    body.wallart-mode #wallart-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        padding: 10px;
+        --wallart-columns: 2;
+    }
+}

@@ -240,7 +240,7 @@
                                                 </button>
                                             </div>
                                         </div>
-                                        <div id="transitionIntervalSeconds-help" class="form-help">Time in seconds between poster transitions (1-300)</div>
+                                        <div id="transitionIntervalSeconds-help" class="form-help">Time in seconds between poster transitions (1-300). <strong>Note:</strong> Does not apply to Wallart Mode - use Wallart Mode refresh settings instead.</div>
                                     </div>
                                     <div class="form-group">
                                         <label for="backgroundRefreshMinutes">Background Refresh</label>
@@ -309,12 +309,59 @@
                             <!-- Unified Display Settings Container -->
                             <div class="form-section unified-section">
                                 
-                                <!-- Cinema Mode Subsection -->
+                                <!-- Wallart Mode Subsection -->
                                 <div class="subsection-header">
+                                    <i class="fas fa-images"></i>
+                                    Wallart Mode
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="wallartModeEnabled" name="wallartMode.enabled">
+                                        <label for="wallartModeEnabled">Enable Wallart Mode (Multi-poster grid display)</label>
+                                    </div>
+                                    <div class="wallart-settings-group hidden" id="wallartSettingsGroup">
+                                        <div class="form-group">
+                                            <label for="wallartDensity">Poster Density</label>
+                                            <select id="wallartDensity" name="wallartMode.density">
+                                                <option value="low">Few - Larger posters, less crowded</option>
+                                                <option value="medium" selected>Medium - Balanced grid layout</option>
+                                                <option value="high">Many - Smaller posters, more crowded</option>
+                                            </select>
+                                            <small>Controls how many posters fit on screen</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="wallartRandomness">Poster Refresh Rate</label>
+                                            <input type="range" id="wallartRandomness" name="wallartMode.randomness" min="1" max="10" value="5" step="1">
+                                            <div class="range-labels">
+                                                <span>Slow & Calm</span>
+                                                <span>Fast & Dynamic</span>
+                                            </div>
+                                            <small id="randomnessValue">Medium refresh rate</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="wallartAnimationType">Animation Type</label>
+                                            <select id="wallartAnimationType" name="wallartMode.animationType">
+                                                <option value="fade" selected>Fade - Smooth opacity transition</option>
+                                                <option value="slideLeft">Slide Left - Poster slides from right</option>
+                                                <option value="slideUp">Slide Up - Poster slides from bottom</option>
+                                                <option value="zoom">Zoom - Scale in effect</option>
+                                                <option value="flip">Flip - 3D flip effect</option>
+                                            </select>
+                                            <small>Animation style for poster changes</small>
+                                        </div>
+                                    </div>
+                                    <div class="form-help-text">
+                                        <i class="fas fa-info-circle"></i>
+                                        Wallart Mode displays multiple posters in a dynamic grid layout, automatically calculating the optimal number of posters to fill your screen while preserving original aspect ratios.
+                                    </div>
+                                </div>
+                                
+                                <!-- Cinema Mode Subsection -->
+                                <div class="subsection-header" id="cinemaModeHeader">
                                     <i class="fas fa-film"></i>
                                     Cinema Mode
                                 </div>
-                                <div class="subsection-content">
+                                <div class="subsection-content" id="cinemaModeContent">
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="cinemaMode" name="cinemaMode">
                                         <label for="cinemaMode">Enable Cinema Mode (Digital Movie Poster)</label>
@@ -330,11 +377,11 @@
                                 </div>
                                 
                                 <!-- Visual Elements Subsection -->
-                                <div class="subsection-header">
+                                <div class="subsection-header" id="visualElementsHeader">
                                     <i class="fas fa-eye"></i>
                                     Visual Elements
                                 </div>
-                                <div class="subsection-content">
+                                <div class="subsection-content" id="visualElementsContent">
                                     <div class="form-grid-2">
                                         <div class="form-group checkbox-group">
                                             <input type="checkbox" id="showClearLogo" name="showClearLogo">

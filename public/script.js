@@ -52,6 +52,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let controlsTimer = null;
     let refreshTimerId = null;
     let configRefreshTimerId = null;
+    let wallartTransitionTimer = null;
+    let wallartRefreshTimeout = null;
     let appConfig = {};
     let preloadedImage = null;
 
@@ -138,6 +140,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Apply cinema mode
         applyCinemaMode(appConfig);
+        
+        // Apply wallart mode
+        applyWallartMode(appConfig);
     }
 
     function applyUIScaling(config) {
@@ -171,6 +176,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Add cinema mode base class
             body.classList.add('cinema-mode');
             
+            // Remove wallart mode if active (mutual exclusivity)
+            body.classList.remove('wallart-mode');
+            
             // Add orientation-specific class
             const orientation = config.cinemaOrientation || 'auto';
             body.classList.add(`cinema-${orientation}`);
@@ -180,6 +188,520 @@ document.addEventListener('DOMContentLoaded', async () => {
                 infoContainer.classList.add('visible');
             }, 100);
         }
+    }
+
+    function applyWallartMode(config) {
+        const body = document.body;
+        
+        // Remove any existing wallart mode classes
+        body.classList.remove('wallart-mode');
+        
+        if (config.wallartMode?.enabled) {
+            // Add wallart mode class
+            body.classList.add('wallart-mode');
+            
+            // Hide all other elements via JavaScript
+            const elementsToHide = [
+                'layer-a', 'layer-b', 'widget-container', 'clearlogo-container', 
+                'info-container', 'controls-container', 'branding-container',
+                'poster-wrapper', 'background-image', 'promo-box', 'loader'
+            ];
+            
+            elementsToHide.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.style.display = 'none';
+                }
+            });
+            
+            // Remove cinema mode if active (mutual exclusivity)
+            body.classList.remove('cinema-mode', 'cinema-auto', 'cinema-portrait', 'cinema-portrait-flipped');
+            
+            // Force info container to be hidden in wallart mode
+            setTimeout(() => {
+                infoContainer.classList.remove('visible');
+            }, 100);
+            
+            // Start the new wallart cycle system
+            startWallartCycle(config.wallartMode);
+            
+            // Add resize listener for dynamic grid recalculation
+            if (!window.wallartResizeListener) {
+                window.wallartResizeListener = function() {
+                    if (body.classList.contains('wallart-mode')) {
+                        // Debounce resize events
+                        clearTimeout(window.wallartResizeTimer);
+                        window.wallartResizeTimer = setTimeout(() => {
+                            startWallartCycle(config.wallartMode);
+                        }, 300);
+                    }
+                };
+                window.addEventListener('resize', window.wallartResizeListener);
+            }
+        } else {
+            // Clean up wallart grid if disabled
+            if (wallartTransitionTimer) {
+                clearInterval(wallartTransitionTimer);
+                wallartTransitionTimer = null;
+            }
+            
+            if (window.wallartIndividualTimer) {
+                clearInterval(window.wallartIndividualTimer);
+                window.wallartIndividualTimer = null;
+            }
+            
+            if (wallartRefreshTimeout) {
+                clearTimeout(wallartRefreshTimeout);
+                wallartRefreshTimeout = null;
+            }
+            
+            const wallartGrid = document.getElementById('wallart-grid');
+            if (wallartGrid) {
+                wallartGrid.remove();
+            }
+            
+            // Remove resize listener
+            if (window.wallartResizeListener) {
+                window.removeEventListener('resize', window.wallartResizeListener);
+                window.wallartResizeListener = null;
+            }
+            
+            // Restore all hidden elements
+            const elementsToShow = [
+                'layer-a', 'layer-b', 'widget-container', 'clearlogo-container', 
+                'info-container', 'controls-container', 'branding-container',
+                'poster-wrapper', 'background-image', 'promo-box'
+            ];
+            
+            elementsToShow.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.style.display = '';
+                }
+            });
+        }
+    }
+
+    function calculateWallartLayout(density = 'medium') {
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        
+        // Define density settings (min poster width in pixels)
+        const densitySettings = {
+            'low': { minWidth: 300, maxWidth: 400 },    // Fewer, larger posters
+            'medium': { minWidth: 200, maxWidth: 300 }, // Balanced
+            'high': { minWidth: 120, maxWidth: 200 }    // More, smaller posters - reduced for "many"
+        };
+        
+        const setting = densitySettings[density] || densitySettings['medium'];
+        
+        // Calculate optimal poster width for screen filling
+        // Start with minimum width and adjust to fill screen perfectly
+        let columnsCount = Math.floor(screenWidth / setting.minWidth);
+        let posterWidth = Math.floor(screenWidth / columnsCount);
+        
+        // Ensure poster width doesn't exceed maximum
+        if (posterWidth > setting.maxWidth) {
+            columnsCount = Math.floor(screenWidth / setting.maxWidth);
+            posterWidth = Math.floor(screenWidth / columnsCount);
+        }
+        
+        // Calculate rows based on poster aspect ratio (2:3 typical poster)
+        const posterHeight = Math.floor(posterWidth * 1.5); // 2:3 aspect ratio
+        const rowsCount = Math.floor(screenHeight / posterHeight);
+        
+        // Calculate total poster count that fills the screen
+        const posterCount = columnsCount * rowsCount;
+        
+        // Ensure minimum posters and add buffer for transitions
+        const minPosters = Math.max(posterCount, 12); // Minimum 12 posters
+        const bufferedCount = Math.ceil(minPosters * 1.5); // 50% buffer for smooth transitions
+        
+        return {
+            minPosterWidth: posterWidth,
+            posterCount: minPosters,
+            totalNeeded: bufferedCount, // Total posters needed including buffer
+            columns: columnsCount,
+            rows: rowsCount
+        };
+    }
+
+    function startWallartCycle(wallartConfig) {
+        // Remove existing wallart grid if it exists
+        const existingGrid = document.getElementById('wallart-grid');
+        if (existingGrid) {
+            existingGrid.remove();
+        }
+
+        // Create wallart grid container
+        const wallartGrid = document.createElement('div');
+        wallartGrid.id = 'wallart-grid';
+        wallartGrid.className = 'wallart-grid';
+        
+        // Calculate dynamic grid based on screen size and density
+        const layoutInfo = calculateWallartLayout(wallartConfig.density);
+        
+        // Apply dynamic grid styles - no gaps, edge-to-edge
+        wallartGrid.style.cssText = `
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 999999 !important;
+            background: #000 !important;
+            display: grid !important;
+            grid-template-columns: repeat(auto-fill, minmax(${layoutInfo.minPosterWidth}px, 1fr)) !important;
+            grid-auto-rows: auto !important;
+            gap: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            opacity: 1 !important;
+            align-content: start !important;
+        `;
+        
+        // Store calculated values for use in update cycle
+        wallartGrid.dataset.minPosterWidth = layoutInfo.minPosterWidth;
+        wallartGrid.dataset.posterCount = layoutInfo.posterCount;
+        wallartGrid.dataset.totalNeeded = layoutInfo.totalNeeded;
+        
+        // Append directly to body
+        document.body.appendChild(wallartGrid);
+
+        // Get dynamically calculated poster count
+        const posterCount = layoutInfo.posterCount;
+        const totalNeeded = layoutInfo.totalNeeded;
+        const animationType = wallartConfig.animationType || 'fade';
+        const randomness = wallartConfig.randomness || 5; // 1-10 scale
+        
+        let currentPosters = []; // Track current posters for uniqueness
+        let usedPosters = new Set(); // Track used poster IDs
+        
+        // Calculate refresh interval based on randomness (1=slow, 10=fast)
+        const baseInterval = 10000; // 10 seconds base
+        const minInterval = 2000;   // 2 seconds minimum
+        const refreshInterval = Math.max(minInterval, baseInterval - (randomness - 1) * 800);
+        
+        function createPosterElement(item, index) {
+            const posterItem = document.createElement('div');
+            posterItem.className = 'wallart-poster-item';
+            posterItem.dataset.originalIndex = index;
+            posterItem.dataset.posterId = item.id || item.title || index;
+            
+            // Clean styles with original aspect ratio preservation
+            posterItem.style.cssText = `
+                background: #111 !important;
+                overflow: hidden !important;
+                opacity: 1 !important;
+                display: block !important;
+                width: 100% !important;
+                aspect-ratio: 2/3 !important;
+                position: relative !important;
+            `;
+            
+            const img = document.createElement('img');
+            img.src = item.posterUrl || transparentPixel;
+            img.alt = item.title || 'Movie Poster';
+            img.loading = 'lazy';
+            
+            // Ensure images fill their containers perfectly with slight zoom
+            img.style.cssText = `
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: cover !important;
+                object-position: center !important;
+                display: block !important;
+                transform: scale(1.05) !important;
+            `;
+            
+            posterItem.appendChild(img);
+            return posterItem;
+        }
+        
+        function getUniqueRandomPoster() {
+            if (mediaQueue.length === 0) return null;
+            
+            // If we've used all available posters, reset the used set
+            if (usedPosters.size >= mediaQueue.length) {
+                console.log('[WALLART] All posters used, resetting uniqueness tracker');
+                usedPosters.clear();
+            }
+            
+            // Find posters that haven't been used yet
+            const availablePosters = mediaQueue.filter(item => {
+                const posterId = item.id || item.title || item.posterUrl;
+                return !usedPosters.has(posterId);
+            });
+            
+            if (availablePosters.length === 0) {
+                // Fallback to any poster if uniqueness fails
+                const randomIndex = Math.floor(Math.random() * mediaQueue.length);
+                return mediaQueue[randomIndex];
+            }
+            
+            // Get a random poster from available ones
+            const randomIndex = Math.floor(Math.random() * availablePosters.length);
+            const selectedPoster = availablePosters[randomIndex];
+            
+            // Mark as used
+            const posterId = selectedPoster.id || selectedPoster.title || selectedPoster.posterUrl;
+            usedPosters.add(posterId);
+            
+            return selectedPoster;
+        }
+        
+        function initializeWallartGrid() {
+            // Clear existing items
+            wallartGrid.innerHTML = '';
+            currentPosters = [];
+            usedPosters.clear();
+            
+            // Check if we have enough media
+            if (mediaQueue.length === 0) {
+                // Show loading message
+                const loadingItem = document.createElement('div');
+                loadingItem.style.cssText = `
+                    grid-column: 1 / -1 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    color: white !important;
+                    font-size: 24px !important;
+                    font-family: Arial, sans-serif !important;
+                    height: 100vh !important;
+                `;
+                loadingItem.textContent = 'Loading posters...';
+                wallartGrid.appendChild(loadingItem);
+                return;
+            }
+            
+            // Fill grid with unique posters
+            for (let i = 0; i < posterCount; i++) {
+                const poster = getUniqueRandomPoster();
+                if (poster) {
+                    currentPosters.push(poster);
+                    const posterItem = createPosterElement(poster, i);
+                    
+                    // Add subtle fade-in animation with staggered timing
+                    posterItem.style.animationDelay = `${i * 0.02}s`;
+                    posterItem.style.animation = 'wallartFadeIn 0.6s ease-out forwards';
+                    
+                    wallartGrid.appendChild(posterItem);
+                }
+            }
+            
+            console.log(`[WALLART] Grid initialized: ${currentPosters.length} unique posters`);
+            console.log(`[WALLART] Randomness level: ${randomness}/10 (${refreshInterval}ms interval)`);
+        }
+        
+        function refreshSinglePoster() {
+            if (currentPosters.length === 0 || mediaQueue.length === 0) {
+                return;
+            }
+            
+            // Select a random position to update
+            const randomPosition = Math.floor(Math.random() * currentPosters.length);
+            
+            // Get a new unique poster
+            const newPoster = getUniqueRandomPoster();
+            if (!newPoster) {
+                console.log('[WALLART] No new unique poster available');
+                return;
+            }
+            
+            // Remove old poster from used set
+            const oldPoster = currentPosters[randomPosition];
+            if (oldPoster) {
+                const oldPosterId = oldPoster.id || oldPoster.title || oldPoster.posterUrl;
+                usedPosters.delete(oldPosterId);
+            }
+            
+            // Update current poster tracking
+            currentPosters[randomPosition] = newPoster;
+            
+            // Find the DOM element and animate the change
+            const posterElements = wallartGrid.querySelectorAll('.wallart-poster-item');
+            const targetElement = posterElements[randomPosition];
+            
+            if (targetElement) {
+                targetElement.dataset.posterId = newPoster.id || newPoster.title || randomPosition;
+                animatePosterChange(targetElement, newPoster, animationType);
+            }
+            
+            console.log(`[WALLART] Single refresh: position ${randomPosition} updated`);
+            
+            // Schedule next refresh with slight randomization
+            const jitter = Math.random() * 1000; // Add up to 1 second randomization
+            wallartRefreshTimeout = setTimeout(refreshSinglePoster, refreshInterval + jitter);
+        }
+        
+        function animatePosterChange(element, newItem, animationType) {
+            const img = element.querySelector('img');
+            if (!img) return;
+            
+            console.log(`[WALLART] Starting ${animationType} animation for poster`);
+            
+            // Add animating class for overflow control
+            element.classList.add('animating');
+            
+            // Simple, reliable animations that always work
+            switch (animationType) {
+                case 'fade':
+                    // Clear any existing transform and set opacity transition
+                    img.style.transform = 'scale(1.05)';
+                    img.style.transition = 'opacity 1.2s ease-in-out';
+                    img.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        img.src = newItem.posterUrl || transparentPixel;
+                        img.alt = newItem.title || 'Movie Poster';
+                        
+                        setTimeout(() => {
+                            img.style.opacity = '1';
+                        }, 100);
+                        
+                        setTimeout(() => {
+                            element.classList.remove('animating');
+                        }, 1300);
+                    }, 600);
+                    break;
+                    
+                case 'slideLeft':
+                    // Simpler slide using only opacity and a slight transform
+                    img.style.transition = 'all 1.2s ease-in-out';
+                    img.style.opacity = '0';
+                    img.style.transform = 'scale(1.05) translateX(-20px)';
+                    
+                    setTimeout(() => {
+                        img.src = newItem.posterUrl || transparentPixel;
+                        img.alt = newItem.title || 'Movie Poster';
+                        img.style.transform = 'scale(1.05) translateX(20px)';
+                        
+                        setTimeout(() => {
+                            img.style.opacity = '1';
+                            img.style.transform = 'scale(1.05) translateX(0px)';
+                        }, 100);
+                        
+                        setTimeout(() => {
+                            element.classList.remove('animating');
+                        }, 1300);
+                    }, 600);
+                    break;
+                    
+                case 'slideUp':
+                    // Simpler slide using only opacity and a slight transform  
+                    img.style.transition = 'all 1.2s ease-in-out';
+                    img.style.opacity = '0';
+                    img.style.transform = 'scale(1.05) translateY(-20px)';
+                    
+                    setTimeout(() => {
+                        img.src = newItem.posterUrl || transparentPixel;
+                        img.alt = newItem.title || 'Movie Poster';
+                        img.style.transform = 'scale(1.05) translateY(20px)';
+                        
+                        setTimeout(() => {
+                            img.style.opacity = '1';
+                            img.style.transform = 'scale(1.05) translateY(0px)';
+                        }, 100);
+                        
+                        setTimeout(() => {
+                            element.classList.remove('animating');
+                        }, 1300);
+                    }, 600);
+                    break;
+                    
+                case 'zoom':
+                    // Scale animation from small to normal
+                    img.style.transition = 'all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                    img.style.opacity = '0';
+                    img.style.transform = 'scale(0.8)';
+                    
+                    setTimeout(() => {
+                        img.src = newItem.posterUrl || transparentPixel;
+                        img.alt = newItem.title || 'Movie Poster';
+                        
+                        setTimeout(() => {
+                            img.style.opacity = '1';
+                            img.style.transform = 'scale(1.05)';
+                        }, 100);
+                        
+                        setTimeout(() => {
+                            element.classList.remove('animating');
+                        }, 1300);
+                    }, 600);
+                    break;
+                    
+                case 'flip':
+                    // Simpler rotation effect
+                    img.style.transition = 'all 1.2s ease-in-out';
+                    img.style.opacity = '0';
+                    img.style.transform = 'scale(1.05) rotateY(15deg)';
+                    
+                    setTimeout(() => {
+                        img.src = newItem.posterUrl || transparentPixel;
+                        img.alt = newItem.title || 'Movie Poster';
+                        img.style.transform = 'scale(1.05) rotateY(-15deg)';
+                        
+                        setTimeout(() => {
+                            img.style.opacity = '1';
+                            img.style.transform = 'scale(1.05) rotateY(0deg)';
+                        }, 100);
+                        
+                        setTimeout(() => {
+                            element.classList.remove('animating');
+                        }, 1300);
+                    }, 600);
+                    break;
+                    
+                default:
+                    // Simple fade fallback
+                    img.style.transform = 'scale(1.05)';
+                    img.style.transition = 'opacity 0.8s ease';
+                    img.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        img.src = newItem.posterUrl || transparentPixel;
+                        img.alt = newItem.title || 'Movie Poster';
+                        
+                        setTimeout(() => {
+                            img.style.opacity = '1';
+                        }, 100);
+                        
+                        setTimeout(() => {
+                            element.classList.remove('animating');
+                        }, 900);
+                    }, 400);
+            }
+        }
+        
+        // Clean up existing timers
+        if (wallartTransitionTimer) {
+            clearInterval(wallartTransitionTimer);
+            wallartTransitionTimer = null;
+        }
+        if (window.wallartIndividualTimer) {
+            clearInterval(window.wallartIndividualTimer);
+            window.wallartIndividualTimer = null;
+        }
+        if (wallartRefreshTimeout) {
+            clearTimeout(wallartRefreshTimeout);
+            wallartRefreshTimeout = null;
+        }
+        
+        // Initialize grid and start single poster refresh cycle
+        initializeWallartGrid();
+        
+        // Start the single poster refresh cycle with initial delay
+        wallartRefreshTimeout = setTimeout(refreshSinglePoster, refreshInterval);
+    }
+
+    function getRandomMediaItems(count) {
+        if (mediaQueue.length === 0) return [];
+        
+        const shuffled = [...mediaQueue].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, Math.min(count, shuffled.length));
     }
 
     async function refreshConfig() {
@@ -208,6 +730,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // Apply cinema mode changes
                 applyCinemaMode(newConfig);
+                
+                // Apply wallart mode changes
+                applyWallartMode(newConfig);
             }
         } catch (error) {
             console.error('Failed to refresh configuration:', error);
@@ -275,6 +800,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (oldConfig.cinemaMode !== newConfig.cinemaMode || 
             oldConfig.cinemaOrientation !== newConfig.cinemaOrientation) {
             applyCinemaMode(newConfig);
+        }
+        
+        // Handle wallart mode changes
+        if (JSON.stringify(oldConfig.wallartMode) !== JSON.stringify(newConfig.wallartMode)) {
+            applyWallartMode(newConfig);
         }
     }
 
@@ -497,6 +1027,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderMediaItem(mediaItem) {
         if (!mediaItem) {
             console.error('renderMediaItem called with invalid mediaItem');
+            return;
+        }
+        
+        // Skip rendering individual media items in wallart mode
+        // Wallart mode handles its own poster display
+        if (document.body.classList.contains('wallart-mode')) {
             return;
         }
         
