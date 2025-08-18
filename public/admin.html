@@ -243,7 +243,7 @@
                                         <div id="transitionIntervalSeconds-help" class="form-help">Time in seconds between poster transitions (1-300). <strong>Note:</strong> Does not apply to Wallart Mode - use Wallart Mode refresh settings instead.</div>
                                     </div>
                                     <div class="form-group">
-                                        <label for="backgroundRefreshMinutes">Background Refresh</label>
+                                        <label for="backgroundRefreshMinutes">Background Refresh (minutes)</label>
                                         <div class="number-input-wrapper">
                                             <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes" min="0" max="1440" step="1">
                                             <div class="number-controls" role="group">
@@ -327,16 +327,15 @@
                                                 <option value="medium" selected>Medium - Balanced grid layout</option>
                                                 <option value="high">Many - Smaller posters, more crowded</option>
                                             </select>
-                                            <small>Controls how many posters fit on screen</small>
                                         </div>
                                         <div class="form-group">
                                             <label for="wallartRandomness">Poster Refresh Rate</label>
-                                            <input type="range" id="wallartRandomness" name="wallartMode.randomness" min="1" max="10" value="5" step="1">
-                                            <div class="range-labels">
-                                                <span>Slow & Calm</span>
-                                                <span>Fast & Dynamic</span>
+                                            <div class="slider-wrapper">
+                                                <input type="range" id="wallartRandomness" name="wallartMode.randomness" min="1" max="10" value="5" step="1">
+                                                <div class="slider-value-display">
+                                                    <span id="wallartRandomness-value">Medium refresh rate</span>
+                                                </div>
                                             </div>
-                                            <small id="randomnessValue">Medium refresh rate</small>
                                         </div>
                                         <div class="form-group">
                                             <label for="wallartAnimationType">Animation Type</label>
@@ -347,12 +346,11 @@
                                                 <option value="zoom">Zoom - Scale in effect</option>
                                                 <option value="flip">Flip - 3D flip effect</option>
                                             </select>
-                                            <small>Animation style for poster changes</small>
                                         </div>
-                                    </div>
-                                    <div class="form-help-text">
-                                        <i class="fas fa-info-circle"></i>
-                                        Wallart Mode displays multiple posters in a dynamic grid layout, automatically calculating the optimal number of posters to fill your screen while preserving original aspect ratios.
+                                        <div class="form-group checkbox-group">
+                                            <input type="checkbox" id="wallartAutoRefresh" name="wallartMode.autoRefresh" checked>
+                                            <label for="wallartAutoRefresh">Auto-refresh posters (uncheck for static display)</label>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -404,17 +402,11 @@
                                         <label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes Score (0-10)</label>
                                         <input type="number" id="rottenTomatoesMinimumScore" name="rottenTomatoesMinimumScore" min="0" max="10" step="0.1">
                                     </div>
-                                </div>
-                                
-                                <!-- Clock Widget Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-clock"></i>
-                                    Clock Widget
-                                </div>
-                                <div class="subsection-content">
+                                    
+                                    <!-- Clock Widget Options -->
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="clockWidget" name="clockWidget">
-                                        <label for="clockWidget">Show Clock</label>
+                                        <label for="clockWidget">Show Clock (screensaver mode only)</label>
                                     </div>
                                     <div class="form-group clock-timezone-group hidden" id="clockTimezoneGroup">
                                         <label for="clockTimezone">Clock Timezone</label>
@@ -479,67 +471,60 @@
                             UI Element Scaling
                         </div>
                         <div class="subsection-content">
-                            <!-- Scaling Templates -->
-                            <div class="scaling-templates">
-                                <label>Quick Templates:</label>
-                                <div class="template-buttons" role="group">
-                                    <button type="button" class="btn btn-secondary" id="apply-fullhd-template">Full HD</button>
-                                    <button type="button" class="btn btn-secondary" id="apply-4k-template">4K</button>
-                                    <button type="button" class="btn btn-secondary" id="apply-widescreen-template">Widescreen</button>
-                                    <button type="button" class="btn btn-secondary" id="reset-scaling-defaults">Reset</button>
-                                </div>
-                            </div>
-                            
                             <!-- Compact Scaling Grid -->
                             <div class="scaling-grid">
                                 <div class="scaling-item">
-                                    <label for="uiScaling.poster">Poster</label>
-                                    <div class="slider-container">
-                                        <input type="range" id="uiScaling.poster" name="uiScaling.poster" min="50" max="200" value="100" step="5">
-                                        <div class="slider-track"></div>
-                                        <div class="slider-fill"></div>
-                                        <div class="slider-thumb"></div>
-                                        <span class="slider-value" data-target="uiScaling.poster">100%</span>
-                                    </div>
-                                </div>
-                                <div class="scaling-item">
-                                    <label for="uiScaling.text">Text</label>
-                                    <div class="slider-container">
-                                        <input type="range" id="uiScaling.text" name="uiScaling.text" min="50" max="200" value="100" step="5">
-                                        <div class="slider-track"></div>
-                                        <div class="slider-fill"></div>
-                                        <div class="slider-thumb"></div>
-                                        <span class="slider-value" data-target="uiScaling.text">100%</span>
+                                    <label for="uiScaling.content">Content</label>
+                                    <div class="slider-wrapper">
+                                        <input type="range" id="uiScaling.content" name="uiScaling.content" min="50" max="200" value="100" step="5">
+                                        <div class="slider-value-display">
+                                            <span id="uiScaling.content-value">100%</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="scaling-item">
                                     <label for="uiScaling.clearlogo">Clearlogo</label>
-                                    <div class="slider-container">
+                                    <div class="slider-wrapper">
                                         <input type="range" id="uiScaling.clearlogo" name="uiScaling.clearlogo" min="50" max="200" value="100" step="5">
-                                        <div class="slider-track"></div>
-                                        <div class="slider-fill"></div>
-                                        <div class="slider-thumb"></div>
-                                        <span class="slider-value" data-target="uiScaling.clearlogo">100%</span>
+                                        <div class="slider-value-display">
+                                            <span id="uiScaling.clearlogo-value">100%</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="scaling-item">
                                     <label for="uiScaling.clock">Clock</label>
-                                    <div class="slider-container">
+                                    <div class="slider-wrapper">
                                         <input type="range" id="uiScaling.clock" name="uiScaling.clock" min="50" max="200" value="100" step="5">
-                                        <div class="slider-track"></div>
-                                        <div class="slider-fill"></div>
-                                        <div class="slider-thumb"></div>
-                                        <span class="slider-value" data-target="uiScaling.clock">100%</span>
+                                        <div class="slider-value-display">
+                                            <span id="uiScaling.clock-value">100%</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="scaling-item">
                                     <label for="uiScaling.global">Global</label>
-                                    <div class="slider-container">
+                                    <div class="slider-wrapper">
                                         <input type="range" id="uiScaling.global" name="uiScaling.global" min="50" max="200" value="100" step="5">
-                                        <div class="slider-track"></div>
-                                        <div class="slider-fill"></div>
-                                        <div class="slider-thumb"></div>
-                                        <span class="slider-value" data-target="uiScaling.global">100%</span>
+                                        <div class="slider-value-display">
+                                            <span id="uiScaling.global-value">100%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Quick Template Buttons -->
+                                <div class="scaling-presets">
+                                    <div class="preset-buttons">
+                                        <button type="button" class="preset-button" data-preset="4k-tv">
+                                            <i class="fas fa-tv"></i> 4K TV
+                                        </button>
+                                        <button type="button" class="preset-button" data-preset="full-hd">
+                                            <i class="fas fa-desktop"></i> Full HD
+                                        </button>
+                                        <button type="button" class="preset-button" data-preset="ultrawide">
+                                            <i class="fas fa-expand-arrows-alt"></i> Ultrawide
+                                        </button>
+                                        <button type="button" id="reset-ui-scaling" class="reset-button">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1059,7 +1044,7 @@
                                 <!-- Two-Factor Authentication Subsection -->
                                 <div class="subsection-header">
                                     <i class="fas fa-mobile-alt"></i>
-                                    Two-Factor Authentication (2FA)
+                                    Two-Factor Authentication
                                 </div>
                                 <div class="subsection-content">
                                     <div class="form-group checkbox-group">
@@ -1350,18 +1335,14 @@
                                         <p style="margin: 0 0 1rem 0; color: #b3b3b3; font-size: 0.85rem; line-height: 1.4;">
                                             Posterrama is free and open source software. Help improve it by reporting issues, suggesting features, or contributing code.
                                         </p>
-                                        <div class="form-actions" style="margin: 0;">
-                                            <a href="https://github.com/Posterrama/posterrama" target="_blank" class="btn btn-primary" style="margin-right: 0.5rem;">
+                                        <div class="form-actions project-buttons" style="margin: 0; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                            <a href="https://github.com/Posterrama/posterrama" target="_blank" class="btn btn-primary project-btn">
                                                 <i class="fab fa-github"></i>
                                                 View on GitHub
                                             </a>
-                                            <a href="https://github.com/Posterrama/posterrama/issues" target="_blank" class="btn btn-secondary" style="margin-right: 0.5rem;">
+                                            <a href="https://github.com/Posterrama/posterrama/issues" target="_blank" class="btn btn-secondary project-btn">
                                                 <i class="fas fa-bug"></i>
                                                 Report Issue
-                                            </a>
-                                            <a href="https://github.com/Posterrama/posterrama/releases/latest" target="_blank" class="btn btn-secondary">
-                                                <i class="fas fa-download"></i>
-                                                Latest Release
                                             </a>
                                         </div>
                                     </div>
@@ -1429,56 +1410,31 @@
         </div>
         <nav class="mobile-nav-content">
             <button class="mobile-nav-item active" data-section="general">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.06 1.56V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.35a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.56-1.06H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.65 9 1.65 1.65 0 0 0 4.32 7.18l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1.06-1.56V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.06 1.56 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.56 1.06H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.56 1.06z"></path>
-                </svg>
+                <i class="fas fa-cog nav-icon"></i>
                 <span>General</span>
             </button>
             <button class="mobile-nav-item" data-section="display">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
+                <i class="fas fa-tv nav-icon"></i>
                 <span>Display</span>
             </button>
             <button class="mobile-nav-item" data-section="media">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                </svg>
+                <i class="fas fa-database nav-icon"></i>
                 <span>Sources</span>
             </button>
             <button class="mobile-nav-item" data-section="authentication">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
+                <i class="fas fa-shield-alt nav-icon"></i>
                 <span>Authentication</span>
             </button>
             <button class="mobile-nav-item" data-section="promobox">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                </svg>
+                <i class="fas fa-globe nav-icon"></i>
                 <span>Promobox Site</span>
             </button>
             <button class="mobile-nav-item" data-section="management">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-                </svg>
+                <i class="fas fa-tools nav-icon"></i>
                 <span>Management</span>
             </button>
             <button class="mobile-nav-item" data-section="logs">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14,2 14,8 20,8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10,9 9,9 8,9"></polyline>
-                </svg>
+                <i class="fas fa-file-alt nav-icon"></i>
                 <span>Logs & Debug</span>
             </button>
         </nav>
@@ -1498,7 +1454,7 @@
                 <p>Controls how long each poster is displayed before switching to the next one. Set between 1-300 seconds. Shorter intervals create more dynamic displays, while longer intervals are better for reading metadata.</p>
             </div>
             <div class="help-section">
-                <h4>Background Refresh</h4>
+                <h4>Background Refresh (minutes)</h4>
                 <p>How often the system fetches new content from your media server. Set to 0 to disable automatic refresh. Regular refreshing ensures new content appears in the rotation.</p>
             </div>
             <div class="help-section">

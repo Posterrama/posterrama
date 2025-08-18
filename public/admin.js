@@ -370,9 +370,21 @@ function updateHelpContent(sectionId) {
 }
 
 function updateRandomnessLabel(value) {
-    const label = document.getElementById('wallartRandomnessValue');
+    const label = document.getElementById('wallartRandomness-value');
     if (label) {
-        label.textContent = value;
+        const descriptions = {
+            1: 'Very slow & calm',
+            2: 'Slow & calm',
+            3: 'Relaxed pace',
+            4: 'Moderate pace',
+            5: 'Medium refresh rate',
+            6: 'Active pace',
+            7: 'Quick pace',
+            8: 'Fast & dynamic',
+            9: 'Very fast & dynamic',
+            10: 'Extremely dynamic'
+        };
+        label.textContent = descriptions[value] || 'Medium refresh rate';
     }
 }
 
@@ -484,13 +496,27 @@ function getHelpContentForSection(sectionId) {
                     ]
                 },
                 {
+                    title: 'Wallart Mode - Multi-Poster Grid',
+                    description: 'Display multiple posters in a dynamic grid layout that automatically fills your screen.',
+                    details: [
+                        'Wallart Mode displays multiple posters in a dynamic grid layout, automatically calculating the optimal number of posters to fill your screen while preserving original aspect ratios',
+                        'Poster Density: Controls how many posters fit on screen - Few (larger posters, less crowded), Medium (balanced grid layout), Many (smaller posters, more crowded)',
+                        'Poster Refresh Rate: Controls animation speed from Very slow & calm to Extremely dynamic',
+                        'Animation Type: Choose between Fade (smooth opacity transition), Slide Left/Up (directional movement), Zoom (scale in effect), or Flip (3D flip effect)',
+                        'Auto Refresh: Automatically cycles through your entire poster collection',
+                        'Perfect for: Art galleries, waiting rooms, digital wallpaper, or ambient displays'
+                    ]
+                },
+                {
                     title: 'Visual Elements',
                     description: 'Choose which visual elements to display on screen.',
                     details: [
-                        'ClearLogo: Show high-quality transparent logos',
-                        'Rotten Tomatoes Badge: Display critic ratings and badges',
-                        'Show Poster: Display movie/TV show poster images',
-                        'Show Metadata: Display titles, descriptions and other info'
+                        'ClearLogo: Show high-quality transparent logos for movies and TV shows',
+                        'Rotten Tomatoes Badge: Display critic ratings and freshness badges',
+                        'Show Poster: Display movie/TV show poster images as main visual element',
+                        'Show Metadata: Display titles, descriptions, cast, genres and other information',
+                        'Clock Widget: Enable/disable clock display with timezone support (auto-detect or manual selection)',
+                        'Visual elements can be combined for rich information display or minimized for clean poster presentation'
                     ]
                 },
                 {
@@ -503,16 +529,6 @@ function getHelpContentForSection(sectionId) {
                     ]
                 },
                 {
-                    title: 'Clock Widget',
-                    description: 'Display a clock on screen with timezone support.',
-                    details: [
-                        'Show Clock: Enable/disable the clock widget display',
-                        'Timezone: Choose from auto-detect or specific timezones',
-                        'Auto mode: Uses system timezone automatically',
-                        'Manual: Select from common timezones worldwide (CET, EST, JST, etc.)'
-                    ]
-                },
-                {
                     title: 'Effects & Transitions',
                     description: 'Configure visual effects and transitions between content.',
                     details: [
@@ -520,6 +536,18 @@ function getHelpContentForSection(sectionId) {
                         'Fade In/Out: Smooth fading transitions between content',
                         'Slide Transition: Content slides in from different directions',
                         'Effect Pause Time: How long effects pause between transitions (0-10 seconds)'
+                    ]
+                },
+                {
+                    title: 'UI Element Scaling',
+                    description: 'Fine-tune individual interface elements for optimal display on your screen.',
+                    details: [
+                        'Content Scaling: Adjust size of movie/show information text and metadata (50%-200%)',
+                        'Clearlogo Scaling: Scale movie/show logos independently (50%-200%)',
+                        'Clock Scaling: Adjust clock widget size (50%-200%)',
+                        'Global Scaling: Apply overall scaling to all interface elements (50%-200%)',
+                        'Quick Templates: 4K TV (larger elements), Full HD (standard size), Tablet (smaller), Phone (compact)',
+                        'Perfect for: Custom screen sizes, projectors, ultra-wide monitors, or accessibility needs'
                     ]
                 },
                 {
@@ -656,22 +684,54 @@ function getHelpContentForSection(sectionId) {
             sections: [
                 {
                     title: 'Cache Management',
-                    description: 'Manage stored data to optimize performance.',
+                    description: 'Monitor and manage cached poster images and data to optimize performance and disk usage.',
                     details: [
-                        'View cache: See which images and data are stored',
-                        'Clear cache: Remove all stored data to fix problems',
-                        'Automatic cleanup: Old cache files are automatically removed',
-                        'Cache size: Monitor how much disk space is used'
+                        'Cache Storage: View disk space used by cached poster images',
+                        'Memory Cache: Monitor the number of cached items in memory',
+                        'Refresh Stats: Update cache statistics display',
+                        'Run Cleanup: Remove old or unused cache files automatically',
+                        'View Cache: Browse cached images and metadata (debug mode)',
+                        'Clear Cache: Delete all cached data to free up disk space'
+                    ]
+                },
+                {
+                    title: 'Media Management',
+                    description: 'Control how media content is fetched and refreshed from your sources.',
+                    details: [
+                        'Refresh Media: Manually trigger a refresh of all media from configured sources',
+                        'Updates poster collection from Plex, TMDB, TVDB, and other configured sources',
+                        'Useful when you\'ve added new content or changed source configurations'
                     ]
                 },
                 {
                     title: 'Application Controls',
-                    description: 'Manage the Posterrama application and system status.',
+                    description: 'Monitor system health and control the Posterrama application.',
                     details: [
-                        'Restart application: Fix problems by restarting the app',
-                        'Status check: See if all systems are functioning correctly',
-                        'Update check: Check for new versions of Posterrama',
-                        'Performance monitoring: View CPU and memory usage'
+                        'Restart Application: Safely restart Posterrama to apply changes or fix issues',
+                        'Status Check: View detailed system health including memory usage, uptime, and API status',
+                        'Performance Monitor: Real-time performance metrics including CPU and memory usage',
+                        'All controls provide visual feedback and status updates'
+                    ]
+                },
+                {
+                    title: 'Automatic Updates',
+                    description: 'Manage automatic updates and backups for the Posterrama application.',
+                    details: [
+                        'Start Auto-Update: Check for and install the latest Posterrama version automatically',
+                        'Rollback: Restore to a previous version if issues occur after an update',
+                        'View Backups: Browse available backup versions with timestamps',
+                        'Update Status: Monitor update progress with real-time progress indicators',
+                        'Automatic backup creation before updates for safe rollback capability'
+                    ]
+                },
+                {
+                    title: 'Project & Support',
+                    description: 'Access project resources and community support for Posterrama.',
+                    details: [
+                        'View on GitHub: Access the official Posterrama repository for source code and documentation',
+                        'Report Issue: Submit bug reports or feature requests directly to the development team',
+                        'Open source project: Posterrama is free software that welcomes community contributions',
+                        'Direct links to GitHub issues and project pages for easy access to support resources'
                     ]
                 }
             ]
@@ -1487,6 +1547,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('wallartDensity').value = wallartMode.density ?? 'medium';
         document.getElementById('wallartRandomness').value = wallartMode.randomness ?? 5;
         document.getElementById('wallartAnimationType').value = wallartMode.animationType ?? 'fade';
+        document.getElementById('wallartAutoRefresh').checked = wallartMode.autoRefresh !== false;
         
         // Update randomness label
         updateRandomnessLabel(wallartMode.randomness ?? 5);
@@ -1530,11 +1591,65 @@ document.addEventListener('DOMContentLoaded', () => {
             cinemaOrientationGroup.style.display = isCinemaMode ? 'block' : 'none';
         }
         
+        // Handle mutual exclusivity between Cinema Mode and Wallart Mode
+        const cinemaModeCheckbox = document.getElementById('cinemaMode');
+        const wallartModeCheckbox = document.getElementById('wallartModeEnabled');
+        
+        if (isCinemaMode && wallartModeCheckbox) {
+            // If Cinema Mode is enabled, disable and hide Wallart Mode subsection
+            wallartModeCheckbox.checked = false;
+            wallartModeCheckbox.disabled = true;
+            
+            // Find and hide the Wallart Mode subsection (header + content)
+            const wallartHeaders = document.querySelectorAll('.subsection-header');
+            wallartHeaders.forEach(header => {
+                if (header.textContent.includes('Wallart Mode')) {
+                    header.style.display = 'none';
+                    const wallartContent = header.nextElementSibling;
+                    if (wallartContent && wallartContent.classList.contains('subsection-content')) {
+                        wallartContent.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Also hide wallart settings submenu
+            const wallartSettingsGroup = document.getElementById('wallartSettingsGroup');
+            if (wallartSettingsGroup) {
+                wallartSettingsGroup.classList.add('hidden');
+                wallartSettingsGroup.style.display = 'none';
+            }
+        } else if (isWallartMode && cinemaModeCheckbox) {
+            // If Wallart Mode is enabled, disable and hide Cinema Mode subsection
+            cinemaModeCheckbox.checked = false;
+            cinemaModeCheckbox.disabled = true;
+            isCinemaMode = false;
+            
+            // Find and hide the Cinema Mode subsection (header + content)
+            const cinemaHeaders = document.querySelectorAll('.subsection-header');
+            cinemaHeaders.forEach(header => {
+                if (header.textContent.includes('Cinema Mode')) {
+                    header.style.display = 'none';
+                    const cinemaContent = header.nextElementSibling;
+                    if (cinemaContent && cinemaContent.classList.contains('subsection-content')) {
+                        cinemaContent.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Hide cinema orientation settings
+            if (cinemaOrientationGroup) {
+                cinemaOrientationGroup.style.display = 'none';
+            }
+        }
+        
     // Apply cinema mode settings (including Ken Burns dropdown handling) - single invocation
     toggleCinemaModeSettings(isCinemaMode);
     
     // Apply wallart mode settings 
     toggleWallartModeSettings(isWallartMode);
+    
+    // Update spacing for first visible subsection
+    updateFirstVisibleSubsectionSpacing();
         
         // Set up real-time input validation
         setupInputValidation();
@@ -1557,18 +1672,26 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleRecentlyAddedDays();
     }
 
+    // Function to update slider background based on value
+    function updateSliderBackground(slider) {
+        const value = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+        slider.style.background = `linear-gradient(to right, #667eea 0%, #667eea ${value}%, rgba(255, 255, 255, 0.15) ${value}%, rgba(255, 255, 255, 0.15) 100%)`;
+    }
+
     function populateUIScalingSettings(config, defaults) {
         const scalingConfig = config.uiScaling || defaults.uiScaling;
         
         // Populate range sliders and their value displays
-        const scalingFields = ['content', 'clearlogo', 'clock', 'global'];
+        const scalingFields = ['poster', 'text', 'clearlogo', 'clock', 'global'];
         scalingFields.forEach(field => {
             const slider = document.getElementById(`uiScaling.${field}`);
             const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
             
             if (slider && valueDisplay) {
                 let raw = scalingConfig[field];
-                if (raw === undefined || raw === null || raw === '') raw = defaults.uiScaling[field];
+                if (raw === undefined || raw === null || raw === '') {
+                    raw = defaults.uiScaling[field];
+                }
                 const value = Number(raw);
                 slider.value = value;
                 valueDisplay.textContent = `${value}%`;
@@ -1583,8 +1706,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 // Add event listener for live preview updates
-                slider.addEventListener('change', () => {
-                    // preview update removed
+                slider.addEventListener('change', async () => {
+                    try {
+                        // Save the individual slider value to backend
+                        const configKey = `uiScaling.${field}`;
+                        const value = parseInt(slider.value);
+                        
+                        // Map frontend fields to backend fields for saving
+                        const savePromises = [];
+                        if (field === 'poster' || field === 'text') {
+                            savePromises.push(fetch('/api/config', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 'uiScaling.content': value })
+                            }));
+                        }
+                        savePromises.push(fetch('/api/config', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ [configKey]: value })
+                        }));
+                        
+                        await Promise.all(savePromises);
+                        console.log(`Saved ${configKey}: ${value}`);
+                    } catch (error) {
+                        console.error(`Failed to save ${configKey}:`, error);
+                        showNotification('Failed to save setting', 'error');
+                    }
                 });
                 
                 // Add keyboard support for fine control
@@ -1628,12 +1776,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Function to update slider background based on value
-        function updateSliderBackground(slider) {
-            const value = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
-            slider.style.background = `linear-gradient(to right, #bb86fc 0%, #bb86fc ${value}%, rgba(255, 255, 255, 0.1) ${value}%, rgba(255, 255, 255, 0.1) 100%)`;
-        }
-
         // Setup reset button
         setupUIScalingResetButton();
 
@@ -1651,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', () => {
             resetButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
             
             // Reset all sliders to default values (100%)
-            const scalingFields = ['content', 'clearlogo', 'clock', 'global'];
+            const scalingFields = ['poster', 'text', 'clearlogo', 'clock', 'global'];
             
             scalingFields.forEach(field => {
                 const slider = document.getElementById(`uiScaling.${field}`);
@@ -1660,15 +1802,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (slider && valueDisplay) {
                     slider.value = 100;
                     valueDisplay.textContent = '100%';
+                    updateSliderBackground(slider);
                 }
             });
 
-            // Apply immediately to preview
-            applyScalingToPreview();
-
             try {
-                // Save the reset values
-                await saveConfigurationSilently();
+                // Save all values as 100 using the standard config save
+                const resetConfig = {
+                    'uiScaling.content': 100,
+                    'uiScaling.content': 100,
+                    'uiScaling.text': 100,
+                    'uiScaling.clearlogo': 100,
+                    'uiScaling.clock': 100,
+                    'uiScaling.global': 100
+                };
+                
+                // Save using single config call
+                await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(resetConfig)
+                });
                 
                 // Show success notification
                 showNotification('UI scaling reset to defaults', 'success');
@@ -1679,7 +1833,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Restore button state
                 setTimeout(() => {
                     resetButton.disabled = false;
-                    resetButton.innerHTML = '<i class="fas fa-undo"></i> Reset to Defaults';
+                    resetButton.innerHTML = '<i class="fas fa-undo"></i> Reset';
                 }, 1000);
             }
         });
@@ -4075,14 +4229,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         enabled: getValue('wallartModeEnabled'),
                         density: getValue('wallartDensity'),
                         randomness: getValue('wallartRandomness', 'number'),
-                        animationType: getValue('wallartAnimationType')
+                        animationType: getValue('wallartAnimationType'),
+                        autoRefresh: getValue('wallartAutoRefresh')
                     },
                     cinemaMode: getValue('cinemaMode'),
                     cinemaOrientation: getValue('cinemaOrientation'),
                     transitionEffect: getValue('transitionEffect'),
                     effectPauseTime: getValue('effectPauseTime', 'number'),
                     uiScaling: {
-                        content: (()=>{ const v=getValue('uiScaling.content','number'); return Number.isFinite(v)?v:defaults.uiScaling.content; })(),
+                        content: (()=>{ const v=getValue('uiScaling.content','number'); return Number.isFinite(v)?v:defaults.uiScaling.content || 100; })(),
                         clearlogo: (()=>{ const v=getValue('uiScaling.clearlogo','number'); return Number.isFinite(v)?v:defaults.uiScaling.clearlogo; })(),
                         clock: (()=>{ const v=getValue('uiScaling.clock','number'); return Number.isFinite(v)?v:defaults.uiScaling.clock; })(),
                         global: (()=>{ const v=getValue('uiScaling.global','number'); return Number.isFinite(v)?v:defaults.uiScaling.global; })()
@@ -4700,6 +4855,55 @@ function setupCacheConfigEventListeners() {
             cinemaModeCheckbox.addEventListener('change', () => {
                 isCinemaMode = cinemaModeCheckbox.checked;
                 
+                // Handle mutual exclusivity with Wallart Mode
+                const wallartModeCheckbox = document.getElementById('wallartModeEnabled');
+                
+                if (isCinemaMode) {
+                    // Disable and hide Wallart Mode subsection when Cinema Mode is enabled
+                    if (wallartModeCheckbox) {
+                        wallartModeCheckbox.checked = false;
+                        wallartModeCheckbox.disabled = true;
+                        
+                        // Hide wallart settings if they were visible
+                        const wallartSettingsGroup = document.getElementById('wallartSettingsGroup');
+                        if (wallartSettingsGroup) {
+                            wallartSettingsGroup.classList.add('hidden');
+                            wallartSettingsGroup.style.display = 'none';
+                        }
+                    }
+                    // Find and hide the Wallart Mode subsection (header + content)
+                    const wallartHeaders = document.querySelectorAll('.subsection-header');
+                    wallartHeaders.forEach(header => {
+                        if (header.textContent.includes('Wallart Mode')) {
+                            header.style.display = 'none';
+                            const wallartContent = header.nextElementSibling;
+                            if (wallartContent && wallartContent.classList.contains('subsection-content')) {
+                                wallartContent.style.display = 'none';
+                            }
+                        }
+                    });
+                } else {
+                    // Re-enable and show Wallart Mode subsection when Cinema Mode is disabled
+                    if (wallartModeCheckbox) {
+                        wallartModeCheckbox.disabled = false;
+                    }
+                    // Find and show the Wallart Mode subsection again
+                    const wallartHeaders = document.querySelectorAll('.subsection-header');
+                    wallartHeaders.forEach(header => {
+                        if (header.textContent.includes('Wallart Mode')) {
+                            header.style.display = 'block';
+                            const wallartContent = header.nextElementSibling;
+                            if (wallartContent && wallartContent.classList.contains('subsection-content')) {
+                                wallartContent.style.display = 'block';
+                            }
+                        }
+                    });
+                    // Don't automatically show wallart settings - let the checkbox state control it
+                }
+                
+                // Update spacing for first visible subsection
+                updateFirstVisibleSubsectionSpacing();
+                
                 // Show/hide orientation settings
                 if (cinemaOrientationGroup) {
                     cinemaOrientationGroup.style.display = isCinemaMode ? 'block' : 'none';
@@ -4715,6 +4919,68 @@ function setupCacheConfigEventListeners() {
             });
             
             // Initial state handled once inside populateDisplaySettings to avoid duplicate invocation here.
+        }
+        
+        // Add event listener for Wallart Mode mutual exclusivity
+        const wallartModeCheckbox = document.getElementById('wallartModeEnabled');
+        if (wallartModeCheckbox) {
+            wallartModeCheckbox.addEventListener('change', () => {
+                const isWallartMode = wallartModeCheckbox.checked;
+                
+                // Handle mutual exclusivity with Cinema Mode
+                const cinemaModeCheckbox = document.getElementById('cinemaMode');
+                
+                if (isWallartMode) {
+                    // Disable and hide Cinema Mode subsection when Wallart Mode is enabled
+                    if (cinemaModeCheckbox) {
+                        cinemaModeCheckbox.checked = false;
+                        cinemaModeCheckbox.disabled = true;
+                        isCinemaMode = false;
+                        
+                        // Hide cinema settings if they were visible
+                        const cinemaOrientationGroup = document.getElementById('cinemaOrientationGroup');
+                        if (cinemaOrientationGroup) {
+                            cinemaOrientationGroup.style.display = 'none';
+                        }
+                        
+                        // Reset cinema mode settings
+                        toggleCinemaModeSettings(false);
+                        updatePreviewOrientation();
+                    }
+                    // Find and hide the Cinema Mode subsection (header + content)
+                    const cinemaHeaders = document.querySelectorAll('.subsection-header');
+                    cinemaHeaders.forEach(header => {
+                        if (header.textContent.includes('Cinema Mode')) {
+                            header.style.display = 'none';
+                            const cinemaContent = header.nextElementSibling;
+                            if (cinemaContent && cinemaContent.classList.contains('subsection-content')) {
+                                cinemaContent.style.display = 'none';
+                            }
+                        }
+                    });
+                } else {
+                    // Re-enable and show Cinema Mode subsection when Wallart Mode is disabled
+                    if (cinemaModeCheckbox) {
+                        cinemaModeCheckbox.disabled = false;
+                    }
+                    // Find and show the Cinema Mode subsection again
+                    const cinemaHeaders = document.querySelectorAll('.subsection-header');
+                    cinemaHeaders.forEach(header => {
+                        if (header.textContent.includes('Cinema Mode')) {
+                            header.style.display = 'block';
+                            const cinemaContent = header.nextElementSibling;
+                            if (cinemaContent && cinemaContent.classList.contains('subsection-content')) {
+                                cinemaContent.style.display = 'block';
+                            }
+                        }
+                    });
+                }
+                
+                // Update spacing for first visible subsection
+                updateFirstVisibleSubsectionSpacing();
+                
+                console.log('Wallart mode toggled:', isWallartMode ? 'enabled' : 'disabled');
+            });
         }
         
         // Add event listener for cinema orientation changes
@@ -4838,8 +5104,14 @@ function setupCacheConfigEventListeners() {
         }
         
         // Hide entire UI Scaling section in cinema mode
-        const uiScalingSection = document.querySelector('.form-section h3');
-        if (uiScalingSection && uiScalingSection.textContent.includes('UI Element Scaling')) {
+        const uiScalingSections = document.querySelectorAll('.form-section h3');
+        let uiScalingSection = null;
+        uiScalingSections.forEach(h3 => {
+            if (h3.textContent.includes('UI Element Scaling')) {
+                uiScalingSection = h3;
+            }
+        });
+        if (uiScalingSection) {
             const scalingSection = uiScalingSection.closest('.form-section');
             if (scalingSection) {
                 scalingSection.style.display = isCinemaMode ? 'none' : 'block';
@@ -4883,6 +5155,47 @@ function setupCacheConfigEventListeners() {
                     existingIndicator.remove();
                 }
             }
+        }
+    }
+
+    function updateFirstVisibleSubsectionSpacing() {
+        // Only target Wallart Mode and Cinema Mode subsection headers specifically
+        const wallartHeader = document.querySelector('.subsection-header:has(+ .subsection-content [id="wallartModeEnabled"])') ||
+                              document.querySelector('[id="wallartModeHeader"]') ||
+                              Array.from(document.querySelectorAll('.subsection-header')).find(h => h.textContent.includes('Wallart Mode'));
+                              
+        const cinemaHeader = document.querySelector('.subsection-header:has(+ .subsection-content [id="cinemaMode"])') ||
+                            document.querySelector('[id="cinemaModeHeader"]') ||
+                            Array.from(document.querySelectorAll('.subsection-header')).find(h => h.textContent.includes('Cinema Mode'));
+
+        // Reset both headers first
+        [wallartHeader, cinemaHeader].forEach(header => {
+            if (header) {
+                header.classList.remove('first-visible');
+                header.style.marginTop = '';
+            }
+        });
+
+        // Find which one is visible and should be first
+        const headers = [wallartHeader, cinemaHeader].filter(h => h);
+        const visibleHeaders = headers.filter(header => {
+            const displayStyle = header.style.display;
+            const computedStyle = window.getComputedStyle(header);
+            const isVisible = (displayStyle !== 'none' && computedStyle.display !== 'none') || 
+                             displayStyle === 'block';
+            console.log(`Mode header "${header.textContent?.trim()}" - display: ${displayStyle}, computed: ${computedStyle.display}, visible: ${isVisible}`);
+            return isVisible;
+        });
+
+        console.log(`Found ${visibleHeaders.length} visible mode headers`);
+
+        if (visibleHeaders.length > 0) {
+            const firstVisible = visibleHeaders[0];
+            firstVisible.style.setProperty('margin-top', '0px', 'important');
+            firstVisible.classList.add('first-visible');
+            console.log('Applied zero margin to first visible mode header:', firstVisible.textContent?.trim(), 'ID:', firstVisible.id);
+        } else {
+            console.log('No visible mode headers found');
         }
     }
 
@@ -5068,7 +5381,14 @@ function setupCacheConfigEventListeners() {
                 button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
 
                 try {
-                    // Apply preset values to sliders
+                    // Apply preset values to sliders and prepare config
+                    const configUpdate = {
+                        'uiScaling.content': preset.content || 100,
+                        'uiScaling.clearlogo': preset.clearlogo,
+                        'uiScaling.clock': preset.clock,
+                        'uiScaling.global': preset.global
+                    };
+                    
                     Object.keys(preset).forEach(field => {
                         if (field === 'name') return;
                         
@@ -5078,13 +5398,16 @@ function setupCacheConfigEventListeners() {
                         if (slider && valueDisplay) {
                             slider.value = preset[field];
                             valueDisplay.textContent = `${preset[field]}%`;
+                            updateSliderBackground(slider);
                         }
                     });
 
-                    // preview hook removed
-
-                    // Save the preset values
-                    await saveConfigurationSilently();
+                    // Save all preset values using single config call
+                    await fetch('/api/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(configUpdate)
+                    });
                     
                     // Show success notification
                     showNotification(`Applied ${preset.name} preset`, 'success');

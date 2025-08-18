@@ -849,6 +849,44 @@ div:nth-of-type(2).subsection-header i {
     filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.2)) !important;
 }
 
+/* Automatic Updates subsection styling */
+.subsection-header:has(i.fa-download)::after {
+    background: linear-gradient(90deg, #059669, #10b981, #34d399) !important;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3) !important;
+}
+
+.subsection-header:has(i.fa-download) {
+    color: #10b981 !important;
+    text-shadow: 0 2px 4px rgba(16, 185, 129, 0.2) !important;
+}
+
+.subsection-header:has(i.fa-download) i {
+    color: transparent !important;
+    background: linear-gradient(90deg, #059669, #10b981, #34d399) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 2px 4px rgba(5, 150, 105, 0.2)) !important;
+}
+
+/* Project & Support subsection styling */
+.subsection-header:has(i.fa-github)::after {
+    background: linear-gradient(90deg, #7c2d12, #ea580c, #f97316) !important;
+    box-shadow: 0 2px 8px rgba(124, 45, 18, 0.3) !important;
+}
+
+.subsection-header:has(i.fa-github) {
+    color: #ea580c !important;
+    text-shadow: 0 2px 4px rgba(234, 88, 12, 0.2) !important;
+}
+
+.subsection-header:has(i.fa-github) i {
+    color: transparent !important;
+    background: linear-gradient(90deg, #7c2d12, #ea580c, #f97316) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 2px 4px rgba(124, 45, 18, 0.2)) !important;
+}
+
 .subsection-header:has(i.fa-expand-arrows-alt)::after {
     background: linear-gradient(90deg, #dc2626, #ea580c, #d97706) !important;
     box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3) !important;
@@ -868,6 +906,27 @@ div:nth-of-type(2).subsection-header i {
     -webkit-background-clip: text !important;
     background-clip: text !important;
     filter: drop-shadow(0 2px 4px rgba(220, 38, 38, 0.2)) !important;
+}
+
+/* Wallart Mode - Teal/Cyan gradient for header text and icon */
+.subsection-header:has(i.fa-images)::after {
+    background: linear-gradient(90deg, #059669, #0891b2, #0284c7) !important;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3) !important;
+}
+
+.subsection-header:has(i.fa-images) {
+    color: transparent !important;
+    background: linear-gradient(90deg, #059669, #0891b2, #0284c7) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.subsection-header:has(i.fa-images) i {
+    color: transparent !important;
+    background: linear-gradient(90deg, #059669, #0891b2, #0284c7) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 2px 4px rgba(5, 150, 105, 0.2)) !important;
 }
 
 .subsection-header:has(i.fa-magic)::after {
@@ -1187,6 +1246,12 @@ div:nth-of-type(2).subsection-header i {
 
 .subsection-header:first-child {
     margin-top: 0;
+}
+
+/* First visible subsection header should have no top margin */
+.subsection-header.first-visible {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
 }
 
 .subsection-header i {
@@ -2082,6 +2147,21 @@ input[type="range"]::-webkit-slider-thumb:hover {
     backdrop-filter: blur(10px);
 }
 
+/* Force preset buttons outside of grid layout */
+.scaling-grid .scaling-presets {
+    grid-column: 1 / -1; /* Span all columns */
+    margin-top: 1.5rem;
+}
+
+/* Mobile: Stack sliders vertically for better usability */
+@media (max-width: 768px) {
+    .scaling-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+        padding: 0.5rem 0 !important;
+    }
+}
+
 .scaling-item {
     display: flex;
     flex-direction: column;
@@ -2090,14 +2170,25 @@ input[type="range"]::-webkit-slider-thumb:hover {
     background: transparent;
     border-radius: 0;
     border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Mobile: Better spacing for scaling items */
+@media (max-width: 768px) {
+    .scaling-item {
+        padding: 0.5rem 0 !important;
+        gap: 0.5rem !important;
+    }
+}
+
+.scaling-item {
+    border-bottom: none;
     transition: all 0.3s ease;
     backdrop-filter: none;
 }
 
 .scaling-item:hover {
     background: transparent;
-    border-bottom-color: rgba(99, 102, 241, 0.3);
+    border-bottom-color: transparent;
     transform: none;
     box-shadow: none;
 }
@@ -2117,22 +2208,205 @@ input[type="range"]::-webkit-slider-thumb:hover {
     height: 28px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
     margin: 0.1rem 0;
 }
 
-/* Hide default slider appearance */
-.slider-container input[type="range"] {
+/* Beautiful, consistent slider styling */
+.slider-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.5rem 0;
+}
+
+.slider-wrapper input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
-    width: 100%;
-    height: 6px;
-    background: transparent;
+    flex: 1;
+    height: 8px;
+    background: linear-gradient(to right, #667eea 0%, #667eea 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 100%);
+    border-radius: 4px;
     outline: none;
-    position: relative;
-    z-index: 2;
     cursor: pointer;
-    margin: 0;
-    padding: 0;
+    transition: all 0.2s ease;
+}
+
+.slider-wrapper input[type="range"]:hover {
+    background: linear-gradient(to right, #764ba2 0%, #764ba2 50%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.2) 100%);
+}
+
+.slider-wrapper input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.slider-wrapper input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Firefox slider thumb */
+.slider-wrapper input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.slider-wrapper input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Firefox slider track */
+.slider-wrapper input[type="range"]::-moz-range-track {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    border: none;
+}
+
+/* Value display */
+.slider-value-display {
+    min-width: 60px;
+    background: rgba(102, 126, 234, 0.2);
+    border: 1px solid rgba(102, 126, 234, 0.4);
+    border-radius: 6px;
+    padding: 0.3rem 0.6rem;
+    text-align: center;
+}
+
+.slider-value-display span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #bb86fc;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .slider-wrapper {
+        gap: 1rem;
+        margin: 0.5rem 0;
+    }
+    
+    .slider-wrapper input[type="range"] {
+        height: 10px;
+        flex: 1;
+    }
+    
+    .slider-wrapper input[type="range"]::-webkit-slider-thumb {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .slider-wrapper input[type="range"]::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .slider-value-display {
+        min-width: 70px;
+        padding: 0.4rem 0.7rem;
+    }
+    
+    .slider-value-display span {
+        font-size: 0.9rem;
+    }
+}
+
+/* Quick Template Buttons */
+.scaling-presets {
+    margin-top: 1.5rem;
+    border-top: none;
+    padding-top: 1rem;
+    width: 100%;
+}
+
+.preset-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.preset-button,
+.reset-button {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+    border: 1px solid rgba(102, 126, 234, 0.4);
+    border-radius: 8px;
+    color: #e1e5f2;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.preset-button:hover,
+.reset-button:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+    border-color: rgba(102, 126, 234, 0.6);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.preset-button:active,
+.reset-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.2);
+}
+
+.preset-button:disabled,
+.reset-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.reset-button {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.2) 0%, rgba(233, 30, 99, 0.2) 100%);
+    border-color: rgba(244, 67, 54, 0.4);
+}
+
+.reset-button:hover {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.3) 0%, rgba(233, 30, 99, 0.3) 100%);
+    border-color: rgba(244, 67, 54, 0.6);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2);
+}
+
+/* Mobile responsive for preset buttons */
+@media (max-width: 768px) {
+    .preset-buttons {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+    
+    .preset-button,
+    .reset-button {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.8rem;
+    }
 }
 
 /* Custom slider track */
@@ -2235,6 +2509,26 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border: 1px solid rgba(99, 102, 241, 0.3);
     color: white;
     font-weight: 600;
+}
+
+/* Mobile: 4 buttons side by side */
+@media (max-width: 768px) {
+    .template-buttons {
+        gap: 0.375rem; /* Smaller gap between buttons */
+        justify-content: space-between;
+    }
+    
+    .template-buttons .btn {
+        flex: 1; /* Equal width buttons */
+        font-size: 0.75rem; /* Smaller font */
+        padding: 0.5rem 0.25rem; /* Less padding */
+        min-width: 0; /* Allow shrinking */
+        text-align: center !important; /* Force center alignment */
+        white-space: nowrap; /* Prevent text wrapping */
+        display: flex !important; /* Use flexbox for centering */
+        align-items: center !important; /* Vertical center */
+        justify-content: center !important; /* Horizontal center */
+    }
 }
 
 .template-buttons .btn:hover {
@@ -3279,7 +3573,7 @@ fieldset:focus-within {
     position: fixed;
     top: 70px;
     left: 0;
-    width: 240px; /* Smaller than help panel (320px) */
+    width: 100px; /* Perfect width for icon-only navigation */
     height: calc(100vh - 140px); /* 70px from top + 70px from bottom = symmetrical spacing */
     background: linear-gradient(180deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
     backdrop-filter: blur(20px);
@@ -3574,17 +3868,33 @@ fieldset:focus-within {
     
     .sidebar-nav {
         display: flex;
-        overflow-x: auto;
+        overflow-x: hidden;
+        overflow-y: hidden;
         padding: 0 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        touch-action: manipulation;
+        -webkit-overflow-scrolling: none;
     }
     
     .sidebar-nav li {
         flex: 0 0 auto;
+        min-width: fit-content;
     }
     
-    .sidebar-nav a {
-        padding: 1rem;
+    .sidebar-nav a,
+    .sidebar-nav .nav-item {
+        padding: 0.75rem 1rem;
         white-space: nowrap;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        min-width: 80px;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
     }
     
     .footer-content {
@@ -3900,11 +4210,23 @@ fieldset:focus-within {
     }
     
     .sidebar .nav-item .nav-text {
-        font-size: 0.7rem;
-        font-weight: 500;
-        text-align: center;
-        line-height: 1;
-        display: block !important; /* Override collapsed state */
+        display: none !important; /* Hide text on mobile - icons only */
+    }
+    
+    /* Make nav items smaller and icon-focused on mobile */
+    .sidebar .nav-item {
+        padding: 0.75rem 0.5rem !important; /* Reduce padding for compact layout */
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-height: 50px !important;
+        gap: 0 !important; /* No gap since text is hidden */
+    }
+    
+    .sidebar .nav-item .nav-icon {
+        font-size: 1.4rem !important; /* Slightly larger icons to compensate for missing text */
+        margin: 0 !important;
     }
     
     /* Active nav item styling for mobile */
@@ -5769,7 +6091,13 @@ html.modal-open {
         min-height: 42px !important;
         box-sizing: border-box !important;
         justify-content: space-between !important;
-        position: relative !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1000 !important;
+        width: 100% !important;
+        height: 60px !important;
     }
 
     .admin-header .header-nav {
@@ -5863,24 +6191,30 @@ html.modal-open {
         padding: 0.25rem 0.5rem !important;
     }
 
-    /* Main content - NO margin-top for maximum mobile space */
+    /* Main content - Add padding for fixed header */
     body .admin-layout .main-content,
     .admin-layout .main-content,
     .main-content {
-        margin-top: 0 !important; /* NO margin - content starts immediately */
-        padding-top: 0 !important;
+        margin-top: 0 !important;
+        padding-top: 65px !important; /* Reduced from 60px + 1rem to just 65px total */
     }
 
-    /* NUCLEAR OPTION - Remove ALL top spacing sources */
+    /* Admin main container padding */
     .admin-main {
-        padding-top: 0 !important; /* Remove 2rem top padding */
+        padding-top: 0.5rem !important; /* Reduced from 1rem to 0.5rem */
     }
 
     .subsection-header {
-        margin-top: 0 !important; /* Remove 3rem top margin */
+        margin-top: 5% !important; /* Perfect spacing for mobile */
         margin-bottom: 1rem !important; /* Keep bottom margin for spacing */
     }
+    
+    /* First subsection in each menu should be close to the menu title */
+    .subsection-header:first-child {
+        margin-top: 0 !important;
+    }
 
+    /* Reduce top spacing but keep enough for fixed header */
     .section-content {
         padding-top: 0 !important; /* Remove any section top padding */
         margin-top: 0 !important; /* Remove any section top margin */
@@ -5890,12 +6224,190 @@ html.modal-open {
         padding-top: 0 !important; /* Remove any section main top padding */
         margin-top: 0 !important; /* Remove any section main top margin */
     }
+    
+    /* Override all conflicting rules - HIGHEST PRIORITY */
+    @media (max-width: 768px) {
+        body .admin-layout .main-content,
+        .admin-layout .main-content,
+        .main-content,
+        .admin-content .main-content {
+            padding-top: 55px !important; /* Tighter spacing */
+        }
+        
+        .admin-main,
+        .section-content .admin-main,
+        .admin-content .admin-main {
+            padding-top: 0.25rem !important; /* Minimal top padding */
+        }
+    }
 }
-/* Cache buster - Sat Aug 16 22:58:13 CEST 2025 */
-/* Cache bust: 1755378159 */
-/* URGENT FIX - Content width restored: 1755378262 */
-/* EMERGENCY FIX - Mobile layout repaired: 1755378529 */
-/* SPACING FIX - Reduced header gap: 1755378787 */
+/* MOBILE ICONS-ONLY SIDEBAR - Compact layout */
+@media (max-width: 768px) {
+    /* Make sidebar more compact on mobile */
+    .admin-sidebar,
+    .sidebar {
+        width: 100% !important;
+        height: auto !important;
+        position: relative !important;
+    }
+    
+    /* Compact nav layout for mobile - horizontal strip */
+    .sidebar-nav {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        padding: 0.5rem 0.25rem !important;
+        gap: 0.25rem !important;
+        overflow: hidden !important;
+        flex-wrap: nowrap !important;
+    }
+    
+    /* Compact nav items for mobile - icon only */
+    .sidebar .nav-item {
+        flex: 1 !important;
+        max-width: none !important;
+        min-width: 50px !important;
+        padding: 0.6rem 0.25rem !important;
+        border-radius: 8px !important;
+        border: none !important;
+        background: transparent !important;
+        transition: background-color 0.2s ease !important;
+    }
+    
+    /* Active and hover states for mobile nav */
+    .sidebar .nav-item.active {
+        background: rgba(102, 126, 234, 0.25) !important;
+        color: #667eea !important;
+    }
+    
+    .sidebar .nav-item:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Icons styling for mobile */
+    .sidebar .nav-item .nav-icon {
+        font-size: 1.3rem !important;
+        margin: 0 !important;
+        color: inherit !important;
+    }
+    
+    /* Ensure text is completely hidden on mobile */
+    .sidebar .nav-item .nav-text {
+        display: none !important;
+    }
+}
+
+/* Cache buster - Mobile header spacing fix: $(date +%s) */
+/* MOBILE SIDEBAR ICONS-ONLY - FORCE OVERRIDE */
+
+/* FINAL OVERRIDE - Mobile sidebar text hiding with maximum specificity */
+@media screen and (max-width: 768px) {
+    /* Hide ALL nav text on mobile with maximum priority */
+    body .admin-layout .sidebar .nav-item .nav-text,
+    .admin-layout .sidebar .nav-item .nav-text,
+    .sidebar .sidebar-nav .nav-item .nav-text,
+    .sidebar .nav-item .nav-text,
+    .nav-item .nav-text {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        font-size: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        text-indent: -9999px !important;
+    }
+    
+    /* Force sidebar to horizontal layout on mobile */
+    body .admin-layout .sidebar .sidebar-nav,
+    .admin-layout .sidebar .sidebar-nav,
+    .sidebar .sidebar-nav {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        padding: 0.5rem 0.25rem !important;
+        height: auto !important;
+        width: 100% !important;
+        position: relative !important;
+        transform: none !important;
+        background: rgba(20, 20, 20, 0.95) !important;
+    }
+    
+    /* Force nav items to be compact and icon-only */
+    body .admin-layout .sidebar .nav-item,
+    .admin-layout .sidebar .nav-item,
+    .sidebar .nav-item {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.75rem 0.25rem !important;
+        min-height: 50px !important;
+        width: auto !important;
+        height: auto !important;
+        transform: none !important;
+        position: relative !important;
+        margin: 0 !important;
+        gap: 0 !important;
+        border-radius: 8px !important;
+        background: transparent !important;
+        border: none !important;
+    }
+    
+    /* Force sidebar to be visible and in correct position */
+    body .admin-layout .sidebar,
+    .admin-layout .sidebar,
+    .sidebar {
+        position: relative !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        width: 45px !important; /* Much narrower for icon-only */
+        height: auto !important;
+        z-index: 100 !important;
+    }
+    
+    /* Force sidebar nav to be narrower */
+    body .admin-layout .sidebar .sidebar-nav,
+    .admin-layout .sidebar .sidebar-nav,
+    .sidebar .sidebar-nav {
+        width: 45px !important;
+        min-width: 45px !important;
+        max-width: 45px !important;
+    }
+}
+
+/* MOBILE ICONS EMPHASIS */
+@media screen and (max-width: 768px) {
+    /* Make icons more prominent */
+    .sidebar .nav-item .nav-icon,
+    .nav-item .nav-icon {
+        font-size: 1.4rem !important;
+        color: #b3b3b3 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* Active state for mobile icons */
+    .sidebar .nav-item.active .nav-icon,
+    .nav-item.active .nav-icon {
+        color: #667eea !important;
+    }
+    
+    /* Hover state for mobile icons */
+    .sidebar .nav-item:hover .nav-icon,
+    .nav-item:hover .nav-icon {
+        color: #fff !important;
+    }
+}
+/* MOBILE SPACING - Tighter header-content gap */
 /* OPTIMAL MOBILE - Minimal gap 2px: 1755378877 */
 /* ZERO GAP - Content direct under header: 1755379228 */
 /* NO PADDING - Absolute direct contact: 1755379299 */
@@ -5950,4 +6462,107 @@ input[type="range"]::-moz-range-thumb {
     cursor: pointer;
     border: none;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Project Support Buttons - Responsive */
+.project-buttons {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0 !important;
+}
+
+.project-btn {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    white-space: nowrap;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+}
+
+/* Mobile responsiveness for project buttons */
+@media (max-width: 768px) {
+    .project-buttons {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .project-btn {
+        flex: none;
+        width: 100%;
+        min-width: unset;
+        padding: 0.875rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .project-btn {
+        padding: 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .project-btn i {
+        margin-right: 0.75rem;
+    }
+}
+
+/* MOBILE NAVIGATION PANEL - HIDE TEXT SPAN ELEMENTS */
+@media screen and (max-width: 768px) {
+    /* Hide the "Navigation" header and its styling */
+    .mobile-nav-panel .mobile-nav-header,
+    .mobile-nav-header,
+    #mobile-nav-panel .mobile-nav-header {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        border-bottom: none !important;
+    }
+    
+    /* Hide text spans in mobile navigation panel */
+    .mobile-nav-panel .mobile-nav-item span,
+    .mobile-nav-content .mobile-nav-item span,
+    #mobile-nav-panel .mobile-nav-item span {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        font-size: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        text-indent: -9999px !important;
+        overflow: hidden !important;
+    }
+    
+    /* Center icons in mobile nav items */
+    .mobile-nav-panel .mobile-nav-item,
+    .mobile-nav-content .mobile-nav-item,
+    #mobile-nav-panel .mobile-nav-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 1rem 0.5rem !important;
+    }
+    
+    /* Ensure SVG icons are visible and centered */
+    .mobile-nav-panel .mobile-nav-item svg,
+    .mobile-nav-content .mobile-nav-item svg,
+    #mobile-nav-panel .mobile-nav-item svg,
+    .mobile-nav-panel .mobile-nav-item i,
+    .mobile-nav-content .mobile-nav-item i,
+    #mobile-nav-panel .mobile-nav-item i {
+        margin: 0 !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 1.2rem !important;
+        color: #b3b3b3 !important;
+    }
 }

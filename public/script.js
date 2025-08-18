@@ -131,9 +131,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Periodically refresh configuration to pick up admin changes
-        // Check for config changes every 30 seconds
+        // Check for config changes every 5 minutes (less frequent)
         if (configRefreshTimerId) clearInterval(configRefreshTimerId);
-        configRefreshTimerId = setInterval(refreshConfig, 30 * 1000);
+        configRefreshTimerId = setInterval(refreshConfig, 5 * 60 * 1000);
 
         // Apply initial UI scaling
         applyUIScaling(appConfig);
@@ -191,16 +191,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function applyWallartMode(config) {
+        // Check if this is the public site (promobox site)
+        if (config && config.isPublicSite) {
+            console.log('[Promobox Site] Wallart mode disabled - public site detected');
+            return; // Exit completely - no wallart mode on promobox site
+        }
+        
         const body = document.body;
         
         // Remove any existing wallart mode classes
         body.classList.remove('wallart-mode');
         
         if (config.wallartMode?.enabled) {
-            // Add wallart mode class
-            body.classList.add('wallart-mode');
-            
-            // Hide all other elements via JavaScript
             const elementsToHide = [
                 'layer-a', 'layer-b', 'widget-container', 'clearlogo-container', 
                 'info-container', 'controls-container', 'branding-container',
@@ -380,9 +382,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         let usedPosters = new Set(); // Track used poster IDs
         
         // Calculate refresh interval based on randomness (1=slow, 10=fast)
-        const baseInterval = 10000; // 10 seconds base
-        const minInterval = 2000;   // 2 seconds minimum
-        const refreshInterval = Math.max(minInterval, baseInterval - (randomness - 1) * 800);
+        const baseInterval = 20000; // 20 seconds base for slow speed
+        const minInterval = 500;    // 0.5 second minimum for fast speed
+        const refreshInterval = Math.max(minInterval, baseInterval - (randomness - 1) * 2166);
+        
+        // Calculate LARGE random variation range - make it really unpredictable!
+        // Slow = huge variation (up to 30 seconds!), Fast = moderate variation (up to 3 seconds)
+        const maxRandomVariation = Math.max(3000, 30000 - (randomness - 1) * 3000);
+        
+        console.log(`[WALLART] Refresh settings - Base interval: ${refreshInterval}ms, Random variation: ±${maxRandomVariation}ms`);
         
         function createPosterElement(item, index) {
             const posterItem = document.createElement('div');
@@ -532,147 +540,183 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             console.log(`[WALLART] Single refresh: position ${randomPosition} updated`);
             
-            // Schedule next refresh with slight randomization
-            const jitter = Math.random() * 1000; // Add up to 1 second randomization
-            wallartRefreshTimeout = setTimeout(refreshSinglePoster, refreshInterval + jitter);
+            // Schedule next refresh only if auto-refresh is enabled
+            if (wallartConfig.autoRefresh !== false) {
+                // Use exponential random distribution for more natural, unpredictable timing
+                const randomFactor = Math.random() * Math.random(); // Double random for exponential curve
+                const isNegative = Math.random() < 0.5; // 50% chance negative variation
+                const randomVariation = (isNegative ? -1 : 1) * randomFactor * maxRandomVariation;
+                const nextInterval = Math.max(200, refreshInterval + randomVariation);
+                
+                console.log(`[WALLART] Next refresh in ${Math.round(nextInterval)}ms (base: ${refreshInterval}ms, variation: ${Math.round(randomVariation)}ms, factor: ${randomFactor.toFixed(3)})`);
+                wallartRefreshTimeout = setTimeout(refreshSinglePoster, nextInterval);
+            }
         }
         
         function animatePosterChange(element, newItem, animationType) {
             const img = element.querySelector('img');
             if (!img) return;
             
-            console.log(`[WALLART] Starting ${animationType} animation for poster`);
+            console.log(`[WALLART] Starting ${animationType} animation for poster: ${newItem.title}`);
             
-            // Add animating class for overflow control
-            element.classList.add('animating');
-            
-            // Simple, reliable animations that always work
-            switch (animationType) {
-                case 'fade':
-                    // Clear any existing transform and set opacity transition
-                    img.style.transform = 'scale(1.05)';
-                    img.style.transition = 'opacity 1.2s ease-in-out';
+            // Start with just a simple, reliable fade animation
+            if (animationType === 'fade') {
+                // Step 1: Fade out current image
+                img.style.transition = 'opacity 0.5s ease-in-out';
+                img.style.opacity = '0';
+                
+                // Step 2: After fade out, change image and fade in
+                setTimeout(() => {
+                    img.src = newItem.posterUrl || '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                    img.alt = newItem.title || 'Movie Poster';
+                    
+                    // Step 3: Fade in new image
+                    setTimeout(() => {
+                        img.style.opacity = '1';
+                        console.log(`[WALLART] Fade animation completed for: ${newItem.title}`);
+                    }, 50);
+                }, 500);
+            } else if (animationType === 'slideLeft') {
+                // Reset any existing transition first
+                img.style.transition = 'none';
+                img.style.transform = 'scale(1.05) translateX(0px)';
+                
+                // Force reflow
+                img.offsetHeight;
+                
+                // Step 1: Slide out to the left with fade
+                img.style.transition = 'all 0.6s ease-in-out';
+                img.style.opacity = '0';
+                img.style.transform = 'scale(1.05) translateX(-100px)';
+                
+                // Step 2: Change image and slide in from right
+                setTimeout(() => {
+                    img.src = newItem.posterUrl || '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                    img.alt = newItem.title || 'Movie Poster';
+                    
+                    // Position image off-screen right (no transition)
+                    img.style.transition = 'none';
+                    img.style.transform = 'scale(1.05) translateX(100px)';
                     img.style.opacity = '0';
                     
+                    // Force reflow
+                    img.offsetHeight;
+                    
+                    // Step 3: Slide in from right
+                    img.style.transition = 'all 0.6s ease-out';
                     setTimeout(() => {
-                        img.src = newItem.posterUrl || transparentPixel;
-                        img.alt = newItem.title || 'Movie Poster';
-                        
-                        setTimeout(() => {
-                            img.style.opacity = '1';
-                        }, 100);
-                        
-                        setTimeout(() => {
-                            element.classList.remove('animating');
-                        }, 1300);
-                    }, 600);
-                    break;
+                        img.style.opacity = '1';
+                        img.style.transform = 'scale(1.05) translateX(0px)';
+                        console.log(`[WALLART] SlideLeft animation completed for: ${newItem.title}`);
+                    }, 50);
+                }, 600);
+            } else if (animationType === 'slideUp') {
+                // Reset any existing transition first
+                img.style.transition = 'none';
+                img.style.transform = 'scale(1.05) translateY(0px)';
+                
+                // Force reflow
+                img.offsetHeight;
+                
+                // Step 1: Slide up and fade out
+                img.style.transition = 'all 0.6s ease-in-out';
+                img.style.opacity = '0';
+                img.style.transform = 'scale(1.05) translateY(-100px)';
+                
+                // Step 2: Change image and slide in from bottom
+                setTimeout(() => {
+                    img.src = newItem.posterUrl || '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                    img.alt = newItem.title || 'Movie Poster';
                     
-                case 'slideLeft':
-                    // Simpler slide using only opacity and a slight transform
-                    img.style.transition = 'all 1.2s ease-in-out';
-                    img.style.opacity = '0';
-                    img.style.transform = 'scale(1.05) translateX(-20px)';
-                    
-                    setTimeout(() => {
-                        img.src = newItem.posterUrl || transparentPixel;
-                        img.alt = newItem.title || 'Movie Poster';
-                        img.style.transform = 'scale(1.05) translateX(20px)';
-                        
-                        setTimeout(() => {
-                            img.style.opacity = '1';
-                            img.style.transform = 'scale(1.05) translateX(0px)';
-                        }, 100);
-                        
-                        setTimeout(() => {
-                            element.classList.remove('animating');
-                        }, 1300);
-                    }, 600);
-                    break;
-                    
-                case 'slideUp':
-                    // Simpler slide using only opacity and a slight transform  
-                    img.style.transition = 'all 1.2s ease-in-out';
-                    img.style.opacity = '0';
-                    img.style.transform = 'scale(1.05) translateY(-20px)';
-                    
-                    setTimeout(() => {
-                        img.src = newItem.posterUrl || transparentPixel;
-                        img.alt = newItem.title || 'Movie Poster';
-                        img.style.transform = 'scale(1.05) translateY(20px)';
-                        
-                        setTimeout(() => {
-                            img.style.opacity = '1';
-                            img.style.transform = 'scale(1.05) translateY(0px)';
-                        }, 100);
-                        
-                        setTimeout(() => {
-                            element.classList.remove('animating');
-                        }, 1300);
-                    }, 600);
-                    break;
-                    
-                case 'zoom':
-                    // Scale animation from small to normal
-                    img.style.transition = 'all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                    img.style.opacity = '0';
-                    img.style.transform = 'scale(0.8)';
-                    
-                    setTimeout(() => {
-                        img.src = newItem.posterUrl || transparentPixel;
-                        img.alt = newItem.title || 'Movie Poster';
-                        
-                        setTimeout(() => {
-                            img.style.opacity = '1';
-                            img.style.transform = 'scale(1.05)';
-                        }, 100);
-                        
-                        setTimeout(() => {
-                            element.classList.remove('animating');
-                        }, 1300);
-                    }, 600);
-                    break;
-                    
-                case 'flip':
-                    // Simpler rotation effect
-                    img.style.transition = 'all 1.2s ease-in-out';
-                    img.style.opacity = '0';
-                    img.style.transform = 'scale(1.05) rotateY(15deg)';
-                    
-                    setTimeout(() => {
-                        img.src = newItem.posterUrl || transparentPixel;
-                        img.alt = newItem.title || 'Movie Poster';
-                        img.style.transform = 'scale(1.05) rotateY(-15deg)';
-                        
-                        setTimeout(() => {
-                            img.style.opacity = '1';
-                            img.style.transform = 'scale(1.05) rotateY(0deg)';
-                        }, 100);
-                        
-                        setTimeout(() => {
-                            element.classList.remove('animating');
-                        }, 1300);
-                    }, 600);
-                    break;
-                    
-                default:
-                    // Simple fade fallback
-                    img.style.transform = 'scale(1.05)';
-                    img.style.transition = 'opacity 0.8s ease';
+                    // Position image off-screen bottom (no transition)
+                    img.style.transition = 'none';
+                    img.style.transform = 'scale(1.05) translateY(100px)';
                     img.style.opacity = '0';
                     
+                    // Force reflow
+                    img.offsetHeight;
+                    
+                    // Step 3: Slide in from bottom
+                    img.style.transition = 'all 0.6s ease-out';
                     setTimeout(() => {
-                        img.src = newItem.posterUrl || transparentPixel;
-                        img.alt = newItem.title || 'Movie Poster';
-                        
-                        setTimeout(() => {
-                            img.style.opacity = '1';
-                        }, 100);
-                        
-                        setTimeout(() => {
-                            element.classList.remove('animating');
-                        }, 900);
-                    }, 400);
+                        img.style.opacity = '1';
+                        img.style.transform = 'scale(1.05) translateY(0px)';
+                        console.log(`[WALLART] SlideUp animation completed for: ${newItem.title}`);
+                    }, 50);
+                }, 600);
+            } else if (animationType === 'zoom') {
+                // Reset any existing transition first
+                img.style.transition = 'none';
+                img.style.transform = 'scale(1.05)';
+                
+                // Force reflow
+                img.offsetHeight;
+                
+                // Step 1: Scale down and fade out
+                img.style.transition = 'all 0.5s ease-in';
+                img.style.opacity = '0';
+                img.style.transform = 'scale(0.7)';
+                
+                // Step 2: Change image and zoom in
+                setTimeout(() => {
+                    img.src = newItem.posterUrl || '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                    img.alt = newItem.title || 'Movie Poster';
+                    
+                    // Start very small (no transition)
+                    img.style.transition = 'none';
+                    img.style.transform = 'scale(0.3)';
+                    img.style.opacity = '0';
+                    
+                    // Force reflow
+                    img.offsetHeight;
+                    
+                    // Step 3: Zoom in with bounce effect
+                    img.style.transition = 'all 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                    setTimeout(() => {
+                        img.style.opacity = '1';
+                        img.style.transform = 'scale(1.05)';
+                        console.log(`[WALLART] Zoom animation completed for: ${newItem.title}`);
+                    }, 50);
+                }, 500);
+            } else if (animationType === 'flip') {
+                // Reset any existing transition first
+                img.style.transition = 'none';
+                img.style.transform = 'scale(1.05) rotateY(0deg)';
+                
+                // Force reflow
+                img.offsetHeight;
+                
+                // Step 1: Flip away and fade out
+                img.style.transition = 'all 0.4s ease-in';
+                img.style.opacity = '0';
+                img.style.transform = 'scale(1.05) rotateY(90deg)';
+                
+                // Step 2: Change image and flip in
+                setTimeout(() => {
+                    img.src = newItem.posterUrl || '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                    img.alt = newItem.title || 'Movie Poster';
+                    
+                    // Start flipped away (no transition)
+                    img.style.transition = 'none';
+                    img.style.transform = 'scale(1.05) rotateY(-90deg)';
+                    img.style.opacity = '0';
+                    
+                    // Force reflow
+                    img.offsetHeight;
+                    
+                    // Step 3: Flip in from other side
+                    img.style.transition = 'all 0.5s ease-out';
+                    setTimeout(() => {
+                        img.style.opacity = '1';
+                        img.style.transform = 'scale(1.05) rotateY(0deg)';
+                        console.log(`[WALLART] Flip animation completed for: ${newItem.title}`);
+                    }, 50);
+                }, 400);
+            } else {
+                // For now, fallback to instant change for other animation types
+                console.log(`[WALLART] Animation type "${animationType}" not implemented yet, using instant change`);
+                img.src = newItem.posterUrl || '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                img.alt = newItem.title || 'Movie Poster';
             }
         }
         
@@ -690,11 +734,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             wallartRefreshTimeout = null;
         }
         
-        // Initialize grid and start single poster refresh cycle
+        // Initialize grid and start single poster refresh cycle (if enabled)
         initializeWallartGrid();
         
-        // Start the single poster refresh cycle with initial delay
-        wallartRefreshTimeout = setTimeout(refreshSinglePoster, refreshInterval);
+        // Only start auto-refresh if enabled
+        if (wallartConfig.autoRefresh !== false) {
+            // Use exponential random variation for initial start too
+            const randomFactor = Math.random() * Math.random();
+            const isNegative = Math.random() < 0.5;
+            const initialRandomVariation = (isNegative ? -1 : 1) * randomFactor * maxRandomVariation;
+            const initialInterval = Math.max(200, refreshInterval + initialRandomVariation);
+            
+            console.log(`[WALLART] Starting auto-refresh in ${Math.round(initialInterval)}ms (variation: ${Math.round(initialRandomVariation)}ms)`);
+            wallartRefreshTimeout = setTimeout(refreshSinglePoster, initialInterval);
+        }
     }
 
     function getRandomMediaItems(count) {
