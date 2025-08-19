@@ -229,6 +229,21 @@ body.no-media-background {
     transform: translate(-50%, -50%) scale(1);
 }
 
+/* FORCE promo box to be visible and on top for promo site */
+body.promo-site #promo-box {
+    display: block !important;
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) scale(1) !important;
+    z-index: 99999 !important;
+    visibility: visible !important;
+}
+
+body.promo-site #promo-box.is-hidden {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
 .promo-logo {
     margin: 0 auto 25px auto;
     width: 60px;

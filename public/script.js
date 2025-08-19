@@ -131,11 +131,37 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             appConfig = await configResponse.json();
 
+            // Check for promo site config override (forced screensaver mode)
+            if (window.CONFIG_OVERRIDE) {
+                console.log('Applying promo site config override');
+                appConfig = { ...appConfig, ...window.CONFIG_OVERRIDE };
+            }
+
             // Logic for the public site promo box.
             // The server injects `isPublicSite: true` into the config for the public-facing server.
             if (appConfig.isPublicSite) {
+                console.log('[Promo Site] Configuring promo site display');
+                
+                // Add promo-site class to body for CSS targeting
+                document.body.classList.add('promo-site');
+                
                 const promoBox = document.getElementById('promo-box');
-                if (promoBox) promoBox.classList.remove('is-hidden');
+                if (promoBox) {
+                    promoBox.classList.remove('is-hidden');
+                    console.log('[Promo Site] Promo box enabled and made visible');
+                } else {
+                    console.warn('[Promo Site] Promo box element not found');
+                }
+                
+                // Force screensaver mode on promo site
+                console.log('[Promo Site] Forcing screensaver mode');
+                document.body.classList.add('screensaver-mode');
+                
+                // Ensure poster and info elements are visible
+                const infoContainer = document.getElementById('info-container');
+                const posterWrapper = document.getElementById('poster-wrapper');
+                if (infoContainer) infoContainer.style.display = 'block';
+                if (posterWrapper) posterWrapper.style.display = 'block';
             }
 
         } catch (e) {
@@ -187,6 +213,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Apply wallart mode
         applyWallartMode(appConfig);
     }
+
+    // Export initialize function for external use (promo site)
+    window.initializeApp = initialize;
 
     function applyUIScaling(config) {
         // Apply UI scaling from configuration
@@ -240,12 +269,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function applyWallartMode(config) {
-        // Check if this is the public site (promobox site)
-        if (config && config.isPublicSite) {
-            console.log('[Promobox Site] Wallart mode disabled - public site detected');
-            return; // Exit completely - no wallart mode on promobox site
-        }
-        
         const body = document.body;
         
         // Remove any existing wallart mode classes

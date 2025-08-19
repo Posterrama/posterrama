@@ -1,30 +1,8 @@
 <!DOCTYPE html>
-<!-- posterrama.app | Author: Posterrama Team | License: GPL-3.0-or-later -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Posterrama - Self-Hosted Digital Movie Poster App & Cinema Display</title>
-    <meta name="description" content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays. Self-hosted, open-source, and perfect for home theaters and media rooms.">
-    <meta name="keywords" content="movie poster app, digital movie posters, cinema display, screensaver, self-hosted media, home theater, plex companion, media collection, movie library, tv show posters, digital signage, media server, personal cinema, movie collection display, film poster screensaver, home cinema automation, media room display, raspberry pi media, kodi alternative, emby companion, jellyfin integration, movie artwork display, poster slideshow, cinema mode app, home theater software, media center display, digital photo frame movies, auto movie posters">
-    <meta name="author" content="Posterrama Team">
-    <meta name="robots" content="index, follow">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://posterrama.app/">
-    <meta property="og:title" content="Posterrama - Self-Hosted Digital Movie Poster App">
-    <meta property="og:description" content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays. Self-hosted and open-source.">
-    <meta property="og:site_name" content="Posterrama">
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://posterrama.app/">
-    <meta property="twitter:title" content="Posterrama - Self-Hosted Digital Movie Poster App">
-    <meta property="twitter:description" content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays.">
-    
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://posterrama.app/">
+    <title>Posterrama - Promo Site</title>
     
     <!-- Preconnects for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,66 +12,114 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
-    <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20250819a">
-    
-    <!-- Clean wallart mode styles -->
+    <link rel="stylesheet" href="style.css?v=20250819b">
     <style>
-        /* Hide everything in wallart mode */
+        #loader { display: none !important; }
+        
+        /* FORCE promo box to be visible - ALWAYS override any script changes */
+        #promo-box {
+            display: block !important;
+            opacity: 1 !important;
+            transform: translate(-50%, -50%) scale(1) !important;
+            z-index: 99999 !important;
+            visibility: visible !important;
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+        }
+        
+        /* COMPLETELY BLOCK wallart mode on promo site */
         body.wallart-mode #poster-wrapper,
         body.wallart-mode #layer-a,
         body.wallart-mode #layer-b,
         body.wallart-mode #background-image,
         body.wallart-mode .background-layer,
-        body.wallart-mode #clearlogo,
-        body.wallart-mode #clear-logo,
+        body.wallart-mode #clearlogo-container,
         body.wallart-mode #info-container,
         body.wallart-mode #controls-container,
         body.wallart-mode #widget-container,
-        body.wallart-mode #promo-box {
-            display: none !important;
+        body.cinema-mode #poster-wrapper,
+        body.cinema-mode #layer-a,
+        body.cinema-mode #layer-b,
+        body.cinema-mode #background-image,
+        body.cinema-mode .background-layer,
+        body.cinema-mode #clearlogo-container,
+        body.cinema-mode #info-container,
+        body.cinema-mode #controls-container,
+        body.cinema-mode #widget-container {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
         }
-    </style>    <!-- Structured Data / JSON-LD -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Posterrama",
-        "description": "Self-hosted digital movie poster app that transforms your screens into personal cinemas and elegant screensavers",
-        "url": "https://posterrama.app",
-        "downloadUrl": "https://github.com/Posterrama/posterrama",
-        "operatingSystem": "Linux, Windows, macOS",
-        "applicationCategory": "MultimediaApplication",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD"
-        },
-        "creator": {
-            "@type": "Organization",
-            "name": "Posterrama Team",
-            "url": "https://github.com/Posterrama"
-        },
-        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
-        "softwareVersion": "1.3.0",
-        "requirements": "Docker, Node.js, Media Server (Plex)",
-        "featureList": [
-            "Digital Movie Poster Display",
-            "Cinema Mode for Portrait Screens", 
-            "Elegant Screensavers",
-            "Self-Hosted Media Management",
-            "Plex Integration",
-            "Multiple Display Support",
-            "Responsive Design"
-        ]
-    }
+        
+        /* Let main site CSS handle all layer and info-container animations */
+        /* DON'T force visibility on layers - they need to transition */
+    </style>
+    
+    <script>
+        // Minimal promo site setup - don't interfere with layer transitions
+        function setupPromoSite() {
+            // Set body classes
+            document.body.classList.remove('wallart-mode', 'cinema-mode');
+            document.body.classList.add('screensaver-mode', 'promo-site');
+            
+            // Show promo box only
+            const promoBox = document.getElementById('promo-box');
+            if (promoBox) {
+                promoBox.style.display = 'block';
+                promoBox.style.opacity = '1';
+                promoBox.style.visibility = 'visible';
+                promoBox.classList.remove('is-hidden');
+            }
+            
+            // Setup controls auto-hide (one time only)
+            const controlsContainer = document.getElementById('controls-container');
+            if (controlsContainer && !window._controlsSetup) {
+                window._controlsSetup = true;
+                
+                let controlsTimer = null;
+                
+                function showControls() {
+                    controlsContainer.classList.add('visible');
+                    document.body.style.cursor = 'default';
+                    clearTimeout(controlsTimer);
+                    controlsTimer = setTimeout(() => {
+                        controlsContainer.classList.remove('visible');
+                        document.body.style.cursor = 'none';
+                    }, 3000);
+                }
+                
+                document.body.addEventListener('mousemove', showControls);
+                document.body.addEventListener('touchstart', showControls, { passive: true });
+                showControls();
+            }
+        }
+        
+        // Block mode functions
+        window.showWallartMode = () => setupPromoSite();
+        window.showCinemaMode = () => setupPromoSite();
+        
+        // Initialize
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupPromoSite);
+        } else {
+            setupPromoSite();
+        }
+        
+        window.addEventListener('load', setupPromoSite);
+        
+        // Very minimal check - only body classes
+        setInterval(() => {
+            if (!document.body.classList.contains('screensaver-mode')) {
+                document.body.classList.add('screensaver-mode', 'promo-site');
+            }
+        }, 15000);
     </script>
 </head>
 <body>
-    <div id="loader"></div>
+    <div id="loader" style="display: none;"></div>
     <div id="error-message" class="is-hidden"></div>
 
-    <!-- Promo Box for the /site page -->
     <main id="promo-box" class="is-hidden" style="display: none;">
         <header class="promo-logo">
             <svg role="img" aria-label="Posterrama Digital Movie Poster App Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2H16L14 22H4L6 2Z"/><path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6;"/></svg>
@@ -136,6 +162,7 @@
 
     <div id="layer-a" class="screensaver-layer"></div>
     <div id="layer-b" class="screensaver-layer"></div>
+    <div id="background-image"></div>
 
     <div id="widget-container">
         <div id="time-widget">
@@ -151,10 +178,9 @@
 
     <div id="info-container">
         <div id="poster-wrapper">
-            <a id="poster-link" href="#" target="_blank" rel="noopener noreferrer">
+            <a id="poster-link" href="#" target="_blank">
                 <div id="poster-a" class="poster-layer"></div>
                 <div id="poster-b" class="poster-layer"></div>
-                <!-- Keep original poster for backward compatibility -->
                 <div id="poster"></div>
             </a>
         </div>
@@ -187,6 +213,6 @@
         </a>
     </div>
 
-            <script src="script.js?v=20250819a"></script>
+    <script src="script.js?v=20250819b"></script>
 </body>
 </html>

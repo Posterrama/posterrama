@@ -93,7 +93,7 @@ a:hover {
     align-items: center;
     justify-content: space-between;
     z-index: 1000;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    box-shadow: 2px 4px 20px rgba(0, 0, 0, 0.6);
     width: calc(100% - 180px); /* Dynamic width accounting for sidebar */
     position: fixed;
     top: 0;
@@ -259,8 +259,9 @@ a:hover {
     position: fixed; /* Keep sidebar fixed on the left */
     top: 0; /* Start from the very top - header will be on top */
     left: 0;
-    z-index: 120; /* Above overlays/background, below header */
+    z-index: 1100; /* Above header (1000) and overlays/background */
     flex-shrink: 0; /* Prevent shrinking */
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.6); /* Drop shadow to the right */
 }
 
 .sidebar.collapsed {
@@ -521,6 +522,22 @@ a:hover {
     background-clip: text;
     font-weight: 700;
     font-size: 1.4rem;
+    text-align: center;
+}
+
+.sidebar-logo .logo-text .admin-text {
+    font-family: 'Orbitron', 'Courier New', monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #b3b3b3 !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: #b3b3b3 !important;
+    background-clip: unset !important;
+    display: block;
+    text-align: center;
+    padding-left: 1.5rem;
 }
 
 .sidebar-toggle {
