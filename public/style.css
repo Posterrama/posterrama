@@ -53,6 +53,13 @@ html, body {
     display: none !important;
 }
 
+/* Force metadata hiding when disabled - extra specificity */
+#text-wrapper.is-hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
 /* --- Loader & Error Message --- */
 #loader {
     position: fixed;
@@ -571,7 +578,7 @@ body.promo-site #promo-box.is-hidden {
     transition: opacity 0.8s ease-out, transform 0.8s ease-out;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
     padding-bottom: 50px;
-    overflow: hidden; /* Prevent elements from overflowing */
+    overflow: visible; /* Allow shadows to be visible */
 }
 
 #info-container.visible {
@@ -589,6 +596,8 @@ body.promo-site #promo-box.is-hidden {
     height: calc(270px * var(--content-scale)); /* Dynamic height based on scaling */
     min-width: 180px; /* Minimum width for base poster */
     width: calc(180px * var(--content-scale)); /* Dynamic width to accommodate scaling */
+    padding-left: 15px; /* Extra space for left shadow */
+    width: calc(180px * var(--content-scale)); /* Dynamic width to accommodate scaling */
 }
 
 #poster {
@@ -603,6 +612,17 @@ body.promo-site #promo-box.is-hidden {
     box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45); /* Shadow less high and a bit more subtle */
     transform: scale(var(--content-scale));
     transform-origin: bottom left;
+}
+
+/* Enhanced drop shadow for screensaver mode */
+body.screensaver-mode #poster {
+    box-shadow: -8px 15px 30px rgba(0, 0, 0, 0.6); /* Left and bottom shadow for depth */
+}
+
+/* Extra space for shadow in screensaver mode */
+body.screensaver-mode #poster-wrapper {
+    padding-left: 20px; /* More space for left shadow */
+    margin-left: -10px; /* Compensate positioning */
 }
 
 /* Poster layers for smooth transitions in cinema mode */

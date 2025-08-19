@@ -171,13 +171,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         await fetchMedia(true);
+        
+        // Check poster visibility
         if (appConfig.showPoster === false) {
             infoContainer.classList.add('is-hidden');
         } else {
-            // Poster is shown, now check metadata
-            if (appConfig.showMetadata === false) {
-                textWrapper.classList.add('is-hidden');
-            }
+            infoContainer.classList.remove('is-hidden');
+        }
+        
+        // Check metadata visibility (independent of poster)
+        if (appConfig.showMetadata === false) {
+            textWrapper.classList.add('is-hidden');
+            console.log('🔍 [INIT] Metadata disabled - hiding text-wrapper');
+        } else {
+            textWrapper.classList.remove('is-hidden');
+            console.log('🔍 [INIT] Metadata enabled - showing text-wrapper');
         }
 
         if (appConfig.clockWidget) {
@@ -1444,6 +1452,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
         }
         
+        // Check if poster should be shown
+        if (appConfig.showPoster === false) {
+            infoContainer.classList.add('is-hidden');
+        } else {
+            infoContainer.classList.remove('is-hidden');
+        }
+        
         // In cinema mode, disable all poster links
         if (appConfig.cinemaMode) {
             posterLink.removeAttribute('href');
@@ -1522,9 +1537,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update document title using the dedicated function
         updateDocumentTitle(mediaItem);
         
-        taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
-        yearEl.style.display = mediaItem.year ? 'inline' : 'none';
-        ratingEl.style.display = (ratingText || streamingProvider) ? 'inline' : 'none';
+        // Check if metadata should be shown
+        console.log('🔍 [RENDER] appConfig.showMetadata:', appConfig.showMetadata);
+        if (appConfig.showMetadata === false) {
+            textWrapper.classList.add('is-hidden');
+            console.log('🔍 [RENDER] Metadata disabled - hiding text-wrapper, classes:', textWrapper.classList.toString());
+            console.log('🔍 [RENDER] text-wrapper computed style display:', window.getComputedStyle(textWrapper).display);
+        } else {
+            textWrapper.classList.remove('is-hidden');
+            console.log('🔍 [RENDER] Metadata enabled - showing text-wrapper, classes:', textWrapper.classList.toString());
+            taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
+            yearEl.style.display = mediaItem.year ? 'inline' : 'none';
+            ratingEl.style.display = (ratingText || streamingProvider) ? 'inline' : 'none';
+        }
 
         if (appConfig.showClearLogo && mediaItem.clearLogoUrl) {
             clearlogoEl.src = mediaItem.clearLogoUrl;

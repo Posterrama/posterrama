@@ -7147,12 +7147,28 @@ if (require.main === module) {
                 if (isDebug) console.log(`[Site Server Proxy] Forwarding request to: ${targetUrl}`);
                 const response = await fetch(targetUrl);
 
-                // Intercept /get-config to add a flag indicating this is the public site.
-                // The client-side script can use this flag to show specific elements, like a promo box.
+                // Intercept /get-config to add flags for the promo site.
+                // Force screensaver mode + promo box for the public site (port 4001)
                 if (req.originalUrl === '/get-config' && response.ok) {
                     if (isDebug) console.log(`[Site Server Proxy] Modifying response for /get-config`);
                     const originalConfig = await response.json();
-                    const modifiedConfig = { ...originalConfig, isPublicSite: true };
+                    const modifiedConfig = { 
+                        ...originalConfig, 
+                        isPublicSite: true,
+                        // Force screensaver settings for promo site
+                        showPoster: true,
+                        autoTransition: true,
+                        transitionIntervalSeconds: 8,
+                        // Force promo box to be visible
+                        promoBoxEnabled: true,
+                        // Disable wallart mode on promo site
+                        wallartMode: {
+                            ...originalConfig.wallartMode,
+                            enabled: false
+                        },
+                        // Force screensaver-like behavior
+                        cinemaMode: false
+                    };
                     // We send the modified JSON and stop further processing for this request.
                     return res.json(modifiedConfig);
                 }
@@ -7179,13 +7195,19 @@ if (require.main === module) {
         siteApp.get('/get-media-by-key/:key', proxyApiRequest);
         siteApp.get('/image', proxyApiRequest);
 
+        // A catch-all route to serve the index.html with promo box enabled for the public site.
+        // This shows the marketing/promo content instead of the app interface.
+        // IMPORTANT: This must come BEFORE express.static to override index.html
+        siteApp.get('/', (req, res) => {
+            res.sendFile(path.join(__dirname, 'public', 'promo.html'));
+        });
+
         // Serve static files (CSS, JS, etc.) from the 'public' directory
         siteApp.use(express.static(path.join(__dirname, 'public')));
 
-        // A catch-all route to serve the main index.html for any other GET request.
-        // This is crucial for single-page applications (SPAs) to handle client-side routing.
+        // Fallback for other routes
         siteApp.get('*', (req, res) => {
-            res.sendFile(path.join(__dirname, 'public', 'index.html'));
+            res.sendFile(path.join(__dirname, 'public', 'promo.html'));
         });
 
         siteApp.listen(sitePort, () => {
