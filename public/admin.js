@@ -369,22 +369,42 @@ function updateHelpContent(sectionId) {
     updateHelpContentForced(sectionId);
 }
 
+function updateRefreshRateLabel(value) {
+    const label = document.getElementById('wallartRefreshRate-value');
+    if (label) {
+        const descriptions = {
+            1: 'Very slow (25 seconds)',
+            2: 'Slow (22 seconds)', 
+            3: 'Relaxed (19 seconds)',
+            4: 'Moderate (16 seconds)',
+            5: 'Medium (13 seconds)',
+            6: 'Active (10 seconds)',
+            7: 'Quick (7 seconds)',
+            8: 'Fast (5 seconds)',
+            9: 'Very fast (3 seconds)',
+            10: 'Extremely fast (2 seconds)'
+        };
+        label.textContent = descriptions[value] || descriptions[5];
+    }
+}
+
 function updateRandomnessLabel(value) {
     const label = document.getElementById('wallartRandomness-value');
     if (label) {
         const descriptions = {
-            1: 'Very slow & calm',
-            2: 'Slow & calm',
-            3: 'Relaxed pace',
-            4: 'Moderate pace',
-            5: 'Medium refresh rate',
-            6: 'Active pace',
-            7: 'Quick pace',
-            8: 'Fast & dynamic',
-            9: 'Very fast & dynamic',
-            10: 'Extremely dynamic'
+            0: 'No randomness (exact timing)',
+            1: 'Minimal variation',
+            2: 'Slight variation',
+            3: 'Low randomness',
+            4: 'Moderate randomness',
+            5: 'Medium randomness',
+            6: 'High randomness',
+            7: 'Very random',
+            8: 'Highly unpredictable', 
+            9: 'Maximum variation',
+            10: 'Chaos mode'
         };
-        label.textContent = descriptions[value] || 'Medium refresh rate';
+        label.textContent = descriptions[value] || descriptions[3];
     }
 }
 
@@ -499,11 +519,14 @@ function getHelpContentForSection(sectionId) {
                     title: 'Wallart Mode - Multi-Poster Grid',
                     description: 'Display multiple posters in a dynamic grid layout that automatically fills your screen.',
                     details: [
-                        'Wallart Mode displays multiple posters in a dynamic grid layout, automatically calculating the optimal number of posters to fill your screen while preserving original aspect ratios',
-                        'Poster Density: Controls how many posters fit on screen - Few (larger posters, less crowded), Medium (balanced grid layout), Many (smaller posters, more crowded)',
-                        'Poster Refresh Rate: Controls animation speed from Very slow & calm to Extremely dynamic',
-                        'Animation Type: Choose between Fade (smooth opacity transition), Slide Left/Up (directional movement), Zoom (scale in effect), or Flip (3D flip effect)',
+                        'Wallart Mode intelligently calculates the perfect poster grid to completely fill your screen with zero wasted space, automatically adjusting for any screen size or orientation',
+                        'Poster Density: Controls the relative number of posters - Few (60% of optimal, larger posters), Medium (100% of optimal, balanced), Many (150% of optimal, smaller posters)',
+                        'Screen-Filling Algorithm: Automatically determines the best grid layout (columns × rows) to eliminate empty space while maintaining poster proportions',
+                        'Poster Refresh Rate: Controls how fast posters change - from very slow (25 seconds) to extremely fast (2 seconds)',
+                        'Timing Randomness: Adds variation to the refresh timing - 0 means exact timing, higher values add more unpredictability. Smart scaling prevents chaos at high refresh rates.',
+                        'Animation Type: Choose between Random (uses all animation types), Fade (smooth opacity transition), Slide Left/Up (directional movement), Zoom (scale in effect), or Flip (3D flip effect)',
                         'Auto Refresh: Automatically cycles through your entire poster collection',
+                        'Responsive Design: Automatically recalculates grid layout when window is resized',
                         'Perfect for: Art galleries, waiting rooms, digital wallpaper, or ambient displays'
                     ]
                 },
@@ -709,8 +732,7 @@ function getHelpContentForSection(sectionId) {
                     details: [
                         'Restart Application: Safely restart Posterrama to apply changes or fix issues',
                         'Status Check: View detailed system health including memory usage, uptime, and API status',
-                        'Performance Monitor: Real-time performance metrics including CPU and memory usage',
-                        'All controls provide visual feedback and status updates'
+                        'Performance Monitor: Real-time performance metrics including CPU and memory usage'
                     ]
                 },
                 {
@@ -1540,17 +1562,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const wallartMode = config.wallartMode ?? defaults.wallartMode ?? { 
             enabled: false, 
             density: 'medium', 
-            randomness: 5,
+            refreshRate: 5,
+            randomness: 3,
             animationType: 'fade'
         };
         document.getElementById('wallartModeEnabled').checked = wallartMode.enabled;
         document.getElementById('wallartDensity').value = wallartMode.density ?? 'medium';
-        document.getElementById('wallartRandomness').value = wallartMode.randomness ?? 5;
+        document.getElementById('wallartRefreshRate').value = wallartMode.refreshRate ?? wallartMode.randomness ?? 5; // Backward compatibility
+        document.getElementById('wallartRandomness').value = wallartMode.randomness ?? 3;
         document.getElementById('wallartAnimationType').value = wallartMode.animationType ?? 'fade';
         document.getElementById('wallartAutoRefresh').checked = wallartMode.autoRefresh !== false;
         
-        // Update randomness label
-        updateRandomnessLabel(wallartMode.randomness ?? 5);
+        // Update slider labels
+        updateRefreshRateLabel(wallartMode.refreshRate ?? wallartMode.randomness ?? 5);
+        updateRandomnessLabel(wallartMode.randomness ?? 3);
         
         // Handle backward compatibility: convert old kenBurnsEffect to new transitionEffect
         let transitionEffect = config.transitionEffect ?? defaults.transitionEffect;
@@ -2344,10 +2369,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (!apiKey && !isApiKeyStored) {
-                if (statusElement) {
-                    statusElement.textContent = 'Please enter an API key first.';
-                    statusElement.style.color = '#ff6b6b';
-                }
+                showNotification('Please enter an API key first.', 'error');
                 return;
             }
 
@@ -2478,6 +2500,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const region = regionField?.value || 'US';
                 
+                // Check if TMDB API key is available (streaming uses TMDB)
+                const apiKeyField = document.getElementById('tmdbSource.apiKey');
+                const isApiKeyStored = apiKeyField?.dataset?.apiKeySet === 'true';
+                const apiKey = apiKeyField?.value?.trim() || '';
+                
+                if (!apiKey && !isApiKeyStored) {
+                    showNotification('Please enter a TMDB API key first.', 'error');
+                    return;
+                }
+                
                 // Test TMDB API (streaming uses TMDB)
                 const response = await fetch('/api/admin/test-tmdb', {
                     method: 'POST',
@@ -2498,17 +2530,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         statusElement.textContent = `✅ Streaming API ready! Region: ${region}`;
                         statusElement.style.color = '#51cf66';
                     }
+                    showNotification(`Streaming connection successful! Region: ${region}`, 'success');
                 } else {
                     if (statusElement) {
                         statusElement.textContent = `❌ Connection failed: ${result.error || 'Unknown error'}`;
                         statusElement.style.color = '#ff6b6b';
                     }
+                    showNotification(`Streaming connection failed: ${result.error || 'Unknown error'}`, 'error');
                 }
             } catch (error) {
                 if (statusElement) {
                     statusElement.textContent = `❌ Test failed: ${error.message}`;
                     statusElement.style.color = '#ff6b6b';
                 }
+                showNotification(`Streaming test failed: ${error.message}`, 'error');
             } finally {
                 // Restore button state
                 testButton.disabled = false;
@@ -4228,6 +4263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     wallartMode: {
                         enabled: getValue('wallartModeEnabled'),
                         density: getValue('wallartDensity'),
+                        refreshRate: getValue('wallartRefreshRate', 'number'),
                         randomness: getValue('wallartRandomness', 'number'),
                         animationType: getValue('wallartAnimationType'),
                         autoRefresh: getValue('wallartAutoRefresh')
@@ -5024,6 +5060,14 @@ function setupCacheConfigEventListeners() {
                 updateRandomnessLabel(randomnessSlider.value);
             });
         }
+        
+        // Setup refresh rate slider
+        const refreshRateSlider = document.getElementById('wallartRefreshRate');
+        if (refreshRateSlider) {
+            refreshRateSlider.addEventListener('input', () => {
+                updateRefreshRateLabel(refreshRateSlider.value);
+            });
+        }
     }
 
     function toggleWallartModeSettings(isWallartMode) {
@@ -5631,11 +5675,10 @@ async function testTVDBConnection() {
                 showNotification('TVDB connection successful, but genres could not be loaded', 'error');
             }
         } else {
-            throw new Error(result.error || 'Connection test failed');
+            showNotification(`TVDB connection failed: ${result.error || 'Connection test failed'}`, 'error');
+            return; // Don't show success status, just the toast
         }
     } catch (error) {
-        statusElement.textContent = `❌ Connection failed: ${error.message}`;
-        statusElement.style.color = '#ff6b6b';
         showNotification(`TVDB connection failed: ${error.message}`, 'error');
     } finally {
         // Re-enable button

@@ -33,13 +33,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <!-- Local CSS with versioning -->
-    <link rel="stylesheet" href="/admin.css?v=20250817b&cb=1755384925&mobilefinal=1">
+    <link rel="stylesheet" href="/admin.css?v=20250819a&cb=1755384925&mobilefinal=1">
     
     <!-- Font Awesome with SRI for security -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     
     <!-- Preload critical JavaScript -->
-    <link rel="preload" href="/admin.js?v=20250817b&cb=1755384925&mobilefinal=1" as="script">
+    <link rel="preload" href="/admin.js?v=20250819a&cb=1755384925&mobilefinal=1" as="script">
     
     <!-- IMMEDIATE desktop sidebar fix - disable toggle functionality on desktop -->
     <script>
@@ -323,23 +323,33 @@
                                         <div class="form-group">
                                             <label for="wallartDensity">Poster Density</label>
                                             <select id="wallartDensity" name="wallartMode.density">
-                                                <option value="low">Few - Larger posters, less crowded</option>
-                                                <option value="medium" selected>Medium - Balanced grid layout</option>
-                                                <option value="high">Many - Smaller posters, more crowded</option>
+                                                <option value="low">Few - 60% of screen-optimal (larger posters)</option>
+                                                <option value="medium" selected>Medium - 100% screen-optimal (balanced)</option>
+                                                <option value="high">Many - 150% of screen-optimal (smaller posters)</option>
                                             </select>
                                         </div>
                                         <div class="form-group">
-                                            <label for="wallartRandomness">Poster Refresh Rate</label>
+                                            <label for="wallartRefreshRate">Poster Refresh Rate</label>
                                             <div class="slider-wrapper">
-                                                <input type="range" id="wallartRandomness" name="wallartMode.randomness" min="1" max="10" value="5" step="1">
+                                                <input type="range" id="wallartRefreshRate" name="wallartMode.refreshRate" min="1" max="10" value="5" step="1">
                                                 <div class="slider-value-display">
-                                                    <span id="wallartRandomness-value">Medium refresh rate</span>
+                                                    <span id="wallartRefreshRate-value">Medium refresh rate</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="wallartRandomness">Timing Randomness</label>
+                                            <div class="slider-wrapper">
+                                                <input type="range" id="wallartRandomness" name="wallartMode.randomness" min="0" max="10" value="3" step="1">
+                                                <div class="slider-value-display">
+                                                    <span id="wallartRandomness-value">Low randomness</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="form-group">
                                             <label for="wallartAnimationType">Animation Type</label>
                                             <select id="wallartAnimationType" name="wallartMode.animationType">
+                                                <option value="random">Random - Uses all animation types</option>
                                                 <option value="fade" selected>Fade - Smooth opacity transition</option>
                                                 <option value="slideLeft">Slide Left - Poster slides from right</option>
                                                 <option value="slideUp">Slide Up - Poster slides from bottom</option>
@@ -1541,6 +1551,6 @@
     </div>
 
     <!-- Load admin JavaScript -->
-    <script src="/admin.js?v=20250817b&cb=1755384925&mobilefinal=1" defer></script>
+    <script src="/admin.js?v=20250819a&cb=1755384925&mobilefinal=1" defer></script>
 </body>
 </html>

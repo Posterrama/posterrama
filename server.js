@@ -49,6 +49,44 @@ const crypto = require('crypto');
 const { PassThrough } = require('stream');
 const fsp = fs.promises;
 
+// --- Auto Cache Busting ---
+let cachedVersions = {};
+let lastVersionCheck = 0;
+const VERSION_CACHE_TTL = 10000; // Cache versions for 10 seconds
+
+function generateAssetVersion(filePath) {
+    try {
+        const fullPath = path.join(__dirname, 'public', filePath);
+        const stats = fs.statSync(fullPath);
+        // Use modification time as version
+        return Math.floor(stats.mtime.getTime() / 1000).toString(36);
+    } catch (error) {
+        // Fallback to current timestamp if file doesn't exist
+        return Math.floor(Date.now() / 1000).toString(36);
+    }
+}
+
+function getAssetVersions() {
+    const now = Date.now();
+    if (now - lastVersionCheck > VERSION_CACHE_TTL) {
+        const criticalAssets = [
+            'script.js',
+            'admin.js', 
+            'style.css',
+            'admin.css'
+        ];
+        
+        criticalAssets.forEach(asset => {
+            cachedVersions[asset] = generateAssetVersion(asset);
+        });
+        
+        lastVersionCheck = now;
+        logger.debug('Asset versions refreshed:', cachedVersions);
+    }
+    
+    return cachedVersions;
+}
+
 // --- Auto-create .env if missing ---
 const envPath = path.join(__dirname, '.env');
 const exampleEnvPath = path.join(__dirname, 'config.example.env');
@@ -497,7 +535,35 @@ app.get(['/admin','/admin.html'], (req, res, next) => {
     const filePath = path.join(__dirname, 'public', 'admin.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) return next(err);
-        const stamped = contents.replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION);
+        
+        // Get current asset versions
+        const versions = getAssetVersions();
+        
+        // Replace asset version placeholders with individual file versions
+        let stamped = contents
+            .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
+            .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${versions['admin.js'] || ASSET_VERSION}`)
+            .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`);
+            
+        res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
+        res.send(stamped);
+    });
+});
+
+// Serve main index.html with automatic asset versioning
+app.get(['/', '/index.html'], (req, res, next) => {
+    const filePath = path.join(__dirname, 'public', 'index.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) return next(err);
+        
+        // Get current asset versions
+        const versions = getAssetVersions();
+        
+        // Replace asset version placeholders with individual file versions
+        let stamped = contents
+            .replace(/script\.js\?v=[^"&\s]+/g, `script.js?v=${versions['script.js'] || ASSET_VERSION}`)
+            .replace(/style\.css\?v=[^"&\s]+/g, `style.css?v=${versions['style.css'] || ASSET_VERSION}`);
+            
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
         res.send(stamped);
     });
@@ -3261,8 +3327,24 @@ app.get('/admin', (req, res) => {
  *         description: Authentication required
  */
 app.get('/admin/logs', isAuthenticated, (req, res) => {
-    // This route serves the dedicated live log viewer page.
-    res.sendFile(path.join(__dirname, 'public', 'logs.html'));
+    // This route serves the dedicated live log viewer page with auto-versioning.
+    const filePath = path.join(__dirname, 'public', 'logs.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) {
+            console.error('Error reading logs.html:', err);
+            return res.sendFile(filePath); // Fallback to static file
+        }
+        
+        // Get current asset versions
+        const versions = getAssetVersions();
+        
+        // Replace asset version placeholders with individual file versions
+        let stamped = contents
+            .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`);
+            
+        res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
+        res.send(stamped);
+    });
 });
 
 // --- API Endpoints ---
@@ -3802,7 +3884,24 @@ app.get('/admin/setup', (req, res) => {
     if (isAdminSetup()) {
         return res.redirect('/admin');
     }
-    res.sendFile(path.join(__dirname, 'public', 'setup.html'));
+    
+    const filePath = path.join(__dirname, 'public', 'setup.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) {
+            console.error('Error reading setup.html:', err);
+            return res.sendFile(filePath); // Fallback to static file
+        }
+        
+        // Get current asset versions
+        const versions = getAssetVersions();
+        
+        // Replace asset version placeholders with individual file versions
+        let stamped = contents
+            .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`);
+            
+        res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
+        res.send(stamped);
+    });
 });
 
 /**
@@ -3926,7 +4025,24 @@ app.get('/admin/login', (req, res) => {
     if (req.session.user) {
         return res.redirect('/admin');
     }
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    
+    const filePath = path.join(__dirname, 'public', 'login.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) {
+            console.error('Error reading login.html:', err);
+            return res.sendFile(filePath); // Fallback to static file
+        }
+        
+        // Get current asset versions
+        const versions = getAssetVersions();
+        
+        // Replace asset version placeholders with individual file versions
+        let stamped = contents
+            .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`);
+            
+        res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
+        res.send(stamped);
+    });
 });
 
 // Apply rate limiting to protect against brute-force password attacks.
@@ -4016,7 +4132,24 @@ app.get('/admin/2fa-verify', (req, res) => {
     if (!req.session.tfa_required) {
         return res.redirect('/admin/login');
     }
-    res.sendFile(path.join(__dirname, 'public', '2fa-verify.html'));
+    
+    const filePath = path.join(__dirname, 'public', '2fa-verify.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) {
+            console.error('Error reading 2fa-verify.html:', err);
+            return res.sendFile(filePath); // Fallback to static file
+        }
+        
+        // Get current asset versions
+        const versions = getAssetVersions();
+        
+        // Replace asset version placeholders with individual file versions
+        let stamped = contents
+            .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`);
+            
+        res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
+        res.send(stamped);
+    });
 });
 
 // Apply a stricter rate limit for 2FA code attempts.

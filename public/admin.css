@@ -83,7 +83,8 @@ a:hover {
 
 /* Header - FIXED: Remove grid-area */
 .admin-header {
-    background: linear-gradient(135deg, rgba(15, 15, 15, 0.95) 0%, rgba(25, 25, 25, 0.95) 100%);
+    /* Glass effect - no background, only blur */
+    background: transparent;
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     padding: 0 2rem;
@@ -240,9 +241,11 @@ a:hover {
 /* Sidebar */
 /* Sidebar - now fixed so it remains visible while content scrolls */
 .sidebar {
-    background: linear-gradient(180deg, rgba(10, 10, 10, 0.8) 0%, rgba(15, 15, 15, 0.8) 100%);
+    /* Glass effect - no background, only blur */
+    background: transparent;
     backdrop-filter: blur(20px);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0; /* No rounded corners at all - straight edges against screen */
     overflow-y: auto;
     overflow-x: hidden;
     color: white;
@@ -250,13 +253,13 @@ a:hover {
     transition: width 0.3s ease; /* Synchronized with header and main content */
     display: flex;
     flex-direction: column;
-    height: 100vh; /* Full viewport height */
+    height: 100vh; /* Full viewport height from top to bottom */
     will-change: width; /* Optimize for width transitions */
     transform: translateZ(0); /* Force hardware acceleration */
     position: fixed; /* Keep sidebar fixed on the left */
-    top: 0;
+    top: 0; /* Start from the very top - header will be on top */
     left: 0;
-    z-index: 120; /* Above overlays/background, below modals */
+    z-index: 120; /* Above overlays/background, below header */
     flex-shrink: 0; /* Prevent shrinking */
 }
 
@@ -1666,6 +1669,7 @@ div:nth-of-type(2).subsection-header i {
     justify-content: center;
     gap: 1.5rem;
     margin-top: 0rem;
+    /* Remove backdrop-filter from container - apply to individual elements instead */
 }
 
 .form-save-section #config-status {
@@ -1682,6 +1686,12 @@ div:nth-of-type(2).subsection-header i {
     background: rgba(148, 163, 184, 0.15);
     border: 1px solid rgba(148, 163, 184, 0.3);
     color: rgba(148, 163, 184, 1);
+    backdrop-filter: blur(10px); /* Add blur to status message */
+}
+
+/* Apply blur to save button */
+.form-save-section .btn {
+    backdrop-filter: blur(10px); /* Add blur to button */
 }
 
 /* Dynamic status message styling based on state */
@@ -3549,14 +3559,14 @@ fieldset:focus-within {
 /* Quick Help Panel */
 .quick-help-panel {
     position: fixed;
-    top: 70px;
+    top: 50px; /* Start exactly 50px from top */
     right: 0;
     width: 320px;
-    height: calc(100vh - 140px); /* 70px from top + 70px from bottom = symmetrical spacing */
-    background: linear-gradient(180deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    height: calc(100vh - 50px); /* Full height minus 50px from top */
+    /* background: linear-gradient(180deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%); */
     backdrop-filter: blur(20px);
     border-left: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px 0 0 12px; /* Rounded corners on the left side */
+    border-radius: 0; /* No rounded corners at all - straight edges against screen */
     padding: 1.5rem;
     overflow-y: auto;
     transform: translateX(100%) !important;
@@ -3571,14 +3581,14 @@ fieldset:focus-within {
 /* Mobile Navigation Panel - similar to help panel but smaller and left-positioned */
 .mobile-nav-panel {
     position: fixed;
-    top: 70px;
+    top: 50px; /* Start exactly 50px from top */
     left: 0;
     width: 100px; /* Perfect width for icon-only navigation */
-    height: calc(100vh - 140px); /* 70px from top + 70px from bottom = symmetrical spacing */
-    background: linear-gradient(180deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    height: calc(100vh - 50px); /* Full height minus 50px from top */
+    /* background: linear-gradient(180deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%); */
     backdrop-filter: blur(20px);
     border-right: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0 12px 12px 0; /* Rounded corners on the right side */
+    border-radius: 0; /* No rounded corners at all - straight edges against screen */
     padding: 1.5rem;
     overflow-y: auto;
     transform: translateX(-100%) !important; /* Start hidden on the left */
@@ -4086,13 +4096,16 @@ fieldset:focus-within {
         flex-shrink: 0;
     }
     
-    /* Mobile Header Adjustments - full width */
+    /* Mobile Header Adjustments - full width with glass effect */
     .admin-header {
         padding: 0 1rem;
         height: 60px;
         left: 0 !important; /* Full width on mobile */
         width: 100% !important;
         justify-content: space-between; /* Space between left and right content */
+        /* Glass effect for mobile - no background, only blur */
+        background: transparent !important;
+        backdrop-filter: blur(20px) !important;
     }
     
     /* Mobile main content - full width */

@@ -54,10 +54,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     let configRefreshTimerId = null;
     let wallartTransitionTimer = null;
     let wallartRefreshTimeout = null;
+    let wallartTitleTimer = null; // Timer to keep title as "Posterrama" in wallart mode
+    let wallartInitializing = false; // Flag to prevent multiple initialization attempts
     let appConfig = {};
     let preloadedImage = null;
 
     const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+
+    // Protect document.title from unwanted changes in wallart mode
+    let originalTitleDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'title') || 
+                                 Object.getOwnPropertyDescriptor(HTMLDocument.prototype, 'title');
+    
+    if (originalTitleDescriptor && originalTitleDescriptor.set) {
+        Object.defineProperty(document, 'title', {
+            get: originalTitleDescriptor.get,
+            set: function(value) {
+                if (document.body && document.body.classList.contains('wallart-mode')) {
+                    console.log(`[WALLART] Title protection - blocked change from "${document.title}" to "${value}"`);
+                    return; // Block the change
+                }
+                originalTitleDescriptor.set.call(this, value);
+            },
+            configurable: true
+        });
+    }
+
+    function updateDocumentTitle(mediaItem) {
+        // Force title to "Posterrama" in wallart mode, bypassing protection
+        if (document.body.classList.contains('wallart-mode')) {
+            // Temporarily remove wallart-mode to allow title change
+            document.body.classList.remove('wallart-mode');
+            document.title = 'Posterrama';
+            document.body.classList.add('wallart-mode');
+        } else if (mediaItem && mediaItem.title) {
+            document.title = `${mediaItem.title} - posterrama.app`;
+        } else {
+            document.title = 'Posterrama';
+        }
+    }
 
     function showError(message) {
         // Add fallback background to body
@@ -85,11 +119,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function initialize() {
         try {
-            const configResponse = await fetch('/get-config', {
+            // Enhanced cache-busting for initial config load
+            const cacheBuster = `?_t=${Date.now()}&_r=${Math.random().toString(36).substring(7)}`;
+            const configResponse = await fetch('/get-config' + cacheBuster, {
                 cache: 'no-cache',
                 headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
                 }
             });
             appConfig = await configResponse.json();
@@ -131,9 +168,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Periodically refresh configuration to pick up admin changes
-        // Check for config changes every 5 minutes (less frequent)
+        // Check for config changes every 30 seconds for responsive updates
         if (configRefreshTimerId) clearInterval(configRefreshTimerId);
-        configRefreshTimerId = setInterval(refreshConfig, 5 * 60 * 1000);
+        configRefreshTimerId = setInterval(refreshConfig, 30 * 1000);
+        
+        // Also refresh config when window gains focus (returning from admin interface)
+        window.addEventListener('focus', () => {
+            console.log('[CONFIG] Window gained focus, checking for config changes...');
+            setTimeout(refreshConfig, 1000); // Small delay to ensure any pending saves are complete
+        });
 
         // Apply initial UI scaling
         applyUIScaling(appConfig);
@@ -179,6 +222,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Remove wallart mode if active (mutual exclusivity)
             body.classList.remove('wallart-mode');
             
+            // Clean up wallart resize listener when switching to cinema mode
+            if (window.wallartResizeListener) {
+                window.removeEventListener('resize', window.wallartResizeListener);
+                window.wallartResizeListener = null;
+            }
+            
             // Add orientation-specific class
             const orientation = config.cinemaOrientation || 'auto';
             body.classList.add(`cinema-${orientation}`);
@@ -202,7 +251,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Remove any existing wallart mode classes
         body.classList.remove('wallart-mode');
         
+        // Clean up wallart resize listener when leaving wallart mode
+        if (window.wallartResizeListener) {
+            window.removeEventListener('resize', window.wallartResizeListener);
+            window.wallartResizeListener = null;
+        }
+        
         if (config.wallartMode?.enabled) {
+            // Add wallart mode class to body
+            body.classList.add('wallart-mode');
+            
             const elementsToHide = [
                 'layer-a', 'layer-b', 'widget-container', 'clearlogo-container', 
                 'info-container', 'controls-container', 'branding-container',
@@ -219,10 +277,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Remove cinema mode if active (mutual exclusivity)
             body.classList.remove('cinema-mode', 'cinema-auto', 'cinema-portrait', 'cinema-portrait-flipped');
             
+            // Stop the normal slideshow timer (wallart has its own system)
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            
             // Force info container to be hidden in wallart mode
             setTimeout(() => {
                 infoContainer.classList.remove('visible');
             }, 100);
+            
+            // Set document title to Posterrama for wallart mode
+            updateDocumentTitle(null);
+            
+            // Start a timer to ensure title stays as "Posterrama" in wallart mode
+            if (wallartTitleTimer) {
+                clearInterval(wallartTitleTimer);
+            }
+            wallartTitleTimer = setInterval(() => {
+                if (document.body.classList.contains('wallart-mode') && document.title !== 'Posterrama') {
+                    console.log('[WALLART] Resetting title to Posterrama');
+                    document.title = 'Posterrama';
+                }
+            }, 1000); // Check every second
             
             // Start the new wallart cycle system
             startWallartCycle(config.wallartMode);
@@ -257,6 +335,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wallartRefreshTimeout = null;
             }
             
+            // Clear wallart title timer
+            if (wallartTitleTimer) {
+                clearInterval(wallartTitleTimer);
+                wallartTitleTimer = null;
+            }
+            
             const wallartGrid = document.getElementById('wallart-grid');
             if (wallartGrid) {
                 wallartGrid.remove();
@@ -267,6 +351,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.removeEventListener('resize', window.wallartResizeListener);
                 window.wallartResizeListener = null;
             }
+            
+            // Reset wallart initialization flag
+            wallartInitializing = false;
             
             // Restore all hidden elements
             const elementsToShow = [
@@ -281,51 +368,108 @@ document.addEventListener('DOMContentLoaded', async () => {
                     element.style.display = '';
                 }
             });
+            
+            // Restore document title to current media when exiting wallart mode
+            if (currentIndex >= 0 && currentIndex < mediaQueue.length) {
+                const currentMedia = mediaQueue[currentIndex];
+                if (currentMedia) {
+                    updateDocumentTitle(currentMedia);
+                }
+            } else {
+                updateDocumentTitle(null);
+            }
+            
+            // Restart the normal slideshow timer when exiting wallart mode
+            if (appConfig.transitionIntervalSeconds > 0) {
+                startTimer();
+            }
         }
     }
 
     function calculateWallartLayout(density = 'medium') {
         const screenWidth = window.innerWidth;
         const screenHeight = window.innerHeight;
+        const screenAspectRatio = screenWidth / screenHeight;
         
-        // Define density settings (min poster width in pixels)
-        const densitySettings = {
-            'low': { minWidth: 300, maxWidth: 400 },    // Fewer, larger posters
-            'medium': { minWidth: 200, maxWidth: 300 }, // Balanced
-            'high': { minWidth: 120, maxWidth: 200 }    // More, smaller posters - reduced for "many"
+        // Standard movie poster aspect ratio
+        const posterAspectRatio = 2/3; // width/height
+        
+        // Define base sizes for different densities
+        const basePosterWidths = {
+            'low': 240,    // Fewer, larger posters
+            'medium': 190, // Balanced
+            'high': 140    // More, smaller posters
         };
         
-        const setting = densitySettings[density] || densitySettings['medium'];
+        const basePosterWidth = basePosterWidths[density] || 190;
+        const basePosterHeight = Math.round(basePosterWidth / posterAspectRatio);
         
-        // Calculate optimal poster width for screen filling
-        // Start with minimum width and adjust to fill screen perfectly
-        let columnsCount = Math.floor(screenWidth / setting.minWidth);
-        let posterWidth = Math.floor(screenWidth / columnsCount);
+        // Calculate initial grid
+        let cols = Math.max(1, Math.floor(screenWidth / basePosterWidth));
+        let rows = Math.max(1, Math.floor(screenHeight / basePosterHeight));
         
-        // Ensure poster width doesn't exceed maximum
-        if (posterWidth > setting.maxWidth) {
-            columnsCount = Math.floor(screenWidth / setting.maxWidth);
-            posterWidth = Math.floor(screenWidth / columnsCount);
+        // Adjust to fill screen better while maintaining reasonable poster shapes
+        let actualPosterWidth = Math.floor(screenWidth / cols);
+        let actualPosterHeight = Math.floor(screenHeight / rows);
+        
+        // Check if the calculated poster dimensions are too distorted
+        const calculatedRatio = actualPosterWidth / actualPosterHeight;
+        const ratioDeviation = Math.abs(calculatedRatio - posterAspectRatio) / posterAspectRatio;
+        
+        // If posters would be too distorted (>30% deviation), adjust grid
+        if (ratioDeviation > 0.3) {
+            // Prefer maintaining width-based layout for movie posters
+            actualPosterHeight = Math.round(actualPosterWidth / posterAspectRatio);
+            rows = Math.max(1, Math.floor(screenHeight / actualPosterHeight));
+            
+            // Recalculate with adjusted dimensions
+            actualPosterHeight = Math.floor(screenHeight / rows);
         }
         
-        // Calculate rows based on poster aspect ratio (2:3 typical poster)
-        const posterHeight = Math.floor(posterWidth * 1.5); // 2:3 aspect ratio
-        const rowsCount = Math.floor(screenHeight / posterHeight);
+        const posterCount = cols * rows;
+        const bufferedCount = Math.ceil(posterCount * 1.5);
         
-        // Calculate total poster count that fills the screen
-        const posterCount = columnsCount * rowsCount;
+        const usedWidth = cols * actualPosterWidth;
+        const usedHeight = rows * actualPosterHeight;
+        const coverage = (usedWidth * usedHeight) / (screenWidth * screenHeight) * 100;
         
-        // Ensure minimum posters and add buffer for transitions
-        const minPosters = Math.max(posterCount, 12); // Minimum 12 posters
-        const bufferedCount = Math.ceil(minPosters * 1.5); // 50% buffer for smooth transitions
+        console.log(`[WALLART] Layout calculated - Density: ${density}, Screen: ${screenWidth}x${screenHeight}, Grid: ${cols}x${rows}, Poster: ${actualPosterWidth}x${actualPosterHeight}px, Coverage: ${Math.round(coverage)}%`);
         
         return {
-            minPosterWidth: posterWidth,
-            posterCount: minPosters,
-            totalNeeded: bufferedCount, // Total posters needed including buffer
-            columns: columnsCount,
-            rows: rowsCount
+            minPosterWidth: actualPosterWidth,
+            posterCount: posterCount,
+            totalNeeded: bufferedCount,
+            columns: cols,
+            rows: rows,
+            actualPosterWidth: actualPosterWidth,
+            actualPosterHeight: actualPosterHeight
         };
+    }
+
+    function createLoadingGrid(message = 'Loading posters...') {
+        const wallartGrid = document.createElement('div');
+        wallartGrid.id = 'wallart-grid';
+        wallartGrid.className = 'wallart-grid';
+        
+        const loadingItem = document.createElement('div');
+        loadingItem.style.cssText = `
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 999999 !important;
+            background: #000 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: white !important;
+            font-size: 24px !important;
+            font-family: Arial, sans-serif !important;
+        `;
+        loadingItem.textContent = message;
+        wallartGrid.appendChild(loadingItem);
+        document.body.appendChild(wallartGrid);
     }
 
     function startWallartCycle(wallartConfig) {
@@ -333,6 +477,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         const existingGrid = document.getElementById('wallart-grid');
         if (existingGrid) {
             existingGrid.remove();
+        }
+
+        // Check if media is available
+        if (mediaQueue.length === 0) {
+            // Prevent multiple simultaneous initialization attempts
+            if (wallartInitializing) {
+                console.log('[WALLART] Already initializing, skipping duplicate attempt');
+                return;
+            }
+            
+            wallartInitializing = true;
+            console.log('[WALLART] No media available yet, delaying wallart start...');
+            
+            // Try to fetch media first, then restart wallart cycle
+            fetchMedia(true).then(() => {
+                wallartInitializing = false;
+                if (mediaQueue.length > 0) {
+                    console.log('[WALLART] Media fetched successfully, restarting wallart cycle...');
+                    startWallartCycle(wallartConfig);
+                } else {
+                    console.log('[WALLART] Still no media after fetch, showing loading message...');
+                    // Continue with showing loading message and retry after delay
+                    createLoadingGrid('Loading posters...');
+                    setTimeout(() => {
+                        console.log('[WALLART] Retrying wallart initialization...');
+                        startWallartCycle(wallartConfig);
+                    }, 3000);
+                }
+            }).catch(error => {
+                wallartInitializing = false;
+                console.error('[WALLART] Failed to fetch media:', error);
+                createLoadingGrid('Failed to load posters. Retrying...');
+                // Retry after error
+                setTimeout(() => {
+                    console.log('[WALLART] Retrying after error...');
+                    startWallartCycle(wallartConfig);
+                }, 5000);
+            });
+            return;
         }
 
         // Create wallart grid container
@@ -376,21 +559,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         const posterCount = layoutInfo.posterCount;
         const totalNeeded = layoutInfo.totalNeeded;
         const animationType = wallartConfig.animationType || 'fade';
-        const randomness = wallartConfig.randomness || 5; // 1-10 scale
+        
+        // Get refresh rate and randomness settings separately  
+        const refreshRate = wallartConfig.refreshRate || wallartConfig.randomness || 5; // Use refreshRate, fallback to old randomness for compatibility
+        const randomness = wallartConfig.randomness || 0; // Keep for randomness amount
+        
+        // Calculate base refresh interval from refresh rate (1=slow, 10=fast)
+        const baseInterval = 25000; // 25 seconds base for slowest
+        const minInterval = 2000;   // 2 seconds minimum for fastest
+        const refreshInterval = Math.max(minInterval, baseInterval - (refreshRate - 1) * 2555);
+        
+        // Calculate random variation based on both refresh rate and randomness setting
+        // Key insight: faster refresh rates allow less variation to prevent chaos
+        // Slower refresh rates can handle more variation
+        let maxRandomVariation = 0;
+        if (randomness > 0) {
+            // Base variation scales with refresh interval (slower = more variation possible)
+            const baseVariation = refreshInterval * 0.4; // 40% of refresh interval as base
+            // Apply randomness multiplier (0-10 scale)
+            const randomnessMultiplier = randomness / 10;
+            maxRandomVariation = Math.round(baseVariation * randomnessMultiplier);
+        }
+        
+        console.log(`[WALLART] Timing settings - Refresh rate: ${refreshRate}/10 (${refreshInterval}ms), Randomness: ${randomness}/10 (±${maxRandomVariation}ms variation)`);
         
         let currentPosters = []; // Track current posters for uniqueness
         let usedPosters = new Set(); // Track used poster IDs
-        
-        // Calculate refresh interval based on randomness (1=slow, 10=fast)
-        const baseInterval = 20000; // 20 seconds base for slow speed
-        const minInterval = 500;    // 0.5 second minimum for fast speed
-        const refreshInterval = Math.max(minInterval, baseInterval - (randomness - 1) * 2166);
-        
-        // Calculate LARGE random variation range - make it really unpredictable!
-        // Slow = huge variation (up to 30 seconds!), Fast = moderate variation (up to 3 seconds)
-        const maxRandomVariation = Math.max(3000, 30000 - (randomness - 1) * 3000);
-        
-        console.log(`[WALLART] Refresh settings - Base interval: ${refreshInterval}ms, Random variation: ±${maxRandomVariation}ms`);
         
         function createPosterElement(item, index) {
             const posterItem = document.createElement('div');
@@ -398,14 +592,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             posterItem.dataset.originalIndex = index;
             posterItem.dataset.posterId = item.id || item.title || index;
             
-            // Clean styles with original aspect ratio preservation
+            // Use grid cell dimensions but preserve poster proportions with object-fit
             posterItem.style.cssText = `
                 background: #111 !important;
                 overflow: hidden !important;
                 opacity: 1 !important;
                 display: block !important;
                 width: 100% !important;
-                aspect-ratio: 2/3 !important;
+                height: 100% !important;
                 position: relative !important;
             `;
             
@@ -414,7 +608,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             img.alt = item.title || 'Movie Poster';
             img.loading = 'lazy';
             
-            // Ensure images fill their containers perfectly with slight zoom
+            // Fill the grid cell while maintaining poster aspect ratio
             img.style.cssText = `
                 width: 100% !important;
                 height: 100% !important;
@@ -428,7 +622,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return posterItem;
         }
         
-        function getUniqueRandomPoster() {
+        function getUniqueRandomPoster(excludePosterId = null) {
             if (mediaQueue.length === 0) return null;
             
             // If we've used all available posters, reset the used set
@@ -437,16 +631,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 usedPosters.clear();
             }
             
-            // Find posters that haven't been used yet
+            // Find posters that haven't been used yet AND are not the excluded poster
             const availablePosters = mediaQueue.filter(item => {
                 const posterId = item.id || item.title || item.posterUrl;
-                return !usedPosters.has(posterId);
+                const isUsed = usedPosters.has(posterId);
+                const isExcluded = excludePosterId && posterId === excludePosterId;
+                return !isUsed && !isExcluded;
             });
             
             if (availablePosters.length === 0) {
-                // Fallback to any poster if uniqueness fails
-                const randomIndex = Math.floor(Math.random() * mediaQueue.length);
-                return mediaQueue[randomIndex];
+                // If no available posters, find posters that are not the excluded one (ignore used set)
+                const nonExcludedPosters = mediaQueue.filter(item => {
+                    const posterId = item.id || item.title || item.posterUrl;
+                    return !excludePosterId || posterId !== excludePosterId;
+                });
+                
+                if (nonExcludedPosters.length === 0) {
+                    // Last resort: any poster
+                    const randomIndex = Math.floor(Math.random() * mediaQueue.length);
+                    return mediaQueue[randomIndex];
+                }
+                
+                // Get random from non-excluded posters
+                const randomIndex = Math.floor(Math.random() * nonExcludedPosters.length);
+                const selectedPoster = nonExcludedPosters[randomIndex];
+                
+                // Mark as used
+                const posterId = selectedPoster.id || selectedPoster.title || selectedPoster.posterUrl;
+                usedPosters.add(posterId);
+                
+                return selectedPoster;
             }
             
             // Get a random poster from available ones
@@ -466,22 +680,58 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentPosters = [];
             usedPosters.clear();
             
+            // Apply dynamic grid layout based on screen-filling calculation
+            const layoutInfo = calculateWallartLayout(wallartConfig.density);
+            
+            // Update CSS grid with flexible layout that respects poster proportions
+            wallartGrid.style.cssText = `
+                display: grid !important;
+                grid-template-columns: repeat(${layoutInfo.columns}, 1fr) !important;
+                grid-template-rows: repeat(${layoutInfo.rows}, 1fr) !important;
+                gap: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: #000 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                z-index: 1000 !important;
+                overflow: hidden !important;
+            `;
+            
+            console.log(`[WALLART] Applied responsive grid: ${layoutInfo.columns}x${layoutInfo.rows} (${layoutInfo.posterCount} posters, ~${layoutInfo.actualPosterWidth}x${layoutInfo.actualPosterHeight}px each)`);
+            
             // Check if we have enough media
             if (mediaQueue.length === 0) {
                 // Show loading message
                 const loadingItem = document.createElement('div');
                 loadingItem.style.cssText = `
                     grid-column: 1 / -1 !important;
+                    grid-row: 1 / -1 !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     color: white !important;
                     font-size: 24px !important;
                     font-family: Arial, sans-serif !important;
-                    height: 100vh !important;
                 `;
                 loadingItem.textContent = 'Loading posters...';
                 wallartGrid.appendChild(loadingItem);
+                
+                // Try to fetch media if not available
+                console.log('[WALLART] No media available, attempting to fetch...');
+                fetchMedia(true).then(() => {
+                    // After media is fetched, reinitialize the grid
+                    if (mediaQueue.length > 0) {
+                        initializeWallartGrid();
+                    }
+                }).catch(error => {
+                    console.error('[WALLART] Failed to fetch media:', error);
+                    loadingItem.textContent = 'Failed to load posters. Please refresh the page.';
+                });
+                
                 return;
             }
             
@@ -509,21 +759,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             
-            // Select a random position to update
-            const randomPosition = Math.floor(Math.random() * currentPosters.length);
+            // Prevent the same position from being updated twice in a row
+            let randomPosition;
+            let attempts = 0;
+            do {
+                randomPosition = Math.floor(Math.random() * currentPosters.length);
+                attempts++;
+            } while (randomPosition === window.lastWallartPosition && currentPosters.length > 1 && attempts < 20);
             
-            // Get a new unique poster
-            const newPoster = getUniqueRandomPoster();
+            // Store last position to prevent immediate repeat
+            window.lastWallartPosition = randomPosition;
+            
+            // Get current poster at this position to exclude it
+            const currentPosterAtPosition = currentPosters[randomPosition];
+            const currentPosterId = currentPosterAtPosition ? 
+                (currentPosterAtPosition.id || currentPosterAtPosition.title || currentPosterAtPosition.posterUrl) : null;
+            
+            // Get a new unique poster that's different from the current one at this position
+            const newPoster = getUniqueRandomPoster(currentPosterId);
             if (!newPoster) {
                 console.log('[WALLART] No new unique poster available');
                 return;
             }
             
-            // Remove old poster from used set
-            const oldPoster = currentPosters[randomPosition];
-            if (oldPoster) {
-                const oldPosterId = oldPoster.id || oldPoster.title || oldPoster.posterUrl;
-                usedPosters.delete(oldPosterId);
+            // Remove old poster from used set (so it can be used again later)
+            if (currentPosterAtPosition) {
+                usedPosters.delete(currentPosterId);
             }
             
             // Update current poster tracking
@@ -538,7 +799,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 animatePosterChange(targetElement, newPoster, animationType);
             }
             
-            console.log(`[WALLART] Single refresh: position ${randomPosition} updated`);
+            console.log(`[WALLART] Single refresh: position ${randomPosition} updated (was: ${currentPosterAtPosition?.title || 'unknown'}, now: ${newPoster.title || 'unknown'})`);
             
             // Schedule next refresh only if auto-refresh is enabled
             if (wallartConfig.autoRefresh !== false) {
@@ -553,9 +814,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
+        // Function to automatically detect all available animation types from the animatePosterChange function
+        function getAvailableAnimationTypes() {
+            // More robust approach: hardcoded list that's easy to maintain
+            // This ensures reliability while still being easy to update
+            const knownTypes = ['fade', 'slideLeft', 'slideUp', 'zoom', 'flip'];
+            
+            // Alternative: Try to auto-detect as fallback, but use known list as primary
+            console.log(`[WALLART] Available animation types: ${knownTypes.join(', ')}`);
+            return knownTypes;
+        }
+        
+        // Function to get a random animation type from all available types
+        function getRandomAnimationType() {
+            const availableTypes = getAvailableAnimationTypes();
+            if (availableTypes.length === 0) {
+                console.warn(`[WALLART] No animation types available, falling back to 'fade'`);
+                return 'fade';
+            }
+            
+            const randomIndex = Math.floor(Math.random() * availableTypes.length);
+            const selectedType = availableTypes[randomIndex];
+            console.log(`[WALLART] Random animation type selected: ${selectedType} (from: ${availableTypes.join(', ')})`);
+            return selectedType;
+        }
+        
         function animatePosterChange(element, newItem, animationType) {
             const img = element.querySelector('img');
             if (!img) return;
+            
+            // If animation type is 'random', select a random type from all available types
+            if (animationType === 'random') {
+                const originalType = animationType;
+                animationType = getRandomAnimationType();
+                console.log(`[WALLART] Changed from '${originalType}' to '${animationType}'`);
+            }
             
             console.log(`[WALLART] Starting ${animationType} animation for poster: ${newItem.title}`);
             
@@ -737,6 +1030,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize grid and start single poster refresh cycle (if enabled)
         initializeWallartGrid();
         
+        // Reset initialization flag on successful start
+        wallartInitializing = false;
+        
         // Only start auto-refresh if enabled
         if (wallartConfig.autoRefresh !== false) {
             // Use exponential random variation for initial start too
@@ -748,6 +1044,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log(`[WALLART] Starting auto-refresh in ${Math.round(initialInterval)}ms (variation: ${Math.round(initialRandomVariation)}ms)`);
             wallartRefreshTimeout = setTimeout(refreshSinglePoster, initialInterval);
         }
+        
+        // Add window resize listener for responsive grid adjustment
+        let resizeTimeout;
+        function handleWallartResize() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                console.log('[WALLART] Window resized, recalculating grid layout...');
+                initializeWallartGrid();
+            }, 250); // Debounce resize events
+        }
+        
+        // Remove existing listener if any
+        if (window.wallartResizeListener) {
+            window.removeEventListener('resize', window.wallartResizeListener);
+        }
+        
+        // Add new listener
+        window.wallartResizeListener = handleWallartResize;
+        window.addEventListener('resize', window.wallartResizeListener);
     }
 
     function getRandomMediaItems(count) {
@@ -759,11 +1074,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function refreshConfig() {
         try {
-            const configResponse = await fetch('/get-config', {
+            // Enhanced cache-busting with timestamp and random parameter
+            const cacheBuster = `?_t=${Date.now()}&_r=${Math.random().toString(36).substring(7)}`;
+            const configResponse = await fetch('/get-config' + cacheBuster, {
                 cache: 'no-cache',
                 headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
                 }
             });
             const newConfig = await configResponse.json();
@@ -857,6 +1175,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Handle wallart mode changes
         if (JSON.stringify(oldConfig.wallartMode) !== JSON.stringify(newConfig.wallartMode)) {
+            console.log('[CONFIG] Wallart configuration changed, restarting wallart...');
+            
+            // Check specifically for animation type changes to force immediate restart
+            if (oldConfig.wallartMode?.animationType !== newConfig.wallartMode?.animationType) {
+                console.log(`[CONFIG] Animation type changed from ${oldConfig.wallartMode?.animationType} to ${newConfig.wallartMode?.animationType}`);
+            }
+            
             applyWallartMode(newConfig);
         }
     }
@@ -1171,7 +1496,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             ratingEl.textContent = '';
         }
         
-        document.title = `${mediaItem.title || 'Unknown Title'} - posterrama.app`;
+        // Update document title using the dedicated function
+        updateDocumentTitle(mediaItem);
+        
         taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
         yearEl.style.display = mediaItem.year ? 'inline' : 'none';
         ratingEl.style.display = (ratingText || streamingProvider) ? 'inline' : 'none';
@@ -1698,6 +2025,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function changeMedia(direction = 'next', isFirstLoad = false, isErrorSkip = false) {
         if (mediaQueue.length === 0) return;
+        
+        // Don't change media in wallart mode (wallart has its own system)
+        if (document.body.classList.contains('wallart-mode') && !isFirstLoad) {
+            console.log('[WALLART] Blocking changeMedia() call - wallart mode is active');
+            return;
+        }
+        
         if (timerId) clearInterval(timerId);
 
         // Hide info immediately to prepare for the new content
@@ -1718,6 +2052,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function startTimer() {
         if (timerId) clearInterval(timerId);
+        
+        // Don't start slideshow timer in wallart mode
+        if (document.body.classList.contains('wallart-mode')) {
+            console.log('[WALLART] Blocking startTimer() - wallart mode is active');
+            return;
+        }
         
         // Calculate total time including effect duration + pause time
         const transitionInterval = appConfig.transitionIntervalSeconds || 15;

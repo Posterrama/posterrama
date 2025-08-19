@@ -1083,7 +1083,7 @@ body.cinema-mode.cinema-portrait-flipped #info-container {
         align-items: flex-end !important;
         justify-content: flex-start !important;
         padding: 0 20px 40px 20px !important;
-        gap: 8px !important; /* Reduced from 20px to 8px for more noticeable difference */
+        gap: 4px !important; /* Reduced from 8px to 4px for closer positioning */
         bottom: 0 !important;
         height: auto !important;
         top: auto !important;
@@ -1127,13 +1127,13 @@ body.cinema-mode.cinema-portrait-flipped #info-container {
         justify-content: flex-end !important;
         flex: 1 !important;
         color: white !important;
-        max-width: calc(100vw - 28vw - 48px) !important; /* Adjusted for 8px gap */
+        max-width: calc(100vw - 28vw - 44px) !important; /* Adjusted for 4px gap */
         overflow: hidden !important;
         max-height: calc(28vw * 1.5) !important; /* Match poster height */
     }
     
     body.cinema-mode #text-wrapper #title {
-        margin: 0 0 8px 0 !important;
+        margin: 0 0 4px 0 !important; /* Reduced margin from 8px to 4px for tighter spacing */
         flex-shrink: 0 !important; /* Never shrink title */
         overflow: visible !important;
         white-space: normal !important;
@@ -1142,7 +1142,7 @@ body.cinema-mode.cinema-portrait-flipped #info-container {
     }
     
     body.cinema-mode #text-wrapper #meta-info {
-        margin: 8px 0 0 0 !important;
+        margin: 4px 0 0 0 !important; /* Reduced margin from 8px to 4px for closer positioning */
         flex-shrink: 0 !important; /* Never shrink year/rating line */
         overflow: visible !important;
         white-space: nowrap !important;
@@ -1157,7 +1157,7 @@ body.cinema-mode.cinema-portrait-flipped #info-container {
         line-clamp: 3 !important;
         -webkit-box-orient: vertical !important;
         text-overflow: ellipsis !important;
-        margin: 8px 0 !important;
+        margin: 4px 0 !important; /* Reduced margin from 8px to 4px for tighter spacing */
         order: 2 !important;
         min-height: 0 !important;
     }
@@ -1167,7 +1167,7 @@ body.cinema-mode.cinema-portrait-flipped #info-container {
         flex-direction: row !important;
         align-items: flex-end !important;
         justify-content: flex-start !important;
-        gap: 8px !important; /* Reduced from 20px to 8px for more noticeable difference */
+        gap: 4px !important; /* Reduced from 8px to 4px for closer positioning */
     }
     
     #poster-wrapper {
@@ -1197,7 +1197,7 @@ body.cinema-mode.cinema-portrait-flipped #info-container {
     }
     
     #text-wrapper #meta-info {
-        margin: 8px 0 0 0 !important;
+        margin: 4px 0 0 0 !important; /* Reduced margin from 8px to 4px for closer positioning */
         flex-shrink: 0 !important; /* Never shrink year/rating line */
         overflow: visible !important;
         white-space: nowrap !important;
@@ -1537,14 +1537,8 @@ body.wallart-mode #poster-wrapper {
 }
 
 body.wallart-mode #wallart-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
-    grid-auto-rows: auto !important;
-    gap: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    /* Dynamic grid layout is set via JavaScript for perfect screen filling */
     background: #000 !important;
-    align-content: start !important;
 }
 
 /* Individual wallart poster items - Clean, edge-to-edge layout */
@@ -1554,8 +1548,15 @@ body.wallart-mode #wallart-grid {
     opacity: 1 !important;
     display: block !important;
     width: 100% !important;
-    aspect-ratio: 2/3 !important;
+    height: 100% !important;
     position: relative !important;
+}
+
+.wallart-poster-item img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
 }
 
 /* Allow overflow during animations */
