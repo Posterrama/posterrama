@@ -42,7 +42,6 @@ jobs:
       run: |
         cp config.example.env .env
         echo "REDIS_URL=redis://localhost:6379" >> .env
-        echo "JWT_SECRET=test-secret-key-for-ci" >> .env
         echo "API_KEY=test-api-key" >> .env
     
     - name: Run linting

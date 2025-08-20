@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const args = process.argv.slice(2);
 
 function usage() {
-  console.log(`Usage: node scripts/generate-secrets.js [options]\n\nOptions:\n  --hex [length]        Generate hex secret (default length 64 chars)\n  --base64 [bytes]      Generate base64 secret from N random bytes (default 32)\n  --jwt                 Convenience: 64-char hex for JWT_SECRET\n  --session             Convenience: 64-char hex for SESSION_SECRET\n  --all                 Generate common secrets set (session + jwt)\n  -h, --help            Show this help\n\nExamples:\n  npm run secrets:generate -- --jwt\n  npm run secrets:generate -- --hex 48\n  npm run secrets:generate -- --all\n`);
+  console.log(`Usage: node scripts/generate-secrets.js [options]\n\nOptions:\n  --hex [length]        Generate hex secret (default length 64 chars)\n  --base64 [bytes]      Generate base64 secret from N random bytes (default 32)\n  --session             Convenience: 64-char hex for SESSION_SECRET\n  --all                 Generate common secrets set (session only)\n  -h, --help            Show this help\n\nExamples:\n  npm run secrets:generate -- --session\n  npm run secrets:generate -- --hex 48\n  npm run secrets:generate -- --all\n`);
 }
 
 function genHex(len = 64) {
@@ -40,13 +40,10 @@ for (let i = 0; i < args.length; i++) {
     const bytes = parseInt(args[i + 1], 10) || 32;
     i++;
     out[`BASE64_${bytes}`] = genBase64(bytes);
-  } else if (a === '--jwt') {
-    out.JWT_SECRET = genHex(64);
   } else if (a === '--session') {
     out.SESSION_SECRET = genHex(64);
   } else if (a === '--all') {
     out.SESSION_SECRET = genHex(64);
-    out.JWT_SECRET = genHex(64);
   }
 }
 

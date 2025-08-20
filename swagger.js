@@ -87,11 +87,6 @@ function generateSwaggerSpec() {
         ],
         components: {
             securitySchemes: {
-                bearerAuth: {
-                    type: 'http',
-                    scheme: 'bearer',
-                    description: 'API access token. Enter the token with the "Bearer " prefix, e.g., "Bearer abcde12345"'
-                },
                 sessionAuth: {
                     type: 'apiKey',
                     in: 'cookie',
@@ -365,9 +360,10 @@ function generateSwaggerSpec() {
                 LoginResponse: {
                     type: 'object',
                     properties: {
-                        token: { type: 'string', description: 'JWT authentication token' },
-                        user: { type: 'object', description: 'User information' },
-                        twoFactorRequired: { type: 'boolean', description: 'Whether 2FA verification is required' }
+                        success: { type: 'boolean', description: 'Whether login was successful' },
+                        requires2FA: { type: 'boolean', description: 'Whether 2FA verification is required' },
+                        redirectTo: { type: 'string', description: 'URL to redirect to after login' },
+                        message: { type: 'string', description: 'Login result message' }
                     }
                 },
                 SessionResponse: {

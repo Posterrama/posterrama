@@ -54,7 +54,6 @@ function checkRateLimiter() {
 
 function checkSecurityRecommendations() {
   section('Security Recommendations');
-  if (!process.env.JWT_SECRET) warnings.push('JWT_SECRET not set (fallback in code will be used)');
   if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
     warnings.push('NODE_ENV not set to production');
   }
