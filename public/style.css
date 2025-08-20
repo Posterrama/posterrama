@@ -61,21 +61,112 @@ html, body {
 }
 
 /* --- Loader & Error Message --- */
+/* --- Clean Minimalist Posterrama Loader --- */
 #loader {
     position: fixed;
     top: 50%;
     left: 50%;
-    width: 50px;
-    height: 50px;
-    border: 5px solid rgba(255, 255, 255, 0.2);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+    transform: translate(-50%, -50%);
     z-index: 100;
     transition: opacity 0.5s;
-    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 2rem;
 }
 
+/* Clean poster rectangle with subtle breathing animation */
+.poster-loader {
+    width: 40px;
+    height: 60px;
+    background: #667eea;
+    border-radius: 4px;
+    position: relative;
+    animation: posterBreathe 3s ease-in-out infinite;
+    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+}
+
+.poster-loader::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 30%, rgba(255, 255, 255, 0.2) 50%, transparent 70%);
+    border-radius: 4px;
+    animation: posterShine 3s ease-in-out infinite;
+}
+
+/* Clean loading text */
+.loader-text {
+    color: rgba(255, 255, 255, 0.7);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    animation: textPulse 3s ease-in-out infinite;
+}
+
+/* Minimalist progress bar */
+.loader-dots {
+    width: 80px;
+    height: 2px;
+    background: rgba(102, 126, 234, 0.2);
+    border-radius: 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+.loader-dots::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 40px;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, #667eea, transparent);
+    animation: progressSweep 2s ease-in-out infinite;
+}
+
+@keyframes posterBreathe {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px 4px rgba(102, 126, 234, 0.15);
+    }
+}
+
+@keyframes posterShine {
+    0%, 100% {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+    50% {
+        opacity: 1;
+        transform: translateX(100%);
+    }
+}
+
+@keyframes textPulse {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+@keyframes progressSweep {
+    0% {
+        left: -40px;
+    }
+    100% {
+        left: 80px;
+    }
+}
+
+/* Legacy spin animation for fallback */
 @keyframes spin {
     to { transform: translate(-50%, -50%) rotate(360deg); }
 }
@@ -916,66 +1007,75 @@ body.cinema-mode {
     overflow: visible; /* Allow slide animations from outside viewport */
 }
 
+/* Cinema mode - hide all overflow and scrollbars */
+body.cinema-mode {
+    overflow: hidden !important; /* Hide all scrollbars */
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.cinema-mode html {
+    overflow: hidden !important; /* Hide all scrollbars */
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
 body.cinema-mode #info-container {
+    /* Show info container but hide text elements */
     position: fixed !important;
-    top: 60px !important; /* Smaller header space */
+    top: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    bottom: 60px !important; /* Smaller footer space */
+    bottom: 0 !important;
     width: 100vw !important;
-    height: calc(100vh - 120px) !important; /* Total height minus header and footer */
+    height: 100vh !important;
     display: flex !important;
-    flex-direction: column !important;
     justify-content: center !important;
     align-items: center !important;
-    max-width: none !important;
-    max-height: none !important;
     padding: 0 !important;
-    box-sizing: border-box !important;
-    opacity: 1 !important;
-    transform: none !important;
+    margin: 0 !important;
+    background: transparent !important;
     z-index: 10 !important;
-    transition: none !important;
 }
 
 body.cinema-mode #poster-wrapper {
-    width: 100vw !important;
-    height: auto !important;
+    width: 100vw !important; /* Match poster width */
+    height: 100vh !important; /* Full height for centering */
     max-width: 100vw !important;
-    max-height: calc(100vh - 120px) !important;
-    display: block !important;
+    max-height: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
     flex-shrink: 0 !important;
-    /* Allow posters to slide in from outside the viewport */
-    overflow: visible !important;
+    position: relative !important;
+    overflow: hidden !important; /* Hide any overflow */
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important; /* Include borders in width calculation */
 }
 
 body.cinema-mode #info-container #poster-wrapper #poster {
-    width: 100vw !important;
-    height: calc(100vw * 1.5) !important;
-    min-width: 100vw !important;
-    min-height: calc(100vw * 1.5) !important;
+    /* Calculate poster size maintaining 2:3 aspect ratio - fit within screen width */
+    width: 100vw !important; /* Use full screen width */
+    height: calc(100vw * 3 / 2) !important; /* Height = width * (3/2) for 2:3 ratio */
     max-width: 100vw !important;
-    max-height: calc(100vh - 120px) !important;
-    background-size: cover !important;
+    max-height: 100vh !important; /* Don't exceed screen height */
+    background-size: contain !important; /* Keep full poster visible with black bars */
     background-repeat: no-repeat !important;
     background-position: center !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    /* Allow transforms for animations - don't force a specific transform */
-    /* Allow transitions for animations */
     position: relative !important;
     flex: none !important;
 }
 
 /* Cinema mode poster layers */
 body.cinema-mode .poster-layer {
-    width: 100vw !important;
-    height: calc(100vw * 1.5) !important;
-    min-width: 100vw !important;
-    min-height: calc(100vw * 1.5) !important;
+    width: 100vw !important; /* Use full screen width */
+    height: calc(100vw * 3 / 2) !important; /* Height = width * (3/2) for 2:3 ratio */
     max-width: 100vw !important;
-    max-height: calc(100vh - 120px) !important;
-    background-size: cover !important;
+    max-height: 100vh !important; /* Don't exceed screen height */
+    background-size: contain !important; /* Keep full poster visible with black bars */
     background-repeat: no-repeat !important;
     background-position: center !important;
     /* Enhanced stability for cinema mode */
@@ -1036,34 +1136,11 @@ body.cinema-mode::before {
     pointer-events: none;
 }
 
-/* Cinema mode footer space */
-body.cinema-mode::after {
-    content: "";
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 60px; /* Smaller footer space */
-    z-index: 1000;
-    pointer-events: none;
-}
+/* Cinema mode - poster takes full screen, orientation handled by poster-wrapper */
 
-/* Portrait orientation (default) */
-body.cinema-mode.cinema-portrait #info-container,
-body.cinema-mode.cinema-auto #info-container {
-    /* Default portrait orientation */
-    transform: none;
-}
-
-/* Portrait flipped orientation */
-body.cinema-mode.cinema-portrait-flipped #info-container {
-    transform: rotate(180deg);
-}
-
-/* Ensure tagline is never truncated on desktop/TV */
+/* Desktop adjustments for regular mode only */
 @media (min-width: 769px) {
-    #text-wrapper,
-    body.cinema-mode #text-wrapper {
+    #text-wrapper {
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-end !important;
@@ -1075,8 +1152,7 @@ body.cinema-mode.cinema-portrait-flipped #info-container {
         word-wrap: break-word !important;
     }
     
-    #text-wrapper #title,
-    body.cinema-mode #text-wrapper #title {
+    #text-wrapper #title {
         order: 1 !important;
         flex-shrink: 0 !important; /* Never shrink title */
         flex: none !important;
@@ -1085,8 +1161,7 @@ body.cinema-mode.cinema-portrait-flipped #info-container {
         margin: 0 0 8px 0 !important;
     }
     
-    #text-wrapper #tagline,
-    body.cinema-mode #text-wrapper #tagline {
+    #text-wrapper #tagline {
         order: 2 !important;
         flex: 1 !important;
         overflow: hidden !important;
@@ -1101,155 +1176,39 @@ body.cinema-mode.cinema-portrait-flipped #info-container {
         min-height: 0 !important;
     }
     
-    #text-wrapper #meta-info,
-    body.cinema-mode #text-wrapper #meta-info {
+    #text-wrapper #meta-info {
         order: 3 !important;
         flex-shrink: 0 !important; /* Never shrink year/rating line */
         flex: none !important;
         word-wrap: break-word !important;
         margin: 8px 0 0 0 !important;
     }
+    
+    /* Cinema mode poster adjustments for larger screens */
+    body.cinema-mode #poster-wrapper {
+        width: auto !important;
+        height: auto !important;
+    }
+    
+    body.cinema-mode #info-container #poster-wrapper #poster,
+    body.cinema-mode .poster-layer {
+        max-width: calc(100vh / 1.5) !important;
+        height: 100vh !important;
+    }
 }
 
 /* Mobile cinema mode adjustments */
 @media (max-width: 768px) {
-    body.cinema-mode #info-container {
-        flex-direction: row !important;
-        align-items: flex-end !important;
-        justify-content: flex-start !important;
-        padding: 0 20px 40px 20px !important;
-        gap: 4px !important; /* Reduced from 8px to 4px for closer positioning */
-        bottom: 0 !important;
-        height: auto !important;
-        top: auto !important;
-        position: fixed !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 100vw !important;
-        box-sizing: border-box !important;
-    }
-    
+    /* Cinema mode poster stays fullscreen on mobile too */
     body.cinema-mode #poster-wrapper {
-        width: 28vw !important;
+        width: auto !important;
         height: auto !important;
-        max-width: 120px !important;
-        min-width: 80px !important;
-        flex-shrink: 0 !important;
-        flex-grow: 0 !important;
     }
     
-    body.cinema-mode #info-container #poster-wrapper #poster {
-        width: 28vw !important;
-        height: calc(28vw * 1.5) !important;
-        max-width: 120px !important;
-        max-height: 180px !important;
-        min-width: 80px !important;
-        min-height: 120px !important;
-    }
-    
+    body.cinema-mode #info-container #poster-wrapper #poster,
     body.cinema-mode .poster-layer {
-        width: 28vw !important;
-        height: calc(28vw * 1.5) !important;
-        max-width: 120px !important;
-        max-height: 180px !important;
-        min-width: 80px !important;
-        min-height: 120px !important;
-    }
-
-    body.cinema-mode #text-wrapper {
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: flex-end !important;
-        flex: 1 !important;
-        color: white !important;
-        max-width: calc(100vw - 28vw - 44px) !important; /* Adjusted for 4px gap */
-        overflow: hidden !important;
-        max-height: calc(28vw * 1.5) !important; /* Match poster height */
-    }
-    
-    body.cinema-mode #text-wrapper #title {
-        margin: 0 0 4px 0 !important; /* Reduced margin from 8px to 4px for tighter spacing */
-        flex-shrink: 0 !important; /* Never shrink title */
-        overflow: visible !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
-        order: 1 !important;
-    }
-    
-    body.cinema-mode #text-wrapper #meta-info {
-        margin: 4px 0 0 0 !important; /* Reduced margin from 8px to 4px for closer positioning */
-        flex-shrink: 0 !important; /* Never shrink year/rating line */
-        overflow: visible !important;
-        white-space: nowrap !important;
-        order: 3 !important;
-    }
-    
-    body.cinema-mode #text-wrapper #tagline {
-        flex: 1 !important;
-        overflow: hidden !important;
-        display: -webkit-box !important;
-        -webkit-line-clamp: 3 !important; /* Limit description to ~3 lines */
-        line-clamp: 3 !important;
-        -webkit-box-orient: vertical !important;
-        text-overflow: ellipsis !important;
-        margin: 4px 0 !important; /* Reduced margin from 8px to 4px for tighter spacing */
-        order: 2 !important;
-        min-height: 0 !important;
-    }
-    
-    /* Also apply to regular mode on mobile */
-    #info-container {
-        flex-direction: row !important;
-        align-items: flex-end !important;
-        justify-content: flex-start !important;
-        gap: 4px !important; /* Reduced from 8px to 4px for closer positioning */
-    }
-    
-    #poster-wrapper {
-        width: 28vw !important;
-        max-width: 120px !important;
-        min-width: 80px !important;
-        flex-shrink: 0 !important;
-    }
-    
-    #text-wrapper {
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: flex-end !important;
-        flex: 1 !important;
-        max-width: calc(100vw - 28vw - 48px) !important; /* Adjusted for 8px gap */
-        max-height: calc(28vw * 1.5) !important; /* Match poster height */
-        overflow: hidden !important;
-    }
-    
-    #text-wrapper #title {
-        margin: 0 0 8px 0 !important;
-        flex-shrink: 0 !important; /* Never shrink title */
-        overflow: visible !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
-        order: 1 !important;
-    }
-    
-    #text-wrapper #meta-info {
-        margin: 4px 0 0 0 !important; /* Reduced margin from 8px to 4px for closer positioning */
-        flex-shrink: 0 !important; /* Never shrink year/rating line */
-        overflow: visible !important;
-        white-space: nowrap !important;
-        order: 3 !important;
-    }
-    
-    #text-wrapper #tagline {
-        flex: 1 !important;
-        overflow: hidden !important;
-        display: -webkit-box !important;
-        -webkit-line-clamp: 3 !important; /* Limit description to ~3 lines */
-        line-clamp: 3 !important;
-        -webkit-box-orient: vertical !important;
-        text-overflow: ellipsis !important;
-        margin: 8px 0 !important;
-        order: 2 !important;
-        min-height: 0 !important;
+        max-width: calc(100vh / 1.5) !important;
+        height: 100vh !important;
     }
 }
 
@@ -1544,13 +1503,29 @@ body.wallart-mode {
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
+    background: #000 !important; /* Black background for margins */
+    background-color: #000 !important;
+    background-image: none !important;
+}
+
+body.wallart-mode::before,
+body.wallart-mode::after {
+    display: none !important;
 }
 
 body.wallart-mode #background-image,
 body.wallart-mode .background-layer,
 body.wallart-mode #layer-a,
-body.wallart-mode #layer-b {
+body.wallart-mode #layer-b,
+body.wallart-mode .screensaver-layer,
+body.wallart-mode .fanart-background,
+body.wallart-mode #fanart-container,
+body.wallart-mode .poster-layer {
     display: none !important; /* Hide all background layers in wallart mode */
+    opacity: 0 !important;
+    visibility: hidden !important;
+    background-image: none !important; /* Override any inline background styles */
+    background: transparent !important;
 }
 
 body.wallart-mode #poster-wrapper {
@@ -1574,6 +1549,7 @@ body.wallart-mode #poster-wrapper {
 body.wallart-mode #wallart-grid {
     /* Dynamic grid layout is set via JavaScript for perfect screen filling */
     background: #000 !important;
+    transition: transform 0.6s ease-in-out !important;
 }
 
 /* Individual wallart poster items - Clean, edge-to-edge layout */
@@ -1581,7 +1557,9 @@ body.wallart-mode #wallart-grid {
     background: #111 !important;
     overflow: hidden !important;
     opacity: 1 !important;
-    display: block !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     width: 100% !important;
     height: 100% !important;
     position: relative !important;
@@ -1592,6 +1570,8 @@ body.wallart-mode #wallart-grid {
     height: 100% !important;
     object-fit: cover !important;
     object-position: center !important;
+    /* Ensure 2:3 aspect ratio is always maintained */
+    aspect-ratio: 2/3 !important;
 }
 
 /* Allow overflow during animations */

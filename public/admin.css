@@ -76,7 +76,7 @@ a:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0.6) 100%);
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0.8) 100%);
     z-index: -1;
     pointer-events: none;
 }
@@ -2769,7 +2769,7 @@ fieldset:focus-within {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     color: #ffffff;
-    font-size: 0.9rem;
+    font-size: 16px; /* Prevent mobile zoom-in on focus (iOS Safari) */
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
 }
@@ -6594,5 +6594,31 @@ input[type="range"]::-moz-range-thumb {
         opacity: 1 !important;
         font-size: 1.2rem !important;
         color: #b3b3b3 !important;
+    }
+}
+
+/* === MOBILE ZOOM PREVENTION === */
+/* Prevent mobile zoom on input focus by ensuring minimum 16px font-size */
+@media screen and (max-width: 768px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="search"],
+    input[type="url"],
+    input[type="tel"],
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Alternative approach: Use transform-scale for smaller visual appearance while maintaining 16px */
+@media screen and (max-width: 768px) {
+    .form-group input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+    .form-group select,
+    .form-group textarea {
+        font-size: 16px !important; /* Prevent zoom */
+        transform: scale(1); /* Reset any scaling */
     }
 }

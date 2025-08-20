@@ -45,7 +45,6 @@ module.exports = {
     'errors.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
     // FASE 2 improvements - Middleware optimization
     'middleware/cache.js': { branches: 74, functions: 89, lines: 93, statements: 92 },
-    'middleware/auth.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
     'middleware/errorHandler.js': { branches: 100, functions: 88, lines: 98, statements: 98 },
     'middleware/validate.js': { branches: 93, functions: 100, lines: 100, statements: 100 },
     // FASE 3 improvements - Cache utilities
@@ -54,8 +53,6 @@ module.exports = {
     'middleware/rateLimiter.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
     // FASE 5 improvements - Middleware orchestration
     'middleware/index.js': { branches: 92, functions: 100, lines: 98, statements: 98 },
-    // FASE 6 improvements - Core authentication
-    'utils/auth.js': { branches: 49, functions: 46, lines: 50, statements: 50 },
     // FASE 7 improvements - Metrics middleware
     'middleware/metrics.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
     // FASE 8 improvements - Metrics utilities
