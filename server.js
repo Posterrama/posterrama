@@ -3112,13 +3112,13 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
         // Set a temporary flag in the session.
         req.session.tfa_required = true;
         req.session.tfa_user = { username: username }; // Store user info temporarily
-        if (isDebug) console.log(`[Admin Login] Credentials valid for "${username}". Redirecting to 2FA verification.`);
-        res.redirect('/admin/2fa-verify');
+        if (isDebug) console.log(`[Admin Login] Credentials valid for "${username}". Requires 2FA verification.`);
+        return res.json({ success: true, requires2FA: true, redirectTo: '/admin/2fa-verify' });
     } else {
         // No 2FA, log the user in directly.
         req.session.user = { username: username };
-        if (isDebug) console.log(`[Admin Login] Login successful for user "${username}". Redirecting to admin panel.`);
-        res.redirect('/admin');
+        if (isDebug) console.log(`[Admin Login] Login successful for user "${username}".`);
+        return res.json({ success: true, requires2FA: false, redirectTo: '/admin' });
     }
 }));
 

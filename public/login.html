@@ -188,14 +188,17 @@
                 });
                 
                 if (response.ok) {
-                    // Check if we're redirected to 2FA
-                    if (response.url.includes('2fa-verify')) {
-                        window.location.href = '/admin/2fa-verify';
+                    const result = await response.json();
+                    if (result.success) {
+                        // Login successful, redirect as instructed
+                        window.location.href = result.redirectTo;
                     } else {
-                        // Successfully logged in
-                        window.location.href = '/admin';
+                        // This shouldn't happen if response.ok is true, but handle it
+                        errorDiv.textContent = result.error || 'Login failed for unknown reasons.';
+                        errorDiv.style.display = 'block';
                     }
-                } else {
+                } else if (response.status === 401) {
+                    // Handle authentication errors
                     let errorMessage = 'Login failed. Please check your credentials.';
                     
                     try {
@@ -216,6 +219,10 @@
                     }
                     
                     errorDiv.textContent = errorMessage;
+                    errorDiv.style.display = 'block';
+                } else {
+                    // Other errors
+                    errorDiv.textContent = 'An unexpected error occurred. Please try again.';
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
