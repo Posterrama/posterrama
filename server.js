@@ -2510,6 +2510,22 @@ app.get('/health/detailed', asyncHandler(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Config'
  */
+/**
+ * @swagger
+ * /get-config:
+ *   get:
+ *     summary: Get configuration (Legacy endpoint)
+ *     description: Legacy endpoint for retrieving application configuration. Use /api/v1/config instead.
+ *     tags: [Configuration, Legacy]
+ *     deprecated: true
+ *     responses:
+ *       200:
+ *         description: Configuration retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Config'
+ */
 app.get('/get-config', 
     cacheMiddleware({
         ttl: 30000, // 30 seconds instead of 10 minutes

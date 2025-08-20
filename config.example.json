@@ -5,19 +5,21 @@
   "showRottenTomatoes": true,
   "rottenTomatoesMinimumScore": 0,
   "showPoster": true,
-  "showMetadata": true,
-  "clockWidget": false,
+  "showMetadata": false,
+  "clockWidget": true,
   "clockTimezone": "auto",
   "clockFormat": "24h",
   "wallartMode": {
     "enabled": false,
-    "itemsPerScreen": 30,
-    "columns": 6,
-    "transitionInterval": 30
+    "density": "medium",
+    "refreshRate": 7,
+    "randomness": 2,
+    "animationType": "fade",
+    "autoRefresh": true
   },
   "cinemaMode": false,
   "cinemaOrientation": "auto",
-  "transitionEffect": "kenburns",
+  "transitionEffect": "fade",
   "effectPauseTime": 3,
   "uiScaling": {
     "content": 100,
