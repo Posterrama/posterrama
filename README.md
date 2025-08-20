@@ -8,6 +8,10 @@
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
 [![Plex](https://img.shields.io/badge/Plex-Compatible-orange.svg)](https://www.plex.tv/)
 [![TMDB](https://img.shields.io/badge/TMDB-Powered-blue.svg)](https://www.themoviedb.org/)
+[![TVDB](https://img.shields.io/badge/TVDB-Powered-green.svg)](https://thetvdb.com/)
+[![Kodi](https://img.shields.io/badge/Kodi-Compatible-blue.svg)](https://kodi.tv/)
+[![Emby](https://img.shields.io/badge/Emby-Compatible-green.svg)](https://emby.media/)
+[![Jellyfin](https://img.shields.io/badge/Jellyfin-Compatible-purple.svg)](https://jellyfin.org/)
 
 Transform any screen into a **stunning digital movie poster display** that showcases your personal media collection! Perfect for TV screensavers, wall-mounted tablets, or creating your own cinema lobby experience at home.
 
@@ -52,6 +56,8 @@ Imagine walking into a movie theater and seeing those beautiful, professional mo
 - **Smart Widgets** - Customizable clock and information overlays
 - **Responsive Design** - Looks amazing on any screen size
 
+![Wallart mode showcase](./screenshots/wallart.png)
+
 ![Screenshot of admin](./screenshots/admin.png)
 
 ## ✨ Cool Features That Make It Awesome
@@ -91,6 +97,8 @@ Posterrama works perfectly on any device:
 - **Desktop Experience** - Full descriptions with proper text wrapping
 - **TV Optimization** - Clean, readable layouts for large screens
 - **Smart Text Display** - Titles and ratings always visible, descriptions intelligently managed
+
+<img src="./screenshots/mobile.png" alt="Mobile responsive design" width="300">
 
 ### Android TV Integration
 Turn your **Android TV** into a movie poster screensaver using the **Dashboard** screensaver app:
