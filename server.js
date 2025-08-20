@@ -3094,15 +3094,13 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
     const isValidUser = (username === process.env.ADMIN_USERNAME);
     if (!isValidUser) {
         if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid username.`);
-        const errorMessage = encodeURIComponent('Invalid username or password. Please try again.');
-        return res.redirect(`/error.html?error=${errorMessage}`);
+        return res.status(401).json({ error: 'Invalid username or password. Please try again.' });
     }
 
     const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
     if (!isValidPassword) {
         if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid credentials.`);
-        const errorMessage = encodeURIComponent('Invalid username or password. Please try again.');
-        return res.redirect(`/error.html?error=${errorMessage}`);
+        return res.status(401).json({ error: 'Invalid username or password. Please try again.' });
     }
 
     // --- Check if 2FA is enabled ---

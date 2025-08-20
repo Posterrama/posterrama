@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - posterrama</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../admin.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%) !important;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            gap: 2rem;
+        }
+        .auth-box {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 16px !important;
+            padding: 2.5rem !important;
+            width: 100%;
+            max-width: 420px;
+            backdrop-filter: blur(20px) !important;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+        }
+        .auth-box h1 {
+            text-align: center !important;
+            margin-bottom: 2rem !important;
+            font-size: 1.875rem !important;
+            font-weight: 600 !important;
+            letter-spacing: -0.02em !important;
+            color: #e2e8f0 !important;
+            white-space: nowrap !important;
+        }
+        .admin-text {
+            font-family: 'Orbitron', 'Courier New', monospace !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.1em !important;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57) !important;
+            background-size: 200% 200% !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            background-clip: text !important;
+            animation: gradientShift 3s ease-in-out infinite !important;
+        }
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .form-group {
+            margin-bottom: 1.5rem !important;
+        }
+        .form-group label {
+            display: block !important;
+            margin-bottom: 0.5rem !important;
+            font-weight: 500 !important;
+            color: #e2e8f0 !important;
+            font-size: 0.875rem !important;
+        }
+        .form-group input {
+            width: 100% !important;
+            padding: 0.75rem 1rem !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 8px !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: #e2e8f0 !important;
+            font-size: 1rem !important;
+            transition: all 0.2s ease !important;
+            box-sizing: border-box !important;
+        }
+        .form-group input:focus {
+            outline: none !important;
+            border-color: #4ecdc4 !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1) !important;
+        }
+        .form-group input::placeholder {
+            color: rgba(226, 232, 240, 0.5) !important;
+        }
+        .submit-btn {
+            width: 100% !important;
+            padding: 0.75rem 1.5rem !important;
+            background: linear-gradient(135deg, #4ecdc4, #45b7d1) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            margin-top: 1rem !important;
+        }
+        .submit-btn:hover {
+            background: linear-gradient(135deg, #45b7d1, #4ecdc4) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3) !important;
+        }
+        .submit-btn:disabled {
+            opacity: 0.6 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+        }
+        .error-message {
+            color: #ff6b6b !important;
+            font-size: 0.875rem !important;
+            margin-top: 0.5rem !important;
+            padding: 0.5rem !important;
+            background: rgba(255, 107, 107, 0.1) !important;
+            border: 1px solid rgba(255, 107, 107, 0.2) !important;
+            border-radius: 6px !important;
+            display: none !important;
+        }
+        .back-link {
+            text-align: center !important;
+            margin-top: 2rem !important;
+        }
+        .back-link a {
+            color: #4ecdc4 !important;
+            text-decoration: none !important;
+            font-size: 0.875rem !important;
+            transition: color 0.2s ease !important;
+        }
+        .back-link a:hover {
+            color: #45b7d1 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1><span class="admin-text">Admin</span> Login</h1>
+            
+            <form id="loginForm" method="POST" action="/admin/login">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required placeholder="Enter your username" autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter your password" autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    Sign In
+                </button>
+                
+                <div id="errorMessage" class="error-message"></div>
+            </form>
+            
+            <div class="back-link">
+                <a href="/">← Back to home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const errorDiv = document.getElementById('errorMessage');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in...';
+            errorDiv.style.display = 'none';
+            
+            try {
+                const formData = new FormData(e.target);
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    body: new URLSearchParams(formData),
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+                
+                if (response.ok) {
+                    // Check if we're redirected to 2FA
+                    if (response.url.includes('2fa-verify')) {
+                        window.location.href = '/admin/2fa-verify';
+                    } else {
+                        // Successfully logged in
+                        window.location.href = '/admin';
+                    }
+                } else {
+                    let errorMessage = 'Login failed. Please check your credentials.';
+                    
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.error) {
+                            errorMessage = errorData.error;
+                        }
+                    } catch (e) {
+                        // If response is not JSON, try as text
+                        try {
+                            const errorText = await response.text();
+                            if (errorText.trim()) {
+                                errorMessage = errorText;
+                            }
+                        } catch (textError) {
+                            // Use default message
+                        }
+                    }
+                    
+                    errorDiv.textContent = errorMessage;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+            }
+        });
+
+        // Focus on username field when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('username').focus();
+        });
+    </script>
+</body>
+</html>
