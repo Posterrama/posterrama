@@ -120,7 +120,10 @@
             background: rgba(255, 107, 107, 0.1) !important;
             border: 1px solid rgba(255, 107, 107, 0.2) !important;
             border-radius: 6px !important;
-            display: none !important;
+            display: none;
+        }
+        .error-message.show {
+            display: block !important;
         }
         .back-link {
             text-align: center !important;
@@ -176,6 +179,7 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'Signing in...';
             errorDiv.style.display = 'none';
+            errorDiv.classList.remove('show');
             
             try {
                 const formData = new FormData(e.target);
@@ -200,12 +204,12 @@
                         } else {
                             // This shouldn't happen if response.ok is true, but handle it
                             errorDiv.textContent = result.error || 'Login failed for unknown reasons.';
-                            errorDiv.style.display = 'block';
+                            errorDiv.classList.add('show');
                         }
                     } catch (jsonError) {
                         console.error('JSON parse error on success response:', jsonError);
                         errorDiv.textContent = 'Unexpected response format. Please try again.';
-                        errorDiv.style.display = 'block';
+                        errorDiv.classList.add('show');
                     }
                 } else {
                     // Handle error responses
@@ -236,12 +240,12 @@
                     }
                     
                     errorDiv.textContent = errorMessage;
-                    errorDiv.style.display = 'block';
+                    errorDiv.classList.add('show');
                 }
             } catch (error) {
                 console.error('Login error:', error);
                 errorDiv.textContent = 'Network error. Please try again.';
-                errorDiv.style.display = 'block';
+                errorDiv.classList.add('show');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Sign In';
