@@ -49,8 +49,12 @@
         body.wallart-mode #clear-logo,
         body.wallart-mode #info-container,
         body.wallart-mode #controls-container,
-        body.wallart-mode #widget-container,
-        body.wallart-mode #promo-box {
+        body.wallart-mode #widget-container {
+            display: none !important;
+        }
+        
+        /* Hide promo box in wallart mode ONLY when NOT on promo site */
+        body.wallart-mode:not(.promo-site) #promo-box {
             display: none !important;
         }
     </style>    <!-- Structured Data / JSON-LD -->

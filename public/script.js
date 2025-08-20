@@ -148,6 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const promoBox = document.getElementById('promo-box');
                 if (promoBox) {
                     promoBox.classList.remove('is-hidden');
+                    promoBox.style.display = 'block';
                     console.log('[Promo Site] Promo box enabled and made visible');
                 } else {
                     console.warn('[Promo Site] Promo box element not found');
@@ -295,8 +296,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const elementsToHide = [
                 'layer-a', 'layer-b', 'widget-container', 'clearlogo-container', 
                 'info-container', 'controls-container', 'branding-container',
-                'poster-wrapper', 'background-image', 'promo-box', 'loader'
+                'poster-wrapper', 'background-image', 'loader'
             ];
+            
+            // Only hide promo-box if NOT on promo site
+            if (!document.body.classList.contains('promo-site')) {
+                elementsToHide.push('promo-box');
+            }
             
             elementsToHide.forEach(id => {
                 const element = document.getElementById(id);
@@ -390,8 +396,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const elementsToShow = [
                 'layer-a', 'layer-b', 'widget-container', 'clearlogo-container', 
                 'info-container', 'controls-container', 'branding-container',
-                'poster-wrapper', 'background-image', 'promo-box'
+                'poster-wrapper', 'background-image'
             ];
+            
+            // Handle promo-box separately for promo sites
+            if (!document.body.classList.contains('promo-site')) {
+                elementsToShow.push('promo-box');
+            } else {
+                // Ensure promo box stays visible on promo site
+                const promoBox = document.getElementById('promo-box');
+                if (promoBox) {
+                    promoBox.style.display = 'block';
+                }
+            }
             
             elementsToShow.forEach(id => {
                 const element = document.getElementById(id);
