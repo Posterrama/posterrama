@@ -3152,6 +3152,23 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
     }
 });
 
+/**
+ * @swagger
+ * /admin/2fa-verify:
+ *   get:
+ *     summary: Two-factor authentication verification page
+ *     description: Serves the 2FA verification page for users who have completed initial login
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: 2FA verification page served successfully
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ *       302:
+ *         description: Redirect to login if 2FA not required
+ */
 app.get('/admin/2fa-verify', (req, res) => {
     // Only show this page if the user has passed the first step of login.
     if (!req.session.tfa_required) {
@@ -3189,6 +3206,45 @@ const twoFaLimiter = rateLimit({
     },
 });
 
+/**
+ * @swagger
+ * /admin/2fa-verify:
+ *   post:
+ *     summary: Verify two-factor authentication code
+ *     description: Verifies the TOTP code and completes the admin login process
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/x-www-form-urlencoded:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               totp_code:
+ *                 type: string
+ *                 description: 6-digit TOTP code from authenticator app
+ *                 pattern: "^\\d{6}$"
+ *             required:
+ *               - totp_code
+ *     responses:
+ *       200:
+ *         description: 2FA verification successful, user logged in
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 redirectTo:
+ *                   type: string
+ *       400:
+ *         description: Invalid or missing TOTP code
+ *       302:
+ *         description: Redirect to login if 2FA session expired
+ */
 
 app.post('/admin/2fa-verify', twoFaLimiter, express.urlencoded({ extended: true }), asyncHandler(async (req, res) => {
     const { totp_code } = req.body;
