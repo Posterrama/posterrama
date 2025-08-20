@@ -5227,19 +5227,13 @@ function setupCacheConfigEventListeners() {
             const computedStyle = window.getComputedStyle(header);
             const isVisible = (displayStyle !== 'none' && computedStyle.display !== 'none') || 
                              displayStyle === 'block';
-            console.log(`Mode header "${header.textContent?.trim()}" - display: ${displayStyle}, computed: ${computedStyle.display}, visible: ${isVisible}`);
             return isVisible;
         });
-
-        console.log(`Found ${visibleHeaders.length} visible mode headers`);
 
         if (visibleHeaders.length > 0) {
             const firstVisible = visibleHeaders[0];
             firstVisible.style.setProperty('margin-top', '0px', 'important');
             firstVisible.classList.add('first-visible');
-            console.log('Applied zero margin to first visible mode header:', firstVisible.textContent?.trim(), 'ID:', firstVisible.id);
-        } else {
-            console.log('No visible mode headers found');
         }
     }
 
