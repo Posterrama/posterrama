@@ -497,6 +497,18 @@ function getHelpContentForSection(sectionId) {
                         'Enable only when troubleshooting, then disable again',
                         'Check the logs section to view debug information'
                     ]
+                },
+                {
+                    title: 'Keyboard Shortcuts',
+                    description: 'Speed up your workflow with these handy keyboard shortcuts.',
+                    details: [
+                        '<strong>H</strong> - Toggle Quick Help panel (this panel)',
+                        '<strong>Ctrl+S</strong> (or <strong>Cmd+S</strong> on Mac) - Save all configuration changes',
+                        '<strong>Ctrl+T</strong> (or <strong>Cmd+T</strong> on Mac) - Test Plex server connection',
+                        '<strong>Escape</strong> - Close any open modal dialogs',
+                        'Shortcuts work from anywhere in the admin interface',
+                        'Tooltips on buttons show their associated shortcuts'
+                    ]
                 }
             ]
         },
@@ -606,6 +618,19 @@ function getHelpContentForSection(sectionId) {
                         'Choose from many categories and enable advanced filtering by genre, year, and rating',
                         'API keys are securely stored and preserved when making other changes',
                         'Test connection validates your key and shows available genres'
+                    ]
+                },
+                {
+                    title: 'Streaming Releases (TMDB)',
+                    description: 'Access latest releases from popular streaming platforms using TMDB streaming provider data.',
+                    details: [
+                        '🎬 Streaming Platforms: Netflix, Disney+, Amazon Prime Video, Apple TV+, HBO Max, Hulu, and more',
+                        '🌍 Regional Content: Select your region (US, UK, DE, etc.) to get locally available content',
+                        '📱 Provider Selection: Choose specific streaming services you have subscriptions to',
+                        '🆕 Latest Releases: Automatically finds newest content added to streaming platforms',
+                        '🔄 Auto-Refresh: Content updates as streaming platforms add new movies and shows',
+                        'Requires TMDB API key (same as regular TMDB source)',
+                        'Perfect for discovering new content available on your streaming subscriptions'
                     ]
                 },
                 {
@@ -754,6 +779,18 @@ function getHelpContentForSection(sectionId) {
                         'Report Issue: Submit bug reports or feature requests directly to the development team',
                         'Open source project: Posterrama is free software that welcomes community contributions',
                         'Direct links to GitHub issues and project pages for easy access to support resources'
+                    ]
+                },
+                {
+                    title: 'Developer Resources',
+                    description: 'Access technical documentation and API references for integration and development.',
+                    details: [
+                        '<strong>API Documentation</strong>: Interactive Swagger/OpenAPI documentation for all REST endpoints',
+                        'Complete API reference with request/response examples and authentication details',
+                        'Test API endpoints directly from the documentation interface',
+                        'Perfect for developers building integrations or external applications',
+                        'Access via "API Docs" button in the top navigation bar',
+                        'Covers all public and admin endpoints with full technical specifications'
                     ]
                 }
             ]
