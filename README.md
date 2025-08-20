@@ -1,6 +1,6 @@
 # Posterrama - Bring your media library to life
 
-[![Version](https://img.shields.io/badge/version-1.8.3-blue.svg)](https://github.com/Posterrama/posterrama)
+[![Version](https://img.shields.io/badge/version-1.8.8-blue.svg)](https://github.com/Posterrama/posterrama)
 [![Downloads](https://img.shields.io/github/downloads/Posterrama/posterrama/total?style=flat&logo=github&label=Downloads&color=brightgreen)](https://github.com/Posterrama/posterrama/releases)
 [![Tests](https://img.shields.io/badge/tests-615%20tests%20in%2043%20suites-brightgreen)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-87.75%25-brightgreen)](#testing)
@@ -9,9 +9,6 @@
 [![Plex](https://img.shields.io/badge/Plex-Compatible-orange.svg)](https://www.plex.tv/)
 [![TMDB](https://img.shields.io/badge/TMDB-Powered-blue.svg)](https://www.themoviedb.org/)
 [![TVDB](https://img.shields.io/badge/TVDB-Powered-green.svg)](https://thetvdb.com/)
-[![Kodi](https://img.shields.io/badge/Kodi-Compatible-blue.svg)](https://kodi.tv/)
-[![Emby](https://img.shields.io/badge/Emby-Compatible-green.svg)](https://emby.media/)
-[![Jellyfin](https://img.shields.io/badge/Jellyfin-Compatible-purple.svg)](https://jellyfin.org/)
 
 Transform any screen into a **stunning digital movie poster display** that showcases your personal media collection! Perfect for TV screensavers, wall-mounted tablets, or creating your own cinema lobby experience at home.
 

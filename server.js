@@ -1217,7 +1217,7 @@ app.use(requestLoggingMiddleware());
  *   get:
  *     summary: Get API cache statistics
  *     description: Retrieve detailed statistics about API cache performance and usage
- *     tags: [Admin API]
+ *     tags: [Cache]
  *     security:
  *       - isAuthenticated: []
  *     responses:
@@ -2500,27 +2500,11 @@ app.get('/health/detailed', asyncHandler(async (req, res) => {
  *     description: >
  *       Fetches the non-sensitive configuration needed by the frontend for display logic.
  *       This endpoint is also accessible via the versioned API at /api/v1/config.
- *       The response is cached for 10 minutes to improve performance.
+ *       The response is cached for 30 seconds to improve performance.
  *     tags: [Public API]
  *     responses:
  *       200:
  *         description: The public configuration object.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Config'
- */
-/**
- * @swagger
- * /get-config:
- *   get:
- *     summary: Get configuration (Legacy endpoint)
- *     description: Legacy endpoint for retrieving application configuration. Use /api/v1/config instead.
- *     tags: [Configuration, Legacy]
- *     deprecated: true
- *     responses:
- *       200:
- *         description: Configuration retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -5006,7 +4990,7 @@ app.get('/api/admin/version', isAuthenticated, asyncHandler(async (req, res) => 
  *       Checks the current version against the latest GitHub release
  *       and determines if an update is available. Returns detailed
  *       version information and release notes.
- *     tags: [Admin API]
+ *     tags: [Auto-Update]
  *     responses:
  *       200:
  *         description: Update check completed successfully
@@ -5104,7 +5088,7 @@ app.get('/api/admin/update-check', isAuthenticated, asyncHandler(async (req, res
  *     description: >
  *       Fetches recent releases from the GitHub repository.
  *       Useful for displaying a changelog or release history.
- *     tags: [Admin API]
+ *     tags: [GitHub Integration]
  *     parameters:
  *       - in: query
  *         name: limit
@@ -5166,7 +5150,7 @@ app.get('/api/admin/github/releases', isAuthenticated, asyncHandler(async (req, 
  *     description: >
  *       Fetches general information about the GitHub repository,
  *       including stars, forks, and other metadata.
- *     tags: [Admin API]
+ *     tags: [GitHub Integration]
  *     responses:
  *       200:
  *         description: Repository information
@@ -5212,7 +5196,7 @@ app.get('/api/admin/github/repository', isAuthenticated, asyncHandler(async (req
  *     description: >
  *       Clears the internal cache for GitHub API responses.
  *       This forces fresh data to be fetched on the next request.
- *     tags: [Admin API]
+ *     tags: [GitHub Integration]
  *     responses:
  *       200:
  *         description: Cache cleared successfully
@@ -5245,7 +5229,7 @@ app.post('/api/admin/github/clear-cache', isAuthenticated, asyncHandler(async (r
  *       Initiates the automatic update process. This will download the latest
  *       version, create a backup, and update the application. The process
  *       includes rollback capability in case of failure.
- *     tags: [Admin API]
+ *     tags: [Auto-Update]
  *     requestBody:
  *       required: false
  *       content:
@@ -5321,7 +5305,7 @@ app.post('/api/admin/update/start', isAuthenticated, express.json(), asyncHandle
  *     description: >
  *       Returns the current status of any ongoing update process,
  *       including progress, current phase, and any errors.
- *     tags: [Admin API]
+ *     tags: [Auto-Update]
  *     responses:
  *       200:
  *         description: Update status information
@@ -5375,7 +5359,7 @@ app.get('/api/admin/update/status', isAuthenticated, asyncHandler(async (req, re
  *     description: >
  *       Rollback to the most recent backup created during an update.
  *       This is useful if an update causes issues.
- *     tags: [Admin API]
+ *     tags: [Auto-Update]
  *     responses:
  *       200:
  *         description: Rollback completed successfully
@@ -5421,7 +5405,7 @@ app.post('/api/admin/update/rollback', isAuthenticated, asyncHandler(async (req,
  *     description: >
  *       Returns a list of all available backups that can be used
  *       for rollback or manual restoration.
- *     tags: [Admin API]
+ *     tags: [Auto-Update]
  *     responses:
  *       200:
  *         description: List of available backups
@@ -5463,7 +5447,7 @@ app.get('/api/admin/update/backups', isAuthenticated, asyncHandler(async (req, r
  *     description: >
  *       Remove old backups to free up disk space, keeping only
  *       the most recent backups as specified.
- *     tags: [Admin API]
+ *     tags: [Auto-Update]
  *     requestBody:
  *       required: false
  *       content:
@@ -5732,7 +5716,7 @@ app.get('/api/admin/debug-cache', isAuthenticated, asyncHandler(async (req, res)
  *     description: >
  *       Deletes all cached images from the `image_cache` directory on the server.
  *       This forces the application to re-fetch all images from the origin media servers.
- *     tags: [Admin API]
+ *     tags: [Cache]
  *     security:
  *       - bearerAuth: []
  *     responses:
