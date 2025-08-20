@@ -3087,40 +3087,54 @@ const loginLimiter = rateLimit({
  *       429:
  *         description: Too many login attempts
  */
-app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), asyncHandler(async (req, res) => {
-    const { username, password } = req.body;
-    if (isDebug) console.log(`[Admin Login] Attempting login for user "${username}".`);
+app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), async (req, res) => {
+    try {
+        console.log(`[Admin Login] POST /admin/login route hit`);
+        if (isDebug) console.log(`[Admin Login] Received login request:`, req.body);
+        
+        const { username, password } = req.body;
+        if (isDebug) console.log(`[Admin Login] Attempting login for user "${username}".`);
+        
+        // Check if admin is setup
+        if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD_HASH) {
+            if (isDebug) console.log(`[Admin Login] Admin not setup yet.`);
+            return res.status(400).json({ error: 'Admin user not configured. Please run the setup first.' });
+        }
 
-    const isValidUser = (username === process.env.ADMIN_USERNAME);
-    if (!isValidUser) {
-        if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid username.`);
-        return res.status(401).json({ error: 'Invalid username or password. Please try again.' });
+        const isValidUser = (username === process.env.ADMIN_USERNAME);
+        if (!isValidUser) {
+            if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid username.`);
+            return res.status(401).json({ error: 'Invalid username or password. Please try again.' });
+        }
+
+        const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
+        if (!isValidPassword) {
+            if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid credentials.`);
+            return res.status(401).json({ error: 'Invalid username or password. Please try again.' });
+        }
+
+        // --- Check if 2FA is enabled ---
+        const secret = process.env.ADMIN_2FA_SECRET || '';
+        const is2FAEnabled = secret.trim() !== '';
+
+        if (is2FAEnabled) {
+            // User is valid, but needs to provide a 2FA code.
+            // Set a temporary flag in the session.
+            req.session.tfa_required = true;
+            req.session.tfa_user = { username: username }; // Store user info temporarily
+            if (isDebug) console.log(`[Admin Login] Credentials valid for "${username}". Requires 2FA verification.`);
+            return res.status(200).json({ success: true, requires2FA: true, redirectTo: '/admin/2fa-verify' });
+        } else {
+            // No 2FA, log the user in directly.
+            req.session.user = { username: username };
+            if (isDebug) console.log(`[Admin Login] Login successful for user "${username}".`);
+            return res.status(200).json({ success: true, requires2FA: false, redirectTo: '/admin' });
+        }
+    } catch (error) {
+        console.error('[Admin Login] Error:', error);
+        return res.status(500).json({ error: 'Internal server error. Please try again.' });
     }
-
-    const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
-    if (!isValidPassword) {
-        if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid credentials.`);
-        return res.status(401).json({ error: 'Invalid username or password. Please try again.' });
-    }
-
-    // --- Check if 2FA is enabled ---
-    const secret = process.env.ADMIN_2FA_SECRET || '';
-    const is2FAEnabled = secret.trim() !== '';
-
-    if (is2FAEnabled) {
-        // User is valid, but needs to provide a 2FA code.
-        // Set a temporary flag in the session.
-        req.session.tfa_required = true;
-        req.session.tfa_user = { username: username }; // Store user info temporarily
-        if (isDebug) console.log(`[Admin Login] Credentials valid for "${username}". Requires 2FA verification.`);
-        return res.json({ success: true, requires2FA: true, redirectTo: '/admin/2fa-verify' });
-    } else {
-        // No 2FA, log the user in directly.
-        req.session.user = { username: username };
-        if (isDebug) console.log(`[Admin Login] Login successful for user "${username}".`);
-        return res.json({ success: true, requires2FA: false, redirectTo: '/admin' });
-    }
-}));
+});
 
 app.get('/admin/2fa-verify', (req, res) => {
     // Only show this page if the user has passed the first step of login.
