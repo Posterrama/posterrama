@@ -205,6 +205,48 @@ Visit `http://your-server-ip:4000/admin` to:
 
 This project is **free and open source** under the GPL-3.0-or-later license. You can use it, modify it, and share it - just keep it open source too!
 
+## 👨‍💻 Development
+
+### Code Quality
+
+This project maintains high code quality standards with:
+
+- **ESLint** for code linting and consistency
+- **Prettier** for automatic code formatting
+- **Pre-commit hooks** for automatic formatting before each commit
+- **615 comprehensive tests** across 43 test suites
+- **87.75% test coverage** ensuring code reliability
+
+### Development Scripts
+
+```bash
+# Code quality
+npm run lint              # Check for linting issues
+npm run lint:fix          # Auto-fix linting issues
+npm run format            # Format code with Prettier
+npm run format:fix        # Format and fix in one command
+
+# Pre-commit hooks
+npm run hooks:install     # Ensure pre-commit hook is executable
+npm run hooks:test        # Test the pre-commit hook manually
+
+# Testing
+npm run test              # Run all tests
+npm run test:coverage     # Run tests with coverage report
+npm run test:watch        # Run tests in watch mode
+```
+
+### Pre-commit Hook
+
+The project automatically formats code before each commit:
+
+- 🚀 Runs Prettier on all staged files
+- 🔧 Auto-fixes ESLint issues where possible
+- 📥 Adds formatted files back to staging
+- ⚠️ Warns about remaining lint issues
+
+See [Pre-commit Hook Documentation](./docs/PRE-COMMIT-HOOK.md) for details.
+
 ---
 
 **Ready to transform your space into a personal cinema?**
