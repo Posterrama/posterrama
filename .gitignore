@@ -46,3 +46,7 @@ logs/*.log
 
 # Session data (runtime generated)
 sessions/*.json
+
+# Private development files
+# Personal notes, todo lists, and other private development files
+private/

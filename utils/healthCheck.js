@@ -157,7 +157,12 @@ async function checkPlexConnectivity() {
         );
 
         if (enabledServers.length === 0) {
-            return null; // No Plex servers to check
+            return {
+                name: 'plex_connectivity',
+                status: 'ok',
+                message: 'No Plex servers are configured.',
+                details: { servers: [] },
+            };
         }
 
         const checks = [];

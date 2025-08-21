@@ -2,6 +2,7 @@
  * TMDB media source for posterrama.app
  * Handles fetching and processing media from The Movie Database API.
  */
+const logger = require('../logger');
 
 class TMDBSource {
     constructor(sourceConfig, shuffleArray, isDebug) {
@@ -80,7 +81,7 @@ class TMDBSource {
             const cached = this.genreCache.get(cacheKey);
             if (Date.now() - cached.timestamp < this.cacheTTL) {
                 if (this.isDebug) {
-                    console.log(
+                    logger.debug(
                         `[TMDBSource:${this.source.name}] Using cached genre mapping for ${type}`
                     );
                 }
@@ -117,14 +118,14 @@ class TMDBSource {
             });
 
             if (this.isDebug) {
-                console.log(
+                logger.debug(
                     `[TMDBSource:${this.source.name}] Fetched ${genreMap.size} genres for ${type}`
                 );
             }
 
             return genreMap;
         } catch (error) {
-            console.error(
+            logger.error(
                 `[TMDBSource:${this.source.name}] Error fetching genres for ${type}: ${error.message}`
             );
             return new Map(); // Return empty map on error
@@ -159,7 +160,7 @@ class TMDBSource {
             const cached = this.responseCache.get(url);
             if (Date.now() - cached.timestamp < this.cacheTTL) {
                 if (this.isDebug) {
-                    console.log(
+                    logger.debug(
                         `[TMDBSource:${this.source.name}] Using cached response for ${url}`
                     );
                 }
@@ -177,7 +178,7 @@ class TMDBSource {
                     // Rate limit exceeded - retry with exponential backoff
                     if (retryCount < this.maxRetries) {
                         const delay = this.retryDelay * Math.pow(2, retryCount);
-                        console.warn(
+                        logger.debug(
                             `[TMDBSource:${this.source.name}] Rate limit hit, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})`
                         );
                         await new Promise(resolve => setTimeout(resolve, delay));
@@ -193,7 +194,7 @@ class TMDBSource {
                     // Server error - retry
                     if (retryCount < this.maxRetries) {
                         const delay = this.retryDelay * (retryCount + 1);
-                        console.warn(
+                        logger.debug(
                             `[TMDBSource:${this.source.name}] Server error ${response.status}, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})`
                         );
                         await new Promise(resolve => setTimeout(resolve, delay));
@@ -224,7 +225,7 @@ class TMDBSource {
                 retryCount < this.maxRetries
             ) {
                 const delay = this.retryDelay * (retryCount + 1);
-                console.warn(
+                logger.debug(
                     `[TMDBSource:${this.source.name}] Network error, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries}): ${error.message}`
                 );
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -232,7 +233,7 @@ class TMDBSource {
             }
 
             // Enhanced error logging
-            console.error(
+            logger.error(
                 `[TMDBSource:${this.source.name}] API request failed for ${url}: ${error.message}`
             );
             throw error;
@@ -249,7 +250,7 @@ class TMDBSource {
         if (count === 0) return [];
 
         if (this.isDebug) {
-            console.log(
+            logger.debug(
                 `[TMDBSource:${this.source.name}] Fetching ${count} ${type}(s) from TMDB (category: ${this.source.category})`
             );
         }
@@ -273,7 +274,7 @@ class TMDBSource {
                         allItems = [data]; // Latest returns single object, not array
                     }
                 } catch (error) {
-                    console.warn(
+                    logger.debug(
                         `[TMDBSource:${this.source.name}] Failed to fetch latest: ${error.message}`
                     );
                 }
@@ -311,7 +312,7 @@ class TMDBSource {
                         // Stop if we have enough items
                         if (allItems.length >= count) break;
                     } catch (error) {
-                        console.warn(
+                        logger.debug(
                             `[TMDBSource:${this.source.name}] Failed to fetch page ${page}: ${error.message}`
                         );
                         // Continue with next page instead of failing completely
@@ -321,7 +322,7 @@ class TMDBSource {
             }
 
             if (this.isDebug) {
-                console.log(
+                logger.debug(
                     `[TMDBSource:${this.source.name}] Found ${allItems.length} total items from TMDB.`
                 );
             }
@@ -329,7 +330,7 @@ class TMDBSource {
             // Apply content filtering with genre mapping
             const filteredItems = this.applyContentFiltering(allItems, type, genreMap);
             if (this.isDebug) {
-                console.log(
+                logger.debug(
                     `[TMDBSource:${this.source.name}] After filtering: ${filteredItems.length} items remaining.`
                 );
             }
@@ -349,7 +350,7 @@ class TMDBSource {
                     selectedItems.map(item => this.processTMDBItem(item, type, genreMap, true))
                 );
                 if (this.isDebug) {
-                    console.log(
+                    logger.debug(
                         `[TMDBSource:${this.source.name}] Fetched streaming data for ${processedItems.length} items.`
                     );
                 }
@@ -361,16 +362,14 @@ class TMDBSource {
             }
 
             if (this.isDebug) {
-                console.log(
+                logger.debug(
                     `[TMDBSource:${this.source.name}] Returning ${processedItems.length} processed items.`
                 );
             }
 
             return processedItems;
         } catch (error) {
-            console.error(
-                `[TMDBSource:${this.source.name}] Error fetching media: ${error.message}`
-            );
+            logger.error(`[TMDBSource:${this.source.name}] Error fetching media: ${error.message}`);
             return [];
         }
     }
@@ -522,7 +521,7 @@ class TMDBSource {
 
             if (!response.ok) {
                 if (this.isDebug) {
-                    console.warn(
+                    logger.debug(
                         `[TMDBSource:${this.source.name}] Failed to fetch streaming providers for ${mediaType} ${itemId}: ${response.status}`
                     );
                 }
@@ -540,7 +539,7 @@ class TMDBSource {
             return data;
         } catch (error) {
             if (this.isDebug) {
-                console.warn(
+                logger.debug(
                     `[TMDBSource:${this.source.name}] Error fetching streaming providers: ${error.message}`
                 );
             }
@@ -631,7 +630,7 @@ class TMDBSource {
                 return item.vote_average >= this.source.minRating;
             });
             if (this.isDebug) {
-                console.log(
+                logger.debug(
                     `[TMDBSource:${this.source.name}] Rating filter (>=${this.source.minRating}): ${filteredItems.length} items.`
                 );
             }
@@ -664,7 +663,7 @@ class TMDBSource {
                 });
 
                 if (this.isDebug) {
-                    console.log(
+                    logger.debug(
                         `[TMDBSource:${this.source.name}] Genre filter (${genreNames.join(', ')}): ${filteredItems.length} items.`
                     );
                 }
@@ -680,7 +679,7 @@ class TMDBSource {
                 return year >= this.source.yearFilter;
             });
             if (this.isDebug) {
-                console.log(
+                logger.debug(
                     `[TMDBSource:${this.source.name}] Year filter (>=${this.source.yearFilter}): ${filteredItems.length} items.`
                 );
             }
@@ -736,14 +735,14 @@ class TMDBSource {
                 if (streamingData) {
                     processedItem.streaming = this.formatStreamingProviders(streamingData);
                     if (this.isDebug) {
-                        console.log(
+                        logger.debug(
                             `[TMDBSource:${this.source.name}] Added streaming data for ${title}: ${processedItem.streaming.providers.length} providers`
                         );
                     }
                 }
             } catch (error) {
                 if (this.isDebug) {
-                    console.warn(
+                    logger.debug(
                         `[TMDBSource:${this.source.name}] Failed to fetch streaming data for ${title}: ${error.message}`
                     );
                 }
@@ -772,7 +771,7 @@ class TMDBSource {
 
             return Array.from(allGenres).sort();
         } catch (error) {
-            console.error(
+            logger.error(
                 `[TMDBSource:${this.source.name}] Error getting available genres: ${error.message}`
             );
             return [];
@@ -800,7 +799,7 @@ class TMDBSource {
         }
 
         if (this.isDebug) {
-            console.log(
+            logger.debug(
                 `[TMDBSource:${this.source.name}] Cache cleanup completed. Genre cache: ${this.genreCache.size}, Response cache: ${this.responseCache.size}`
             );
         }

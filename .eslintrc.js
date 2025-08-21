@@ -16,6 +16,12 @@ module.exports = {
         'no-console': 'off',
         'prefer-const': 'error',
     },
+    globals: {
+        logger: 'readonly',
+        defaults: 'readonly',
+        enableDebug: 'readonly',
+        disableDebug: 'readonly',
+    },
     ignorePatterns: [
         'node_modules/',
         'coverage/',

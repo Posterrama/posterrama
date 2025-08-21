@@ -15,11 +15,9 @@ self.addEventListener('install', event => {
         caches
             .open(CACHE_NAME)
             .then(cache => {
-                console.log('[SW] Caching static assets');
                 return cache.addAll(STATIC_ASSETS);
             })
             .then(() => {
-                console.log('[SW] Installation complete');
                 return self.skipWaiting();
             })
             .catch(error => {
@@ -37,14 +35,12 @@ self.addEventListener('activate', event => {
                 return Promise.all(
                     cacheNames.map(cacheName => {
                         if (cacheName !== CACHE_NAME) {
-                            console.log('[SW] Deleting old cache:', cacheName);
                             return caches.delete(cacheName);
                         }
                     })
                 );
             })
             .then(() => {
-                console.log('[SW] Activation complete');
                 return self.clients.claim();
             })
     );

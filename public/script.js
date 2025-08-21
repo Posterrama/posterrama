@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             get: originalTitleDescriptor.get,
             set: function (value) {
                 if (document.body && document.body.classList.contains('wallart-mode')) {
-                    console.log(
+                    logger.debug(
                         `[WALLART] Title protection - blocked change from "${document.title}" to "${value}"`
                     );
                     return; // Block the change
@@ -135,14 +135,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Check for promo site config override (forced screensaver mode)
             if (window.CONFIG_OVERRIDE) {
-                console.log('Applying promo site config override');
+                // console.log removed for cleaner browser console
                 appConfig = { ...appConfig, ...window.CONFIG_OVERRIDE };
             }
 
             // Logic for the public site promo box.
             // The server injects `isPublicSite: true` into the config for the public-facing server.
             if (appConfig.isPublicSite) {
-                console.log('[Promo Site] Configuring promo site display');
+                // console.log removed for cleaner browser console
 
                 // Add promo-site class to body for CSS targeting
                 document.body.classList.add('promo-site');
@@ -151,13 +151,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (promoBox) {
                     promoBox.classList.remove('is-hidden');
                     promoBox.style.display = 'block';
-                    console.log('[Promo Site] Promo box enabled and made visible');
+                    // console.log removed for cleaner browser console
                 } else {
-                    console.warn('[Promo Site] Promo box element not found');
+                    logger.warn('[Promo Site] Promo box element not found');
                 }
 
                 // Force screensaver mode on promo site
-                console.log('[Promo Site] Forcing screensaver mode');
+                // console.log removed for cleaner browser console
                 document.body.classList.add('screensaver-mode');
 
                 // Ensure poster and info elements are visible
@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Also refresh config when window gains focus (returning from admin interface)
         window.addEventListener('focus', () => {
-            console.log('[CONFIG] Window gained focus, checking for config changes...');
+            // console.log removed for cleaner browser console
             setTimeout(refreshConfig, 1000); // Small delay to ensure any pending saves are complete
         });
 
@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.body.classList.contains('wallart-mode') &&
                     document.title !== 'Posterrama'
                 ) {
-                    console.log('[WALLART] Resetting title to Posterrama');
+                    // console.log removed for cleaner browser console
                     document.title = 'Posterrama';
                 }
             }, 1000); // Check every second
@@ -543,7 +543,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Calculate coverage percentage
         const coverage = ((gridWidth * gridHeight) / (screenWidth * screenHeight)) * 100;
 
-        console.log(
+        logger.debug(
             `Wallart Layout: ${cols}x${finalRows} = ${posterCount} posters, ${Math.round(coverage)}% coverage, ${finalPosterWidth}x${finalPosterHeight}px each`
         );
 
@@ -600,30 +600,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (mediaQueue.length === 0) {
             // Prevent multiple simultaneous initialization attempts
             if (wallartInitializing) {
-                console.log('[WALLART] Already initializing, skipping duplicate attempt');
+                // console.log removed for cleaner browser console
                 return;
             }
 
             wallartInitializing = true;
-            console.log('[WALLART] No media available yet, delaying wallart start...');
+            // console.log removed for cleaner browser console
 
             // Try to fetch media first, then restart wallart cycle
             fetchMedia(true)
                 .then(() => {
                     wallartInitializing = false;
                     if (mediaQueue.length > 0) {
-                        console.log(
+                        logger.debug(
                             '[WALLART] Media fetched successfully, restarting wallart cycle...'
                         );
                         startWallartCycle(wallartConfig);
                     } else {
-                        console.log(
+                        logger.debug(
                             '[WALLART] Still no media after fetch, showing loading message...'
                         );
                         // Continue with showing loading message and retry after delay
                         createLoadingGrid('Loading posters...');
                         setTimeout(() => {
-                            console.log('[WALLART] Retrying wallart initialization...');
+                            // console.log removed for cleaner browser console
                             startWallartCycle(wallartConfig);
                         }, 3000);
                     }
@@ -634,7 +634,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     createLoadingGrid('Failed to load posters. Retrying...');
                     // Retry after error
                     setTimeout(() => {
-                        console.log('[WALLART] Retrying after error...');
+                        // console.log removed for cleaner browser console
                         startWallartCycle(wallartConfig);
                     }, 5000);
                 });
@@ -762,7 +762,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const layout = calculateWallartLayout(currentDensity);
             const { actualPosterHeight } = layout;
 
-            console.log('SHIFT:', animationType, 'Current offset:', window.wallartShiftOffset);
+            // console.log removed for cleaner browser console
 
             if (animationType === 'shiftUp') {
                 // Move up by one poster height
@@ -776,7 +776,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const newTop = layout.gridTop + window.wallartShiftOffset;
             wallartGrid.style.transform = `translate(${layout.gridLeft}px, ${newTop}px)`;
 
-            console.log('New position:', newTop, 'Total offset:', window.wallartShiftOffset);
+            // console.log removed for cleaner browser console
         }
 
         function getUniqueRandomPoster(excludePosterId = null) {
@@ -907,7 +907,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wallartGrid.appendChild(loadingItem);
 
                 // Try to fetch media if not available
-                console.log('[WALLART] No media available, attempting to fetch...');
+                // console.log removed for cleaner browser console
                 fetchMedia(true)
                     .then(() => {
                         // After media is fetched, reinitialize the grid
@@ -971,7 +971,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Get a new unique poster that's different from the current one at this position
             const newPoster = getUniqueRandomPoster(currentPosterId);
             if (!newPoster) {
-                console.log('[WALLART] No new unique poster available');
+                // console.log removed for cleaner browser console
                 return;
             }
 
@@ -1025,13 +1025,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         function getRandomAnimationType() {
             const availableTypes = getAvailableAnimationTypes();
             if (availableTypes.length === 0) {
-                console.warn(`[WALLART] No animation types available, falling back to 'fade'`);
+                logger.warn(`[WALLART] No animation types available, falling back to 'fade'`);
                 return 'fade';
             }
 
             const randomIndex = Math.floor(Math.random() * availableTypes.length);
             const selectedType = availableTypes[randomIndex];
-            console.log(
+            logger.debug(
                 `[WALLART] Random animation type selected: ${selectedType} (from: ${availableTypes.join(', ')})`
             );
             return selectedType;
@@ -1221,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         function handleWallartResize() {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                console.log('[WALLART] Window resized, recalculating grid layout...');
+                // console.log removed for cleaner browser console
                 initializeWallartGrid();
             }, 250); // Debounce resize events
         }
@@ -1346,11 +1346,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Handle wallart mode changes
         if (JSON.stringify(oldConfig.wallartMode) !== JSON.stringify(newConfig.wallartMode)) {
-            console.log('[CONFIG] Wallart configuration changed, restarting wallart...');
+            // console.log removed for cleaner browser console
 
             // Check specifically for animation type changes to force immediate restart
             if (oldConfig.wallartMode?.animationType !== newConfig.wallartMode?.animationType) {
-                console.log(
+                logger.debug(
                     `[CONFIG] Animation type changed from ${oldConfig.wallartMode?.animationType} to ${newConfig.wallartMode?.animationType}`
                 );
             }
@@ -2197,7 +2197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             default: {
-                console.warn(`Unknown transition effect: ${transitionEffect}`);
+                logger.warn(`Unknown transition effect: ${transitionEffect}`);
                 // Fallback to simple crossfade
                 newLayer.style.opacity = 0;
                 newLayer.style.transition = 'opacity 1s ease-in-out';
@@ -2258,7 +2258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Don't change media in wallart mode (wallart has its own system)
         if (document.body.classList.contains('wallart-mode') && !isFirstLoad) {
-            console.log('[WALLART] Blocking changeMedia() call - wallart mode is active');
+            // console.log removed for cleaner browser console
             return;
         }
 

@@ -11,8 +11,6 @@
             rel="stylesheet"
         />
         <link
-            rel="stylesh                console.log                // Step 1: Login with username/password (will redirect to 2FA verify)
-                console.log('🔑 Step 1: Logging in with credentials...');
                 const loginResponse = await fetch('/admin/login', {
                     method: 'POST',
                     credentials: 'include',
@@ -23,10 +21,8 @@
                     })
                 });
 
-                console.log('🔑 Login response status:', loginResponse.status);ponse status:', loginResponse.status);
 
                 // Step 2: Submit 2FA code
-                console.log('🔐 Step 2: Submitting 2FA code...');
                 const tfaResponse = await fetch('/admin/2fa-verify', {
                     method: 'POST',
                     credentials: 'include',
@@ -37,13 +33,9 @@
                     redirect: 'follow' // Follow redirects to see final URL
                 });
 
-                console.log('🔐 2FA verification response status:', tfaResponse.status);
-                console.log('🔐 Final URL after redirects:', tfaResponse.url);
 
                 // Check the final URL after all redirects
                 if (tfaResponse.url.endsWith('/admin') || tfaResponse.url.includes('/admin?')) {
-                    console.log('✅ 2FA verification successful - redirected to admin panel');
-                    console.log('🎉 Setup complete! 2FA has been successfully configured.');
                     
                     // Show success message and give user time to see it
                     alert('🎉 2FA Setup Complete!\n\nYour account has been created with 2FA enabled.\nClick OK to continue to the setup completion page.');
@@ -52,7 +44,6 @@
                     window.location.href = '/setup.html?complete=1';
                     
                 } else if (tfaResponse.url.includes('2fa-verify')) {
-                    console.log('❌ 2FA verification failed - redirected back to verify page');
                     if (tfaResponse.url.includes('error=invalid_code')) {
                         alert('Verification failed: Invalid code. Please try again.');
                     } else if (tfaResponse.url.includes('error=rate_limited')) {
@@ -61,7 +52,6 @@
                         alert('Verification failed: Please try again.');
                     }
                 } else {
-                    console.log('❌ Unexpected redirect URL:', tfaResponse.url);
                     alert('Verification failed: Unexpected response. Please try again.');
                 }tps://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         />
@@ -437,7 +427,6 @@
 
             async function completeSetup(with2FA = false) {
                 try {
-                    console.log('🏁 Completing setup, with2FA:', with2FA);
 
                     const response = await fetch('/admin/setup', {
                         method: 'POST',
@@ -450,7 +439,6 @@
                     });
 
                     if (response.ok) {
-                        console.log('✅ Setup completed successfully');
                         window.location.href = '/setup.html?complete=1';
                     } else {
                         const error = await response.text();
@@ -465,10 +453,8 @@
 
             async function initiate2FASetup() {
                 try {
-                    console.log('🔧 Starting 2FA setup process...');
 
                     // Create admin account with 2FA enabled
-                    console.log('👤 Creating admin account with 2FA...');
                     const setupResponse = await fetch('/admin/setup', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -479,7 +465,6 @@
                         }),
                     });
 
-                    console.log('👤 Setup response status:', setupResponse.status);
 
                     if (!setupResponse.ok) {
                         const errorText = await setupResponse.text();
@@ -488,15 +473,12 @@
                     }
 
                     const setupData = await setupResponse.json();
-                    console.log('✅ Admin account created successfully with 2FA');
 
                     // If setup included QR code, show it
                     if (setupData.qrCodeDataUrl) {
-                        console.log('✅ QR code received from setup');
                         document.getElementById('qr-container').innerHTML =
                             `<img src="${setupData.qrCodeDataUrl}" alt="QR Code">`;
                     } else {
-                        console.log(
                             '⚠️ No QR code in setup response, requesting separate 2FA setup'
                         );
 
@@ -546,7 +528,6 @@
             }
 
             function goBackToStep2() {
-                console.log('🔙 Going back to step 2');
                 document.getElementById('step3').style.display = 'none';
                 document.getElementById('step2').style.display = 'block';
             }
@@ -554,16 +535,13 @@
             async function verify2FA(token) {
                 // Prevent double execution
                 if (verify2FA.isRunning) {
-                    console.log('⚠️ 2FA verification already in progress, ignoring duplicate call');
                     return;
                 }
                 verify2FA.isRunning = true;
 
                 try {
-                    console.log('🔐 Verifying 2FA code:', token);
 
                     // First, we need to login to establish a session for 2FA verification
-                    console.log('🔑 Logging in to verify 2FA...');
                     const loginResponse = await fetch('/admin/login', {
                         method: 'POST',
                         credentials: 'include',
@@ -575,7 +553,6 @@
                         }),
                     });
 
-                    console.log('� Login response status:', loginResponse.status);
 
                     if (!loginResponse.ok) {
                         const errorText = await loginResponse.text();
@@ -584,7 +561,6 @@
                         return;
                     }
 
-                    console.log('✅ Login with 2FA successful');
 
                     // Login successful with 2FA, setup is complete
                     window.location.href = '/setup.html?complete=1';

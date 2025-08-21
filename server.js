@@ -97,7 +97,7 @@ const exampleEnvPath = path.join(__dirname, 'config.example.env');
 if (!fs.existsSync(envPath)) {
     if (fs.existsSync(exampleEnvPath)) {
         fs.copyFileSync(exampleEnvPath, envPath);
-        console.log('[Config] .env aangemaakt op basis van config.example.env');
+        logger.info('[Config] .env aangemaakt op basis van config.example.env');
     } else {
         console.error('[Config] config.example.env ontbreekt, kan geen .env aanmaken!');
         process.exit(1);
@@ -110,7 +110,7 @@ const exampleConfigPath = path.join(__dirname, 'config.example.json');
 if (!fs.existsSync(configPath)) {
     if (fs.existsSync(exampleConfigPath)) {
         fs.copyFileSync(exampleConfigPath, configPath);
-        console.log('[Config] config.json aangemaakt op basis van config.example.json');
+        logger.info('[Config] config.json aangemaakt op basis van config.example.json');
     } else {
         console.error('[Config] config.example.json ontbreekt, kan geen config.json aanmaken!');
         process.exit(1);
@@ -132,14 +132,14 @@ const imageCacheDir = path.join(__dirname, 'image_cache');
     try {
         // Ensure all required directories exist before the application starts.
         // Using sync methods here prevents race conditions with middleware initialization.
-        console.log('Creating required directories...');
+        logger.info('Creating required directories...');
 
         fs.mkdirSync(sessionsPath, { recursive: true });
         fs.mkdirSync(imageCacheDir, { recursive: true });
         fs.mkdirSync(cacheDir, { recursive: true });
         fs.mkdirSync(logsDir, { recursive: true });
 
-        console.log(
+        logger.info(
             '✓ All required directories created/verified: sessions, image_cache, cache, logs'
         );
     } catch (error) {
@@ -153,9 +153,9 @@ const imageCacheDir = path.join(__dirname, 'image_cache');
     } catch (error) {
         // If .env doesn't exist, copy from config.example.env
         if (error.code === 'ENOENT') {
-            console.log('.env file not found, creating from config.example.env...');
+            logger.debug('.env file not found, creating from config.example.env...');
             fs.copyFileSync(exampleEnvPath, envPath);
-            console.log('.env file created successfully.');
+            logger.debug('.env file created successfully.');
             // Reload dotenv to pick up the new file
             require('dotenv').config({ override: true });
         } else {
@@ -166,7 +166,7 @@ const imageCacheDir = path.join(__dirname, 'image_cache');
 
     // Validate SESSION_SECRET
     if (!process.env.SESSION_SECRET) {
-        console.log('SESSION_SECRET is missing, generating a new one...');
+        logger.info('SESSION_SECRET is missing, generating a new one...');
         const newSecret = require('crypto').randomBytes(32).toString('hex');
         // Read the .env file
         const envContent = fs.readFileSync(envPath, 'utf8');
@@ -174,13 +174,13 @@ const imageCacheDir = path.join(__dirname, 'image_cache');
         const newEnvContent = envContent + `\nSESSION_SECRET="${newSecret}"\n`;
         // Write the updated content back to the .env file
         fs.writeFileSync(envPath, newEnvContent, 'utf8');
-        console.log('New SESSION_SECRET generated and saved to .env.');
+        logger.info('New SESSION_SECRET generated and saved to .env.');
 
         // If running under PM2, trigger a restart. The current process will likely crash
         // due to the missing session secret, and PM2 will restart it. The new process
         // will then load the secret correctly from the .env file.
         if (process.env.PM2_HOME) {
-            console.log(
+            logger.debug(
                 'Running under PM2. Triggering a restart to apply the new SESSION_SECRET...'
             );
             const { exec } = require('child_process');
@@ -217,10 +217,10 @@ const fetch = require('node-fetch');
         fs.accessSync(configPath);
     } catch (error) {
         if (error.code === 'ENOENT') {
-            console.log('config.json not found, creating from config.example.json...');
+            logger.debug('config.json not found, creating from config.example.json...');
             try {
                 fs.copyFileSync(exampleConfigPath, configPath);
-                console.log('config.json created successfully from example.');
+                logger.debug('config.json created successfully from example.');
             } catch (copyError) {
                 console.error(
                     'FATAL ERROR: Could not create config.json from config.example.json:',
@@ -444,7 +444,7 @@ app.get('/api/v1/media', (req, res) => {
     app._router.handle(req, res);
 });
 
-if (isDebug) console.log('--- DEBUG MODE IS ACTIVE ---');
+if (isDebug) logger.debug('--- DEBUG MODE IS ACTIVE ---');
 
 // Trust the first proxy in front of the app (e.g., Nginx, Cloudflare).
 // This is necessary for express-rate-limit to work correctly when behind a proxy,
@@ -1362,7 +1362,7 @@ app.use(
 // General request logger for debugging
 if (isDebug) {
     app.use((req, res, next) => {
-        console.log(`[Request Logger] Received: ${req.method} ${req.originalUrl}`);
+        logger.info(`[Request Logger] Received: ${req.method} ${req.originalUrl}`);
         next();
     });
 }
@@ -1372,7 +1372,7 @@ app.use(
     session({
         store: new FileStore({
             path: './sessions', // Sessions will be stored in a 'sessions' directory
-            logFn: isDebug ? console.log : () => {},
+            logFn: isDebug ? logger.debug : () => {},
             ttl: 86400 * 7, // Session TTL in seconds (7 days)
             reapInterval: 86400, // Clean up expired sessions once a day
             retries: 3, // Retry file operations up to 3 times
@@ -1472,7 +1472,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
 
         // --- START ENHANCED DEBUG LOGGING ---
         if (isDebug) {
-            console.log(
+            logger.debug(
                 `[RT Debug] Processing rating for "${titleForDebug}". Raw rtRating object:`,
                 JSON.stringify(rtRating)
             );
@@ -1505,7 +1505,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         }
 
         if (isDebug) {
-            console.log(
+            logger.debug(
                 `[RT Debug] -> For "${titleForDebug}": Identifier: "${imageIdentifier}", Score: ${finalScore}, Determined Icon: "${icon}"`
             );
         }
@@ -1543,12 +1543,12 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
 
         if (isDebug) {
             if (rottenTomatoesData) {
-                console.log(
+                logger.debug(
                     `[Plex Debug] Found Rotten Tomatoes data for "${sourceItem.title}": Score ${rottenTomatoesData.score}%, Icon ${rottenTomatoesData.icon}`
                 );
             } else if (sourceItem.Rating) {
                 // Only log if the Rating array exists but we couldn't parse RT data from it.
-                console.log(
+                logger.debug(
                     `[Plex Debug] Could not parse Rotten Tomatoes data for "${sourceItem.title}" from rating array:`,
                     JSON.stringify(sourceItem.Rating)
                 );
@@ -1583,7 +1583,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         };
     } catch (e) {
         if (isDebug)
-            console.log(
+            logger.debug(
                 `[Debug] Skipping item due to error fetching details for key ${itemSummary.key}: ${e.message}`
             );
         return null;
@@ -1625,12 +1625,12 @@ function createPlexClient({ hostname, port, token, timeout }) {
             : `http://${sanitizedHostname}`;
         const url = new URL(fullUrl);
         sanitizedHostname = url.hostname; // This extracts just the hostname/IP
-        if (isDebug) console.log(`[Plex Client] Sanitized hostname to: "${sanitizedHostname}"`);
+        if (isDebug) logger.debug(`[Plex Client] Sanitized hostname to: "${sanitizedHostname}"`);
     } catch (e) {
         // Fallback for invalid URL formats that might still be valid hostnames (though unlikely)
         sanitizedHostname = sanitizedHostname.replace(/^https?:\/\//, '');
         if (isDebug)
-            console.log(
+            logger.debug(
                 `[Plex Client] Could not parse hostname as URL, falling back to simple sanitization: "${sanitizedHostname}"`
             );
     }
@@ -1839,7 +1839,7 @@ async function getPlexGenres(serverConfig) {
         }
 
         if (isDebug)
-            console.log(
+            logger.debug(
                 `[getPlexGenres] Found ${genres.size} unique genres from ${allLibraries.size} libraries`
             );
         return Array.from(genres).sort();
@@ -1857,7 +1857,7 @@ async function getPlaylistMedia() {
 
     // Process Plex/Media Servers
     for (const server of enabledServers) {
-        if (isDebug) console.log(`[Debug] Fetching from server: ${server.name} (${server.type})`);
+        if (isDebug) logger.debug(`[Debug] Fetching from server: ${server.name} (${server.type})`);
 
         let source;
         if (server.type === 'plex') {
@@ -1872,7 +1872,7 @@ async function getPlaylistMedia() {
             );
         } else {
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Debug] Skipping server ${server.name} due to unsupported type ${server.type}`
                 );
             continue;
@@ -1885,13 +1885,13 @@ async function getPlaylistMedia() {
         const mediaFromServer = movies.concat(shows);
 
         if (isDebug)
-            console.log(`[Debug] Fetched ${mediaFromServer.length} items from ${server.name}.`);
+            logger.info(`[Debug] Fetched ${mediaFromServer.length} items from ${server.name}.`);
         allMedia = allMedia.concat(mediaFromServer);
     }
 
     // Process TMDB Source
     if (config.tmdbSource && config.tmdbSource.enabled && config.tmdbSource.apiKey) {
-        if (isDebug) console.log(`[Debug] Fetching from TMDB source`);
+        if (isDebug) logger.debug(`[Debug] Fetching from TMDB source`);
 
         // Add a name to the TMDB source for consistent logging
         const tmdbSourceConfig = { ...config.tmdbSource, name: 'TMDB' };
@@ -1916,7 +1916,7 @@ async function getPlaylistMedia() {
         ]);
         const tmdbMedia = tmdbMovies.concat(tmdbShows);
 
-        if (isDebug) console.log(`[Debug] Fetched ${tmdbMedia.length} items from TMDB.`);
+        if (isDebug) logger.debug(`[Debug] Fetched ${tmdbMedia.length} items from TMDB.`);
         allMedia = allMedia.concat(tmdbMedia);
     }
 
@@ -1924,10 +1924,10 @@ async function getPlaylistMedia() {
     if (config.streamingSources && Array.isArray(config.streamingSources)) {
         for (const streamingConfig of config.streamingSources) {
             if (streamingConfig.enabled && streamingConfig.apiKey) {
-                console.log(
+                logger.debug(
                     `[Streaming Debug] Fetching from: ${streamingConfig.name} (Category: ${streamingConfig.category})`
                 );
-                console.log(
+                logger.debug(
                     `[Streaming Debug] Settings - Movies: ${streamingConfig.movieCount || 0}, Shows: ${streamingConfig.showCount || 0}, Min Rating: ${streamingConfig.minRating || 0}, Region: ${streamingConfig.watchRegion || 'US'}`
                 );
 
@@ -1940,11 +1940,11 @@ async function getPlaylistMedia() {
                     ]);
                     const streamingMedia = streamingMovies.concat(streamingShows);
 
-                    console.log(
+                    logger.debug(
                         `[Streaming Debug] ${streamingConfig.name} results: ${streamingMovies.length} movies + ${streamingShows.length} shows = ${streamingMedia.length} total items`
                     );
                     if (streamingMedia.length === 0) {
-                        console.log(
+                        logger.debug(
                             `[Streaming Debug] WARNING: No content found for ${streamingConfig.name} - check provider ID or regional availability`
                         );
                     }
@@ -1956,9 +1956,9 @@ async function getPlaylistMedia() {
                 }
             } else {
                 if (!streamingConfig.enabled) {
-                    console.log(`[Streaming Debug] Skipping ${streamingConfig.name} - disabled`);
+                    logger.info(`[Streaming Debug] Skipping ${streamingConfig.name} - disabled`);
                 } else if (!streamingConfig.apiKey) {
-                    console.log(`[Streaming Debug] Skipping ${streamingConfig.name} - no API key`);
+                    logger.info(`[Streaming Debug] Skipping ${streamingConfig.name} - no API key`);
                 }
             }
         }
@@ -1966,7 +1966,7 @@ async function getPlaylistMedia() {
 
     // Process TVDB Source
     if (config.tvdbSource && config.tvdbSource.enabled) {
-        if (isDebug) console.log(`[Debug] Fetching from TVDB source`);
+        if (isDebug) logger.debug(`[Debug] Fetching from TVDB source`);
 
         const tvdbSource = new TVDBSource(config.tvdbSource);
 
@@ -1989,7 +1989,7 @@ async function getPlaylistMedia() {
         ]);
         const tvdbMedia = tvdbMovies.concat(tvdbShows);
 
-        if (isDebug) console.log(`[Debug] Fetched ${tvdbMedia.length} items from TVDB.`);
+        if (isDebug) logger.debug(`[Debug] Fetched ${tvdbMedia.length} items from TVDB.`);
         allMedia = allMedia.concat(tvdbMedia);
     }
 
@@ -2081,7 +2081,7 @@ function isAuthenticated(req, res, next) {
     // 1. Check for session-based authentication (for browser users)
     if (req.session && req.session.user) {
         if (isDebug)
-            console.log(`[Auth] Authenticated via session for user: ${req.session.user.username}`);
+            logger.info(`[Auth] Authenticated via session for user: ${req.session.user.username}`);
         return next();
     }
 
@@ -2100,7 +2100,7 @@ function isAuthenticated(req, res, next) {
             storedTokenBuffer.length === providedTokenBuffer.length &&
             crypto.timingSafeEqual(storedTokenBuffer, providedTokenBuffer)
         ) {
-            if (isDebug) console.log('[Auth] Authenticated via API Key.');
+            if (isDebug) logger.debug('[Auth] Authenticated via API Key.');
             // Attach a user object for consistency in downstream middleware/routes.
             req.user = { username: 'api_user', authMethod: 'apiKey' };
             return next();
@@ -2110,7 +2110,7 @@ function isAuthenticated(req, res, next) {
     // 3. If neither method works, deny access.
     if (isDebug) {
         const reason = authHeader ? 'Invalid token' : 'No session or token';
-        console.log(`[Auth] Authentication failed. Reason: ${reason}`);
+        logger.info(`[Auth] Authentication failed. Reason: ${reason}`);
     }
 
     // For API requests, send a 401 JSON error.
@@ -2662,7 +2662,7 @@ app.get(
         const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
 
         if (isDebug) {
-            console.log(
+            logger.debug(
                 `[get-config] Request from ${isMobile ? 'mobile' : 'desktop'} device: ${userAgent.substring(0, 50)}...`
             );
         }
@@ -2761,16 +2761,16 @@ app.get(
             const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
 
             if (isDebug) {
-                console.log(
+                logger.debug(
                     `[Debug] Serving ${itemCount} items from cache to ${isMobile ? 'mobile' : 'desktop'} device.`
                 );
 
                 // Extra debug for mobile devices showing empty results
                 if (isMobile && itemCount === 0) {
-                    console.log(
+                    logger.debug(
                         `[Debug] WARNING: Empty cache for mobile device. User-Agent: ${userAgent.substring(0, 100)}`
                     );
-                    console.log(
+                    logger.debug(
                         `[Debug] Current config.mediaServers:`,
                         JSON.stringify(
                             config.mediaServers?.map(s => ({
@@ -2793,7 +2793,7 @@ app.get(
         if (isRefreshing) {
             // The full cache is being built. Tell the client to wait and try again.
             if (isDebug)
-                console.log('[Debug] Cache is empty but refreshing. Sending 202 Accepted.');
+                logger.debug('[Debug] Cache is empty but refreshing. Sending 202 Accepted.');
             // 202 Accepted is appropriate here: the request is accepted, but processing is not complete.
             return res.status(202).json({
                 status: 'building',
@@ -2804,7 +2804,7 @@ app.get(
 
         // If we get here, the cache is empty and we are not refreshing, which means the initial fetch failed.
         if (isDebug)
-            console.log(
+            logger.debug(
                 '[Debug] Cache is empty and not refreshing. Sending 503 Service Unavailable.'
             );
         return res.status(503).json({
@@ -2917,14 +2917,14 @@ app.get(
         const { server: serverName, path: imagePath } = req.query;
 
         if (isDebug) {
-            console.log(
+            logger.debug(
                 `[Image Proxy] Request for image received. Server: "${serverName}", Path: "${imagePath}"`
             );
         }
 
         if (!serverName || !imagePath) {
             if (isDebug)
-                console.log('[Image Proxy] Bad request: server name or image path is missing.');
+                logger.debug('[Image Proxy] Bad request: server name or image path is missing.');
             return res.status(400).send('Server name or image path is missing');
         }
 
@@ -2938,14 +2938,14 @@ app.get(
         try {
             await fsp.access(cachedFilePath);
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Image Cache] HIT: Serving "${imagePath}" from cache file: ${cachedFilePath}`
                 );
             res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
             return res.sendFile(cachedFilePath);
         } catch (e) {
             // File does not exist, proceed to fetch
-            if (isDebug) console.log(`[Image Cache] MISS: "${imagePath}". Fetching from origin.`);
+            if (isDebug) logger.debug(`[Image Cache] MISS: "${imagePath}". Fetching from origin.`);
         }
 
         // 2. Fetch from origin if not in cache
@@ -2979,7 +2979,7 @@ app.get(
             return res.redirect('/fallback-poster.png');
         }
 
-        if (isDebug) console.log(`[Image Proxy] Fetching from origin URL: ${imageUrl}`);
+        if (isDebug) logger.debug(`[Image Proxy] Fetching from origin URL: ${imageUrl}`);
 
         try {
             const mediaServerResponse = await fetch(imageUrl, fetchOptions);
@@ -3007,7 +3007,7 @@ app.get(
 
             fileStream.on('finish', async () => {
                 if (isDebug)
-                    console.log(
+                    logger.debug(
                         `[Image Cache] SUCCESS: Saved "${imagePath}" to cache: ${cachedFilePath}`
                     );
 
@@ -3146,15 +3146,15 @@ app.post(
     '/admin/setup',
     express.urlencoded({ extended: true }),
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin Setup] Received setup request.');
+        if (isDebug) logger.debug('[Admin Setup] Received setup request.');
         if (isAdminSetup()) {
-            if (isDebug) console.log('[Admin Setup] Aborted: Admin user is already configured.');
+            if (isDebug) logger.debug('[Admin Setup] Aborted: Admin user is already configured.');
             throw new ApiError(403, 'Admin user is already configured.');
         }
 
         const { username, password, enable2fa } = req.body;
         if (!username || !password) {
-            if (isDebug) console.log('[Admin Setup] Aborted: Username or password missing.');
+            if (isDebug) logger.debug('[Admin Setup] Aborted: Username or password missing.');
             throw new ApiError(400, 'Username and password are required.');
         }
 
@@ -3167,7 +3167,7 @@ app.post(
 
         // Check if 2FA should be enabled during setup
         if (enable2fa === 'true') {
-            if (isDebug) console.log('[Admin Setup] Enabling 2FA during setup...');
+            if (isDebug) logger.debug('[Admin Setup] Enabling 2FA during setup...');
             tfaSecret = speakeasy.generateSecret({
                 name: 'Posterrama Admin',
                 issuer: 'Posterrama',
@@ -3183,9 +3183,9 @@ app.post(
             });
 
             qrCodeDataUrl = await qrcode.toDataURL(qrCodeUrl);
-            if (isDebug) console.log('[Admin Setup] 2FA secret generated and QR code created.');
+            if (isDebug) logger.debug('[Admin Setup] 2FA secret generated and QR code created.');
         } else {
-            if (isDebug) console.log('[Admin Setup] 2FA not enabled during setup.');
+            if (isDebug) logger.debug('[Admin Setup] 2FA not enabled during setup.');
         }
 
         await writeEnvFile({
@@ -3196,7 +3196,7 @@ app.post(
         });
 
         if (isDebug)
-            console.log(
+            logger.debug(
                 `[Admin Setup] Successfully created admin user "${username}". 2FA enabled: ${enable2fa === 'true'}`
             );
 
@@ -3309,15 +3309,15 @@ const loginLimiter = rateLimit({
  */
 app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), async (req, res) => {
     try {
-        console.log(`[Admin Login] POST /admin/login route hit`);
-        if (isDebug) console.log(`[Admin Login] Received login request:`, req.body);
+        logger.info(`[Admin Login] POST /admin/login route hit`);
+        if (isDebug) logger.debug(`[Admin Login] Received login request:`, req.body);
 
         const { username, password } = req.body;
-        if (isDebug) console.log(`[Admin Login] Attempting login for user "${username}".`);
+        if (isDebug) logger.debug(`[Admin Login] Attempting login for user "${username}".`);
 
         // Check if admin is setup
         if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD_HASH) {
-            if (isDebug) console.log(`[Admin Login] Admin not setup yet.`);
+            if (isDebug) logger.debug(`[Admin Login] Admin not setup yet.`);
             return res
                 .status(400)
                 .json({ error: 'Admin user not configured. Please run the setup first.' });
@@ -3326,7 +3326,7 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
         const isValidUser = username === process.env.ADMIN_USERNAME;
         if (!isValidUser) {
             if (isDebug)
-                console.log(`[Admin Login] Login failed for user "${username}". Invalid username.`);
+                logger.info(`[Admin Login] Login failed for user "${username}". Invalid username.`);
             return res
                 .status(401)
                 .json({ error: 'Invalid username or password. Please try again.' });
@@ -3335,7 +3335,7 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
         const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
         if (!isValidPassword) {
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Admin Login] Login failed for user "${username}". Invalid credentials.`
                 );
             return res
@@ -3353,7 +3353,7 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
             req.session.tfa_required = true;
             req.session.tfa_user = { username: username }; // Store user info temporarily
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Admin Login] Credentials valid for "${username}". Requires 2FA verification.`
                 );
             return res
@@ -3362,7 +3362,7 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
         } else {
             // No 2FA, log the user in directly.
             req.session.user = { username: username };
-            if (isDebug) console.log(`[Admin Login] Login successful for user "${username}".`);
+            if (isDebug) logger.debug(`[Admin Login] Login successful for user "${username}".`);
             return res
                 .status(200)
                 .json({ success: true, requires2FA: false, redirectTo: '/admin' });
@@ -3478,7 +3478,7 @@ app.post(
 
         if (!req.session.tfa_required || !req.session.tfa_user) {
             if (isDebug)
-                console.log(
+                logger.debug(
                     '[Admin 2FA Verify] 2FA verification attempted without prior password validation. Redirecting to login.'
                 );
             return res.redirect('/admin/login');
@@ -3497,13 +3497,13 @@ app.post(
             delete req.session.tfa_required;
             delete req.session.tfa_user;
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Admin 2FA Verify] 2FA verification successful for user "${req.session.user.username}".`
                 );
             res.redirect('/admin');
         } else {
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Admin 2FA Verify] Invalid 2FA code for user "${req.session.tfa_user.username}".`
                 );
             // Redirect back to the verification page with an error query parameter
@@ -3527,13 +3527,13 @@ app.post(
  *         description: Error destroying session
  */
 app.get('/admin/logout', (req, res, next) => {
-    if (isDebug) console.log(`[Admin Logout] User "${req.session.user?.username}" logging out.`);
+    if (isDebug) logger.debug(`[Admin Logout] User "${req.session.user?.username}" logging out.`);
     req.session.destroy(err => {
         if (err) {
             if (isDebug) console.error('[Admin Logout] Error destroying session:', err);
             return next(new ApiError(500, 'Could not log out.'));
         }
-        if (isDebug) console.log('[Admin Logout] Session destroyed successfully.');
+        if (isDebug) logger.debug('[Admin Logout] Session destroyed successfully.');
         res.redirect('/admin/login');
     });
 });
@@ -3643,13 +3643,13 @@ app.post(
             delete req.session.tfa_pending_secret;
 
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Admin 2FA] 2FA enabled successfully for user "${req.session.user.username}".`
                 );
             res.json({ success: true, message: '2FA enabled successfully.' });
         } else {
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Admin 2FA] 2FA verification failed for user "${req.session.user.username}".`
                 );
             throw new ApiError(400, 'Invalid verification code. Please try again.');
@@ -3697,7 +3697,7 @@ app.post(
         if (!isValidPassword) throw new ApiError(401, 'Incorrect password.');
         await writeEnvFile({ ADMIN_2FA_SECRET: '' });
         if (isDebug)
-            console.log(
+            logger.debug(
                 `[Admin 2FA] 2FA disabled successfully for user "${req.session.user.username}".`
             );
         res.json({ success: true, message: '2FA disabled successfully.' });
@@ -3890,7 +3890,7 @@ app.get(
 app.get(
     '/api/config',
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Public API] Request received for /api/config.');
+        if (isDebug) logger.debug('[Public API] Request received for /api/config.');
 
         try {
             const currentConfig = await readConfig();
@@ -3909,7 +3909,7 @@ app.get(
                 },
             };
 
-            if (isDebug) console.log('[Public API] Returning public config.');
+            if (isDebug) logger.debug('[Public API] Returning public config.');
             res.json(publicConfig);
         } catch (error) {
             if (isDebug) console.error('[Public API] Error reading config:', error);
@@ -3952,9 +3952,9 @@ app.get(
     '/api/admin/config',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Request received for /api/admin/config.');
+        if (isDebug) logger.debug('[Admin API] Request received for /api/admin/config.');
         const currentConfig = await readConfig();
-        if (isDebug) console.log('[Admin API] Successfully read config.json.');
+        if (isDebug) logger.debug('[Admin API] Successfully read config.json.');
 
         // Convert streaming sources array to object format for admin panel
         if (currentConfig.streamingSources && Array.isArray(currentConfig.streamingSources)) {
@@ -4003,7 +4003,7 @@ app.get(
             });
 
             currentConfig.streamingSources = streamingObject;
-            console.log(
+            logger.debug(
                 '[Streaming Debug] Converted streaming array to object for admin panel:',
                 JSON.stringify(streamingObject, null, 2)
             );
@@ -4043,7 +4043,9 @@ app.get(
         }
 
         if (isDebug)
-            console.log('[Admin API] Sending config and selected environment variables to client.');
+            logger.debug(
+                '[Admin API] Sending config and selected environment variables to client.'
+            );
         res.json({
             config: currentConfig,
             env: envVarsToExpose,
@@ -4085,7 +4087,7 @@ app.post(
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Received request to test Plex connection.');
+        if (isDebug) logger.debug('[Admin API] Received request to test Plex connection.');
         let { hostname, token } = req.body; // token is now optional
         const { port: portValue } = req.body;
 
@@ -4101,7 +4103,7 @@ app.post(
         // If no token is provided in the request, use the one from the server's config.
         if (!token) {
             if (isDebug)
-                console.log(
+                logger.debug(
                     '[Plex Test] No token provided in request, attempting to use existing server token.'
                 );
             // Find the first enabled Plex server config. This assumes a single Plex server setup for now.
@@ -4196,7 +4198,7 @@ app.post(
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Received request to fetch Plex libraries.');
+        if (isDebug) logger.debug('[Admin API] Received request to fetch Plex libraries.');
         let { hostname, port, token } = req.body;
 
         // Sanitize hostname
@@ -4296,7 +4298,7 @@ app.post(
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Received request to test TVDB connection.');
+        if (isDebug) logger.debug('[Admin API] Received request to test TVDB connection.');
 
         const startTime = Date.now();
 
@@ -4317,7 +4319,7 @@ app.post(
 
             const tvdbSource = new TVDBSource(testConfig);
 
-            if (isDebug) console.log('[TVDB Test] Attempting to fetch sample data...');
+            if (isDebug) logger.debug('[TVDB Test] Attempting to fetch sample data...');
 
             // Test both movies and shows using the correct method names
             const [movies, shows] = await Promise.all([
@@ -4337,7 +4339,7 @@ app.post(
 
             if (sampleData && sampleData.length > 0) {
                 if (isDebug)
-                    console.log(
+                    logger.debug(
                         `[TVDB Test] Successfully retrieved ${sampleData.length} items from TVDB.`
                     );
 
@@ -4405,19 +4407,19 @@ app.post(
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
-        console.log('[Admin API] Received POST request to /api/admin/config');
-        console.log('[Admin API] Request body exists:', !!req.body);
-        console.log('[Admin API] Request body size:', JSON.stringify(req.body).length);
+        logger.info('[Admin API] Received POST request to /api/admin/config');
+        logger.info('[Admin API] Request body exists:', !!req.body);
+        logger.info('[Admin API] Request body size:', JSON.stringify(req.body).length);
 
         if (isDebug) {
-            console.log('[Admin API] Full request body:', JSON.stringify(req.body, null, 2));
+            logger.debug('[Admin API] Full request body:', JSON.stringify(req.body, null, 2));
         }
 
         const { config: newConfig, env: newEnv } = req.body;
 
         if (!newConfig || !newEnv) {
             if (isDebug)
-                console.log('[Admin API] Invalid request body. Missing "config" or "env".');
+                logger.debug('[Admin API] Invalid request body. Missing "config" or "env".');
             throw new ApiError(
                 400,
                 'Invalid request body. "config" and "env" properties are required.'
@@ -4425,15 +4427,15 @@ app.post(
         }
 
         // Debug: Log all TMDB config details
-        console.log(
+        logger.info(
             '[TMDB Debug] Full newConfig.tmdbSource:',
             JSON.stringify(newConfig.tmdbSource, null, 2)
         );
         if (newConfig.tmdbSource) {
-            console.log('[TMDB Debug] API key value:', newConfig.tmdbSource.apiKey);
-            console.log('[TMDB Debug] API key type:', typeof newConfig.tmdbSource.apiKey);
-            console.log('[TMDB Debug] API key === null:', newConfig.tmdbSource.apiKey === null);
-            console.log('[TMDB Debug] API key == null:', newConfig.tmdbSource.apiKey == null);
+            logger.debug('[TMDB Debug] API key value:', newConfig.tmdbSource.apiKey);
+            logger.debug('[TMDB Debug] API key type:', typeof newConfig.tmdbSource.apiKey);
+            logger.debug('[TMDB Debug] API key === null:', newConfig.tmdbSource.apiKey === null);
+            logger.debug('[TMDB Debug] API key == null:', newConfig.tmdbSource.apiKey == null);
         }
 
         // Handle TMDB API key preservation
@@ -4441,24 +4443,24 @@ app.post(
             newConfig.tmdbSource &&
             (newConfig.tmdbSource.apiKey === null || newConfig.tmdbSource.apiKey === undefined)
         ) {
-            console.log(
+            logger.debug(
                 '[TMDB API Key Debug] Received null/undefined API key, preserving existing'
             );
             // Preserve existing API key if null/undefined is passed (meaning "don't change")
             const existingConfig = await readConfig();
             if (existingConfig.tmdbSource && existingConfig.tmdbSource.apiKey) {
                 newConfig.tmdbSource.apiKey = existingConfig.tmdbSource.apiKey;
-                console.log(
+                logger.debug(
                     '[TMDB API Key Debug] Preserved existing key:',
                     existingConfig.tmdbSource.apiKey.substring(0, 8) + '...'
                 );
             } else {
                 // No existing key, use empty string
                 newConfig.tmdbSource.apiKey = '';
-                console.log('[TMDB API Key Debug] No existing key found, using empty string');
+                logger.debug('[TMDB API Key Debug] No existing key found, using empty string');
             }
         } else if (newConfig.tmdbSource) {
-            console.log(
+            logger.debug(
                 '[TMDB API Key Debug] Received API key:',
                 newConfig.tmdbSource.apiKey
                     ? newConfig.tmdbSource.apiKey.substring(0, 8) + '...'
@@ -4472,7 +4474,7 @@ app.post(
             typeof newConfig.streamingSources === 'object' &&
             !Array.isArray(newConfig.streamingSources)
         ) {
-            console.log('[Streaming Debug] Converting streamingSources object to array format');
+            logger.debug('[Streaming Debug] Converting streamingSources object to array format');
             const streamingConfig = newConfig.streamingSources;
             const streamingArray = [];
 
@@ -4532,7 +4534,7 @@ app.post(
 
             // Replace the object with the array
             newConfig.streamingSources = streamingArray;
-            console.log(
+            logger.debug(
                 '[Streaming Debug] Created streaming sources array:',
                 JSON.stringify(streamingArray, null, 2)
             );
@@ -4540,9 +4542,9 @@ app.post(
 
         // Write to config.json and .env
         await writeConfig(newConfig);
-        if (isDebug) console.log('[Admin API] Successfully wrote to config.json.');
+        if (isDebug) logger.debug('[Admin API] Successfully wrote to config.json.');
         await writeEnvFile(newEnv);
-        if (isDebug) console.log('[Admin API] Successfully wrote to .env file.');
+        if (isDebug) logger.debug('[Admin API] Successfully wrote to .env file.');
 
         // Clear caches to reflect changes without a full restart
         playlistCache = null;
@@ -4556,7 +4558,7 @@ app.post(
         refreshPlaylistCache();
 
         if (isDebug) {
-            console.log(
+            logger.debug(
                 '[Admin] Configuration saved successfully. Caches and clients have been cleared. Triggered background playlist refresh.'
             );
         }
@@ -4596,7 +4598,7 @@ app.get(
     '/api/admin/plex-genres',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Request received for /api/admin/plex-genres.');
+        if (isDebug) logger.debug('[Admin API] Request received for /api/admin/plex-genres.');
 
         const currentConfig = await readConfig();
         const enabledServers = currentConfig.mediaServers.filter(
@@ -4621,7 +4623,7 @@ app.get(
         }
 
         const sortedGenres = Array.from(allGenres).sort();
-        if (isDebug) console.log(`[Admin API] Found ${sortedGenres.length} unique genres.`);
+        if (isDebug) logger.debug(`[Admin API] Found ${sortedGenres.length} unique genres.`);
 
         res.json({ genres: sortedGenres });
     })
@@ -4674,7 +4676,7 @@ app.post(
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Request received for /api/admin/plex-genres-test.');
+        if (isDebug) logger.debug('[Admin API] Request received for /api/admin/plex-genres-test.');
 
         const { hostname: rawHostname, port } = req.body;
         let { token } = req.body;
@@ -4718,7 +4720,7 @@ app.post(
 
             const genres = await getPlexGenres(testServerConfig);
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Admin API] Found ${genres.length} genres from test server:`,
                     genres.slice(0, 5)
                 );
@@ -4778,7 +4780,7 @@ app.post(
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Request received for /api/admin/test-tmdb.');
+        if (isDebug) logger.debug('[Admin API] Request received for /api/admin/test-tmdb.');
 
         const {
             apiKey: rawApiKey,
@@ -4793,7 +4795,7 @@ app.post(
             const currentConfig = await readConfig();
             if (currentConfig.tmdbSource && currentConfig.tmdbSource.apiKey) {
                 apiKey = currentConfig.tmdbSource.apiKey;
-                if (isDebug) console.log('[Admin API] Using stored TMDB API key for test.');
+                if (isDebug) logger.debug('[Admin API] Using stored TMDB API key for test.');
             } else {
                 return res.json({
                     success: false,
@@ -4899,7 +4901,7 @@ app.get(
     '/api/admin/tmdb-genres',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-genres.');
+        if (isDebug) logger.debug('[Admin API] Request received for /api/admin/tmdb-genres.');
 
         const currentConfig = await readConfig();
 
@@ -4916,7 +4918,7 @@ app.get(
             const tmdbSource = new TMDBSource(tmdbSourceConfig, shuffleArray, isDebug);
             const genres = await tmdbSource.getAvailableGenres();
 
-            if (isDebug) console.log(`[Admin API] Found ${genres.length} TMDB genres.`);
+            if (isDebug) logger.debug(`[Admin API] Found ${genres.length} TMDB genres.`);
             res.json({ genres: genres });
         } catch (error) {
             console.error(`[Admin API] Failed to get TMDB genres: ${error.message}`);
@@ -4969,7 +4971,7 @@ app.post(
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-genres-test.');
+        if (isDebug) logger.debug('[Admin API] Request received for /api/admin/tmdb-genres-test.');
 
         const { apiKey, category } = req.body;
 
@@ -4994,7 +4996,7 @@ app.post(
             const tmdbSource = new TMDBSource(testTMDBConfig, shuffleArray, isDebug);
             const genres = await tmdbSource.getAvailableGenres();
 
-            if (isDebug) console.log(`[Admin API] Found ${genres.length} genres from test TMDB.`);
+            if (isDebug) logger.debug(`[Admin API] Found ${genres.length} genres from test TMDB.`);
 
             res.json({ genres: genres });
         } catch (error) {
@@ -5036,7 +5038,7 @@ app.get(
     '/api/admin/tvdb-genres',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Request received for TVDB genres.');
+        if (isDebug) logger.debug('[Admin API] Request received for TVDB genres.');
 
         try {
             if (!global.tvdbSourceInstance) {
@@ -5046,7 +5048,7 @@ app.get(
 
             const genres = await global.tvdbSourceInstance.getGenres();
 
-            if (isDebug) console.log(`[Admin API] Found ${genres.length} TVDB genres.`);
+            if (isDebug) logger.debug(`[Admin API] Found ${genres.length} TVDB genres.`);
             res.json({ genres });
         } catch (error) {
             console.error(`[Admin API] Failed to get TVDB genres: ${error.message}`);
@@ -5092,7 +5094,7 @@ app.post(
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Request received for /api/admin/tvdb-genres-test.');
+        if (isDebug) logger.debug('[Admin API] Request received for /api/admin/tvdb-genres-test.');
 
         try {
             // Create a fresh TVDB instance for testing
@@ -5110,7 +5112,7 @@ app.post(
             const genres = await tvdbSource.getGenres();
 
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Admin API] Found ${genres.length} genres from test TVDB:`,
                     genres.slice(0, 5)
                 );
@@ -5152,7 +5154,7 @@ app.get(
     '/api/admin/tmdb-cache-stats',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-cache-stats.');
+        if (isDebug) logger.debug('[Admin API] Request received for /api/admin/tmdb-cache-stats.');
 
         if (global.tmdbSourceInstance) {
             const stats = global.tmdbSourceInstance.getCacheStats();
@@ -5201,17 +5203,17 @@ app.post(
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Received request to change password.');
+        if (isDebug) logger.debug('[Admin API] Received request to change password.');
         const { currentPassword, newPassword, confirmPassword } = req.body;
 
         if (!currentPassword || !newPassword || !confirmPassword) {
-            if (isDebug) console.log('[Admin API] Password change failed: missing fields.');
+            if (isDebug) logger.debug('[Admin API] Password change failed: missing fields.');
             throw new ApiError(400, 'All password fields are required.');
         }
 
         if (newPassword !== confirmPassword) {
             if (isDebug)
-                console.log('[Admin API] Password change failed: new passwords do not match.');
+                logger.debug('[Admin API] Password change failed: new passwords do not match.');
             throw new ApiError(400, 'New password and confirmation do not match.');
         }
 
@@ -5221,7 +5223,7 @@ app.post(
         );
         if (!isValidPassword) {
             if (isDebug)
-                console.log('[Admin API] Password change failed: incorrect current password.');
+                logger.debug('[Admin API] Password change failed: incorrect current password.');
             throw new ApiError(401, 'Incorrect current password.');
         }
 
@@ -5229,7 +5231,7 @@ app.post(
         await writeEnvFile({ ADMIN_PASSWORD_HASH: newPasswordHash });
 
         if (isDebug)
-            console.log(
+            logger.debug(
                 '[Admin API] Password changed successfully. Invalidating current session for security.'
             );
 
@@ -5277,10 +5279,10 @@ app.post(
     '/api/admin/restart-app',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Received request to restart the application.');
+        if (isDebug) logger.debug('[Admin API] Received request to restart the application.');
 
         const appName = ecosystemConfig.apps[0].name || 'posterrama';
-        if (isDebug) console.log(`[Admin API] Determined app name for PM2: "${appName}"`);
+        if (isDebug) logger.debug(`[Admin API] Determined app name for PM2: "${appName}"`);
 
         // Immediately send a response to the client to avoid a race condition.
         // We use 202 Accepted, as the server has accepted the request but the action is pending.
@@ -5291,7 +5293,7 @@ app.post(
 
         // Execute the restart command after a short delay to ensure the HTTP response has been sent.
         setTimeout(() => {
-            if (isDebug) console.log(`[Admin API] Executing command: "pm2 restart ${appName}"`);
+            if (isDebug) logger.debug(`[Admin API] Executing command: "pm2 restart ${appName}"`);
             exec(`pm2 restart ${appName}`, (error, stdout, stderr) => {
                 // We can't send a response here, but we can log the outcome for debugging.
                 if (error) {
@@ -5303,7 +5305,7 @@ app.post(
                     return;
                 }
                 if (isDebug)
-                    console.log(
+                    logger.debug(
                         `[Admin API] PM2 restart command issued successfully for '${appName}'.`
                     );
             });
@@ -5536,7 +5538,7 @@ app.get(
             const updateInfo = await githubService.checkForUpdates(currentVersion);
 
             if (isDebug) {
-                console.log('[Admin API] Update check completed:', {
+                logger.debug('[Admin API] Update check completed:', {
                     current: updateInfo.currentVersion,
                     latest: updateInfo.latestVersion,
                     hasUpdate: updateInfo.hasUpdate,
@@ -6189,7 +6191,7 @@ app.post(
     '/api/admin/refresh-media',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Received request to force-refresh media playlist.');
+        if (isDebug) logger.debug('[Admin API] Received request to force-refresh media playlist.');
 
         // Clear media cache before refreshing
         const cleared = cacheManager.clear('media');
@@ -6201,7 +6203,7 @@ app.post(
 
         const itemCount = playlistCache ? playlistCache.length : 0;
         const message = `Media playlist successfully refreshed. ${itemCount} items found. Cache cleared: ${cleared} entries.`;
-        if (isDebug) console.log(`[Admin API] ${message}`);
+        if (isDebug) logger.debug(`[Admin API] ${message}`);
 
         res.json({ success: true, message: message, itemCount: itemCount, cacheCleared: cleared });
     })
@@ -6287,7 +6289,7 @@ app.post(
     '/api/admin/clear-image-cache',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Received request to clear image cache.');
+        if (isDebug) logger.debug('[Admin API] Received request to clear image cache.');
         const imageCacheDir = path.join(__dirname, 'image_cache');
         let clearedCount = 0;
 
@@ -6297,7 +6299,7 @@ app.post(
             await Promise.all(unlinkPromises);
             clearedCount = files.length;
             if (isDebug)
-                console.log(
+                logger.debug(
                     `[Admin API] Successfully cleared ${clearedCount} files from the image cache.`
                 );
             res.json({
@@ -6328,7 +6330,7 @@ app.get(
     '/api/admin/cache-stats',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Received request for cache stats');
+        if (isDebug) logger.debug('[Admin API] Received request for cache stats');
 
         try {
             // Get cache stats from cache manager
@@ -6355,7 +6357,7 @@ app.get(
                 }
             } catch (err) {
                 if (isDebug)
-                    console.log('[Admin API] Image cache directory not accessible:', err.message);
+                    logger.debug('[Admin API] Image cache directory not accessible:', err.message);
             }
 
             // Calculate log files size
@@ -6371,7 +6373,8 @@ app.get(
                     }
                 }
             } catch (err) {
-                if (isDebug) console.log('[Admin API] Logs directory not accessible:', err.message);
+                if (isDebug)
+                    logger.debug('[Admin API] Logs directory not accessible:', err.message);
             }
 
             diskUsage.total = diskUsage.imageCache + diskUsage.logFiles;
@@ -6410,7 +6413,7 @@ app.get(
                 },
             };
 
-            if (isDebug) console.log('[Admin API] Cache stats calculated:', response);
+            if (isDebug) logger.debug('[Admin API] Cache stats calculated:', response);
             res.json(response);
         } catch (error) {
             console.error('[Admin API] Error getting cache stats:', error);
@@ -6470,7 +6473,7 @@ app.post(
     '/api/admin/cleanup-cache',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (isDebug) console.log('[Admin API] Request received for cache cleanup.');
+        if (isDebug) logger.debug('[Admin API] Request received for cache cleanup.');
 
         try {
             const cacheConfig = getCacheConfig();
@@ -6486,7 +6489,7 @@ app.post(
             ];
 
             if (isDebug)
-                console.log('[Admin API] Starting cache cleanup with maxSize:', maxSizeGB, 'GB');
+                logger.debug('[Admin API] Starting cache cleanup with maxSize:', maxSizeGB, 'GB');
 
             for (const cacheDir of cacheDirectories) {
                 if (fs.existsSync(cacheDir)) {
@@ -6526,7 +6529,7 @@ app.post(
                                 totalSpaceSaved += oldestFile.size;
                                 currentSizeBytes -= oldestFile.size;
                                 if (isDebug)
-                                    console.log(
+                                    logger.debug(
                                         '[Admin API] Removed old cache file:',
                                         oldestFile.file
                                     );
@@ -6550,7 +6553,7 @@ app.post(
                                 totalFilesRemoved++;
                                 totalSpaceSaved += oldFile.size;
                                 if (isDebug)
-                                    console.log(
+                                    logger.debug(
                                         '[Admin API] Removed expired cache file:',
                                         oldFile.file
                                     );
@@ -6581,7 +6584,7 @@ app.post(
                     : 'Cache cleanup completed. No files needed to be removed.';
 
             if (isDebug)
-                console.log('[Admin API] Cache cleanup completed:', {
+                logger.debug('[Admin API] Cache cleanup completed:', {
                     totalFilesRemoved,
                     spaceSavedMB,
                 });
@@ -6677,7 +6680,7 @@ app.post(
     asyncHandler(async (req, res) => {
         const newApiKey = crypto.randomBytes(32).toString('hex');
         await writeEnvFile({ API_ACCESS_TOKEN: newApiKey });
-        if (isDebug) console.log('[Admin API] New API Access Token generated and saved.');
+        if (isDebug) logger.debug('[Admin API] New API Access Token generated and saved.');
         res.json({
             apiKey: newApiKey,
             message:
@@ -6708,7 +6711,7 @@ app.post(
     isAuthenticated,
     asyncHandler(async (req, res) => {
         await writeEnvFile({ API_ACCESS_TOKEN: '' });
-        if (isDebug) console.log('[Admin API] API Access Token has been revoked.');
+        if (isDebug) logger.debug('[Admin API] API Access Token has been revoked.');
         res.json({ success: true, message: 'API key has been revoked.' });
     })
 );
@@ -6784,17 +6787,17 @@ app.get(
 // and not when it's imported by another script (like our tests).
 if (require.main === module) {
     app.listen(port, async () => {
-        console.log(`posterrama.app is listening on http://localhost:${port}`);
+        logger.info(`posterrama.app is listening on http://localhost:${port}`);
         if (isDebug)
-            console.log(`Debug endpoint is available at http://localhost:${port}/admin/debug`);
+            logger.debug(`Debug endpoint is available at http://localhost:${port}/admin/debug`);
 
         // Start the server immediately and perform the first media fetch in the background.
         // This prevents the server start from being blocked if the media server is slow.
-        console.log('Performing initial playlist fetch...');
+        logger.info('Performing initial playlist fetch...');
         refreshPlaylistCache()
             .then(() => {
                 if (playlistCache && playlistCache.length > 0) {
-                    console.log(
+                    logger.debug(
                         `Initial playlist fetch complete. ${playlistCache.length} items loaded.`
                     );
                 } else {
@@ -6811,7 +6814,7 @@ if (require.main === module) {
         const refreshInterval = (config.backgroundRefreshMinutes || 30) * 60 * 1000;
         if (refreshInterval > 0) {
             global.playlistRefreshInterval = setInterval(refreshPlaylistCache, refreshInterval);
-            console.log(
+            logger.debug(
                 `Playlist will be refreshed in the background every ${config.backgroundRefreshMinutes} minutes.`
             );
         }
@@ -6836,7 +6839,7 @@ if (require.main === module) {
                     });
                 }
             }, cacheCleanupInterval);
-            console.log('Automatic cache cleanup scheduled every 30 minutes.');
+            logger.debug('Automatic cache cleanup scheduled every 30 minutes.');
         }
     });
 
@@ -6853,14 +6856,15 @@ if (require.main === module) {
         const proxyApiRequest = async (req, res) => {
             const targetUrl = `${mainAppUrl}${req.originalUrl}`;
             try {
-                if (isDebug) console.log(`[Site Server Proxy] Forwarding request to: ${targetUrl}`);
+                if (isDebug)
+                    logger.debug(`[Site Server Proxy] Forwarding request to: ${targetUrl}`);
                 const response = await fetch(targetUrl);
 
                 // Intercept /get-config to add flags for the promo site.
                 // Force screensaver mode + promo box for the public site (port 4001)
                 if (req.originalUrl === '/get-config' && response.ok) {
                     if (isDebug)
-                        console.log(`[Site Server Proxy] Modifying response for /get-config`);
+                        logger.info(`[Site Server Proxy] Modifying response for /get-config`);
                     const originalConfig = await response.json();
                     const modifiedConfig = {
                         ...originalConfig,
@@ -6927,7 +6931,7 @@ if (require.main === module) {
         });
 
         siteApp.listen(sitePort, () => {
-            console.log(
+            logger.debug(
                 `Public site server is enabled and running on http://localhost:${sitePort}`
             );
         });

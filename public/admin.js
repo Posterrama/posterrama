@@ -74,7 +74,7 @@ async function authenticatedFetch(url, options = {}) {
  */
 window.setButtonState = function (button, state, options = {}) {
     if (!button) {
-        console.warn('setButtonState: button is null or undefined');
+        logger.warn('setButtonState: button is null or undefined');
         return;
     }
 
@@ -987,7 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const presentIds = Array.from(sections).map(s => s.id);
         const missing = expectedSectionKeys.filter(key => !presentIds.includes(`${key}-section`));
         if (missing.length) {
-            console.warn(
+            logger.warn(
                 '[ADMIN] Missing section DOM nodes detected, creating placeholders for:',
                 missing
             );
@@ -1816,7 +1816,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         );
 
                         await Promise.all(savePromises);
-                        console.log(`Saved ${configKey}: ${value}`);
+                        logger.debug(`Saved ${configKey}: ${value}`);
                     } catch (error) {
                         console.error(`Failed to save ${configKey}:`, error);
                         showNotification('Failed to save setting', 'error');
@@ -2494,7 +2494,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         await loadTMDBGenres();
                         showNotification('TMDB connection successful and genres loaded', 'success');
                     } catch (genreError) {
-                        console.warn('Failed to load TMDB genres:', genreError);
+                        logger.warn('Failed to load TMDB genres:', genreError);
                         showNotification(
                             'TMDB connection successful, but genres could not be loaded',
                             'error'
@@ -2720,7 +2720,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!hasPlexPort) missing.push('PLEX_PORT(valid)');
                 if (!hasPlexToken) missing.push('PLEX_TOKEN');
                 if (missing.length < 3)
-                    console.warn('Plex not initialized — missing:', missing.join(', '));
+                    logger.warn('Plex not initialized — missing:', missing.join(', '));
             } else {
                 // Load Plex libraries immediately when config is loaded
                 const movieContainer = document.getElementById('movie-libraries-container');
@@ -2754,7 +2754,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         window.__mediaLazyLoaded = true; // Mark as loaded
                     } catch (e) {
-                        console.warn('[ADMIN] Library load failed during config load', e);
+                        logger.warn('[ADMIN] Library load failed during config load', e);
                         if (movieContainer)
                             movieContainer.innerHTML = '<small>Failed to load libraries</small>';
                         if (showContainer)
@@ -2792,7 +2792,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!activeAdminLayer || !inactiveAdminLayer) {
-            console.warn('Admin background layers not found');
+            logger.warn('Admin background layers not found');
             return;
         }
 
@@ -2806,7 +2806,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await fetch(`/get-media?_=${Date.now()}`);
                 if (!response.ok) {
-                    console.warn(
+                    logger.warn(
                         'Could not fetch media for admin background, server might be starting up.'
                     );
                     setGradientBackground();
@@ -2814,21 +2814,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 adminBgQueue = await response.json();
                 if (adminBgQueue.length === 0) {
-                    console.warn('Admin background queue is empty. Using gradient background.');
+                    logger.warn('Admin background queue is empty. Using gradient background.');
                     setGradientBackground();
                     return;
                 }
                 // Start at random index instead of -1 for random fanart on refresh
                 adminBgIndex = Math.floor(Math.random() * adminBgQueue.length) - 1;
             } catch (error) {
-                console.warn('Failed to fetch admin background media:', error);
+                logger.warn('Failed to fetch admin background media:', error);
                 setGradientBackground();
                 return;
             }
         }
 
         if (defaults.DEBUG)
-            console.log(`[AdminBG] Starting slideshow with ${adminBgQueue.length} images`);
+            logger.debug(`[AdminBG] Starting slideshow with ${adminBgQueue.length} images`);
 
         // Show first image immediately
         changeAdminBackground();
@@ -2845,7 +2845,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Light heartbeat every few cycles only
             if (adminBgIndex % 10 === 0 && defaults.DEBUG) console.debug('[AdminBG] rotate');
         } else {
-            if (defaults.DEBUG) console.log('[AdminBG] tick');
+            if (defaults.DEBUG) logger.debug('[AdminBG] tick');
         }
 
         if (adminBgQueue.length === 0 || !activeAdminLayer || !inactiveAdminLayer) {
@@ -2869,7 +2869,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Log current layer states
         if (defaults.DEBUG) {
-            console.log('[AdminBG] BEFORE', {
+            logger.debug('[AdminBG] BEFORE', {
                 activeOpacity: window.getComputedStyle(activeAdminLayer).opacity,
                 inactiveOpacity: window.getComputedStyle(inactiveAdminLayer).opacity,
             });
@@ -2877,36 +2877,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const img = new Image();
         img.onload = () => {
-            if (defaults.DEBUG) console.log('[AdminBG] image loaded');
+            if (defaults.DEBUG) logger.debug('[AdminBG] image loaded');
 
             // Show the overlay again when fanart is available (it darkens the fanart for better readability)
             const overlay = document.querySelector('.admin-background-overlay');
             if (overlay) {
                 overlay.style.opacity = '1';
-                if (defaults.DEBUG) console.log('Admin background overlay restored for fanart');
+                if (defaults.DEBUG) logger.debug('Admin background overlay restored for fanart');
             }
 
             // Set new image on inactive layer and make it visible
             inactiveAdminLayer.style.backgroundImage = `url('${currentItem.backgroundUrl}')`;
             inactiveAdminLayer.style.opacity = 0;
 
-            if (defaults.DEBUG) console.log('[AdminBG] inactive layer prepared');
+            if (defaults.DEBUG) logger.debug('[AdminBG] inactive layer prepared');
 
             // Start fade transition immediately
             setTimeout(() => {
-                if (defaults.DEBUG) console.log('[AdminBG] fade start');
+                if (defaults.DEBUG) logger.debug('[AdminBG] fade start');
 
                 // Fade out current active layer
                 activeAdminLayer.style.opacity = 0;
                 // Fade in new layer
                 inactiveAdminLayer.style.opacity = 0.7;
 
-                if (defaults.DEBUG) console.log('[AdminBG] transition props applied');
+                if (defaults.DEBUG) logger.debug('[AdminBG] transition props applied');
 
                 // After transition, swap the layer references
                 // The inactive layer (which now has the new image and is visible) becomes active
                 setTimeout(() => {
-                    if (defaults.DEBUG) console.log('[AdminBG] swapping layers');
+                    if (defaults.DEBUG) logger.debug('[AdminBG] swapping layers');
 
                     const tempLayer = activeAdminLayer;
                     activeAdminLayer = inactiveAdminLayer; // The one with the new image becomes active
@@ -2916,14 +2916,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     // inactiveAdminLayer.style.backgroundImage = 'none';
 
                     if (defaults.DEBUG)
-                        console.log('[AdminBG] swap complete', {
+                        logger.debug('[AdminBG] swap complete', {
                             active: activeAdminLayer.id,
                             inactive: inactiveAdminLayer.id,
                         });
 
                     // Log final states
                     if (defaults.DEBUG)
-                        console.log('[AdminBG] AFTER', {
+                        logger.debug('[AdminBG] AFTER', {
                             activeOpacity: window.getComputedStyle(activeAdminLayer).opacity,
                             inactiveOpacity: window.getComputedStyle(inactiveAdminLayer).opacity,
                         });
@@ -2932,14 +2932,14 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         img.onerror = () => {
-            console.warn(`Failed to load admin background image: ${currentItem.backgroundUrl}`);
+            logger.warn(`Failed to load admin background image: ${currentItem.backgroundUrl}`);
             // Try next image
             setTimeout(() => {
                 changeAdminBackground();
             }, 1000);
         };
 
-        if (defaults.DEBUG) console.log('[AdminBG] loading image');
+        if (defaults.DEBUG) logger.debug('[AdminBG] loading image');
         img.src = currentItem.backgroundUrl;
     }
 
@@ -2948,7 +2948,7 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function setGradientBackground() {
         if (!activeAdminLayer || !inactiveAdminLayer) {
-            console.warn('Background layers not found for gradient');
+            logger.warn('Background layers not found for gradient');
             return;
         }
 
@@ -3034,7 +3034,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     await window.loadPlexGenres();
                     showNotification('Plex connection successful and genres loaded', 'success');
                 } catch (genreError) {
-                    console.warn('Failed to load genres after connection test:', genreError);
+                    logger.warn('Failed to load genres after connection test:', genreError);
                     showNotification(
                         'Plex connection successful, but genres could not be loaded',
                         'warning'
@@ -3152,7 +3152,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     await loadPlexGenres();
                     showNotification('Genres updated based on selected libraries', 'success');
                 } catch (error) {
-                    console.warn('Failed to load genres after library selection:', error);
+                    logger.warn('Failed to load genres after library selection:', error);
                 }
             }
         });
@@ -3168,7 +3168,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function getSelectedLibraries(type) {
         const container = document.getElementById(`${type}-libraries-container`);
         if (!container) {
-            console.warn(`[Admin] getSelectedLibraries: container not found for type='${type}'`);
+            logger.warn(`[Admin] getSelectedLibraries: container not found for type='${type}'`);
             return [];
         }
         try {
@@ -3906,7 +3906,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         } catch (error) {
-            console.warn('Failed to test authentication:', error);
+            logger.warn('Failed to test authentication:', error);
             // Continue anyway, the actual request will handle auth errors
         }
 
@@ -4566,7 +4566,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Don't set lastRequestAt for manual saves - only auto-saves use this for rate limiting
 
                 // Debug: Log request data
-                console.log('🔍 Saving config with data:', {
+                logger.debug('🔍 Saving config with data:', {
                     configSize: JSON.stringify(cleanedConfig).length,
                     envSize: JSON.stringify(newEnv).length,
                     totalSize: JSON.stringify({ config: cleanedConfig, env: newEnv }).length,
@@ -4581,7 +4581,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 if (requestBody.length > 50000) {
-                    console.warn('⚠️ Large request detected, adding HTTP/2 compatibility headers');
+                    logger.warn('⚠️ Large request detected, adding HTTP/2 compatibility headers');
                     requestOptions.headers = {
                         'Content-Length': requestBody.length.toString(),
                         'Transfer-Encoding': 'chunked',
@@ -4615,7 +4615,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             } catch (jsonError) {
                                 // If response is not JSON, use status text
-                                console.warn('Response is not JSON, using status text as error');
+                                logger.warn('Response is not JSON, using status text as error');
                             }
 
                             // Retry on 502 Bad Gateway or 503 Service Unavailable
@@ -4943,12 +4943,12 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshMediaButton.addEventListener('click', async () => {
             setButtonState(refreshMediaButton, 'loading', { text: 'Refreshing...' });
 
-            console.log(
+            logger.debug(
                 '[Admin Debug] "Refresh Media" button clicked. Preparing to call API endpoint.'
             );
 
             try {
-                console.log('[Admin Debug] Sending POST request to /api/admin/refresh-media');
+                logger.debug('[Admin Debug] Sending POST request to /api/admin/refresh-media');
                 const response = await fetch('/api/admin/refresh-media', { method: 'POST' });
 
                 if (!response.ok) {
@@ -4974,7 +4974,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(errorMsg);
                 }
 
-                console.log('[Admin Debug] API call successful. Refreshing background.');
+                logger.debug('[Admin Debug] API call successful. Refreshing background.');
                 const result = await response.json();
                 showNotification(result.message, 'success');
 
@@ -5044,10 +5044,10 @@ document.addEventListener('DOMContentLoaded', () => {
      * Setup event listeners for cache configuration inputs
      */
     function setupCacheConfigEventListeners() {
-        console.log('[Cache Config] Cache configuration fields have been removed from UI');
+        logger.debug('[Cache Config] Cache configuration fields have been removed from UI');
 
         // Since cache configuration fields have been removed, just log that cache is auto-managed
-        console.log(
+        logger.debug(
             '[Cache Config] Cache is auto-managed with fixed settings: 5GB max, 500MB min free space'
         );
 
@@ -5157,7 +5157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Update preview orientation
                 updatePreviewOrientation();
 
-                console.log('Cinema mode toggled:', isCinemaMode ? 'enabled' : 'disabled');
+                logger.debug('Cinema mode toggled:', isCinemaMode ? 'enabled' : 'disabled');
             });
 
             // Initial state handled once inside populateDisplaySettings to avoid duplicate invocation here.
@@ -5228,14 +5228,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Update spacing for first visible subsection
                 updateFirstVisibleSubsectionSpacing();
 
-                console.log('Wallart mode toggled:', isWallartMode ? 'enabled' : 'disabled');
+                logger.debug('Wallart mode toggled:', isWallartMode ? 'enabled' : 'disabled');
             });
         }
 
         // Add event listener for cinema orientation changes
         if (cinemaOrientationSelect) {
             cinemaOrientationSelect.addEventListener('change', () => {
-                console.log('Cinema orientation changed:', cinemaOrientationSelect.value);
+                logger.debug('Cinema orientation changed:', cinemaOrientationSelect.value);
                 updatePreviewOrientation();
             });
         }
@@ -5263,7 +5263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Show/hide cinema mode and visual elements when wallart mode is active
                 toggleWallartModeSettings(isWallartMode);
 
-                console.log('Wallart mode toggled:', isWallartMode ? 'enabled' : 'disabled');
+                logger.debug('Wallart mode toggled:', isWallartMode ? 'enabled' : 'disabled');
             });
         }
 
@@ -5352,7 +5352,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (transitionEffectSelect.value === 'kenburns') {
                         window.__wantedKenBurnsBeforeCinema = true; // remember preference
                         transitionEffectSelect.value = 'fade';
-                        console.log('[CinemaMode] Temporarily switched Ken Burns to Fade');
+                        logger.debug('[CinemaMode] Temporarily switched Ken Burns to Fade');
                     }
                 } else {
                     kenBurnsOption.style.display = 'block';
@@ -5502,13 +5502,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // (Manual saves should not be rate limited)
         const now = Date.now();
         if (now - state.lastRequestAt < 1000) {
-            console.log('⏳ Rate limiting: skipping auto-save (too soon since last request)');
+            logger.debug('⏳ Rate limiting: skipping auto-save (too soon since last request)');
             return;
         }
 
         // If a manual save just happened (<2s), skip auto-save
         if (now - state.lastManualAt < 2000) {
-            console.log('⏳ Skipping auto-save: manual save happened recently');
+            logger.debug('⏳ Skipping auto-save: manual save happened recently');
             return;
         }
         // If another auto save is running, mark pending and exit
@@ -5691,7 +5691,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Show success notification
                     showNotification(`Applied ${preset.name} preset`, 'success');
 
-                    console.log(`Applied ${preset.name} preset:`, preset);
+                    logger.debug(`Applied ${preset.name} preset:`, preset);
                 } catch (error) {
                     console.error('Failed to apply preset:', error);
                     showNotification('Failed to apply preset', 'error');
@@ -5879,7 +5879,7 @@ async function testTVDBConnection() {
                 await window.loadTVDBGenres();
                 showNotification('TVDB connection successful and genres loaded', 'success');
             } catch (genreError) {
-                console.warn('Failed to load TVDB genres:', genreError);
+                logger.warn('Failed to load TVDB genres:', genreError);
                 showNotification(
                     'TVDB connection successful, but genres could not be loaded',
                     'error'
@@ -6044,7 +6044,7 @@ const managementObserver = new MutationObserver(mutations => {
         if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
             const managementSection = document.getElementById('management-section');
             if (managementSection && managementSection.style.display !== 'none') {
-                console.log(
+                logger.debug(
                     'Management section is now visible, loading cache stats and update status...'
                 );
                 loadCacheStats();
@@ -6068,7 +6068,7 @@ setTimeout(() => {
             managementSection.style.display !== 'none' &&
             managementSection.classList.contains('active')
         ) {
-            console.log(
+            logger.debug(
                 'Management section is already visible, loading cache stats and update status...'
             );
             loadCacheStats();
@@ -6333,7 +6333,7 @@ function startAutoRefresh(type, intervalSeconds = 5) {
     autoRefreshInterval = setInterval(() => {
         const display = document.getElementById(`${type}-display`);
         if (display && display.style.display === 'block') {
-            console.log(`Auto-refreshing ${type} data...`);
+            logger.debug(`Auto-refreshing ${type} data...`);
 
             switch (type) {
                 case 'performance':
@@ -6349,7 +6349,7 @@ function startAutoRefresh(type, intervalSeconds = 5) {
         }
     }, intervalSeconds * 1000);
 
-    console.log(`Started auto-refresh for ${type} every ${intervalSeconds} seconds`);
+    logger.debug(`Started auto-refresh for ${type} every ${intervalSeconds} seconds`);
 }
 
 /**
@@ -6359,7 +6359,7 @@ function stopAutoRefresh() {
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
         autoRefreshInterval = null;
-        console.log(`Stopped auto-refresh for ${currentAutoRefreshType}`);
+        logger.debug(`Stopped auto-refresh for ${currentAutoRefreshType}`);
         currentAutoRefreshType = null;
     }
 }
@@ -6470,7 +6470,7 @@ function showRestartButton() {
         // Force a reflow to ensure changes are applied
         restartBtn.offsetHeight;
     } else {
-        console.warn('⚠️ Restart button element not found when trying to show!');
+        logger.warn('⚠️ Restart button element not found when trying to show!');
     }
 }
 
@@ -6491,7 +6491,7 @@ function hideRestartButton() {
         // Force a reflow to ensure changes are applied
         restartBtn.offsetHeight;
     } else {
-        console.warn('⚠️ Restart button element not found!');
+        logger.warn('⚠️ Restart button element not found!');
     }
 }
 
@@ -6981,7 +6981,7 @@ function initializeAutoUpdate() {
             }
         })
         .catch(error => {
-            console.log('Could not load version info:', error.message);
+            logger.debug('Could not load version info:', error.message);
         });
 }
 
@@ -7495,13 +7495,13 @@ document.addEventListener('DOMContentLoaded', function () {
  * Modal functions for update confirmation
  */
 async function openUpdateConfirmationModal() {
-    console.log('📂 Opening update confirmation modal');
+    logger.debug('📂 Opening update confirmation modal');
 
     const modal = document.getElementById('update-confirmation-modal');
     const content = document.getElementById('update-confirmation-content');
     const confirmButton = document.getElementById('confirm-update-button');
 
-    console.log('🔍 Modal elements:', {
+    logger.debug('🔍 Modal elements:', {
         modal: modal ? 'found' : 'NOT FOUND',
         content: content ? 'found' : 'NOT FOUND',
         confirmButton: confirmButton ? 'found' : 'NOT FOUND',

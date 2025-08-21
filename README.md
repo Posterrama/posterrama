@@ -205,50 +205,100 @@ Visit `http://your-server-ip:4000/admin` to:
 
 This project is **free and open source** under the GPL-3.0-or-later license. You can use it, modify it, and share it - just keep it open source too!
 
-## 👨‍💻 Development
-
-### Code Quality
-
-This project maintains high code quality standards with:
-
-- **ESLint** for code linting and consistency
-- **Prettier** for automatic code formatting
-- **Pre-commit hooks** for automatic formatting before each commit
-- **615 comprehensive tests** across 43 test suites
-- **87.75% test coverage** ensuring code reliability
-
-### Development Scripts
-
-```bash
-# Code quality
-npm run lint              # Check for linting issues
-npm run lint:fix          # Auto-fix linting issues
-npm run format            # Format code with Prettier
-npm run format:fix        # Format and fix in one command
-
-# Pre-commit hooks
-npm run hooks:install     # Ensure pre-commit hook is executable
-npm run hooks:test        # Test the pre-commit hook manually
-
-# Testing
-npm run test              # Run all tests
-npm run test:coverage     # Run tests with coverage report
-npm run test:watch        # Run tests in watch mode
-```
-
-### Pre-commit Hook
-
-The project automatically formats code before each commit:
-
-- 🚀 Runs Prettier on all staged files
-- 🔧 Auto-fixes ESLint issues where possible
-- 📥 Adds formatted files back to staging
-- ⚠️ Warns about remaining lint issues
-
-See [Pre-commit Hook Documentation](./docs/PRE-COMMIT-HOOK.md) for details.
-
 ---
 
 **Ready to transform your space into a personal cinema?**
 
 _Posterrama - Because your movie collection deserves to be seen!_
+
+---
+
+## 👩‍💻 Development & Contributing
+
+### 🛠️ Development Setup
+
+```bash
+# Clone and setup
+git clone https://github.com/Posterrama/posterrama.git
+cd posterrama
+npm install
+
+# Run development checks
+npm run health              # Project health check
+npm run review:pre-check   # Pre-review checklist
+npm test                   # Run all tests
+npm run lint              # Check code quality
+npm run format            # Format code
+```
+
+### 📋 Code Review Process
+
+We maintain high code quality standards through comprehensive reviews:
+
+#### 📚 **Review Documentation**
+
+- **[Master Guide](./docs/CODE-REVIEW-MASTER-GUIDE.md)** - Complete overview
+- **[Detailed Checklist](./docs/CODE-REVIEW-CHECKLIST.md)** - What to look for
+- **[Quick Reference](./docs/CODE-REVIEW-QUICK-REF.md)** - 30-second checklist
+- **[Tech-Specific](./docs/TECH-SPECIFIC-REVIEW.md)** - JavaScript/Node.js/React tips
+
+#### 🔍 **Review Focus Areas**
+
+- **Security**: Input validation, SQL injection prevention, XSS protection
+- **Performance**: Efficient algorithms, memory management, caching
+- **Testing**: Unit tests, integration tests, edge case coverage
+- **Architecture**: Clean code, SOLID principles, maintainability
+
+#### 🚀 **Before Submitting PRs**
+
+```bash
+npm run review:pre-check   # Automated pre-review checks
+```
+
+#### ✅ **Review Approval Criteria**
+
+- All automated checks pass (linting, formatting, tests, security)
+- Code follows team standards and best practices
+- Proper error handling and input validation
+- Good test coverage for new functionality
+- Clear and maintainable code structure
+
+### 🔒 Security & Dependencies
+
+- **Accepted Risks**: Plex API vulnerabilities (documented in [SECURITY-ACCEPTED-RISKS.md](./docs/SECURITY-ACCEPTED-RISKS.md))
+- **Dependency Management**: See [DEPENDENCY-MANAGEMENT.md](./docs/DEPENDENCY-MANAGEMENT.md)
+- **Security Audits**: Filtered to exclude accepted risks
+
+### 📊 Testing
+
+```bash
+npm test                 # Run all 615 tests in 43 suites
+npm run test:coverage   # Generate coverage report (87.75%)
+npm run test:watch      # Run tests in watch mode
+```
+
+### 🔧 Code Quality Tools
+
+- **ESLint**: Code linting and style enforcement
+- **Prettier**: Consistent code formatting
+- **Jest**: Unit and integration testing
+- **Security Audit**: Dependency vulnerability scanning
+- **Pre-commit Hooks**: Automatic formatting and linting
+
+### 📖 Additional Documentation
+
+- **[Safe Library Updates](./docs/SAFE-LIBRARY-UPDATES.md)**
+- **[Pre-commit Hook Setup](./docs/PRE-COMMIT-HOOK.md)**
+- **[Branch Protection Guide](./scripts/setup-branch-protection.sh)**
+
+### 🤝 Contributing Guidelines
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes with proper tests
+4. Run pre-review checks (`npm run review:pre-check`)
+5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request with clear description
+
+**Quality Standards**: All PRs must pass automated checks and code review before merging.

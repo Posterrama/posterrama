@@ -181,13 +181,10 @@
                         },
                     });
 
-                    console.log('Response status:', response.status);
-                    console.log('Response headers:', response.headers);
 
                     if (response.ok) {
                         try {
                             const result = await response.json();
-                            console.log('Success result:', result);
                             if (result.success) {
                                 // Login successful, redirect as instructed
                                 window.location.href = result.redirectTo;
@@ -208,15 +205,12 @@
 
                         try {
                             const errorData = await response.json();
-                            console.log('Error data:', errorData);
                             if (errorData.error) {
                                 errorMessage = errorData.error;
                             }
                         } catch (e) {
-                            console.log('Failed to parse error as JSON, trying as text');
                             try {
                                 const errorText = await response.text();
-                                console.log('Error text:', errorText);
                                 if (errorText.trim()) {
                                     // If it looks like HTML, show a generic message
                                     if (

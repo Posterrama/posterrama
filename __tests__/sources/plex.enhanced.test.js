@@ -368,7 +368,8 @@ describe('Plex Source - Enhanced Coverage', () => {
                 true
             );
 
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const logger = require('../../logger');
+            const loggerSpy = jest.spyOn(logger, 'debug').mockImplementation();
 
             const now = Math.floor(Date.now() / 1000);
             const items = [
@@ -383,14 +384,14 @@ describe('Plex Source - Enhanced Coverage', () => {
 
             debugPlexSource.applyContentFiltering(items);
 
-            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Rating filter'));
-            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Genre filter'));
-            expect(consoleSpy).toHaveBeenCalledWith(
+            expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Rating filter'));
+            expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Genre filter'));
+            expect(loggerSpy).toHaveBeenCalledWith(
                 expect.stringContaining('Recently added filter')
             );
-            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Quality filter'));
+            expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Quality filter'));
 
-            consoleSpy.mockRestore();
+            loggerSpy.mockRestore();
         });
     });
 });

@@ -101,14 +101,14 @@ class PlexSource {
             }
 
             if (this.isDebug)
-                console.log(
+                logger.debug(
                     `[PlexSource:${this.server.name}] Found ${allItems.length} total items in specified libraries.`
                 );
 
             // Apply content filtering
             const filteredItems = this.applyContentFiltering(allItems);
             if (this.isDebug)
-                console.log(
+                logger.debug(
                     `[PlexSource:${this.server.name}] After filtering: ${filteredItems.length} items remaining.`
                 );
 
@@ -128,7 +128,7 @@ class PlexSource {
             });
 
             if (this.isDebug)
-                console.log(
+                logger.debug(
                     `[PlexSource:${this.server.name}] Returning ${finalItems.length} processed items.`
                 );
             return finalItems;
@@ -154,7 +154,7 @@ class PlexSource {
                 return item.contentRating === this.server.ratingFilter;
             });
             if (this.isDebug)
-                console.log(
+                logger.debug(
                     `[PlexSource:${this.server.name}] Rating filter (${this.server.ratingFilter}): ${filteredItems.length} items.`
                 );
         }
@@ -169,7 +169,7 @@ class PlexSource {
                 );
             });
             if (this.isDebug)
-                console.log(
+                logger.debug(
                     `[PlexSource:${this.server.name}] Genre filter (${this.server.genreFilter}): ${filteredItems.length} items.`
                 );
         }
@@ -183,7 +183,7 @@ class PlexSource {
                 return addedDate.getTime() >= daysAgo;
             });
             if (this.isDebug)
-                console.log(
+                logger.debug(
                     `[PlexSource:${this.server.name}] Recently added filter (${this.server.recentlyAddedDays} days): ${filteredItems.length} items.`
                 );
         }
@@ -209,7 +209,7 @@ class PlexSource {
                 });
             });
             if (this.isDebug)
-                console.log(
+                logger.debug(
                     `[PlexSource:${this.server.name}] Quality filter (${this.server.qualityFilter}): ${filteredItems.length} items.`
                 );
         }

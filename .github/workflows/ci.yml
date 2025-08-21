@@ -5,25 +5,60 @@ on:
         branches: [main, develop]
     pull_request:
         branches: [main, develop]
+        types: [opened, synchronize, reopened]
 
 jobs:
+    # Pre-review quality checks for pull requests
+    code-quality:
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        name: Code Quality Checks
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '18'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Code Linting
+              run: npm run lint
+
+            - name: Code Formatting Check
+              run: npm run format:check
+
+            - name: Security Audit (Filtered)
+              run: npm run deps:security-daily
+
+            - name: Check for large files
+              run: |
+                  echo "Checking for large files..."
+                  find . -name "*.js" -size +500k -exec echo "⚠️ Large file detected: {}" \; || true
+
+            - name: Check for console.log statements
+              run: |
+                  CONSOLE_LOGS=$(grep -r "console\.log(" public/ server.js sources/ utils/ middleware/ --include="*.js" --exclude-dir=node_modules | grep -v ": \*" | grep -v "console\.log = " | grep -v "originalConsoleLog" | grep -v "logger\." | grep -v "client-logger.js" || true)
+                  if [ -n "$CONSOLE_LOGS" ]; then
+                    echo "❌ Found console.log statements in production code:"
+                    echo "$CONSOLE_LOGS"
+                    exit 1
+                  else
+                    echo "✅ No console.log statements found in production code"
+                  fi
+                  fi
+
+    # Comprehensive test suite - must pass before merge
     test:
         runs-on: ubuntu-latest
-
         strategy:
             matrix:
-                node-version: [16.x, 18.x, 20.x]
-
-        services:
-            redis:
-                image: redis:7-alpine
-                options: >-
-                    --health-cmd "redis-cli ping"
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
-                ports:
-                    - 6379:6379
+                node-version: ['16.x', '18.x', '20.x']
 
         steps:
             - name: Checkout code
@@ -38,21 +73,43 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
-            - name: Create test environment file
+            - name: Create config from template
               run: |
-                  cp config.example.env .env
-                  echo "REDIS_URL=redis://localhost:6379" >> .env
-                  echo "API_KEY=test-api-key" >> .env
+                  if [ ! -f config.json ]; then
+                    cp config.example.json config.json
+                  fi
 
-            - name: Run linting
-              run: npm run lint || echo "Linting not configured"
+            - name: Create test config
+              run: |
+                  cat > config.json << 'EOF'
+                  {
+                    "serverName": "Test Server",
+                    "baseUrl": "http://localhost:3000",
+                    "port": 3000,
+                    "sources": {
+                      "themoviedb": {
+                        "url": "https://api.themoviedb.org/3",
+                        "apiKey": "test_key"
+                      },
+                      "thetvdb": {
+                        "url": "https://api4.thetvdb.com/v4",
+                        "apiKey": "test_key"
+                      }
+                    }
+                  }
+                  EOF
 
-            - name: Run tests
+            - name: Run all tests
               run: npm test
 
+            - name: Verify test results
+              run: |
+                  echo "✅ All tests passed successfully!"
+                  echo "Tests must pass before code can be merged."
+
             - name: Generate coverage report
-              run: npm run test:coverage || echo "Coverage thresholds not met, but continuing..."
-              continue-on-error: true
+              if: matrix.node-version == '18.x'
+              run: npm run test:coverage
 
             - name: Upload coverage to Codecov
               if: matrix.node-version == '18.x'
@@ -73,12 +130,49 @@ jobs:
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: '18.x'
+                  node-version: '18'
                   cache: 'npm'
 
             - name: Install dependencies
               run: npm ci
 
-            - name: Run security audit (informational only)
-              run: npm audit --audit-level=high || echo "Security vulnerabilities detected but ignored for third-party dependencies"
-              continue-on-error: true
+            - name: Run filtered security audit
+              run: npm run deps:security-audit
+
+            - name: Check for known vulnerabilities (excluding accepted risks)
+              run: |
+                  echo "ℹ️ Note: Plex API vulnerabilities are accepted as known risks"
+                  echo "See docs/DEPENDENCY-MANAGEMENT.md for details"
+
+    build:
+        needs: [code-quality, test, security]
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '18'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build application
+              run: |
+                  echo "✅ Building application..."
+                  # Add any build steps here if needed
+                  echo "Build completed successfully!"
+
+            - name: Final verification
+              run: |
+                  echo "🎉 All checks passed!"
+                  echo "✅ Code quality: PASSED"
+                  echo "✅ Security audit: PASSED (with accepted risks)" 
+                  echo "✅ All tests: PASSED"
+                  echo "✅ Build: PASSED"
+                  echo ""
+                  echo "Code is ready for merge! 🚀"
