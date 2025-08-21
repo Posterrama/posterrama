@@ -39,6 +39,8 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "format:fix": "prettier --write . && eslint . --fix",
+        "hooks:install": "chmod +x .git/hooks/pre-commit",
+        "hooks:test": "echo 'Testing pre-commit hook...' && .git/hooks/pre-commit",
         "security:audit": "audit-ci --moderate",
         "config:check": "node scripts/config-check.js",
         "secrets:generate": "node scripts/generate-secrets.js"
