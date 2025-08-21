@@ -136,6 +136,30 @@ While Apple TV doesn't support custom screensavers directly, you can still enjoy
 
 ## 🛠️ Easy Installation
 
+### 🚀 Automated Installation (Recommended)
+
+**One-line installation** - Just copy and paste this command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Posterrama/posterrama/main/install.sh | sudo bash
+```
+
+This script will automatically:
+
+- ✅ Install Node.js 18+ and all dependencies
+- ✅ Create a dedicated system user for security
+- ✅ Download and setup Posterrama
+- ✅ Configure PM2 process manager
+- ✅ Setup systemd service for auto-start
+- ✅ Configure firewall (if available)
+- ✅ Provide you with next steps
+
+**Supported Systems:** Ubuntu, Debian, CentOS, RHEL, Rocky Linux, AlmaLinux, Fedora
+
+### 📋 Manual Installation
+
+If you prefer to install manually or need more control:
+
 ### What You'll Need
 
 - **Node.js 18+** (the engine that runs Posterrama)
@@ -210,95 +234,3 @@ This project is **free and open source** under the GPL-3.0-or-later license. You
 **Ready to transform your space into a personal cinema?**
 
 _Posterrama - Because your movie collection deserves to be seen!_
-
----
-
-## 👩‍💻 Development & Contributing
-
-### 🛠️ Development Setup
-
-```bash
-# Clone and setup
-git clone https://github.com/Posterrama/posterrama.git
-cd posterrama
-npm install
-
-# Run development checks
-npm run health              # Project health check
-npm run review:pre-check   # Pre-review checklist
-npm test                   # Run all tests
-npm run lint              # Check code quality
-npm run format            # Format code
-```
-
-### 📋 Code Review Process
-
-We maintain high code quality standards through comprehensive reviews:
-
-#### 📚 **Review Documentation**
-
-- **[Master Guide](./docs/CODE-REVIEW-MASTER-GUIDE.md)** - Complete overview
-- **[Detailed Checklist](./docs/CODE-REVIEW-CHECKLIST.md)** - What to look for
-- **[Quick Reference](./docs/CODE-REVIEW-QUICK-REF.md)** - 30-second checklist
-- **[Tech-Specific](./docs/TECH-SPECIFIC-REVIEW.md)** - JavaScript/Node.js/React tips
-
-#### 🔍 **Review Focus Areas**
-
-- **Security**: Input validation, SQL injection prevention, XSS protection
-- **Performance**: Efficient algorithms, memory management, caching
-- **Testing**: Unit tests, integration tests, edge case coverage
-- **Architecture**: Clean code, SOLID principles, maintainability
-
-#### 🚀 **Before Submitting PRs**
-
-```bash
-npm run review:pre-check   # Automated pre-review checks
-```
-
-#### ✅ **Review Approval Criteria**
-
-- All automated checks pass (linting, formatting, tests, security)
-- Code follows team standards and best practices
-- Proper error handling and input validation
-- Good test coverage for new functionality
-- Clear and maintainable code structure
-
-### 🔒 Security & Dependencies
-
-- **Accepted Risks**: Plex API vulnerabilities (documented in [SECURITY-ACCEPTED-RISKS.md](./docs/SECURITY-ACCEPTED-RISKS.md))
-- **Dependency Management**: See [DEPENDENCY-MANAGEMENT.md](./docs/DEPENDENCY-MANAGEMENT.md)
-- **Security Audits**: Filtered to exclude accepted risks
-
-### 📊 Testing
-
-```bash
-npm test                 # Run all 615 tests in 43 suites
-npm run test:coverage   # Generate coverage report (87.75%)
-npm run test:watch      # Run tests in watch mode
-```
-
-### 🔧 Code Quality Tools
-
-- **ESLint**: Code linting and style enforcement
-- **Prettier**: Consistent code formatting
-- **Jest**: Unit and integration testing
-- **Security Audit**: Dependency vulnerability scanning
-- **Pre-commit Hooks**: Automatic formatting and linting
-
-### 📖 Additional Documentation
-
-- **[Safe Library Updates](./docs/SAFE-LIBRARY-UPDATES.md)**
-- **[Pre-commit Hook Setup](./docs/PRE-COMMIT-HOOK.md)**
-- **[Branch Protection Guide](./scripts/setup-branch-protection.sh)**
-
-### 🤝 Contributing Guidelines
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes with proper tests
-4. Run pre-review checks (`npm run review:pre-check`)
-5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request with clear description
-
-**Quality Standards**: All PRs must pass automated checks and code review before merging.
