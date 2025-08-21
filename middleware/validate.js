@@ -34,43 +34,50 @@ const configSchema = Joi.object({
         rottenTomatoesMinimumScore: Joi.number().min(0).max(10).required(),
         kenBurnsEffect: Joi.object({
             enabled: Joi.boolean().required(),
-            durationSeconds: Joi.number().integer().min(5).max(60).required()
+            durationSeconds: Joi.number().integer().min(5).max(60).required(),
         }).optional(),
         mediaServers: Joi.object({
             plex: Joi.object({
                 hostname: Joi.string().required(),
                 port: Joi.number().integer().min(1).max(65535).required(),
                 token: Joi.string().required(),
-                ssl: Joi.boolean().optional()
-            }).optional()
+                ssl: Joi.boolean().optional(),
+            }).optional(),
         }).optional(),
-        customMessage: Joi.string().max(500).optional()
-    }).required()
+        customMessage: Joi.string().max(500).optional(),
+    }).required(),
 });
 
 const plexConnectionSchema = Joi.object({
-    hostname: Joi.string().custom((value, helpers) => {
-        if (!validator.isFQDN(value) && !validator.isIP(value)) {
-            return helpers.error('any.invalid');
-        }
-        return value;
-    }).required().messages({
-        'any.invalid': 'Invalid hostname format'
-    }),
+    hostname: Joi.string()
+        .custom((value, helpers) => {
+            if (!validator.isFQDN(value) && !validator.isIP(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required()
+        .messages({
+            'any.invalid': 'Invalid hostname format',
+        }),
     port: Joi.number().integer().min(1).max(65535).required(),
-    token: Joi.string().optional()
+    token: Joi.string().optional(),
 });
 
 const queryParamsSchema = Joi.object({
     limit: Joi.number().integer().min(1).max(1000).optional(),
-    offset: Joi.number().integer().min(0).optional()
+    offset: Joi.number().integer().min(0).optional(),
 });
 
 // Recursively sanitize strings; guard against circular references.
 const circularGuard = new WeakSet();
 function sanitizeInput(obj) {
     if (typeof obj === 'string') {
-        try { return getPurify().sanitize(obj); } catch (_) { return obj; }
+        try {
+            return getPurify().sanitize(obj);
+        } catch (_) {
+            return obj;
+        }
     }
     if (Array.isArray(obj)) return obj.map(sanitizeInput);
     if (obj && typeof obj === 'object') {
@@ -87,7 +94,7 @@ const baseValidationOptions = {
     abortEarly: false,
     allowUnknown: false,
     stripUnknown: false,
-    convert: true // allow string->number etc. (queries & body numeric fields)
+    convert: true, // allow string->number etc. (queries & body numeric fields)
 };
 
 function createValidationMiddleware(schema, property = 'body') {
@@ -100,7 +107,7 @@ function createValidationMiddleware(schema, property = 'body') {
                 timestamp: new Date().toISOString(),
                 path: req.path,
                 method: req.method,
-                requestId: req.id || 'unknown'
+                requestId: req.id || 'unknown',
             });
         }
         const data = req[property];
@@ -110,7 +117,7 @@ function createValidationMiddleware(schema, property = 'body') {
         if (error) {
             const details = error.details.map(d => ({
                 field: d.path.join('.'),
-                message: d.message
+                message: d.message,
             }));
             return res.status(400).json({
                 success: false,
@@ -119,7 +126,7 @@ function createValidationMiddleware(schema, property = 'body') {
                 timestamp: new Date().toISOString(),
                 path: req.path,
                 method: req.method,
-                requestId: req.id || 'unknown'
+                requestId: req.id || 'unknown',
             });
         }
         req[property] = value;
@@ -131,12 +138,12 @@ function validateQueryParams(req, res, next) {
     const raw = { ...req.query };
     const { error, value } = queryParamsSchema.validate(raw, {
         ...baseValidationOptions,
-        stripUnknown: true
+        stripUnknown: true,
     });
     if (error) {
         return res.status(400).json({
             error: 'Invalid query parameters',
-            details: error.details.map(d => d.message)
+            details: error.details.map(d => d.message),
         });
     }
     // Keep only validated keys, preserving original (string) representations used in tests
@@ -151,7 +158,6 @@ function validateQueryParams(req, res, next) {
 // Legacy validation function kept for backwards compatibility with older code/tests
 function validateRequest(schemaKey) {
     const { validate } = require('../validators');
-    const { ApiError } = require('../errors');
     return (req, _res, next) => {
         try {
             const payload = req.method === 'GET' ? req.query : req.body;
@@ -172,6 +178,6 @@ module.exports = {
     schemas: {
         config: configSchema,
         plexConnection: plexConnectionSchema,
-        queryParams: queryParamsSchema
-    }
+        queryParams: queryParamsSchema,
+    },
 };

@@ -139,12 +139,7 @@
                     "description": "Global scaling multiplier for all UI elements (50-200%)"
                 }
             },
-            "required": [
-                "content",
-                "clearlogo",
-                "clock",
-                "global"
-            ]
+            "required": ["content", "clearlogo", "clock", "global"]
         },
         "mediaServers": {
             "description": "An array of media server configurations.",
@@ -159,10 +154,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "plex",
-                            "jellyfin"
-                        ],
+                        "enum": ["plex", "jellyfin"],
                         "description": "The type of the media server."
                     },
                     "enabled": {
@@ -230,10 +222,7 @@
                     "default": 4001
                 }
             },
-            "required": [
-                "enabled",
-                "port"
-            ]
+            "required": ["enabled", "port"]
         },
         "plexClientOptions": {
             "description": "Advanced options to pass to the plex-api client.",

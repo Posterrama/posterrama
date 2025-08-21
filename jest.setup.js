@@ -9,7 +9,7 @@ global.testTimeouts = [];
 
 // Override setInterval to track intervals
 const originalSetInterval = global.setInterval;
-global.setInterval = function(callback, delay) {
+global.setInterval = function (callback, delay) {
     const intervalId = originalSetInterval(callback, delay);
     global.testIntervals.push(intervalId);
     return intervalId;
@@ -17,7 +17,7 @@ global.setInterval = function(callback, delay) {
 
 // Override setTimeout to track timeouts
 const originalSetTimeout = global.setTimeout;
-global.setTimeout = function(callback, delay) {
+global.setTimeout = function (callback, delay) {
     const timeoutId = originalSetTimeout(callback, delay);
     global.testTimeouts.push(timeoutId);
     return timeoutId;
@@ -25,7 +25,7 @@ global.setTimeout = function(callback, delay) {
 
 // Override clearInterval to remove from tracking
 const originalClearInterval = global.clearInterval;
-global.clearInterval = function(intervalId) {
+global.clearInterval = function (intervalId) {
     const index = global.testIntervals.indexOf(intervalId);
     if (index > -1) {
         global.testIntervals.splice(index, 1);
@@ -35,7 +35,7 @@ global.clearInterval = function(intervalId) {
 
 // Override clearTimeout to remove from tracking
 const originalClearTimeout = global.clearTimeout;
-global.clearTimeout = function(timeoutId) {
+global.clearTimeout = function (timeoutId) {
     const index = global.testTimeouts.indexOf(timeoutId);
     if (index > -1) {
         global.testTimeouts.splice(index, 1);
@@ -44,7 +44,7 @@ global.clearTimeout = function(timeoutId) {
 };
 
 // Clean up function to clear all tracked intervals and timeouts
-global.cleanupTimers = function() {
+global.cleanupTimers = function () {
     // Clear all tracked intervals
     global.testIntervals.forEach(intervalId => {
         try {
@@ -73,12 +73,12 @@ process.env.TEST_SILENT = 'true'; // Suppress logger output
 // Global teardown after each test
 afterEach(() => {
     global.cleanupTimers();
-    
+
     // Cleanup any server instances
     if (global.server && typeof global.server.cleanup === 'function') {
         global.server.cleanup();
     }
-    
+
     // Clear require cache for modules that might have intervals
     const modulePattern = /\/var\/www\/posterrama\/(server|utils|middleware|sources)/;
     Object.keys(require.cache).forEach(key => {

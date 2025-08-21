@@ -54,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
             qrImg.alt = 'Scan this QR code with your authenticator app';
             qrCodeContainer.appendChild(qrImg);
             secretKeyContainer.textContent = data.secret;
-
         } catch (error) {
             console.error('Failed to load 2FA setup data:', error);
             displayFatalError(error.message || 'Could not fetch 2FA data. Please restart setup.');

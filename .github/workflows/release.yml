@@ -2,174 +2,174 @@ name: Release
 
 # Trigger this workflow when a tag is pushed (e.g., v1.7.5, v2.0.0)
 on:
-  push:
-    tags:
-      - 'v*'
+    push:
+        tags:
+            - 'v*'
 
 permissions:
-  contents: write
-  packages: write
-  pull-requests: read
-  issues: read
+    contents: write
+    packages: write
+    pull-requests: read
+    issues: read
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Fetch full history for changelog generation
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run tests
-      run: npm test
-    
-    - name: Generate changelog
-      id: changelog
-      run: |
-        # Get the current tag
-        CURRENT_TAG=$(git describe --tags --abbrev=0)
-        
-        # Get the previous tag
-        PREVIOUS_TAG=$(git describe --tags --abbrev=0 $CURRENT_TAG^)
-        
-        # If this is the first tag, compare with first commit
-        if [ -z "$PREVIOUS_TAG" ]; then
-          PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
-        fi
-        
-        # Generate changelog
-        echo "## 🚀 What's Changed" > CHANGELOG.md
-        echo "" >> CHANGELOG.md
-        
-        # Get commit messages between tags
-        git log --pretty=format:"- %s" $PREVIOUS_TAG..$CURRENT_TAG >> CHANGELOG.md
-        
-        # Add release info
-        echo "" >> CHANGELOG.md
-        echo "## 📊 Release Statistics" >> CHANGELOG.md
-        echo "- **Version:** $CURRENT_TAG" >> CHANGELOG.md
-        echo "- **Date:** $(date '+%Y-%m-%d')" >> CHANGELOG.md
-        echo "- **Commits:** $(git rev-list --count $PREVIOUS_TAG..$CURRENT_TAG)" >> CHANGELOG.md
-        
-        # Add test info
-        echo "- **Tests:** $(npm test 2>/dev/null | grep -E 'Tests:|Test Suites:' | tail -1 || echo 'Tests executed successfully')" >> CHANGELOG.md
-        
-        # Set output for next step
-        echo "tag_name=$CURRENT_TAG" >> $GITHUB_OUTPUT
-        echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
-    
-    - name: Create Release Archive
-      run: |
-        # Create a clean build for distribution
-        mkdir -p dist
-        
-        # Copy all necessary files except development files
-        rsync -av --exclude-from=.gitignore \
-          --exclude='.git*' \
-          --exclude='node_modules' \
-          --exclude='coverage' \
-          --exclude='__tests__' \
-          --exclude='dist' \
-          --exclude='.env*' \
-          --exclude='*.log' \
-          ./ dist/posterrama-${{ steps.changelog.outputs.tag_name }}/
-        
-        # Create installation script
-        cat > dist/posterrama-${{ steps.changelog.outputs.tag_name }}/install.sh << 'EOF'
-        #!/bin/bash
-        echo "🎬 Installing Posterrama ${{ steps.changelog.outputs.tag_name }}..."
-        echo ""
-        
-        # Check Node.js
-        if ! command -v node &> /dev/null; then
-            echo "❌ Node.js is required but not installed."
-            echo "Please install Node.js 18+ from https://nodejs.org/"
-            exit 1
-        fi
-        
-        NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
-        if [ "$NODE_VERSION" -lt "18" ]; then
-            echo "❌ Node.js 18+ is required. Current version: $(node --version)"
-            exit 1
-        fi
-        
-        echo "✅ Node.js $(node --version) detected"
-        
-        # Install dependencies
-        echo "📦 Installing dependencies..."
-        npm install
-        
-        # Install PM2 globally if not present
-        if ! command -v pm2 &> /dev/null; then
-            echo "📦 Installing PM2 process manager..."
-            npm install -g pm2
-        fi
-        
-        # Create config from example if it doesn't exist
-        if [ ! -f "config.json" ]; then
-            echo "⚙️  Creating initial configuration..."
-            cp config.example.json config.json
-        fi
-        
-        echo ""
-        echo "🎉 Installation complete!"
-        echo ""
-        echo "🚀 To start Posterrama:"
-        echo "   pm2 start ecosystem.config.js"
-        echo ""
-        echo "🌐 Then visit: http://localhost:4000"
-        echo "🛠️  Admin panel: http://localhost:4000/admin"
-        echo ""
-        echo "📖 For more info, see README.md"
-        EOF
-        
-        chmod +x dist/posterrama-${{ steps.changelog.outputs.tag_name }}/install.sh
-        
-        # Create simple release notes without installation instructions
-        cat > RELEASE_NOTES.md << EOF
-        # Posterrama ${{ steps.changelog.outputs.tag_name }}
-        
-        $(cat CHANGELOG.md)
-        
-        ---
-        
-        **Full Changelog**: https://github.com/Posterrama/posterrama/compare/${{ steps.changelog.outputs.previous_tag }}...${{ steps.changelog.outputs.tag_name }}
-        EOF
-        
-        # Create archives
-        cd dist
-        tar -czf posterrama-${{ steps.changelog.outputs.tag_name }}.tar.gz posterrama-${{ steps.changelog.outputs.tag_name }}/
-        zip -r posterrama-${{ steps.changelog.outputs.tag_name }}.zip posterrama-${{ steps.changelog.outputs.tag_name }}/
-    
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ steps.changelog.outputs.tag_name }}
-        name: "Release ${{ steps.changelog.outputs.tag_name }}"
-        body_path: RELEASE_NOTES.md
-        files: |
-          dist/posterrama-${{ steps.changelog.outputs.tag_name }}.tar.gz
-          dist/posterrama-${{ steps.changelog.outputs.tag_name }}.zip
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Update latest release info
-      run: |
-        echo "🎉 Release ${{ steps.changelog.outputs.tag_name }} created successfully!"
-        echo "📥 Download URL: https://github.com/Posterrama/posterrama/releases/tag/${{ steps.changelog.outputs.tag_name }}"
-        echo "📦 Assets available: .tar.gz and .zip"
-        echo "📖 Installation instructions included in release notes"
+    release:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # Fetch full history for changelog generation
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '18.x'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run tests
+              run: npm test
+
+            - name: Generate changelog
+              id: changelog
+              run: |
+                  # Get the current tag
+                  CURRENT_TAG=$(git describe --tags --abbrev=0)
+
+                  # Get the previous tag
+                  PREVIOUS_TAG=$(git describe --tags --abbrev=0 $CURRENT_TAG^)
+
+                  # If this is the first tag, compare with first commit
+                  if [ -z "$PREVIOUS_TAG" ]; then
+                    PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+                  fi
+
+                  # Generate changelog
+                  echo "## 🚀 What's Changed" > CHANGELOG.md
+                  echo "" >> CHANGELOG.md
+
+                  # Get commit messages between tags
+                  git log --pretty=format:"- %s" $PREVIOUS_TAG..$CURRENT_TAG >> CHANGELOG.md
+
+                  # Add release info
+                  echo "" >> CHANGELOG.md
+                  echo "## 📊 Release Statistics" >> CHANGELOG.md
+                  echo "- **Version:** $CURRENT_TAG" >> CHANGELOG.md
+                  echo "- **Date:** $(date '+%Y-%m-%d')" >> CHANGELOG.md
+                  echo "- **Commits:** $(git rev-list --count $PREVIOUS_TAG..$CURRENT_TAG)" >> CHANGELOG.md
+
+                  # Add test info
+                  echo "- **Tests:** $(npm test 2>/dev/null | grep -E 'Tests:|Test Suites:' | tail -1 || echo 'Tests executed successfully')" >> CHANGELOG.md
+
+                  # Set output for next step
+                  echo "tag_name=$CURRENT_TAG" >> $GITHUB_OUTPUT
+                  echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+
+            - name: Create Release Archive
+              run: |
+                  # Create a clean build for distribution
+                  mkdir -p dist
+
+                  # Copy all necessary files except development files
+                  rsync -av --exclude-from=.gitignore \
+                    --exclude='.git*' \
+                    --exclude='node_modules' \
+                    --exclude='coverage' \
+                    --exclude='__tests__' \
+                    --exclude='dist' \
+                    --exclude='.env*' \
+                    --exclude='*.log' \
+                    ./ dist/posterrama-${{ steps.changelog.outputs.tag_name }}/
+
+                  # Create installation script
+                  cat > dist/posterrama-${{ steps.changelog.outputs.tag_name }}/install.sh << 'EOF'
+                  #!/bin/bash
+                  echo "🎬 Installing Posterrama ${{ steps.changelog.outputs.tag_name }}..."
+                  echo ""
+
+                  # Check Node.js
+                  if ! command -v node &> /dev/null; then
+                      echo "❌ Node.js is required but not installed."
+                      echo "Please install Node.js 18+ from https://nodejs.org/"
+                      exit 1
+                  fi
+
+                  NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
+                  if [ "$NODE_VERSION" -lt "18" ]; then
+                      echo "❌ Node.js 18+ is required. Current version: $(node --version)"
+                      exit 1
+                  fi
+
+                  echo "✅ Node.js $(node --version) detected"
+
+                  # Install dependencies
+                  echo "📦 Installing dependencies..."
+                  npm install
+
+                  # Install PM2 globally if not present
+                  if ! command -v pm2 &> /dev/null; then
+                      echo "📦 Installing PM2 process manager..."
+                      npm install -g pm2
+                  fi
+
+                  # Create config from example if it doesn't exist
+                  if [ ! -f "config.json" ]; then
+                      echo "⚙️  Creating initial configuration..."
+                      cp config.example.json config.json
+                  fi
+
+                  echo ""
+                  echo "🎉 Installation complete!"
+                  echo ""
+                  echo "🚀 To start Posterrama:"
+                  echo "   pm2 start ecosystem.config.js"
+                  echo ""
+                  echo "🌐 Then visit: http://localhost:4000"
+                  echo "🛠️  Admin panel: http://localhost:4000/admin"
+                  echo ""
+                  echo "📖 For more info, see README.md"
+                  EOF
+
+                  chmod +x dist/posterrama-${{ steps.changelog.outputs.tag_name }}/install.sh
+
+                  # Create simple release notes without installation instructions
+                  cat > RELEASE_NOTES.md << EOF
+                  # Posterrama ${{ steps.changelog.outputs.tag_name }}
+
+                  $(cat CHANGELOG.md)
+
+                  ---
+
+                  **Full Changelog**: https://github.com/Posterrama/posterrama/compare/${{ steps.changelog.outputs.previous_tag }}...${{ steps.changelog.outputs.tag_name }}
+                  EOF
+
+                  # Create archives
+                  cd dist
+                  tar -czf posterrama-${{ steps.changelog.outputs.tag_name }}.tar.gz posterrama-${{ steps.changelog.outputs.tag_name }}/
+                  zip -r posterrama-${{ steps.changelog.outputs.tag_name }}.zip posterrama-${{ steps.changelog.outputs.tag_name }}/
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ steps.changelog.outputs.tag_name }}
+                  name: 'Release ${{ steps.changelog.outputs.tag_name }}'
+                  body_path: RELEASE_NOTES.md
+                  files: |
+                      dist/posterrama-${{ steps.changelog.outputs.tag_name }}.tar.gz
+                      dist/posterrama-${{ steps.changelog.outputs.tag_name }}.zip
+                  draft: false
+                  prerelease: false
+                  generate_release_notes: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Update latest release info
+              run: |
+                  echo "🎉 Release ${{ steps.changelog.outputs.tag_name }} created successfully!"
+                  echo "📥 Download URL: https://github.com/Posterrama/posterrama/releases/tag/${{ steps.changelog.outputs.tag_name }}"
+                  echo "📦 Assets available: .tar.gz and .zip"
+                  echo "📖 Installation instructions included in release notes"

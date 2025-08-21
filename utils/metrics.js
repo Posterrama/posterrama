@@ -11,7 +11,7 @@ class MetricsManager {
             totalErrors: 0,
             responseTimeHistory: [],
             errorHistory: [],
-            cacheStats: { hits: 0, misses: 0 }
+            cacheStats: { hits: 0, misses: 0 },
         };
         this.endpointStats = new Map();
         this.historicalData = [];
@@ -19,9 +19,9 @@ class MetricsManager {
             enabled: true,
             collectInterval: 60000,
             retentionPeriod: 86400000,
-            maxHistoryPoints: 1440 // 24 hours of minute-by-minute data
+            maxHistoryPoints: 1440, // 24 hours of minute-by-minute data
         };
-        
+
         // Avoid background timers automatically in test environment to prevent noisy failures & open handles
         if (process.env.NODE_ENV !== 'test') {
             this.startMetricsCollection();
@@ -34,22 +34,22 @@ class MetricsManager {
 
         const endpoint = `${method} ${path}`;
         const isError = statusCode >= 400;
-        
+
         // Update endpoint-specific metrics
         if (!this.requestMetrics.has(endpoint)) {
             this.requestMetrics.set(endpoint, {
                 count: 0,
                 totalTime: 0,
                 errors: 0,
-                responses: []
+                responses: [],
             });
         }
-        
+
         const endpointData = this.requestMetrics.get(endpoint);
         endpointData.count++;
         endpointData.totalTime += responseTime;
         endpointData.responses.push({ time: Date.now(), responseTime, statusCode, cached });
-        
+
         if (isError) {
             endpointData.errors++;
             this.systemMetrics.totalErrors++;
@@ -57,7 +57,7 @@ class MetricsManager {
                 timestamp: Date.now(),
                 statusCode,
                 endpoint,
-                responseTime
+                responseTime,
             });
         }
 
@@ -68,7 +68,7 @@ class MetricsManager {
             responseTime,
             endpoint,
             statusCode,
-            cached
+            cached,
         });
 
         // Update cache stats
@@ -83,7 +83,7 @@ class MetricsManager {
     }
 
     // Record cache events
-    recordCacheEvent(type, key) {
+    recordCacheEvent(type, _key) {
         if (!this.config.enabled) return;
 
         if (type === 'hit') {
@@ -106,8 +106,8 @@ class MetricsManager {
                     average: 0,
                     median: 0,
                     p95: 0,
-                    p99: 0
-                }
+                    p99: 0,
+                },
             };
         }
 
@@ -121,25 +121,25 @@ class MetricsManager {
                 average: Math.round(average * 100) / 100,
                 median,
                 p95,
-                p99
-            }
+                p99,
+            },
         };
     }
 
     // Get endpoint metrics
     getEndpointMetrics() {
         const endpoints = [];
-        
+
         for (const [endpoint, data] of this.requestMetrics.entries()) {
             const averageResponseTime = data.count > 0 ? data.totalTime / data.count : 0;
             const errorRate = data.count > 0 ? (data.errors / data.count) * 100 : 0;
-            
+
             endpoints.push({
                 path: endpoint,
                 requestCount: data.count,
                 averageResponseTime: Math.round(averageResponseTime * 100) / 100,
                 errorRate: Math.round(errorRate * 100) / 100,
-                totalErrors: data.errors
+                totalErrors: data.errors,
             });
         }
 
@@ -148,23 +148,25 @@ class MetricsManager {
 
     // Get error metrics
     getErrorMetrics() {
-        const recentErrors = this.systemMetrics.errorHistory
-            .filter(e => Date.now() - e.timestamp < 3600000); // Last hour
+        const recentErrors = this.systemMetrics.errorHistory.filter(
+            e => Date.now() - e.timestamp < 3600000
+        ); // Last hour
 
         const errorsByStatus = {};
         recentErrors.forEach(error => {
             errorsByStatus[error.statusCode] = (errorsByStatus[error.statusCode] || 0) + 1;
         });
 
-        const totalRequests = this.systemMetrics.responseTimeHistory
-            .filter(r => Date.now() - r.timestamp < 3600000).length;
+        const totalRequests = this.systemMetrics.responseTimeHistory.filter(
+            r => Date.now() - r.timestamp < 3600000
+        ).length;
 
         const errorRate = totalRequests > 0 ? (recentErrors.length / totalRequests) * 100 : 0;
 
         return {
             errorRate: Math.round(errorRate * 100) / 100,
             totalErrors: recentErrors.length,
-            errorsByStatus
+            errorsByStatus,
         };
     }
 
@@ -172,19 +174,18 @@ class MetricsManager {
     getCacheMetrics() {
         const { hits, misses } = this.systemMetrics.cacheStats;
         const total = hits + misses;
-        
+
         return {
             hitRate: total > 0 ? Math.round((hits / total) * 10000) / 100 : 0,
             missRate: total > 0 ? Math.round((misses / total) * 10000) / 100 : 0,
             totalHits: hits,
-            totalMisses: misses
+            totalMisses: misses,
         };
     }
 
     // Get system metrics
     getSystemMetrics() {
         const memUsage = process.memoryUsage();
-        const cpuUsage = process.cpuUsage();
         const uptime = Date.now() - this.startTime;
 
         // Convert CPU usage to percentage (approximation)
@@ -192,14 +193,14 @@ class MetricsManager {
 
         return {
             memory: {
-                used: Math.round(memUsage.heapUsed / 1024 / 1024 * 100) / 100, // MB
-                total: Math.round(memUsage.heapTotal / 1024 / 1024 * 100) / 100, // MB
-                percentage: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 10000) / 100
+                used: Math.round((memUsage.heapUsed / 1024 / 1024) * 100) / 100, // MB
+                total: Math.round((memUsage.heapTotal / 1024 / 1024) * 100) / 100, // MB
+                percentage: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 10000) / 100,
             },
             cpu: {
-                usage: Math.round(cpuPercent * 100) / 100
+                usage: Math.round(cpuPercent * 100) / 100,
             },
-            uptime: Math.round(uptime / 1000) // seconds
+            uptime: Math.round(uptime / 1000), // seconds
         };
     }
 
@@ -207,14 +208,15 @@ class MetricsManager {
     getRealTimeMetrics() {
         const now = Date.now();
         const oneMinuteAgo = now - 60000;
-        
-        const recentRequests = this.systemMetrics.responseTimeHistory
-            .filter(r => r.timestamp > oneMinuteAgo);
+
+        const recentRequests = this.systemMetrics.responseTimeHistory.filter(
+            r => r.timestamp > oneMinuteAgo
+        );
 
         return {
             activeConnections: this.getActiveConnections(),
             requestsPerMinute: recentRequests.length,
-            timestamp: now
+            timestamp: now,
         };
     }
 
@@ -248,29 +250,31 @@ class MetricsManager {
 
         const startTime = now - timeRange;
         const dataPoints = [];
-        
+
         for (let time = startTime; time < now; time += intervalMs) {
             const endTime = time + intervalMs;
-            const periodData = this.systemMetrics.responseTimeHistory
-                .filter(r => r.timestamp >= time && r.timestamp < endTime);
+            const periodData = this.systemMetrics.responseTimeHistory.filter(
+                r => r.timestamp >= time && r.timestamp < endTime
+            );
 
             const errors = periodData.filter(r => r.statusCode >= 400).length;
-            const avgResponseTime = periodData.length > 0 
-                ? periodData.reduce((sum, r) => sum + r.responseTime, 0) / periodData.length 
-                : 0;
+            const avgResponseTime =
+                periodData.length > 0
+                    ? periodData.reduce((sum, r) => sum + r.responseTime, 0) / periodData.length
+                    : 0;
 
             dataPoints.push({
                 timestamp: time,
                 requests: periodData.length,
                 errors,
                 avgResponseTime: Math.round(avgResponseTime * 100) / 100,
-                errorRate: periodData.length > 0 ? (errors / periodData.length) * 100 : 0
+                errorRate: periodData.length > 0 ? (errors / periodData.length) * 100 : 0,
             });
         }
 
         return {
             period,
-            dataPoints
+            dataPoints,
         };
     }
 
@@ -285,8 +289,8 @@ class MetricsManager {
                 totalRequests: this.systemMetrics.totalRequests,
                 averageResponseTime: performanceMetrics.responseTime.average,
                 errorRate: errorMetrics.errorRate,
-                uptime: systemMetrics.uptime
-            }
+                uptime: systemMetrics.uptime,
+            },
         };
     }
 
@@ -298,7 +302,7 @@ class MetricsManager {
             errors: this.getErrorMetrics(),
             cache: this.getCacheMetrics(),
             system: this.getSystemMetrics(),
-            realtime: this.getRealTimeMetrics()
+            realtime: this.getRealTimeMetrics(),
         };
 
         if (format === 'prometheus') {
@@ -308,14 +312,14 @@ class MetricsManager {
         return {
             metrics,
             timestamp: Date.now(),
-            format
+            format,
         };
     }
 
     // Convert to Prometheus format
     toPrometheusFormat(metrics) {
         let prometheus = '';
-        
+
         // Response time metrics
         prometheus += '# HELP http_request_duration_seconds HTTP request duration in seconds\n';
         prometheus += '# TYPE http_request_duration_seconds histogram\n';
@@ -357,7 +361,7 @@ class MetricsManager {
     // Update configuration
     updateConfig(newConfig) {
         this.config = { ...this.config, ...newConfig };
-        
+
         // Restart collection if interval changed
         if (newConfig.collectInterval) {
             this.startMetricsCollection();
@@ -396,15 +400,17 @@ class MetricsManager {
         const cutoff = Date.now() - maxAge;
 
         // Trim response time history
-        this.systemMetrics.responseTimeHistory = this.systemMetrics.responseTimeHistory
-            .filter(r => r.timestamp > cutoff);
+        this.systemMetrics.responseTimeHistory = this.systemMetrics.responseTimeHistory.filter(
+            r => r.timestamp > cutoff
+        );
 
         // Trim error history
-        this.systemMetrics.errorHistory = this.systemMetrics.errorHistory
-            .filter(e => e.timestamp > cutoff);
+        this.systemMetrics.errorHistory = this.systemMetrics.errorHistory.filter(
+            e => e.timestamp > cutoff
+        );
 
         // Trim endpoint response history
-        for (const [endpoint, data] of this.requestMetrics.entries()) {
+        for (const [, data] of this.requestMetrics.entries()) {
             data.responses = data.responses.filter(r => r.time > cutoff);
         }
     }
@@ -425,7 +431,7 @@ class MetricsManager {
                 const systemMetrics = this.getSystemMetrics();
                 this.historicalData.push({
                     timestamp: Date.now(),
-                    ...systemMetrics
+                    ...systemMetrics,
                 });
 
                 // Keep historical data manageable
@@ -444,7 +450,7 @@ class MetricsManager {
             totalErrors: 0,
             responseTimeHistory: [],
             errorHistory: [],
-            cacheStats: { hits: 0, misses: 0 }
+            cacheStats: { hits: 0, misses: 0 },
         };
         this.endpointStats.clear();
         this.historicalData = [];
@@ -461,8 +467,12 @@ class MetricsManager {
     }
 
     // Testing helper to realign start time with mocked Date.now
-    _resetStartTime() { this.startTime = Date.now(); }
-    _setStartTime(ts) { this.startTime = ts; }
+    _resetStartTime() {
+        this.startTime = Date.now();
+    }
+    _setStartTime(ts) {
+        this.startTime = ts;
+    }
 }
 
 // Create singleton instance (default)

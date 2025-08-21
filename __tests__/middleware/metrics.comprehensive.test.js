@@ -11,14 +11,14 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         // Mock request object
         req = {
             method: 'GET',
             path: '/test',
             route: {
-                path: '/test/:id'
-            }
+                path: '/test/:id',
+            },
         };
 
         // Mock response object
@@ -26,7 +26,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
         res = {
             statusCode: 200,
             get: jest.fn(),
-            end: originalEnd
+            end: originalEnd,
         };
 
         // Mock next function
@@ -55,7 +55,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
         test('should record request metrics when response ends', () => {
             const mockDate = 1000;
             Date.now.mockReturnValueOnce(mockDate).mockReturnValueOnce(mockDate + 100);
-            
+
             metricsMiddleware(req, res, next);
 
             // Simulate response ending
@@ -77,7 +77,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
         test('should use req.path when req.route is undefined', () => {
             req.route = undefined;
             Date.now.mockReturnValueOnce(1000).mockReturnValueOnce(1100);
-            
+
             metricsMiddleware(req, res, next);
 
             res.end();
@@ -94,7 +94,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
         test('should detect cached responses', () => {
             res.get.mockReturnValue('HIT');
             Date.now.mockReturnValueOnce(2000).mockReturnValueOnce(2150);
-            
+
             metricsMiddleware(req, res, next);
 
             res.end();
@@ -112,7 +112,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
         test('should handle different HTTP methods', () => {
             req.method = 'POST';
             Date.now.mockReturnValueOnce(3000).mockReturnValueOnce(3200);
-            
+
             metricsMiddleware(req, res, next);
 
             res.end();
@@ -129,7 +129,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
         test('should handle different status codes', () => {
             res.statusCode = 404;
             Date.now.mockReturnValueOnce(4000).mockReturnValueOnce(4300);
-            
+
             metricsMiddleware(req, res, next);
 
             res.end();
@@ -159,7 +159,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
 
         test('should pass chunk and encoding to original end function', () => {
             Date.now.mockReturnValueOnce(6000).mockReturnValueOnce(6050);
-            
+
             metricsMiddleware(req, res, next);
 
             const chunk = 'test response';
@@ -172,10 +172,8 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
         test('should calculate correct response time', () => {
             const startTime = 1000;
             const endTime = 1500;
-            
-            Date.now
-                .mockReturnValueOnce(startTime)
-                .mockReturnValueOnce(endTime);
+
+            Date.now.mockReturnValueOnce(startTime).mockReturnValueOnce(endTime);
 
             metricsMiddleware(req, res, next);
             res.end();
@@ -191,14 +189,14 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
 
         test('should preserve res.end context when called', () => {
             Date.now.mockReturnValueOnce(7000).mockReturnValueOnce(7100);
-            
+
             metricsMiddleware(req, res, next);
 
             // Add property to res to verify context
             res.testProperty = 'test';
 
             // Mock original end to check context
-            originalEnd.mockImplementation(function() {
+            originalEnd.mockImplementation(function () {
                 expect(this).toBe(res);
                 expect(this.testProperty).toBe('test');
             });
@@ -209,7 +207,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
         test('should handle null/undefined cache header', () => {
             res.get.mockReturnValue(undefined);
             Date.now.mockReturnValueOnce(8000).mockReturnValueOnce(8200);
-            
+
             metricsMiddleware(req, res, next);
 
             res.end();
@@ -226,7 +224,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
         test('should handle MISS cache header', () => {
             res.get.mockReturnValue('MISS');
             Date.now.mockReturnValueOnce(9000).mockReturnValueOnce(9400);
-            
+
             metricsMiddleware(req, res, next);
 
             res.end();
@@ -281,7 +279,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
         test('should not export unexpected properties', () => {
             const metrics = require('../../middleware/metrics');
             const exportedKeys = Object.keys(metrics);
-            
+
             expect(exportedKeys).toEqual(['metricsMiddleware', 'connectionTracker']);
         });
     });
@@ -289,12 +287,15 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
     describe('Integration scenarios', () => {
         test('should work with Express-like middleware chain', () => {
             const middlewares = [metricsMiddleware, connectionTracker];
-            let callOrder = [];
+            const callOrder = [];
 
             const mockNext = () => callOrder.push('next');
-            
+
             middlewares.forEach((middleware, index) => {
-                const nextFn = index === middlewares.length - 1 ? mockNext : jest.fn(() => callOrder.push(`middleware-${index}-next`));
+                const nextFn =
+                    index === middlewares.length - 1
+                        ? mockNext
+                        : jest.fn(() => callOrder.push(`middleware-${index}-next`));
                 middleware(req, res, nextFn);
             });
 
@@ -310,7 +311,7 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
             // Setup different timing for each request
             Date.now
                 .mockReturnValueOnce(1000) // req1 start
-                .mockReturnValueOnce(1100) // req2 start  
+                .mockReturnValueOnce(1100) // req2 start
                 .mockReturnValueOnce(1200) // req1 end
                 .mockReturnValueOnce(1300); // req2 end
 
@@ -320,11 +321,21 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
             res1.end();
             res2.end();
 
-            expect(metricsManager.recordRequest).toHaveBeenNthCalledWith(1,
-                'GET', '/test/:id', 200, 200, false
+            expect(metricsManager.recordRequest).toHaveBeenNthCalledWith(
+                1,
+                'GET',
+                '/test/:id',
+                200,
+                200,
+                false
             );
-            expect(metricsManager.recordRequest).toHaveBeenNthCalledWith(2,
-                'GET', '/test/:id', 200, 404, false
+            expect(metricsManager.recordRequest).toHaveBeenNthCalledWith(
+                2,
+                'GET',
+                '/test/:id',
+                200,
+                404,
+                false
             );
         });
     });

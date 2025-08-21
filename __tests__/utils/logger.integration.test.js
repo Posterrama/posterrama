@@ -26,12 +26,16 @@ describe('Logger Module - Integration Test', () => {
 
     describe('shouldExcludeFromAdmin functionality', () => {
         test('should exclude request logger messages', () => {
-            const result = logger.shouldExcludeFromAdmin('[Request Logger] Received: GET /api/test');
+            const result = logger.shouldExcludeFromAdmin(
+                '[Request Logger] Received: GET /api/test'
+            );
             expect(result).toBe(true);
         });
 
         test('should exclude auth session messages', () => {
-            const result = logger.shouldExcludeFromAdmin('[Auth] Authenticated via session for user test');
+            const result = logger.shouldExcludeFromAdmin(
+                '[Auth] Authenticated via session for user test'
+            );
             expect(result).toBe(true);
         });
 
@@ -48,9 +52,11 @@ describe('Logger Module - Integration Test', () => {
         });
 
         test('should handle partial matches', () => {
-            const result1 = logger.shouldExcludeFromAdmin('Some [Request Logger] Received: message');
+            const result1 = logger.shouldExcludeFromAdmin(
+                'Some [Request Logger] Received: message'
+            );
             const result2 = logger.shouldExcludeFromAdmin('[Auth] Authenticated via session test');
-            
+
             expect(result1).toBe(true);
             expect(result2).toBe(true);
         });
@@ -64,7 +70,7 @@ describe('Logger Module - Integration Test', () => {
                 { level: 'WARN', message: 'Test warning 1', timestamp: '2023-01-01T10:01:00' },
                 { level: 'INFO', message: 'Test info 1', timestamp: '2023-01-01T10:02:00' },
                 { level: 'ERROR', message: 'Test error 2', timestamp: '2023-01-01T10:03:00' },
-                { level: 'INFO', message: 'Test info 2', timestamp: '2023-01-01T10:04:00' }
+                { level: 'INFO', message: 'Test info 2', timestamp: '2023-01-01T10:04:00' },
             ];
         });
 

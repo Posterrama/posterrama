@@ -1,204 +1,280 @@
-<!DOCTYPE html>
+<!doctype html>
 <!-- posterrama.app | Author: Posterrama Team | License: GPL-3.0-or-later -->
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Posterrama - Self-Hosted Digital Movie Poster App & Cinema Display</title>
-    <meta name="description" content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays. Self-hosted, open-source, and perfect for home theaters and media rooms.">
-    <meta name="keywords" content="movie poster app, digital movie posters, cinema display, screensaver, self-hosted media, home theater, plex companion, media collection, movie library, tv show posters, digital signage, media server, personal cinema, movie collection display, film poster screensaver, home cinema automation, media room display, raspberry pi media, kodi alternative, emby companion, jellyfin integration, movie artwork display, poster slideshow, cinema mode app, home theater software, media center display, digital photo frame movies, auto movie posters">
-    <meta name="author" content="Posterrama Team">
-    <meta name="robots" content="index, follow">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://posterrama.app/">
-    <meta property="og:title" content="Posterrama - Self-Hosted Digital Movie Poster App">
-    <meta property="og:description" content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays. Self-hosted and open-source.">
-    <meta property="og:site_name" content="Posterrama">
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://posterrama.app/">
-    <meta property="twitter:title" content="Posterrama - Self-Hosted Digital Movie Poster App">
-    <meta property="twitter:description" content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays.">
-    
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://posterrama.app/">
-    
-    <!-- Preconnects for performance -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
-    <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20250819a">
-    
-    <!-- Clean wallart mode styles -->
-    <style>
-        /* Hide everything in wallart mode */
-        body.wallart-mode #poster-wrapper,
-        body.wallart-mode #layer-a,
-        body.wallart-mode #layer-b,
-        body.wallart-mode #background-image,
-        body.wallart-mode .background-layer,
-        body.wallart-mode #clearlogo,
-        body.wallart-mode #clear-logo,
-        body.wallart-mode #info-container,
-        body.wallart-mode #controls-container,
-        body.wallart-mode #widget-container {
-            display: none !important;
-        }
-        
-        /* Hide promo box in wallart mode ONLY when NOT on promo site */
-        body.wallart-mode:not(.promo-site) #promo-box {
-            display: none !important;
-        }
-    </style>    <!-- Structured Data / JSON-LD -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Posterrama",
-        "description": "Self-hosted digital movie poster app that transforms your screens into personal cinemas and elegant screensavers",
-        "url": "https://posterrama.app",
-        "downloadUrl": "https://github.com/Posterrama/posterrama",
-        "operatingSystem": "Linux, Windows, macOS",
-        "applicationCategory": "MultimediaApplication",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD"
-        },
-        "creator": {
-            "@type": "Organization",
-            "name": "Posterrama Team",
-            "url": "https://github.com/Posterrama"
-        },
-        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
-        "softwareVersion": "1.3.0",
-        "requirements": "Docker, Node.js, Media Server (Plex)",
-        "featureList": [
-            "Digital Movie Poster Display",
-            "Cinema Mode for Portrait Screens", 
-            "Elegant Screensavers",
-            "Self-Hosted Media Management",
-            "Plex Integration",
-            "Multiple Display Support",
-            "Responsive Design"
-        ]
-    }
-    </script>
-</head>
-<body>
-    <div id="loader">
-        <div class="poster-loader"></div>
-        <div class="loader-text">Loading...</div>
-        <div class="loader-dots">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
-    </div>
-    <div id="error-message" class="is-hidden"></div>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Posterrama - Self-Hosted Digital Movie Poster App & Cinema Display</title>
+        <meta
+            name="description"
+            content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays. Self-hosted, open-source, and perfect for home theaters and media rooms."
+        />
+        <meta
+            name="keywords"
+            content="movie poster app, digital movie posters, cinema display, screensaver, self-hosted media, home theater, plex companion, media collection, movie library, tv show posters, digital signage, media server, personal cinema, movie collection display, film poster screensaver, home cinema automation, media room display, raspberry pi media, kodi alternative, emby companion, jellyfin integration, movie artwork display, poster slideshow, cinema mode app, home theater software, media center display, digital photo frame movies, auto movie posters"
+        />
+        <meta name="author" content="Posterrama Team" />
+        <meta name="robots" content="index, follow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-    <!-- Promo Box for the /site page -->
-    <main id="promo-box" class="is-hidden" style="display: none;">
-        <header class="promo-logo">
-            <svg role="img" aria-label="Posterrama Digital Movie Poster App Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2H16L14 22H4L6 2Z"/><path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6;"/></svg>
-        </header>
-        <h1>Bring your media library to life.</h1>
-        <p>This is <span class="promo-brand-name">Posterrama</span>, a stunning, self-hosted digital movie<span class="movie-extensions">+ music & games</span> poster app that transforms your screens into personal cinemas and elegant screensavers.</p>
-        
-        <!-- Hidden SEO content -->
-        <div class="seo-content" style="position: absolute; left: -9999px; top: -9999px;">
-            <h2>Features</h2>
-            <ul>
-                <li>Digital movie poster displays for home theaters</li>
-                <li>Cinema mode for portrait orientation screens</li>
-                <li>Beautiful screensavers from your media collection</li>
-                <li>Self-hosted media management</li>
-                <li>Plex media server integration</li>
-                <li>Multi-screen support for digital signage</li>
-                <li>Responsive design for all devices</li>
-                <li>Open source and free to use</li>
-            </ul>
-            
-            <h2>Perfect for</h2>
-            <ul>
-                <li>Home theater enthusiasts</li>
-                <li>Media room displays</li>
-                <li>Digital signage projects</li>
-                <li>Plex server companions</li>
-                <li>Movie collection showcases</li>
-                <li>Personal cinema setups</li>
-            </ul>
-        </div>
-        
-        <section class="promo-cta">
-            <a href="https://github.com/Posterrama/posterrama" target="_blank" rel="noopener noreferrer" class="button-promo" aria-label="Download Posterrama from GitHub">
-                <i class="fab fa-github"></i>
-                Get it on GitHub
-            </a>
-        </section>
-    </main>
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://posterrama.app/" />
+        <meta property="og:title" content="Posterrama - Self-Hosted Digital Movie Poster App" />
+        <meta
+            property="og:description"
+            content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays. Self-hosted and open-source."
+        />
+        <meta property="og:site_name" content="Posterrama" />
 
-    <div id="layer-a" class="screensaver-layer"></div>
-    <div id="layer-b" class="screensaver-layer"></div>
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://posterrama.app/" />
+        <meta
+            property="twitter:title"
+            content="Posterrama - Self-Hosted Digital Movie Poster App"
+        />
+        <meta
+            property="twitter:description"
+            content="Transform your movie collection into stunning digital posters, elegant screensavers, and immersive cinema displays."
+        />
 
-    <div id="widget-container">
-        <div id="time-widget">
-            <span id="time-hours">00</span>
-            <span id="time-separator">:</span>
-            <span id="time-minutes">00</span>
-        </div>
-    </div>
+        <!-- Canonical URL -->
+        <link rel="canonical" href="https://posterrama.app/" />
 
-    <div id="clearlogo-container">
-        <img id="clearlogo" src="" alt="ClearLogo">
-    </div>
+        <!-- Preconnects for performance -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Kalam:wght@400;700&display=swap"
+            rel="stylesheet"
+        />
 
-    <div id="info-container">
-        <div id="poster-wrapper">
-            <a id="poster-link" href="#" target="_blank" rel="noopener noreferrer">
-                <div id="poster-a" class="poster-layer"></div>
-                <div id="poster-b" class="poster-layer"></div>
-                <!-- Keep original poster for backward compatibility -->
-                <div id="poster"></div>
-            </a>
-        </div>
-        <div id="text-wrapper">
-            <h1 id="title"></h1>
-            <p id="tagline"></p>
-            <div id="meta-info">
-                <span id="year"></span>
-                <span id="rating"></span>
+        <!-- Font Awesome for icons -->
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+            integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        />
+
+        <!-- Styles -->
+        <link rel="stylesheet" href="style.css?v=20250819a" />
+
+        <!-- Clean wallart mode styles -->
+        <style>
+            /* Hide everything in wallart mode */
+            body.wallart-mode #poster-wrapper,
+            body.wallart-mode #layer-a,
+            body.wallart-mode #layer-b,
+            body.wallart-mode #background-image,
+            body.wallart-mode .background-layer,
+            body.wallart-mode #clearlogo,
+            body.wallart-mode #clear-logo,
+            body.wallart-mode #info-container,
+            body.wallart-mode #controls-container,
+            body.wallart-mode #widget-container {
+                display: none !important;
+            }
+
+            /* Hide promo box in wallart mode ONLY when NOT on promo site */
+            body.wallart-mode:not(.promo-site) #promo-box {
+                display: none !important;
+            }
+        </style>
+        <!-- Structured Data / JSON-LD -->
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                "name": "Posterrama",
+                "description": "Self-hosted digital movie poster app that transforms your screens into personal cinemas and elegant screensavers",
+                "url": "https://posterrama.app",
+                "downloadUrl": "https://github.com/Posterrama/posterrama",
+                "operatingSystem": "Linux, Windows, macOS",
+                "applicationCategory": "MultimediaApplication",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "USD"
+                },
+                "creator": {
+                    "@type": "Organization",
+                    "name": "Posterrama Team",
+                    "url": "https://github.com/Posterrama"
+                },
+                "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+                "softwareVersion": "1.3.0",
+                "requirements": "Docker, Node.js, Media Server (Plex)",
+                "featureList": [
+                    "Digital Movie Poster Display",
+                    "Cinema Mode for Portrait Screens",
+                    "Elegant Screensavers",
+                    "Self-Hosted Media Management",
+                    "Plex Integration",
+                    "Multiple Display Support",
+                    "Responsive Design"
+                ]
+            }
+        </script>
+    </head>
+    <body>
+        <div id="loader">
+            <div class="poster-loader"></div>
+            <div class="loader-text">Loading...</div>
+            <div class="loader-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
             </div>
         </div>
-    </div>
+        <div id="error-message" class="is-hidden"></div>
 
-    <div id="controls-container">
-        <button id="prev-button" aria-label="Previous">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-        </button>
-        <button id="pause-button" aria-label="Pause/Resume">
-            <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-            <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        </button>
-        <button id="next-button" aria-label="Next">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
-        </button>
-    </div>
+        <!-- Promo Box for the /site page -->
+        <main id="promo-box" class="is-hidden" style="display: none">
+            <header class="promo-logo">
+                <svg
+                    role="img"
+                    aria-label="Posterrama Digital Movie Poster App Logo"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                >
+                    <path d="M6 2H16L14 22H4L6 2Z" />
+                    <path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6" />
+                </svg>
+            </header>
+            <h1>Bring your media library to life.</h1>
+            <p>
+                This is <span class="promo-brand-name">Posterrama</span>, a stunning, self-hosted
+                digital movie<span class="movie-extensions">+ music & games</span> poster app that
+                transforms your screens into personal cinemas and elegant screensavers.
+            </p>
 
-    <div id="branding-container">
-        <a href="https://posterrama.app" target="_blank" rel="noopener noreferrer" title="posterrama.app">
-            <svg role="img" aria-label="posterrama.app Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2H16L14 22H4L6 2Z"/><path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6;"/></svg>
-        </a>
-    </div>
+            <!-- Hidden SEO content -->
+            <div class="seo-content" style="position: absolute; left: -9999px; top: -9999px">
+                <h2>Features</h2>
+                <ul>
+                    <li>Digital movie poster displays for home theaters</li>
+                    <li>Cinema mode for portrait orientation screens</li>
+                    <li>Beautiful screensavers from your media collection</li>
+                    <li>Self-hosted media management</li>
+                    <li>Plex media server integration</li>
+                    <li>Multi-screen support for digital signage</li>
+                    <li>Responsive design for all devices</li>
+                    <li>Open source and free to use</li>
+                </ul>
 
-            <script src="script.js?v=20250819a"></script>
-</body>
+                <h2>Perfect for</h2>
+                <ul>
+                    <li>Home theater enthusiasts</li>
+                    <li>Media room displays</li>
+                    <li>Digital signage projects</li>
+                    <li>Plex server companions</li>
+                    <li>Movie collection showcases</li>
+                    <li>Personal cinema setups</li>
+                </ul>
+            </div>
+
+            <section class="promo-cta">
+                <a
+                    href="https://github.com/Posterrama/posterrama"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="button-promo"
+                    aria-label="Download Posterrama from GitHub"
+                >
+                    <i class="fab fa-github"></i>
+                    Get it on GitHub
+                </a>
+            </section>
+        </main>
+
+        <div id="layer-a" class="screensaver-layer"></div>
+        <div id="layer-b" class="screensaver-layer"></div>
+
+        <div id="widget-container">
+            <div id="time-widget">
+                <span id="time-hours">00</span>
+                <span id="time-separator">:</span>
+                <span id="time-minutes">00</span>
+            </div>
+        </div>
+
+        <div id="clearlogo-container">
+            <img id="clearlogo" src="" alt="ClearLogo" />
+        </div>
+
+        <div id="info-container">
+            <div id="poster-wrapper">
+                <a id="poster-link" href="#" target="_blank" rel="noopener noreferrer">
+                    <div id="poster-a" class="poster-layer"></div>
+                    <div id="poster-b" class="poster-layer"></div>
+                    <!-- Keep original poster for backward compatibility -->
+                    <div id="poster"></div>
+                </a>
+            </div>
+            <div id="text-wrapper">
+                <h1 id="title"></h1>
+                <p id="tagline"></p>
+                <div id="meta-info">
+                    <span id="year"></span>
+                    <span id="rating"></span>
+                </div>
+            </div>
+        </div>
+
+        <div id="controls-container">
+            <button id="prev-button" aria-label="Previous">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                </svg>
+            </button>
+            <button id="pause-button" aria-label="Pause/Resume">
+                <svg
+                    class="icon-pause"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                >
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                </svg>
+                <svg
+                    class="icon-play"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                >
+                    <path d="M8 5v14l11-7z" />
+                </svg>
+            </button>
+            <button id="next-button" aria-label="Next">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
+                </svg>
+            </button>
+        </div>
+
+        <div id="branding-container">
+            <a
+                href="https://posterrama.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="posterrama.app"
+            >
+                <svg
+                    role="img"
+                    aria-label="posterrama.app Logo"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                >
+                    <path d="M6 2H16L14 22H4L6 2Z" />
+                    <path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6" />
+                </svg>
+            </a>
+        </div>
+
+        <script src="script.js?v=20250819a"></script>
+    </body>
 </html>

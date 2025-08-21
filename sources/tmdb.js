@@ -2,7 +2,6 @@
  * TMDB media source for posterrama.app
  * Handles fetching and processing media from The Movie Database API.
  */
-const logger = require('../logger');
 
 class TMDBSource {
     constructor(sourceConfig, shuffleArray, isDebug) {
@@ -11,20 +10,20 @@ class TMDBSource {
         this.isDebug = isDebug;
         this.baseUrl = 'https://api.themoviedb.org/3';
         this.imageBaseUrl = 'https://image.tmdb.org/t/p/';
-        
+
         // Initialize caches
         this.genreCache = new Map(); // Cache for genre mappings
         this.responseCache = new Map(); // Cache for API responses
         this.cacheTTL = 5 * 60 * 1000; // 5 minutes cache TTL
-        
+
         // Rate limiting
         this.lastRequestTime = 0;
         this.minRequestInterval = 250; // 250ms between requests (4 requests per second)
-        
+
         // Retry configuration
         this.maxRetries = 3;
         this.retryDelay = 1000; // Start with 1 second delay
-        
+
         // Performance metrics
         this.metrics = {
             requestCount: 0,
@@ -32,7 +31,7 @@ class TMDBSource {
             cacheMisses: 0,
             averageResponseTime: 0,
             lastRequestTime: null,
-            errorCount: 0
+            errorCount: 0,
         };
     }
 
@@ -43,12 +42,14 @@ class TMDBSource {
     getMetrics() {
         return {
             ...this.metrics,
-            cacheHitRate: this.metrics.requestCount > 0 ? 
-                (this.metrics.cacheHits / this.metrics.requestCount) : 0,
+            cacheHitRate:
+                this.metrics.requestCount > 0
+                    ? this.metrics.cacheHits / this.metrics.requestCount
+                    : 0,
             cacheSizes: {
                 genres: this.genreCache.size,
-                responses: this.responseCache.size
-            }
+                responses: this.responseCache.size,
+            },
         };
     }
 
@@ -62,7 +63,7 @@ class TMDBSource {
             cacheMisses: 0,
             averageResponseTime: 0,
             lastRequestTime: null,
-            errorCount: 0
+            errorCount: 0,
         };
     }
 
@@ -73,13 +74,15 @@ class TMDBSource {
      */
     async fetchGenreMapping(type) {
         const cacheKey = `genres_${type}`;
-        
+
         // Check cache first
         if (this.genreCache.has(cacheKey)) {
             const cached = this.genreCache.get(cacheKey);
             if (Date.now() - cached.timestamp < this.cacheTTL) {
                 if (this.isDebug) {
-                    console.log(`[TMDBSource:${this.source.name}] Using cached genre mapping for ${type}`);
+                    console.log(
+                        `[TMDBSource:${this.source.name}] Using cached genre mapping for ${type}`
+                    );
                 }
                 return cached.data;
             }
@@ -88,15 +91,19 @@ class TMDBSource {
         try {
             await this.rateLimitDelay();
             const endpoint = type === 'movie' ? '/genre/movie/list' : '/genre/tv/list';
-            const response = await fetch(`${this.baseUrl}${endpoint}?api_key=${this.source.apiKey}&language=en-US`);
-            
+            const response = await fetch(
+                `${this.baseUrl}${endpoint}?api_key=${this.source.apiKey}&language=en-US`
+            );
+
             if (!response.ok) {
-                throw new Error(`TMDB Genre API error: ${response.status} - ${response.statusText}`);
+                throw new Error(
+                    `TMDB Genre API error: ${response.status} - ${response.statusText}`
+                );
             }
 
             const data = await response.json();
             const genreMap = new Map();
-            
+
             if (data.genres && Array.isArray(data.genres)) {
                 data.genres.forEach(genre => {
                     genreMap.set(genre.id, genre.name);
@@ -106,16 +113,20 @@ class TMDBSource {
             // Cache the result
             this.genreCache.set(cacheKey, {
                 data: genreMap,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
 
             if (this.isDebug) {
-                console.log(`[TMDBSource:${this.source.name}] Fetched ${genreMap.size} genres for ${type}`);
+                console.log(
+                    `[TMDBSource:${this.source.name}] Fetched ${genreMap.size} genres for ${type}`
+                );
             }
 
             return genreMap;
         } catch (error) {
-            console.error(`[TMDBSource:${this.source.name}] Error fetching genres for ${type}: ${error.message}`);
+            console.error(
+                `[TMDBSource:${this.source.name}] Error fetching genres for ${type}: ${error.message}`
+            );
             return new Map(); // Return empty map on error
         }
     }
@@ -127,12 +138,12 @@ class TMDBSource {
     async rateLimitDelay() {
         const now = Date.now();
         const timeSinceLastRequest = now - this.lastRequestTime;
-        
+
         if (timeSinceLastRequest < this.minRequestInterval) {
             const delay = this.minRequestInterval - timeSinceLastRequest;
             await new Promise(resolve => setTimeout(resolve, delay));
         }
-        
+
         this.lastRequestTime = Date.now();
     }
 
@@ -148,7 +159,9 @@ class TMDBSource {
             const cached = this.responseCache.get(url);
             if (Date.now() - cached.timestamp < this.cacheTTL) {
                 if (this.isDebug) {
-                    console.log(`[TMDBSource:${this.source.name}] Using cached response for ${url}`);
+                    console.log(
+                        `[TMDBSource:${this.source.name}] Using cached response for ${url}`
+                    );
                 }
                 return cached.data;
             }
@@ -157,14 +170,16 @@ class TMDBSource {
         try {
             await this.rateLimitDelay();
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 // Handle specific TMDB errors
                 if (response.status === 429) {
                     // Rate limit exceeded - retry with exponential backoff
                     if (retryCount < this.maxRetries) {
                         const delay = this.retryDelay * Math.pow(2, retryCount);
-                        console.warn(`[TMDBSource:${this.source.name}] Rate limit hit, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})`);
+                        console.warn(
+                            `[TMDBSource:${this.source.name}] Rate limit hit, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})`
+                        );
                         await new Promise(resolve => setTimeout(resolve, delay));
                         return this.cachedApiRequest(url, retryCount + 1);
                     } else {
@@ -178,11 +193,15 @@ class TMDBSource {
                     // Server error - retry
                     if (retryCount < this.maxRetries) {
                         const delay = this.retryDelay * (retryCount + 1);
-                        console.warn(`[TMDBSource:${this.source.name}] Server error ${response.status}, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})`);
+                        console.warn(
+                            `[TMDBSource:${this.source.name}] Server error ${response.status}, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})`
+                        );
                         await new Promise(resolve => setTimeout(resolve, delay));
                         return this.cachedApiRequest(url, retryCount + 1);
                     } else {
-                        throw new Error(`TMDB API server error: ${response.status} - ${response.statusText}`);
+                        throw new Error(
+                            `TMDB API server error: ${response.status} - ${response.statusText}`
+                        );
                     }
                 } else {
                     throw new Error(`TMDB API error: ${response.status} - ${response.statusText}`);
@@ -190,25 +209,32 @@ class TMDBSource {
             }
 
             const data = await response.json();
-            
+
             // Cache successful response
             this.responseCache.set(url, {
                 data: data,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
 
             return data;
         } catch (error) {
             // Network or parsing errors - retry for certain types
-            if ((error.name === 'TypeError' || error.message.includes('fetch')) && retryCount < this.maxRetries) {
+            if (
+                (error.name === 'TypeError' || error.message.includes('fetch')) &&
+                retryCount < this.maxRetries
+            ) {
                 const delay = this.retryDelay * (retryCount + 1);
-                console.warn(`[TMDBSource:${this.source.name}] Network error, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries}): ${error.message}`);
+                console.warn(
+                    `[TMDBSource:${this.source.name}] Network error, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries}): ${error.message}`
+                );
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return this.cachedApiRequest(url, retryCount + 1);
             }
-            
+
             // Enhanced error logging
-            console.error(`[TMDBSource:${this.source.name}] API request failed for ${url}: ${error.message}`);
+            console.error(
+                `[TMDBSource:${this.source.name}] API request failed for ${url}: ${error.message}`
+            );
             throw error;
         }
     }
@@ -223,7 +249,9 @@ class TMDBSource {
         if (count === 0) return [];
 
         if (this.isDebug) {
-            console.log(`[TMDBSource:${this.source.name}] Fetching ${count} ${type}(s) from TMDB (category: ${this.source.category})`);
+            console.log(
+                `[TMDBSource:${this.source.name}] Fetching ${count} ${type}(s) from TMDB (category: ${this.source.category})`
+            );
         }
 
         try {
@@ -238,33 +266,41 @@ class TMDBSource {
             if (this.source.category === 'latest' || this.source.category === 'tv_latest') {
                 const endpoint = this.getEndpoint(type, 1);
                 const url = `${this.baseUrl}${endpoint}&api_key=${this.source.apiKey}`;
-                
+
                 try {
                     const data = await this.cachedApiRequest(url);
                     if (data && data.id) {
                         allItems = [data]; // Latest returns single object, not array
                     }
                 } catch (error) {
-                    console.warn(`[TMDBSource:${this.source.name}] Failed to fetch latest: ${error.message}`);
+                    console.warn(
+                        `[TMDBSource:${this.source.name}] Failed to fetch latest: ${error.message}`
+                    );
                 }
             } else {
                 // Fetch multiple pages for other endpoints
                 for (let page = 1; page <= pagesToFetch && page <= 500; page++) {
                     const endpoint = this.getEndpoint(type, page);
                     const url = `${this.baseUrl}${endpoint}&api_key=${this.source.apiKey}`;
-                    
+
                     try {
                         const data = await this.cachedApiRequest(url);
-                        
+
                         if (data.results && Array.isArray(data.results)) {
                             // Filter results by media type for cross-category endpoints
                             let results = data.results;
-                            if (this.source.category.startsWith('trending_all') || this.source.category.startsWith('discover_')) {
+                            if (
+                                this.source.category.startsWith('trending_all') ||
+                                this.source.category.startsWith('discover_')
+                            ) {
                                 results = results.filter(item => {
                                     if (type === 'movie') {
                                         return item.media_type === 'movie' || !item.media_type;
                                     } else if (type === 'tv') {
-                                        return item.media_type === 'tv' || (!item.media_type && item.first_air_date);
+                                        return (
+                                            item.media_type === 'tv' ||
+                                            (!item.media_type && item.first_air_date)
+                                        );
                                     }
                                     return true;
                                 });
@@ -274,9 +310,10 @@ class TMDBSource {
 
                         // Stop if we have enough items
                         if (allItems.length >= count) break;
-                        
                     } catch (error) {
-                        console.warn(`[TMDBSource:${this.source.name}] Failed to fetch page ${page}: ${error.message}`);
+                        console.warn(
+                            `[TMDBSource:${this.source.name}] Failed to fetch page ${page}: ${error.message}`
+                        );
                         // Continue with next page instead of failing completely
                         continue;
                     }
@@ -284,21 +321,26 @@ class TMDBSource {
             }
 
             if (this.isDebug) {
-                console.log(`[TMDBSource:${this.source.name}] Found ${allItems.length} total items from TMDB.`);
+                console.log(
+                    `[TMDBSource:${this.source.name}] Found ${allItems.length} total items from TMDB.`
+                );
             }
 
             // Apply content filtering with genre mapping
             const filteredItems = this.applyContentFiltering(allItems, type, genreMap);
             if (this.isDebug) {
-                console.log(`[TMDBSource:${this.source.name}] After filtering: ${filteredItems.length} items remaining.`);
+                console.log(
+                    `[TMDBSource:${this.source.name}] After filtering: ${filteredItems.length} items remaining.`
+                );
             }
 
             const shuffledItems = this.shuffleArray(filteredItems);
             const selectedItems = count > 0 ? shuffledItems.slice(0, count) : shuffledItems;
 
             // Check if this is a streaming-related category to include streaming data
-            const includeStreaming = this.source.category && this.source.category.includes('streaming');
-            
+            const includeStreaming =
+                this.source.category && this.source.category.includes('streaming');
+
             // Process items (async if streaming data needed)
             let processedItems;
             if (includeStreaming) {
@@ -307,7 +349,9 @@ class TMDBSource {
                     selectedItems.map(item => this.processTMDBItem(item, type, genreMap, true))
                 );
                 if (this.isDebug) {
-                    console.log(`[TMDBSource:${this.source.name}] Fetched streaming data for ${processedItems.length} items.`);
+                    console.log(
+                        `[TMDBSource:${this.source.name}] Fetched streaming data for ${processedItems.length} items.`
+                    );
                 }
             } else {
                 // Use regular map for faster processing when streaming data not needed
@@ -317,12 +361,16 @@ class TMDBSource {
             }
 
             if (this.isDebug) {
-                console.log(`[TMDBSource:${this.source.name}] Returning ${processedItems.length} processed items.`);
+                console.log(
+                    `[TMDBSource:${this.source.name}] Returning ${processedItems.length} processed items.`
+                );
             }
 
             return processedItems;
         } catch (error) {
-            console.error(`[TMDBSource:${this.source.name}] Error fetching media: ${error.message}`);
+            console.error(
+                `[TMDBSource:${this.source.name}] Error fetching media: ${error.message}`
+            );
             return [];
         }
     }
@@ -335,19 +383,19 @@ class TMDBSource {
      */
     getEndpoint(type, page) {
         const category = this.source.category || 'popular';
-        
+
         // Handle trending endpoints (cross-category)
         if (category.startsWith('trending_')) {
             const [, mediaType, timeWindow] = category.split('_');
             return `/trending/${mediaType}/${timeWindow}?page=${page}`;
         }
-        
+
         // Handle discover endpoints
         if (category.startsWith('discover_')) {
             const mediaType = category.split('_')[1];
             return `/discover/${mediaType}?page=${page}&sort_by=popularity.desc`;
         }
-        
+
         // Handle TV-specific categories
         if (category.startsWith('tv_') || type === 'tv') {
             const tvCategory = category.replace('tv_', '');
@@ -402,7 +450,7 @@ class TMDBSource {
                     }
             }
         }
-        
+
         // Handle movie categories (including new streaming categories)
         switch (category) {
             case 'popular':
@@ -458,7 +506,7 @@ class TMDBSource {
      */
     async fetchStreamingProviders(mediaType, itemId) {
         const cacheKey = `streaming_${mediaType}_${itemId}`;
-        
+
         // Check cache first
         if (this.responseCache.has(cacheKey)) {
             const cached = this.responseCache.get(cacheKey);
@@ -471,26 +519,30 @@ class TMDBSource {
             await this.rateLimitDelay();
             const url = `${this.baseUrl}/${mediaType}/${itemId}/watch/providers?api_key=${this.source.apiKey}`;
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 if (this.isDebug) {
-                    console.warn(`[TMDBSource:${this.source.name}] Failed to fetch streaming providers for ${mediaType} ${itemId}: ${response.status}`);
+                    console.warn(
+                        `[TMDBSource:${this.source.name}] Failed to fetch streaming providers for ${mediaType} ${itemId}: ${response.status}`
+                    );
                 }
                 return null;
             }
 
             const data = await response.json();
-            
+
             // Cache the response
             this.responseCache.set(cacheKey, {
                 data,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
 
             return data;
         } catch (error) {
             if (this.isDebug) {
-                console.warn(`[TMDBSource:${this.source.name}] Error fetching streaming providers: ${error.message}`);
+                console.warn(
+                    `[TMDBSource:${this.source.name}] Error fetching streaming providers: ${error.message}`
+                );
             }
             return null;
         }
@@ -509,45 +561,57 @@ class TMDBSource {
 
         const watchRegion = region || this.getWatchRegion();
         const regionData = streamingData.results[watchRegion];
-        
+
         if (!regionData) {
             return { available: false, providers: [] };
         }
 
         const providers = [];
-        
+
         // Add flatrate (subscription) providers
         if (regionData.flatrate) {
-            providers.push(...regionData.flatrate.map(provider => ({
-                name: provider.provider_name,
-                type: 'subscription',
-                logo: provider.logo_path ? `https://image.tmdb.org/t/p/w92${provider.logo_path}` : null
-            })));
+            providers.push(
+                ...regionData.flatrate.map(provider => ({
+                    name: provider.provider_name,
+                    type: 'subscription',
+                    logo: provider.logo_path
+                        ? `https://image.tmdb.org/t/p/w92${provider.logo_path}`
+                        : null,
+                }))
+            );
         }
 
         // Add buy providers
         if (regionData.buy) {
-            providers.push(...regionData.buy.map(provider => ({
-                name: provider.provider_name,
-                type: 'buy',
-                logo: provider.logo_path ? `https://image.tmdb.org/t/p/w92${provider.logo_path}` : null
-            })));
+            providers.push(
+                ...regionData.buy.map(provider => ({
+                    name: provider.provider_name,
+                    type: 'buy',
+                    logo: provider.logo_path
+                        ? `https://image.tmdb.org/t/p/w92${provider.logo_path}`
+                        : null,
+                }))
+            );
         }
 
         // Add rent providers
         if (regionData.rent) {
-            providers.push(...regionData.rent.map(provider => ({
-                name: provider.provider_name,
-                type: 'rent',
-                logo: provider.logo_path ? `https://image.tmdb.org/t/p/w92${provider.logo_path}` : null
-            })));
+            providers.push(
+                ...regionData.rent.map(provider => ({
+                    name: provider.provider_name,
+                    type: 'rent',
+                    logo: provider.logo_path
+                        ? `https://image.tmdb.org/t/p/w92${provider.logo_path}`
+                        : null,
+                }))
+            );
         }
 
         return {
             available: providers.length > 0,
             providers: providers,
             region: watchRegion,
-            link: regionData.link || null
+            link: regionData.link || null,
         };
     }
 
@@ -567,34 +631,42 @@ class TMDBSource {
                 return item.vote_average >= this.source.minRating;
             });
             if (this.isDebug) {
-                console.log(`[TMDBSource:${this.source.name}] Rating filter (>=${this.source.minRating}): ${filteredItems.length} items.`);
+                console.log(
+                    `[TMDBSource:${this.source.name}] Rating filter (>=${this.source.minRating}): ${filteredItems.length} items.`
+                );
             }
         }
 
         // Genre filter with proper name mapping
         if (this.source.genreFilter && this.source.genreFilter.trim() !== '') {
-            const genreNames = this.source.genreFilter.split(',').map(g => g.trim().toLowerCase()).filter(g => g);
-            
+            const genreNames = this.source.genreFilter
+                .split(',')
+                .map(g => g.trim().toLowerCase())
+                .filter(g => g);
+
             if (genreNames.length > 0) {
                 filteredItems = filteredItems.filter(item => {
                     if (!item.genre_ids || !Array.isArray(item.genre_ids)) return false;
-                    
+
                     // Convert genre IDs to names and check if any match our filter
                     const itemGenreNames = item.genre_ids
                         .map(id => genreMap.get(id))
                         .filter(name => name)
                         .map(name => name.toLowerCase());
-                    
+
                     // Check if any of the item's genres match our filter
-                    return genreNames.some(filterGenre => 
-                        itemGenreNames.some(itemGenre => 
-                            itemGenre.includes(filterGenre) || filterGenre.includes(itemGenre)
+                    return genreNames.some(filterGenre =>
+                        itemGenreNames.some(
+                            itemGenre =>
+                                itemGenre.includes(filterGenre) || filterGenre.includes(itemGenre)
                         )
                     );
                 });
-                
+
                 if (this.isDebug) {
-                    console.log(`[TMDBSource:${this.source.name}] Genre filter (${genreNames.join(', ')}): ${filteredItems.length} items.`);
+                    console.log(
+                        `[TMDBSource:${this.source.name}] Genre filter (${genreNames.join(', ')}): ${filteredItems.length} items.`
+                    );
                 }
             }
         }
@@ -608,7 +680,9 @@ class TMDBSource {
                 return year >= this.source.yearFilter;
             });
             if (this.isDebug) {
-                console.log(`[TMDBSource:${this.source.name}] Year filter (>=${this.source.yearFilter}): ${filteredItems.length} items.`);
+                console.log(
+                    `[TMDBSource:${this.source.name}] Year filter (>=${this.source.yearFilter}): ${filteredItems.length} items.`
+                );
             }
         }
 
@@ -627,9 +701,9 @@ class TMDBSource {
         const title = type === 'movie' ? item.title : item.name;
         const releaseDate = type === 'movie' ? item.release_date : item.first_air_date;
         const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
-        
+
         // Convert genre IDs to names
-        const genres = item.genre_ids 
+        const genres = item.genre_ids
             ? item.genre_ids.map(id => genreMap.get(id)).filter(name => name)
             : [];
 
@@ -637,7 +711,9 @@ class TMDBSource {
         const processedItem = {
             key: `tmdb-${item.id}`,
             title: title,
-            backgroundUrl: item.backdrop_path ? `${this.imageBaseUrl}original${item.backdrop_path}` : null,
+            backgroundUrl: item.backdrop_path
+                ? `${this.imageBaseUrl}original${item.backdrop_path}`
+                : null,
             posterUrl: item.poster_path ? `${this.imageBaseUrl}w500${item.poster_path}` : null,
             clearLogoUrl: null, // TMDB doesn't provide clear logos
             tagline: item.overview || '',
@@ -650,7 +726,7 @@ class TMDBSource {
             category: this.source.category, // Add category for provider detection
             tmdbId: item.id,
             mediaType: type, // Add media type for streaming queries
-            _raw: item
+            _raw: item,
         };
 
         // Add streaming data if requested
@@ -660,12 +736,16 @@ class TMDBSource {
                 if (streamingData) {
                     processedItem.streaming = this.formatStreamingProviders(streamingData);
                     if (this.isDebug) {
-                        console.log(`[TMDBSource:${this.source.name}] Added streaming data for ${title}: ${processedItem.streaming.providers.length} providers`);
+                        console.log(
+                            `[TMDBSource:${this.source.name}] Added streaming data for ${title}: ${processedItem.streaming.providers.length} providers`
+                        );
                     }
                 }
             } catch (error) {
                 if (this.isDebug) {
-                    console.warn(`[TMDBSource:${this.source.name}] Failed to fetch streaming data for ${title}: ${error.message}`);
+                    console.warn(
+                        `[TMDBSource:${this.source.name}] Failed to fetch streaming data for ${title}: ${error.message}`
+                    );
                 }
                 processedItem.streaming = { available: false, providers: [] };
             }
@@ -682,17 +762,19 @@ class TMDBSource {
         try {
             const [movieGenres, tvGenres] = await Promise.all([
                 this.fetchGenreMapping('movie'),
-                this.fetchGenreMapping('tv')
+                this.fetchGenreMapping('tv'),
             ]);
 
             // Combine and deduplicate genres from both movie and TV
             const allGenres = new Set();
-            movieGenres.forEach((name) => allGenres.add(name));
-            tvGenres.forEach((name) => allGenres.add(name));
+            movieGenres.forEach(name => allGenres.add(name));
+            tvGenres.forEach(name => allGenres.add(name));
 
             return Array.from(allGenres).sort();
         } catch (error) {
-            console.error(`[TMDBSource:${this.source.name}] Error getting available genres: ${error.message}`);
+            console.error(
+                `[TMDBSource:${this.source.name}] Error getting available genres: ${error.message}`
+            );
             return [];
         }
     }
@@ -702,23 +784,25 @@ class TMDBSource {
      */
     cleanupCache() {
         const now = Date.now();
-        
+
         // Clean genre cache
         for (const [key, value] of this.genreCache.entries()) {
             if (now - value.timestamp > this.cacheTTL) {
                 this.genreCache.delete(key);
             }
         }
-        
+
         // Clean response cache
         for (const [key, value] of this.responseCache.entries()) {
             if (now - value.timestamp > this.cacheTTL) {
                 this.responseCache.delete(key);
             }
         }
-        
+
         if (this.isDebug) {
-            console.log(`[TMDBSource:${this.source.name}] Cache cleanup completed. Genre cache: ${this.genreCache.size}, Response cache: ${this.responseCache.size}`);
+            console.log(
+                `[TMDBSource:${this.source.name}] Cache cleanup completed. Genre cache: ${this.genreCache.size}, Response cache: ${this.responseCache.size}`
+            );
         }
     }
 
@@ -728,33 +812,33 @@ class TMDBSource {
      */
     getCacheStats() {
         const now = Date.now();
-        
+
         const genreStats = {
             total: this.genreCache.size,
-            expired: 0
+            expired: 0,
         };
-        
+
         const responseStats = {
             total: this.responseCache.size,
-            expired: 0
+            expired: 0,
         };
-        
+
         for (const [, value] of this.genreCache.entries()) {
             if (now - value.timestamp > this.cacheTTL) {
                 genreStats.expired++;
             }
         }
-        
+
         for (const [, value] of this.responseCache.entries()) {
             if (now - value.timestamp > this.cacheTTL) {
                 responseStats.expired++;
             }
         }
-        
+
         return {
             genreCache: genreStats,
             responseCache: responseStats,
-            cacheTTL: this.cacheTTL
+            cacheTTL: this.cacheTTL,
         };
     }
 }

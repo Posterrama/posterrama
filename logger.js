@@ -9,13 +9,17 @@ if (!fs.existsSync(logsDir)) {
 }
 
 // Format messages to handle objects and arrays
-const formatMessage = winston.format((info) => {
+const formatMessage = winston.format(info => {
     if (typeof info.message === 'object' && info.message !== null) {
         try {
-            info.message = JSON.stringify(info.message, (key, value) => {
-                if (key === '_raw' && value) return '[Raw Data Hidden]';
-                return value;
-            }, 2);
+            info.message = JSON.stringify(
+                info.message,
+                (key, value) => {
+                    if (key === '_raw' && value) return '[Raw Data Hidden]';
+                    return value;
+                },
+                2
+            );
         } catch (e) {
             info.message = '[Unserializable Object]';
         }
@@ -26,30 +30,30 @@ const formatMessage = winston.format((info) => {
 // Custom format for console and file output
 const customFormat = winston.format.combine(
     formatMessage(),
-    winston.format.timestamp({ 
+    winston.format.timestamp({
         format: () => {
             try {
                 const config = require('./config.json');
                 const timezone = config.clockTimezone || 'auto';
-                
+
                 if (timezone === 'auto') {
-                    return new Date().toLocaleString('sv-SE', { 
+                    return new Date().toLocaleString('sv-SE', {
                         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        hour12: false 
+                        hour12: false,
                     });
                 } else {
-                    return new Date().toLocaleString('sv-SE', { 
+                    return new Date().toLocaleString('sv-SE', {
                         timeZone: timezone,
-                        hour12: false 
+                        hour12: false,
                     });
                 }
             } catch (e) {
-                return new Date().toLocaleString('sv-SE', { 
+                return new Date().toLocaleString('sv-SE', {
                     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    hour12: false 
+                    hour12: false,
                 });
             }
-        }
+        },
     }),
     winston.format.errors({ stack: true }),
     winston.format.splat(),
@@ -60,38 +64,44 @@ const customFormat = winston.format.combine(
 const memoryTransport = new winston.transports.Stream({
     format: winston.format.combine(
         formatMessage(),
-        winston.format((info) => {
+        winston.format(info => {
             // Get the configured timezone or fallback to system timezone
             let timestamp;
             try {
                 const config = require('./config.json');
                 const timezone = config.clockTimezone || 'auto';
-                
+
                 if (timezone === 'auto') {
                     // Use local timezone
-                    timestamp = new Date().toLocaleString('sv-SE', { 
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        hour12: false 
-                    }).replace(' ', 'T');
+                    timestamp = new Date()
+                        .toLocaleString('sv-SE', {
+                            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                            hour12: false,
+                        })
+                        .replace(' ', 'T');
                 } else {
                     // Use configured timezone
-                    timestamp = new Date().toLocaleString('sv-SE', { 
-                        timeZone: timezone,
-                        hour12: false 
-                    }).replace(' ', 'T');
+                    timestamp = new Date()
+                        .toLocaleString('sv-SE', {
+                            timeZone: timezone,
+                            hour12: false,
+                        })
+                        .replace(' ', 'T');
                 }
             } catch (e) {
                 // Fallback to local time if config is not available
-                timestamp = new Date().toLocaleString('sv-SE', { 
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    hour12: false 
-                }).replace(' ', 'T');
+                timestamp = new Date()
+                    .toLocaleString('sv-SE', {
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        hour12: false,
+                    })
+                    .replace(' ', 'T');
             }
-            
+
             return {
                 timestamp: timestamp,
                 level: info.level.toUpperCase(),
-                message: info.message
+                message: info.message,
             };
         })()
     ),
@@ -107,61 +117,58 @@ const memoryTransport = new winston.transports.Stream({
                 logger.memoryLogs.push(chunk);
             }
             callback();
-        }
-    })
+        },
+    }),
 });
 
 // Build transports conditionally (skip file transports in test to avoid fs.stat issues with mocks)
 const transports = [
     new winston.transports.Console({
-        format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.simple()
-        )
+        format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
     }),
-    memoryTransport
+    memoryTransport,
 ];
 
 if (process.env.NODE_ENV !== 'test') {
-    transports.splice(1, 0, // Insert file transports after console
+    transports.splice(
+        1,
+        0, // Insert file transports after console
         new winston.transports.File({
             filename: path.join(logsDir, 'error.log'),
             level: 'error',
             maxsize: 5242880,
-            maxFiles: 5
+            maxFiles: 5,
         }),
         new winston.transports.File({
             filename: path.join(logsDir, 'combined.log'),
             maxsize: 5242880,
-            maxFiles: 5
+            maxFiles: 5,
         })
     );
 }
 
 // Create the logger instance
 const logger = winston.createLogger({
-    level: process.env.NODE_ENV === 'test' ? 'warn' : (process.env.LOG_LEVEL || 'info'), // Suppress debug/info during tests
+    level: process.env.NODE_ENV === 'test' ? 'warn' : process.env.LOG_LEVEL || 'info', // Suppress debug/info during tests
     levels: winston.config.npm.levels,
     format: customFormat,
-    transports: process.env.NODE_ENV === 'test' ? 
-        [memoryTransport] : // Only memory transport during tests to suppress console output
-        transports,
-    silent: process.env.NODE_ENV === 'test' && process.env.TEST_SILENT === 'true' // Allow complete silence for tests
+    transports:
+        process.env.NODE_ENV === 'test'
+            ? [memoryTransport] // Only memory transport during tests to suppress console output
+            : transports,
+    silent: process.env.NODE_ENV === 'test' && process.env.TEST_SILENT === 'true', // Allow complete silence for tests
 });
 
 // Store logs in memory for admin panel access
 logger.memoryLogs = [];
 
 // List of messages to exclude from the admin panel (but still log to files)
-const adminPanelExclusions = [
-    '[Request Logger] Received:',
-    '[Auth] Authenticated via session'
-];
+const adminPanelExclusions = ['[Request Logger] Received:', '[Auth] Authenticated via session'];
 
 // Helper to check if a message should be excluded from admin panel
-logger.shouldExcludeFromAdmin = (message) => {
-    return adminPanelExclusions.some(exclusion => 
-        typeof message === 'string' && message.includes(exclusion)
+logger.shouldExcludeFromAdmin = message => {
+    return adminPanelExclusions.some(
+        exclusion => typeof message === 'string' && message.includes(exclusion)
     );
 };
 

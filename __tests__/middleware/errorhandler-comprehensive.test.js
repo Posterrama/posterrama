@@ -12,7 +12,7 @@ describe('Error Handler Middleware', () => {
     });
 
     describe('errorHandler', () => {
-        it('should handle ApiError correctly', (done) => {
+        it('should handle ApiError correctly', done => {
             app.get('/test', (req, res, next) => {
                 next(new ApiError('Test error', 400));
             });
@@ -28,25 +28,21 @@ describe('Error Handler Middleware', () => {
                 .end(done);
         });
 
-        it('should handle generic errors', (done) => {
+        it('should handle generic errors', done => {
             app.get('/test', (req, res, next) => {
                 next(new Error('Generic error'));
             });
             app.use(errorHandler);
 
-            request(app)
-                .get('/test')
-                .expect(500, done);
+            request(app).get('/test').expect(500, done);
         });
     });
 
     describe('notFoundHandler', () => {
-        it('should return 404 for unknown routes', (done) => {
+        it('should return 404 for unknown routes', done => {
             app.use(notFoundHandler);
 
-            request(app)
-                .get('/unknown-route')
-                .expect(404, done);
+            request(app).get('/unknown-route').expect(404, done);
         });
     });
 });

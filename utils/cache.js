@@ -7,7 +7,7 @@ let logger = {
     debug: () => {},
     info: () => {},
     warn: () => {},
-    error: () => {}
+    error: () => {},
 };
 
 /**
@@ -23,25 +23,25 @@ class CacheManager {
             sets: 0,
             deletes: 0,
             errors: 0,
-            lastReset: Date.now()
+            lastReset: Date.now(),
         };
         this.config = {
             defaultTTL: options.defaultTTL || 300000, // 5 minutes default
             maxSize: options.maxSize || 100, // Max cache entries
             persistPath: options.persistPath || path.resolve(__dirname, '../cache'),
             enablePersistence: options.enablePersistence || false,
-            enableCompression: options.enableCompression || false
+            enableCompression: options.enableCompression || false,
         };
-        
+
         // Start periodic cleanup
         this.startPeriodicCleanup();
-        
+
         logger.debug('Cache manager initialized', {
             defaultTTL: this.config.defaultTTL,
             maxSize: this.config.maxSize,
             persistPath: this.config.persistPath,
             enablePersistence: this.config.enablePersistence,
-            enableCompression: this.config.enableCompression
+            enableCompression: this.config.enableCompression,
         });
     }
 
@@ -50,10 +50,13 @@ class CacheManager {
      */
     startPeriodicCleanup() {
         // Run cleanup every 5 minutes
-        this.cleanupInterval = setInterval(() => {
-            this.cleanupExpired();
-        }, 5 * 60 * 1000);
-        
+        this.cleanupInterval = setInterval(
+            () => {
+                this.cleanupExpired();
+            },
+            5 * 60 * 1000
+        );
+
         // Initial cleanup after 30 seconds
         setTimeout(() => {
             this.cleanupExpired();
@@ -75,16 +78,16 @@ class CacheManager {
      */
     cleanup() {
         this.stopPeriodicCleanup();
-        
+
         // Clear all timers
-        for (const [key, timer] of this.timers) {
+        for (const [, timer] of this.timers) {
             clearTimeout(timer);
         }
         this.timers.clear();
-        
+
         // Clear cache
         this.cache.clear();
-        
+
         logger.debug('Cache manager cleaned up');
     }
 
@@ -94,18 +97,18 @@ class CacheManager {
     cleanupExpired() {
         let expired = 0;
         const now = Date.now();
-        
+
         for (const [key, entry] of this.cache.entries()) {
             if (now >= entry.expiresAt) {
                 this.delete(key);
                 expired++;
             }
         }
-        
+
         if (expired > 0) {
             logger.info(`Cache cleanup: removed ${expired} expired entries`);
         }
-        
+
         return expired;
     }
 
@@ -124,13 +127,15 @@ class CacheManager {
     set(key, value, ttl) {
         try {
             this.stats.sets++;
-            
+
             // Check cache size limit
             if (this.cache.size >= this.config.maxSize && !this.cache.has(key)) {
                 // Remove oldest entry (LRU-like)
                 const firstKey = this.cache.keys().next().value;
                 this.delete(firstKey);
-                logger.debug('Cache size limit reached, removed oldest entry', { removedKey: firstKey });
+                logger.debug('Cache size limit reached, removed oldest entry', {
+                    removedKey: firstKey,
+                });
             }
 
             // Clear existing timer if updating
@@ -141,14 +146,14 @@ class CacheManager {
             const ttlMs = typeof ttl === 'number' ? ttl : this.config.defaultTTL;
             const expiresAt = Date.now() + ttlMs;
             const etag = this.generateETag(value);
-            
+
             const entry = {
                 value,
                 etag,
                 createdAt: Date.now(),
                 expiresAt,
                 accessCount: 0,
-                lastAccessed: Date.now()
+                lastAccessed: Date.now(),
             };
 
             this.cache.set(key, entry);
@@ -166,16 +171,16 @@ class CacheManager {
                 return null;
             }
 
-            logger.debug('Cache entry set', { 
-                key, 
+            logger.debug('Cache entry set', {
+                key,
                 ttl: ttl || this.config.defaultTTL,
                 etag,
-                cacheSize: this.cache.size 
+                cacheSize: this.cache.size,
             });
 
             // Persist if enabled
             if (this.config.enablePersistence) {
-                this.persistEntry(key, entry).catch(err => 
+                this.persistEntry(key, entry).catch(err =>
                     logger.warn('Failed to persist cache entry', { key, error: err.message })
                 );
             }
@@ -194,7 +199,7 @@ class CacheManager {
     get(key) {
         try {
             const entry = this.cache.get(key);
-            
+
             if (!entry) {
                 this.stats.misses++;
                 logger.debug('Cache miss', { key });
@@ -214,10 +219,10 @@ class CacheManager {
             entry.lastAccessed = Date.now();
             this.stats.hits++;
 
-            logger.debug('Cache hit', { 
-                key, 
+            logger.debug('Cache hit', {
+                key,
                 accessCount: entry.accessCount,
-                age: Date.now() - entry.createdAt 
+                age: Date.now() - entry.createdAt,
             });
 
             return entry;
@@ -249,7 +254,7 @@ class CacheManager {
             }
 
             const deleted = this.cache.delete(key);
-            
+
             if (deleted) {
                 this.stats.deletes++;
                 logger.debug('Cache entry deleted', { key, cacheSize: this.cache.size });
@@ -284,7 +289,7 @@ class CacheManager {
                 for (const timer of this.timers.values()) {
                     clearTimeout(timer);
                 }
-                
+
                 cleared = this.cache.size;
                 this.cache.clear();
                 this.timers.clear();
@@ -305,37 +310,43 @@ class CacheManager {
         const entries = Array.from(this.cache.values());
         const now = Date.now();
         const totalRequests = this.stats.hits + this.stats.misses;
-        
+
         return {
             // Basic stats
             size: this.cache.size,
             maxSize: this.config.maxSize,
-            hitRate: totalRequests > 0 ? (this.stats.hits / totalRequests) : 0,
-            
+            hitRate: totalRequests > 0 ? this.stats.hits / totalRequests : 0,
+
             // Request stats
             totalRequests,
             hits: this.stats.hits,
             misses: this.stats.misses,
-            
+
             // Entry details
             entries: entries.map(entry => ({
                 age: Math.round((now - entry.createdAt) / 1000), // seconds
                 ttl: Math.max(0, Math.round((entry.expiresAt - now) / 1000)), // seconds
                 accessCount: entry.accessCount,
-                lastAccessed: Math.round((now - entry.lastAccessed) / 1000) // seconds ago
+                lastAccessed: Math.round((now - entry.lastAccessed) / 1000), // seconds ago
             })),
-            
+
             // Performance metrics
             totalAccess: entries.reduce((sum, entry) => sum + entry.accessCount, 0),
-            averageAccessCount: entries.length > 0 ? 
-                Math.round(entries.reduce((sum, entry) => sum + entry.accessCount, 0) / entries.length * 100) / 100 : 0,
-            
+            averageAccessCount:
+                entries.length > 0
+                    ? Math.round(
+                          (entries.reduce((sum, entry) => sum + entry.accessCount, 0) /
+                              entries.length) *
+                              100
+                      ) / 100
+                    : 0,
+
             // Memory usage
             memoryUsage: this.cache.size * 1024, // rough estimate in bytes
-            
+
             // Cleanup stats
             lastCleanup: this.stats.lastCleanup,
-            cleanupCount: this.stats.cleanups
+            cleanupCount: this.stats.cleanups,
         };
     }
 
@@ -347,14 +358,14 @@ class CacheManager {
             hits: 0,
             misses: 0,
             cleanups: 0,
-            lastCleanup: null
+            lastCleanup: null,
         };
-        
+
         // Reset access counts for all entries
         for (const entry of this.cache.values()) {
             entry.accessCount = 0;
         }
-        
+
         logger.info('Cache statistics reset');
     }
 
@@ -368,11 +379,18 @@ class CacheManager {
             await fs.mkdir(this.config.persistPath, { recursive: true });
             const filename = crypto.createHash('md5').update(key).digest('hex') + '.json';
             const filepath = path.join(this.config.persistPath, filename);
-            
-            await fs.writeFile(filepath, JSON.stringify({
-                key,
-                ...entry
-            }, null, 2));
+
+            await fs.writeFile(
+                filepath,
+                JSON.stringify(
+                    {
+                        key,
+                        ...entry,
+                    },
+                    null,
+                    2
+                )
+            );
         } catch (error) {
             logger.warn('Failed to persist cache entry', { key, error: error.message });
         }
@@ -404,7 +422,7 @@ class CacheManager {
                             createdAt: data.createdAt,
                             expiresAt: data.expiresAt,
                             accessCount: data.accessCount || 0,
-                            lastAccessed: data.lastAccessed || data.createdAt
+                            lastAccessed: data.lastAccessed || data.createdAt,
                         });
                         loaded++;
                     } else {
@@ -412,9 +430,9 @@ class CacheManager {
                         await fs.unlink(filepath);
                     }
                 } catch (err) {
-                    logger.warn('Failed to load persisted cache entry', { 
-                        file, 
-                        error: err.message 
+                    logger.warn('Failed to load persisted cache entry', {
+                        file,
+                        error: err.message,
                     });
                 }
             }
@@ -430,7 +448,7 @@ class CacheManager {
 const cacheManager = new CacheManager({
     defaultTTL: 300000, // 5 minutes
     maxSize: 100,
-    enablePersistence: false // Disable for now to avoid complexity
+    enablePersistence: false, // Disable for now to avoid complexity
 });
 
 /**
@@ -447,16 +465,18 @@ function initializeCache(loggerInstance) {
 function cacheMiddleware(options = {}) {
     const {
         ttl = 300000, // 5 minutes default
-        keyGenerator = (req) => `${req.method}:${req.originalUrl}`,
+        keyGenerator = req => `${req.method}:${req.originalUrl}`,
         varyHeaders = ['Accept-Encoding', 'User-Agent'],
-        cacheControl = 'public, max-age=300'
+        cacheControl = 'public, max-age=300',
     } = options;
 
     return (req, res, next) => {
         // Skip caching for certain conditions
-        if (req.method !== 'GET' || 
+        if (
+            req.method !== 'GET' ||
             req.headers['cache-control'] === 'no-cache' ||
-            req.query.nocache === '1') {
+            req.query.nocache === '1'
+        ) {
             return next();
         }
 
@@ -474,9 +494,9 @@ function cacheMiddleware(options = {}) {
             // Serve from cache
             res.set({
                 'Cache-Control': cacheControl,
-                'ETag': cached.etag,
+                ETag: cached.etag,
                 'X-Cache': 'HIT',
-                'Vary': varyHeaders.join(', ')
+                Vary: varyHeaders.join(', '),
             });
 
             // Set content type based on cached response
@@ -492,30 +512,30 @@ function cacheMiddleware(options = {}) {
         const originalSend = res.send;
         const originalJson = res.json;
 
-        res.send = function(data) {
+        res.send = function (data) {
             if (res.statusCode === 200) {
                 const entry = cacheManager.set(cacheKey, data, ttl);
                 if (entry) {
                     res.set({
                         'Cache-Control': cacheControl,
-                        'ETag': entry.etag,
+                        ETag: entry.etag,
                         'X-Cache': 'MISS',
-                        'Vary': varyHeaders.join(', ')
+                        Vary: varyHeaders.join(', '),
                     });
                 }
             }
             return originalSend.call(this, data);
         };
 
-        res.json = function(data) {
+        res.json = function (data) {
             if (res.statusCode === 200) {
                 const entry = cacheManager.set(cacheKey, data, ttl);
                 if (entry) {
                     res.set({
                         'Cache-Control': cacheControl,
-                        'ETag': entry.etag,
+                        ETag: entry.etag,
                         'X-Cache': 'MISS',
-                        'Vary': varyHeaders.join(', ')
+                        Vary: varyHeaders.join(', '),
                     });
                 }
             }
@@ -544,12 +564,12 @@ class CacheDiskManager {
         try {
             const fs = require('fs').promises;
             const path = require('path');
-            
+
             let totalSize = 0;
             let fileCount = 0;
 
             const files = await fs.readdir(this.imageCacheDir, { withFileTypes: true });
-            
+
             for (const file of files) {
                 if (file.isFile()) {
                     const filePath = path.join(this.imageCacheDir, file.name);
@@ -561,12 +581,12 @@ class CacheDiskManager {
 
             return {
                 totalSizeBytes: totalSize,
-                totalSizeMB: Math.round(totalSize / (1024 * 1024) * 100) / 100,
-                totalSizeGB: Math.round(totalSize / (1024 * 1024 * 1024) * 100) / 100,
+                totalSizeMB: Math.round((totalSize / (1024 * 1024)) * 100) / 100,
+                totalSizeGB: Math.round((totalSize / (1024 * 1024 * 1024)) * 100) / 100,
                 fileCount,
                 maxSizeBytes: this.maxSizeBytes,
                 maxSizeGB: this.maxSizeBytes / (1024 * 1024 * 1024),
-                usagePercentage: Math.round((totalSize / this.maxSizeBytes) * 100)
+                usagePercentage: Math.round((totalSize / this.maxSizeBytes) * 100),
             };
         } catch (error) {
             logger.error('Failed to get cache disk usage', { error: error.message });
@@ -577,7 +597,7 @@ class CacheDiskManager {
                 fileCount: 0,
                 maxSizeBytes: this.maxSizeBytes,
                 maxSizeGB: this.maxSizeBytes / (1024 * 1024 * 1024),
-                usagePercentage: 0
+                usagePercentage: 0,
             };
         }
     }
@@ -588,12 +608,13 @@ class CacheDiskManager {
     async getFreeDiskSpace() {
         try {
             const { execSync } = require('child_process');
-            const command = process.platform === 'win32' 
-                ? `powershell "Get-PSDrive C | Select-Object Free"`
-                : `df -k "${this.imageCacheDir}" | tail -1 | awk '{print $4}'`;
-            
+            const command =
+                process.platform === 'win32'
+                    ? `powershell "Get-PSDrive C | Select-Object Free"`
+                    : `df -k "${this.imageCacheDir}" | tail -1 | awk '{print $4}'`;
+
             const output = execSync(command, { encoding: 'utf8' });
-            
+
             if (process.platform === 'win32') {
                 // Parse PowerShell output for Windows
                 const match = output.match(/(\d+)/);
@@ -615,17 +636,22 @@ class CacheDiskManager {
         try {
             const fs = require('fs').promises;
             const path = require('path');
-            
+
             const usage = await this.getDiskUsage();
             const freeDiskSpace = await this.getFreeDiskSpace();
-            
+
             // Check if cleanup is needed
-            const needsCleanup = 
-                usage.totalSizeBytes > this.maxSizeBytes || 
+            const needsCleanup =
+                usage.totalSizeBytes > this.maxSizeBytes ||
                 freeDiskSpace < this.minFreeDiskSpaceBytes;
-            
+
             if (!needsCleanup) {
-                return { cleaned: false, reason: 'No cleanup needed', deletedFiles: 0, freedSpaceBytes: 0 };
+                return {
+                    cleaned: false,
+                    reason: 'No cleanup needed',
+                    deletedFiles: 0,
+                    freedSpaceBytes: 0,
+                };
             }
 
             // Get all files with their access times
@@ -641,7 +667,7 @@ class CacheDiskManager {
                         path: filePath,
                         size: stats.size,
                         atime: stats.atime,
-                        mtime: stats.mtime
+                        mtime: stats.mtime,
                     });
                 }
             }
@@ -655,9 +681,9 @@ class CacheDiskManager {
 
             // Delete files until we're within limits
             for (const file of fileStats) {
-                const shouldDelete = 
+                const shouldDelete =
                     currentSize > this.maxSizeBytes ||
-                    (freeDiskSpace + freedSpaceBytes) < this.minFreeDiskSpaceBytes;
+                    freeDiskSpace + freedSpaceBytes < this.minFreeDiskSpaceBytes;
 
                 if (!shouldDelete) break;
 
@@ -666,35 +692,34 @@ class CacheDiskManager {
                     deletedFiles++;
                     freedSpaceBytes += file.size;
                     currentSize -= file.size;
-                    
-                    logger.debug('Deleted cache file', { 
-                        file: file.name, 
+
+                    logger.debug('Deleted cache file', {
+                        file: file.name,
                         size: file.size,
-                        freedTotal: freedSpaceBytes 
+                        freedTotal: freedSpaceBytes,
                     });
                 } catch (deleteError) {
-                    logger.warn('Failed to delete cache file', { 
-                        file: file.name, 
-                        error: deleteError.message 
+                    logger.warn('Failed to delete cache file', {
+                        file: file.name,
+                        error: deleteError.message,
                     });
                 }
             }
 
             logger.info('Cache cleanup completed', {
                 deletedFiles,
-                freedSpaceMB: Math.round(freedSpaceBytes / (1024 * 1024) * 100) / 100,
-                newSizeGB: Math.round(currentSize / (1024 * 1024 * 1024) * 100) / 100
+                freedSpaceMB: Math.round((freedSpaceBytes / (1024 * 1024)) * 100) / 100,
+                newSizeGB: Math.round((currentSize / (1024 * 1024 * 1024)) * 100) / 100,
             });
 
             return {
                 cleaned: true,
                 deletedFiles,
                 freedSpaceBytes,
-                freedSpaceMB: Math.round(freedSpaceBytes / (1024 * 1024) * 100) / 100,
+                freedSpaceMB: Math.round((freedSpaceBytes / (1024 * 1024)) * 100) / 100,
                 newSizeBytes: currentSize,
-                newSizeGB: Math.round(currentSize / (1024 * 1024 * 1024) * 100) / 100
+                newSizeGB: Math.round((currentSize / (1024 * 1024 * 1024)) * 100) / 100,
             };
-
         } catch (error) {
             logger.error('Failed to cleanup cache', { error: error.message });
             return { cleaned: false, error: error.message, deletedFiles: 0, freedSpaceBytes: 0 };
@@ -708,11 +733,11 @@ class CacheDiskManager {
         this.maxSizeBytes = (config.maxSizeGB || 2) * 1024 * 1024 * 1024;
         this.minFreeDiskSpaceBytes = (config.minFreeDiskSpaceMB || 500) * 1024 * 1024;
         this.autoCleanup = config.autoCleanup !== false;
-        
+
         logger.info('Cache configuration updated', {
             maxSizeGB: config.maxSizeGB,
             minFreeDiskSpaceMB: config.minFreeDiskSpaceMB,
-            autoCleanup: this.autoCleanup
+            autoCleanup: this.autoCleanup,
         });
     }
 
@@ -730,5 +755,5 @@ module.exports = {
     cacheManager,
     cacheMiddleware,
     initializeCache,
-    CacheDiskManager
+    CacheDiskManager,
 };

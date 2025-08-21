@@ -7,7 +7,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 
 console.log('🔍 API Documentation Completeness Verification\n');
 
@@ -19,28 +18,29 @@ function extractRoutes(content) {
     const routes = [];
     const routeRegex = /app\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/g;
     let match;
-    
+
     while ((match = routeRegex.exec(content)) !== null) {
         const method = match[1].toUpperCase();
         const path = match[2];
         routes.push({ method, path });
     }
-    
+
     return routes.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 // Extract JSDoc/Swagger comments
 function extractSwaggerDocs(content) {
     const docs = [];
-    const swaggerRegex = /\/\*\*[\s\S]*?@swagger[\s\S]*?\*\/[\s]*app\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/g;
+    const swaggerRegex =
+        /\/\*\*[\s\S]*?@swagger[\s\S]*?\*\/[\s]*app\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/g;
     let match;
-    
+
     while ((match = swaggerRegex.exec(content)) !== null) {
         const method = match[1].toUpperCase();
         const path = match[2];
         docs.push({ method, path });
     }
-    
+
     return docs;
 }
 
@@ -49,27 +49,30 @@ const allRoutes = extractRoutes(serverContent);
 const documentedRoutes = extractSwaggerDocs(serverContent);
 
 // Categorize routes
-const publicRoutes = allRoutes.filter(r => 
-    !r.path.includes('/admin') && 
-    !r.path.startsWith('/api/admin') &&
-    !r.path.startsWith('/api/v1/admin') &&
-    !r.path.includes('/setup') &&
-    !r.path.includes('/login') &&
-    !r.path.includes('/logout')
+const publicRoutes = allRoutes.filter(
+    r =>
+        !r.path.includes('/admin') &&
+        !r.path.startsWith('/api/admin') &&
+        !r.path.startsWith('/api/v1/admin') &&
+        !r.path.includes('/setup') &&
+        !r.path.includes('/login') &&
+        !r.path.includes('/logout')
 );
 
-const adminRoutes = allRoutes.filter(r => 
-    r.path.includes('/admin') || 
-    r.path.startsWith('/api/admin') ||
-    r.path.startsWith('/api/v1/admin')
+const adminRoutes = allRoutes.filter(
+    r =>
+        r.path.includes('/admin') ||
+        r.path.startsWith('/api/admin') ||
+        r.path.startsWith('/api/v1/admin')
 );
 
-const authRoutes = allRoutes.filter(r => 
-    r.path.includes('/auth') ||
-    r.path.includes('/login') ||
-    r.path.includes('/logout') ||
-    r.path.includes('/setup') ||
-    r.path.includes('/2fa')
+const authRoutes = allRoutes.filter(
+    r =>
+        r.path.includes('/auth') ||
+        r.path.includes('/login') ||
+        r.path.includes('/logout') ||
+        r.path.includes('/setup') ||
+        r.path.includes('/2fa')
 );
 
 const apiV1Routes = allRoutes.filter(r => r.path.startsWith('/api/v1/'));
@@ -95,10 +98,13 @@ if (undocumentedRoutes.length === 0) {
 } else {
     console.log('The following routes lack JSDoc/Swagger documentation:');
     undocumentedRoutes.forEach(route => {
-        const category = route.path.includes('/admin') ? '[ADMIN]' : 
-                        route.path.includes('/auth') ? '[AUTH]' : 
-                        route.path.startsWith('/api/v1/') ? '[API-V1]' : 
-                        '[PUBLIC]';
+        const category = route.path.includes('/admin')
+            ? '[ADMIN]'
+            : route.path.includes('/auth')
+              ? '[AUTH]'
+              : route.path.startsWith('/api/v1/')
+                ? '[API-V1]'
+                : '[PUBLIC]';
         console.log(`  ${category} ${route.method} ${route.path}`);
     });
 }
@@ -109,20 +115,20 @@ console.log('🔑 KEY PUBLIC API ENDPOINTS');
 console.log('═'.repeat(50));
 const keyEndpoints = [
     'GET /get-config',
-    'GET /get-media', 
+    'GET /get-media',
     'GET /get-media-by-key/:key',
     'GET /image',
     'GET /health',
     'GET /api/health',
     'GET /api/v1/config',
-    'GET /api/v1/media'
+    'GET /api/v1/media',
 ];
 
 keyEndpoints.forEach(endpoint => {
     const [method, path] = endpoint.split(' ');
     const exists = allRoutes.some(r => r.method === method && r.path === path);
     const documented = documentedPaths.has(endpoint);
-    
+
     console.log(`  ${exists ? '✅' : '❌'} ${documented ? '📚' : '📝'} ${endpoint}`);
     if (exists && !documented) {
         console.log(`    ⚠️  Route exists but lacks documentation`);
@@ -139,13 +145,16 @@ console.log('🔄 API VERSION ALIASES');
 console.log('═'.repeat(50));
 const aliasChecks = [
     { alias: '/api/v1/config', target: '/get-config' },
-    { alias: '/api/v1/media', target: '/get-media' }
+    { alias: '/api/v1/media', target: '/get-media' },
 ];
 
 aliasChecks.forEach(({ alias, target }) => {
-    const aliasExists = serverContent.includes(`'${alias}'`) || serverContent.includes(`"${alias}"`);
+    const aliasExists =
+        serverContent.includes(`'${alias}'`) || serverContent.includes(`"${alias}"`);
     const targetExists = allRoutes.some(r => r.path === target);
-    console.log(`  ${aliasExists ? '✅' : '❌'} ${alias} → ${target} ${targetExists ? '(target exists)' : '(target missing)'}`);
+    console.log(
+        `  ${aliasExists ? '✅' : '❌'} ${alias} → ${target} ${targetExists ? '(target exists)' : '(target missing)'}`
+    );
 });
 
 // Check swagger.js configuration
@@ -157,7 +166,7 @@ try {
     console.log(`✅ OpenAPI version: ${swaggerConfig.openapi}`);
     console.log(`✅ Title: ${swaggerConfig.info?.title}`);
     console.log(`✅ Version: ${swaggerConfig.info?.version}`);
-    
+
     if (swaggerConfig.paths) {
         console.log(`✅ Manual path definitions: ${Object.keys(swaggerConfig.paths).length}`);
         Object.keys(swaggerConfig.paths).forEach(path => {
@@ -166,7 +175,6 @@ try {
     } else {
         console.log('ℹ️  No manual path definitions (using JSDoc auto-generation)');
     }
-    
 } catch (error) {
     console.log('❌ Error loading swagger.js:', error.message);
 }
@@ -175,9 +183,10 @@ try {
 console.log('\n💡 RECOMMENDATIONS');
 console.log('═'.repeat(50));
 
-const priorityUndocumented = undocumentedRoutes.filter(r => 
-    publicRoutes.some(p => p.method === r.method && p.path === r.path) ||
-    r.path.startsWith('/api/v1/')
+const priorityUndocumented = undocumentedRoutes.filter(
+    r =>
+        publicRoutes.some(p => p.method === r.method && p.path === r.path) ||
+        r.path.startsWith('/api/v1/')
 );
 
 if (priorityUndocumented.length > 0) {
@@ -190,9 +199,11 @@ if (priorityUndocumented.length > 0) {
 
 if (undocumentedRoutes.filter(r => r.path.includes('/admin')).length > 0) {
     console.log('🔧 MEDIUM PRIORITY - Document admin endpoints:');
-    undocumentedRoutes.filter(r => r.path.includes('/admin')).forEach(route => {
-        console.log(`   - ${route.method} ${route.path}`);
-    });
+    undocumentedRoutes
+        .filter(r => r.path.includes('/admin'))
+        .forEach(route => {
+            console.log(`   - ${route.method} ${route.path}`);
+        });
     console.log('');
 }
 
@@ -207,7 +218,9 @@ console.log('  □ Test API v1 aliases work as expected');
 console.log('\n✨ DOCUMENTATION COMPLETENESS SUMMARY');
 console.log('═'.repeat(50));
 const completeness = Math.round((documentedRoutes.length / allRoutes.length) * 100);
-console.log(`Overall Documentation Coverage: ${completeness}% (${documentedRoutes.length}/${allRoutes.length})`);
+console.log(
+    `Overall Documentation Coverage: ${completeness}% (${documentedRoutes.length}/${allRoutes.length})`
+);
 
 if (completeness >= 90) {
     console.log('🎉 Excellent! Your API documentation is very comprehensive.');

@@ -1,149 +1,175 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2FA Verification - posterrama</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../admin.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%) !important;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-        }
-        .auth-container {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            gap: 2rem;
-        }
-        .auth-box {
-            background: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 16px !important;
-            padding: 2.5rem !important;
-            width: 100%;
-            max-width: 420px;
-            backdrop-filter: blur(20px) !important;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
-        }
-        .auth-box h1 {
-            text-align: center !important;
-            margin-bottom: 2rem !important;
-            font-size: 1.875rem !important;
-            font-weight: 600 !important;
-            letter-spacing: -0.02em !important;
-            color: #e2e8f0 !important;
-            white-space: nowrap !important;
-        }
-        .admin-text {
-            font-family: 'Orbitron', 'Courier New', monospace !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.1em !important;
-        }
-        .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            background-clip: text !important;
-        }
-        .auth-box p {
-            text-align: center !important;
-            margin-bottom: 1.5rem !important;
-            color: rgba(226, 232, 240, 0.8) !important;
-            font-size: 0.875rem !important;
-            line-height: 1.5 !important;
-        }
-        .auth-box .form-group {
-            margin-bottom: 1.25rem !important;
-        }
-        .auth-box .form-group label {
-            display: block !important;
-            margin-bottom: 0.5rem !important;
-            color: #e2e8f0 !important;
-            font-weight: 500 !important;
-            font-size: 0.875rem !important;
-            white-space: nowrap !important;
-        }
-        .auth-box .form-group input {
-            width: 100% !important;
-            padding: 0.75rem 1rem !important;
-            background: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 8px !important;
-            color: #e2e8f0 !important;
-            font-size: 1.25rem !important;
-            text-align: center !important;
-            letter-spacing: 0.25em !important;
-            transition: all 0.3s ease !important;
-            box-sizing: border-box !important;
-            min-height: 48px !important;
-            font-family: 'Courier New', monospace !important;
-        }
-        .auth-box .form-group input:focus {
-            outline: none !important;
-            border-color: #667eea !important;
-            background: rgba(102, 126, 234, 0.1) !important;
-        }
-        .error-box {
-            background: rgba(239, 68, 68, 0.1) !important;
-            border: 1px solid rgba(239, 68, 68, 0.3) !important;
-            color: #fca5a5 !important;
-            padding: 0.75rem 1rem !important;
-            border-radius: 8px !important;
-            margin-bottom: 1rem !important;
-            font-size: 0.875rem !important;
-            text-align: center !important;
-        }
-    </style>
-</head>
-<body>
-    <div class="auth-container">
-        <div class="auth-box">
-            <h1><span class="admin-text">2FA</span> <span class="gradient-text">Code</span></h1>
-            <p>Enter the 6-digit code from your authenticator app to complete your login.</p>
-
-            <!-- Error message placeholder -->
-            <div id="error-message" class="error-box" style="display: none;"></div>
-
-            <form action="/admin/2fa-verify" method="POST">
-                <div class="form-group">
-                    <label for="totp_code">Verification Code</label>
-                    <input type="text" id="totp_code" name="totp_code" required pattern="\d{6}" maxlength="6" autocomplete="one-time-code" inputmode="numeric" autofocus>
-                </div>
-                <button type="submit" class="btn btn-primary">Verify</button>
-            </form>
-        </div>
-        <div class="auth-footer">
-            <a href="/admin/login" class="btn btn-secondary">← Back to Login</a>
-        </div>
-    </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const errorMessageContainer = document.getElementById('error-message');
-            const urlParams = new URLSearchParams(window.location.search);
-
-            if (urlParams.has('error')) {
-                // We can add more specific messages based on the error value later if needed
-                errorMessageContainer.textContent = 'Invalid or expired code. Please try again.';
-                errorMessageContainer.style.display = 'block';
-
-                // Clear the input and focus it for a quick retry
-                const codeInput = document.getElementById('totp_code');
-                if (codeInput) {
-                    codeInput.value = '';
-                    codeInput.focus();
-                }
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>2FA Verification - posterrama</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="../admin.css" />
+        <style>
+            body {
+                background: linear-gradient(
+                    135deg,
+                    #0f0f23 0%,
+                    #1a1a2e 25%,
+                    #16213e 50%,
+                    #0f3460 75%,
+                    #533483 100%
+                ) !important;
+                margin: 0;
+                padding: 0;
+                min-height: 100vh;
             }
-        });
-    </script>
-</body>
+            .auth-container {
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                gap: 2rem;
+            }
+            .auth-box {
+                background: rgba(255, 255, 255, 0.05) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 16px !important;
+                padding: 2.5rem !important;
+                width: 100%;
+                max-width: 420px;
+                backdrop-filter: blur(20px) !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+            }
+            .auth-box h1 {
+                text-align: center !important;
+                margin-bottom: 2rem !important;
+                font-size: 1.875rem !important;
+                font-weight: 600 !important;
+                letter-spacing: -0.02em !important;
+                color: #e2e8f0 !important;
+                white-space: nowrap !important;
+            }
+            .admin-text {
+                font-family: 'Orbitron', 'Courier New', monospace !important;
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.1em !important;
+            }
+            .gradient-text {
+                background: linear-gradient(
+                    135deg,
+                    #667eea 0%,
+                    #764ba2 50%,
+                    #f093fb 100%
+                ) !important;
+                -webkit-background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+                background-clip: text !important;
+            }
+            .auth-box p {
+                text-align: center !important;
+                margin-bottom: 1.5rem !important;
+                color: rgba(226, 232, 240, 0.8) !important;
+                font-size: 0.875rem !important;
+                line-height: 1.5 !important;
+            }
+            .auth-box .form-group {
+                margin-bottom: 1.25rem !important;
+            }
+            .auth-box .form-group label {
+                display: block !important;
+                margin-bottom: 0.5rem !important;
+                color: #e2e8f0 !important;
+                font-weight: 500 !important;
+                font-size: 0.875rem !important;
+                white-space: nowrap !important;
+            }
+            .auth-box .form-group input {
+                width: 100% !important;
+                padding: 0.75rem 1rem !important;
+                background: rgba(255, 255, 255, 0.05) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 8px !important;
+                color: #e2e8f0 !important;
+                font-size: 1.25rem !important;
+                text-align: center !important;
+                letter-spacing: 0.25em !important;
+                transition: all 0.3s ease !important;
+                box-sizing: border-box !important;
+                min-height: 48px !important;
+                font-family: 'Courier New', monospace !important;
+            }
+            .auth-box .form-group input:focus {
+                outline: none !important;
+                border-color: #667eea !important;
+                background: rgba(102, 126, 234, 0.1) !important;
+            }
+            .error-box {
+                background: rgba(239, 68, 68, 0.1) !important;
+                border: 1px solid rgba(239, 68, 68, 0.3) !important;
+                color: #fca5a5 !important;
+                padding: 0.75rem 1rem !important;
+                border-radius: 8px !important;
+                margin-bottom: 1rem !important;
+                font-size: 0.875rem !important;
+                text-align: center !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="auth-container">
+            <div class="auth-box">
+                <h1><span class="admin-text">2FA</span> <span class="gradient-text">Code</span></h1>
+                <p>Enter the 6-digit code from your authenticator app to complete your login.</p>
+
+                <!-- Error message placeholder -->
+                <div id="error-message" class="error-box" style="display: none"></div>
+
+                <form action="/admin/2fa-verify" method="POST">
+                    <div class="form-group">
+                        <label for="totp_code">Verification Code</label>
+                        <input
+                            type="text"
+                            id="totp_code"
+                            name="totp_code"
+                            required
+                            pattern="\d{6}"
+                            maxlength="6"
+                            autocomplete="one-time-code"
+                            inputmode="numeric"
+                            autofocus
+                        />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Verify</button>
+                </form>
+            </div>
+            <div class="auth-footer">
+                <a href="/admin/login" class="btn btn-secondary">← Back to Login</a>
+            </div>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const errorMessageContainer = document.getElementById('error-message');
+                const urlParams = new URLSearchParams(window.location.search);
+
+                if (urlParams.has('error')) {
+                    // We can add more specific messages based on the error value later if needed
+                    errorMessageContainer.textContent =
+                        'Invalid or expired code. Please try again.';
+                    errorMessageContainer.style.display = 'block';
+
+                    // Clear the input and focus it for a quick retry
+                    const codeInput = document.getElementById('totp_code');
+                    if (codeInput) {
+                        codeInput.value = '';
+                        codeInput.focus();
+                    }
+                }
+            });
+        </script>
+    </body>
 </html>

@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
             helpTextEl.remove();
 
             // 4. Add event listener for click/tap to show the popup.
-            helpIcon.addEventListener('click', (e) => {
+            helpIcon.addEventListener('click', e => {
                 // Prevent the label's default action (focusing the input) and stop event propagation.
                 // This is crucial for mobile to prevent the on-screen keyboard from appearing.
                 e.preventDefault();
@@ -80,12 +80,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const buffer = 10; // 10px safety buffer from the edge
 
                     // Check if the centered popup would overflow the right edge of the viewport
-                    if (iconRect.left + (iconRect.width / 2) + popupHalfWidth > viewportWidth - buffer) {
+                    if (
+                        iconRect.left + iconRect.width / 2 + popupHalfWidth >
+                        viewportWidth - buffer
+                    ) {
                         helpPopup.classList.add('align-right');
                     }
 
                     // Check if the centered popup would overflow the left edge of the viewport
-                    if (iconRect.left + (iconRect.width / 2) - popupHalfWidth < buffer) {
+                    if (iconRect.left + iconRect.width / 2 - popupHalfWidth < buffer) {
                         helpPopup.classList.add('align-left');
                     }
 
@@ -98,14 +101,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const closeAllPopups = () => {
-            document.querySelectorAll('.help-popup.is-active').forEach(p => p.classList.remove('is-active'));
-            document.querySelectorAll('.help-icon-wrapper.is-active').forEach(w => w.classList.remove('is-active'));
+            document
+                .querySelectorAll('.help-popup.is-active')
+                .forEach(p => p.classList.remove('is-active'));
+            document
+                .querySelectorAll('.help-icon-wrapper.is-active')
+                .forEach(w => w.classList.remove('is-active'));
             overlay.classList.remove('is-active');
         };
 
         // Add listeners to close the popup.
         overlay.addEventListener('click', closeAllPopups);
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', e => {
             if (e.key === 'Escape') {
                 closeAllPopups();
             }

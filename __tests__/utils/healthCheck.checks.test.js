@@ -1,6 +1,4 @@
 const fs = require('fs').promises;
-const fsModule = require('fs');
-const path = require('path');
 
 // Mock filesystem operations
 jest.mock('fs', () => ({
@@ -8,54 +6,54 @@ jest.mock('fs', () => ({
         readFile: jest.fn(),
         access: jest.fn(),
         stat: jest.fn(),
-        readdir: jest.fn()
+        readdir: jest.fn(),
     },
     constants: {
         R_OK: 4,
-        W_OK: 2
-    }
+        W_OK: 2,
+    },
 }));
 
 describe('HealthCheck - Configuration and Filesystem', () => {
     let healthCheck;
     let mockLogger;
     let mockPackageJson;
-    
+
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         // Mock logger
         mockLogger = {
             info: jest.fn(),
             error: jest.fn(),
             warn: jest.fn(),
-            debug: jest.fn()
+            debug: jest.fn(),
         };
-        
+
         // Mock package.json
         mockPackageJson = { version: '1.5.0' };
-        
+
         // Setup default fs mocks
         fs.readFile.mockResolvedValue('{"mediaServers": []}');
         fs.access.mockResolvedValue();
         fs.stat.mockResolvedValue({ mtime: new Date() });
         fs.readdir.mockResolvedValue([]);
-        
+
         // Clear require cache and mock modules
         delete require.cache[require.resolve('../../utils/healthCheck')];
         delete require.cache[require.resolve('../../logger')];
         delete require.cache[require.resolve('../../package.json')];
-        
+
         jest.doMock('../../logger', () => mockLogger);
         jest.doMock('../../package.json', () => mockPackageJson);
-        
+
         healthCheck = require('../../utils/healthCheck');
     });
 
     afterEach(() => {
         jest.dontMock('../../logger');
         jest.dontMock('../../package.json');
-        
+
         if (healthCheck.__resetCache) {
             healthCheck.__resetCache();
         }
@@ -67,8 +65,8 @@ describe('HealthCheck - Configuration and Filesystem', () => {
                 mediaServers: [
                     { name: 'server1', enabled: true, type: 'plex' },
                     { name: 'server2', enabled: false, type: 'plex' },
-                    { name: 'server3', enabled: true, type: 'jellyfin' }
-                ]
+                    { name: 'server3', enabled: true, type: 'jellyfin' },
+                ],
             };
             fs.readFile.mockResolvedValue(JSON.stringify(mockConfig));
 
@@ -83,9 +81,7 @@ describe('HealthCheck - Configuration and Filesystem', () => {
 
         test('should return warning with no enabled servers', async () => {
             const mockConfig = {
-                mediaServers: [
-                    { name: 'server1', enabled: false, type: 'plex' }
-                ]
+                mediaServers: [{ name: 'server1', enabled: false, type: 'plex' }],
             };
             fs.readFile.mockResolvedValue(JSON.stringify(mockConfig));
 
@@ -147,7 +143,7 @@ describe('HealthCheck - Configuration and Filesystem', () => {
             expect(result.status).toBe('ok');
             expect(result.message).toBe('All required filesystem paths are accessible.');
             expect(result.details.directories).toEqual(['sessions', 'image_cache', 'logs']);
-            
+
             // Verify access checks were called for all directories
             expect(fs.access).toHaveBeenCalledTimes(3);
         });
@@ -169,7 +165,7 @@ describe('HealthCheck - Configuration and Filesystem', () => {
             expect(calls[0][0]).toContain('sessions');
             expect(calls[1][0]).toContain('image_cache');
             expect(calls[2][0]).toContain('logs');
-            
+
             // Verify correct permissions are checked (R_OK | W_OK = 6)
             calls.forEach(call => {
                 expect(call[1]).toBe(6); // R_OK | W_OK
@@ -181,7 +177,7 @@ describe('HealthCheck - Configuration and Filesystem', () => {
         test('should return ok status with cache information', async () => {
             const mockStats = { mtime: new Date('2023-01-01') };
             const mockFiles = ['file1.jpg', 'file2.jpg', 'file3.jpg'];
-            
+
             fs.stat.mockResolvedValue(mockStats);
             fs.readdir.mockResolvedValue(mockFiles);
 
@@ -189,7 +185,9 @@ describe('HealthCheck - Configuration and Filesystem', () => {
 
             expect(result.name).toBe('cache');
             expect(result.status).toBe('ok');
-            expect(result.message).toContain('Media cache directory is accessible with 3 cached items');
+            expect(result.message).toContain(
+                'Media cache directory is accessible with 3 cached items'
+            );
             expect(result.details.itemCount).toBe(3);
             expect(result.details.lastModified).toBe(mockStats.mtime);
         });
@@ -221,12 +219,8 @@ describe('HealthCheck - Configuration and Filesystem', () => {
 
             await healthCheck.checkMediaCache();
 
-            expect(fs.stat).toHaveBeenCalledWith(
-                expect.stringContaining('image_cache')
-            );
-            expect(fs.readdir).toHaveBeenCalledWith(
-                expect.stringContaining('image_cache')
-            );
+            expect(fs.stat).toHaveBeenCalledWith(expect.stringContaining('image_cache'));
+            expect(fs.readdir).toHaveBeenCalledWith(expect.stringContaining('image_cache'));
         });
     });
 });

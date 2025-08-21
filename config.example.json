@@ -1,74 +1,74 @@
 {
-  "transitionIntervalSeconds": 10,
-  "backgroundRefreshMinutes": 30,
-  "showClearLogo": true,
-  "showRottenTomatoes": true,
-  "rottenTomatoesMinimumScore": 0,
-  "showPoster": true,
-  "showMetadata": false,
-  "clockWidget": true,
-  "clockTimezone": "auto",
-  "clockFormat": "24h",
-  "wallartMode": {
-    "enabled": false,
-    "density": "medium",
-    "refreshRate": 7,
-    "randomness": 2,
-    "animationType": "fade",
-    "autoRefresh": true
-  },
-  "cinemaMode": false,
-  "cinemaOrientation": "auto",
-  "transitionEffect": "fade",
-  "effectPauseTime": 3,
-  "uiScaling": {
-    "content": 100,
-    "clearlogo": 100,
-    "clock": 100,
-    "global": 100
-  },
-  "mediaServers": [
-    {
-      "name": "Plex Server",
-      "type": "plex",
-      "enabled": false,
-      "hostnameEnvVar": "PLEX_HOSTNAME",
-      "portEnvVar": "PLEX_PORT",
-      "tokenEnvVar": "PLEX_TOKEN",
-      "movieLibraryNames": [],
-      "showLibraryNames": [],
-      "movieCount": 30,
-      "showCount": 15,
-      "recentlyAddedOnly": false,
-      "recentlyAddedDays": 30
+    "transitionIntervalSeconds": 10,
+    "backgroundRefreshMinutes": 30,
+    "showClearLogo": true,
+    "showRottenTomatoes": true,
+    "rottenTomatoesMinimumScore": 0,
+    "showPoster": true,
+    "showMetadata": false,
+    "clockWidget": true,
+    "clockTimezone": "auto",
+    "clockFormat": "24h",
+    "wallartMode": {
+        "enabled": false,
+        "density": "medium",
+        "refreshRate": 7,
+        "randomness": 2,
+        "animationType": "fade",
+        "autoRefresh": true
+    },
+    "cinemaMode": false,
+    "cinemaOrientation": "auto",
+    "transitionEffect": "fade",
+    "effectPauseTime": 3,
+    "uiScaling": {
+        "content": 100,
+        "clearlogo": 100,
+        "clock": 100,
+        "global": 100
+    },
+    "mediaServers": [
+        {
+            "name": "Plex Server",
+            "type": "plex",
+            "enabled": false,
+            "hostnameEnvVar": "PLEX_HOSTNAME",
+            "portEnvVar": "PLEX_PORT",
+            "tokenEnvVar": "PLEX_TOKEN",
+            "movieLibraryNames": [],
+            "showLibraryNames": [],
+            "movieCount": 30,
+            "showCount": 15,
+            "recentlyAddedOnly": false,
+            "recentlyAddedDays": 30
+        }
+    ],
+    "tmdbSource": {
+        "enabled": false,
+        "category": "popular",
+        "movieCount": 50,
+        "showCount": 25,
+        "minRating": 0,
+        "apiKey": "",
+        "yearFilter": null,
+        "genreFilter": ""
+    },
+    "tvdbSource": {
+        "enabled": false,
+        "category": "popular",
+        "movieCount": 10,
+        "showCount": 20,
+        "minRating": 0,
+        "yearFilter": null,
+        "genreFilter": ""
+    },
+    "streamingSources": [],
+    "siteServer": {
+        "enabled": false,
+        "port": 4001
+    },
+    "cache": {
+        "maxSizeGB": 2,
+        "minFreeDiskSpaceMB": 500
     }
-  ],
-  "tmdbSource": {
-    "enabled": false,
-    "category": "popular",
-    "movieCount": 50,
-    "showCount": 25,
-    "minRating": 0,
-    "apiKey": "",
-    "yearFilter": null,
-    "genreFilter": ""
-  },
-  "tvdbSource": {
-    "enabled": false,
-    "category": "popular",
-    "movieCount": 10,
-    "showCount": 20,
-    "minRating": 0,
-    "yearFilter": null,
-    "genreFilter": ""
-  },
-  "streamingSources": [],
-  "siteServer": {
-    "enabled": false,
-    "port": 4001
-  },
-  "cache": {
-    "maxSizeGB": 2,
-    "minFreeDiskSpaceMB": 500
-  }
 }

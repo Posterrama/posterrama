@@ -10,7 +10,7 @@ const schemas = {
         year: Joi.number().integer().min(1900).max(2100),
         rating: Joi.number().min(0).max(10),
         source: Joi.string().required(),
-        rottenTomatoesScore: Joi.number().integer().min(0).max(100).allow(null)
+        rottenTomatoesScore: Joi.number().integer().min(0).max(100).allow(null),
     }),
 
     config: Joi.object({
@@ -24,7 +24,7 @@ const schemas = {
         rottenTomatoesMinimumScore: Joi.number().integer().min(0).max(100),
         kenBurnsEffect: Joi.object({
             enabled: Joi.boolean(),
-            durationSeconds: Joi.number().integer().min(5).max(60)
+            durationSeconds: Joi.number().integer().min(5).max(60),
         }),
         mediaServers: Joi.array().items(
             Joi.object({
@@ -33,28 +33,30 @@ const schemas = {
                 enabled: Joi.boolean(),
                 hostnameEnvVar: Joi.string().required(),
                 portEnvVar: Joi.string().required(),
-                tokenEnvVar: Joi.string().required()
+                tokenEnvVar: Joi.string().required(),
             })
-        )
+        ),
     }),
 
     loginRequest: Joi.object({
         username: Joi.string().required(),
-        password: Joi.string().required()
+        password: Joi.string().required(),
     }),
 
     changePasswordRequest: Joi.object({
         currentPassword: Joi.string().required(),
         newPassword: Joi.string().min(8).required(),
-        confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required()
-            .messages({ 'any.only': 'New password and confirmation do not match' })
-    })
+        confirmPassword: Joi.string()
+            .valid(Joi.ref('newPassword'))
+            .required()
+            .messages({ 'any.only': 'New password and confirmation do not match' }),
+    }),
 };
 
 function validate(schema, data) {
     const { error, value } = schema.validate(data, {
         abortEarly: false,
-        stripUnknown: true
+        stripUnknown: true,
     });
 
     if (error) {
@@ -67,5 +69,5 @@ function validate(schema, data) {
 
 module.exports = {
     schemas,
-    validate: (schema, data) => validate(schemas[schema], data)
+    validate: (schema, data) => validate(schemas[schema], data),
 };

@@ -16,7 +16,15 @@ describe('Plex Source - Enhanced Coverage', () => {
         mockProcessPlexItem = jest.fn().mockImplementation(item => ({ ...item, processed: true }));
         mockGetPlexLibraries = jest.fn();
         mockShuffleArray = jest.fn().mockImplementation(array => [...array]);
-        plexSource = new PlexSource(mockServerConfig, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
+        plexSource = new PlexSource(
+            mockServerConfig,
+            mockGetPlexClient,
+            mockProcessPlexItem,
+            mockGetPlexLibraries,
+            mockShuffleArray,
+            0,
+            false
+        );
     });
 
     afterEach(() => {
@@ -26,21 +34,37 @@ describe('Plex Source - Enhanced Coverage', () => {
     describe('Content Filtering Edge Cases', () => {
         test('should handle empty rating filter', () => {
             const serverWithEmptyRating = { ...mockServerConfig, ratingFilter: '' };
-            const plexSourceEmptyRating = new PlexSource(serverWithEmptyRating, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
-            
+            const plexSourceEmptyRating = new PlexSource(
+                serverWithEmptyRating,
+                mockGetPlexClient,
+                mockProcessPlexItem,
+                mockGetPlexLibraries,
+                mockShuffleArray,
+                0,
+                false
+            );
+
             const items = [
                 { ratingKey: '1', contentRating: 'PG' },
-                { ratingKey: '2', contentRating: 'R' }
+                { ratingKey: '2', contentRating: 'R' },
             ];
-            
+
             const result = plexSourceEmptyRating.applyContentFiltering(items);
             expect(result).toHaveLength(2);
         });
 
         test('should handle whitespace-only rating filter', () => {
             const serverWithWhitespaceRating = { ...mockServerConfig, ratingFilter: '   ' };
-            const plexSourceWhitespace = new PlexSource(serverWithWhitespaceRating, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
-            
+            const plexSourceWhitespace = new PlexSource(
+                serverWithWhitespaceRating,
+                mockGetPlexClient,
+                mockProcessPlexItem,
+                mockGetPlexLibraries,
+                mockShuffleArray,
+                0,
+                false
+            );
+
             const items = [{ ratingKey: '1', contentRating: 'PG' }];
             const result = plexSourceWhitespace.applyContentFiltering(items);
             expect(result).toHaveLength(1);
@@ -48,8 +72,16 @@ describe('Plex Source - Enhanced Coverage', () => {
 
         test('should handle empty genre filter', () => {
             const serverWithEmptyGenre = { ...mockServerConfig, genreFilter: '' };
-            const plexSourceEmptyGenre = new PlexSource(serverWithEmptyGenre, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
-            
+            const plexSourceEmptyGenre = new PlexSource(
+                serverWithEmptyGenre,
+                mockGetPlexClient,
+                mockProcessPlexItem,
+                mockGetPlexLibraries,
+                mockShuffleArray,
+                0,
+                false
+            );
+
             const items = [{ ratingKey: '1', Genre: [{ tag: 'Action' }] }];
             const result = plexSourceEmptyGenre.applyContentFiltering(items);
             expect(result).toHaveLength(1);
@@ -57,8 +89,16 @@ describe('Plex Source - Enhanced Coverage', () => {
 
         test('should handle whitespace-only genre filter', () => {
             const serverWithWhitespaceGenre = { ...mockServerConfig, genreFilter: '   ' };
-            const plexSourceWhitespace = new PlexSource(serverWithWhitespaceGenre, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
-            
+            const plexSourceWhitespace = new PlexSource(
+                serverWithWhitespaceGenre,
+                mockGetPlexClient,
+                mockProcessPlexItem,
+                mockGetPlexLibraries,
+                mockShuffleArray,
+                0,
+                false
+            );
+
             const items = [{ ratingKey: '1', Genre: [{ tag: 'Action' }] }];
             const result = plexSourceWhitespace.applyContentFiltering(items);
             expect(result).toHaveLength(1);
@@ -66,35 +106,63 @@ describe('Plex Source - Enhanced Coverage', () => {
 
         test('should handle items with no Genre property', () => {
             const serverWithGenre = { ...mockServerConfig, genreFilter: 'Action' };
-            const plexSourceGenre = new PlexSource(serverWithGenre, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
-            
+            const plexSourceGenre = new PlexSource(
+                serverWithGenre,
+                mockGetPlexClient,
+                mockProcessPlexItem,
+                mockGetPlexLibraries,
+                mockShuffleArray,
+                0,
+                false
+            );
+
             const items = [
                 { ratingKey: '1' }, // No Genre property
                 { ratingKey: '2', Genre: null }, // Null Genre
-                { ratingKey: '3', Genre: 'not-array' } // Not an array
+                { ratingKey: '3', Genre: 'not-array' }, // Not an array
             ];
-            
+
             const result = plexSourceGenre.applyContentFiltering(items);
             expect(result).toHaveLength(0);
         });
 
         test('should handle items with no addedAt for recently added filter', () => {
-            const serverWithRecent = { ...mockServerConfig, recentlyAddedOnly: true, recentlyAddedDays: 7 };
-            const plexSourceRecent = new PlexSource(serverWithRecent, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
-            
+            const serverWithRecent = {
+                ...mockServerConfig,
+                recentlyAddedOnly: true,
+                recentlyAddedDays: 7,
+            };
+            const plexSourceRecent = new PlexSource(
+                serverWithRecent,
+                mockGetPlexClient,
+                mockProcessPlexItem,
+                mockGetPlexLibraries,
+                mockShuffleArray,
+                0,
+                false
+            );
+
             const items = [
                 { ratingKey: '1' }, // No addedAt
-                { ratingKey: '2', addedAt: null } // Null addedAt
+                { ratingKey: '2', addedAt: null }, // Null addedAt
             ];
-            
+
             const result = plexSourceRecent.applyContentFiltering(items);
             expect(result).toHaveLength(0);
         });
 
         test('should handle empty quality filter', () => {
             const serverWithEmptyQuality = { ...mockServerConfig, qualityFilter: '' };
-            const plexSourceEmptyQuality = new PlexSource(serverWithEmptyQuality, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
-            
+            const plexSourceEmptyQuality = new PlexSource(
+                serverWithEmptyQuality,
+                mockGetPlexClient,
+                mockProcessPlexItem,
+                mockGetPlexLibraries,
+                mockShuffleArray,
+                0,
+                false
+            );
+
             const items = [{ ratingKey: '1', Media: [{ videoResolution: '1080' }] }];
             const result = plexSourceEmptyQuality.applyContentFiltering(items);
             expect(result).toHaveLength(1);
@@ -102,8 +170,16 @@ describe('Plex Source - Enhanced Coverage', () => {
 
         test('should handle whitespace-only quality filter', () => {
             const serverWithWhitespaceQuality = { ...mockServerConfig, qualityFilter: '   ' };
-            const plexSourceWhitespace = new PlexSource(serverWithWhitespaceQuality, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
-            
+            const plexSourceWhitespace = new PlexSource(
+                serverWithWhitespaceQuality,
+                mockGetPlexClient,
+                mockProcessPlexItem,
+                mockGetPlexLibraries,
+                mockShuffleArray,
+                0,
+                false
+            );
+
             const items = [{ ratingKey: '1', Media: [{ videoResolution: '1080' }] }];
             const result = plexSourceWhitespace.applyContentFiltering(items);
             expect(result).toHaveLength(1);
@@ -111,14 +187,22 @@ describe('Plex Source - Enhanced Coverage', () => {
 
         test('should handle items with no Media property for quality filter', () => {
             const serverWithQuality = { ...mockServerConfig, qualityFilter: '1080p' };
-            const plexSourceQuality = new PlexSource(serverWithQuality, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
-            
+            const plexSourceQuality = new PlexSource(
+                serverWithQuality,
+                mockGetPlexClient,
+                mockProcessPlexItem,
+                mockGetPlexLibraries,
+                mockShuffleArray,
+                0,
+                false
+            );
+
             const items = [
                 { ratingKey: '1' }, // No Media property
                 { ratingKey: '2', Media: null }, // Null Media
-                { ratingKey: '3', Media: 'not-array' } // Not an array
+                { ratingKey: '3', Media: 'not-array' }, // Not an array
             ];
-            
+
             const result = plexSourceQuality.applyContentFiltering(items);
             expect(result).toHaveLength(0);
         });
@@ -126,11 +210,19 @@ describe('Plex Source - Enhanced Coverage', () => {
         test('should handle all quality filter options', () => {
             const testQualityFilter = (filter, resolution, shouldMatch) => {
                 const serverWithQuality = { ...mockServerConfig, qualityFilter: filter };
-                const plexSourceQuality = new PlexSource(serverWithQuality, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 0, false);
-                
+                const plexSourceQuality = new PlexSource(
+                    serverWithQuality,
+                    mockGetPlexClient,
+                    mockProcessPlexItem,
+                    mockGetPlexLibraries,
+                    mockShuffleArray,
+                    0,
+                    false
+                );
+
                 const items = [{ ratingKey: '1', Media: [{ videoResolution: resolution }] }];
                 const result = plexSourceQuality.applyContentFiltering(items);
-                
+
                 if (shouldMatch) {
                     expect(result).toHaveLength(1);
                 } else {
@@ -143,7 +235,7 @@ describe('Plex Source - Enhanced Coverage', () => {
             testQualityFilter('SD', '720', false);
             testQualityFilter('SD', undefined, true); // No resolution should match SD
 
-            // Test 720p filter  
+            // Test 720p filter
             testQualityFilter('720p', '720', true);
             testQualityFilter('720p', 'hd', true);
             testQualityFilter('720p', '1080', false);
@@ -171,7 +263,7 @@ describe('Plex Source - Enhanced Coverage', () => {
             // Simulate some metrics
             plexSource.metrics.itemsProcessed = 10;
             plexSource.metrics.itemsFiltered = 3;
-            
+
             const metrics = plexSource.getMetrics();
             expect(metrics.filterEfficiency).toBe(0.3);
         });
@@ -184,9 +276,9 @@ describe('Plex Source - Enhanced Coverage', () => {
             plexSource.metrics.averageProcessingTime = 100;
             plexSource.metrics.lastRequestTime = new Date();
             plexSource.metrics.errorCount = 2;
-            
+
             plexSource.resetMetrics();
-            
+
             const metrics = plexSource.getMetrics();
             expect(metrics.requestCount).toBe(0);
             expect(metrics.itemsProcessed).toBe(0);
@@ -201,28 +293,40 @@ describe('Plex Source - Enhanced Coverage', () => {
     describe('fetchMedia Edge Cases', () => {
         test('should handle null processPlexItem result', async () => {
             mockProcessPlexItem.mockResolvedValue(null);
-            
+
             const mockLibraries = new Map([['Movies', { key: '1', title: 'Movies' }]]);
             const mockMediaItems = [{ ratingKey: '1', title: 'Movie 1' }];
-            
+
             mockGetPlexLibraries.mockResolvedValue(mockLibraries);
-            mockPlexClient.query.mockResolvedValue({ MediaContainer: { Metadata: mockMediaItems } });
-            
+            mockPlexClient.query.mockResolvedValue({
+                MediaContainer: { Metadata: mockMediaItems },
+            });
+
             const result = await plexSource.fetchMedia(['Movies'], 'movie', 10);
             expect(result).toHaveLength(0);
         });
 
         test('should handle items without rottenTomatoes when rtMinScore is set', async () => {
-            const plexSourceWithRating = new PlexSource(mockServerConfig, mockGetPlexClient, mockProcessPlexItem, mockGetPlexLibraries, mockShuffleArray, 7.0, false);
-            
+            const plexSourceWithRating = new PlexSource(
+                mockServerConfig,
+                mockGetPlexClient,
+                mockProcessPlexItem,
+                mockGetPlexLibraries,
+                mockShuffleArray,
+                7.0,
+                false
+            );
+
             mockProcessPlexItem.mockResolvedValue({ title: 'Movie without RT' });
-            
+
             const mockLibraries = new Map([['Movies', { key: '1', title: 'Movies' }]]);
             const mockMediaItems = [{ ratingKey: '1', title: 'Movie 1' }];
-            
+
             mockGetPlexLibraries.mockResolvedValue(mockLibraries);
-            mockPlexClient.query.mockResolvedValue({ MediaContainer: { Metadata: mockMediaItems } });
-            
+            mockPlexClient.query.mockResolvedValue({
+                MediaContainer: { Metadata: mockMediaItems },
+            });
+
             const result = await plexSourceWithRating.fetchMedia(['Movies'], 'movie', 10);
             expect(result).toHaveLength(1); // Should pass through if no rottenTomatoes
         });
@@ -232,12 +336,14 @@ describe('Plex Source - Enhanced Coverage', () => {
             const mockMediaItems = [
                 { ratingKey: '1', title: 'Movie 1' },
                 { ratingKey: '2', title: 'Movie 2' },
-                { ratingKey: '3', title: 'Movie 3' }
+                { ratingKey: '3', title: 'Movie 3' },
             ];
-            
+
             mockGetPlexLibraries.mockResolvedValue(mockLibraries);
-            mockPlexClient.query.mockResolvedValue({ MediaContainer: { Metadata: mockMediaItems } });
-            
+            mockPlexClient.query.mockResolvedValue({
+                MediaContainer: { Metadata: mockMediaItems },
+            });
+
             const result = await plexSource.fetchMedia(['Movies'], 'movie', -1);
             expect(result).toHaveLength(3); // Should return all items
         });
@@ -246,7 +352,14 @@ describe('Plex Source - Enhanced Coverage', () => {
     describe('Debug Logging', () => {
         test('should log debug information in content filtering when debug enabled', () => {
             const debugPlexSource = new PlexSource(
-                { ...mockServerConfig, ratingFilter: 'PG-13', genreFilter: 'Action', recentlyAddedOnly: true, recentlyAddedDays: 7, qualityFilter: '1080p' },
+                {
+                    ...mockServerConfig,
+                    ratingFilter: 'PG-13',
+                    genreFilter: 'Action',
+                    recentlyAddedOnly: true,
+                    recentlyAddedDays: 7,
+                    qualityFilter: '1080p',
+                },
                 mockGetPlexClient,
                 mockProcessPlexItem,
                 mockGetPlexLibraries,
@@ -254,25 +367,29 @@ describe('Plex Source - Enhanced Coverage', () => {
                 0,
                 true
             );
-            
+
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-            
+
             const now = Math.floor(Date.now() / 1000);
-            const items = [{
-                ratingKey: '1',
-                contentRating: 'PG-13',
-                Genre: [{ tag: 'Action' }],
-                addedAt: now,
-                Media: [{ videoResolution: '1080' }]
-            }];
-            
+            const items = [
+                {
+                    ratingKey: '1',
+                    contentRating: 'PG-13',
+                    Genre: [{ tag: 'Action' }],
+                    addedAt: now,
+                    Media: [{ videoResolution: '1080' }],
+                },
+            ];
+
             debugPlexSource.applyContentFiltering(items);
-            
+
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Rating filter'));
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Genre filter'));
-            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Recently added filter'));
+            expect(consoleSpy).toHaveBeenCalledWith(
+                expect.stringContaining('Recently added filter')
+            );
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Quality filter'));
-            
+
             consoleSpy.mockRestore();
         });
     });

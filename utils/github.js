@@ -10,7 +10,7 @@ class GitHubService {
         this.cacheDuration = 5 * 60 * 1000; // 5 minutes
         this.cache = {
             data: null,
-            timestamp: null
+            timestamp: null,
         };
     }
 
@@ -27,24 +27,28 @@ class GitHubService {
                 method: 'GET',
                 headers: {
                     'User-Agent': 'Posterrama-App/1.0',
-                    'Accept': 'application/vnd.github.v3+json'
-                }
+                    Accept: 'application/vnd.github.v3+json',
+                },
             };
 
-            const req = https.request(options, (res) => {
+            const req = https.request(options, res => {
                 let data = '';
-                
-                res.on('data', (chunk) => {
+
+                res.on('data', chunk => {
                     data += chunk;
                 });
-                
+
                 res.on('end', () => {
                     try {
                         const response = JSON.parse(data);
                         if (res.statusCode >= 200 && res.statusCode < 300) {
                             resolve(response);
                         } else {
-                            reject(new Error(`GitHub API error: ${res.statusCode} - ${response.message || 'Unknown error'}`));
+                            reject(
+                                new Error(
+                                    `GitHub API error: ${res.statusCode} - ${response.message || 'Unknown error'}`
+                                )
+                            );
                         }
                     } catch (error) {
                         reject(new Error(`Failed to parse GitHub API response: ${error.message}`));
@@ -52,7 +56,7 @@ class GitHubService {
                 });
             });
 
-            req.on('error', (error) => {
+            req.on('error', error => {
                 reject(new Error(`GitHub API request failed: ${error.message}`));
             });
 
@@ -72,8 +76,11 @@ class GitHubService {
     async getLatestRelease() {
         try {
             // Check cache first
-            if (this.cache.data && this.cache.timestamp && 
-                (Date.now() - this.cache.timestamp < this.cacheDuration)) {
+            if (
+                this.cache.data &&
+                this.cache.timestamp &&
+                Date.now() - this.cache.timestamp < this.cacheDuration
+            ) {
                 logger.debug('Returning cached GitHub release data');
                 return this.cache.data;
             }
@@ -85,18 +92,18 @@ class GitHubService {
             // Cache the result
             this.cache = {
                 data: release,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             };
 
             logger.info(`Latest release fetched: ${release.tag_name}`, {
                 version: release.tag_name,
-                published: release.published_at
+                published: release.published_at,
             });
 
             return release;
         } catch (error) {
             logger.error('Failed to fetch latest release from GitHub', {
-                error: error.message
+                error: error.message,
             });
             throw error;
         }
@@ -117,7 +124,7 @@ class GitHubService {
             return releases;
         } catch (error) {
             logger.error('Failed to fetch releases from GitHub', {
-                error: error.message
+                error: error.message,
             });
             throw error;
         }
@@ -143,25 +150,25 @@ class GitHubService {
                 hasUpdate: hasUpdate,
                 updateType: versionDiff, // 'major', 'minor', 'patch', etc.
                 releaseUrl: latestRelease.html_url,
-                downloadUrl: latestRelease.assets.find(asset => 
-                    asset.name.includes('.zip')
-                )?.browser_download_url || latestRelease.zipball_url,
+                downloadUrl:
+                    latestRelease.assets.find(asset => asset.name.includes('.zip'))
+                        ?.browser_download_url || latestRelease.zipball_url,
                 releaseNotes: latestRelease.body,
                 publishedAt: latestRelease.published_at,
-                releaseName: latestRelease.name || latestRelease.tag_name
+                releaseName: latestRelease.name || latestRelease.tag_name,
             };
 
             logger.info('Version comparison completed', {
                 current: current,
                 latest: latestVersion,
                 hasUpdate: hasUpdate,
-                updateType: versionDiff
+                updateType: versionDiff,
             });
 
             return result;
         } catch (error) {
             logger.error('Failed to check for updates', {
-                error: error.message
+                error: error.message,
             });
             throw error;
         }
@@ -187,19 +194,19 @@ class GitHubService {
                 issues: repo.open_issues_count,
                 language: repo.language,
                 updatedAt: repo.updated_at,
-                license: repo.license?.name || 'Unknown'
+                license: repo.license?.name || 'Unknown',
             };
 
             logger.info('Repository information fetched', {
                 name: result.name,
                 stars: result.stars,
-                forks: result.forks
+                forks: result.forks,
             });
 
             return result;
         } catch (error) {
             logger.error('Failed to fetch repository information', {
-                error: error.message
+                error: error.message,
             });
             throw error;
         }
@@ -211,7 +218,7 @@ class GitHubService {
     clearCache() {
         this.cache = {
             data: null,
-            timestamp: null
+            timestamp: null,
         };
         logger.debug('GitHub service cache cleared');
     }

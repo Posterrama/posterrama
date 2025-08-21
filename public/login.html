@@ -1,220 +1,256 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - posterrama</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../admin.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%) !important;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-        }
-        .auth-container {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            gap: 2rem;
-        }
-        .auth-box {
-            background: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 16px !important;
-            padding: 2.5rem !important;
-            width: 100%;
-            max-width: 420px;
-            backdrop-filter: blur(20px) !important;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
-        }
-        .auth-box h1 {
-            text-align: center !important;
-            margin-bottom: 2rem !important;
-            font-size: 1.875rem !important;
-            font-weight: 600 !important;
-            letter-spacing: -0.02em !important;
-            color: #e2e8f0 !important;
-            white-space: nowrap !important;
-        }
-        .admin-text {
-            font-family: 'Orbitron', 'Courier New', monospace !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.1em !important;
-        }
-        .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            background-clip: text !important;
-        }
-        .form-group {
-            margin-bottom: 1.5rem !important;
-        }
-        .form-group label {
-            display: block !important;
-            margin-bottom: 0.5rem !important;
-            font-weight: 500 !important;
-            color: #e2e8f0 !important;
-            font-size: 0.875rem !important;
-        }
-        .form-group input {
-            width: 100% !important;
-            padding: 0.75rem 1rem !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            border-radius: 8px !important;
-            background: rgba(255, 255, 255, 0.05) !important;
-            color: #e2e8f0 !important;
-            font-size: 1rem !important;
-            transition: all 0.2s ease !important;
-            box-sizing: border-box !important;
-        }
-        .form-group input:focus {
-            outline: none !important;
-            border-color: #667eea !important;
-            background: rgba(102, 126, 234, 0.1) !important;
-        }
-        .error-message, .error-box {
-            background: rgba(239, 68, 68, 0.1) !important;
-            border: 1px solid rgba(239, 68, 68, 0.3) !important;
-            color: #fca5a5 !important;
-            padding: 0.75rem 1rem !important;
-            border-radius: 8px !important;
-            margin-bottom: 1rem !important;
-            font-size: 0.875rem !important;
-            text-align: center !important;
-            display: none;
-        }
-        .error-message.show, .error-box.show {
-            display: block !important;
-        }
-        .form-group input::placeholder {
-            color: rgba(226, 232, 240, 0.5) !important;
-        }
-    </style>
-</head>
-<body>
-    <div class="auth-container">
-        <div class="auth-box">
-            <h1><span class="admin-text">Admin</span> <span class="gradient-text">Login</span></h1>
-            
-            <form id="loginForm" method="POST" action="/admin/login">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required placeholder="Enter your username" autocomplete="username">
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required placeholder="Enter your password" autocomplete="current-password">
-                </div>
-                
-                <button type="submit" class="btn btn-primary" id="submitBtn">
-                    Sign In
-                </button>
-                
-                <div id="errorMessage" class="error-message"></div>
-            </form>
-        </div>
-        <div class="auth-footer">
-            <a href="/" class="btn btn-secondary">← Back to Home</a>
-        </div>
-    </div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Admin Login - posterrama</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="../admin.css" />
+        <style>
+            body {
+                background: linear-gradient(
+                    135deg,
+                    #0f0f23 0%,
+                    #1a1a2e 25%,
+                    #16213e 50%,
+                    #0f3460 75%,
+                    #533483 100%
+                ) !important;
+                margin: 0;
+                padding: 0;
+                min-height: 100vh;
+            }
+            .auth-container {
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                gap: 2rem;
+            }
+            .auth-box {
+                background: rgba(255, 255, 255, 0.05) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 16px !important;
+                padding: 2.5rem !important;
+                width: 100%;
+                max-width: 420px;
+                backdrop-filter: blur(20px) !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+            }
+            .auth-box h1 {
+                text-align: center !important;
+                margin-bottom: 2rem !important;
+                font-size: 1.875rem !important;
+                font-weight: 600 !important;
+                letter-spacing: -0.02em !important;
+                color: #e2e8f0 !important;
+                white-space: nowrap !important;
+            }
+            .admin-text {
+                font-family: 'Orbitron', 'Courier New', monospace !important;
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.1em !important;
+            }
+            .gradient-text {
+                background: linear-gradient(
+                    135deg,
+                    #667eea 0%,
+                    #764ba2 50%,
+                    #f093fb 100%
+                ) !important;
+                -webkit-background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+                background-clip: text !important;
+            }
+            .form-group {
+                margin-bottom: 1.5rem !important;
+            }
+            .form-group label {
+                display: block !important;
+                margin-bottom: 0.5rem !important;
+                font-weight: 500 !important;
+                color: #e2e8f0 !important;
+                font-size: 0.875rem !important;
+            }
+            .form-group input {
+                width: 100% !important;
+                padding: 0.75rem 1rem !important;
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                border-radius: 8px !important;
+                background: rgba(255, 255, 255, 0.05) !important;
+                color: #e2e8f0 !important;
+                font-size: 1rem !important;
+                transition: all 0.2s ease !important;
+                box-sizing: border-box !important;
+            }
+            .form-group input:focus {
+                outline: none !important;
+                border-color: #667eea !important;
+                background: rgba(102, 126, 234, 0.1) !important;
+            }
+            .error-message,
+            .error-box {
+                background: rgba(239, 68, 68, 0.1) !important;
+                border: 1px solid rgba(239, 68, 68, 0.3) !important;
+                color: #fca5a5 !important;
+                padding: 0.75rem 1rem !important;
+                border-radius: 8px !important;
+                margin-bottom: 1rem !important;
+                font-size: 0.875rem !important;
+                text-align: center !important;
+                display: none;
+            }
+            .error-message.show,
+            .error-box.show {
+                display: block !important;
+            }
+            .form-group input::placeholder {
+                color: rgba(226, 232, 240, 0.5) !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="auth-container">
+            <div class="auth-box">
+                <h1>
+                    <span class="admin-text">Admin</span> <span class="gradient-text">Login</span>
+                </h1>
 
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const submitBtn = document.getElementById('submitBtn');
-            const errorDiv = document.getElementById('errorMessage');
-            
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Signing in...';
-            errorDiv.style.display = 'none';
-            errorDiv.classList.remove('show');
-            
-            try {
-                const formData = new FormData(e.target);
-                const response = await fetch('/admin/login', {
-                    method: 'POST',
-                    body: new URLSearchParams(formData),
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }
-                });
-                
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                
-                if (response.ok) {
-                    try {
-                        const result = await response.json();
-                        console.log('Success result:', result);
-                        if (result.success) {
-                            // Login successful, redirect as instructed
-                            window.location.href = result.redirectTo;
-                        } else {
-                            // This shouldn't happen if response.ok is true, but handle it
-                            errorDiv.textContent = result.error || 'Login failed for unknown reasons.';
+                <form id="loginForm" method="POST" action="/admin/login">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            required
+                            placeholder="Enter your username"
+                            autocomplete="username"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            required
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                        />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Sign In</button>
+
+                    <div id="errorMessage" class="error-message"></div>
+                </form>
+            </div>
+            <div class="auth-footer">
+                <a href="/" class="btn btn-secondary">← Back to Home</a>
+            </div>
+        </div>
+
+        <script>
+            document.getElementById('loginForm').addEventListener('submit', async e => {
+                e.preventDefault();
+
+                const submitBtn = document.getElementById('submitBtn');
+                const errorDiv = document.getElementById('errorMessage');
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Signing in...';
+                errorDiv.style.display = 'none';
+                errorDiv.classList.remove('show');
+
+                try {
+                    const formData = new FormData(e.target);
+                    const response = await fetch('/admin/login', {
+                        method: 'POST',
+                        body: new URLSearchParams(formData),
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                    });
+
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+
+                    if (response.ok) {
+                        try {
+                            const result = await response.json();
+                            console.log('Success result:', result);
+                            if (result.success) {
+                                // Login successful, redirect as instructed
+                                window.location.href = result.redirectTo;
+                            } else {
+                                // This shouldn't happen if response.ok is true, but handle it
+                                errorDiv.textContent =
+                                    result.error || 'Login failed for unknown reasons.';
+                                errorDiv.classList.add('show');
+                            }
+                        } catch (jsonError) {
+                            console.error('JSON parse error on success response:', jsonError);
+                            errorDiv.textContent = 'Unexpected response format. Please try again.';
                             errorDiv.classList.add('show');
                         }
-                    } catch (jsonError) {
-                        console.error('JSON parse error on success response:', jsonError);
-                        errorDiv.textContent = 'Unexpected response format. Please try again.';
+                    } else {
+                        // Handle error responses
+                        let errorMessage = 'Login failed. Please check your credentials.';
+
+                        try {
+                            const errorData = await response.json();
+                            console.log('Error data:', errorData);
+                            if (errorData.error) {
+                                errorMessage = errorData.error;
+                            }
+                        } catch (e) {
+                            console.log('Failed to parse error as JSON, trying as text');
+                            try {
+                                const errorText = await response.text();
+                                console.log('Error text:', errorText);
+                                if (errorText.trim()) {
+                                    // If it looks like HTML, show a generic message
+                                    if (
+                                        errorText.includes('<!DOCTYPE') ||
+                                        errorText.includes('<html')
+                                    ) {
+                                        errorMessage =
+                                            'Server error occurred. Please try again or contact support.';
+                                    } else {
+                                        errorMessage = errorText;
+                                    }
+                                }
+                            } catch (textError) {
+                                console.error('Failed to parse error response:', textError);
+                            }
+                        }
+
+                        errorDiv.textContent = errorMessage;
                         errorDiv.classList.add('show');
                     }
-                } else {
-                    // Handle error responses
-                    let errorMessage = 'Login failed. Please check your credentials.';
-                    
-                    try {
-                        const errorData = await response.json();
-                        console.log('Error data:', errorData);
-                        if (errorData.error) {
-                            errorMessage = errorData.error;
-                        }
-                    } catch (e) {
-                        console.log('Failed to parse error as JSON, trying as text');
-                        try {
-                            const errorText = await response.text();
-                            console.log('Error text:', errorText);
-                            if (errorText.trim()) {
-                                // If it looks like HTML, show a generic message
-                                if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
-                                    errorMessage = 'Server error occurred. Please try again or contact support.';
-                                } else {
-                                    errorMessage = errorText;
-                                }
-                            }
-                        } catch (textError) {
-                            console.error('Failed to parse error response:', textError);
-                        }
-                    }
-                    
-                    errorDiv.textContent = errorMessage;
+                } catch (error) {
+                    console.error('Login error:', error);
+                    errorDiv.textContent = 'Network error. Please try again.';
                     errorDiv.classList.add('show');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Sign In';
                 }
-            } catch (error) {
-                console.error('Login error:', error);
-                errorDiv.textContent = 'Network error. Please try again.';
-                errorDiv.classList.add('show');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Sign In';
-            }
-        });
+            });
 
-        // Focus on username field when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('username').focus();
-        });
-    </script>
-</body>
+            // Focus on username field when page loads
+            document.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('username').focus();
+            });
+        </script>
+    </body>
 </html>

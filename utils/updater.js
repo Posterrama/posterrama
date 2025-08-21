@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const https = require('https');
-const { exec, spawn } = require('child_process');
+const { exec } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
 const AdmZip = require('adm-zip');
@@ -18,7 +18,7 @@ class AutoUpdater {
             message: '',
             error: null,
             startTime: null,
-            backupPath: null
+            backupPath: null,
         };
         this.appRoot = path.resolve(__dirname, '..');
         this.backupDir = path.resolve(this.appRoot, '..', 'backups');
@@ -54,7 +54,7 @@ class AutoUpdater {
             message: 'Checking for updates...',
             error: null,
             startTime: new Date(),
-            backupPath: null
+            backupPath: null,
         };
 
         try {
@@ -129,19 +129,18 @@ class AutoUpdater {
 
             logger.info('Update completed successfully', {
                 version: updateInfo.latestVersion,
-                duration: Date.now() - this.updateStatus.startTime.getTime()
+                duration: Date.now() - this.updateStatus.startTime.getTime(),
             });
 
             return {
                 success: true,
                 message: `Successfully updated to version ${updateInfo.latestVersion}`,
                 version: updateInfo.latestVersion,
-                backupPath
+                backupPath,
             };
-
         } catch (error) {
             logger.error('Update failed', { error: error.message, stack: error.stack });
-            
+
             this.updateStatus.phase = 'error';
             this.updateStatus.error = error.message;
             this.updateStatus.message = `Update failed: ${error.message}`;
@@ -154,7 +153,8 @@ class AutoUpdater {
                     this.updateStatus.message += ' (Rolled back to previous version)';
                 } catch (rollbackError) {
                     logger.error('Rollback failed', { error: rollbackError.message });
-                    this.updateStatus.message += ' (Rollback failed - manual intervention required)';
+                    this.updateStatus.message +=
+                        ' (Rollback failed - manual intervention required)';
                 }
             }
 
@@ -166,7 +166,9 @@ class AutoUpdater {
      * Check for available updates
      */
     async checkForUpdates(targetVersion = null) {
-        const packageJson = JSON.parse(await fs.readFile(path.join(this.appRoot, 'package.json'), 'utf8'));
+        const packageJson = JSON.parse(
+            await fs.readFile(path.join(this.appRoot, 'package.json'), 'utf8')
+        );
         const currentVersion = packageJson.version;
 
         if (targetVersion) {
@@ -175,7 +177,7 @@ class AutoUpdater {
                 currentVersion,
                 latestVersion: targetVersion,
                 hasUpdate: semver.gt(targetVersion, currentVersion),
-                updateType: semver.diff(currentVersion, targetVersion)
+                updateType: semver.diff(currentVersion, targetVersion),
             };
         }
 
@@ -205,17 +207,18 @@ class AutoUpdater {
             'image_cache',
             'sessions',
             'coverage',
-            'screenshots'
+            'screenshots',
         ];
 
         await this.copyDirectory(this.appRoot, backupPath, excludePatterns);
 
         // Create backup manifest
         const manifest = {
-            version: JSON.parse(await fs.readFile(path.join(this.appRoot, 'package.json'), 'utf8')).version,
+            version: JSON.parse(await fs.readFile(path.join(this.appRoot, 'package.json'), 'utf8'))
+                .version,
             timestamp: new Date().toISOString(),
             backupPath,
-            excludePatterns
+            excludePatterns,
         };
 
         await fs.writeFile(
@@ -224,7 +227,7 @@ class AutoUpdater {
         );
 
         logger.info('Backup created successfully', { backupPath, manifest });
-        
+
         // Automatically cleanup old backups (keep only 5)
         try {
             const cleanupResult = await this.cleanupOldBackups(5);
@@ -233,7 +236,7 @@ class AutoUpdater {
             logger.warn('Automatic backup cleanup failed', { error: cleanupError.message });
             // Don't throw - backup creation is still successful
         }
-        
+
         return backupPath;
     }
 
@@ -241,7 +244,9 @@ class AutoUpdater {
      * Download update package
      */
     async downloadUpdate(updateInfo) {
-        const downloadUrl = updateInfo.downloadUrl || `https://github.com/Posterrama/posterrama/archive/refs/tags/v${updateInfo.latestVersion}.zip`;
+        const downloadUrl =
+            updateInfo.downloadUrl ||
+            `https://github.com/Posterrama/posterrama/archive/refs/tags/v${updateInfo.latestVersion}.zip`;
         const filename = `posterrama-${updateInfo.latestVersion}.zip`;
         const downloadPath = path.join(this.tempDir, filename);
 
@@ -252,33 +257,39 @@ class AutoUpdater {
 
         return new Promise((resolve, reject) => {
             const file = require('fs').createWriteStream(downloadPath);
-            const request = https.get(downloadUrl, {
-                headers: {
-                    'User-Agent': 'Posterrama-AutoUpdater/1.0'
-                }
-            }, (response) => {
-                if (response.statusCode === 302 || response.statusCode === 301) {
-                    // Handle redirect
-                    return https.get(response.headers.location, (redirectResponse) => {
-                        redirectResponse.pipe(file);
-                        file.on('finish', () => {
-                            file.close();
-                            resolve(downloadPath);
-                        });
-                    }).on('error', reject);
-                }
+            const request = https.get(
+                downloadUrl,
+                {
+                    headers: {
+                        'User-Agent': 'Posterrama-AutoUpdater/1.0',
+                    },
+                },
+                response => {
+                    if (response.statusCode === 302 || response.statusCode === 301) {
+                        // Handle redirect
+                        return https
+                            .get(response.headers.location, redirectResponse => {
+                                redirectResponse.pipe(file);
+                                file.on('finish', () => {
+                                    file.close();
+                                    resolve(downloadPath);
+                                });
+                            })
+                            .on('error', reject);
+                    }
 
-                if (response.statusCode !== 200) {
-                    reject(new Error(`Download failed with status ${response.statusCode}`));
-                    return;
-                }
+                    if (response.statusCode !== 200) {
+                        reject(new Error(`Download failed with status ${response.statusCode}`));
+                        return;
+                    }
 
-                response.pipe(file);
-                file.on('finish', () => {
-                    file.close();
-                    resolve(downloadPath);
-                });
-            });
+                    response.pipe(file);
+                    file.on('finish', () => {
+                        file.close();
+                        resolve(downloadPath);
+                    });
+                }
+            );
 
             request.on('error', reject);
             request.setTimeout(60000, () => {
@@ -304,11 +315,11 @@ class AutoUpdater {
         try {
             const zip = new AdmZip(downloadPath);
             const entries = zip.getEntries();
-            
+
             // Check for essential files
             const essentialFiles = ['package.json', 'server.js'];
             const foundFiles = entries.map(entry => entry.entryName);
-            
+
             for (const file of essentialFiles) {
                 const found = foundFiles.some(f => f.endsWith(file));
                 if (!found) {
@@ -316,11 +327,10 @@ class AutoUpdater {
                 }
             }
 
-            logger.info('Download validation successful', { 
-                fileSize: stats.size, 
-                entryCount: entries.length 
+            logger.info('Download validation successful', {
+                fileSize: stats.size,
+                entryCount: entries.length,
             });
-
         } catch (error) {
             throw new Error(`Invalid update package: ${error.message}`);
         }
@@ -335,7 +345,7 @@ class AutoUpdater {
         try {
             // Try to stop PM2 process if running
             await execAsync('pm2 stop posterrama || true');
-            
+
             // Give it a moment to stop gracefully
             await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -353,7 +363,7 @@ class AutoUpdater {
         logger.info('Applying update', { downloadPath });
 
         const extractPath = path.join(this.tempDir, 'extracted');
-        
+
         // Extract the update
         const zip = new AdmZip(downloadPath);
         zip.extractAllTo(extractPath, true);
@@ -361,7 +371,7 @@ class AutoUpdater {
         // Find the actual source directory (might be nested in a folder)
         const extracted = await fs.readdir(extractPath);
         let sourceDir = extractPath;
-        
+
         if (extracted.length === 1) {
             const potentialSource = path.join(extractPath, extracted[0]);
             const stat = await fs.stat(potentialSource);
@@ -371,14 +381,7 @@ class AutoUpdater {
         }
 
         // Preserve important files/directories
-        const preserveItems = [
-            'config.json',
-            '.env',
-            'image_cache',
-            'sessions',
-            'logs',
-            'cache'
-        ];
+        const preserveItems = ['config.json', '.env', 'image_cache', 'sessions', 'logs', 'cache'];
 
         const preservedData = {};
         for (const item of preserveItems) {
@@ -424,9 +427,9 @@ class AutoUpdater {
         logger.info('Updating dependencies');
 
         try {
-            const { stdout, stderr } = await execAsync('npm install --production', {
+            const { stderr } = await execAsync('npm install --production', {
                 cwd: this.appRoot,
-                timeout: 300000 // 5 minutes timeout
+                timeout: 300000, // 5 minutes timeout
             });
 
             if (stderr && !stderr.includes('WARN')) {
@@ -447,9 +450,12 @@ class AutoUpdater {
 
         try {
             // Start with PM2 if available, otherwise just log
-            await execAsync('pm2 start ecosystem.config.js || echo "PM2 not available, manual start required"', {
-                cwd: this.appRoot
-            });
+            await execAsync(
+                'pm2 start ecosystem.config.js || echo "PM2 not available, manual start required"',
+                {
+                    cwd: this.appRoot,
+                }
+            );
 
             // Give it a moment to start
             await new Promise(resolve => setTimeout(resolve, 3000));
@@ -469,15 +475,19 @@ class AutoUpdater {
 
         try {
             // Check package.json version
-            const packageJson = JSON.parse(await fs.readFile(path.join(this.appRoot, 'package.json'), 'utf8'));
-            
+            const packageJson = JSON.parse(
+                await fs.readFile(path.join(this.appRoot, 'package.json'), 'utf8')
+            );
+
             if (packageJson.version !== expectedVersion) {
-                throw new Error(`Version mismatch: expected ${expectedVersion}, got ${packageJson.version}`);
+                throw new Error(
+                    `Version mismatch: expected ${expectedVersion}, got ${packageJson.version}`
+                );
             }
 
             // Try to make a simple HTTP request to verify server is running
             // (This is optional since the server might not be auto-started)
-            
+
             logger.info('Update verification successful', { version: packageJson.version });
         } catch (error) {
             throw new Error(`Update verification failed: ${error.message}`);
@@ -513,7 +523,6 @@ class AutoUpdater {
 
             logger.info('Rollback completed successfully');
             this.updateStatus.message = 'Rollback completed successfully';
-            
         } catch (error) {
             logger.error('Rollback failed', { error: error.message });
             throw new Error(`Rollback failed: ${error.message}`);
@@ -532,7 +541,10 @@ class AutoUpdater {
             }
 
             // Clean temp directory
-            const tempExists = await fs.access(this.tempDir).then(() => true).catch(() => false);
+            const tempExists = await fs
+                .access(this.tempDir)
+                .then(() => true)
+                .catch(() => false);
             if (tempExists) {
                 await fs.rmdir(this.tempDir, { recursive: true });
             }
@@ -549,17 +561,17 @@ class AutoUpdater {
      */
     async copyDirectory(source, destination, exclude = []) {
         await fs.mkdir(destination, { recursive: true });
-        
+
         const items = await fs.readdir(source);
-        
+
         for (const item of items) {
             if (exclude.includes(item)) continue;
-            
+
             const sourcePath = path.join(source, item);
             const destPath = path.join(destination, item);
-            
+
             const stats = await fs.stat(sourcePath);
-            
+
             if (stats.isDirectory()) {
                 await this.copyDirectory(sourcePath, destPath, exclude);
             } else {
@@ -574,18 +586,21 @@ class AutoUpdater {
     async copyDirectoryToMemory(dirPath) {
         const result = {};
         const items = await fs.readdir(dirPath);
-        
+
         for (const item of items) {
             const itemPath = path.join(dirPath, item);
             const stats = await fs.stat(itemPath);
-            
+
             if (stats.isDirectory()) {
-                result[item] = { type: 'directory', content: await this.copyDirectoryToMemory(itemPath) };
+                result[item] = {
+                    type: 'directory',
+                    content: await this.copyDirectoryToMemory(itemPath),
+                };
             } else {
                 result[item] = { type: 'file', content: await fs.readFile(itemPath) };
             }
         }
-        
+
         return result;
     }
 
@@ -594,10 +609,10 @@ class AutoUpdater {
      */
     async restoreDirectoryFromMemory(dirPath, data) {
         await fs.mkdir(dirPath, { recursive: true });
-        
+
         for (const [name, item] of Object.entries(data)) {
             const itemPath = path.join(dirPath, name);
-            
+
             if (item.type === 'directory') {
                 await this.restoreDirectoryFromMemory(itemPath, item.content);
             } else {
@@ -612,36 +627,39 @@ class AutoUpdater {
     async listBackups() {
         try {
             const backups = [];
-            const backupExists = await fs.access(this.backupDir).then(() => true).catch(() => false);
-            
+            const backupExists = await fs
+                .access(this.backupDir)
+                .then(() => true)
+                .catch(() => false);
+
             if (!backupExists) {
                 return backups;
             }
 
             const items = await fs.readdir(this.backupDir);
-            
+
             for (const item of items) {
                 const backupPath = path.join(this.backupDir, item);
                 const manifestPath = path.join(backupPath, 'backup-manifest.json');
-                
+
                 try {
                     const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
                     const stats = await fs.stat(backupPath);
-                    
+
                     backups.push({
                         name: item,
                         path: backupPath,
                         version: manifest.version,
                         timestamp: manifest.timestamp,
                         size: stats.size,
-                        created: stats.birthtime
+                        created: stats.birthtime,
                     });
                 } catch (error) {
                     // Skip invalid backups
                     logger.debug(`Invalid backup ${item}`, { error: error.message });
                 }
             }
-            
+
             return backups.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         } catch (error) {
             logger.error('Failed to list backups', { error: error.message });
@@ -655,7 +673,7 @@ class AutoUpdater {
     async cleanupOldBackups(keepCount = 5) {
         try {
             const backups = await this.listBackups();
-            
+
             if (backups.length <= keepCount) {
                 return { deleted: 0, kept: backups.length };
             }

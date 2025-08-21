@@ -1,6 +1,6 @@
 describe('AutoUpdater - Basic Tests', () => {
     let AutoUpdater;
-    
+
     beforeEach(() => {
         jest.clearAllMocks();
         // Clear require cache to ensure fresh instance
@@ -34,7 +34,7 @@ describe('AutoUpdater - Basic Tests', () => {
             expect(status).toHaveProperty('error');
             expect(status).toHaveProperty('startTime');
             expect(status).toHaveProperty('backupPath');
-            
+
             // Should return a copy, not the original object
             status.phase = 'test';
             expect(AutoUpdater.updateStatus.phase).not.toBe('test');
@@ -42,7 +42,7 @@ describe('AutoUpdater - Basic Tests', () => {
 
         test('should check if update is in progress', () => {
             expect(AutoUpdater.isUpdating()).toBe(false);
-            
+
             AutoUpdater.updateInProgress = true;
             expect(AutoUpdater.isUpdating()).toBe(true);
         });
@@ -62,14 +62,14 @@ describe('AutoUpdater - Basic Tests', () => {
     describe('Error Handling', () => {
         test('should prevent concurrent updates', async () => {
             AutoUpdater.updateInProgress = true;
-            
+
             await expect(AutoUpdater.startUpdate()).rejects.toThrow('Update already in progress');
         });
 
         test('should handle checkForUpdates errors gracefully', async () => {
             const githubService = require('../../utils/github');
             jest.spyOn(githubService, 'checkForUpdates').mockRejectedValue(new Error('API Error'));
-            
+
             await expect(AutoUpdater.checkForUpdates()).rejects.toThrow('API Error');
         });
     });

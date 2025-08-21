@@ -16,19 +16,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Log level hierarchy for filtering
     const logLevels = {
-        'trace': 0,
-        'debug': 1,
-        'info': 2,
-        'warn': 3,
-        'error': 4,
-        'fatal': 5
+        trace: 0,
+        debug: 1,
+        info: 2,
+        warn: 3,
+        error: 4,
+        fatal: 5,
     };
 
     // Function to check if the user is scrolled to the bottom of the log container
     function checkScroll() {
         const container = logOutput.parentElement;
         // A small tolerance (e.g., 5px) can help on some browsers
-        isScrolledToBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 5;
+        isScrolledToBottom =
+            container.scrollHeight - container.scrollTop - container.clientHeight < 5;
     }
 
     logOutput.parentElement.addEventListener('scroll', checkScroll);
@@ -40,14 +41,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isPaused) fetchLogs();
     });
 
-    logLevelSelect.addEventListener('change', (e) => {
+    logLevelSelect.addEventListener('change', e => {
         selectedLevel = e.target.value;
         renderLogs(currentLogs);
     });
 
     const textFilter = document.getElementById('textFilter');
-    
-    textFilter.addEventListener('input', (e) => {
+
+    textFilter.addEventListener('input', e => {
         searchText = e.target.value.toLowerCase();
         renderLogs(currentLogs);
     });
@@ -63,32 +64,33 @@ document.addEventListener('DOMContentLoaded', () => {
     function formatLog(log) {
         const { timestamp, level, message } = log;
         const levelClass = `level-${level.toLowerCase()}`;
-        
+
         const logEntry = document.createElement('div');
         logEntry.className = `log-entry ${levelClass}`;
-        
+
         const timestampSpan = document.createElement('span');
         timestampSpan.className = 'timestamp';
         timestampSpan.textContent = timestamp;
-        
+
         const levelSpan = document.createElement('span');
         levelSpan.className = `level ${levelClass}`;
         levelSpan.textContent = level;
-        
+
         const messageSpan = document.createElement('span');
         messageSpan.className = 'message';
         messageSpan.textContent = message;
-        
+
         logEntry.appendChild(timestampSpan);
         logEntry.appendChild(levelSpan);
         logEntry.appendChild(messageSpan);
-        
+
         return logEntry;
     }
 
     function shouldShowLog(log) {
         const levelMatch = logLevels[log.level.toLowerCase()] >= logLevels[selectedLevel];
-        const textMatch = searchText === '' || 
+        const textMatch =
+            searchText === '' ||
             log.message.toLowerCase().includes(searchText) ||
             log.level.toLowerCase().includes(searchText);
         return levelMatch && textMatch;
@@ -100,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         filteredLogs.forEach(log => {
             logOutput.appendChild(formatLog(log));
         });
-        
+
         if (autoScrollCheckbox.checked && isScrolledToBottom) {
             logOutput.parentElement.scrollTop = logOutput.parentElement.scrollHeight;
         }
@@ -111,10 +113,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await fetch('/api/admin/logs', {
-                credentials: 'include',  // Include cookies in the request
+                credentials: 'include', // Include cookies in the request
                 headers: {
-                    'Accept': 'application/json'
-                }
+                    Accept: 'application/json',
+                },
             });
             if (!response.ok) {
                 throw new Error(`Server responded with status: ${response.status}`);
@@ -126,7 +128,10 @@ document.addEventListener('DOMContentLoaded', () => {
             statusText.textContent = 'Connected';
 
             // Only update if logs have changed
-            if (logs.length !== lastLogCount || JSON.stringify(logs) !== JSON.stringify(currentLogs)) {
+            if (
+                logs.length !== lastLogCount ||
+                JSON.stringify(logs) !== JSON.stringify(currentLogs)
+            ) {
                 currentLogs = logs;
                 lastLogCount = logs.length;
                 renderLogs(logs);
@@ -141,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch logs immediately on load, then poll every 5 seconds
     fetchLogs();
     let pollInterval = setInterval(fetchLogs, 5000);
-    
+
     // Clean up interval when page is hidden
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {

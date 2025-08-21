@@ -12,13 +12,13 @@
 const logger = require('./logger');
 
 // Handle uncaught exceptions and unhandled promise rejections
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
     logger.fatal('Uncaught Exception:', error);
     // Give the logger time to write before exiting
     setTimeout(() => process.exit(1), 1000);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason, _promise) => {
     logger.fatal('Unhandled Promise Rejection:', reason);
 });
 
@@ -30,17 +30,26 @@ global.memoryCheckInterval = setInterval(() => {
         rss: `${Math.round(used.rss / 1024 / 1024)}MB`,
         heapTotal: `${Math.round(used.heapTotal / 1024 / 1024)}MB`,
         heapUsed: `${Math.round(used.heapUsed / 1024 / 1024)}MB`,
-        external: `${Math.round(used.external / 1024 / 1024)}MB`
+        external: `${Math.round(used.external / 1024 / 1024)}MB`,
     });
 }, MEMORY_CHECK_INTERVAL);
 
 // Override console methods to use the logger
 const originalConsoleLog = console.log;
-console.log = (...args) => { logger.info(...args); originalConsoleLog.apply(console, args); };
+console.log = (...args) => {
+    logger.info(...args);
+    originalConsoleLog.apply(console, args);
+};
 const originalConsoleError = console.error;
-console.error = (...args) => { logger.error(...args); originalConsoleError.apply(console, args); };
+console.error = (...args) => {
+    logger.error(...args);
+    originalConsoleError.apply(console, args);
+};
 const originalConsoleWarn = console.warn;
-console.warn = (...args) => { logger.warn(...args); originalConsoleWarn.apply(console, args); };
+console.warn = (...args) => {
+    logger.warn(...args);
+    originalConsoleWarn.apply(console, args);
+};
 
 const path = require('path');
 const fs = require('fs');
@@ -50,7 +59,7 @@ const { PassThrough } = require('stream');
 const fsp = fs.promises;
 
 // --- Auto Cache Busting ---
-let cachedVersions = {};
+const cachedVersions = {};
 let lastVersionCheck = 0;
 const VERSION_CACHE_TTL = 10000; // Cache versions for 10 seconds
 
@@ -69,21 +78,16 @@ function generateAssetVersion(filePath) {
 function getAssetVersions() {
     const now = Date.now();
     if (now - lastVersionCheck > VERSION_CACHE_TTL) {
-        const criticalAssets = [
-            'script.js',
-            'admin.js', 
-            'style.css',
-            'admin.css'
-        ];
-        
+        const criticalAssets = ['script.js', 'admin.js', 'style.css', 'admin.css'];
+
         criticalAssets.forEach(asset => {
             cachedVersions[asset] = generateAssetVersion(asset);
         });
-        
+
         lastVersionCheck = now;
         logger.debug('Asset versions refreshed:', cachedVersions);
     }
-    
+
     return cachedVersions;
 }
 
@@ -91,26 +95,26 @@ function getAssetVersions() {
 const envPath = path.join(__dirname, '.env');
 const exampleEnvPath = path.join(__dirname, 'config.example.env');
 if (!fs.existsSync(envPath)) {
-  if (fs.existsSync(exampleEnvPath)) {
-    fs.copyFileSync(exampleEnvPath, envPath);
-    console.log('[Config] .env aangemaakt op basis van config.example.env');
-  } else {
-    console.error('[Config] config.example.env ontbreekt, kan geen .env aanmaken!');
-    process.exit(1);
-  }
+    if (fs.existsSync(exampleEnvPath)) {
+        fs.copyFileSync(exampleEnvPath, envPath);
+        console.log('[Config] .env aangemaakt op basis van config.example.env');
+    } else {
+        console.error('[Config] config.example.env ontbreekt, kan geen .env aanmaken!');
+        process.exit(1);
+    }
 }
 
 // --- Auto-create config.json if missing ---
 const configPath = path.join(__dirname, 'config.json');
 const exampleConfigPath = path.join(__dirname, 'config.example.json');
 if (!fs.existsSync(configPath)) {
-  if (fs.existsSync(exampleConfigPath)) {
-    fs.copyFileSync(exampleConfigPath, configPath);
-    console.log('[Config] config.json aangemaakt op basis van config.example.json');
-  } else {
-    console.error('[Config] config.example.json ontbreekt, kan geen config.json aanmaken!');
-    process.exit(1);
-  }
+    if (fs.existsSync(exampleConfigPath)) {
+        fs.copyFileSync(exampleConfigPath, configPath);
+        console.log('[Config] config.json aangemaakt op basis van config.example.json');
+    } else {
+        console.error('[Config] config.example.json ontbreekt, kan geen config.json aanmaken!');
+        process.exit(1);
+    }
 }
 
 // Define paths early
@@ -129,13 +133,15 @@ const imageCacheDir = path.join(__dirname, 'image_cache');
         // Ensure all required directories exist before the application starts.
         // Using sync methods here prevents race conditions with middleware initialization.
         console.log('Creating required directories...');
-        
+
         fs.mkdirSync(sessionsPath, { recursive: true });
         fs.mkdirSync(imageCacheDir, { recursive: true });
         fs.mkdirSync(cacheDir, { recursive: true });
         fs.mkdirSync(logsDir, { recursive: true });
-        
-        console.log('✓ All required directories created/verified: sessions, image_cache, cache, logs');
+
+        console.log(
+            '✓ All required directories created/verified: sessions, image_cache, cache, logs'
+        );
     } catch (error) {
         console.error('FATAL ERROR: Could not create required directories.', error);
         process.exit(1);
@@ -174,16 +180,21 @@ const imageCacheDir = path.join(__dirname, 'image_cache');
         // due to the missing session secret, and PM2 will restart it. The new process
         // will then load the secret correctly from the .env file.
         if (process.env.PM2_HOME) {
-            console.log('Running under PM2. Triggering a restart to apply the new SESSION_SECRET...');
+            console.log(
+                'Running under PM2. Triggering a restart to apply the new SESSION_SECRET...'
+            );
             const { exec } = require('child_process');
             const ecosystemConfig = require('./ecosystem.config.js');
             const appName = ecosystemConfig.apps[0].name || 'posterrama';
 
-            exec(`pm2 restart ${appName}`, (error) => {
-                if (error) console.error(`[Initial Setup] PM2 restart command failed: ${error.message}`);
+            exec(`pm2 restart ${appName}`, error => {
+                if (error)
+                    console.error(`[Initial Setup] PM2 restart command failed: ${error.message}`);
             });
         } else {
-            console.warn('SESSION_SECRET was generated, but the app does not appear to be running under PM2. A manual restart is recommended.');
+            console.warn(
+                'SESSION_SECRET was generated, but the app does not appear to be running under PM2. A manual restart is recommended.'
+            );
             // If not under PM2, we can update the current process's env and continue.
             process.env.SESSION_SECRET = newSecret;
         }
@@ -201,7 +212,7 @@ const fetch = require('node-fetch');
 (function ensureConfigExists() {
     const configPath = './config.json';
     const exampleConfigPath = './config.example.json';
-    
+
     try {
         fs.accessSync(configPath);
     } catch (error) {
@@ -211,7 +222,10 @@ const fetch = require('node-fetch');
                 fs.copyFileSync(exampleConfigPath, configPath);
                 console.log('config.json created successfully from example.');
             } catch (copyError) {
-                console.error('FATAL ERROR: Could not create config.json from config.example.json:', copyError);
+                console.error(
+                    'FATAL ERROR: Could not create config.json from config.example.json:',
+                    copyError
+                );
                 process.exit(1);
             }
         } else {
@@ -223,7 +237,6 @@ const fetch = require('node-fetch');
 
 const config = require('./config.json');
 const swaggerUi = require('swagger-ui-express');
-const swaggerSpecs = require('./swagger.js');
 const pkg = require('./package.json');
 const ecosystemConfig = require('./ecosystem.config.js');
 const { shuffleArray } = require('./utils.js');
@@ -248,7 +261,7 @@ const isDebug = process.env.DEBUG === 'true';
 function getLocalIPAddress() {
     const os = require('os');
     const interfaces = os.networkInterfaces();
-    
+
     // Look for the first non-internal IPv4 address
     for (const name of Object.keys(interfaces)) {
         for (const iface of interfaces[name]) {
@@ -258,7 +271,7 @@ function getLocalIPAddress() {
             }
         }
     }
-    
+
     // Fallback to localhost if no external IP found
     return 'localhost';
 }
@@ -267,7 +280,12 @@ function getLocalIPAddress() {
 const serverIPAddress = getLocalIPAddress();
 
 // Caching system
-const { cacheManager, cacheMiddleware, initializeCache, CacheDiskManager } = require('./utils/cache');
+const {
+    cacheManager,
+    cacheMiddleware,
+    initializeCache,
+    CacheDiskManager,
+} = require('./utils/cache');
 initializeCache(logger);
 
 // Initialize cache disk manager
@@ -287,7 +305,7 @@ const autoUpdater = require('./utils/updater');
 app.use((req, res, next) => {
     // Add request ID for tracking
     req.id = crypto.randomBytes(16).toString('hex');
-    
+
     // Log start of request processing
     const start = process.hrtime();
     const requestLog = {
@@ -295,7 +313,7 @@ app.use((req, res, next) => {
         method: req.method,
         path: req.path,
         ip: req.ip,
-        userAgent: req.get('user-agent')
+        userAgent: req.get('user-agent'),
     };
 
     // Security logging for admin endpoints - only log truly suspicious activity
@@ -307,7 +325,7 @@ app.use((req, res, next) => {
                     method: req.method,
                     path: req.path,
                     ip: req.ip,
-                    userAgent: (req.get('user-agent') || '').substring(0, 100)
+                    userAgent: (req.get('user-agent') || '').substring(0, 100),
                 });
             }
             // GET requests without auth are normal (frontend loading data before login)
@@ -319,24 +337,23 @@ app.use((req, res, next) => {
     res.on('finish', () => {
         const [seconds, nanoseconds] = process.hrtime(start);
         const duration = seconds * 1000 + nanoseconds / 1000000;
-        
-        const logLevel = res.statusCode >= 500 ? 'error' :
-                        res.statusCode >= 400 ? 'warn' : 
-                        'debug';
-        
+
+        const logLevel = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'debug';
+
         logger[logLevel]('Request completed', {
             ...requestLog,
             status: res.statusCode,
             duration: `${duration.toFixed(2)}ms`,
-            contentLength: res.get('content-length')
+            contentLength: res.get('content-length'),
         });
 
         // Log slow requests
-        if (duration > 1000) { // 1 second threshold
+        if (duration > 1000) {
+            // 1 second threshold
             logger.warn('Slow request detected', {
                 ...requestLog,
                 duration: `${duration.toFixed(2)}ms`,
-                status: res.statusCode
+                status: res.statusCode,
             });
         }
     });
@@ -348,21 +365,21 @@ app.use((req, res, next) => {
 app.use('/api', (req, res, next) => {
     const currentVersion = pkg.version;
     const acceptedVersion = req.headers['accept-version'];
-    
+
     // Always add current API version to response headers
     res.setHeader('X-API-Version', currentVersion);
-    
+
     // Check if client requests specific version
     if (acceptedVersion) {
         const supportedVersions = ['1.2.0', '1.2.1', '1.2.2', '1.2.3', '1.2.4', '1.2.5'];
-        
+
         if (!supportedVersions.includes(acceptedVersion)) {
             return res.status(400).json({
-                error: `Unsupported API version: ${acceptedVersion}. Supported versions: ${supportedVersions.join(', ')}`
+                error: `Unsupported API version: ${acceptedVersion}. Supported versions: ${supportedVersions.join(', ')}`,
             });
         }
     }
-    
+
     next();
 });
 
@@ -478,9 +495,14 @@ const adminApiLimiter = createRateLimiter(
 app.use('/api/admin/', adminApiLimiter);
 
 // In test mode, use more lenient rate limiting for all /api/ routes
-const testApiLimiter = process.env.NODE_ENV === 'test' ? 
-    createRateLimiter(15 * 60 * 1000, 1000, 'Too many requests from this IP, please try again later.') :
-    apiLimiter;
+const testApiLimiter =
+    process.env.NODE_ENV === 'test'
+        ? createRateLimiter(
+              15 * 60 * 1000,
+              1000,
+              'Too many requests from this IP, please try again later.'
+          )
+        : apiLimiter;
 
 app.use('/api/', testApiLimiter);
 app.use('/get-config', apiLimiter);
@@ -518,20 +540,26 @@ app.use('/image', apiLimiter);
  *             schema:
  *               type: string
  */
-app.get(['/admin','/admin.html'], (req, res, next) => {
+app.get(['/admin', '/admin.html'], (req, res, next) => {
     const filePath = path.join(__dirname, 'public', 'admin.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) return next(err);
-        
+
         // Get current asset versions
         const versions = getAssetVersions();
-        
+
         // Replace asset version placeholders with individual file versions
-        let stamped = contents
+        const stamped = contents
             .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
-            .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${versions['admin.js'] || ASSET_VERSION}`)
-            .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`);
-            
+            .replace(
+                /admin\.js\?v=[^"&\s]+/g,
+                `admin.js?v=${versions['admin.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /admin\.css\?v=[^"&\s]+/g,
+                `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
+            );
+
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
         res.send(stamped);
     });
@@ -542,15 +570,21 @@ app.get(['/', '/index.html'], (req, res, next) => {
     const filePath = path.join(__dirname, 'public', 'index.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) return next(err);
-        
+
         // Get current asset versions
         const versions = getAssetVersions();
-        
+
         // Replace asset version placeholders with individual file versions
-        let stamped = contents
-            .replace(/script\.js\?v=[^"&\s]+/g, `script.js?v=${versions['script.js'] || ASSET_VERSION}`)
-            .replace(/style\.css\?v=[^"&\s]+/g, `style.css?v=${versions['style.css'] || ASSET_VERSION}`);
-            
+        const stamped = contents
+            .replace(
+                /script\.js\?v=[^"&\s]+/g,
+                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /style\.css\?v=[^"&\s]+/g,
+                `style.css?v=${versions['style.css'] || ASSET_VERSION}`
+            );
+
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
         res.send(stamped);
     });
@@ -560,7 +594,11 @@ app.get(['/', '/index.html'], (req, res, next) => {
 app.use(metricsMiddleware);
 
 // Input Validation Middleware and Endpoints
-const { createValidationMiddleware, validateQueryParams, sanitizeInput, schemas } = require('./middleware/validate');
+const {
+    createValidationMiddleware,
+    validateQueryParams,
+    schemas,
+} = require('./middleware/validate');
 
 /**
  * @swagger
@@ -596,14 +634,15 @@ const { createValidationMiddleware, validateQueryParams, sanitizeInput, schemas 
  *       400:
  *         description: Validation error
  */
-app.post('/api/v1/admin/config/validate', 
+app.post(
+    '/api/v1/admin/config/validate',
     express.json(),
-    createValidationMiddleware(schemas.config, 'body'), 
+    createValidationMiddleware(schemas.config, 'body'),
     (req, res) => {
         res.json({
             success: true,
             message: 'Configuration is valid',
-            sanitized: req.body
+            sanitized: req.body,
         });
     }
 );
@@ -651,14 +690,15 @@ app.post('/api/v1/admin/config/validate',
  *       400:
  *         description: Validation error
  */
-app.post('/api/v1/admin/plex/validate-connection',
+app.post(
+    '/api/v1/admin/plex/validate-connection',
     express.json(),
     createValidationMiddleware(schemas.plexConnection, 'body'),
     (req, res) => {
         res.json({
             success: true,
             message: 'Plex connection data is valid',
-            sanitized: req.body
+            sanitized: req.body,
         });
     }
 );
@@ -1007,7 +1047,7 @@ app.get('/metrics', (req, res) => {
 app.get('/api/v1/metrics/export', (req, res) => {
     const format = req.query.format || 'json';
     const metrics = metricsManager.exportMetrics(format);
-    
+
     if (format === 'prometheus') {
         res.set('Content-Type', 'text/plain');
         res.send(metrics);
@@ -1064,14 +1104,16 @@ app.get('/api/v1/metrics/export', (req, res) => {
 app.post('/api/v1/admin/metrics/config', express.json(), (req, res) => {
     try {
         const { enabled, collectInterval, retentionPeriod, endpoints } = req.body;
-        
+
         // Validate configuration
         const config = {};
         if (typeof enabled === 'boolean') config.enabled = enabled;
-        if (typeof collectInterval === 'number' && collectInterval > 0) config.collectInterval = collectInterval;
-        if (typeof retentionPeriod === 'number' && retentionPeriod > 0) config.retentionPeriod = retentionPeriod;
+        if (typeof collectInterval === 'number' && collectInterval > 0)
+            config.collectInterval = collectInterval;
+        if (typeof retentionPeriod === 'number' && retentionPeriod > 0)
+            config.retentionPeriod = retentionPeriod;
         if (endpoints && typeof endpoints === 'object') config.endpoints = endpoints;
-        
+
         metricsManager.updateConfig(config);
         res.json({ success: true, config });
     } catch (error) {
@@ -1188,16 +1230,17 @@ app.get('/admin.js', (req, res) => {
 });
 
 // Import optimized middleware
-const { 
-    securityMiddleware, 
-    compressionMiddleware, 
+const {
+    securityMiddleware,
+    compressionMiddleware,
     corsMiddleware,
     requestLoggingMiddleware,
-    errorHandlingMiddleware,
-    healthCheckMiddleware
 } = require('./middleware/index');
 const { cacheMiddleware: apiCacheMiddleware, apiCache } = require('./middleware/cache');
-const { validationRules, createValidationMiddleware: newValidationMiddleware } = require('./middleware/validation');
+const {
+    validationRules,
+    createValidationMiddleware: newValidationMiddleware,
+} = require('./middleware/validation');
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true })); // For parsing form data
@@ -1238,17 +1281,19 @@ app.use(requestLoggingMiddleware());
  *       403:
  *         description: Forbidden - Admin role required
  */
-app.get('/api/admin/cache/stats', 
-    isAuthenticated, 
+app.get(
+    '/api/admin/cache/stats',
+    isAuthenticated,
     newValidationMiddleware(validationRules.adminRequest),
     apiCacheMiddleware.short,
     (req, res) => {
-    const stats = apiCache.getStats();
-    res.json({
-        success: true,
-        data: stats
-    });
-});
+        const stats = apiCache.getStats();
+        res.json({
+            success: true,
+            data: stats,
+        });
+    }
+);
 
 // Direct swagger spec endpoint for debugging
 /**
@@ -1271,43 +1316,48 @@ app.get('/api-docs/swagger.json', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    
+
     // Generate fresh swagger spec
     delete require.cache[require.resolve('./swagger.js')];
     const freshSwaggerSpecs = require('./swagger.js');
-    
+
     res.json(freshSwaggerSpecs);
 });
 
 // Swagger API documentation with cache busting
-app.use('/api-docs', (req, res, next) => {
-    // Prevent caching of API documentation
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('ETag', Math.random().toString()); // Force unique response
-    next();
-}, swaggerUi.serve, (req, res, next) => {
-    // Generate fresh swagger spec on each request to avoid version caching
-    delete require.cache[require.resolve('./swagger.js')];
-    const freshSwaggerSpecs = require('./swagger.js');
-    
-    swaggerUi.setup(freshSwaggerSpecs, {
-        // Force Swagger UI to use our custom endpoint with cache busting
-        swaggerOptions: {
-            url: `/api-docs/swagger.json?t=${Date.now()}`,
-            persistAuthorization: true,
-            // Disable all caching in Swagger UI
-            requestInterceptor: function(request) {
-                request.headers['Cache-Control'] = 'no-cache';
-                return request;
-            }
-        },
-        // Add custom HTML to override any cached content
-        customSiteTitle: `Posterrama API v${require('./package.json').version}`,
-        customfavIcon: '/favicon.ico'
-    })(req, res, next);
-});
+app.use(
+    '/api-docs',
+    (req, res, next) => {
+        // Prevent caching of API documentation
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('ETag', Math.random().toString()); // Force unique response
+        next();
+    },
+    swaggerUi.serve,
+    (req, res, next) => {
+        // Generate fresh swagger spec on each request to avoid version caching
+        delete require.cache[require.resolve('./swagger.js')];
+        const freshSwaggerSpecs = require('./swagger.js');
+
+        swaggerUi.setup(freshSwaggerSpecs, {
+            // Force Swagger UI to use our custom endpoint with cache busting
+            swaggerOptions: {
+                url: `/api-docs/swagger.json?t=${Date.now()}`,
+                persistAuthorization: true,
+                // Disable all caching in Swagger UI
+                requestInterceptor: function (request) {
+                    request.headers['Cache-Control'] = 'no-cache';
+                    return request;
+                },
+            },
+            // Add custom HTML to override any cached content
+            customSiteTitle: `Posterrama API v${require('./package.json').version}`,
+            customfavIcon: '/favicon.ico',
+        })(req, res, next);
+    }
+);
 
 // General request logger for debugging
 if (isDebug) {
@@ -1318,31 +1368,31 @@ if (isDebug) {
 }
 
 // Session middleware setup
-app.use(session({
-    store: new FileStore({
-        path: './sessions', // Sessions will be stored in a 'sessions' directory
-        logFn: isDebug ? console.log : () => {},
-        ttl: 86400 * 7, // Session TTL in seconds (7 days)
-        reapInterval: 86400, // Clean up expired sessions once a day
-        retries: 3 // Retry file operations up to 3 times
-    }),
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    rolling: true, // Extend session lifetime on each request
-    cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-        httpOnly: true,
-        sameSite: 'lax'
-    }
-}));
+app.use(
+    session({
+        store: new FileStore({
+            path: './sessions', // Sessions will be stored in a 'sessions' directory
+            logFn: isDebug ? console.log : () => {},
+            ttl: 86400 * 7, // Session TTL in seconds (7 days)
+            reapInterval: 86400, // Clean up expired sessions once a day
+            retries: 3, // Retry file operations up to 3 times
+        }),
+        secret: process.env.SESSION_SECRET,
+        resave: false,
+        saveUninitialized: false,
+        rolling: true, // Extend session lifetime on each request
+        cookie: {
+            maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+            httpOnly: true,
+            sameSite: 'lax',
+        },
+    })
+);
 
 // Wrapper for async routes to catch errors and pass them to the error handler
-const asyncHandler = (fn) => (req, res, next) => {
+const asyncHandler = fn => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
 };
-
-
 
 /**
  * Returns the standard options for a PlexAPI client instance to ensure consistent identification.
@@ -1358,21 +1408,21 @@ function getPlexClientOptions() {
         product: 'posterrama.app',
         version: pkg.version,
         deviceName: 'posterrama.app',
-        platform: 'Node.js'
+        platform: 'Node.js',
     };
 
     const finalOptions = { ...defaultOptions, ...(config.plexClientOptions || {}) };
 
     return {
         // These options must be nested inside an 'options' object per plex-api documentation.
-        options: finalOptions
+        options: finalOptions,
     };
 }
 /**
  * Fetches detailed metadata for a single Plex item and transforms it into the application's format.
  * Handles movies, TV shows, and their child items (seasons, episodes). For TV content,
  * fetches the parent show's metadata to ensure consistent background art.
- * 
+ *
  * @param {object} itemSummary - The summary object of the media item from Plex.
  * @param {object} serverConfig - The configuration for the Plex server.
  * @param {PlexAPI} plex - An active PlexAPI client instance.
@@ -1390,7 +1440,7 @@ function getPlexClientOptions() {
  * }
  */
 async function processPlexItem(itemSummary, serverConfig, plex) {
-    const getImdbUrl = (guids) => {
+    const getImdbUrl = guids => {
         if (guids && Array.isArray(guids)) {
             const imdbGuid = guids.find(guid => guid.id.startsWith('imdb://'));
             if (imdbGuid) {
@@ -1401,7 +1451,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         return null;
     };
 
-    const getClearLogoPath = (images) => {
+    const getClearLogoPath = images => {
         if (images && Array.isArray(images)) {
             const logoObject = images.find(img => img.type === 'clearLogo');
             return logoObject ? logoObject.url : null;
@@ -1422,7 +1472,10 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
 
         // --- START ENHANCED DEBUG LOGGING ---
         if (isDebug) {
-            console.log(`[RT Debug] Processing rating for "${titleForDebug}". Raw rtRating object:`, JSON.stringify(rtRating));
+            console.log(
+                `[RT Debug] Processing rating for "${titleForDebug}". Raw rtRating object:`,
+                JSON.stringify(rtRating)
+            );
         }
         // --- END ENHANCED DEBUG LOGGING ---
 
@@ -1442,19 +1495,25 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         // this status, as the identifier from Plex ('ripe') doesn't distinguish it from regular "Fresh".
         if (isCriticRating && finalScore >= 85) {
             icon = 'certified-fresh';
-        } else if (imageIdentifier.includes('ripe') || imageIdentifier.includes('upright') || finalScore >= 60) {
+        } else if (
+            imageIdentifier.includes('ripe') ||
+            imageIdentifier.includes('upright') ||
+            finalScore >= 60
+        ) {
             // 'ripe' is for critic fresh, 'upright' is for audience fresh. The score is a fallback.
             icon = 'fresh';
         }
 
         if (isDebug) {
-            console.log(`[RT Debug] -> For "${titleForDebug}": Identifier: "${imageIdentifier}", Score: ${finalScore}, Determined Icon: "${icon}"`);
+            console.log(
+                `[RT Debug] -> For "${titleForDebug}": Identifier: "${imageIdentifier}", Score: ${finalScore}, Determined Icon: "${icon}"`
+            );
         }
 
         return {
             score: finalScore, // The 0-100 score for display
             icon: icon,
-            originalScore: score // The original 0-10 score for filtering
+            originalScore: score, // The original 0-10 score for filtering
         };
     };
 
@@ -1484,37 +1543,49 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
 
         if (isDebug) {
             if (rottenTomatoesData) {
-                console.log(`[Plex Debug] Found Rotten Tomatoes data for "${sourceItem.title}": Score ${rottenTomatoesData.score}%, Icon ${rottenTomatoesData.icon}`);
+                console.log(
+                    `[Plex Debug] Found Rotten Tomatoes data for "${sourceItem.title}": Score ${rottenTomatoesData.score}%, Icon ${rottenTomatoesData.icon}`
+                );
             } else if (sourceItem.Rating) {
                 // Only log if the Rating array exists but we couldn't parse RT data from it.
-                console.log(`[Plex Debug] Could not parse Rotten Tomatoes data for "${sourceItem.title}" from rating array:`, JSON.stringify(sourceItem.Rating));
+                console.log(
+                    `[Plex Debug] Could not parse Rotten Tomatoes data for "${sourceItem.title}" from rating array:`,
+                    JSON.stringify(sourceItem.Rating)
+                );
             }
         }
 
         // Process genres from Plex data
-        const genres = sourceItem.Genre && Array.isArray(sourceItem.Genre) 
-            ? sourceItem.Genre.map(genre => genre.tag)
-            : null;
+        const genres =
+            sourceItem.Genre && Array.isArray(sourceItem.Genre)
+                ? sourceItem.Genre.map(genre => genre.tag)
+                : null;
 
         return {
             key: uniqueKey,
             title: sourceItem.title,
             backgroundUrl: `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(backgroundArt)}`,
             posterUrl: `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(sourceItem.thumb)}`,
-            clearLogoUrl: clearLogoPath ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(clearLogoPath)}` : null,
+            clearLogoUrl: clearLogoPath
+                ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(clearLogoPath)}`
+                : null,
             tagline: sourceItem.tagline,
             rating: sourceItem.rating,
             year: sourceItem.year,
             imdbUrl: imdbUrl,
             rottenTomatoes: rottenTomatoesData,
             genres: genres,
-            genre_ids: sourceItem.Genre && Array.isArray(sourceItem.Genre) 
-                ? sourceItem.Genre.map(genre => genre.id)
-                : null,
-            _raw: isDebug ? item : undefined
+            genre_ids:
+                sourceItem.Genre && Array.isArray(sourceItem.Genre)
+                    ? sourceItem.Genre.map(genre => genre.id)
+                    : null,
+            _raw: isDebug ? item : undefined,
         };
     } catch (e) {
-        if (isDebug) console.log(`[Debug] Skipping item due to error fetching details for key ${itemSummary.key}: ${e.message}`);
+        if (isDebug)
+            console.log(
+                `[Debug] Skipping item due to error fetching details for key ${itemSummary.key}: ${e.message}`
+            );
         return null;
     }
 }
@@ -1524,7 +1595,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
 /**
  * Creates a new PlexAPI client instance with the given options.
  * Sanitizes and validates the input parameters before creating the client.
- * 
+ *
  * @param {object} options - The connection options.
  * @param {string} options.hostname - The Plex server hostname or IP. Will be sanitized to remove http/https prefixes.
  * @param {string|number} options.port - The Plex server port.
@@ -1549,21 +1620,26 @@ function createPlexClient({ hostname, port, token, timeout }) {
     let sanitizedHostname = hostname.trim();
     try {
         // The URL constructor needs a protocol to work.
-        const fullUrl = sanitizedHostname.includes('://') ? sanitizedHostname : `http://${sanitizedHostname}`;
+        const fullUrl = sanitizedHostname.includes('://')
+            ? sanitizedHostname
+            : `http://${sanitizedHostname}`;
         const url = new URL(fullUrl);
         sanitizedHostname = url.hostname; // This extracts just the hostname/IP
         if (isDebug) console.log(`[Plex Client] Sanitized hostname to: "${sanitizedHostname}"`);
     } catch (e) {
         // Fallback for invalid URL formats that might still be valid hostnames (though unlikely)
         sanitizedHostname = sanitizedHostname.replace(/^https?:\/\//, '');
-        if (isDebug) console.log(`[Plex Client] Could not parse hostname as URL, falling back to simple sanitization: "${sanitizedHostname}"`);
+        if (isDebug)
+            console.log(
+                `[Plex Client] Could not parse hostname as URL, falling back to simple sanitization: "${sanitizedHostname}"`
+            );
     }
 
     const clientOptions = {
         hostname: sanitizedHostname,
         port,
         token,
-        ...getPlexClientOptions()
+        ...getPlexClientOptions(),
     };
 
     if (timeout) clientOptions.timeout = timeout;
@@ -1578,14 +1654,14 @@ function createPlexClient({ hostname, port, token, timeout }) {
 async function testServerConnection(serverConfig) {
     if (serverConfig.type === 'plex') {
         const startTime = process.hrtime();
-        
+
         logger.debug('Testing Plex server connection', {
             action: 'plex_connection_test',
             server: {
                 name: serverConfig.name,
                 hostnameVar: serverConfig.hostnameEnvVar,
-                portVar: serverConfig.portEnvVar
-            }
+                portVar: serverConfig.portEnvVar,
+            },
         });
 
         try {
@@ -1594,14 +1670,16 @@ async function testServerConnection(serverConfig) {
             const token = process.env[serverConfig.tokenEnvVar];
 
             if (!hostname || !port || !token) {
-                throw new Error('Missing required environment variables (hostname, port, or token) for this server.');
+                throw new Error(
+                    'Missing required environment variables (hostname, port, or token) for this server.'
+                );
             }
 
             const testClient = createPlexClient({
                 hostname,
                 port,
                 token,
-                timeout: 5000 // 5-second timeout for health checks
+                timeout: 5000, // 5-second timeout for health checks
             });
 
             // A lightweight query to check reachability and authentication
@@ -1617,23 +1695,24 @@ async function testServerConnection(serverConfig) {
                 server: {
                     name: serverConfig.name,
                     hostname: hostname,
-                    port: port
+                    port: port,
                 },
                 metrics: {
-                    responseTime: `${responseTime.toFixed(2)}ms`
-                }
+                    responseTime: `${responseTime.toFixed(2)}ms`,
+                },
             });
 
             // Log warning if connection was slow
-            if (responseTime > 1000) { //  1 second threshold
+            if (responseTime > 1000) {
+                //  1 second threshold
                 logger.warn('Slow Plex server response detected', {
                     action: 'plex_connection_slow',
                     server: {
                         name: serverConfig.name,
                         hostname: hostname,
-                        port: port
+                        port: port,
                     },
-                    responseTime: `${responseTime.toFixed(2)}ms`
+                    responseTime: `${responseTime.toFixed(2)}ms`,
                 });
             }
 
@@ -1642,18 +1721,18 @@ async function testServerConnection(serverConfig) {
             let errorMessage = error.message;
             if (error.code === 'ECONNREFUSED') {
                 errorMessage = 'Connection refused. Check hostname and port.';
-                
+
                 logger.error('Plex server connection refused', {
                     action: 'plex_connection_refused',
                     server: {
                         name: serverConfig.name,
                         hostname: process.env[serverConfig.hostnameEnvVar],
-                        port: process.env[serverConfig.portEnvVar]
+                        port: process.env[serverConfig.portEnvVar],
                     },
                     error: {
                         code: error.code,
-                        message: error.message
-                    }
+                        message: error.message,
+                    },
                 });
             } else if (error.message.includes('401 Unauthorized')) {
                 errorMessage = 'Unauthorized. Check token.';
@@ -1664,7 +1743,10 @@ async function testServerConnection(serverConfig) {
         }
     }
     // Future server types can be added here
-    return { status: 'error', message: `Unsupported server type for health check: ${serverConfig.type}` };
+    return {
+        status: 'error',
+        message: `Unsupported server type for health check: ${serverConfig.type}`,
+    };
 }
 
 /**
@@ -1730,10 +1812,12 @@ async function getPlexGenres(serverConfig) {
                             }
                         });
                     }
-                    
+
                     // Fallback: if genre endpoint doesn't work, get from content
                     if (genres.size === 0) {
-                        const content = await plex.query(`/library/sections/${library.key}/all?limit=100`);
+                        const content = await plex.query(
+                            `/library/sections/${library.key}/all?limit=100`
+                        );
                         if (content?.MediaContainer?.Metadata) {
                             content.MediaContainer.Metadata.forEach(item => {
                                 if (item.Genre && Array.isArray(item.Genre)) {
@@ -1747,12 +1831,17 @@ async function getPlexGenres(serverConfig) {
                         }
                     }
                 } catch (error) {
-                    console.warn(`[getPlexGenres] Error fetching from library ${libraryName}: ${error.message}`);
+                    console.warn(
+                        `[getPlexGenres] Error fetching from library ${libraryName}: ${error.message}`
+                    );
                 }
             }
         }
 
-        if (isDebug) console.log(`[getPlexGenres] Found ${genres.size} unique genres from ${allLibraries.size} libraries`);
+        if (isDebug)
+            console.log(
+                `[getPlexGenres] Found ${genres.size} unique genres from ${allLibraries.size} libraries`
+            );
         return Array.from(genres).sort();
     } catch (error) {
         console.error(`[getPlexGenres] Error: ${error.message}`);
@@ -1765,53 +1854,68 @@ async function getPlexGenres(serverConfig) {
 async function getPlaylistMedia() {
     let allMedia = [];
     const enabledServers = config.mediaServers.filter(s => s.enabled);
- 
+
     // Process Plex/Media Servers
     for (const server of enabledServers) {
         if (isDebug) console.log(`[Debug] Fetching from server: ${server.name} (${server.type})`);
- 
+
         let source;
         if (server.type === 'plex') {
-            source = new PlexSource(server, getPlexClient, processPlexItem, getPlexLibraries, shuffleArray, config.rottenTomatoesMinimumScore, isDebug);
+            source = new PlexSource(
+                server,
+                getPlexClient,
+                processPlexItem,
+                getPlexLibraries,
+                shuffleArray,
+                config.rottenTomatoesMinimumScore,
+                isDebug
+            );
         } else {
-            if (isDebug) console.log(`[Debug] Skipping server ${server.name} due to unsupported type ${server.type}`);
+            if (isDebug)
+                console.log(
+                    `[Debug] Skipping server ${server.name} due to unsupported type ${server.type}`
+                );
             continue;
         }
- 
+
         const [movies, shows] = await Promise.all([
             source.fetchMedia(server.movieLibraryNames || [], 'movie', server.movieCount || 0),
-            source.fetchMedia(server.showLibraryNames || [], 'show', server.showCount || 0)
+            source.fetchMedia(server.showLibraryNames || [], 'show', server.showCount || 0),
         ]);
         const mediaFromServer = movies.concat(shows);
- 
-        if (isDebug) console.log(`[Debug] Fetched ${mediaFromServer.length} items from ${server.name}.`);
+
+        if (isDebug)
+            console.log(`[Debug] Fetched ${mediaFromServer.length} items from ${server.name}.`);
         allMedia = allMedia.concat(mediaFromServer);
     }
-    
+
     // Process TMDB Source
     if (config.tmdbSource && config.tmdbSource.enabled && config.tmdbSource.apiKey) {
         if (isDebug) console.log(`[Debug] Fetching from TMDB source`);
-        
+
         // Add a name to the TMDB source for consistent logging
         const tmdbSourceConfig = { ...config.tmdbSource, name: 'TMDB' };
         const tmdbSource = new TMDBSource(tmdbSourceConfig, shuffleArray, isDebug);
-        
+
         // Schedule periodic cache cleanup for TMDB source
         if (!global.tmdbCacheCleanupInterval) {
-            global.tmdbCacheCleanupInterval = setInterval(() => {
-                if (global.tmdbSourceInstance) {
-                    global.tmdbSourceInstance.cleanupCache();
-                }
-            }, 10 * 60 * 1000); // Clean up every 10 minutes
+            global.tmdbCacheCleanupInterval = setInterval(
+                () => {
+                    if (global.tmdbSourceInstance) {
+                        global.tmdbSourceInstance.cleanupCache();
+                    }
+                },
+                10 * 60 * 1000
+            ); // Clean up every 10 minutes
         }
         global.tmdbSourceInstance = tmdbSource;
-        
+
         const [tmdbMovies, tmdbShows] = await Promise.all([
             tmdbSource.fetchMedia('movie', config.tmdbSource.movieCount || 0),
-            tmdbSource.fetchMedia('tv', config.tmdbSource.showCount || 0)
+            tmdbSource.fetchMedia('tv', config.tmdbSource.showCount || 0),
         ]);
         const tmdbMedia = tmdbMovies.concat(tmdbShows);
-        
+
         if (isDebug) console.log(`[Debug] Fetched ${tmdbMedia.length} items from TMDB.`);
         allMedia = allMedia.concat(tmdbMedia);
     }
@@ -1820,25 +1924,35 @@ async function getPlaylistMedia() {
     if (config.streamingSources && Array.isArray(config.streamingSources)) {
         for (const streamingConfig of config.streamingSources) {
             if (streamingConfig.enabled && streamingConfig.apiKey) {
-                console.log(`[Streaming Debug] Fetching from: ${streamingConfig.name} (Category: ${streamingConfig.category})`);
-                console.log(`[Streaming Debug] Settings - Movies: ${streamingConfig.movieCount || 0}, Shows: ${streamingConfig.showCount || 0}, Min Rating: ${streamingConfig.minRating || 0}, Region: ${streamingConfig.watchRegion || 'US'}`);
-                
+                console.log(
+                    `[Streaming Debug] Fetching from: ${streamingConfig.name} (Category: ${streamingConfig.category})`
+                );
+                console.log(
+                    `[Streaming Debug] Settings - Movies: ${streamingConfig.movieCount || 0}, Shows: ${streamingConfig.showCount || 0}, Min Rating: ${streamingConfig.minRating || 0}, Region: ${streamingConfig.watchRegion || 'US'}`
+                );
+
                 const streamingSource = new TMDBSource(streamingConfig, shuffleArray, isDebug);
-                
+
                 try {
                     const [streamingMovies, streamingShows] = await Promise.all([
                         streamingSource.fetchMedia('movie', streamingConfig.movieCount || 0),
-                        streamingSource.fetchMedia('tv', streamingConfig.showCount || 0)
+                        streamingSource.fetchMedia('tv', streamingConfig.showCount || 0),
                     ]);
                     const streamingMedia = streamingMovies.concat(streamingShows);
-                    
-                    console.log(`[Streaming Debug] ${streamingConfig.name} results: ${streamingMovies.length} movies + ${streamingShows.length} shows = ${streamingMedia.length} total items`);
+
+                    console.log(
+                        `[Streaming Debug] ${streamingConfig.name} results: ${streamingMovies.length} movies + ${streamingShows.length} shows = ${streamingMedia.length} total items`
+                    );
                     if (streamingMedia.length === 0) {
-                        console.log(`[Streaming Debug] WARNING: No content found for ${streamingConfig.name} - check provider ID or regional availability`);
+                        console.log(
+                            `[Streaming Debug] WARNING: No content found for ${streamingConfig.name} - check provider ID or regional availability`
+                        );
                     }
                     allMedia = allMedia.concat(streamingMedia);
                 } catch (error) {
-                    console.error(`[Error] Failed to fetch from streaming source ${streamingConfig.name}: ${error.message}`);
+                    console.error(
+                        `[Error] Failed to fetch from streaming source ${streamingConfig.name}: ${error.message}`
+                    );
                 }
             } else {
                 if (!streamingConfig.enabled) {
@@ -1849,33 +1963,36 @@ async function getPlaylistMedia() {
             }
         }
     }
-    
+
     // Process TVDB Source
     if (config.tvdbSource && config.tvdbSource.enabled) {
         if (isDebug) console.log(`[Debug] Fetching from TVDB source`);
-        
+
         const tvdbSource = new TVDBSource(config.tvdbSource);
-        
+
         // Schedule periodic cache cleanup for TVDB source
         if (!global.tvdbCacheCleanupInterval) {
-            global.tvdbCacheCleanupInterval = setInterval(() => {
-                if (global.tvdbSourceInstance) {
-                    global.tvdbSourceInstance.clearCache();
-                }
-            }, 10 * 60 * 1000); // Clean up every 10 minutes
+            global.tvdbCacheCleanupInterval = setInterval(
+                () => {
+                    if (global.tvdbSourceInstance) {
+                        global.tvdbSourceInstance.clearCache();
+                    }
+                },
+                10 * 60 * 1000
+            ); // Clean up every 10 minutes
         }
         global.tvdbSourceInstance = tvdbSource;
-        
+
         const [tvdbMovies, tvdbShows] = await Promise.all([
             tvdbSource.getMovies(),
-            tvdbSource.getShows()
+            tvdbSource.getShows(),
         ]);
         const tvdbMedia = tvdbMovies.concat(tvdbShows);
-        
+
         if (isDebug) console.log(`[Debug] Fetched ${tvdbMedia.length} items from TVDB.`);
         allMedia = allMedia.concat(tvdbMedia);
     }
- 
+
     return allMedia;
 }
 
@@ -1888,7 +2005,7 @@ let isRefreshing = false; // Lock to prevent concurrent refreshes
  * Uses a locking mechanism to prevent concurrent refreshes.
  * Maintains the old cache in case of errors to prevent service interruption.
  * Logs performance metrics and memory usage.
- * 
+ *
  * @returns {Promise<void>} Resolves when the refresh is complete.
  * @throws {Error} If media fetching fails. Errors are caught and logged but won't crash the server.
  * @example
@@ -1905,17 +2022,17 @@ async function refreshPlaylistCache() {
     isRefreshing = true;
     logger.info('Starting playlist refresh', {
         action: 'playlist_refresh_start',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
     });
 
     try {
         // Track memory usage before fetch
         const memBefore = process.memoryUsage();
-        
+
         const allMedia = await getPlaylistMedia();
         playlistCache = shuffleArray(allMedia);
         cacheTimestamp = Date.now();
-        
+
         // Track memory usage after fetch
         const memAfter = process.memoryUsage();
         const [seconds, nanoseconds] = process.hrtime(startTime);
@@ -1929,24 +2046,25 @@ async function refreshPlaylistCache() {
                 itemCount: playlistCache.length,
                 memoryDelta: {
                     heapUsed: `${Math.round((memAfter.heapUsed - memBefore.heapUsed) / 1024 / 1024)}MB`,
-                    rss: `${Math.round((memAfter.rss - memBefore.rss) / 1024 / 1024)}MB`
-                }
-            }
+                    rss: `${Math.round((memAfter.rss - memBefore.rss) / 1024 / 1024)}MB`,
+                },
+            },
         });
 
         // Log warning if refresh was slow
-        if (duration > 5000) { // 5 seconds threshold
+        if (duration > 5000) {
+            // 5 seconds threshold
             logger.warn('Slow playlist refresh detected', {
                 action: 'playlist_refresh_slow',
                 duration: `${duration.toFixed(2)}ms`,
-                itemCount: playlistCache.length
+                itemCount: playlistCache.length,
             });
         }
     } catch (error) {
         logger.error('Playlist refresh failed', {
             action: 'playlist_refresh_error',
             error: error.message,
-            stack: error.stack
+            stack: error.stack,
         });
         // We keep the old cache in case of an error
     } finally {
@@ -1959,10 +2077,11 @@ async function refreshPlaylistCache() {
 /**
  * Middleware to check if the user is authenticated.
  */
-function isAuthenticated(req, res, next) {    
+function isAuthenticated(req, res, next) {
     // 1. Check for session-based authentication (for browser users)
     if (req.session && req.session.user) {
-        if (isDebug) console.log(`[Auth] Authenticated via session for user: ${req.session.user.username}`);
+        if (isDebug)
+            console.log(`[Auth] Authenticated via session for user: ${req.session.user.username}`);
         return next();
     }
 
@@ -1972,12 +2091,15 @@ function isAuthenticated(req, res, next) {
 
     if (apiToken && authHeader && authHeader.startsWith('Bearer ')) {
         const providedToken = authHeader.substring(7, authHeader.length);
-        
+
         // Use timing-safe comparison to prevent timing attacks
         const storedTokenBuffer = Buffer.from(apiToken);
         const providedTokenBuffer = Buffer.from(providedToken);
 
-        if (storedTokenBuffer.length === providedTokenBuffer.length && crypto.timingSafeEqual(storedTokenBuffer, providedTokenBuffer)) {
+        if (
+            storedTokenBuffer.length === providedTokenBuffer.length &&
+            crypto.timingSafeEqual(storedTokenBuffer, providedTokenBuffer)
+        ) {
             if (isDebug) console.log('[Auth] Authenticated via API Key.');
             // Attach a user object for consistency in downstream middleware/routes.
             req.user = { username: 'api_user', authMethod: 'apiKey' };
@@ -1993,7 +2115,9 @@ function isAuthenticated(req, res, next) {
 
     // For API requests, send a 401 JSON error.
     if (req.path.startsWith('/api/')) {
-        return res.status(401).json({ error: 'Authentication required. Your session may have expired or your API token is invalid.' });
+        return res.status(401).json({
+            error: 'Authentication required. Your session may have expired or your API token is invalid.',
+        });
     }
 
     // For regular page navigations, redirect to the login page.
@@ -2016,7 +2140,7 @@ async function readEnvFile() {
  * Writes new values to the .env file while preserving existing content.
  * Creates a backup of the current .env file before making changes.
  * Updates both the file and process.env for immediate effect.
- * 
+ *
  * @param {Object} newValues - An object with key-value pairs to write.
  * @throws {Error} If file operations fail or if backup creation fails.
  * @example
@@ -2031,19 +2155,20 @@ async function writeEnvFile(newValues) {
         action: 'env_update',
         keys: Object.keys(newValues).map(key => {
             // Mask sensitive values in logs
-            const isSensitive = key.toLowerCase().includes('token') || 
-                              key.toLowerCase().includes('password') || 
-                              key.toLowerCase().includes('secret') ||
-                              key.toLowerCase().includes('apikey');
+            const isSensitive =
+                key.toLowerCase().includes('token') ||
+                key.toLowerCase().includes('password') ||
+                key.toLowerCase().includes('secret') ||
+                key.toLowerCase().includes('apikey');
             return {
                 key,
-                type: isSensitive ? 'sensitive' : 'regular'
+                type: isSensitive ? 'sensitive' : 'regular',
             };
-        })
+        }),
     });
 
     try {
-        let content = await readEnvFile();
+        const content = await readEnvFile();
         const lines = content.split('\n');
         const updatedKeys = new Set(Object.keys(newValues));
         const previousEnv = { ...process.env };
@@ -2072,7 +2197,7 @@ async function writeEnvFile(newValues) {
         await fsp.writeFile(backupPath, content, 'utf-8');
         logger.debug('Created .env backup file', {
             action: 'env_backup',
-            path: backupPath
+            path: backupPath,
         });
 
         // Write the new content
@@ -2085,22 +2210,23 @@ async function writeEnvFile(newValues) {
         logger.info('Environment updated successfully', {
             action: 'env_update_success',
             changes: Object.keys(newValues).map(key => {
-                const isSensitive = key.toLowerCase().includes('token') || 
-                                  key.toLowerCase().includes('password') || 
-                                  key.toLowerCase().includes('secret') ||
-                                  key.toLowerCase().includes('apikey');
+                const isSensitive =
+                    key.toLowerCase().includes('token') ||
+                    key.toLowerCase().includes('password') ||
+                    key.toLowerCase().includes('secret') ||
+                    key.toLowerCase().includes('apikey');
                 return {
                     key,
                     type: isSensitive ? 'sensitive' : 'regular',
-                    changed: previousEnv[key] !== newValues[key]
+                    changed: previousEnv[key] !== newValues[key],
                 };
-            })
+            }),
         });
     } catch (error) {
         logger.error('Failed to update environment', {
             action: 'env_update_error',
             error: error.message,
-            stack: error.stack
+            stack: error.stack,
         });
         throw error;
     }
@@ -2118,7 +2244,7 @@ async function readConfig() {
  * Writes to the config.json file using a safe, atomic write process.
  * Creates a temporary file and renames it to avoid partial writes.
  * Updates the in-memory config object after successful write.
- * 
+ *
  * @param {object} newConfig - The new configuration object to write.
  * @throws {Error} If file operations fail or if JSON serialization fails.
  * @example
@@ -2135,12 +2261,12 @@ async function writeConfig(newConfig) {
     // Log configuration change attempt
     logger.info('Configuration update initiated', {
         action: 'config_update',
-        changes: Object.keys(newConfig).filter(key => !key.startsWith('_'))
+        changes: Object.keys(newConfig).filter(key => !key.startsWith('_')),
     });
 
     // Create a deep copy to avoid mutating the original config
     const configCopy = JSON.parse(JSON.stringify(newConfig));
-    
+
     // Remove metadata before writing
     delete configCopy._metadata;
     const newContent = JSON.stringify(configCopy, null, 2);
@@ -2152,26 +2278,26 @@ async function writeConfig(newConfig) {
         logger.debug('About to write temp config file', {
             action: 'config_write_start',
             tempPath,
-            contentLength: newContent.length
+            contentLength: newContent.length,
         });
-        
+
         await fsp.writeFile(tempPath, newContent, 'utf-8');
-        
+
         // Log backup creation
         logger.debug('Created temporary config backup', {
             action: 'config_backup',
-            tempPath
+            tempPath,
         });
 
         // Atomically rename the temp file to the final file
         logger.debug('About to rename temp file', {
             action: 'config_rename_start',
             tempPath,
-            finalPath
+            finalPath,
         });
-        
+
         await fsp.rename(tempPath, finalPath);
-        
+
         // Update the in-memory config for the current running instance
         const previousConfig = { ...config };
         Object.assign(config, newConfig);
@@ -2180,14 +2306,17 @@ async function writeConfig(newConfig) {
         logger.info('Configuration updated successfully', {
             action: 'config_update_success',
             changes: Object.keys(newConfig).reduce((acc, key) => {
-                if (!key.startsWith('_') && JSON.stringify(newConfig[key]) !== JSON.stringify(previousConfig[key])) {
+                if (
+                    !key.startsWith('_') &&
+                    JSON.stringify(newConfig[key]) !== JSON.stringify(previousConfig[key])
+                ) {
                     acc[key] = {
                         previous: previousConfig[key],
-                        new: newConfig[key]
+                        new: newConfig[key],
                     };
                 }
                 return acc;
-            }, {})
+            }, {}),
         });
     } catch (error) {
         logger.error('Failed to update configuration', {
@@ -2197,7 +2326,7 @@ async function writeConfig(newConfig) {
             code: error.code,
             errno: error.errno,
             syscall: error.syscall,
-            path: error.path
+            path: error.path,
         });
 
         // Attempt to clean up the temporary file on error
@@ -2205,12 +2334,12 @@ async function writeConfig(newConfig) {
             await fsp.unlink(tempPath);
             logger.debug('Cleaned up temporary config file after error', {
                 action: 'config_cleanup',
-                tempPath
+                tempPath,
             });
         } catch (cleanupError) {
             logger.warn('Failed to clean up temporary config file', {
                 action: 'config_cleanup_error',
-                error: cleanupError.message
+                error: cleanupError.message,
             });
         }
         throw error; // Re-throw the original error
@@ -2254,25 +2383,25 @@ app.get('/admin', (req, res) => {
         // Generate cache buster based on file modification times for better caching
         const cssPath = path.join(__dirname, 'public', 'admin.css');
         const jsPath = path.join(__dirname, 'public', 'admin.js');
-        
+
         try {
             const cssStats = fs.statSync(cssPath);
             const jsStats = fs.statSync(jsPath);
             const cssCacheBuster = cssStats.mtime.getTime();
             const jsCacheBuster = jsStats.mtime.getTime();
-            
+
             // Read admin.html and inject cache busters
             fs.readFile(path.join(__dirname, 'public', 'admin.html'), 'utf8', (err, data) => {
                 if (err) {
                     console.error('Error reading admin.html:', err);
                     return res.status(500).send('Internal Server Error');
                 }
-                
+
                 // Replace version parameters with file-based cache busters
                 const updatedHtml = data
-                    .replace(/admin\.css\?v=[\d\.]+/g, `admin.css?v=${cssCacheBuster}`)
-                    .replace(/admin\.js\?v=[\d\.]+/g, `admin.js?v=${jsCacheBuster}`);
-                
+                    .replace(/admin\.css\?v=[\d.]+/g, `admin.css?v=${cssCacheBuster}`)
+                    .replace(/admin\.js\?v=[\d.]+/g, `admin.js?v=${jsCacheBuster}`);
+
                 res.setHeader('Content-Type', 'text/html');
                 res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
                 res.setHeader('Pragma', 'no-cache');
@@ -2281,19 +2410,22 @@ app.get('/admin', (req, res) => {
             });
         } catch (error) {
             // Fallback to timestamp-based cache buster if file stats fail
-            console.warn('Could not read file stats for cache busting, using timestamp fallback:', error.message);
+            console.warn(
+                'Could not read file stats for cache busting, using timestamp fallback:',
+                error.message
+            );
             const fallbackCacheBuster = Date.now();
-            
+
             fs.readFile(path.join(__dirname, 'public', 'admin.html'), 'utf8', (err, data) => {
                 if (err) {
                     console.error('Error reading admin.html:', err);
                     return res.status(500).send('Internal Server Error');
                 }
-                
+
                 const updatedHtml = data
-                    .replace(/admin\.css\?v=[\d\.]+/g, `admin.css?v=${fallbackCacheBuster}`)
-                    .replace(/admin\.js\?v=[\d\.]+/g, `admin.js?v=${fallbackCacheBuster}`);
-                
+                    .replace(/admin\.css\?v=[\d.]+/g, `admin.css?v=${fallbackCacheBuster}`)
+                    .replace(/admin\.js\?v=[\d.]+/g, `admin.js?v=${fallbackCacheBuster}`);
+
                 res.setHeader('Content-Type', 'text/html');
                 res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
                 res.setHeader('Pragma', 'no-cache');
@@ -2331,14 +2463,16 @@ app.get('/admin/logs', isAuthenticated, (req, res) => {
             console.error('Error reading logs.html:', err);
             return res.sendFile(filePath); // Fallback to static file
         }
-        
+
         // Get current asset versions
         const versions = getAssetVersions();
-        
+
         // Replace asset version placeholders with individual file versions
-        let stamped = contents
-            .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`);
-            
+        const stamped = contents.replace(
+            /admin\.css\?v=[^"&\s]+/g,
+            `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
+        );
+
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
         res.send(stamped);
     });
@@ -2460,12 +2594,15 @@ app.get('/health', (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/HealthCheckResponse'
  */
-app.get('/api/health', asyncHandler(async (req, res) => {
-    const health = await getDetailedHealth();
-    
-    // Always return 200 for health checks - let the consumer decide based on status
-    res.status(200).json(health);
-}));
+app.get(
+    '/api/health',
+    asyncHandler(async (req, res) => {
+        const health = await getDetailedHealth();
+
+        // Always return 200 for health checks - let the consumer decide based on status
+        res.status(200).json(health);
+    })
+);
 
 /**
  * @swagger
@@ -2485,12 +2622,15 @@ app.get('/api/health', asyncHandler(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/HealthCheckResponse'
  */
-app.get('/health/detailed', asyncHandler(async (req, res) => {
-    const health = await getDetailedHealth();
-    
-    // Always return 200 for health checks - let the consumer decide based on status
-    res.status(200).json(health);
-}));
+app.get(
+    '/health/detailed',
+    asyncHandler(async (req, res) => {
+        const health = await getDetailedHealth();
+
+        // Always return 200 for health checks - let the consumer decide based on status
+        res.status(200).json(health);
+    })
+);
 
 /**
  * @swagger
@@ -2510,27 +2650,35 @@ app.get('/health/detailed', asyncHandler(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Config'
  */
-app.get('/get-config', 
+app.get(
+    '/get-config',
     cacheMiddleware({
         ttl: 30000, // 30 seconds instead of 10 minutes
         cacheControl: 'public, max-age=30',
-        varyHeaders: ['Accept-Encoding', 'User-Agent'] // Add User-Agent to vary headers
+        varyHeaders: ['Accept-Encoding', 'User-Agent'], // Add User-Agent to vary headers
     }),
     (req, res) => {
         const userAgent = req.get('user-agent') || '';
         const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
-        
+
         if (isDebug) {
-            console.log(`[get-config] Request from ${isMobile ? 'mobile' : 'desktop'} device: ${userAgent.substring(0, 50)}...`);
+            console.log(
+                `[get-config] Request from ${isMobile ? 'mobile' : 'desktop'} device: ${userAgent.substring(0, 50)}...`
+            );
         }
-        
+
         res.json({
             clockWidget: config.clockWidget !== false,
             clockTimezone: config.clockTimezone || 'auto',
             clockFormat: config.clockFormat || '24h',
             cinemaMode: config.cinemaMode || false,
             cinemaOrientation: config.cinemaOrientation || 'auto',
-            wallartMode: config.wallartMode || { enabled: false, itemsPerScreen: 30, columns: 6, transitionInterval: 30 },
+            wallartMode: config.wallartMode || {
+                enabled: false,
+                itemsPerScreen: 30,
+                columns: 6,
+                transitionInterval: 30,
+            },
             transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
             backgroundRefreshMinutes: config.backgroundRefreshMinutes || 30,
             showClearLogo: config.showClearLogo !== false,
@@ -2545,16 +2693,19 @@ app.get('/get-config',
                 content: 100,
                 clearlogo: 100,
                 clock: 100,
-                global: 100
+                global: 100,
             },
             // Debug info for mobile genre filtering issue
-            _debug: isDebug ? {
-                isMobile,
-                userAgent: userAgent.substring(0, 100),
-                configTimestamp: Date.now()
-            } : undefined
+            _debug: isDebug
+                ? {
+                      isMobile,
+                      userAgent: userAgent.substring(0, 100),
+                      configTimestamp: Date.now(),
+                  }
+                : undefined,
         });
-    });
+    }
+);
 
 /**
  * @swagger
@@ -2592,7 +2743,8 @@ app.get('/get-config',
  *             schema:
  *               $ref: '#/components/schemas/ApiMessage'
  */
-app.get('/get-media', 
+app.get(
+    '/get-media',
     newValidationMiddleware(validationRules.mediaRequest),
     apiCacheMiddleware.media,
     asyncHandler(async (req, res) => {
@@ -2607,44 +2759,60 @@ app.get('/get-media',
             const itemCount = playlistCache.length;
             const userAgent = req.get('user-agent') || '';
             const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
-            
+
             if (isDebug) {
-                console.log(`[Debug] Serving ${itemCount} items from cache to ${isMobile ? 'mobile' : 'desktop'} device.`);
-                
+                console.log(
+                    `[Debug] Serving ${itemCount} items from cache to ${isMobile ? 'mobile' : 'desktop'} device.`
+                );
+
                 // Extra debug for mobile devices showing empty results
                 if (isMobile && itemCount === 0) {
-                    console.log(`[Debug] WARNING: Empty cache for mobile device. User-Agent: ${userAgent.substring(0, 100)}`);
-                    console.log(`[Debug] Current config.mediaServers:`, JSON.stringify(config.mediaServers?.map(s => ({
-                        name: s.name,
-                        enabled: s.enabled,
-                        genreFilter: s.genreFilter,
-                        movieCount: s.movieCount,
-                        showCount: s.showCount
-                    })), null, 2));
+                    console.log(
+                        `[Debug] WARNING: Empty cache for mobile device. User-Agent: ${userAgent.substring(0, 100)}`
+                    );
+                    console.log(
+                        `[Debug] Current config.mediaServers:`,
+                        JSON.stringify(
+                            config.mediaServers?.map(s => ({
+                                name: s.name,
+                                enabled: s.enabled,
+                                genreFilter: s.genreFilter,
+                                movieCount: s.movieCount,
+                                showCount: s.showCount,
+                            })),
+                            null,
+                            2
+                        )
+                    );
                 }
             }
-            
+
             return res.json(playlistCache);
         }
 
         if (isRefreshing) {
             // The full cache is being built. Tell the client to wait and try again.
-            if (isDebug) console.log('[Debug] Cache is empty but refreshing. Sending 202 Accepted.');
+            if (isDebug)
+                console.log('[Debug] Cache is empty but refreshing. Sending 202 Accepted.');
             // 202 Accepted is appropriate here: the request is accepted, but processing is not complete.
             return res.status(202).json({
                 status: 'building',
                 message: 'Playlist is being built. Please try again in a few seconds.',
-                retryIn: 2000 // Suggest a 2-second polling interval
-        });
-    }
+                retryIn: 2000, // Suggest a 2-second polling interval
+            });
+        }
 
-    // If we get here, the cache is empty and we are not refreshing, which means the initial fetch failed.
-    if (isDebug) console.log('[Debug] Cache is empty and not refreshing. Sending 503 Service Unavailable.');
-    return res.status(503).json({
-        status: 'failed',
-        error: "Media playlist is currently unavailable. The initial fetch may have failed. Check server logs."
-    });
-}));
+        // If we get here, the cache is empty and we are not refreshing, which means the initial fetch failed.
+        if (isDebug)
+            console.log(
+                '[Debug] Cache is empty and not refreshing. Sending 503 Service Unavailable.'
+            );
+        return res.status(503).json({
+            status: 'failed',
+            error: 'Media playlist is currently unavailable. The initial fetch may have failed. Check server logs.',
+        });
+    })
+);
 
 /**
  * @swagger
@@ -2670,31 +2838,41 @@ app.get('/get-media',
  *       404:
  *         description: Media item not found.
  */
-app.get('/get-media-by-key/:key', asyncHandler(async (req, res) => {
-    const keyParts = req.params.key.split('-'); // e.g., ['plex', 'My', 'Server', '12345']
-    if (keyParts.length < 3) { // Must have at least type, name, and key
-        throw new ApiError(400, 'Invalid media key format.');
-    }
-    const type = keyParts.shift();
-    const originalKey = keyParts.pop();
-    const serverName = keyParts.join('-'); // Re-join the middle parts
-    const serverConfig = config.mediaServers.find(s => s.name === serverName && s.type === type && s.enabled === true);
+app.get(
+    '/get-media-by-key/:key',
+    asyncHandler(async (req, res) => {
+        const keyParts = req.params.key.split('-'); // e.g., ['plex', 'My', 'Server', '12345']
+        if (keyParts.length < 3) {
+            // Must have at least type, name, and key
+            throw new ApiError(400, 'Invalid media key format.');
+        }
+        const type = keyParts.shift();
+        const originalKey = keyParts.pop();
+        const serverName = keyParts.join('-'); // Re-join the middle parts
+        const serverConfig = config.mediaServers.find(
+            s => s.name === serverName && s.type === type && s.enabled === true
+        );
 
-    if (!serverConfig) {
-        throw new NotFoundError('Server configuration not found for this item.');
-    }
+        if (!serverConfig) {
+            throw new NotFoundError('Server configuration not found for this item.');
+        }
 
-    let mediaItem = null;
-    if (type === 'plex') {
-        const plex = getPlexClient(serverConfig);
-        mediaItem = await processPlexItem({ key: `/library/metadata/${originalKey}` }, serverConfig, plex);
-    }
-    if (mediaItem) {
-        res.json(mediaItem);
-    } else {
-        throw new NotFoundError('Media not found or could not be processed.');
-    }
-}));
+        let mediaItem = null;
+        if (type === 'plex') {
+            const plex = getPlexClient(serverConfig);
+            mediaItem = await processPlexItem(
+                { key: `/library/metadata/${originalKey}` },
+                serverConfig,
+                plex
+            );
+        }
+        if (mediaItem) {
+            res.json(mediaItem);
+        } else {
+            throw new NotFoundError('Media not found or could not be processed.');
+        }
+    })
+);
 
 /**
  * @swagger
@@ -2726,139 +2904,168 @@ app.get('/get-media-by-key/:key', asyncHandler(async (req, res) => {
  *       302:
  *         description: Redirects to a fallback image on error.
  */
-app.get('/image', 
+app.get(
+    '/image',
     cacheMiddleware({
         ttl: 86400000, // 24 hours
         cacheControl: 'public, max-age=86400',
         varyHeaders: ['Accept-Encoding'],
-        keyGenerator: (req) => `image:${req.query.server}-${req.query.path}`
+        keyGenerator: req => `image:${req.query.server}-${req.query.path}`,
     }),
     asyncHandler(async (req, res) => {
-    const imageCacheDir = path.join(__dirname, 'image_cache');
-    const { server: serverName, path: imagePath } = req.query;
+        const imageCacheDir = path.join(__dirname, 'image_cache');
+        const { server: serverName, path: imagePath } = req.query;
 
-    if (isDebug) {
-        console.log(`[Image Proxy] Request for image received. Server: "${serverName}", Path: "${imagePath}"`);
-    }
-
-    if (!serverName || !imagePath) {
-        if (isDebug) console.log('[Image Proxy] Bad request: server name or image path is missing.');
-        return res.status(400).send('Server name or image path is missing');
-    }
-
-    // Create a unique and safe filename for the cache
-    const cacheKey = `${serverName}-${imagePath}`;
-    const cacheHash = crypto.createHash('sha256').update(cacheKey).digest('hex');
-    const fileExtension = path.extname(imagePath) || '.jpg'; // Fallback extension
-    const cachedFilePath = path.join(imageCacheDir, `${cacheHash}${fileExtension}`);
-
-    // 1. Check if file exists in cache
-    try {
-        await fsp.access(cachedFilePath);
-        if (isDebug) console.log(`[Image Cache] HIT: Serving "${imagePath}" from cache file: ${cachedFilePath}`);
-        res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
-        return res.sendFile(cachedFilePath);
-    } catch (e) {
-        // File does not exist, proceed to fetch
-        if (isDebug) console.log(`[Image Cache] MISS: "${imagePath}". Fetching from origin.`);
-    }
-
-    // 2. Fetch from origin if not in cache
-    const serverConfig = config.mediaServers.find(s => s.name === serverName);
-    if (!serverConfig) {
-        console.error(`[Image Proxy] Server configuration for "${serverName}" not found. Cannot process image request.`);
-        return res.redirect('/fallback-poster.png');
-    }
-
-    let imageUrl, fetchOptions = { method: 'GET', headers: {} };
-
-    if (serverConfig.type === 'plex') {
-        const token = process.env[serverConfig.tokenEnvVar];
-        if (!token) {
-            console.error(`[Image Proxy] Plex token not configured for server "${serverName}" (env var: ${serverConfig.tokenEnvVar}).`);
-            return res.redirect('/fallback-poster.png');
+        if (isDebug) {
+            console.log(
+                `[Image Proxy] Request for image received. Server: "${serverName}", Path: "${imagePath}"`
+            );
         }
-        const hostname = process.env[serverConfig.hostnameEnvVar];
-        const port = process.env[serverConfig.portEnvVar];
-        imageUrl = `http://${hostname}:${port}${imagePath}`;
-        fetchOptions.headers['X-Plex-Token'] = token;
-    } else {
-        console.error(`[Image Proxy] Unsupported server type "${serverConfig.type}" for server "${serverName}".`);
-        return res.redirect('/fallback-poster.png');
-    }
 
-    if (isDebug) console.log(`[Image Proxy] Fetching from origin URL: ${imageUrl}`);
+        if (!serverName || !imagePath) {
+            if (isDebug)
+                console.log('[Image Proxy] Bad request: server name or image path is missing.');
+            return res.status(400).send('Server name or image path is missing');
+        }
 
-    try {
-        const mediaServerResponse = await fetch(imageUrl, fetchOptions);
+        // Create a unique and safe filename for the cache
+        const cacheKey = `${serverName}-${imagePath}`;
+        const cacheHash = crypto.createHash('sha256').update(cacheKey).digest('hex');
+        const fileExtension = path.extname(imagePath) || '.jpg'; // Fallback extension
+        const cachedFilePath = path.join(imageCacheDir, `${cacheHash}${fileExtension}`);
 
-        if (!mediaServerResponse.ok) {
-            console.warn(`[Image Proxy] Media server "${serverName}" returned status ${mediaServerResponse.status} for path "${imagePath}".`);
-            console.warn(`[Image Proxy] Serving fallback image for "${imagePath}".`);
+        // 1. Check if file exists in cache
+        try {
+            await fsp.access(cachedFilePath);
+            if (isDebug)
+                console.log(
+                    `[Image Cache] HIT: Serving "${imagePath}" from cache file: ${cachedFilePath}`
+                );
+            res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
+            return res.sendFile(cachedFilePath);
+        } catch (e) {
+            // File does not exist, proceed to fetch
+            if (isDebug) console.log(`[Image Cache] MISS: "${imagePath}". Fetching from origin.`);
+        }
+
+        // 2. Fetch from origin if not in cache
+        const serverConfig = config.mediaServers.find(s => s.name === serverName);
+        if (!serverConfig) {
+            console.error(
+                `[Image Proxy] Server configuration for "${serverName}" not found. Cannot process image request.`
+            );
             return res.redirect('/fallback-poster.png');
         }
 
-        // Set headers on the client response
-        res.setHeader('Cache-Control', 'public, max-age=86400'); // 86400 seconds = 24 hours
-        const contentType = mediaServerResponse.headers.get('content-type');
-        res.setHeader('Content-Type', contentType || 'image/jpeg');
+        let imageUrl;
+        const fetchOptions = { method: 'GET', headers: {} };
 
-        // 3. Pipe the response to both the client and the cache file
-        const passthrough = new PassThrough();
-        mediaServerResponse.body.pipe(passthrough);
+        if (serverConfig.type === 'plex') {
+            const token = process.env[serverConfig.tokenEnvVar];
+            if (!token) {
+                console.error(
+                    `[Image Proxy] Plex token not configured for server "${serverName}" (env var: ${serverConfig.tokenEnvVar}).`
+                );
+                return res.redirect('/fallback-poster.png');
+            }
+            const hostname = process.env[serverConfig.hostnameEnvVar];
+            const port = process.env[serverConfig.portEnvVar];
+            imageUrl = `http://${hostname}:${port}${imagePath}`;
+            fetchOptions.headers['X-Plex-Token'] = token;
+        } else {
+            console.error(
+                `[Image Proxy] Unsupported server type "${serverConfig.type}" for server "${serverName}".`
+            );
+            return res.redirect('/fallback-poster.png');
+        }
 
-        const fileStream = fs.createWriteStream(cachedFilePath);
-        passthrough.pipe(fileStream);
-        passthrough.pipe(res);
+        if (isDebug) console.log(`[Image Proxy] Fetching from origin URL: ${imageUrl}`);
 
-        fileStream.on('finish', async () => {
-            if (isDebug) console.log(`[Image Cache] SUCCESS: Saved "${imagePath}" to cache: ${cachedFilePath}`);
-            
-            // Check if auto cleanup is enabled and perform cleanup if needed
-            const config = await readConfig();
-            if (config.cache?.autoCleanup !== false) {
-                try {
-                    const cleanupResult = await cacheDiskManager.cleanupCache();
-                    if (cleanupResult.cleaned && cleanupResult.deletedFiles > 0) {
-                        logger.info('Automatic cache cleanup performed', {
+        try {
+            const mediaServerResponse = await fetch(imageUrl, fetchOptions);
+
+            if (!mediaServerResponse.ok) {
+                console.warn(
+                    `[Image Proxy] Media server "${serverName}" returned status ${mediaServerResponse.status} for path "${imagePath}".`
+                );
+                console.warn(`[Image Proxy] Serving fallback image for "${imagePath}".`);
+                return res.redirect('/fallback-poster.png');
+            }
+
+            // Set headers on the client response
+            res.setHeader('Cache-Control', 'public, max-age=86400'); // 86400 seconds = 24 hours
+            const contentType = mediaServerResponse.headers.get('content-type');
+            res.setHeader('Content-Type', contentType || 'image/jpeg');
+
+            // 3. Pipe the response to both the client and the cache file
+            const passthrough = new PassThrough();
+            mediaServerResponse.body.pipe(passthrough);
+
+            const fileStream = fs.createWriteStream(cachedFilePath);
+            passthrough.pipe(fileStream);
+            passthrough.pipe(res);
+
+            fileStream.on('finish', async () => {
+                if (isDebug)
+                    console.log(
+                        `[Image Cache] SUCCESS: Saved "${imagePath}" to cache: ${cachedFilePath}`
+                    );
+
+                // Check if auto cleanup is enabled and perform cleanup if needed
+                const config = await readConfig();
+                if (config.cache?.autoCleanup !== false) {
+                    try {
+                        const cleanupResult = await cacheDiskManager.cleanupCache();
+                        if (cleanupResult.cleaned && cleanupResult.deletedFiles > 0) {
+                            logger.info('Automatic cache cleanup performed', {
+                                trigger: 'image_cache_write',
+                                deletedFiles: cleanupResult.deletedFiles,
+                                freedSpaceMB: cleanupResult.freedSpaceMB,
+                            });
+                        }
+                    } catch (cleanupError) {
+                        logger.warn('Automatic cache cleanup failed', {
+                            error: cleanupError.message,
                             trigger: 'image_cache_write',
-                            deletedFiles: cleanupResult.deletedFiles,
-                            freedSpaceMB: cleanupResult.freedSpaceMB
                         });
                     }
-                } catch (cleanupError) {
-                    logger.warn('Automatic cache cleanup failed', { 
-                        error: cleanupError.message,
-                        trigger: 'image_cache_write'
-                    });
                 }
-            }
-        });
-
-        fileStream.on('error', (err) => {
-            console.error(`[Image Cache] ERROR: Failed to write to cache file ${cachedFilePath}:`, err);
-            // If caching fails, the user still gets the image, so we just log the error.
-            // We should also clean up the potentially partial file.
-            fsp.unlink(cachedFilePath).catch(unlinkErr => {
-                console.error(`[Image Cache] Failed to clean up partial cache file ${cachedFilePath}:`, unlinkErr);
             });
-        });
 
-    } catch (error) {
-        console.error(`[Image Proxy] Network or fetch error for path "${imagePath}" on server "${serverName}".`);
+            fileStream.on('error', err => {
+                console.error(
+                    `[Image Cache] ERROR: Failed to write to cache file ${cachedFilePath}:`,
+                    err
+                );
+                // If caching fails, the user still gets the image, so we just log the error.
+                // We should also clean up the potentially partial file.
+                fsp.unlink(cachedFilePath).catch(unlinkErr => {
+                    console.error(
+                        `[Image Cache] Failed to clean up partial cache file ${cachedFilePath}:`,
+                        unlinkErr
+                    );
+                });
+            });
+        } catch (error) {
+            console.error(
+                `[Image Proxy] Network or fetch error for path "${imagePath}" on server "${serverName}".`
+            );
 
-        if (error.name === 'AbortError') {
-             console.error(`[Image Proxy] Fetch aborted, possibly due to timeout.`);
-        } else if (error.message.startsWith('read ECONNRESET')) {
-            console.error(`[Image Proxy] Connection reset by peer. The media server may have closed the connection unexpectedly.`);
+            if (error.name === 'AbortError') {
+                console.error(`[Image Proxy] Fetch aborted, possibly due to timeout.`);
+            } else if (error.message.startsWith('read ECONNRESET')) {
+                console.error(
+                    `[Image Proxy] Connection reset by peer. The media server may have closed the connection unexpectedly.`
+                );
+            }
+
+            console.error(`[Image Proxy] Error: ${error.message}`);
+            if (error.cause) console.error(`[Image Proxy] Cause: ${error.cause}`);
+            console.warn(`[Image Proxy] Serving fallback image for "${imagePath}".`);
+            res.redirect('/fallback-poster.png');
         }
-
-        console.error(`[Image Proxy] Error: ${error.message}`);
-        if (error.cause) console.error(`[Image Proxy] Cause: ${error.cause}`);
-        console.warn(`[Image Proxy] Serving fallback image for "${imagePath}".`);
-        res.redirect('/fallback-poster.png');
-    }
-}));
+    })
+);
 
 /**
  * @swagger
@@ -2881,21 +3088,23 @@ app.get('/admin/setup', (req, res) => {
     if (isAdminSetup()) {
         return res.redirect('/admin');
     }
-    
+
     const filePath = path.join(__dirname, 'public', 'setup.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) {
             console.error('Error reading setup.html:', err);
             return res.sendFile(filePath); // Fallback to static file
         }
-        
+
         // Get current asset versions
         const versions = getAssetVersions();
-        
+
         // Replace asset version placeholders with individual file versions
-        let stamped = contents
-            .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`);
-            
+        const stamped = contents.replace(
+            /admin\.css\?v=[^"&\s]+/g,
+            `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
+        );
+
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
         res.send(stamped);
     });
@@ -2933,70 +3142,77 @@ app.get('/admin/setup', (req, res) => {
  *       403:
  *         description: Admin user already configured
  */
-app.post('/admin/setup', express.urlencoded({ extended: true }), asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin Setup] Received setup request.');
-    if (isAdminSetup()) {
-        if (isDebug) console.log('[Admin Setup] Aborted: Admin user is already configured.');
-        throw new ApiError(403, 'Admin user is already configured.');
-    }
-    
-    const { username, password, enable2fa } = req.body;
-    if (!username || !password) {
-        if (isDebug) console.log('[Admin Setup] Aborted: Username or password missing.');
-        throw new ApiError(400, 'Username and password are required.');
-    }
-    
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-    const sessionSecret = require('crypto').randomBytes(32).toString('hex');
-    
-    let tfaSecret = '';
-    let qrCodeDataUrl = null;
-    
-    // Check if 2FA should be enabled during setup
-    if (enable2fa === 'true') {
-        if (isDebug) console.log('[Admin Setup] Enabling 2FA during setup...');
-        tfaSecret = speakeasy.generateSecret({
-            name: 'Posterrama Admin',
-            issuer: 'Posterrama'
-        }).base32;
-        
-        // Generate QR code for setup
-        const qrCodeUrl = speakeasy.otpauthURL({
-            secret: tfaSecret,
-            label: username,
-            name: 'Posterrama Admin',
-            issuer: 'Posterrama',
-            encoding: 'base32'
+app.post(
+    '/admin/setup',
+    express.urlencoded({ extended: true }),
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin Setup] Received setup request.');
+        if (isAdminSetup()) {
+            if (isDebug) console.log('[Admin Setup] Aborted: Admin user is already configured.');
+            throw new ApiError(403, 'Admin user is already configured.');
+        }
+
+        const { username, password, enable2fa } = req.body;
+        if (!username || !password) {
+            if (isDebug) console.log('[Admin Setup] Aborted: Username or password missing.');
+            throw new ApiError(400, 'Username and password are required.');
+        }
+
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
+        const sessionSecret = require('crypto').randomBytes(32).toString('hex');
+
+        let tfaSecret = '';
+        let qrCodeDataUrl = null;
+
+        // Check if 2FA should be enabled during setup
+        if (enable2fa === 'true') {
+            if (isDebug) console.log('[Admin Setup] Enabling 2FA during setup...');
+            tfaSecret = speakeasy.generateSecret({
+                name: 'Posterrama Admin',
+                issuer: 'Posterrama',
+            }).base32;
+
+            // Generate QR code for setup
+            const qrCodeUrl = speakeasy.otpauthURL({
+                secret: tfaSecret,
+                label: username,
+                name: 'Posterrama Admin',
+                issuer: 'Posterrama',
+                encoding: 'base32',
+            });
+
+            qrCodeDataUrl = await qrcode.toDataURL(qrCodeUrl);
+            if (isDebug) console.log('[Admin Setup] 2FA secret generated and QR code created.');
+        } else {
+            if (isDebug) console.log('[Admin Setup] 2FA not enabled during setup.');
+        }
+
+        await writeEnvFile({
+            ADMIN_USERNAME: username,
+            ADMIN_PASSWORD_HASH: passwordHash,
+            SESSION_SECRET: sessionSecret,
+            ADMIN_2FA_SECRET: tfaSecret, // Will be empty string if 2FA not enabled
         });
-        
-        qrCodeDataUrl = await qrcode.toDataURL(qrCodeUrl);
-        if (isDebug) console.log('[Admin Setup] 2FA secret generated and QR code created.');
-    } else {
-        if (isDebug) console.log('[Admin Setup] 2FA not enabled during setup.');
-    }
-    
-    await writeEnvFile({
-        ADMIN_USERNAME: username,
-        ADMIN_PASSWORD_HASH: passwordHash,
-        SESSION_SECRET: sessionSecret,
-        ADMIN_2FA_SECRET: tfaSecret // Will be empty string if 2FA not enabled
-    });
-    
-    if (isDebug) console.log(`[Admin Setup] Successfully created admin user "${username}". 2FA enabled: ${enable2fa === 'true'}`);
-    
-    // If 2FA was enabled and we're expecting JSON response (like from setup wizard)
-    if (enable2fa === 'true' && qrCodeDataUrl) {
-        return res.json({
-            success: true,
-            message: 'Admin user created successfully with 2FA enabled.',
-            qrCodeDataUrl: qrCodeDataUrl
-        });
-    }
-    
-    // Otherwise redirect to completion page
-    res.redirect('/setup.html?complete=1');
-}));
+
+        if (isDebug)
+            console.log(
+                `[Admin Setup] Successfully created admin user "${username}". 2FA enabled: ${enable2fa === 'true'}`
+            );
+
+        // If 2FA was enabled and we're expecting JSON response (like from setup wizard)
+        if (enable2fa === 'true' && qrCodeDataUrl) {
+            return res.json({
+                success: true,
+                message: 'Admin user created successfully with 2FA enabled.',
+                qrCodeDataUrl: qrCodeDataUrl,
+            });
+        }
+
+        // Otherwise redirect to completion page
+        res.redirect('/setup.html?complete=1');
+    })
+);
 
 /**
  * @swagger
@@ -3022,21 +3238,23 @@ app.get('/admin/login', (req, res) => {
     if (req.session.user) {
         return res.redirect('/admin');
     }
-    
+
     const filePath = path.join(__dirname, 'public', 'login.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) {
             console.error('Error reading login.html:', err);
             return res.sendFile(filePath); // Fallback to static file
         }
-        
+
         // Get current asset versions
         const versions = getAssetVersions();
-        
+
         // Replace asset version placeholders with individual file versions
-        let stamped = contents
-            .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`);
-            
+        const stamped = contents.replace(
+            /admin\.css\?v=[^"&\s]+/g,
+            `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
+        );
+
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
         res.send(stamped);
     });
@@ -3044,13 +3262,15 @@ app.get('/admin/login', (req, res) => {
 
 // Apply rate limiting to protect against brute-force password attacks.
 const loginLimiter = rateLimit({
-	windowMs: 15 * 60 * 1000, // 15 minutes
-	max: 10, // Limit each IP to 10 login requests per windowMs
-	standardHeaders: true,
-	legacyHeaders: false,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Limit each IP to 10 login requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
     handler: (req, res) => {
         // Redirect to error page instead of throwing ApiError
-        const errorMessage = encodeURIComponent('Too many login attempts from this IP. Please try again after 15 minutes.');
+        const errorMessage = encodeURIComponent(
+            'Too many login attempts from this IP. Please try again after 15 minutes.'
+        );
         return res.redirect(`/error.html?error=${errorMessage}`);
     },
 });
@@ -3091,26 +3311,36 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
     try {
         console.log(`[Admin Login] POST /admin/login route hit`);
         if (isDebug) console.log(`[Admin Login] Received login request:`, req.body);
-        
+
         const { username, password } = req.body;
         if (isDebug) console.log(`[Admin Login] Attempting login for user "${username}".`);
-        
+
         // Check if admin is setup
         if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD_HASH) {
             if (isDebug) console.log(`[Admin Login] Admin not setup yet.`);
-            return res.status(400).json({ error: 'Admin user not configured. Please run the setup first.' });
+            return res
+                .status(400)
+                .json({ error: 'Admin user not configured. Please run the setup first.' });
         }
 
-        const isValidUser = (username === process.env.ADMIN_USERNAME);
+        const isValidUser = username === process.env.ADMIN_USERNAME;
         if (!isValidUser) {
-            if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid username.`);
-            return res.status(401).json({ error: 'Invalid username or password. Please try again.' });
+            if (isDebug)
+                console.log(`[Admin Login] Login failed for user "${username}". Invalid username.`);
+            return res
+                .status(401)
+                .json({ error: 'Invalid username or password. Please try again.' });
         }
 
         const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
         if (!isValidPassword) {
-            if (isDebug) console.log(`[Admin Login] Login failed for user "${username}". Invalid credentials.`);
-            return res.status(401).json({ error: 'Invalid username or password. Please try again.' });
+            if (isDebug)
+                console.log(
+                    `[Admin Login] Login failed for user "${username}". Invalid credentials.`
+                );
+            return res
+                .status(401)
+                .json({ error: 'Invalid username or password. Please try again.' });
         }
 
         // --- Check if 2FA is enabled ---
@@ -3122,13 +3352,20 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
             // Set a temporary flag in the session.
             req.session.tfa_required = true;
             req.session.tfa_user = { username: username }; // Store user info temporarily
-            if (isDebug) console.log(`[Admin Login] Credentials valid for "${username}". Requires 2FA verification.`);
-            return res.status(200).json({ success: true, requires2FA: true, redirectTo: '/admin/2fa-verify' });
+            if (isDebug)
+                console.log(
+                    `[Admin Login] Credentials valid for "${username}". Requires 2FA verification.`
+                );
+            return res
+                .status(200)
+                .json({ success: true, requires2FA: true, redirectTo: '/admin/2fa-verify' });
         } else {
             // No 2FA, log the user in directly.
             req.session.user = { username: username };
             if (isDebug) console.log(`[Admin Login] Login successful for user "${username}".`);
-            return res.status(200).json({ success: true, requires2FA: false, redirectTo: '/admin' });
+            return res
+                .status(200)
+                .json({ success: true, requires2FA: false, redirectTo: '/admin' });
         }
     } catch (error) {
         console.error('[Admin Login] Error:', error);
@@ -3158,21 +3395,23 @@ app.get('/admin/2fa-verify', (req, res) => {
     if (!req.session.tfa_required) {
         return res.redirect('/admin/login');
     }
-    
+
     const filePath = path.join(__dirname, 'public', '2fa-verify.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) {
             console.error('Error reading 2fa-verify.html:', err);
             return res.sendFile(filePath); // Fallback to static file
         }
-        
+
         // Get current asset versions
         const versions = getAssetVersions();
-        
+
         // Replace asset version placeholders with individual file versions
-        let stamped = contents
-            .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`);
-            
+        const stamped = contents.replace(
+            /admin\.css\?v=[^"&\s]+/g,
+            `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
+        );
+
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
         res.send(stamped);
     });
@@ -3180,10 +3419,10 @@ app.get('/admin/2fa-verify', (req, res) => {
 
 // Apply a stricter rate limit for 2FA code attempts.
 const twoFaLimiter = rateLimit({
-	windowMs: 5 * 60 * 1000, // 5 minutes
-	max: 5, // Limit each IP to 5 verification requests per windowMs
-	standardHeaders: true,
-	legacyHeaders: false,
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 5, // Limit each IP to 5 verification requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
     message: (req, res) => {
         // Redirecting with an error is better UX for this form.
         res.redirect('/admin/2fa-verify?error=rate_limited');
@@ -3230,30 +3469,49 @@ const twoFaLimiter = rateLimit({
  *         description: Redirect to login if 2FA session expired
  */
 
-app.post('/admin/2fa-verify', twoFaLimiter, express.urlencoded({ extended: true }), asyncHandler(async (req, res) => {
-    const { totp_code } = req.body;
+app.post(
+    '/admin/2fa-verify',
+    twoFaLimiter,
+    express.urlencoded({ extended: true }),
+    asyncHandler(async (req, res) => {
+        const { totp_code } = req.body;
 
-    if (!req.session.tfa_required || !req.session.tfa_user) {
-        if (isDebug) console.log('[Admin 2FA Verify] 2FA verification attempted without prior password validation. Redirecting to login.');
-        return res.redirect('/admin/login');
-    }
+        if (!req.session.tfa_required || !req.session.tfa_user) {
+            if (isDebug)
+                console.log(
+                    '[Admin 2FA Verify] 2FA verification attempted without prior password validation. Redirecting to login.'
+                );
+            return res.redirect('/admin/login');
+        }
 
-    const secret = process.env.ADMIN_2FA_SECRET || '';
-    const verified = speakeasy.totp.verify({ secret, encoding: 'base32', token: totp_code, window: 1 });
+        const secret = process.env.ADMIN_2FA_SECRET || '';
+        const verified = speakeasy.totp.verify({
+            secret,
+            encoding: 'base32',
+            token: totp_code,
+            window: 1,
+        });
 
-    if (verified) {
-        req.session.user = { username: req.session.tfa_user.username };
-        delete req.session.tfa_required;
-        delete req.session.tfa_user;
-        if (isDebug) console.log(`[Admin 2FA Verify] 2FA verification successful for user "${req.session.user.username}".`);
-        res.redirect('/admin');
-    } else {
-        if (isDebug) console.log(`[Admin 2FA Verify] Invalid 2FA code for user "${req.session.tfa_user.username}".`);
-        // Redirect back to the verification page with an error query parameter
-        // for a better user experience than a generic error page.
-        res.redirect('/admin/2fa-verify?error=invalid_code');
-    }
-}));
+        if (verified) {
+            req.session.user = { username: req.session.tfa_user.username };
+            delete req.session.tfa_required;
+            delete req.session.tfa_user;
+            if (isDebug)
+                console.log(
+                    `[Admin 2FA Verify] 2FA verification successful for user "${req.session.user.username}".`
+                );
+            res.redirect('/admin');
+        } else {
+            if (isDebug)
+                console.log(
+                    `[Admin 2FA Verify] Invalid 2FA code for user "${req.session.tfa_user.username}".`
+                );
+            // Redirect back to the verification page with an error query parameter
+            // for a better user experience than a generic error page.
+            res.redirect('/admin/2fa-verify?error=invalid_code');
+        }
+    })
+);
 
 /**
  * @swagger
@@ -3304,26 +3562,30 @@ app.get('/admin/logout', (req, res, next) => {
  *       401:
  *         description: Unauthorized.
  */
-app.post('/api/admin/2fa/generate', isAuthenticated, asyncHandler(async (req, res) => {
-    const secret = process.env.ADMIN_2FA_SECRET || '';
-    const isEnabled = secret.trim() !== '';
-    // Prevent generating a new secret if one is already active
-    if (isEnabled) {
-        throw new ApiError(400, '2FA is already enabled.');
-    }
+app.post(
+    '/api/admin/2fa/generate',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const secret = process.env.ADMIN_2FA_SECRET || '';
+        const isEnabled = secret.trim() !== '';
+        // Prevent generating a new secret if one is already active
+        if (isEnabled) {
+            throw new ApiError(400, '2FA is already enabled.');
+        }
 
-    const newSecret = speakeasy.generateSecret({
-        length: 20,
-        name: `posterrama.app (${req.session.user.username})`
-    });
+        const newSecret = speakeasy.generateSecret({
+            length: 20,
+            name: `posterrama.app (${req.session.user.username})`,
+        });
 
-    // Store the new secret in the session, waiting for verification.
-    // This is crucial so we don't lock the user out if they fail to verify.
-    req.session.tfa_pending_secret = newSecret.base32;
+        // Store the new secret in the session, waiting for verification.
+        // This is crucial so we don't lock the user out if they fail to verify.
+        req.session.tfa_pending_secret = newSecret.base32;
 
-    const qrCodeDataUrl = await qrcode.toDataURL(newSecret.otpauth_url);
-    res.json({ qrCodeDataUrl });
-}));
+        const qrCodeDataUrl = await qrcode.toDataURL(newSecret.otpauth_url);
+        res.json({ qrCodeDataUrl });
+    })
+);
 
 /**
  * @swagger
@@ -3354,35 +3616,46 @@ app.post('/api/admin/2fa/generate', isAuthenticated, asyncHandler(async (req, re
  *       401:
  *         description: Niet geautoriseerd.
  */
-app.post('/api/admin/2fa/verify', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    const { token } = req.body;
-    const pendingSecret = req.session.tfa_pending_secret;
+app.post(
+    '/api/admin/2fa/verify',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        const { token } = req.body;
+        const pendingSecret = req.session.tfa_pending_secret;
 
-    if (!pendingSecret) {
-        throw new ApiError(400, 'No 2FA setup process is pending. Please try again.');
-    }
+        if (!pendingSecret) {
+            throw new ApiError(400, 'No 2FA setup process is pending. Please try again.');
+        }
 
-    const verified = speakeasy.totp.verify({
-        secret: pendingSecret,
-        encoding: 'base32',
-        token: token,
-        window: 1
-    });
+        const verified = speakeasy.totp.verify({
+            secret: pendingSecret,
+            encoding: 'base32',
+            token: token,
+            window: 1,
+        });
 
-    if (verified) {
-        // Verification successful, save the secret to the .env file
-        await writeEnvFile({ ADMIN_2FA_SECRET: pendingSecret });
-        
-        // Clear the pending secret from the session
-        delete req.session.tfa_pending_secret;
+        if (verified) {
+            // Verification successful, save the secret to the .env file
+            await writeEnvFile({ ADMIN_2FA_SECRET: pendingSecret });
 
-        if (isDebug) console.log(`[Admin 2FA] 2FA enabled successfully for user "${req.session.user.username}".`);
-        res.json({ success: true, message: '2FA enabled successfully.' });
-    } else {
-        if (isDebug) console.log(`[Admin 2FA] 2FA verification failed for user "${req.session.user.username}".`);
-        throw new ApiError(400, 'Invalid verification code. Please try again.');
-    }
-}));
+            // Clear the pending secret from the session
+            delete req.session.tfa_pending_secret;
+
+            if (isDebug)
+                console.log(
+                    `[Admin 2FA] 2FA enabled successfully for user "${req.session.user.username}".`
+                );
+            res.json({ success: true, message: '2FA enabled successfully.' });
+        } else {
+            if (isDebug)
+                console.log(
+                    `[Admin 2FA] 2FA verification failed for user "${req.session.user.username}".`
+                );
+            throw new ApiError(400, 'Invalid verification code. Please try again.');
+        }
+    })
+);
 
 /**
  * @swagger
@@ -3413,15 +3686,23 @@ app.post('/api/admin/2fa/verify', isAuthenticated, express.json(), asyncHandler(
  *       401:
  *         description: Invalid password or unauthorized.
  */
-app.post('/api/admin/2fa/disable', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    const { password } = req.body;
-    if (!password) throw new ApiError(400, 'Password is required to disable 2FA.');
-    const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
-    if (!isValidPassword) throw new ApiError(401, 'Incorrect password.');
-    await writeEnvFile({ ADMIN_2FA_SECRET: '' });
-    if (isDebug) console.log(`[Admin 2FA] 2FA disabled successfully for user "${req.session.user.username}".`);
-    res.json({ success: true, message: '2FA disabled successfully.' });
-}));
+app.post(
+    '/api/admin/2fa/disable',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        const { password } = req.body;
+        if (!password) throw new ApiError(400, 'Password is required to disable 2FA.');
+        const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
+        if (!isValidPassword) throw new ApiError(401, 'Incorrect password.');
+        await writeEnvFile({ ADMIN_2FA_SECRET: '' });
+        if (isDebug)
+            console.log(
+                `[Admin 2FA] 2FA disabled successfully for user "${req.session.user.username}".`
+            );
+        res.json({ success: true, message: '2FA disabled successfully.' });
+    })
+);
 
 // ============================================================================
 // PUBLIC API ENDPOINTS
@@ -3475,13 +3756,16 @@ app.post('/api/admin/2fa/disable', isAuthenticated, express.json(), asyncHandler
  *                   type: string
  *                   description: Application name
  */
-app.get('/api/version', asyncHandler(async (req, res) => {
-    const packageJson = require('./package.json');
-    res.json({
-        version: packageJson.version,
-        name: packageJson.name
-    });
-}));
+app.get(
+    '/api/version',
+    asyncHandler(async (req, res) => {
+        const packageJson = require('./package.json');
+        res.json({
+            version: packageJson.version,
+            name: packageJson.name,
+        });
+    })
+);
 
 /**
  * @swagger
@@ -3509,56 +3793,59 @@ app.get('/api/version', asyncHandler(async (req, res) => {
  *                 releaseUrl:
  *                   type: string
  */
-app.get('/api/github/latest', asyncHandler(async (req, res) => {
-    try {
-        // Read current version from package.json
-        const packagePath = path.join(__dirname, 'package.json');
-        let currentVersion = 'Unknown';
-        
+app.get(
+    '/api/github/latest',
+    asyncHandler(async (req, res) => {
         try {
-            const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
-            currentVersion = packageData.version || 'Unknown';
-        } catch (e) {
-            logger.warn('Could not read package.json for version info', { error: e.message });
-        }
-
-        // Check for updates using GitHub service
-        const updateInfo = await githubService.checkForUpdates(currentVersion);
-        
-        // Return simplified public data
-        const publicInfo = {
-            currentVersion: updateInfo.currentVersion,
-            latestVersion: updateInfo.latestVersion,
-            hasUpdate: updateInfo.hasUpdate,
-            releaseUrl: updateInfo.releaseUrl,
-            publishedAt: updateInfo.publishedAt,
-            releaseName: updateInfo.releaseName
-        };
-        
-        res.json(publicInfo);
-    } catch (error) {
-        logger.error('Failed to check for latest release', { error: error.message });
-        
-        // Fallback response when GitHub is unavailable
-        try {
+            // Read current version from package.json
             const packagePath = path.join(__dirname, 'package.json');
-            const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
-            const currentVersion = packageData.version || 'Unknown';
-            
-            res.json({
-                currentVersion,
-                latestVersion: currentVersion,
-                hasUpdate: false,
-                releaseUrl: null,
-                publishedAt: null,
-                releaseName: null,
-                error: 'Could not connect to GitHub'
-            });
-        } catch (fallbackError) {
-            res.status(500).json({ error: 'Failed to check for latest release' });
+            let currentVersion = 'Unknown';
+
+            try {
+                const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
+                currentVersion = packageData.version || 'Unknown';
+            } catch (e) {
+                logger.warn('Could not read package.json for version info', { error: e.message });
+            }
+
+            // Check for updates using GitHub service
+            const updateInfo = await githubService.checkForUpdates(currentVersion);
+
+            // Return simplified public data
+            const publicInfo = {
+                currentVersion: updateInfo.currentVersion,
+                latestVersion: updateInfo.latestVersion,
+                hasUpdate: updateInfo.hasUpdate,
+                releaseUrl: updateInfo.releaseUrl,
+                publishedAt: updateInfo.publishedAt,
+                releaseName: updateInfo.releaseName,
+            };
+
+            res.json(publicInfo);
+        } catch (error) {
+            logger.error('Failed to check for latest release', { error: error.message });
+
+            // Fallback response when GitHub is unavailable
+            try {
+                const packagePath = path.join(__dirname, 'package.json');
+                const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
+                const currentVersion = packageData.version || 'Unknown';
+
+                res.json({
+                    currentVersion,
+                    latestVersion: currentVersion,
+                    hasUpdate: false,
+                    releaseUrl: null,
+                    publishedAt: null,
+                    releaseName: null,
+                    error: 'Could not connect to GitHub',
+                });
+            } catch (fallbackError) {
+                res.status(500).json({ error: 'Failed to check for latest release' });
+            }
         }
-    }
-}));
+    })
+);
 
 /**
  * @swagger
@@ -3600,42 +3887,44 @@ app.get('/api/github/latest', asyncHandler(async (req, res) => {
  *                       type: boolean
  *                       description: Whether TVDB API is enabled
  */
-app.get('/api/config', asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Public API] Request received for /api/config.');
-    
-    try {
-        const currentConfig = await readConfig();
-        
-        // Return only non-sensitive configuration data
-        const publicConfig = {
-            plex: {
-                server: currentConfig.plex?.server || null,
-                token: !!(currentConfig.plex?.token) // Boolean only, not the actual token
-            },
-            tmdb: {
-                enabled: !!(currentConfig.tmdb?.apiKey)
-            },
-            tvdb: {
-                enabled: !!(currentConfig.tvdb?.apiKey)
-            }
-        };
-        
-        if (isDebug) console.log('[Public API] Returning public config.');
-        res.json(publicConfig);
-        
-    } catch (error) {
-        if (isDebug) console.error('[Public API] Error reading config:', error);
-        // Return empty config if file doesn't exist yet
-        res.json({
-            plex: { server: null, token: false },
-            tmdb: { enabled: false },
-            tvdb: { enabled: false }
-        });
-    }
-}));
+app.get(
+    '/api/config',
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Public API] Request received for /api/config.');
+
+        try {
+            const currentConfig = await readConfig();
+
+            // Return only non-sensitive configuration data
+            const publicConfig = {
+                plex: {
+                    server: currentConfig.plex?.server || null,
+                    token: !!currentConfig.plex?.token, // Boolean only, not the actual token
+                },
+                tmdb: {
+                    enabled: !!currentConfig.tmdb?.apiKey,
+                },
+                tvdb: {
+                    enabled: !!currentConfig.tvdb?.apiKey,
+                },
+            };
+
+            if (isDebug) console.log('[Public API] Returning public config.');
+            res.json(publicConfig);
+        } catch (error) {
+            if (isDebug) console.error('[Public API] Error reading config:', error);
+            // Return empty config if file doesn't exist yet
+            res.json({
+                plex: { server: null, token: false },
+                tmdb: { enabled: false },
+                tvdb: { enabled: false },
+            });
+        }
+    })
+);
 
 // ============================================================================
-// ADMIN API ENDPOINTS  
+// ADMIN API ENDPOINTS
 // ============================================================================
 
 /**
@@ -3659,99 +3948,110 @@ app.get('/api/config', asyncHandler(async (req, res) => {
  *       401:
  *         description: Unauthorized.
  */
-app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for /api/admin/config.');
-    const currentConfig = await readConfig();
-    if (isDebug) console.log('[Admin API] Successfully read config.json.');
+app.get(
+    '/api/admin/config',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Request received for /api/admin/config.');
+        const currentConfig = await readConfig();
+        if (isDebug) console.log('[Admin API] Successfully read config.json.');
 
-    // Convert streaming sources array to object format for admin panel
-    if (currentConfig.streamingSources && Array.isArray(currentConfig.streamingSources)) {
-        const streamingArray = currentConfig.streamingSources;
-        const streamingObject = {
-            enabled: streamingArray.some(source => source.enabled),
-            region: 'US',
-            maxItems: 20,
-            minRating: 0,
-            netflix: false,
-            disney: false,
-            prime: false,
-            hbo: false,
-            newReleases: false
-        };
-        
-        // Extract settings from first enabled source
-        const firstEnabled = streamingArray.find(source => source.enabled);
-        if (firstEnabled) {
-            streamingObject.region = firstEnabled.watchRegion || 'US';
-            streamingObject.maxItems = (firstEnabled.movieCount + firstEnabled.showCount) || 20;
-            streamingObject.minRating = firstEnabled.minRating || 0;
-        }
-        
-        // Set provider checkboxes based on enabled sources
-        streamingArray.forEach(source => {
-            if (source.enabled) {
-                switch (source.category) {
-                    case 'streaming_netflix':
-                        streamingObject.netflix = true;
-                        break;
-                    case 'streaming_disney':
-                        streamingObject.disney = true;
-                        break;
-                    case 'streaming_prime':
-                        streamingObject.prime = true;
-                        break;
-                    case 'streaming_hbo':
-                        streamingObject.hbo = true;
-                        break;
-                    case 'streaming_new_releases':
-                        streamingObject.newReleases = true;
-                        break;
-                }
+        // Convert streaming sources array to object format for admin panel
+        if (currentConfig.streamingSources && Array.isArray(currentConfig.streamingSources)) {
+            const streamingArray = currentConfig.streamingSources;
+            const streamingObject = {
+                enabled: streamingArray.some(source => source.enabled),
+                region: 'US',
+                maxItems: 20,
+                minRating: 0,
+                netflix: false,
+                disney: false,
+                prime: false,
+                hbo: false,
+                newReleases: false,
+            };
+
+            // Extract settings from first enabled source
+            const firstEnabled = streamingArray.find(source => source.enabled);
+            if (firstEnabled) {
+                streamingObject.region = firstEnabled.watchRegion || 'US';
+                streamingObject.maxItems = firstEnabled.movieCount + firstEnabled.showCount || 20;
+                streamingObject.minRating = firstEnabled.minRating || 0;
             }
-        });
-        
-        currentConfig.streamingSources = streamingObject;
-        console.log('[Streaming Debug] Converted streaming array to object for admin panel:', JSON.stringify(streamingObject, null, 2));
-    }
 
-    // WARNING: Exposing environment variables to the client can be a security risk.
-    // This is done based on an explicit user request.
-    const envVarsToExpose = {
-        SERVER_PORT: process.env.SERVER_PORT,
-        DEBUG: process.env.DEBUG
-    };
+            // Set provider checkboxes based on enabled sources
+            streamingArray.forEach(source => {
+                if (source.enabled) {
+                    switch (source.category) {
+                        case 'streaming_netflix':
+                            streamingObject.netflix = true;
+                            break;
+                        case 'streaming_disney':
+                            streamingObject.disney = true;
+                            break;
+                        case 'streaming_prime':
+                            streamingObject.prime = true;
+                            break;
+                        case 'streaming_hbo':
+                            streamingObject.hbo = true;
+                            break;
+                        case 'streaming_new_releases':
+                            streamingObject.newReleases = true;
+                            break;
+                    }
+                }
+            });
 
-    if (Array.isArray(currentConfig.mediaServers)) {
-        currentConfig.mediaServers.forEach(server => {
-            // Ensure server is a valid object before processing to prevent crashes
-            if (server && typeof server === 'object') {
-                // Find all keys ending in 'EnvVar' and get their values from process.env
-                Object.keys(server).forEach(key => {
-                    if (key.endsWith('EnvVar')) {
-                        const envVarName = server[key];
-                        if (envVarName) {
-                            const isSensitive = key.toLowerCase().includes('token') || key.toLowerCase().includes('password') || key.toLowerCase().includes('apikey');
-                            if (isSensitive) {
-                                // For sensitive fields, just indicate if they are set or not.
-                                envVarsToExpose[envVarName] = !!process.env[envVarName];
-                            } else if (process.env[envVarName]) {
-                                envVarsToExpose[envVarName] = process.env[envVarName];
+            currentConfig.streamingSources = streamingObject;
+            console.log(
+                '[Streaming Debug] Converted streaming array to object for admin panel:',
+                JSON.stringify(streamingObject, null, 2)
+            );
+        }
+
+        // WARNING: Exposing environment variables to the client can be a security risk.
+        // This is done based on an explicit user request.
+        const envVarsToExpose = {
+            SERVER_PORT: process.env.SERVER_PORT,
+            DEBUG: process.env.DEBUG,
+        };
+
+        if (Array.isArray(currentConfig.mediaServers)) {
+            currentConfig.mediaServers.forEach(server => {
+                // Ensure server is a valid object before processing to prevent crashes
+                if (server && typeof server === 'object') {
+                    // Find all keys ending in 'EnvVar' and get their values from process.env
+                    Object.keys(server).forEach(key => {
+                        if (key.endsWith('EnvVar')) {
+                            const envVarName = server[key];
+                            if (envVarName) {
+                                const isSensitive =
+                                    key.toLowerCase().includes('token') ||
+                                    key.toLowerCase().includes('password') ||
+                                    key.toLowerCase().includes('apikey');
+                                if (isSensitive) {
+                                    // For sensitive fields, just indicate if they are set or not.
+                                    envVarsToExpose[envVarName] = !!process.env[envVarName];
+                                } else if (process.env[envVarName]) {
+                                    envVarsToExpose[envVarName] = process.env[envVarName];
+                                }
                             }
                         }
-                    }
-                });
-            }
-        });
-    }
+                    });
+                }
+            });
+        }
 
-    if (isDebug) console.log('[Admin API] Sending config and selected environment variables to client.');
-    res.json({
-        config: currentConfig,
-        env: envVarsToExpose,
-        security: { is2FAEnabled: !!(process.env.ADMIN_2FA_SECRET || '').trim() },
-        server: { ipAddress: serverIPAddress }
-    });
-}))
+        if (isDebug)
+            console.log('[Admin API] Sending config and selected environment variables to client.');
+        res.json({
+            config: currentConfig,
+            env: envVarsToExpose,
+            security: { is2FAEnabled: !!(process.env.ADMIN_2FA_SECRET || '').trim() },
+            server: { ipAddress: serverIPAddress },
+        });
+    })
+);
 
 /**
  * @swagger
@@ -3780,68 +4080,89 @@ app.get('/api/admin/config', isAuthenticated, asyncHandler(async (req, res) => {
  *       400:
  *         description: Connection error (e.g., incorrect credentials, timeout).
  */
-app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Received request to test Plex connection.');
-    let { hostname, port, token } = req.body; // token is now optional
+app.post(
+    '/api/admin/test-plex',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Received request to test Plex connection.');
+        let { hostname, token } = req.body; // token is now optional
+        const { port: portValue } = req.body;
 
-    if (!hostname || !port) {
-        throw new ApiError(400, 'Hostname and port are required for the test.');
-    }
+        if (!hostname || !portValue) {
+            throw new ApiError(400, 'Hostname and port are required for the test.');
+        }
 
-    // Sanitize hostname to remove http(s):// prefix
-    if (hostname) {
-        hostname = hostname.trim().replace(/^https?:\/\//, '');
-    }
+        // Sanitize hostname to remove http(s):// prefix
+        if (hostname) {
+            hostname = hostname.trim().replace(/^https?:\/\//, '');
+        }
 
-    // If no token is provided in the request, use the one from the server's config.
-    if (!token) {
-        if (isDebug) console.log('[Plex Test] No token provided in request, attempting to use existing server token.');
-        // Find the first enabled Plex server config. This assumes a single Plex server setup for now.
-        const plexServerConfig = config.mediaServers.find(s => s.type === 'plex' && s.enabled);
+        // If no token is provided in the request, use the one from the server's config.
+        if (!token) {
+            if (isDebug)
+                console.log(
+                    '[Plex Test] No token provided in request, attempting to use existing server token.'
+                );
+            // Find the first enabled Plex server config. This assumes a single Plex server setup for now.
+            const plexServerConfig = config.mediaServers.find(s => s.type === 'plex' && s.enabled);
 
-        if (plexServerConfig && plexServerConfig.tokenEnvVar) {
-            token = process.env[plexServerConfig.tokenEnvVar];
-            if (!token) {
-                throw new ApiError(400, 'Connection test failed: No new token was provided, and no token is configured on the server.');
+            if (plexServerConfig && plexServerConfig.tokenEnvVar) {
+                token = process.env[plexServerConfig.tokenEnvVar];
+                if (!token) {
+                    throw new ApiError(
+                        400,
+                        'Connection test failed: No new token was provided, and no token is configured on the server.'
+                    );
+                }
+            } else {
+                throw new ApiError(
+                    500,
+                    'Connection test failed: Could not find Plex server configuration on the server.'
+                );
             }
-        } else {
-            throw new ApiError(500, 'Connection test failed: Could not find Plex server configuration on the server.');
         }
-    }
 
-    try {
-        const testClient = createPlexClient({
-            hostname,
-            port,
-            token,
-            timeout: 5000
-        });
-        // Querying the root is a lightweight way to check credentials and reachability.
-        const result = await testClient.query('/');
-        const serverName = result?.MediaContainer?.friendlyName;
+        try {
+            const testClient = createPlexClient({
+                hostname,
+                port: portValue,
+                token,
+                timeout: 5000,
+            });
+            // Querying the root is a lightweight way to check credentials and reachability.
+            const result = await testClient.query('/');
+            const serverName = result?.MediaContainer?.friendlyName;
 
-        if (serverName) {
-            res.json({ success: true, message: `Successfully connected to Plex server: ${serverName}` });
-        } else {
-            // This case is unlikely if the query succeeds, but good to handle.
-            res.json({ success: true, message: 'Connection successful, but could not retrieve the server name.' });
+            if (serverName) {
+                res.json({
+                    success: true,
+                    message: `Successfully connected to Plex server: ${serverName}`,
+                });
+            } else {
+                // This case is unlikely if the query succeeds, but good to handle.
+                res.json({
+                    success: true,
+                    message: 'Connection successful, but could not retrieve the server name.',
+                });
+            }
+        } catch (error) {
+            if (isDebug) console.error('[Plex Test] Connection failed:', error.message);
+            let userMessage = 'Connection failed. Please check the hostname, port, and token.';
+            if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+                userMessage = `Connection refused to ${hostname}:${port}. Is Plex running on this address? Check if the hostname and port are correct.`;
+            } else if (error.message.includes('401 Unauthorized')) {
+                userMessage =
+                    'Connection failed: Unauthorized. The Plex token is incorrect or has expired.';
+            } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+                userMessage = `Connection timed out to ${hostname}:${port}. Is the server reachable? Check firewall settings.`;
+            } else if (error.code === 'ENOTFOUND' || error.message.includes('ENOTFOUND')) {
+                userMessage = `Hostname "${hostname}" not found. Please check if the hostname is correct.`;
+            }
+            throw new ApiError(400, userMessage);
         }
-    } catch (error) {
-        if (isDebug) console.error('[Plex Test] Connection failed:', error.message);
-        let userMessage = 'Connection failed. Please check the hostname, port, and token.';
-        if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
-            userMessage = `Connection refused to ${hostname}:${port}. Is Plex running on this address? Check if the hostname and port are correct.`;
-        } else if (error.message.includes('401 Unauthorized')) {
-            userMessage = 'Connection failed: Unauthorized. The Plex token is incorrect or has expired.';
-        } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
-            userMessage = `Connection timed out to ${hostname}:${port}. Is the server reachable? Check firewall settings.`;
-        } else if (error.code === 'ENOTFOUND' || error.message.includes('ENOTFOUND')) {
-            userMessage = `Hostname "${hostname}" not found. Please check if the hostname is correct.`;
-        }
-        throw new ApiError(400, userMessage);
-    }
-}));
-
+    })
+);
 
 /**
  * @swagger
@@ -3870,65 +4191,70 @@ app.post('/api/admin/test-plex', isAuthenticated, express.json(), asyncHandler(a
  *       400:
  *         description: Could not fetch libraries (e.g., incorrect credentials).
  */
-app.post('/api/admin/plex-libraries', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Received request to fetch Plex libraries.');
-    let { hostname, port, token } = req.body;
+app.post(
+    '/api/admin/plex-libraries',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Received request to fetch Plex libraries.');
+        let { hostname, port, token } = req.body;
 
-    // Sanitize hostname
-    if (hostname) {
-        hostname = hostname.trim().replace(/^https?:\/\//, '');
-    }
-
-    // Fallback to configured values if not provided in the request
-    const plexServerConfig = config.mediaServers.find(s => s.type === 'plex');
-    if (!plexServerConfig) {
-        throw new ApiError(500, 'Plex server is not configured in config.json.');
-    }
-
-    if (!hostname) {
-        const envHostname = process.env[plexServerConfig.hostnameEnvVar];
-        if (envHostname) hostname = envHostname.trim().replace(/^https?:\/\//, '');
-    }
-    port = port || process.env[plexServerConfig.portEnvVar];
-    token = token || process.env[plexServerConfig.tokenEnvVar];
-
-    if (!hostname || !port || !token) {
-        throw new ApiError(400, 'Plex connection details (hostname, port, token) are missing.');
-    }
-
-    try {
-        const client = createPlexClient({
-            hostname,
-            port,
-            token,
-            timeout: 10000
-        });
-        const sectionsResponse = await client.query('/library/sections');
-        const allSections = sectionsResponse?.MediaContainer?.Directory || [];
-
-        const libraries = allSections.map(dir => ({
-            key: dir.key,
-            name: dir.title,
-            type: dir.type // 'movie', 'show', etc.
-        }));
-
-        res.json({ success: true, libraries });
-
-    } catch (error) {
-        if (isDebug) console.error('[Plex Lib Fetch] Failed:', error.message);
-        let userMessage = 'Could not fetch libraries. Please check the connection details.';
-        if (error.message.includes('401 Unauthorized')) {
-            userMessage = 'Unauthorized. Is the Plex token correct?';
-        } else if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
-            userMessage = 'Connection refused. Is the hostname and port correct?';
-        } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
-            userMessage = 'Connection timeout. Is the server reachable?';
-        } else if (error.message.includes('The string did not match the expected pattern')) {
-            userMessage = 'Invalid hostname format. Use an IP address or hostname without http:// or https://.';
+        // Sanitize hostname
+        if (hostname) {
+            hostname = hostname.trim().replace(/^https?:\/\//, '');
         }
-        throw new ApiError(400, userMessage);
-    }
-}));
+
+        // Fallback to configured values if not provided in the request
+        const plexServerConfig = config.mediaServers.find(s => s.type === 'plex');
+        if (!plexServerConfig) {
+            throw new ApiError(500, 'Plex server is not configured in config.json.');
+        }
+
+        if (!hostname) {
+            const envHostname = process.env[plexServerConfig.hostnameEnvVar];
+            if (envHostname) hostname = envHostname.trim().replace(/^https?:\/\//, '');
+        }
+        port = port || process.env[plexServerConfig.portEnvVar];
+        token = token || process.env[plexServerConfig.tokenEnvVar];
+
+        if (!hostname || !port || !token) {
+            throw new ApiError(400, 'Plex connection details (hostname, port, token) are missing.');
+        }
+
+        try {
+            const client = createPlexClient({
+                hostname,
+                port,
+                token,
+                timeout: 10000,
+            });
+            const sectionsResponse = await client.query('/library/sections');
+            const allSections = sectionsResponse?.MediaContainer?.Directory || [];
+
+            const libraries = allSections.map(dir => ({
+                key: dir.key,
+                name: dir.title,
+                type: dir.type, // 'movie', 'show', etc.
+            }));
+
+            res.json({ success: true, libraries });
+        } catch (error) {
+            if (isDebug) console.error('[Plex Lib Fetch] Failed:', error.message);
+            let userMessage = 'Could not fetch libraries. Please check the connection details.';
+            if (error.message.includes('401 Unauthorized')) {
+                userMessage = 'Unauthorized. Is the Plex token correct?';
+            } else if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+                userMessage = 'Connection refused. Is the hostname and port correct?';
+            } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+                userMessage = 'Connection timeout. Is the server reachable?';
+            } else if (error.message.includes('The string did not match the expected pattern')) {
+                userMessage =
+                    'Invalid hostname format. Use an IP address or hostname without http:// or https://.';
+            }
+            throw new ApiError(400, userMessage);
+        }
+    })
+);
 
 /**
  * @swagger
@@ -3965,72 +4291,84 @@ app.post('/api/admin/plex-libraries', isAuthenticated, express.json(), asyncHand
  *       400:
  *         description: TVDB connection test failed.
  */
-app.post('/api/admin/test-tvdb', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Received request to test TVDB connection.');
-    
-    const startTime = Date.now();
-    
-    try {
-        // Import TVDB source dynamically
-        const TVDBSource = require('./sources/tvdb');
-        
-        // Create TVDB instance with test configuration
-        const testConfig = {
-            enabled: true,
-            showCount: 5,  // Small number for testing
-            movieCount: 5, // Small number for testing
-            category: 'popular',
-            minRating: 0,
-            yearFilter: null,
-            genreFilter: ''
-        };
-        
-        const tvdbSource = new TVDBSource(testConfig);
-        
-        if (isDebug) console.log('[TVDB Test] Attempting to fetch sample data...');
-        
-        // Test both movies and shows using the correct method names
-        const [movies, shows] = await Promise.all([
-            tvdbSource.getMovies().catch(e => { console.warn('[TVDB Test] Movies failed:', e.message); return []; }),
-            tvdbSource.getShows().catch(e => { console.warn('[TVDB Test] Shows failed:', e.message); return []; })
-        ]);
-        
-        const sampleData = movies.concat(shows);
-        
-        const responseTime = Date.now() - startTime;
-        
-        if (sampleData && sampleData.length > 0) {
-            if (isDebug) console.log(`[TVDB Test] Successfully retrieved ${sampleData.length} items from TVDB.`);
-            
-            res.json({
-                success: true,
-                message: 'TVDB connection successful',
-                sampleData: sampleData.slice(0, 10), // Return first 10 items for display
-                stats: {
-                    responseTime,
-                    totalItems: sampleData.length,
-                    movies: movies.length,
-                    shows: shows.length
-                }
+app.post(
+    '/api/admin/test-tvdb',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Received request to test TVDB connection.');
 
-            });
-        } else {
-            throw new Error('No data returned from TVDB API');
-        }
-        
-    } catch (error) {
-        const errorMessage = error.message || 'Unknown error occurred';
-        if (isDebug) console.error('[TVDB Test] Connection test failed:', errorMessage);
-        
-        res.status(400).json({
-            success: false,
-            error: errorMessage,
-            stats: {
-                responseTime: Date.now() - startTime
+        const startTime = Date.now();
+
+        try {
+            // Import TVDB source dynamically
+            const TVDBSource = require('./sources/tvdb');
+
+            // Create TVDB instance with test configuration
+            const testConfig = {
+                enabled: true,
+                showCount: 5, // Small number for testing
+                movieCount: 5, // Small number for testing
+                category: 'popular',
+                minRating: 0,
+                yearFilter: null,
+                genreFilter: '',
+            };
+
+            const tvdbSource = new TVDBSource(testConfig);
+
+            if (isDebug) console.log('[TVDB Test] Attempting to fetch sample data...');
+
+            // Test both movies and shows using the correct method names
+            const [movies, shows] = await Promise.all([
+                tvdbSource.getMovies().catch(e => {
+                    console.warn('[TVDB Test] Movies failed:', e.message);
+                    return [];
+                }),
+                tvdbSource.getShows().catch(e => {
+                    console.warn('[TVDB Test] Shows failed:', e.message);
+                    return [];
+                }),
+            ]);
+
+            const sampleData = movies.concat(shows);
+
+            const responseTime = Date.now() - startTime;
+
+            if (sampleData && sampleData.length > 0) {
+                if (isDebug)
+                    console.log(
+                        `[TVDB Test] Successfully retrieved ${sampleData.length} items from TVDB.`
+                    );
+
+                res.json({
+                    success: true,
+                    message: 'TVDB connection successful',
+                    sampleData: sampleData.slice(0, 10), // Return first 10 items for display
+                    stats: {
+                        responseTime,
+                        totalItems: sampleData.length,
+                        movies: movies.length,
+                        shows: shows.length,
+                    },
+                });
+            } else {
+                throw new Error('No data returned from TVDB API');
             }
-        });
-    }
-}));
+        } catch (error) {
+            const errorMessage = error.message || 'Unknown error occurred';
+            if (isDebug) console.error('[TVDB Test] Connection test failed:', errorMessage);
+
+            res.status(400).json({
+                success: false,
+                error: errorMessage,
+                stats: {
+                    responseTime: Date.now() - startTime,
+                },
+            });
+        }
+    })
+);
 
 /**
  * @swagger
@@ -4062,116 +4400,173 @@ app.post('/api/admin/test-tvdb', isAuthenticated, express.json(), asyncHandler(a
  *       401:
  *         description: Niet geautoriseerd.
  */
-app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    console.log('[Admin API] Received POST request to /api/admin/config');
-    console.log('[Admin API] Request body exists:', !!req.body);
-    console.log('[Admin API] Request body size:', JSON.stringify(req.body).length);
-    
-    if (isDebug) {
-        console.log('[Admin API] Full request body:', JSON.stringify(req.body, null, 2));
-    }
-    
-    const { config: newConfig, env: newEnv } = req.body;
+app.post(
+    '/api/admin/config',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        console.log('[Admin API] Received POST request to /api/admin/config');
+        console.log('[Admin API] Request body exists:', !!req.body);
+        console.log('[Admin API] Request body size:', JSON.stringify(req.body).length);
 
-    if (!newConfig || !newEnv) {
-        if (isDebug) console.log('[Admin API] Invalid request body. Missing "config" or "env".');
-        throw new ApiError(400, 'Invalid request body. "config" and "env" properties are required.');
-    }
-
-    // Debug: Log all TMDB config details
-    console.log('[TMDB Debug] Full newConfig.tmdbSource:', JSON.stringify(newConfig.tmdbSource, null, 2));
-    if (newConfig.tmdbSource) {
-        console.log('[TMDB Debug] API key value:', newConfig.tmdbSource.apiKey);
-        console.log('[TMDB Debug] API key type:', typeof newConfig.tmdbSource.apiKey);
-        console.log('[TMDB Debug] API key === null:', newConfig.tmdbSource.apiKey === null);
-        console.log('[TMDB Debug] API key == null:', newConfig.tmdbSource.apiKey == null);
-    }
-
-    // Handle TMDB API key preservation
-    if (newConfig.tmdbSource && (newConfig.tmdbSource.apiKey === null || newConfig.tmdbSource.apiKey === undefined)) {
-        console.log('[TMDB API Key Debug] Received null/undefined API key, preserving existing');
-        // Preserve existing API key if null/undefined is passed (meaning "don't change")
-        const existingConfig = await readConfig();
-        if (existingConfig.tmdbSource && existingConfig.tmdbSource.apiKey) {
-            newConfig.tmdbSource.apiKey = existingConfig.tmdbSource.apiKey;
-            console.log('[TMDB API Key Debug] Preserved existing key:', existingConfig.tmdbSource.apiKey.substring(0, 8) + '...');
-        } else {
-            // No existing key, use empty string
-            newConfig.tmdbSource.apiKey = '';
-            console.log('[TMDB API Key Debug] No existing key found, using empty string');
+        if (isDebug) {
+            console.log('[Admin API] Full request body:', JSON.stringify(req.body, null, 2));
         }
-    } else if (newConfig.tmdbSource) {
-        console.log('[TMDB API Key Debug] Received API key:', newConfig.tmdbSource.apiKey ? (newConfig.tmdbSource.apiKey.substring(0, 8) + '...') : 'empty');
-    }
 
-    // Process streaming sources configuration
-    if (newConfig.streamingSources && typeof newConfig.streamingSources === 'object' && !Array.isArray(newConfig.streamingSources)) {
-        console.log('[Streaming Debug] Converting streamingSources object to array format');
-        const streamingConfig = newConfig.streamingSources;
-        const streamingArray = [];
-        
-        // Get TMDB API key for streaming sources
-        let apiKey = '';
-        if (newConfig.tmdbSource && newConfig.tmdbSource.apiKey) {
-            apiKey = newConfig.tmdbSource.apiKey;
+        const { config: newConfig, env: newEnv } = req.body;
+
+        if (!newConfig || !newEnv) {
+            if (isDebug)
+                console.log('[Admin API] Invalid request body. Missing "config" or "env".');
+            throw new ApiError(
+                400,
+                'Invalid request body. "config" and "env" properties are required.'
+            );
         }
-        
-        if (streamingConfig.enabled && apiKey) {
-            // Create streaming source entries based on selected providers
-            const providers = [
-                { name: 'Netflix Releases', category: 'streaming_netflix', enabled: streamingConfig.netflix },
-                { name: 'Disney+ Releases', category: 'streaming_disney', enabled: streamingConfig.disney },
-                { name: 'Prime Video Releases', category: 'streaming_prime', enabled: streamingConfig.prime },
-                { name: 'HBO Max Releases', category: 'streaming_hbo', enabled: streamingConfig.hbo },
-                { name: 'New Streaming Releases', category: 'streaming_new_releases', enabled: streamingConfig.newReleases }
-            ];
-            
-            providers.forEach(provider => {
-                if (provider.enabled) {
-                    streamingArray.push({
-                        name: provider.name,
-                        enabled: true,
-                        apiKey: apiKey,
-                        category: provider.category,
-                        watchRegion: streamingConfig.region || 'US',
-                        movieCount: Math.floor((streamingConfig.maxItems || 20) / 2),
-                        showCount: Math.floor((streamingConfig.maxItems || 20) / 2),
-                        minRating: streamingConfig.minRating || 0,
-                        yearFilter: null,
-                        genreFilter: ""
-                    });
-                }
-            });
+
+        // Debug: Log all TMDB config details
+        console.log(
+            '[TMDB Debug] Full newConfig.tmdbSource:',
+            JSON.stringify(newConfig.tmdbSource, null, 2)
+        );
+        if (newConfig.tmdbSource) {
+            console.log('[TMDB Debug] API key value:', newConfig.tmdbSource.apiKey);
+            console.log('[TMDB Debug] API key type:', typeof newConfig.tmdbSource.apiKey);
+            console.log('[TMDB Debug] API key === null:', newConfig.tmdbSource.apiKey === null);
+            console.log('[TMDB Debug] API key == null:', newConfig.tmdbSource.apiKey == null);
         }
-        
-        // Replace the object with the array
-        newConfig.streamingSources = streamingArray;
-        console.log('[Streaming Debug] Created streaming sources array:', JSON.stringify(streamingArray, null, 2));
-    }
 
-    // Write to config.json and .env
-    await writeConfig(newConfig);
-    if (isDebug) console.log('[Admin API] Successfully wrote to config.json.');
-    await writeEnvFile(newEnv);
-    if (isDebug) console.log('[Admin API] Successfully wrote to .env file.');
+        // Handle TMDB API key preservation
+        if (
+            newConfig.tmdbSource &&
+            (newConfig.tmdbSource.apiKey === null || newConfig.tmdbSource.apiKey === undefined)
+        ) {
+            console.log(
+                '[TMDB API Key Debug] Received null/undefined API key, preserving existing'
+            );
+            // Preserve existing API key if null/undefined is passed (meaning "don't change")
+            const existingConfig = await readConfig();
+            if (existingConfig.tmdbSource && existingConfig.tmdbSource.apiKey) {
+                newConfig.tmdbSource.apiKey = existingConfig.tmdbSource.apiKey;
+                console.log(
+                    '[TMDB API Key Debug] Preserved existing key:',
+                    existingConfig.tmdbSource.apiKey.substring(0, 8) + '...'
+                );
+            } else {
+                // No existing key, use empty string
+                newConfig.tmdbSource.apiKey = '';
+                console.log('[TMDB API Key Debug] No existing key found, using empty string');
+            }
+        } else if (newConfig.tmdbSource) {
+            console.log(
+                '[TMDB API Key Debug] Received API key:',
+                newConfig.tmdbSource.apiKey
+                    ? newConfig.tmdbSource.apiKey.substring(0, 8) + '...'
+                    : 'empty'
+            );
+        }
 
-    // Clear caches to reflect changes without a full restart
-    playlistCache = null;
-    Object.keys(plexClients).forEach(key => delete plexClients[key]);
-    
-    // Clear the /get-config cache so changes are immediately visible
-    cacheManager.delete('GET:/get-config');
+        // Process streaming sources configuration
+        if (
+            newConfig.streamingSources &&
+            typeof newConfig.streamingSources === 'object' &&
+            !Array.isArray(newConfig.streamingSources)
+        ) {
+            console.log('[Streaming Debug] Converting streamingSources object to array format');
+            const streamingConfig = newConfig.streamingSources;
+            const streamingArray = [];
 
-    // Trigger a background refresh of the playlist with the new settings.
-    // We don't await this, so the admin UI gets a fast response.
-    refreshPlaylistCache();
+            // Get TMDB API key for streaming sources
+            let apiKey = '';
+            if (newConfig.tmdbSource && newConfig.tmdbSource.apiKey) {
+                apiKey = newConfig.tmdbSource.apiKey;
+            }
 
-    if (isDebug) {
-        console.log('[Admin] Configuration saved successfully. Caches and clients have been cleared. Triggered background playlist refresh.');
-    }
+            if (streamingConfig.enabled && apiKey) {
+                // Create streaming source entries based on selected providers
+                const providers = [
+                    {
+                        name: 'Netflix Releases',
+                        category: 'streaming_netflix',
+                        enabled: streamingConfig.netflix,
+                    },
+                    {
+                        name: 'Disney+ Releases',
+                        category: 'streaming_disney',
+                        enabled: streamingConfig.disney,
+                    },
+                    {
+                        name: 'Prime Video Releases',
+                        category: 'streaming_prime',
+                        enabled: streamingConfig.prime,
+                    },
+                    {
+                        name: 'HBO Max Releases',
+                        category: 'streaming_hbo',
+                        enabled: streamingConfig.hbo,
+                    },
+                    {
+                        name: 'New Streaming Releases',
+                        category: 'streaming_new_releases',
+                        enabled: streamingConfig.newReleases,
+                    },
+                ];
 
-    res.json({ message: 'Configuration saved successfully. Some changes may require an application restart.' });
-}));
+                providers.forEach(provider => {
+                    if (provider.enabled) {
+                        streamingArray.push({
+                            name: provider.name,
+                            enabled: true,
+                            apiKey: apiKey,
+                            category: provider.category,
+                            watchRegion: streamingConfig.region || 'US',
+                            movieCount: Math.floor((streamingConfig.maxItems || 20) / 2),
+                            showCount: Math.floor((streamingConfig.maxItems || 20) / 2),
+                            minRating: streamingConfig.minRating || 0,
+                            yearFilter: null,
+                            genreFilter: '',
+                        });
+                    }
+                });
+            }
+
+            // Replace the object with the array
+            newConfig.streamingSources = streamingArray;
+            console.log(
+                '[Streaming Debug] Created streaming sources array:',
+                JSON.stringify(streamingArray, null, 2)
+            );
+        }
+
+        // Write to config.json and .env
+        await writeConfig(newConfig);
+        if (isDebug) console.log('[Admin API] Successfully wrote to config.json.');
+        await writeEnvFile(newEnv);
+        if (isDebug) console.log('[Admin API] Successfully wrote to .env file.');
+
+        // Clear caches to reflect changes without a full restart
+        playlistCache = null;
+        Object.keys(plexClients).forEach(key => delete plexClients[key]);
+
+        // Clear the /get-config cache so changes are immediately visible
+        cacheManager.delete('GET:/get-config');
+
+        // Trigger a background refresh of the playlist with the new settings.
+        // We don't await this, so the admin UI gets a fast response.
+        refreshPlaylistCache();
+
+        if (isDebug) {
+            console.log(
+                '[Admin] Configuration saved successfully. Caches and clients have been cleared. Triggered background playlist refresh.'
+            );
+        }
+
+        res.json({
+            message:
+                'Configuration saved successfully. Some changes may require an application restart.',
+        });
+    })
+);
 
 /**
  * @swagger
@@ -4197,32 +4592,40 @@ app.post('/api/admin/config', isAuthenticated, express.json(), asyncHandler(asyn
  *       401:
  *         description: Niet geautoriseerd.
  */
-app.get('/api/admin/plex-genres', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for /api/admin/plex-genres.');
-    
-    const currentConfig = await readConfig();
-    const enabledServers = currentConfig.mediaServers.filter(s => s.enabled && s.type === 'plex');
-    
-    if (enabledServers.length === 0) {
-        return res.json({ genres: [] });
-    }
-    
-    let allGenres = new Set();
-    
-    for (const server of enabledServers) {
-        try {
-            const genres = await getPlexGenres(server);
-            genres.forEach(genre => allGenres.add(genre));
-        } catch (error) {
-            console.warn(`[Admin API] Failed to get genres from ${server.name}: ${error.message}`);
+app.get(
+    '/api/admin/plex-genres',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Request received for /api/admin/plex-genres.');
+
+        const currentConfig = await readConfig();
+        const enabledServers = currentConfig.mediaServers.filter(
+            s => s.enabled && s.type === 'plex'
+        );
+
+        if (enabledServers.length === 0) {
+            return res.json({ genres: [] });
         }
-    }
-    
-    const sortedGenres = Array.from(allGenres).sort();
-    if (isDebug) console.log(`[Admin API] Found ${sortedGenres.length} unique genres.`);
-    
-    res.json({ genres: sortedGenres });
-}));
+
+        const allGenres = new Set();
+
+        for (const server of enabledServers) {
+            try {
+                const genres = await getPlexGenres(server);
+                genres.forEach(genre => allGenres.add(genre));
+            } catch (error) {
+                console.warn(
+                    `[Admin API] Failed to get genres from ${server.name}: ${error.message}`
+                );
+            }
+        }
+
+        const sortedGenres = Array.from(allGenres).sort();
+        if (isDebug) console.log(`[Admin API] Found ${sortedGenres.length} unique genres.`);
+
+        res.json({ genres: sortedGenres });
+    })
+);
 
 /**
  * @swagger
@@ -4266,65 +4669,68 @@ app.get('/api/admin/plex-genres', isAuthenticated, asyncHandler(async (req, res)
  *       401:
  *         description: Unauthorized
  */
-app.post('/api/admin/plex-genres-test', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for /api/admin/plex-genres-test.');
-    
-    let { hostname, port, token } = req.body;
+app.post(
+    '/api/admin/plex-genres-test',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Request received for /api/admin/plex-genres-test.');
 
-    if (!hostname || !port) {
-        throw new ApiError(400, 'Hostname and port are required for testing.');
-    }
+        const { hostname: rawHostname, port } = req.body;
+        let { token } = req.body;
+        const hostname = rawHostname ? rawHostname.trim().replace(/^https?:\/\//, '') : rawHostname;
 
-    // Sanitize hostname to remove http(s):// prefix
-    if (hostname) {
-        hostname = hostname.trim().replace(/^https?:\/\//, '');
-    }
-
-    // If no token is provided in the request, use the one from the server's config.
-    if (!token) {
-        const config = await readConfig();
-        const plexServerConfig = config.mediaServers.find(s => s.type === 'plex');
-        if (plexServerConfig && plexServerConfig.tokenEnvVar) {
-            token = process.env[plexServerConfig.tokenEnvVar];
-        }
+        // If no token is provided in the request, use the one from the server's config.
         if (!token) {
-            throw new ApiError(400, 'No token provided and no token configured on the server.');
+            const config = await readConfig();
+            const plexServerConfig = config.mediaServers.find(s => s.type === 'plex');
+            if (plexServerConfig && plexServerConfig.tokenEnvVar) {
+                token = process.env[plexServerConfig.tokenEnvVar];
+            }
+            if (!token) {
+                throw new ApiError(400, 'No token provided and no token configured on the server.');
+            }
         }
-    }
 
-    try {
-        // Create a direct client for testing without caching
-        const testClient = createPlexClient({
-            hostname,
-            port: parseInt(port),
-            token
-        });
+        try {
+            // Create a direct client for testing without caching
+            const testClient = createPlexClient({
+                hostname,
+                port: parseInt(port),
+                token,
+            });
 
-        // Create a temporary server config for testing
-        const testServerConfig = {
-            name: `Test Server ${hostname}:${port}`, // Unique name to avoid caching issues
-            type: 'plex',
-            enabled: true, // Temporarily enabled for testing
-            hostnameEnvVar: null,
-            portEnvVar: null,
-            tokenEnvVar: null,
-            // Direct values for testing
-            hostname,
-            port: parseInt(port),
-            token,
-            // Provide the direct client to bypass caching
-            _directClient: testClient
-        };
+            // Create a temporary server config for testing
+            const testServerConfig = {
+                name: `Test Server ${hostname}:${port}`, // Unique name to avoid caching issues
+                type: 'plex',
+                enabled: true, // Temporarily enabled for testing
+                hostnameEnvVar: null,
+                portEnvVar: null,
+                tokenEnvVar: null,
+                // Direct values for testing
+                hostname,
+                port: parseInt(port),
+                token,
+                // Provide the direct client to bypass caching
+                _directClient: testClient,
+            };
 
-        const genres = await getPlexGenres(testServerConfig);
-        if (isDebug) console.log(`[Admin API] Found ${genres.length} genres from test server:`, genres.slice(0, 5));
-        
-        res.json({ genres: genres.sort() });
-    } catch (error) {
-        if (isDebug) console.error('[Admin API] Error getting genres from test server:', error.message);
-        throw new ApiError(400, `Failed to get genres: ${error.message}`);
-    }
-}));
+            const genres = await getPlexGenres(testServerConfig);
+            if (isDebug)
+                console.log(
+                    `[Admin API] Found ${genres.length} genres from test server:`,
+                    genres.slice(0, 5)
+                );
+
+            res.json({ genres: genres.sort() });
+        } catch (error) {
+            if (isDebug)
+                console.error('[Admin API] Error getting genres from test server:', error.message);
+            throw new ApiError(400, `Failed to get genres: ${error.message}`);
+        }
+    })
+);
 
 /**
  * @swagger
@@ -4367,90 +4773,103 @@ app.post('/api/admin/plex-genres-test', isAuthenticated, express.json(), asyncHa
  *       401:
  *         description: Niet geautoriseerd.
  */
-app.post('/api/admin/test-tmdb', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for /api/admin/test-tmdb.');
-    
-    let { apiKey, category = 'popular', testType = 'normal', region = 'US' } = req.body;
-    
-    // If apiKey is 'stored_key', use the stored API key from config
-    if (apiKey === 'stored_key') {
-        const currentConfig = await readConfig();
-        if (currentConfig.tmdbSource && currentConfig.tmdbSource.apiKey) {
-            apiKey = currentConfig.tmdbSource.apiKey;
-            if (isDebug) console.log('[Admin API] Using stored TMDB API key for test.');
-        } else {
-            return res.json({ success: false, error: 'No stored API key found. Please enter a new API key.' });
-        }
-    }
-    
-    if (!apiKey) {
-        return res.json({ success: false, error: 'API key is required' });
-    }
-    
-    try {
-        // Create a temporary TMDB source for testing
-        const testConfig = {
-            apiKey: apiKey,
-            category: category,
-            enabled: true,
-            name: testType === 'streaming' ? 'TMDB-Streaming-Test' : 'TMDB-Test'
-        };
-        
-        const tmdbSource = new TMDBSource(testConfig, shuffleArray, isDebug);
-        
-        if (testType === 'streaming') {
-            // Test streaming functionality
-            try {
-                // Test streaming discover endpoint - build full URL manually
-                const baseUrl = 'https://api.themoviedb.org/3';
-                const testUrl = `${baseUrl}/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=${region}&page=1&sort_by=popularity.desc`;
-                
-                const response = await fetch(testUrl);
-                if (!response.ok) {
-                    throw new Error(`TMDB API responded with status ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                res.json({ 
-                    success: true,
-                    message: `Streaming API test successful for region ${region}`,
-                    region: region,
-                    providersSupported: true,
-                    totalResults: data.total_results || 0
-                });
-            } catch (error) {
-                res.json({ 
-                    success: false, 
-                    error: `Streaming test failed: ${error.message}`
-                });
-            }
-        } else {
-            // Regular TMDB test
-            const testMovies = await tmdbSource.fetchMedia('movie', 5);
-            
-            if (testMovies.length > 0) {
-                res.json({ 
-                    success: true, 
-                    count: testMovies.length, 
-                    message: `Successfully connected to TMDB and fetched ${category} movies`
-                });
+app.post(
+    '/api/admin/test-tmdb',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Request received for /api/admin/test-tmdb.');
+
+        const {
+            apiKey: rawApiKey,
+            category = 'popular',
+            testType = 'normal',
+            region = 'US',
+        } = req.body;
+        let apiKey = rawApiKey;
+
+        // If apiKey is 'stored_key', use the stored API key from config
+        if (apiKey === 'stored_key') {
+            const currentConfig = await readConfig();
+            if (currentConfig.tmdbSource && currentConfig.tmdbSource.apiKey) {
+                apiKey = currentConfig.tmdbSource.apiKey;
+                if (isDebug) console.log('[Admin API] Using stored TMDB API key for test.');
             } else {
-                res.json({ 
-                    success: false, 
-                    error: 'Connected to TMDB but no movies found. Check your API key or category.'
+                return res.json({
+                    success: false,
+                    error: 'No stored API key found. Please enter a new API key.',
                 });
             }
         }
-        
-    } catch (error) {
-        if (isDebug) console.error('[Admin API] TMDB test failed:', error);
-        res.json({ 
-            success: false, 
-            error: error.message || 'Failed to connect to TMDB API'
-        });
-    }
-}));
+
+        if (!apiKey) {
+            return res.json({ success: false, error: 'API key is required' });
+        }
+
+        try {
+            // Create a temporary TMDB source for testing
+            const testConfig = {
+                apiKey: apiKey,
+                category: category,
+                enabled: true,
+                name: testType === 'streaming' ? 'TMDB-Streaming-Test' : 'TMDB-Test',
+            };
+
+            const tmdbSource = new TMDBSource(testConfig, shuffleArray, isDebug);
+
+            if (testType === 'streaming') {
+                // Test streaming functionality
+                try {
+                    // Test streaming discover endpoint - build full URL manually
+                    const baseUrl = 'https://api.themoviedb.org/3';
+                    const testUrl = `${baseUrl}/discover/movie?api_key=${apiKey}&with_watch_providers=8&watch_region=${region}&page=1&sort_by=popularity.desc`;
+
+                    const response = await fetch(testUrl);
+                    if (!response.ok) {
+                        throw new Error(`TMDB API responded with status ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    res.json({
+                        success: true,
+                        message: `Streaming API test successful for region ${region}`,
+                        region: region,
+                        providersSupported: true,
+                        totalResults: data.total_results || 0,
+                    });
+                } catch (error) {
+                    res.json({
+                        success: false,
+                        error: `Streaming test failed: ${error.message}`,
+                    });
+                }
+            } else {
+                // Regular TMDB test
+                const testMovies = await tmdbSource.fetchMedia('movie', 5);
+
+                if (testMovies.length > 0) {
+                    res.json({
+                        success: true,
+                        count: testMovies.length,
+                        message: `Successfully connected to TMDB and fetched ${category} movies`,
+                    });
+                } else {
+                    res.json({
+                        success: false,
+                        error: 'Connected to TMDB but no movies found. Check your API key or category.',
+                    });
+                }
+            }
+        } catch (error) {
+            if (isDebug) console.error('[Admin API] TMDB test failed:', error);
+            res.json({
+                success: false,
+                error: error.message || 'Failed to connect to TMDB API',
+            });
+        }
+    })
+);
 
 /**
  * @swagger
@@ -4476,28 +4895,35 @@ app.post('/api/admin/test-tmdb', isAuthenticated, express.json(), asyncHandler(a
  *       401:
  *         description: Niet geautoriseerd.
  */
-app.get('/api/admin/tmdb-genres', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-genres.');
-    
-    const currentConfig = await readConfig();
-    
-    if (!currentConfig.tmdbSource || !currentConfig.tmdbSource.enabled || !currentConfig.tmdbSource.apiKey) {
-        return res.json({ genres: [] });
-    }
-    
-    try {
-        const tmdbSourceConfig = { ...currentConfig.tmdbSource, name: 'TMDB-Genres' };
-        const tmdbSource = new TMDBSource(tmdbSourceConfig, shuffleArray, isDebug);
-        const genres = await tmdbSource.getAvailableGenres();
-        
-        if (isDebug) console.log(`[Admin API] Found ${genres.length} TMDB genres.`);
-        res.json({ genres: genres });
-        
-    } catch (error) {
-        console.error(`[Admin API] Failed to get TMDB genres: ${error.message}`);
-        res.json({ genres: [], error: error.message });
-    }
-}));
+app.get(
+    '/api/admin/tmdb-genres',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-genres.');
+
+        const currentConfig = await readConfig();
+
+        if (
+            !currentConfig.tmdbSource ||
+            !currentConfig.tmdbSource.enabled ||
+            !currentConfig.tmdbSource.apiKey
+        ) {
+            return res.json({ genres: [] });
+        }
+
+        try {
+            const tmdbSourceConfig = { ...currentConfig.tmdbSource, name: 'TMDB-Genres' };
+            const tmdbSource = new TMDBSource(tmdbSourceConfig, shuffleArray, isDebug);
+            const genres = await tmdbSource.getAvailableGenres();
+
+            if (isDebug) console.log(`[Admin API] Found ${genres.length} TMDB genres.`);
+            res.json({ genres: genres });
+        } catch (error) {
+            console.error(`[Admin API] Failed to get TMDB genres: ${error.message}`);
+            res.json({ genres: [], error: error.message });
+        }
+    })
+);
 
 /**
  * @swagger
@@ -4538,40 +4964,46 @@ app.get('/api/admin/tmdb-genres', isAuthenticated, asyncHandler(async (req, res)
  *       401:
  *         description: Unauthorized
  */
-app.post('/api/admin/tmdb-genres-test', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-genres-test.');
-    
-    const { apiKey, category } = req.body;
+app.post(
+    '/api/admin/tmdb-genres-test',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-genres-test.');
 
-    if (!apiKey) {
-        throw new ApiError(400, 'API key is required for testing.');
-    }
+        const { apiKey, category } = req.body;
 
-    try {
-        // Create a temporary TMDB config for testing
-        const testTMDBConfig = {
-            name: 'TMDB-Test',
-            enabled: true, // Temporarily enabled for testing
-            apiKey,
-            category: category || 'popular',
-            movieCount: 50,
-            showCount: 25,
-            minRating: 0,
-            yearFilter: null,
-            genreFilter: ''
-        };
+        if (!apiKey) {
+            throw new ApiError(400, 'API key is required for testing.');
+        }
 
-        const tmdbSource = new TMDBSource(testTMDBConfig, shuffleArray, isDebug);
-        const genres = await tmdbSource.getAvailableGenres();
-        
-        if (isDebug) console.log(`[Admin API] Found ${genres.length} genres from test TMDB.`);
-        
-        res.json({ genres: genres });
-    } catch (error) {
-        if (isDebug) console.error('[Admin API] Error getting genres from test TMDB:', error.message);
-        throw new ApiError(400, `Failed to get TMDB genres: ${error.message}`);
-    }
-}));
+        try {
+            // Create a temporary TMDB config for testing
+            const testTMDBConfig = {
+                name: 'TMDB-Test',
+                enabled: true, // Temporarily enabled for testing
+                apiKey,
+                category: category || 'popular',
+                movieCount: 50,
+                showCount: 25,
+                minRating: 0,
+                yearFilter: null,
+                genreFilter: '',
+            };
+
+            const tmdbSource = new TMDBSource(testTMDBConfig, shuffleArray, isDebug);
+            const genres = await tmdbSource.getAvailableGenres();
+
+            if (isDebug) console.log(`[Admin API] Found ${genres.length} genres from test TMDB.`);
+
+            res.json({ genres: genres });
+        } catch (error) {
+            if (isDebug)
+                console.error('[Admin API] Error getting genres from test TMDB:', error.message);
+            throw new ApiError(400, `Failed to get TMDB genres: ${error.message}`);
+        }
+    })
+);
 
 /**
  * @swagger
@@ -4600,25 +5032,28 @@ app.post('/api/admin/tmdb-genres-test', isAuthenticated, express.json(), asyncHa
  *                       name:
  *                         type: string
  */
-app.get('/api/admin/tvdb-genres', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for TVDB genres.');
-    
-    try {
-        if (!global.tvdbSourceInstance) {
-            // Create a temporary instance since API key is hardcoded
-            global.tvdbSourceInstance = new TVDBSource({ enabled: true });
+app.get(
+    '/api/admin/tvdb-genres',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Request received for TVDB genres.');
+
+        try {
+            if (!global.tvdbSourceInstance) {
+                // Create a temporary instance since API key is hardcoded
+                global.tvdbSourceInstance = new TVDBSource({ enabled: true });
+            }
+
+            const genres = await global.tvdbSourceInstance.getGenres();
+
+            if (isDebug) console.log(`[Admin API] Found ${genres.length} TVDB genres.`);
+            res.json({ genres });
+        } catch (error) {
+            console.error(`[Admin API] Failed to get TVDB genres: ${error.message}`);
+            res.json({ genres: [], error: error.message });
         }
-        
-        const genres = await global.tvdbSourceInstance.getGenres();
-        
-        if (isDebug) console.log(`[Admin API] Found ${genres.length} TVDB genres.`);
-        res.json({ genres });
-        
-    } catch (error) {
-        console.error(`[Admin API] Failed to get TVDB genres: ${error.message}`);
-        res.json({ genres: [], error: error.message });
-    }
-}));
+    })
+);
 
 /**
  * @swagger
@@ -4652,32 +5087,42 @@ app.get('/api/admin/tvdb-genres', isAuthenticated, asyncHandler(async (req, res)
  *       401:
  *         description: Unauthorized
  */
-app.post('/api/admin/tvdb-genres-test', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for /api/admin/tvdb-genres-test.');
-    
-    try {
-        // Create a fresh TVDB instance for testing
-        const testTVDBConfig = {
-            enabled: true,
-            showCount: 5,
-            movieCount: 5,
-            category: 'popular',
-            minRating: 0,
-            yearFilter: null,
-            genreFilter: ''
-        };
+app.post(
+    '/api/admin/tvdb-genres-test',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Request received for /api/admin/tvdb-genres-test.');
 
-        const tvdbSource = new TVDBSource(testTVDBConfig);
-        const genres = await tvdbSource.getGenres();
-        
-        if (isDebug) console.log(`[Admin API] Found ${genres.length} genres from test TVDB:`, genres.slice(0, 5));
-        
-        res.json({ genres });
-    } catch (error) {
-        if (isDebug) console.error('[Admin API] Error getting genres from test TVDB:', error.message);
-        throw new ApiError(400, `Failed to get TVDB genres: ${error.message}`);
-    }
-}));
+        try {
+            // Create a fresh TVDB instance for testing
+            const testTVDBConfig = {
+                enabled: true,
+                showCount: 5,
+                movieCount: 5,
+                category: 'popular',
+                minRating: 0,
+                yearFilter: null,
+                genreFilter: '',
+            };
+
+            const tvdbSource = new TVDBSource(testTVDBConfig);
+            const genres = await tvdbSource.getGenres();
+
+            if (isDebug)
+                console.log(
+                    `[Admin API] Found ${genres.length} genres from test TVDB:`,
+                    genres.slice(0, 5)
+                );
+
+            res.json({ genres });
+        } catch (error) {
+            if (isDebug)
+                console.error('[Admin API] Error getting genres from test TVDB:', error.message);
+            throw new ApiError(400, `Failed to get TVDB genres: ${error.message}`);
+        }
+    })
+);
 
 /**
  * @swagger
@@ -4703,22 +5148,26 @@ app.post('/api/admin/tvdb-genres-test', isAuthenticated, express.json(), asyncHa
  *       401:
  *         description: Niet geautoriseerd.
  */
-app.get('/api/admin/tmdb-cache-stats', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-cache-stats.');
-    
-    if (global.tmdbSourceInstance) {
-        const stats = global.tmdbSourceInstance.getCacheStats();
-        res.json({ 
-            enabled: true,
-            cacheStats: stats
-        });
-    } else {
-        res.json({ 
-            enabled: false,
-            message: 'TMDB source not initialized'
-        });
-    }
-}));
+app.get(
+    '/api/admin/tmdb-cache-stats',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Request received for /api/admin/tmdb-cache-stats.');
+
+        if (global.tmdbSourceInstance) {
+            const stats = global.tmdbSourceInstance.getCacheStats();
+            res.json({
+                enabled: true,
+                cacheStats: stats,
+            });
+        } else {
+            res.json({
+                enabled: false,
+                message: 'TMDB source not initialized',
+            });
+        }
+    })
+);
 
 /**
  * @swagger
@@ -4747,42 +5196,62 @@ app.get('/api/admin/tmdb-cache-stats', isAuthenticated, asyncHandler(async (req,
  *       401:
  *         description: Current password is incorrect.
  */
-app.post('/api/admin/change-password', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Received request to change password.');
-    const { currentPassword, newPassword, confirmPassword } = req.body;
+app.post(
+    '/api/admin/change-password',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Received request to change password.');
+        const { currentPassword, newPassword, confirmPassword } = req.body;
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-        if (isDebug) console.log('[Admin API] Password change failed: missing fields.');
-        throw new ApiError(400, 'All password fields are required.');
-    }
-
-    if (newPassword !== confirmPassword) {
-        if (isDebug) console.log('[Admin API] Password change failed: new passwords do not match.');
-        throw new ApiError(400, 'New password and confirmation do not match.');
-    }
-
-    const isValidPassword = await bcrypt.compare(currentPassword, process.env.ADMIN_PASSWORD_HASH);
-    if (!isValidPassword) {
-        if (isDebug) console.log('[Admin API] Password change failed: incorrect current password.');
-        throw new ApiError(401, 'Incorrect current password.');
-    }
-
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
-    await writeEnvFile({ ADMIN_PASSWORD_HASH: newPasswordHash });
-
-    if (isDebug) console.log('[Admin API] Password changed successfully. Invalidating current session for security.');
-
-    // For security, destroy the current session after a password change,
-    // forcing the user to log in again with their new credentials.
-    req.session.destroy(err => {
-        if (err) {
-            if (isDebug) console.error('[Admin API] Error destroying session after password change:', err);
-            // Even if session destruction fails, the password change was successful.
-            // We proceed but log the error.
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            if (isDebug) console.log('[Admin API] Password change failed: missing fields.');
+            throw new ApiError(400, 'All password fields are required.');
         }
-        res.json({ message: 'Password changed successfully. You have been logged out for security and will need to log in again.' });
-    });
-}));
+
+        if (newPassword !== confirmPassword) {
+            if (isDebug)
+                console.log('[Admin API] Password change failed: new passwords do not match.');
+            throw new ApiError(400, 'New password and confirmation do not match.');
+        }
+
+        const isValidPassword = await bcrypt.compare(
+            currentPassword,
+            process.env.ADMIN_PASSWORD_HASH
+        );
+        if (!isValidPassword) {
+            if (isDebug)
+                console.log('[Admin API] Password change failed: incorrect current password.');
+            throw new ApiError(401, 'Incorrect current password.');
+        }
+
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+        await writeEnvFile({ ADMIN_PASSWORD_HASH: newPasswordHash });
+
+        if (isDebug)
+            console.log(
+                '[Admin API] Password changed successfully. Invalidating current session for security.'
+            );
+
+        // For security, destroy the current session after a password change,
+        // forcing the user to log in again with their new credentials.
+        req.session.destroy(err => {
+            if (err) {
+                if (isDebug)
+                    console.error(
+                        '[Admin API] Error destroying session after password change:',
+                        err
+                    );
+                // Even if session destruction fails, the password change was successful.
+                // We proceed but log the error.
+            }
+            res.json({
+                message:
+                    'Password changed successfully. You have been logged out for security and will need to log in again.',
+            });
+        });
+    })
+);
 
 /**
  * @swagger
@@ -4804,31 +5273,43 @@ app.post('/api/admin/change-password', isAuthenticated, express.json(), asyncHan
  *             schema:
  *               $ref: '#/components/schemas/AdminApiResponse'
  */
-app.post('/api/admin/restart-app', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Received request to restart the application.');
+app.post(
+    '/api/admin/restart-app',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Received request to restart the application.');
 
-    const appName = ecosystemConfig.apps[0].name || 'posterrama';
-    if (isDebug) console.log(`[Admin API] Determined app name for PM2: "${appName}"`);
+        const appName = ecosystemConfig.apps[0].name || 'posterrama';
+        if (isDebug) console.log(`[Admin API] Determined app name for PM2: "${appName}"`);
 
-    // Immediately send a response to the client to avoid a race condition.
-    // We use 202 Accepted, as the server has accepted the request but the action is pending.
-    res.status(202).json({ success: true, message: 'Restart command received. The application is now restarting.' });
-
-    // Execute the restart command after a short delay to ensure the HTTP response has been sent.
-    setTimeout(() => {
-        if (isDebug) console.log(`[Admin API] Executing command: "pm2 restart ${appName}"`);
-        exec(`pm2 restart ${appName}`, (error, stdout, stderr) => {
-            // We can't send a response here, but we can log the outcome for debugging.
-            if (error) {
-                console.error(`[Admin API] PM2 restart command failed after response was sent.`);
-                console.error(`[Admin API] Error: ${error.message}`);
-                if (stderr) console.error(`[Admin API] PM2 stderr: ${stderr}`);
-                return;
-            }
-            if (isDebug) console.log(`[Admin API] PM2 restart command issued successfully for '${appName}'.`);
+        // Immediately send a response to the client to avoid a race condition.
+        // We use 202 Accepted, as the server has accepted the request but the action is pending.
+        res.status(202).json({
+            success: true,
+            message: 'Restart command received. The application is now restarting.',
         });
-    }, 100); // 100ms delay should be sufficient.
-}));
+
+        // Execute the restart command after a short delay to ensure the HTTP response has been sent.
+        setTimeout(() => {
+            if (isDebug) console.log(`[Admin API] Executing command: "pm2 restart ${appName}"`);
+            exec(`pm2 restart ${appName}`, (error, stdout, stderr) => {
+                // We can't send a response here, but we can log the outcome for debugging.
+                if (error) {
+                    console.error(
+                        `[Admin API] PM2 restart command failed after response was sent.`
+                    );
+                    console.error(`[Admin API] Error: ${error.message}`);
+                    if (stderr) console.error(`[Admin API] PM2 stderr: ${stderr}`);
+                    return;
+                }
+                if (isDebug)
+                    console.log(
+                        `[Admin API] PM2 restart command issued successfully for '${appName}'.`
+                    );
+            });
+        }, 100); // 100ms delay should be sufficient.
+    })
+);
 
 /**
  * @swagger
@@ -4869,80 +5350,84 @@ app.post('/api/admin/restart-app', isAuthenticated, asyncHandler(async (req, res
  *                   type: string
  *                   example: "2 days, 5 hours"
  */
-app.get('/api/admin/status', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        const os = require('os');
-        const uptime = process.uptime();
-        const hours = Math.floor(uptime / 3600);
-        const minutes = Math.floor((uptime % 3600) / 60);
-        const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-        
-        // Check database connection (file system access)
-        let databaseStatus = 'disconnected';
+app.get(
+    '/api/admin/status',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
         try {
-            await fsp.access(path.join(__dirname, 'sessions'), fs.constants.F_OK);
-            databaseStatus = 'connected';
-        } catch (e) {
-            databaseStatus = 'error';
-        }
-        
-        // Check cache status
-        let cacheStatus = 'inactive';
-        try {
-            // Check if cache directory exists and is accessible
-            const cacheDir = path.join(__dirname, 'cache');
-            const imageCacheDir = path.join(__dirname, 'image_cache');
-            
-            await fsp.access(cacheDir, fs.constants.F_OK);
-            await fsp.access(imageCacheDir, fs.constants.F_OK);
-            
-            // Check if cache manager is available
-            if (cacheManager && typeof cacheManager.get === 'function') {
-                cacheStatus = 'active';
+            const os = require('os');
+            const uptime = process.uptime();
+            const hours = Math.floor(uptime / 3600);
+            const minutes = Math.floor((uptime % 3600) / 60);
+            const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+            // Check database connection (file system access)
+            let databaseStatus = 'disconnected';
+            try {
+                await fsp.access(path.join(__dirname, 'sessions'), fs.constants.F_OK);
+                databaseStatus = 'connected';
+            } catch (e) {
+                databaseStatus = 'error';
             }
-        } catch (e) {
-            cacheStatus = 'error';
-        }
-        
-        // Get memory info
-        const totalMem = os.totalmem();
-        const freeMem = os.freemem();
-        const usedMem = totalMem - freeMem;
-        const memUsage = Math.round((usedMem / totalMem) * 100);
-        
-        // Get disk space
-        let diskUsage = { available: 'Unknown', status: 'info' };
-        try {
-            const stats = await fsp.statfs(__dirname);
-            const totalSpace = stats.bavail * stats.bsize;
-            const totalSpaceGB = (totalSpace / (1024 ** 3)).toFixed(1);
-            diskUsage = {
-                available: `${totalSpaceGB} GB available`,
-                status: totalSpaceGB > 5 ? 'success' : totalSpaceGB > 1 ? 'warning' : 'error'
+
+            // Check cache status
+            let cacheStatus = 'inactive';
+            try {
+                // Check if cache directory exists and is accessible
+                const cacheDir = path.join(__dirname, 'cache');
+                const imageCacheDir = path.join(__dirname, 'image_cache');
+
+                await fsp.access(cacheDir, fs.constants.F_OK);
+                await fsp.access(imageCacheDir, fs.constants.F_OK);
+
+                // Check if cache manager is available
+                if (cacheManager && typeof cacheManager.get === 'function') {
+                    cacheStatus = 'active';
+                }
+            } catch (e) {
+                cacheStatus = 'error';
+            }
+
+            // Get memory info
+            const totalMem = os.totalmem();
+            const freeMem = os.freemem();
+            const usedMem = totalMem - freeMem;
+            const memUsage = Math.round((usedMem / totalMem) * 100);
+
+            // Get disk space
+            let diskUsage = { available: 'Unknown', status: 'info' };
+            try {
+                const stats = await fsp.statfs(__dirname);
+                const totalSpace = stats.bavail * stats.bsize;
+                const totalSpaceGB = (totalSpace / 1024 ** 3).toFixed(1);
+                diskUsage = {
+                    available: `${totalSpaceGB} GB available`,
+                    status: totalSpaceGB > 5 ? 'success' : totalSpaceGB > 1 ? 'warning' : 'error',
+                };
+            } catch (e) {
+                // Fallback if statfs is not available
+                diskUsage = { available: 'Cannot determine', status: 'warning' };
+            }
+
+            const statusData = {
+                app: { status: 'running' },
+                database: { status: databaseStatus },
+                cache: { status: cacheStatus },
+                disk: diskUsage,
+                memory: {
+                    usage: `${memUsage}%`,
+                    status: memUsage > 90 ? 'error' : memUsage > 70 ? 'warning' : 'success',
+                },
+                uptime: uptimeString,
             };
-        } catch (e) {
-            // Fallback if statfs is not available
-            diskUsage = { available: 'Cannot determine', status: 'warning' };
+
+            res.json(statusData);
+        } catch (error) {
+            console.error('[Admin API] Error getting system status:', error);
+            res.status(500).json({ error: 'Failed to get system status' });
         }
-        
-        const statusData = {
-            app: { status: 'running' },
-            database: { status: databaseStatus },
-            cache: { status: cacheStatus },
-            disk: diskUsage,
-            memory: {
-                usage: `${memUsage}%`,
-                status: memUsage > 90 ? 'error' : memUsage > 70 ? 'warning' : 'success'
-            },
-            uptime: uptimeString
-        };
-        
-        res.json(statusData);
-    } catch (error) {
-        console.error('[Admin API] Error getting system status:', error);
-        res.status(500).json({ error: 'Failed to get system status' });
-    }
-}));
+    })
+);
 
 /**
  * @swagger
@@ -4967,19 +5452,23 @@ app.get('/api/admin/status', isAuthenticated, asyncHandler(async (req, res) => {
  *       401:
  *         description: Unauthorized
  */
-app.get('/api/admin/version', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        // Read current version from package.json
-        const packagePath = path.join(__dirname, 'package.json');
-        const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
-        const version = packageData.version || 'Unknown';
-        
-        res.json({ version });
-    } catch (error) {
-        logger.error('Failed to read version', { error: error.message });
-        res.json({ version: 'Unknown' });
-    }
-}));
+app.get(
+    '/api/admin/version',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            // Read current version from package.json
+            const packagePath = path.join(__dirname, 'package.json');
+            const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
+            const version = packageData.version || 'Unknown';
+
+            res.json({ version });
+        } catch (error) {
+            logger.error('Failed to read version', { error: error.message });
+            res.json({ version: 'Unknown' });
+        }
+    })
+);
 
 /**
  * @swagger
@@ -5027,58 +5516,64 @@ app.get('/api/admin/version', isAuthenticated, asyncHandler(async (req, res) => 
  *                   type: string
  *                   example: "Version 1.6.0 - GitHub Integration"
  */
-app.get('/api/admin/update-check', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        // Read current version from package.json
-        const packagePath = path.join(__dirname, 'package.json');
-        let currentVersion = 'Unknown';
-        
+app.get(
+    '/api/admin/update-check',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
         try {
-            const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
-            currentVersion = packageData.version || 'Unknown';
-        } catch (e) {
-            logger.warn('Could not read package.json for version info', { error: e.message });
-        }
-
-        // Check for updates using GitHub service
-        const updateInfo = await githubService.checkForUpdates(currentVersion);
-        
-        if (isDebug) {
-            console.log('[Admin API] Update check completed:', {
-                current: updateInfo.currentVersion,
-                latest: updateInfo.latestVersion,
-                hasUpdate: updateInfo.hasUpdate,
-                updateType: updateInfo.updateType
-            });
-        }
-        
-        res.json(updateInfo);
-    } catch (error) {
-        logger.error('Failed to check for updates', { error: error.message });
-        
-        // Fallback response when GitHub is unavailable
-        try {
+            // Read current version from package.json
             const packagePath = path.join(__dirname, 'package.json');
-            const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
-            const currentVersion = packageData.version || 'Unknown';
-            
-            res.json({
-                currentVersion,
-                latestVersion: currentVersion,
-                hasUpdate: false,
-                updateType: null,
-                releaseUrl: null,
-                downloadUrl: null,
-                releaseNotes: null,
-                publishedAt: null,
-                releaseName: null,
-                error: 'Could not connect to GitHub to check for updates'
-            });
-        } catch (fallbackError) {
-            res.status(500).json({ error: 'Failed to check for updates and could not read current version' });
+            let currentVersion = 'Unknown';
+
+            try {
+                const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
+                currentVersion = packageData.version || 'Unknown';
+            } catch (e) {
+                logger.warn('Could not read package.json for version info', { error: e.message });
+            }
+
+            // Check for updates using GitHub service
+            const updateInfo = await githubService.checkForUpdates(currentVersion);
+
+            if (isDebug) {
+                console.log('[Admin API] Update check completed:', {
+                    current: updateInfo.currentVersion,
+                    latest: updateInfo.latestVersion,
+                    hasUpdate: updateInfo.hasUpdate,
+                    updateType: updateInfo.updateType,
+                });
+            }
+
+            res.json(updateInfo);
+        } catch (error) {
+            logger.error('Failed to check for updates', { error: error.message });
+
+            // Fallback response when GitHub is unavailable
+            try {
+                const packagePath = path.join(__dirname, 'package.json');
+                const packageData = JSON.parse(await fsp.readFile(packagePath, 'utf8'));
+                const currentVersion = packageData.version || 'Unknown';
+
+                res.json({
+                    currentVersion,
+                    latestVersion: currentVersion,
+                    hasUpdate: false,
+                    updateType: null,
+                    releaseUrl: null,
+                    downloadUrl: null,
+                    releaseNotes: null,
+                    publishedAt: null,
+                    releaseName: null,
+                    error: 'Could not connect to GitHub to check for updates',
+                });
+            } catch (fallbackError) {
+                res.status(500).json({
+                    error: 'Failed to check for updates and could not read current version',
+                });
+            }
         }
-    }
-}));
+    })
+);
 
 /**
  * @swagger
@@ -5119,28 +5614,32 @@ app.get('/api/admin/update-check', isAuthenticated, asyncHandler(async (req, res
  *                   html_url:
  *                     type: string
  */
-app.get('/api/admin/github/releases', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        const limit = Math.min(Math.max(parseInt(req.query.limit) || 5, 1), 20);
-        const releases = await githubService.getReleases(limit);
-        
-        // Return simplified release data
-        const simplifiedReleases = releases.map(release => ({
-            tagName: release.tag_name,
-            name: release.name || release.tag_name,
-            body: release.body || '',
-            publishedAt: release.published_at,
-            url: release.html_url,
-            prerelease: release.prerelease,
-            draft: release.draft
-        }));
-        
-        res.json(simplifiedReleases);
-    } catch (error) {
-        logger.error('Failed to fetch GitHub releases', { error: error.message });
-        res.status(500).json({ error: 'Failed to fetch releases from GitHub' });
-    }
-}));
+app.get(
+    '/api/admin/github/releases',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            const limit = Math.min(Math.max(parseInt(req.query.limit) || 5, 1), 20);
+            const releases = await githubService.getReleases(limit);
+
+            // Return simplified release data
+            const simplifiedReleases = releases.map(release => ({
+                tagName: release.tag_name,
+                name: release.name || release.tag_name,
+                body: release.body || '',
+                publishedAt: release.published_at,
+                url: release.html_url,
+                prerelease: release.prerelease,
+                draft: release.draft,
+            }));
+
+            res.json(simplifiedReleases);
+        } catch (error) {
+            logger.error('Failed to fetch GitHub releases', { error: error.message });
+            res.status(500).json({ error: 'Failed to fetch releases from GitHub' });
+        }
+    })
+);
 
 /**
  * @swagger
@@ -5178,15 +5677,19 @@ app.get('/api/admin/github/releases', isAuthenticated, asyncHandler(async (req, 
  *                 license:
  *                   type: string
  */
-app.get('/api/admin/github/repository', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        const repoInfo = await githubService.getRepositoryInfo();
-        res.json(repoInfo);
-    } catch (error) {
-        logger.error('Failed to fetch repository information', { error: error.message });
-        res.status(500).json({ error: 'Failed to fetch repository information from GitHub' });
-    }
-}));
+app.get(
+    '/api/admin/github/repository',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            const repoInfo = await githubService.getRepositoryInfo();
+            res.json(repoInfo);
+        } catch (error) {
+            logger.error('Failed to fetch repository information', { error: error.message });
+            res.status(500).json({ error: 'Failed to fetch repository information from GitHub' });
+        }
+    })
+);
 
 /**
  * @swagger
@@ -5209,16 +5712,20 @@ app.get('/api/admin/github/repository', isAuthenticated, asyncHandler(async (req
  *                   type: string
  *                   example: "GitHub cache cleared successfully"
  */
-app.post('/api/admin/github/clear-cache', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        githubService.clearCache();
-        logger.info('GitHub API cache cleared by admin user');
-        res.json({ message: 'GitHub cache cleared successfully' });
-    } catch (error) {
-        logger.error('Failed to clear GitHub cache', { error: error.message });
-        res.status(500).json({ error: 'Failed to clear GitHub cache' });
-    }
-}));
+app.post(
+    '/api/admin/github/clear-cache',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            githubService.clearCache();
+            logger.info('GitHub API cache cleared by admin user');
+            res.json({ message: 'GitHub cache cleared successfully' });
+        } catch (error) {
+            logger.error('Failed to clear GitHub cache', { error: error.message });
+            res.status(500).json({ error: 'Failed to clear GitHub cache' });
+        }
+    })
+);
 
 /**
  * @swagger
@@ -5264,38 +5771,48 @@ app.post('/api/admin/github/clear-cache', isAuthenticated, asyncHandler(async (r
  *       500:
  *         description: Failed to start update process
  */
-app.post('/api/admin/update/start', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    try {
-        const { version, force } = req.body;
-        
-        if (autoUpdater.isUpdating()) {
-            return res.status(400).json({ error: 'Update already in progress' });
+app.post(
+    '/api/admin/update/start',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        try {
+            const { version, force } = req.body;
+
+            if (autoUpdater.isUpdating()) {
+                return res.status(400).json({ error: 'Update already in progress' });
+            }
+
+            logger.info('Update process initiated by admin', {
+                version,
+                force,
+                user: req.user?.username,
+            });
+
+            // Start update process in background
+            const updatePromise = autoUpdater.startUpdate(version);
+
+            // Don't wait for completion, return immediately
+            res.json({
+                success: true,
+                message: 'Update process started',
+                updateId: Date.now().toString(),
+            });
+
+            // Handle update completion/failure in background
+            updatePromise
+                .then(result => {
+                    logger.info('Background update completed successfully', result);
+                })
+                .catch(error => {
+                    logger.error('Background update failed', { error: error.message });
+                });
+        } catch (error) {
+            logger.error('Failed to start update process', { error: error.message });
+            res.status(500).json({ error: 'Failed to start update process' });
         }
-
-        logger.info('Update process initiated by admin', { version, force, user: req.user?.username });
-
-        // Start update process in background
-        const updatePromise = autoUpdater.startUpdate(version);
-        
-        // Don't wait for completion, return immediately
-        res.json({
-            success: true,
-            message: 'Update process started',
-            updateId: Date.now().toString()
-        });
-
-        // Handle update completion/failure in background
-        updatePromise.then((result) => {
-            logger.info('Background update completed successfully', result);
-        }).catch((error) => {
-            logger.error('Background update failed', { error: error.message });
-        });
-
-    } catch (error) {
-        logger.error('Failed to start update process', { error: error.message });
-        res.status(500).json({ error: 'Failed to start update process' });
-    }
-}));
+    })
+);
 
 /**
  * @swagger
@@ -5336,20 +5853,24 @@ app.post('/api/admin/update/start', isAuthenticated, express.json(), asyncHandle
  *                 isUpdating:
  *                   type: boolean
  */
-app.get('/api/admin/update/status', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        const status = autoUpdater.getStatus();
-        const isUpdating = autoUpdater.isUpdating();
-        
-        res.json({
-            ...status,
-            isUpdating
-        });
-    } catch (error) {
-        logger.error('Failed to get update status', { error: error.message });
-        res.status(500).json({ error: 'Failed to get update status' });
-    }
-}));
+app.get(
+    '/api/admin/update/status',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            const status = autoUpdater.getStatus();
+            const isUpdating = autoUpdater.isUpdating();
+
+            res.json({
+                ...status,
+                isUpdating,
+            });
+        } catch (error) {
+            logger.error('Failed to get update status', { error: error.message });
+            res.status(500).json({ error: 'Failed to get update status' });
+        }
+    })
+);
 
 /**
  * @swagger
@@ -5377,25 +5898,31 @@ app.get('/api/admin/update/status', isAuthenticated, asyncHandler(async (req, re
  *       500:
  *         description: Rollback failed
  */
-app.post('/api/admin/update/rollback', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        if (autoUpdater.isUpdating()) {
-            return res.status(400).json({ error: 'Cannot rollback while update is in progress' });
+app.post(
+    '/api/admin/update/rollback',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            if (autoUpdater.isUpdating()) {
+                return res
+                    .status(400)
+                    .json({ error: 'Cannot rollback while update is in progress' });
+            }
+
+            logger.info('Rollback initiated by admin', { user: req.user?.username });
+
+            await autoUpdater.rollback();
+
+            res.json({
+                success: true,
+                message: 'Rollback completed successfully',
+            });
+        } catch (error) {
+            logger.error('Failed to rollback', { error: error.message });
+            res.status(500).json({ error: error.message });
         }
-
-        logger.info('Rollback initiated by admin', { user: req.user?.username });
-
-        await autoUpdater.rollback();
-        
-        res.json({
-            success: true,
-            message: 'Rollback completed successfully'
-        });
-    } catch (error) {
-        logger.error('Failed to rollback', { error: error.message });
-        res.status(500).json({ error: error.message });
-    }
-}));
+    })
+);
 
 /**
  * @swagger
@@ -5429,15 +5956,19 @@ app.post('/api/admin/update/rollback', isAuthenticated, asyncHandler(async (req,
  *                     type: string
  *                     format: date-time
  */
-app.get('/api/admin/update/backups', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        const backups = await autoUpdater.listBackups();
-        res.json(backups);
-    } catch (error) {
-        logger.error('Failed to list backups', { error: error.message });
-        res.status(500).json({ error: 'Failed to list backups' });
-    }
-}));
+app.get(
+    '/api/admin/update/backups',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            const backups = await autoUpdater.listBackups();
+            res.json(backups);
+        } catch (error) {
+            logger.error('Failed to list backups', { error: error.message });
+            res.status(500).json({ error: 'Failed to list backups' });
+        }
+    })
+);
 
 /**
  * @swagger
@@ -5476,27 +6007,35 @@ app.get('/api/admin/update/backups', isAuthenticated, asyncHandler(async (req, r
  *                 message:
  *                   type: string
  */
-app.post('/api/admin/update/cleanup', isAuthenticated, express.json(), asyncHandler(async (req, res) => {
-    try {
-        const { keepCount = 5 } = req.body;
-        
-        if (keepCount < 1 || keepCount > 20) {
-            return res.status(400).json({ error: 'keepCount must be between 1 and 20' });
+app.post(
+    '/api/admin/update/cleanup',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        try {
+            const { keepCount = 5 } = req.body;
+
+            if (keepCount < 1 || keepCount > 20) {
+                return res.status(400).json({ error: 'keepCount must be between 1 and 20' });
+            }
+
+            logger.info('Backup cleanup initiated by admin', {
+                keepCount,
+                user: req.user?.username,
+            });
+
+            const result = await autoUpdater.cleanupOldBackups(keepCount);
+
+            res.json({
+                ...result,
+                message: `Deleted ${result.deleted} old backups, kept ${result.kept} recent backups`,
+            });
+        } catch (error) {
+            logger.error('Failed to cleanup backups', { error: error.message });
+            res.status(500).json({ error: 'Failed to cleanup backups' });
         }
-
-        logger.info('Backup cleanup initiated by admin', { keepCount, user: req.user?.username });
-
-        const result = await autoUpdater.cleanupOldBackups(keepCount);
-        
-        res.json({
-            ...result,
-            message: `Deleted ${result.deleted} old backups, kept ${result.kept} recent backups`
-        });
-    } catch (error) {
-        logger.error('Failed to cleanup backups', { error: error.message });
-        res.status(500).json({ error: 'Failed to cleanup backups' });
-    }
-}));
+    })
+);
 
 /**
  * @swagger
@@ -5537,87 +6076,94 @@ app.post('/api/admin/update/cleanup', isAuthenticated, express.json(), asyncHand
  *                       type: string
  *                       example: "3.1 GB"
  */
-app.get('/api/admin/performance', isAuthenticated, asyncHandler(async (req, res) => {
-    try {
-        const os = require('os');
-        
-        // CPU information
-        const cpus = os.cpus();
-        let totalIdle = 0;
-        let totalTick = 0;
-        
-        cpus.forEach(cpu => {
-            for (type in cpu.times) {
-                totalTick += cpu.times[type];
-            }
-            totalIdle += cpu.times.idle;
-        });
-        
-        const idle = totalIdle / cpus.length;
-        const total = totalTick / cpus.length;
-        const cpuUsage = 100 - Math.round(100 * idle / total);
-        
-        // Load average
-        const loadAverage = os.loadavg().map(load => load.toFixed(2)).join(', ');
-        
-        // Memory information
-        const totalMem = os.totalmem();
-        const freeMem = os.freemem();
-        const usedMem = totalMem - freeMem;
-        const memUsage = Math.round((usedMem / totalMem) * 100);
-        
-        const formatBytes = (bytes) => {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-        };
-        
-        // Disk information (basic)
-        let diskUsage = { usage: 0, used: '0 GB', total: '0 GB' };
+app.get(
+    '/api/admin/performance',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
         try {
-            const stats = await fsp.statfs(__dirname);
-            const totalSpace = stats.blocks * stats.bsize;
-            const freeSpace = stats.bavail * stats.bsize;
-            const usedSpace = totalSpace - freeSpace;
-            const diskUsagePercent = Math.round((usedSpace / totalSpace) * 100);
-            
-            diskUsage = {
-                usage: diskUsagePercent,
-                used: formatBytes(usedSpace),
-                total: formatBytes(totalSpace)
+            const os = require('os');
+
+            // CPU information
+            const cpus = os.cpus();
+            let totalIdle = 0;
+            let totalTick = 0;
+
+            cpus.forEach(cpu => {
+                for (const type in cpu.times) {
+                    totalTick += cpu.times[type];
+                }
+                totalIdle += cpu.times.idle;
+            });
+
+            const idle = totalIdle / cpus.length;
+            const total = totalTick / cpus.length;
+            const cpuUsage = 100 - Math.round((100 * idle) / total);
+
+            // Load average
+            const loadAverage = os
+                .loadavg()
+                .map(load => load.toFixed(2))
+                .join(', ');
+
+            // Memory information
+            const totalMem = os.totalmem();
+            const freeMem = os.freemem();
+            const usedMem = totalMem - freeMem;
+            const memUsage = Math.round((usedMem / totalMem) * 100);
+
+            const formatBytes = bytes => {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
             };
-        } catch (e) {
-            console.warn('[Admin API] Could not get disk stats:', e.message);
+
+            // Disk information (basic)
+            let diskUsage = { usage: 0, used: '0 GB', total: '0 GB' };
+            try {
+                const stats = await fsp.statfs(__dirname);
+                const totalSpace = stats.blocks * stats.bsize;
+                const freeSpace = stats.bavail * stats.bsize;
+                const usedSpace = totalSpace - freeSpace;
+                const diskUsagePercent = Math.round((usedSpace / totalSpace) * 100);
+
+                diskUsage = {
+                    usage: diskUsagePercent,
+                    used: formatBytes(usedSpace),
+                    total: formatBytes(totalSpace),
+                };
+            } catch (e) {
+                console.warn('[Admin API] Could not get disk stats:', e.message);
+            }
+
+            // Uptime
+            const uptime = process.uptime();
+            const hours = Math.floor(uptime / 3600);
+            const minutes = Math.floor((uptime % 3600) / 60);
+            const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+            const performanceData = {
+                cpu: {
+                    usage: cpuUsage,
+                    loadAverage: loadAverage,
+                },
+                memory: {
+                    usage: memUsage,
+                    used: formatBytes(usedMem),
+                    total: formatBytes(totalMem),
+                },
+                disk: diskUsage,
+                uptime: uptimeString,
+            };
+
+            res.json(performanceData);
+        } catch (error) {
+            console.error('[Admin API] Error getting performance metrics:', error);
+            res.status(500).json({ error: 'Failed to get performance metrics' });
         }
-        
-        // Uptime
-        const uptime = process.uptime();
-        const hours = Math.floor(uptime / 3600);
-        const minutes = Math.floor((uptime % 3600) / 60);
-        const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-        
-        const performanceData = {
-            cpu: {
-                usage: cpuUsage,
-                loadAverage: loadAverage
-            },
-            memory: {
-                usage: memUsage,
-                used: formatBytes(usedMem),
-                total: formatBytes(totalMem)
-            },
-            disk: diskUsage,
-            uptime: uptimeString
-        };
-        
-        res.json(performanceData);
-    } catch (error) {
-        console.error('[Admin API] Error getting performance metrics:', error);
-        res.status(500).json({ error: 'Failed to get performance metrics' });
-    }
-}));
+    })
+);
 
 /**
  * @swagger
@@ -5639,23 +6185,27 @@ app.get('/api/admin/performance', isAuthenticated, asyncHandler(async (req, res)
  *             schema:
  *               $ref: '#/components/schemas/RefreshMediaResponse'
  */
-app.post('/api/admin/refresh-media', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Received request to force-refresh media playlist.');
+app.post(
+    '/api/admin/refresh-media',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Received request to force-refresh media playlist.');
 
-    // Clear media cache before refreshing
-    const cleared = cacheManager.clear('media');
-    logger.info('Media cache cleared before refresh', { cleared });
+        // Clear media cache before refreshing
+        const cleared = cacheManager.clear('media');
+        logger.info('Media cache cleared before refresh', { cleared });
 
-    // The refreshPlaylistCache function already has a lock (isRefreshing)
-    // so we can call it directly. We'll await it to give feedback to the user.
-    await refreshPlaylistCache();
+        // The refreshPlaylistCache function already has a lock (isRefreshing)
+        // so we can call it directly. We'll await it to give feedback to the user.
+        await refreshPlaylistCache();
 
-    const itemCount = playlistCache ? playlistCache.length : 0;
-    const message = `Media playlist successfully refreshed. ${itemCount} items found. Cache cleared: ${cleared} entries.`;
-    if (isDebug) console.log(`[Admin API] ${message}`);
+        const itemCount = playlistCache ? playlistCache.length : 0;
+        const message = `Media playlist successfully refreshed. ${itemCount} items found. Cache cleared: ${cleared} entries.`;
+        if (isDebug) console.log(`[Admin API] ${message}`);
 
-    res.json({ success: true, message: message, itemCount: itemCount, cacheCleared: cleared });
-}));
+        res.json({ success: true, message: message, itemCount: itemCount, cacheCleared: cleared });
+    })
+);
 
 /**
  * @swagger
@@ -5671,42 +6221,48 @@ app.post('/api/admin/refresh-media', isAuthenticated, asyncHandler(async (req, r
  *       401:
  *         description: Niet geautoriseerd.
  */
-app.get('/api/admin/debug-cache', isAuthenticated, asyncHandler(async (req, res) => {
-    const userAgent = req.get('user-agent') || '';
-    const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
-    
-    res.json({
-        cache: {
-            itemCount: playlistCache ? playlistCache.length : null,
-            isNull: playlistCache === null,
-            isRefreshing,
-            timestamp: cacheTimestamp,
-            age: cacheTimestamp ? Date.now() - cacheTimestamp : null
-        },
-        request: {
-            userAgent: userAgent.substring(0, 100),
-            isMobile
-        },
-        config: {
-            mediaServers: config.mediaServers?.map(s => ({
-                name: s.name,
-                enabled: s.enabled,
-                type: s.type,
-                genreFilter: s.genreFilter,
-                movieCount: s.movieCount,
-                showCount: s.showCount,
-                movieLibraryNames: s.movieLibraryNames,
-                showLibraryNames: s.showLibraryNames
-            })),
-            tmdbSource: config.tmdbSource ? {
-                enabled: config.tmdbSource.enabled,
-                genreFilter: config.tmdbSource.genreFilter,
-                movieCount: config.tmdbSource.movieCount,
-                showCount: config.tmdbSource.showCount
-            } : null
-        }
-    });
-}));
+app.get(
+    '/api/admin/debug-cache',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const userAgent = req.get('user-agent') || '';
+        const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+
+        res.json({
+            cache: {
+                itemCount: playlistCache ? playlistCache.length : null,
+                isNull: playlistCache === null,
+                isRefreshing,
+                timestamp: cacheTimestamp,
+                age: cacheTimestamp ? Date.now() - cacheTimestamp : null,
+            },
+            request: {
+                userAgent: userAgent.substring(0, 100),
+                isMobile,
+            },
+            config: {
+                mediaServers: config.mediaServers?.map(s => ({
+                    name: s.name,
+                    enabled: s.enabled,
+                    type: s.type,
+                    genreFilter: s.genreFilter,
+                    movieCount: s.movieCount,
+                    showCount: s.showCount,
+                    movieLibraryNames: s.movieLibraryNames,
+                    showLibraryNames: s.showLibraryNames,
+                })),
+                tmdbSource: config.tmdbSource
+                    ? {
+                          enabled: config.tmdbSource.enabled,
+                          genreFilter: config.tmdbSource.genreFilter,
+                          movieCount: config.tmdbSource.movieCount,
+                          showCount: config.tmdbSource.showCount,
+                      }
+                    : null,
+            },
+        });
+    })
+);
 
 /**
  * @swagger
@@ -5727,25 +6283,33 @@ app.get('/api/admin/debug-cache', isAuthenticated, asyncHandler(async (req, res)
  *             schema:
  *               $ref: '#/components/schemas/AdminApiResponse'
  */
-app.post('/api/admin/clear-image-cache', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Received request to clear image cache.');
-    const imageCacheDir = path.join(__dirname, 'image_cache');
-    let clearedCount = 0;
+app.post(
+    '/api/admin/clear-image-cache',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Received request to clear image cache.');
+        const imageCacheDir = path.join(__dirname, 'image_cache');
+        let clearedCount = 0;
 
-    try {
-        const files = await fsp.readdir(imageCacheDir);
-        const unlinkPromises = files.map(file =>
-            fsp.unlink(path.join(imageCacheDir, file))
-        );
-        await Promise.all(unlinkPromises);
-        clearedCount = files.length;
-        if (isDebug) console.log(`[Admin API] Successfully cleared ${clearedCount} files from the image cache.`);
-        res.json({ success: true, message: `Successfully cleared ${clearedCount} cached images.` });
-    } catch (error) {
-        console.error('[Admin API] Error clearing image cache:', error);
-        throw new ApiError(500, 'Failed to clear image cache. Check server logs for details.');
-    }
-}));
+        try {
+            const files = await fsp.readdir(imageCacheDir);
+            const unlinkPromises = files.map(file => fsp.unlink(path.join(imageCacheDir, file)));
+            await Promise.all(unlinkPromises);
+            clearedCount = files.length;
+            if (isDebug)
+                console.log(
+                    `[Admin API] Successfully cleared ${clearedCount} files from the image cache.`
+                );
+            res.json({
+                success: true,
+                message: `Successfully cleared ${clearedCount} cached images.`,
+            });
+        } catch (error) {
+            console.error('[Admin API] Error clearing image cache:', error);
+            throw new ApiError(500, 'Failed to clear image cache. Check server logs for details.');
+        }
+    })
+);
 
 /**
  * @swagger
@@ -5760,96 +6324,108 @@ app.post('/api/admin/clear-image-cache', isAuthenticated, asyncHandler(async (re
  *       200:
  *         description: Cache statistics retrieved successfully
  */
-app.get('/api/admin/cache-stats', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Received request for cache stats');
-    
-    try {
-        // Get cache stats from cache manager
-        const cacheStats = cacheManager.getStats();
-        
-        // Calculate disk usage
-        const diskUsage = {
-            imageCache: 0,
-            logFiles: 0,
-            total: 0
-        };
-        
-        // Calculate image cache size
+app.get(
+    '/api/admin/cache-stats',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Received request for cache stats');
+
         try {
-            const imageCacheDir = path.join(__dirname, 'image_cache');
-            const files = await fsp.readdir(imageCacheDir);
-            for (const file of files) {
-                try {
-                    const stats = await fsp.stat(path.join(imageCacheDir, file));
-                    diskUsage.imageCache += stats.size;
-                } catch (err) {
-                    // Skip files that can't be read
+            // Get cache stats from cache manager
+            const cacheStats = cacheManager.getStats();
+
+            // Calculate disk usage
+            const diskUsage = {
+                imageCache: 0,
+                logFiles: 0,
+                total: 0,
+            };
+
+            // Calculate image cache size
+            try {
+                const imageCacheDir = path.join(__dirname, 'image_cache');
+                const files = await fsp.readdir(imageCacheDir);
+                for (const file of files) {
+                    try {
+                        const stats = await fsp.stat(path.join(imageCacheDir, file));
+                        diskUsage.imageCache += stats.size;
+                    } catch (err) {
+                        // Skip files that can't be read
+                    }
+                }
+            } catch (err) {
+                if (isDebug)
+                    console.log('[Admin API] Image cache directory not accessible:', err.message);
+            }
+
+            // Calculate log files size
+            try {
+                const logsDir = path.join(__dirname, 'logs');
+                const files = await fsp.readdir(logsDir);
+                for (const file of files) {
+                    try {
+                        const stats = await fsp.stat(path.join(logsDir, file));
+                        diskUsage.logFiles += stats.size;
+                    } catch (err) {
+                        // Skip files that can't be read
+                    }
+                }
+            } catch (err) {
+                if (isDebug) console.log('[Admin API] Logs directory not accessible:', err.message);
+            }
+
+            diskUsage.total = diskUsage.imageCache + diskUsage.logFiles;
+
+            // Count cached items by type
+            const itemCount = {
+                media: 0,
+                config: 0,
+                image: 0,
+                total: cacheStats.size,
+            };
+
+            // Count items by prefix (basic categorization)
+            for (const key of cacheManager.cache.keys()) {
+                if (
+                    key.startsWith('media:') ||
+                    key.startsWith('plex:') ||
+                    key.startsWith('tmdb:') ||
+                    key.startsWith('tvdb:')
+                ) {
+                    itemCount.media++;
+                } else if (key.startsWith('config:')) {
+                    itemCount.config++;
+                } else if (key.startsWith('image:')) {
+                    itemCount.image++;
                 }
             }
-        } catch (err) {
-            if (isDebug) console.log('[Admin API] Image cache directory not accessible:', err.message);
+
+            const response = {
+                diskUsage,
+                itemCount,
+                cacheStats: {
+                    hits: cacheStats.hits,
+                    misses: cacheStats.misses,
+                    hitRate: cacheStats.hitRate,
+                },
+            };
+
+            if (isDebug) console.log('[Admin API] Cache stats calculated:', response);
+            res.json(response);
+        } catch (error) {
+            console.error('[Admin API] Error getting cache stats:', error);
+            throw new ApiError(
+                500,
+                'Failed to get cache statistics. Check server logs for details.'
+            );
         }
-        
-        // Calculate log files size
-        try {
-            const logsDir = path.join(__dirname, 'logs');
-            const files = await fsp.readdir(logsDir);
-            for (const file of files) {
-                try {
-                    const stats = await fsp.stat(path.join(logsDir, file));
-                    diskUsage.logFiles += stats.size;
-                } catch (err) {
-                    // Skip files that can't be read
-                }
-            }
-        } catch (err) {
-            if (isDebug) console.log('[Admin API] Logs directory not accessible:', err.message);
-        }
-        
-        diskUsage.total = diskUsage.imageCache + diskUsage.logFiles;
-        
-        // Count cached items by type
-        const itemCount = {
-            media: 0,
-            config: 0,
-            image: 0,
-            total: cacheStats.size
-        };
-        
-        // Count items by prefix (basic categorization)
-        for (const key of cacheManager.cache.keys()) {
-            if (key.startsWith('media:') || key.startsWith('plex:') || key.startsWith('tmdb:') || key.startsWith('tvdb:')) {
-                itemCount.media++;
-            } else if (key.startsWith('config:')) {
-                itemCount.config++;
-            } else if (key.startsWith('image:')) {
-                itemCount.image++;
-            }
-        }
-        
-        const response = {
-            diskUsage,
-            itemCount,
-            cacheStats: {
-                hits: cacheStats.hits,
-                misses: cacheStats.misses,
-                hitRate: cacheStats.hitRate
-            }
-        };
-        
-        if (isDebug) console.log('[Admin API] Cache stats calculated:', response);
-        res.json(response);
-        
-    } catch (error) {
-        console.error('[Admin API] Error getting cache stats:', error);
-        throw new ApiError(500, 'Failed to get cache statistics. Check server logs for details.');
-    }
-}));
+    })
+);
 
 // Cache configuration is now hardcoded for simplicity and security
 const CACHE_CONFIG = {
     maxSizeGB: 5,
-    minFreeDiskSpaceMB: 500
+    minFreeDiskSpaceMB: 500,
 };
 
 /**
@@ -5890,97 +6466,138 @@ function getCacheConfig() {
  *       500:
  *         description: Cache cleanup failed
  */
-app.post('/api/admin/cleanup-cache', isAuthenticated, asyncHandler(async (req, res) => {
-    if (isDebug) console.log('[Admin API] Request received for cache cleanup.');
-    
-    try {
-        const cacheConfig = getCacheConfig();
-        const maxSizeGB = cacheConfig.maxSizeGB;
-        const minFreeDiskSpaceMB = cacheConfig.minFreeDiskSpaceMB;
-        
-        let totalFilesRemoved = 0;
-        let totalSpaceSaved = 0;
-        
-        // Cache directories to clean
-        const cacheDirectories = [
-            path.join(__dirname, 'cache'),
-            path.join(__dirname, 'image_cache')
-        ];
-        
-        if (isDebug) console.log('[Admin API] Starting cache cleanup with maxSize:', maxSizeGB, 'GB');
-        
-        for (const cacheDir of cacheDirectories) {
-            if (fs.existsSync(cacheDir)) {
-                try {
-                    const files = fs.readdirSync(cacheDir).filter(file => 
-                        file.endsWith('.json') || file.endsWith('.jpg') || file.endsWith('.png') || file.endsWith('.webp')
-                    );
-                    
-                    // Sort files by modification time (oldest first)
-                    const fileStats = files.map(file => {
-                        const filePath = path.join(cacheDir, file);
-                        const stats = fs.statSync(filePath);
-                        return { file, filePath, mtime: stats.mtime, size: stats.size };
-                    }).sort((a, b) => a.mtime - b.mtime);
-                    
-                    // Calculate current cache size
-                    let currentSizeBytes = fileStats.reduce((total, item) => total + item.size, 0);
-                    const maxSizeBytes = maxSizeGB * 1024 * 1024 * 1024;
-                    
-                    // Remove old files if cache exceeds max size
-                    while (currentSizeBytes > maxSizeBytes && fileStats.length > 0) {
-                        const oldestFile = fileStats.shift();
-                        try {
-                            fs.unlinkSync(oldestFile.filePath);
-                            totalFilesRemoved++;
-                            totalSpaceSaved += oldestFile.size;
-                            currentSizeBytes -= oldestFile.size;
-                            if (isDebug) console.log('[Admin API] Removed old cache file:', oldestFile.file);
-                        } catch (err) {
-                            if (isDebug) console.warn('[Admin API] Failed to remove file:', oldestFile.file, err.message);
+app.post(
+    '/api/admin/cleanup-cache',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) console.log('[Admin API] Request received for cache cleanup.');
+
+        try {
+            const cacheConfig = getCacheConfig();
+            const maxSizeGB = cacheConfig.maxSizeGB;
+
+            let totalFilesRemoved = 0;
+            let totalSpaceSaved = 0;
+
+            // Cache directories to clean
+            const cacheDirectories = [
+                path.join(__dirname, 'cache'),
+                path.join(__dirname, 'image_cache'),
+            ];
+
+            if (isDebug)
+                console.log('[Admin API] Starting cache cleanup with maxSize:', maxSizeGB, 'GB');
+
+            for (const cacheDir of cacheDirectories) {
+                if (fs.existsSync(cacheDir)) {
+                    try {
+                        const files = fs
+                            .readdirSync(cacheDir)
+                            .filter(
+                                file =>
+                                    file.endsWith('.json') ||
+                                    file.endsWith('.jpg') ||
+                                    file.endsWith('.png') ||
+                                    file.endsWith('.webp')
+                            );
+
+                        // Sort files by modification time (oldest first)
+                        const fileStats = files
+                            .map(file => {
+                                const filePath = path.join(cacheDir, file);
+                                const stats = fs.statSync(filePath);
+                                return { file, filePath, mtime: stats.mtime, size: stats.size };
+                            })
+                            .sort((a, b) => a.mtime - b.mtime);
+
+                        // Calculate current cache size
+                        let currentSizeBytes = fileStats.reduce(
+                            (total, item) => total + item.size,
+                            0
+                        );
+                        const maxSizeBytes = maxSizeGB * 1024 * 1024 * 1024;
+
+                        // Remove old files if cache exceeds max size
+                        while (currentSizeBytes > maxSizeBytes && fileStats.length > 0) {
+                            const oldestFile = fileStats.shift();
+                            try {
+                                fs.unlinkSync(oldestFile.filePath);
+                                totalFilesRemoved++;
+                                totalSpaceSaved += oldestFile.size;
+                                currentSizeBytes -= oldestFile.size;
+                                if (isDebug)
+                                    console.log(
+                                        '[Admin API] Removed old cache file:',
+                                        oldestFile.file
+                                    );
+                            } catch (err) {
+                                if (isDebug)
+                                    console.warn(
+                                        '[Admin API] Failed to remove file:',
+                                        oldestFile.file,
+                                        err.message
+                                    );
+                            }
                         }
-                    }
-                    
-                    // Remove files older than 30 days
-                    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                    const oldFiles = fileStats.filter(item => item.mtime < thirtyDaysAgo);
-                    
-                    for (const oldFile of oldFiles) {
-                        try {
-                            fs.unlinkSync(oldFile.filePath);
-                            totalFilesRemoved++;
-                            totalSpaceSaved += oldFile.size;
-                            if (isDebug) console.log('[Admin API] Removed expired cache file:', oldFile.file);
-                        } catch (err) {
-                            if (isDebug) console.warn('[Admin API] Failed to remove expired file:', oldFile.file, err.message);
+
+                        // Remove files older than 30 days
+                        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                        const oldFiles = fileStats.filter(item => item.mtime < thirtyDaysAgo);
+
+                        for (const oldFile of oldFiles) {
+                            try {
+                                fs.unlinkSync(oldFile.filePath);
+                                totalFilesRemoved++;
+                                totalSpaceSaved += oldFile.size;
+                                if (isDebug)
+                                    console.log(
+                                        '[Admin API] Removed expired cache file:',
+                                        oldFile.file
+                                    );
+                            } catch (err) {
+                                if (isDebug)
+                                    console.warn(
+                                        '[Admin API] Failed to remove expired file:',
+                                        oldFile.file,
+                                        err.message
+                                    );
+                            }
                         }
+                    } catch (err) {
+                        if (isDebug)
+                            console.warn(
+                                '[Admin API] Error processing cache directory:',
+                                cacheDir,
+                                err.message
+                            );
                     }
-                    
-                } catch (err) {
-                    if (isDebug) console.warn('[Admin API] Error processing cache directory:', cacheDir, err.message);
                 }
             }
+
+            const spaceSavedMB = (totalSpaceSaved / (1024 * 1024)).toFixed(2);
+            const message =
+                totalFilesRemoved > 0
+                    ? `Cache cleanup completed. Removed ${totalFilesRemoved} files, saved ${spaceSavedMB} MB.`
+                    : 'Cache cleanup completed. No files needed to be removed.';
+
+            if (isDebug)
+                console.log('[Admin API] Cache cleanup completed:', {
+                    totalFilesRemoved,
+                    spaceSavedMB,
+                });
+
+            res.json({
+                success: true,
+                message: message,
+                filesRemoved: totalFilesRemoved,
+                spaceSaved: `${spaceSavedMB} MB`,
+            });
+        } catch (error) {
+            if (isDebug) console.error('[Admin API] Error during cache cleanup:', error);
+            throw new ApiError(500, 'Failed to cleanup cache. Check server logs for details.');
         }
-        
-        const spaceSavedMB = (totalSpaceSaved / (1024 * 1024)).toFixed(2);
-        const message = totalFilesRemoved > 0 
-            ? `Cache cleanup completed. Removed ${totalFilesRemoved} files, saved ${spaceSavedMB} MB.`
-            : 'Cache cleanup completed. No files needed to be removed.';
-            
-        if (isDebug) console.log('[Admin API] Cache cleanup completed:', { totalFilesRemoved, spaceSavedMB });
-        
-        res.json({
-            success: true,
-            message: message,
-            filesRemoved: totalFilesRemoved,
-            spaceSaved: `${spaceSavedMB} MB`
-        });
-        
-    } catch (error) {
-        if (isDebug) console.error('[Admin API] Error during cache cleanup:', error);
-        throw new ApiError(500, 'Failed to cleanup cache. Check server logs for details.');
-    }
-}));
+    })
+);
 
 /**
  * @swagger
@@ -6054,12 +6671,20 @@ app.get('/api/admin/api-key/status', isAuthenticated, (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ApiKeyResponse'
  */
-app.post('/api/admin/api-key/generate', isAuthenticated, asyncHandler(async (req, res) => {
-    const newApiKey = crypto.randomBytes(32).toString('hex');
-    await writeEnvFile({ API_ACCESS_TOKEN: newApiKey });
-    if (isDebug) console.log('[Admin API] New API Access Token generated and saved.');
-    res.json({ apiKey: newApiKey, message: 'New API key generated. This is the only time it will be shown. Please save it securely.' });
-}));
+app.post(
+    '/api/admin/api-key/generate',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const newApiKey = crypto.randomBytes(32).toString('hex');
+        await writeEnvFile({ API_ACCESS_TOKEN: newApiKey });
+        if (isDebug) console.log('[Admin API] New API Access Token generated and saved.');
+        res.json({
+            apiKey: newApiKey,
+            message:
+                'New API key generated. This is the only time it will be shown. Please save it securely.',
+        });
+    })
+);
 
 /**
  * @swagger
@@ -6078,11 +6703,15 @@ app.post('/api/admin/api-key/generate', isAuthenticated, asyncHandler(async (req
  *             schema:
  *               $ref: '#/components/schemas/AdminApiResponse'
  */
-app.post('/api/admin/api-key/revoke', isAuthenticated, asyncHandler(async (req, res) => {
-    await writeEnvFile({ API_ACCESS_TOKEN: '' });
-    if (isDebug) console.log('[Admin API] API Access Token has been revoked.');
-    res.json({ success: true, message: 'API key has been revoked.' });
-}));
+app.post(
+    '/api/admin/api-key/revoke',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        await writeEnvFile({ API_ACCESS_TOKEN: '' });
+        if (isDebug) console.log('[Admin API] API Access Token has been revoked.');
+        res.json({ success: true, message: 'API key has been revoked.' });
+    })
+);
 
 /**
  * @swagger
@@ -6132,44 +6761,59 @@ app.get('/api/admin/logs', isAuthenticated, (req, res) => {
  *       404:
  *         description: Not found (if debug mode is disabled).
  */
-app.get('/admin/debug', isAuthenticated, asyncHandler(async (req, res) => {
-    if (!isDebug) {
-        throw new NotFoundError('Debug endpoint is only available when debug mode is enabled.');
-    }
-    // Use the existing cache to inspect the current state, which is more useful for debugging.
-    // Calling getPlaylistMedia() would fetch new data every time, which is not what the note implies.
-    const allMedia = playlistCache || [];
+app.get(
+    '/admin/debug',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (!isDebug) {
+            throw new NotFoundError('Debug endpoint is only available when debug mode is enabled.');
+        }
+        // Use the existing cache to inspect the current state, which is more useful for debugging.
+        // Calling getPlaylistMedia() would fetch new data every time, which is not what the note implies.
+        const allMedia = playlistCache || [];
 
-    res.json({
-        note: "This endpoint returns the raw data for all media items currently in the *cached* playlist. This reflects what the front-end is using.",
-        playlist_item_count: allMedia.length,
-        playlist_items_raw: allMedia.map(m => m?._raw).filter(Boolean) // Filter out items without raw data
-    });
-}));
+        res.json({
+            note: 'This endpoint returns the raw data for all media items currently in the *cached* playlist. This reflects what the front-end is using.',
+            playlist_item_count: allMedia.length,
+            playlist_items_raw: allMedia.map(m => m?._raw).filter(Boolean), // Filter out items without raw data
+        });
+    })
+);
 
 // Start the server only if this script is run directly (e.g., `node server.js`)
 // and not when it's imported by another script (like our tests).
 if (require.main === module) {
     app.listen(port, async () => {
         console.log(`posterrama.app is listening on http://localhost:${port}`);
-        if(isDebug) console.log(`Debug endpoint is available at http://localhost:${port}/admin/debug`);
+        if (isDebug)
+            console.log(`Debug endpoint is available at http://localhost:${port}/admin/debug`);
 
         // Start the server immediately and perform the first media fetch in the background.
         // This prevents the server start from being blocked if the media server is slow.
         console.log('Performing initial playlist fetch...');
-        refreshPlaylistCache().then(() => {
-            if (playlistCache && playlistCache.length > 0) {
-                console.log(`Initial playlist fetch complete. ${playlistCache.length} items loaded.`);
-            } else {
-                // Use console.warn here, as this is not a fatal error for the server itself.
-                console.warn('Initial playlist fetch did not populate any media. The application will run but will not display any media until a refresh succeeds. Check server configurations and logs for errors during fetch.');
-            }
-        }).catch(err => console.error('An error occurred during the initial background fetch:', err));
+        refreshPlaylistCache()
+            .then(() => {
+                if (playlistCache && playlistCache.length > 0) {
+                    console.log(
+                        `Initial playlist fetch complete. ${playlistCache.length} items loaded.`
+                    );
+                } else {
+                    // Use console.warn here, as this is not a fatal error for the server itself.
+                    console.warn(
+                        'Initial playlist fetch did not populate any media. The application will run but will not display any media until a refresh succeeds. Check server configurations and logs for errors during fetch.'
+                    );
+                }
+            })
+            .catch(err =>
+                console.error('An error occurred during the initial background fetch:', err)
+            );
 
         const refreshInterval = (config.backgroundRefreshMinutes || 30) * 60 * 1000;
         if (refreshInterval > 0) {
             global.playlistRefreshInterval = setInterval(refreshPlaylistCache, refreshInterval);
-            console.log(`Playlist will be refreshed in the background every ${config.backgroundRefreshMinutes} minutes.`);
+            console.log(
+                `Playlist will be refreshed in the background every ${config.backgroundRefreshMinutes} minutes.`
+            );
         }
 
         // Set up automatic cache cleanup every 30 minutes
@@ -6182,13 +6826,13 @@ if (require.main === module) {
                         logger.info('Scheduled cache cleanup performed', {
                             trigger: 'scheduled',
                             deletedFiles: cleanupResult.deletedFiles,
-                            freedSpaceMB: cleanupResult.freedSpaceMB
+                            freedSpaceMB: cleanupResult.freedSpaceMB,
                         });
                     }
                 } catch (cleanupError) {
-                    logger.warn('Scheduled cache cleanup failed', { 
+                    logger.warn('Scheduled cache cleanup failed', {
                         error: cleanupError.message,
-                        trigger: 'scheduled'
+                        trigger: 'scheduled',
                     });
                 }
             }, cacheCleanupInterval);
@@ -6215,10 +6859,11 @@ if (require.main === module) {
                 // Intercept /get-config to add flags for the promo site.
                 // Force screensaver mode + promo box for the public site (port 4001)
                 if (req.originalUrl === '/get-config' && response.ok) {
-                    if (isDebug) console.log(`[Site Server Proxy] Modifying response for /get-config`);
+                    if (isDebug)
+                        console.log(`[Site Server Proxy] Modifying response for /get-config`);
                     const originalConfig = await response.json();
-                    const modifiedConfig = { 
-                        ...originalConfig, 
+                    const modifiedConfig = {
+                        ...originalConfig,
                         isPublicSite: true,
                         // Force screensaver settings for promo site
                         showPoster: true,
@@ -6229,10 +6874,10 @@ if (require.main === module) {
                         // Disable wallart mode on promo site
                         wallartMode: {
                             ...originalConfig.wallartMode,
-                            enabled: false
+                            enabled: false,
                         },
                         // Force screensaver-like behavior
-                        cinemaMode: false
+                        cinemaMode: false,
                     };
                     // We send the modified JSON and stop further processing for this request.
                     return res.json(modifiedConfig);
@@ -6249,8 +6894,14 @@ if (require.main === module) {
                 // Pipe the response body
                 response.body.pipe(res);
             } catch (error) {
-                console.error(`[Site Server Proxy] Error forwarding request to ${targetUrl}:`, error);
-                res.status(502).json({ error: 'Bad Gateway', message: 'The site server could not connect to the main application.' });
+                console.error(
+                    `[Site Server Proxy] Error forwarding request to ${targetUrl}:`,
+                    error
+                );
+                res.status(502).json({
+                    error: 'Bad Gateway',
+                    message: 'The site server could not connect to the main application.',
+                });
             }
         };
 
@@ -6276,7 +6927,9 @@ if (require.main === module) {
         });
 
         siteApp.listen(sitePort, () => {
-            console.log(`Public site server is enabled and running on http://localhost:${sitePort}`);
+            console.log(
+                `Public site server is enabled and running on http://localhost:${sitePort}`
+            );
         });
     }
 }
@@ -6284,53 +6937,53 @@ if (require.main === module) {
 // Cleanup function for proper shutdown and test cleanup
 function cleanup() {
     logger.info('Cleaning up server resources...');
-    
+
     // Clear global intervals
     if (global.memoryCheckInterval) {
         clearInterval(global.memoryCheckInterval);
         global.memoryCheckInterval = null;
     }
-    
+
     if (global.tmdbCacheCleanupInterval) {
         clearInterval(global.tmdbCacheCleanupInterval);
         global.tmdbCacheCleanupInterval = null;
     }
-    
+
     if (global.tvdbCacheCleanupInterval) {
         clearInterval(global.tvdbCacheCleanupInterval);
         global.tvdbCacheCleanupInterval = null;
     }
-    
+
     if (global.playlistRefreshInterval) {
         clearInterval(global.playlistRefreshInterval);
         global.playlistRefreshInterval = null;
     }
-    
+
     if (global.cacheCleanupInterval) {
         clearInterval(global.cacheCleanupInterval);
         global.cacheCleanupInterval = null;
     }
-    
+
     // Cleanup source instances
     if (global.tmdbSourceInstance && typeof global.tmdbSourceInstance.cleanup === 'function') {
         global.tmdbSourceInstance.cleanup();
         global.tmdbSourceInstance = null;
     }
-    
+
     if (global.tvdbSourceInstance && typeof global.tvdbSourceInstance.cleanup === 'function') {
         global.tvdbSourceInstance.cleanup();
         global.tvdbSourceInstance = null;
     }
-    
+
     // Cleanup cache and auth managers
     if (cacheManager && typeof cacheManager.cleanup === 'function') {
         cacheManager.cleanup();
     }
-    
+
     if (cacheDiskManager && typeof cacheDiskManager.cleanup === 'function') {
         cacheDiskManager.cleanup();
     }
-    
+
     logger.info('Server cleanup completed');
 }
 
@@ -6361,3 +7014,4 @@ app.use(errorHandler);
 
 // Export the app instance so that it can be imported and used by Supertest in our tests.
 module.exports = app;
+module.exports.testServerConnection = testServerConnection;

@@ -1,7 +1,10 @@
-const { CacheManager, cacheManager, cacheMiddleware, initializeCache, CacheDiskManager } = require('../../utils/cache');
+const {
+    cacheManager,
+    cacheMiddleware,
+    initializeCache,
+    CacheDiskManager,
+} = require('../../utils/cache');
 const fs = require('fs').promises;
-const path = require('path');
-const crypto = require('crypto');
 
 // Mock fs promises
 jest.mock('fs', () => ({
@@ -11,8 +14,8 @@ jest.mock('fs', () => ({
         readdir: jest.fn(),
         readFile: jest.fn(),
         unlink: jest.fn(),
-        stat: jest.fn()
-    }
+        stat: jest.fn(),
+    },
 }));
 
 // Mock child_process
@@ -24,7 +27,7 @@ const mockLogger = {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
-    error: jest.fn()
+    error: jest.fn(),
 };
 
 describe('Cache Utils', () => {
@@ -33,7 +36,7 @@ describe('Cache Utils', () => {
         jest.useFakeTimers();
         // Initialize cache with mock logger
         initializeCache(mockLogger);
-        
+
         // Clear cache manager state
         cacheManager.clear();
         cacheManager.resetStats();
@@ -60,7 +63,7 @@ describe('Cache Utils', () => {
                     maxSize: 50,
                     persistPath: '/custom/path',
                     enablePersistence: true,
-                    enableCompression: true
+                    enableCompression: true,
                 });
 
                 expect(customCache.config.defaultTTL).toBe(60000);
@@ -76,7 +79,7 @@ describe('Cache Utils', () => {
         describe('Set and Get Operations', () => {
             test('should set and get cache entry', () => {
                 const result = cacheManager.set('test-key', 'test-value');
-                
+
                 expect(result).not.toBeNull();
                 expect(result.value).toBe('test-value');
                 expect(result.etag).toBeDefined();
@@ -100,31 +103,31 @@ describe('Cache Utils', () => {
             test('should generate unique ETags for different data', () => {
                 const entry1 = cacheManager.set('key1', 'value1');
                 const entry2 = cacheManager.set('key2', 'value2');
-                
+
                 expect(entry1.etag).not.toBe(entry2.etag);
             });
 
             test('should generate same ETag for same data', () => {
                 const etag1 = cacheManager.generateETag('same-data');
                 const etag2 = cacheManager.generateETag('same-data');
-                
+
                 expect(etag1).toBe(etag2);
             });
 
             test('should handle object data in ETag generation', () => {
                 const obj1 = { name: 'test', value: 123 };
                 const obj2 = { name: 'test', value: 123 };
-                
+
                 const etag1 = cacheManager.generateETag(obj1);
                 const etag2 = cacheManager.generateETag(obj2);
-                
+
                 expect(etag1).toBe(etag2);
             });
 
             test('should handle immediate expiration (TTL = 0)', () => {
                 const result = cacheManager.set('immediate-expire', 'value', 0);
                 expect(result).toBeNull();
-                
+
                 const cached = cacheManager.get('immediate-expire');
                 expect(cached).toBeNull();
             });
@@ -132,9 +135,9 @@ describe('Cache Utils', () => {
             test('should update existing entry', () => {
                 cacheManager.set('update-key', 'old-value');
                 const updated = cacheManager.set('update-key', 'new-value');
-                
+
                 expect(updated.value).toBe('new-value');
-                
+
                 const cached = cacheManager.get('update-key');
                 expect(cached.value).toBe('new-value');
             });
@@ -144,11 +147,11 @@ describe('Cache Utils', () => {
             test('should enforce max size limit', () => {
                 const { CacheManager } = require('../../utils/cache');
                 const smallCache = new CacheManager({ maxSize: 2 });
-                
+
                 smallCache.set('key1', 'value1');
                 smallCache.set('key2', 'value2');
                 expect(smallCache.cache.size).toBe(2);
-                
+
                 // Should remove oldest entry
                 smallCache.set('key3', 'value3');
                 expect(smallCache.cache.size).toBe(2);
@@ -162,13 +165,13 @@ describe('Cache Utils', () => {
         describe('TTL and Expiration', () => {
             test('should expire entries after TTL', () => {
                 cacheManager.set('expire-key', 'expire-value', 100);
-                
+
                 // Should exist initially
                 expect(cacheManager.has('expire-key')).toBe(true);
-                
+
                 // Fast forward time
                 jest.advanceTimersByTime(150);
-                
+
                 // Should be expired
                 expect(cacheManager.has('expire-key')).toBe(false);
                 const cached = cacheManager.get('expire-key');
@@ -177,11 +180,11 @@ describe('Cache Utils', () => {
 
             test('should clean up expired entries via timer', () => {
                 cacheManager.set('timer-expire', 'value', 50);
-                
+
                 expect(cacheManager.cache.size).toBe(1);
-                
+
                 jest.advanceTimersByTime(100);
-                
+
                 // Timer should have cleaned up expired entry
                 expect(cacheManager.cache.size).toBe(0);
             });
@@ -189,11 +192,11 @@ describe('Cache Utils', () => {
             test('should log information when cleaning up expired entries', () => {
                 cacheManager.set('cleanup-log-1', 'value1', 10);
                 cacheManager.set('cleanup-log-2', 'value2', 10);
-                
+
                 jest.advanceTimersByTime(50);
-                
+
                 const expired = cacheManager.cleanupExpired();
-                
+
                 if (expired > 0) {
                     expect(mockLogger.info).toHaveBeenCalledWith(
                         expect.stringContaining('Cache cleanup: removed'),
@@ -204,9 +207,9 @@ describe('Cache Utils', () => {
 
             test('should not log when no entries are expired', () => {
                 cacheManager.set('no-expire-log', 'value', 10000);
-                
+
                 const expired = cacheManager.cleanupExpired();
-                
+
                 expect(expired).toBe(0);
                 // Should not log when nothing expired
             });
@@ -215,7 +218,7 @@ describe('Cache Utils', () => {
         describe('Delete and Clear Operations', () => {
             test('should delete single entry', () => {
                 cacheManager.set('delete-key', 'delete-value');
-                
+
                 const deleted = cacheManager.delete('delete-key');
                 expect(deleted).toBe(true);
                 expect(cacheManager.has('delete-key')).toBe(false);
@@ -229,7 +232,7 @@ describe('Cache Utils', () => {
             test('should clear all entries', () => {
                 cacheManager.set('clear1', 'value1');
                 cacheManager.set('clear2', 'value2');
-                
+
                 const cleared = cacheManager.clear();
                 expect(cleared).toBe(2);
                 expect(cacheManager.cache.size).toBe(0);
@@ -239,7 +242,7 @@ describe('Cache Utils', () => {
                 cacheManager.set('type1:item1', 'value1');
                 cacheManager.set('type1:item2', 'value2');
                 cacheManager.set('type2:item1', 'value3');
-                
+
                 const cleared = cacheManager.clear('type1');
                 expect(cleared).toBe(2);
                 expect(cacheManager.cache.size).toBe(1);
@@ -252,9 +255,9 @@ describe('Cache Utils', () => {
                 cacheManager.set('stats-key', 'value');
                 cacheManager.get('stats-key');
                 cacheManager.get('non-existent');
-                
+
                 const stats = cacheManager.getStats();
-                
+
                 expect(stats.size).toBe(1);
                 expect(stats.hits).toBe(1);
                 expect(stats.misses).toBe(1);
@@ -267,11 +270,11 @@ describe('Cache Utils', () => {
             test('should reset statistics', () => {
                 cacheManager.set('reset-key', 'value');
                 cacheManager.get('reset-key');
-                
+
                 expect(cacheManager.stats.hits).toBeGreaterThan(0);
-                
+
                 cacheManager.resetStats();
-                
+
                 expect(cacheManager.stats.hits).toBe(0);
                 expect(cacheManager.stats.misses).toBe(0);
                 // Note: sets and deletes are not reset in current implementation
@@ -288,19 +291,17 @@ describe('Cache Utils', () => {
                 cacheManager.set('track-key', 'value');
                 cacheManager.get('track-key');
                 cacheManager.get('track-key');
-                
+
                 const stats = cacheManager.getStats();
                 expect(stats.entries[0].accessCount).toBeGreaterThan(1);
                 expect(stats.averageAccessCount).toBeGreaterThan(0);
             });
 
             test('should count sets and deletes correctly', () => {
-                const initialStats = { ...cacheManager.stats };
-                
                 cacheManager.set('count-key1', 'value1');
                 cacheManager.set('count-key2', 'value2');
                 cacheManager.delete('count-key1');
-                
+
                 // Check that operations were performed
                 expect(cacheManager.has('count-key1')).toBe(false);
                 expect(cacheManager.has('count-key2')).toBe(true);
@@ -312,57 +313,57 @@ describe('Cache Utils', () => {
             test('should handle errors in set operation gracefully', () => {
                 // Force an error by corrupting the cache map
                 const originalSet = cacheManager.cache.set;
-                cacheManager.cache.set = () => { 
-                    throw new Error('Set operation failed'); 
+                cacheManager.cache.set = () => {
+                    throw new Error('Set operation failed');
                 };
-                
+
                 const result = cacheManager.set('error-key', 'value');
                 expect(result).toBeNull();
-                
+
                 cacheManager.cache.set = originalSet;
             });
 
             test('should handle errors in get operation gracefully', () => {
                 // Set up entry first
                 cacheManager.set('error-get', 'value');
-                
+
                 // Force error by corrupting cache
                 const originalGet = cacheManager.cache.get;
-                cacheManager.cache.get = () => { 
-                    throw new Error('Get operation failed'); 
+                cacheManager.cache.get = () => {
+                    throw new Error('Get operation failed');
                 };
-                
+
                 const result = cacheManager.get('error-get');
                 expect(result).toBeNull();
-                
+
                 cacheManager.cache.get = originalGet;
             });
 
             test('should handle errors in delete operation gracefully', () => {
                 cacheManager.set('error-delete', 'value');
-                
+
                 // Force error
                 const originalDelete = cacheManager.cache.delete;
-                cacheManager.cache.delete = () => { 
-                    throw new Error('Delete operation failed'); 
+                cacheManager.cache.delete = () => {
+                    throw new Error('Delete operation failed');
                 };
-                
+
                 const result = cacheManager.delete('error-delete');
                 expect(result).toBe(false);
-                
+
                 cacheManager.cache.delete = originalDelete;
             });
 
             test('should handle timer creation errors', () => {
                 // Mock setTimeout to throw error
                 const originalSetTimeout = global.setTimeout;
-                global.setTimeout = () => { 
-                    throw new Error('Timer creation failed'); 
+                global.setTimeout = () => {
+                    throw new Error('Timer creation failed');
                 };
-                
+
                 const result = cacheManager.set('timer-error', 'value', 1000);
                 expect(result).toBeNull();
-                
+
                 global.setTimeout = originalSetTimeout;
             });
         });
@@ -372,14 +373,14 @@ describe('Cache Utils', () => {
                 const { CacheManager } = require('../../utils/cache');
                 const persistentCache = new CacheManager({
                     enablePersistence: true,
-                    persistPath: '/test/cache'
+                    persistPath: '/test/cache',
                 });
 
                 fs.mkdir.mockResolvedValue();
                 fs.writeFile.mockResolvedValue();
 
                 await persistentCache.set('persist-key', 'persist-value');
-                
+
                 expect(fs.mkdir).toHaveBeenCalledWith('/test/cache', { recursive: true });
                 expect(fs.writeFile).toHaveBeenCalled();
 
@@ -404,30 +405,34 @@ describe('Cache Utils', () => {
                 const persistentCache = new CacheManager({ enablePersistence: true });
 
                 fs.readdir.mockResolvedValue(['entry1.json', 'entry2.json', 'invalid.txt']);
-                fs.readFile.mockImplementation((filePath) => {
+                fs.readFile.mockImplementation(filePath => {
                     if (filePath.includes('entry1.json')) {
-                        return Promise.resolve(JSON.stringify({
-                            key: 'persisted1',
-                            value: 'value1',
-                            etag: '"abc123"',
-                            createdAt: Date.now() - 60000,
-                            expiresAt: Date.now() + 60000,
-                            accessCount: 5,
-                            lastAccessed: Date.now() - 30000
-                        }));
+                        return Promise.resolve(
+                            JSON.stringify({
+                                key: 'persisted1',
+                                value: 'value1',
+                                etag: '"abc123"',
+                                createdAt: Date.now() - 60000,
+                                expiresAt: Date.now() + 60000,
+                                accessCount: 5,
+                                lastAccessed: Date.now() - 30000,
+                            })
+                        );
                     }
-                    return Promise.resolve(JSON.stringify({
-                        key: 'expired',
-                        value: 'value2',
-                        etag: '"def456"',
-                        createdAt: Date.now() - 120000,
-                        expiresAt: Date.now() - 60000 // Expired
-                    }));
+                    return Promise.resolve(
+                        JSON.stringify({
+                            key: 'expired',
+                            value: 'value2',
+                            etag: '"def456"',
+                            createdAt: Date.now() - 120000,
+                            expiresAt: Date.now() - 60000, // Expired
+                        })
+                    );
                 });
                 fs.unlink.mockResolvedValue();
 
                 await persistentCache.loadPersistedEntries();
-                
+
                 expect(persistentCache.cache.has('persisted1')).toBe(true);
                 expect(fs.unlink).toHaveBeenCalled(); // Expired entry should be removed
 
@@ -439,9 +444,9 @@ describe('Cache Utils', () => {
             test('should start and stop periodic cleanup', () => {
                 const { CacheManager } = require('../../utils/cache');
                 const testCache = new CacheManager();
-                
+
                 expect(testCache.cleanupInterval).toBeDefined();
-                
+
                 testCache.stopPeriodicCleanup();
                 expect(testCache.cleanupInterval).toBeNull();
 
@@ -451,16 +456,16 @@ describe('Cache Utils', () => {
             test('should run periodic cleanup', () => {
                 cacheManager.set('periodic1', 'value1', 50);
                 cacheManager.set('periodic2', 'value2', 200);
-                
+
                 jest.advanceTimersByTime(100);
-                
+
                 // First entry should be expired by periodic cleanup
                 expect(cacheManager.cache.size).toBe(1);
             });
         });
     });
 
-        describe('Cache Middleware', () => {
+    describe('Cache Middleware', () => {
         let req, res, next, originalJson, originalSend;
 
         beforeEach(() => {
@@ -468,57 +473,57 @@ describe('Cache Utils', () => {
                 method: 'GET',
                 originalUrl: '/api/test',
                 headers: {},
-                query: {}
+                query: {},
             };
-            
+
             res = {
                 status: jest.fn().mockReturnThis(),
                 end: jest.fn(),
                 set: jest.fn(),
-                statusCode: 200
+                statusCode: 200,
             };
-            
+
             // Create mock functions for json and send that can be overridden
             originalJson = jest.fn();
             originalSend = jest.fn();
             res.json = originalJson;
             res.send = originalSend;
-            
+
             next = jest.fn();
         });
 
         test('should skip caching for non-GET requests', () => {
             const middleware = cacheMiddleware();
             req.method = 'POST';
-            
+
             middleware(req, res, next);
-            
+
             expect(next).toHaveBeenCalled();
         });
 
         test('should skip caching with no-cache header', () => {
             const middleware = cacheMiddleware();
             req.headers['cache-control'] = 'no-cache';
-            
+
             middleware(req, res, next);
-            
+
             expect(next).toHaveBeenCalled();
         });
 
         test('should skip caching with nocache query param', () => {
             const middleware = cacheMiddleware();
             req.query.nocache = '1';
-            
+
             middleware(req, res, next);
-            
+
             expect(next).toHaveBeenCalled();
         });
 
         test('should handle cache miss and setup caching', () => {
             const middleware = cacheMiddleware();
-            
+
             middleware(req, res, next);
-            
+
             expect(next).toHaveBeenCalled();
             // Original methods should be preserved
             expect(typeof res.json).toBe('function');
@@ -527,57 +532,64 @@ describe('Cache Utils', () => {
 
         test('should serve cached response if available', () => {
             const middleware = cacheMiddleware();
-            
+
             // Pre-populate cache
             cacheManager.set('GET:/api/test', { message: 'cached data' });
-            
+
             middleware(req, res, next);
-            
-            expect(res.set).toHaveBeenCalledWith(expect.objectContaining({
-                'X-Cache': 'HIT'
-            }));
+
+            expect(res.set).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    'X-Cache': 'HIT',
+                })
+            );
             expect(next).not.toHaveBeenCalled();
         });
 
         test('should handle 304 Not Modified responses', () => {
             const middleware = cacheMiddleware();
-            
+
             const cached = cacheManager.set('GET:/api/test', { data: 'test' });
             req.headers['if-none-match'] = cached.etag;
-            
+
             middleware(req, res, next);
-            
+
             expect(res.status).toHaveBeenCalledWith(304);
             expect(res.end).toHaveBeenCalled();
             expect(next).not.toHaveBeenCalled();
         });
 
         test('should use custom key generator', () => {
-            const customKeyGen = (req) => `custom:${req.originalUrl}`;
+            const customKeyGen = req => `custom:${req.originalUrl}`;
             const middleware = cacheMiddleware({ keyGenerator: customKeyGen });
-            
+
             cacheManager.set('custom:/api/test', 'custom data');
-            
+
             middleware(req, res, next);
-            
-            expect(res.set).toHaveBeenCalledWith(expect.objectContaining({
-                'X-Cache': 'HIT'
-            }));
+
+            expect(res.set).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    'X-Cache': 'HIT',
+                })
+            );
         });
 
         test('should handle different response types', () => {
             const middleware = cacheMiddleware();
-            
+
             // Test string response
             cacheManager.set('GET:/api/test', 'string response');
-            
+
             middleware(req, res, next);
-            
-            expect(res.set).toHaveBeenCalledWith(expect.objectContaining({
-                'X-Cache': 'HIT'
-            }));
+
+            expect(res.set).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    'X-Cache': 'HIT',
+                })
+            );
         });
-    });    describe('CacheDiskManager', () => {
+    });
+    describe('CacheDiskManager', () => {
         let diskManager;
         let testCacheDir;
 
@@ -586,7 +598,7 @@ describe('Cache Utils', () => {
             diskManager = new CacheDiskManager(testCacheDir, {
                 maxSizeGB: 1,
                 minFreeDiskSpaceMB: 100,
-                autoCleanup: true
+                autoCleanup: true,
             });
         });
 
@@ -595,10 +607,10 @@ describe('Cache Utils', () => {
                 fs.readdir.mockResolvedValue([
                     { name: 'image1.jpg', isFile: () => true },
                     { name: 'image2.png', isFile: () => true },
-                    { name: 'subfolder', isFile: () => false }
+                    { name: 'subfolder', isFile: () => false },
                 ]);
-                
-                fs.stat.mockImplementation((filePath) => {
+
+                fs.stat.mockImplementation(filePath => {
                     if (filePath.includes('image1.jpg')) {
                         return Promise.resolve({ size: 1024 * 1024 }); // 1MB
                     }
@@ -606,7 +618,7 @@ describe('Cache Utils', () => {
                 });
 
                 const usage = await diskManager.getDiskUsage();
-                
+
                 expect(usage.totalSizeBytes).toBe(3 * 1024 * 1024); // 3MB
                 expect(usage.totalSizeMB).toBe(3);
                 expect(usage.fileCount).toBe(2);
@@ -615,9 +627,9 @@ describe('Cache Utils', () => {
 
             test('should handle disk usage errors', async () => {
                 fs.readdir.mockRejectedValue(new Error('Permission denied'));
-                
+
                 const usage = await diskManager.getDiskUsage();
-                
+
                 expect(usage.totalSizeBytes).toBe(0);
                 expect(usage.fileCount).toBe(0);
                 expect(mockLogger.error).toHaveBeenCalled();
@@ -628,18 +640,18 @@ describe('Cache Utils', () => {
             test('should get free disk space on Unix', async () => {
                 Object.defineProperty(process, 'platform', { value: 'linux' });
                 mockExecSync.mockReturnValue('1000000\n'); // 1GB in KB
-                
+
                 const freeSpace = await diskManager.getFreeDiskSpace();
-                
+
                 expect(freeSpace).toBe(1000000 * 1024); // Converted to bytes
             });
 
             test('should get free disk space on Windows', async () => {
                 Object.defineProperty(process, 'platform', { value: 'win32' });
                 mockExecSync.mockReturnValue('Free\n1073741824\n'); // 1GB
-                
+
                 const freeSpace = await diskManager.getFreeDiskSpace();
-                
+
                 expect(freeSpace).toBe(1073741824);
             });
 
@@ -647,9 +659,9 @@ describe('Cache Utils', () => {
                 mockExecSync.mockImplementation(() => {
                     throw new Error('Command failed');
                 });
-                
+
                 const freeSpace = await diskManager.getFreeDiskSpace();
-                
+
                 expect(freeSpace).toBe(0);
                 expect(mockLogger.warn).toHaveBeenCalled();
             });
@@ -660,12 +672,12 @@ describe('Cache Utils', () => {
                 // Mock small usage and high free space
                 jest.spyOn(diskManager, 'getDiskUsage').mockResolvedValue({
                     totalSizeBytes: 100 * 1024 * 1024, // 100MB (under 1GB limit)
-                    fileCount: 10
+                    fileCount: 10,
                 });
                 jest.spyOn(diskManager, 'getFreeDiskSpace').mockResolvedValue(500 * 1024 * 1024); // 500MB
 
                 const result = await diskManager.cleanupCache();
-                
+
                 expect(result.cleaned).toBe(false);
                 expect(result.reason).toBe('No cleanup needed');
             });
@@ -674,7 +686,7 @@ describe('Cache Utils', () => {
                 // Mock high usage
                 jest.spyOn(diskManager, 'getDiskUsage').mockResolvedValue({
                     totalSizeBytes: 2 * 1024 * 1024 * 1024, // 2GB (over 1GB limit)
-                    fileCount: 3
+                    fileCount: 3,
                 });
                 jest.spyOn(diskManager, 'getFreeDiskSpace').mockResolvedValue(500 * 1024 * 1024);
 
@@ -685,22 +697,34 @@ describe('Cache Utils', () => {
                 fs.readdir.mockResolvedValue([
                     { name: 'old1.jpg', isFile: () => true },
                     { name: 'old2.jpg', isFile: () => true },
-                    { name: 'new.jpg', isFile: () => true }
+                    { name: 'new.jpg', isFile: () => true },
                 ]);
 
-                fs.stat.mockImplementation((filePath) => {
+                fs.stat.mockImplementation(filePath => {
                     if (filePath.includes('old1.jpg')) {
-                        return Promise.resolve({ size: 500 * 1024 * 1024, atime: oldDate, mtime: oldDate });
+                        return Promise.resolve({
+                            size: 500 * 1024 * 1024,
+                            atime: oldDate,
+                            mtime: oldDate,
+                        });
                     } else if (filePath.includes('old2.jpg')) {
-                        return Promise.resolve({ size: 700 * 1024 * 1024, atime: oldDate, mtime: oldDate });
+                        return Promise.resolve({
+                            size: 700 * 1024 * 1024,
+                            atime: oldDate,
+                            mtime: oldDate,
+                        });
                     }
-                    return Promise.resolve({ size: 200 * 1024 * 1024, atime: newDate, mtime: newDate });
+                    return Promise.resolve({
+                        size: 200 * 1024 * 1024,
+                        atime: newDate,
+                        mtime: newDate,
+                    });
                 });
 
                 fs.unlink.mockResolvedValue();
 
                 const result = await diskManager.cleanupCache();
-                
+
                 expect(result.cleaned).toBe(true);
                 expect(result.deletedFiles).toBeGreaterThan(0);
                 expect(fs.unlink).toHaveBeenCalled();
@@ -712,9 +736,9 @@ describe('Cache Utils', () => {
 
             test('should handle cleanup errors', async () => {
                 jest.spyOn(diskManager, 'getDiskUsage').mockRejectedValue(new Error('Disk error'));
-                
+
                 const result = await diskManager.cleanupCache();
-                
+
                 expect(result.cleaned).toBe(false);
                 expect(result.error).toBe('Disk error');
                 expect(mockLogger.error).toHaveBeenCalled();
@@ -723,16 +747,20 @@ describe('Cache Utils', () => {
             test('should handle file deletion errors during cleanup', async () => {
                 jest.spyOn(diskManager, 'getDiskUsage').mockResolvedValue({
                     totalSizeBytes: 2 * 1024 * 1024 * 1024,
-                    fileCount: 1
+                    fileCount: 1,
                 });
                 jest.spyOn(diskManager, 'getFreeDiskSpace').mockResolvedValue(50 * 1024 * 1024);
 
                 fs.readdir.mockResolvedValue([{ name: 'test.jpg', isFile: () => true }]);
-                fs.stat.mockResolvedValue({ size: 100 * 1024 * 1024, atime: new Date(), mtime: new Date() });
+                fs.stat.mockResolvedValue({
+                    size: 100 * 1024 * 1024,
+                    atime: new Date(),
+                    mtime: new Date(),
+                });
                 fs.unlink.mockRejectedValue(new Error('Delete permission denied'));
 
-                const result = await diskManager.cleanupCache();
-                
+                await diskManager.cleanupCache();
+
                 expect(mockLogger.warn).toHaveBeenCalledWith(
                     'Failed to delete cache file',
                     expect.objectContaining({ error: 'Delete permission denied' })
@@ -745,7 +773,7 @@ describe('Cache Utils', () => {
                 diskManager.updateConfig({
                     maxSizeGB: 5,
                     minFreeDiskSpaceMB: 1000,
-                    autoCleanup: false
+                    autoCleanup: false,
                 });
 
                 expect(diskManager.maxSizeBytes).toBe(5 * 1024 * 1024 * 1024);
@@ -773,13 +801,13 @@ describe('Cache Utils', () => {
         });
 
         test('should initialize cache with logger', () => {
-            const customLogger = { 
+            const customLogger = {
                 debug: jest.fn(),
                 info: jest.fn(),
                 warn: jest.fn(),
-                error: jest.fn()
+                error: jest.fn(),
             };
-            
+
             const initialized = initializeCache(customLogger);
             expect(initialized).toBe(cacheManager);
         });

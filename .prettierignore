@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+coverage/
+logs/
+sessions/
+image_cache/
+screenshots/
+temp/
+cache/
+
+# Config files
+.env
+.env.*
+config.json
+
+# Minified files
+*.min.js
+*.min.css
+
+# HTML files (complex structure)
+*.html
+
+# Lock files
+package-lock.json
+yarn.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*

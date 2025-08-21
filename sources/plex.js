@@ -5,7 +5,15 @@
 const logger = require('../logger');
 
 class PlexSource {
-    constructor(serverConfig, getPlexClient, processPlexItem, getPlexLibraries, shuffleArray, rtMinScore, isDebug) {
+    constructor(
+        serverConfig,
+        getPlexClient,
+        processPlexItem,
+        getPlexLibraries,
+        shuffleArray,
+        rtMinScore,
+        isDebug
+    ) {
         this.server = serverConfig;
         this.getPlexClient = getPlexClient;
         this.processPlexItem = processPlexItem;
@@ -14,7 +22,7 @@ class PlexSource {
         this.rtMinScore = rtMinScore;
         this.isDebug = isDebug;
         this.plex = this.getPlexClient(this.server);
-        
+
         // Performance metrics
         this.metrics = {
             requestCount: 0,
@@ -22,7 +30,7 @@ class PlexSource {
             itemsFiltered: 0,
             averageProcessingTime: 0,
             lastRequestTime: null,
-            errorCount: 0
+            errorCount: 0,
         };
     }
 
@@ -33,8 +41,10 @@ class PlexSource {
     getMetrics() {
         return {
             ...this.metrics,
-            filterEfficiency: this.metrics.itemsProcessed > 0 ? 
-                (this.metrics.itemsFiltered / this.metrics.itemsProcessed) : 0
+            filterEfficiency:
+                this.metrics.itemsProcessed > 0
+                    ? this.metrics.itemsFiltered / this.metrics.itemsProcessed
+                    : 0,
         };
     }
 
@@ -48,7 +58,7 @@ class PlexSource {
             itemsFiltered: 0,
             averageProcessingTime: 0,
             lastRequestTime: null,
-            errorCount: 0
+            errorCount: 0,
         };
     }
 
@@ -65,11 +75,11 @@ class PlexSource {
         }
 
         if (this.isDebug) {
-            logger.info(`Fetching media from Plex`, { 
-                server: this.server.name, 
-                type, 
-                count, 
-                libraries: libraryNames 
+            logger.info(`Fetching media from Plex`, {
+                server: this.server.name,
+                type,
+                count,
+                libraries: libraryNames,
             });
         }
 
@@ -90,11 +100,17 @@ class PlexSource {
                 }
             }
 
-            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Found ${allItems.length} total items in specified libraries.`);
+            if (this.isDebug)
+                console.log(
+                    `[PlexSource:${this.server.name}] Found ${allItems.length} total items in specified libraries.`
+                );
 
             // Apply content filtering
             const filteredItems = this.applyContentFiltering(allItems);
-            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] After filtering: ${filteredItems.length} items remaining.`);
+            if (this.isDebug)
+                console.log(
+                    `[PlexSource:${this.server.name}] After filtering: ${filteredItems.length} items remaining.`
+                );
 
             const shuffledItems = this.shuffleArray(filteredItems);
             const selectedItems = count > 0 ? shuffledItems.slice(0, count) : shuffledItems;
@@ -111,10 +127,15 @@ class PlexSource {
                 return true;
             });
 
-            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Returning ${finalItems.length} processed items.`);
+            if (this.isDebug)
+                console.log(
+                    `[PlexSource:${this.server.name}] Returning ${finalItems.length} processed items.`
+                );
             return finalItems;
         } catch (error) {
-            console.error(`[PlexSource:${this.server.name}] Error fetching media: ${error.message}`);
+            console.error(
+                `[PlexSource:${this.server.name}] Error fetching media: ${error.message}`
+            );
             return [];
         }
     }
@@ -132,7 +153,10 @@ class PlexSource {
             filteredItems = filteredItems.filter(item => {
                 return item.contentRating === this.server.ratingFilter;
             });
-            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Rating filter (${this.server.ratingFilter}): ${filteredItems.length} items.`);
+            if (this.isDebug)
+                console.log(
+                    `[PlexSource:${this.server.name}] Rating filter (${this.server.ratingFilter}): ${filteredItems.length} items.`
+                );
         }
 
         // Genre filter
@@ -140,24 +164,28 @@ class PlexSource {
             const genreList = this.server.genreFilter.split(',').map(g => g.trim().toLowerCase());
             filteredItems = filteredItems.filter(item => {
                 if (!item.Genre || !Array.isArray(item.Genre)) return false;
-                return item.Genre.some(genre => 
-                    genreList.some(filterGenre => 
-                        genre.tag.toLowerCase().includes(filterGenre)
-                    )
+                return item.Genre.some(genre =>
+                    genreList.some(filterGenre => genre.tag.toLowerCase().includes(filterGenre))
                 );
             });
-            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Genre filter (${this.server.genreFilter}): ${filteredItems.length} items.`);
+            if (this.isDebug)
+                console.log(
+                    `[PlexSource:${this.server.name}] Genre filter (${this.server.genreFilter}): ${filteredItems.length} items.`
+                );
         }
 
         // Recently added filter
         if (this.server.recentlyAddedOnly && this.server.recentlyAddedDays) {
-            const daysAgo = Date.now() - (this.server.recentlyAddedDays * 24 * 60 * 60 * 1000);
+            const daysAgo = Date.now() - this.server.recentlyAddedDays * 24 * 60 * 60 * 1000;
             filteredItems = filteredItems.filter(item => {
                 if (!item.addedAt) return false;
                 const addedDate = new Date(parseInt(item.addedAt) * 1000);
                 return addedDate.getTime() >= daysAgo;
             });
-            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Recently added filter (${this.server.recentlyAddedDays} days): ${filteredItems.length} items.`);
+            if (this.isDebug)
+                console.log(
+                    `[PlexSource:${this.server.name}] Recently added filter (${this.server.recentlyAddedDays} days): ${filteredItems.length} items.`
+                );
         }
 
         // Quality filter
@@ -167,15 +195,23 @@ class PlexSource {
                 return item.Media.some(media => {
                     const resolution = media.videoResolution;
                     switch (this.server.qualityFilter) {
-                        case 'SD': return !resolution || resolution === 'sd';
-                        case '720p': return resolution === '720' || resolution === 'hd';
-                        case '1080p': return resolution === '1080';
-                        case '4K': return resolution === '4k';
-                        default: return true;
+                        case 'SD':
+                            return !resolution || resolution === 'sd';
+                        case '720p':
+                            return resolution === '720' || resolution === 'hd';
+                        case '1080p':
+                            return resolution === '1080';
+                        case '4K':
+                            return resolution === '4k';
+                        default:
+                            return true;
                     }
                 });
             });
-            if (this.isDebug) console.log(`[PlexSource:${this.server.name}] Quality filter (${this.server.qualityFilter}): ${filteredItems.length} items.`);
+            if (this.isDebug)
+                console.log(
+                    `[PlexSource:${this.server.name}] Quality filter (${this.server.qualityFilter}): ${filteredItems.length} items.`
+                );
         }
 
         return filteredItems;

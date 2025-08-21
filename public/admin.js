@@ -1,6 +1,6 @@
 /*
  * Posterrama Admin Panel - Version 2.2.0
- * Date: 2025-08-14 
+ * Date: 2025-08-14
  * Scope: Cache stats functionality with clearer labeling.
  */
 
@@ -13,7 +13,7 @@ fetch('/api/admin/version')
     .then(data => {
         window.POSTERRAMA_VERSION = data.version || 'Unknown';
     })
-    .catch(error => {
+    .catch(_error => {
         window.POSTERRAMA_VERSION = 'Unknown';
     });
 
@@ -26,7 +26,7 @@ function apiUrl(path) {
     if (!path.startsWith('/')) {
         path = '/' + path;
     }
-    
+
     // Always use the current host - no hardcoded URLs or special cases
     return API_BASE + path;
 }
@@ -45,20 +45,20 @@ async function authenticatedFetch(url, options = {}) {
         headers: {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            ...options.headers
-        }
+            Pragma: 'no-cache',
+            ...options.headers,
+        },
     };
-    
+
     try {
         const response = await fetch(url, { ...defaultOptions, ...options });
-        
+
         // Handle authentication errors
         if (response.status === 401) {
             window.location.href = '/admin/login';
             throw new Error('Authentication required');
         }
-        
+
         return response;
     } catch (error) {
         console.error('🚨 Fetch error:', error.name, error.message);
@@ -72,18 +72,20 @@ async function authenticatedFetch(url, options = {}) {
  * @param {'loading' | 'success' | 'error' | 'revert'} state The state to set
  * @param {object} [options] Options for text and classes
  */
-window.setButtonState = function(button, state, options = {}) {
+window.setButtonState = function (button, state, options = {}) {
     if (!button) {
         console.warn('setButtonState: button is null or undefined');
         return;
     }
-    
+
     const buttonTextSpan = button.querySelector('span:last-child');
     const icon = button.querySelector('.icon i');
 
     // Store original state if not already stored
     if (!button.dataset.originalText) {
-        button.dataset.originalText = buttonTextSpan ? buttonTextSpan.textContent : button.textContent;
+        button.dataset.originalText = buttonTextSpan
+            ? buttonTextSpan.textContent
+            : button.textContent;
         button.dataset.originalIconClass = icon ? icon.className : '';
         button.dataset.originalButtonClass = button.className;
     }
@@ -105,16 +107,20 @@ window.setButtonState = function(button, state, options = {}) {
         case 'error':
             button.disabled = true;
             if (buttonTextSpan) {
-                buttonTextSpan.textContent = options.text || (state === 'success' ? 'Success!' : 'Failed');
+                buttonTextSpan.textContent =
+                    options.text || (state === 'success' ? 'Success!' : 'Failed');
             } else {
                 button.textContent = options.text || (state === 'success' ? 'Success!' : 'Failed');
             }
             if (icon) {
-                icon.className = options.iconClass || (state === 'success' ? 'fas fa-check' : 'fas fa-times');
+                icon.className =
+                    options.iconClass || (state === 'success' ? 'fas fa-check' : 'fas fa-times');
             }
-            button.className = options.buttonClass || (state === 'success' ? 
-                button.dataset.originalButtonClass.replace('is-primary', 'is-success') : 
-                button.dataset.originalButtonClass.replace('is-primary', 'is-danger'));
+            button.className =
+                options.buttonClass ||
+                (state === 'success'
+                    ? button.dataset.originalButtonClass.replace('is-primary', 'is-success')
+                    : button.dataset.originalButtonClass.replace('is-primary', 'is-danger'));
             break;
         case 'revert':
             button.disabled = false;
@@ -135,42 +141,42 @@ window.setButtonState = function(button, state, options = {}) {
 const setButtonState = window.setButtonState;
 
 // Global cache management functions for debugging
-window.clearBrowserCache = function() {
+window.clearBrowserCache = function () {
     // Clear localStorage
     localStorage.clear();
-    
+
     // Clear sessionStorage
     sessionStorage.clear();
-    
+
     // Unregister service workers
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) {
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            for (const registration of registrations) {
                 registration.unregister();
             }
         });
     }
-    
+
     // Clear cache storage
     if ('caches' in window) {
-        caches.keys().then(function(names) {
-            names.forEach(function(name) {
+        caches.keys().then(function (names) {
+            names.forEach(function (name) {
                 caches.delete(name);
             });
         });
     }
-    
+
     return 'Cache cleared! Please refresh the page.';
 };
 
-window.hardRefresh = function() {
+window.hardRefresh = function () {
     window.location.reload(true);
 };
 
 // DEBUGGING: Force show modal function
-window.forceShowModal = function() {
+window.forceShowModal = function () {
     const modal = document.getElementById('update-confirmation-modal');
-    
+
     if (modal) {
         // Try all possible ways to show it
         modal.style.display = 'flex';
@@ -179,9 +185,11 @@ window.forceShowModal = function() {
         modal.style.zIndex = '99999';
         modal.classList.remove('is-hidden');
         modal.classList.add('force-visible');
-        
+
         // Add inline CSS as fallback
-        modal.setAttribute('style', `
+        modal.setAttribute(
+            'style',
+            `
             display: flex !important;
             position: fixed !important;
             top: 0 !important;
@@ -192,83 +200,84 @@ window.forceShowModal = function() {
             background: rgba(0,0,0,0.8) !important;
             align-items: center !important;
             justify-content: center !important;
-        `);
-        
+        `
+        );
+
         const content = modal.querySelector('.modal-content');
         if (content) {
-            content.innerHTML = '<h2 style="color: white;">TEST MODAL - IF YOU SEE THIS, MODAL WORKS!</h2>';
+            content.innerHTML =
+                '<h2 style="color: white;">TEST MODAL - IF YOU SEE THIS, MODAL WORKS!</h2>';
         }
-        
+
         return 'Modal force shown';
     } else {
         return 'Modal not found';
     }
 };
 // DEBUGGING: Advanced modal debugging
-window.debugModal = function() {
+window.debugModal = function () {
     const modal = document.getElementById('update-confirmation-modal');
-    
+
     if (modal) {
-        const computed = window.getComputedStyle(modal);
-        const rect = modal.getBoundingClientRect();
-        
+        window.getComputedStyle(modal);
+        modal.getBoundingClientRect();
+
         // Try to make it bright red and huge to see if it shows
         modal.style.background = 'red !important';
         modal.style.border = '10px solid yellow !important';
-        
+
         return 'Advanced debugging complete';
     }
-    
+
     return 'Modal not found';
 };
 
 // DEBUGGING: Force call displayIdleUpdateStatus directly
-window.testUpdateStatus = function() {
+window.testUpdateStatus = function () {
     displayIdleUpdateStatus({ isUpdating: false });
     return 'Update status test initiated';
 };
 
-window.checkNetworkStatus = function() {
+window.checkNetworkStatus = function () {
     return {
         currentDomain: window.location.hostname,
-        apiBase: API_BASE
+        apiBase: API_BASE,
     };
 };
 
 // Debug function to test config save with different methods
-window.testConfigSave = async function() {
+window.testConfigSave = async function () {
     const testConfig = {
         transitionIntervalSeconds: 10,
         backgroundRefreshMinutes: 30,
         showMetadata: true,
         clockWidget: false,
-        transitionEffect: "slide",
+        transitionEffect: 'slide',
         effectPauseTime: 3,
-        mediaServers: []
+        mediaServers: [],
     };
-    
+
     const testEnv = {
-        DEBUG: "false"
+        DEBUG: 'false',
     };
-    
+
     try {
-        const response1 = await authenticatedFetch(apiUrl('/api/admin/config'), {
+        await authenticatedFetch(apiUrl('/api/admin/config'), {
             method: 'POST',
-            body: JSON.stringify({ config: testConfig, env: testEnv })
+            body: JSON.stringify({ config: testConfig, env: testEnv }),
         });
         return 'Test passed with normal method';
     } catch (error1) {
-        
         try {
-            const response2 = await fetch(apiUrl('/api/admin/config'), {
+            await fetch(apiUrl('/api/admin/config'), {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Connection': 'close',
-                    'HTTP-Version': '1.1'
+                    Connection: 'close',
+                    'HTTP-Version': '1.1',
                 },
-                body: JSON.stringify({ config: testConfig, env: testEnv })
+                body: JSON.stringify({ config: testConfig, env: testEnv }),
             });
             return 'Test passed with HTTP/1.1 fallback';
         } catch (error2) {
@@ -276,28 +285,6 @@ window.testConfigSave = async function() {
         }
     }
 };
-
-// Check authentication status
-async function checkAuthStatus() {
-    try {
-        const response = await fetch(apiUrl('/api/admin/config'), {
-            method: 'GET',
-            credentials: 'include'
-        });
-        
-        if (response.status === 401) {
-            window.location.href = '/admin/login';
-            return false;
-        } else if (response.ok) {
-            return true;
-        } else {
-            return false;
-        }
-    } catch (error) {
-        console.error('🚨 Auth check failed:', error);
-        return false;
-    }
-}
 
 /*
  * Key Changes (chronological/high-level):
@@ -338,16 +325,16 @@ function toggleHelpPanel() {
     // Get current active section
     const activeNavItem = document.querySelector('.nav-item.active');
     const sectionName = activeNavItem ? activeNavItem.dataset.section : 'general';
-    
+
     // Use existing help panel from HTML
-    let helpPanel = document.getElementById('quick-help-panel');
+    const helpPanel = document.getElementById('quick-help-panel');
     if (!helpPanel) {
         return;
     }
-    
+
     // Toggle visibility using CSS classes
     helpPanel.classList.toggle('open');
-    
+
     // Update content based on active section - do this AFTER opening
     if (helpPanel.classList.contains('open')) {
         updateHelpContent(sectionName);
@@ -359,12 +346,12 @@ function updateHelpContent(sectionId) {
     if (!helpPanel) {
         return;
     }
-    
+
     // Only update if the help panel is currently open/visible
     if (!helpPanel.classList.contains('open')) {
         return;
     }
-    
+
     // Call the forced update function
     updateHelpContentForced(sectionId);
 }
@@ -374,7 +361,7 @@ function updateRefreshRateLabel(value) {
     if (label) {
         const descriptions = {
             1: 'Very slow (25 seconds)',
-            2: 'Slow (22 seconds)', 
+            2: 'Slow (22 seconds)',
             3: 'Relaxed (19 seconds)',
             4: 'Moderate (16 seconds)',
             5: 'Medium (13 seconds)',
@@ -382,7 +369,7 @@ function updateRefreshRateLabel(value) {
             7: 'Quick (7 seconds)',
             8: 'Fast (5 seconds)',
             9: 'Very fast (3 seconds)',
-            10: 'Extremely fast (2 seconds)'
+            10: 'Extremely fast (2 seconds)',
         };
         label.textContent = descriptions[value] || descriptions[5];
     }
@@ -400,9 +387,9 @@ function updateRandomnessLabel(value) {
             5: 'Medium randomness',
             6: 'High randomness',
             7: 'Very random',
-            8: 'Highly unpredictable', 
+            8: 'Highly unpredictable',
             9: 'Maximum variation',
-            10: 'Chaos mode'
+            10: 'Chaos mode',
         };
         label.textContent = descriptions[value] || descriptions[3];
     }
@@ -413,22 +400,22 @@ function updateHelpContentForced(sectionId) {
     if (!helpPanel) {
         return;
     }
-    
+
     // Map section names to section IDs for help content lookup
     const sectionMap = {
-        'general': 'general-section',
-        'display': 'display-section', 
-        'media': 'media-section',
-        'authentication': 'authentication-section',
-        'promobox': 'promobox-section',
-        'management': 'management-section',
-        'logs': 'logs-section'
+        general: 'general-section',
+        display: 'display-section',
+        media: 'media-section',
+        authentication: 'authentication-section',
+        promobox: 'promobox-section',
+        management: 'management-section',
+        logs: 'logs-section',
     };
-    
+
     const mappedSectionId = sectionMap[sectionId] || 'general-section';
-    
+
     const helpContent = getHelpContentForSection(mappedSectionId);
-    
+
     const newHTML = `
         <div class="help-header">
             <h3>${helpContent.title}</h3>
@@ -437,16 +424,20 @@ function updateHelpContentForced(sectionId) {
             </button>
         </div>
         <div class="help-content">
-            ${helpContent.sections.map(section => `
+            ${helpContent.sections
+                .map(
+                    section => `
                 <div class="help-section">
                     <h4>${section.title}</h4>
                     <p>${section.description}</p>
                     ${section.details ? `<ul>${section.details.map(detail => `<li>${detail}</li>`).join('')}</ul>` : ''}
                 </div>
-            `).join('')}
+            `
+                )
+                .join('')}
         </div>
     `;
-    
+
     helpPanel.innerHTML = newHTML;
 }
 
@@ -457,35 +448,38 @@ function getHelpContentForSection(sectionId) {
             sections: [
                 {
                     title: 'Transition Interval (seconds)',
-                    description: 'How long each poster is displayed before switching to the next one.',
+                    description:
+                        'How long each poster is displayed before switching to the next one.',
                     details: [
                         'Set between 1 and 300 seconds',
                         'Short intervals (1-5 sec): Dynamic slideshow for entertainment',
                         'Medium intervals (10-30 sec): Good balance between variety and readability',
-                        'Long intervals (60+ sec): Calm display, ideal for reading information'
-                    ]
+                        'Long intervals (60+ sec): Calm display, ideal for reading information',
+                    ],
                 },
                 {
                     title: 'Background Refresh (minutes)',
-                    description: 'How often the system fetches new content from your content sources.',
+                    description:
+                        'How often the system fetches new content from your content sources.',
                     details: [
                         'Set to 0 to disable automatic refresh',
                         'Recommended: 60-180 minutes for most users',
                         'Short intervals: New content appears faster, but more server load',
                         'Long intervals: Less server load, but new movies/shows appear later',
-                        'Maximum: 1440 minutes (24 hours)'
-                    ]
+                        'Maximum: 1440 minutes (24 hours)',
+                    ],
                 },
                 {
                     title: 'Application Port',
-                    description: 'The port number on which the admin interface and screensaver are accessible.',
+                    description:
+                        'The port number on which the admin interface and screensaver are accessible.',
                     details: [
                         'Default port is usually 4000',
                         'Valid range: 1024-65535',
                         'Make sure the port is not used by other programs',
                         'Application restart required after change',
-                        'Update your bookmarks after port change'
-                    ]
+                        'Update your bookmarks after port change',
+                    ],
                 },
                 {
                     title: 'Debug Mode',
@@ -495,8 +489,8 @@ function getHelpContentForSection(sectionId) {
                         'Useful for diagnosing connection problems',
                         'May impact performance when enabled',
                         'Enable only when troubleshooting, then disable again',
-                        'Check the logs section to view debug information'
-                    ]
+                        'Check the logs section to view debug information',
+                    ],
                 },
                 {
                     title: 'Keyboard Shortcuts',
@@ -507,29 +501,31 @@ function getHelpContentForSection(sectionId) {
                         '<strong>Ctrl+T</strong> (or <strong>Cmd+T</strong> on Mac) - Test Plex server connection',
                         '<strong>Escape</strong> - Close any open modal dialogs',
                         'Shortcuts work from anywhere in the admin interface',
-                        'Tooltips on buttons show their associated shortcuts'
-                    ]
-                }
-            ]
+                        'Tooltips on buttons show their associated shortcuts',
+                    ],
+                },
+            ],
         },
         'display-section': {
             title: '<i class="fas fa-tv"></i>&nbsp;&nbsp;Display Settings',
             sections: [
                 {
                     title: 'Cinema Mode - Digital Movie Poster',
-                    description: 'Transform your display into a professional Digital Movie Poster for theaters, lobbies, or home cinema.',
+                    description:
+                        'Transform your display into a professional Digital Movie Poster for theaters, lobbies, or home cinema.',
                     details: [
                         'Digital Movie Poster: Creates an immersive, professional poster display experience',
                         'Perfect for movie theaters, cinema lobbies, media rooms, or home theater setups',
                         'Automatically cycles through your movie collection with high-quality posters and metadata',
                         'Orientation options: Portrait (theater-style), Portrait-flipped, or Auto-detect',
                         'Removes UI elements for clean, uninterrupted poster presentation',
-                        'Ideal for: Digital signage, theater displays, home cinema ambiance, or media showcases'
-                    ]
+                        'Ideal for: Digital signage, theater displays, home cinema ambiance, or media showcases',
+                    ],
                 },
                 {
                     title: 'Wallart Mode - Multi-Poster Grid',
-                    description: 'Display multiple posters in a dynamic grid layout that automatically fills your screen.',
+                    description:
+                        'Display multiple posters in a dynamic grid layout that automatically fills your screen.',
                     details: [
                         'Wallart Mode intelligently calculates the perfect poster grid to completely fill your screen with zero wasted space, automatically adjusting for any screen size or orientation',
                         'Poster Density: Controls the relative number of posters - Few (60% of optimal, larger posters), Medium (100% of optimal, balanced), Many (150% of optimal, smaller posters)',
@@ -539,8 +535,8 @@ function getHelpContentForSection(sectionId) {
                         'Animation Type: Choose between Random (uses all animation types), Fade (smooth opacity transition), Slide Left/Up (directional movement), Zoom (scale in effect), or Flip (3D flip effect)',
                         'Auto Refresh: Automatically cycles through your entire poster collection',
                         'Responsive Design: Automatically recalculates grid layout when window is resized',
-                        'Perfect for: Art galleries, waiting rooms, digital wallpaper, or ambient displays'
-                    ]
+                        'Perfect for: Art galleries, waiting rooms, digital wallpaper, or ambient displays',
+                    ],
                 },
                 {
                     title: 'Visual Elements',
@@ -551,8 +547,8 @@ function getHelpContentForSection(sectionId) {
                         'Show Poster: Display movie/TV show poster images as main visual element',
                         'Show Metadata: Display titles, descriptions, cast, genres and other information',
                         'Clock Widget: Enable/disable clock display with timezone support (auto-detect or manual selection)',
-                        'Visual elements can be combined for rich information display or minimized for clean poster presentation'
-                    ]
+                        'Visual elements can be combined for rich information display or minimized for clean poster presentation',
+                    ],
                 },
                 {
                     title: 'Content Quality Filtering',
@@ -560,8 +556,8 @@ function getHelpContentForSection(sectionId) {
                     details: [
                         'Minimum Rotten Tomatoes Score (0-10): Only show movies/shows with RT ratings above this threshold',
                         'Setting applies only when Rotten Tomatoes badges are enabled',
-                        'Lower values include more content, higher values show only highly-rated content'
-                    ]
+                        'Lower values include more content, higher values show only highly-rated content',
+                    ],
                 },
                 {
                     title: 'Effects & Transitions',
@@ -570,20 +566,21 @@ function getHelpContentForSection(sectionId) {
                         'Ken Burns: Slow zoom and pan effect on images',
                         'Fade In/Out: Smooth fading transitions between content',
                         'Slide Transition: Content slides in from different directions',
-                        'Effect Pause Time: How long effects pause between transitions (0-10 seconds)'
-                    ]
+                        'Effect Pause Time: How long effects pause between transitions (0-10 seconds)',
+                    ],
                 },
                 {
                     title: 'UI Element Scaling',
-                    description: 'Fine-tune individual interface elements for optimal display on your screen.',
+                    description:
+                        'Fine-tune individual interface elements for optimal display on your screen.',
                     details: [
                         'Content Scaling: Adjust size of movie/show information text and metadata (50%-200%)',
                         'Clearlogo Scaling: Scale movie/show logos independently (50%-200%)',
                         'Clock Scaling: Adjust clock widget size (50%-200%)',
                         'Global Scaling: Apply overall scaling to all interface elements (50%-200%)',
                         'Quick Templates: 4K TV (larger elements), Full HD (standard size), Tablet (smaller), Phone (compact)',
-                        'Perfect for: Custom screen sizes, projectors, ultra-wide monitors, or accessibility needs'
-                    ]
+                        'Perfect for: Custom screen sizes, projectors, ultra-wide monitors, or accessibility needs',
+                    ],
                 },
                 {
                     title: 'Scale Settings',
@@ -592,23 +589,24 @@ function getHelpContentForSection(sectionId) {
                         'Full HD (1920x1080): Optimal for most TVs',
                         '4K (3840x2160): For large 4K screens and displays',
                         'Widescreen: For ultrawide monitors and projector screens',
-                        'Custom: Manually adjust for specific setup'
-                    ]
-                }
-            ]
+                        'Custom: Manually adjust for specific setup',
+                    ],
+                },
+            ],
         },
         'media-section': {
             title: '<i class="fas fa-database"></i>&nbsp;&nbsp;Content Sources',
             sections: [
                 {
                     title: 'Plex Media Server',
-                    description: 'Configure your local Plex server with hostname/IP, port (usually 32400), and authentication token.',
+                    description:
+                        'Configure your local Plex server with hostname/IP, port (usually 32400), and authentication token.',
                     details: [
                         'Server URL: The IP address or domain name of your Plex server (e.g. http://192.168.1.100:32400)',
                         'Plex Token: Get your authentication token from <a href="https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/" target="_blank" rel="noopener">Plex Support</a>',
                         'Choose which libraries to include and test connection before saving',
-                        'Enable as content source to include in rotation'
-                    ]
+                        'Enable as content source to include in rotation',
+                    ],
                 },
                 {
                     title: 'TMDB External Source',
@@ -617,12 +615,13 @@ function getHelpContentForSection(sectionId) {
                         'Get a free API key from TMDB website (developers section)',
                         'Choose from many categories and enable advanced filtering by genre, year, and rating',
                         'API keys are securely stored and preserved when making other changes',
-                        'Test connection validates your key and shows available genres'
-                    ]
+                        'Test connection validates your key and shows available genres',
+                    ],
                 },
                 {
                     title: 'Streaming Releases (TMDB)',
-                    description: 'Access latest releases from popular streaming platforms using TMDB streaming provider data.',
+                    description:
+                        'Access latest releases from popular streaming platforms using TMDB streaming provider data.',
                     details: [
                         '🎬 Streaming Platforms: Netflix, Disney+, Amazon Prime Video, Apple TV+, HBO Max, Hulu, and more',
                         '🌍 Regional Content: Select your region (US, UK, DE, etc.) to get locally available content',
@@ -630,8 +629,8 @@ function getHelpContentForSection(sectionId) {
                         '🆕 Latest Releases: Automatically finds newest content added to streaming platforms',
                         '🔄 Auto-Refresh: Content updates as streaming platforms add new movies and shows',
                         'Requires TMDB API key (same as regular TMDB source)',
-                        'Perfect for discovering new content available on your streaming subscriptions'
-                    ]
+                        'Perfect for discovering new content available on your streaming subscriptions',
+                    ],
                 },
                 {
                     title: 'TMDB Categories & Configuration',
@@ -640,8 +639,8 @@ function getHelpContentForSection(sectionId) {
                         '🎬 Movies: Popular, Top Rated, Now Playing, Upcoming, Latest, Trending Daily/Weekly',
                         '📺 TV: Popular Shows, Top Rated, Currently Airing, Airing Today, Latest, Trending Daily/Weekly',
                         '🔍 Discover: Advanced filtering with all options combined',
-                        'Select multiple genres using the dropdown or clear all selections with the clear button'
-                    ]
+                        'Select multiple genres using the dropdown or clear all selections with the clear button',
+                    ],
                 },
                 {
                     title: 'TVDB External Source',
@@ -650,8 +649,8 @@ function getHelpContentForSection(sectionId) {
                         'No API key required - TVDB integration works out of the box for all users',
                         'Comprehensive database of TV shows, movies, and metadata',
                         'Professional artwork and high-quality background images',
-                        'Test connection validates TVDB API access and shows sample data'
-                    ]
+                        'Test connection validates TVDB API access and shows sample data',
+                    ],
                 },
                 {
                     title: 'TVDB Categories & Configuration',
@@ -661,8 +660,8 @@ function getHelpContentForSection(sectionId) {
                         '📅 By Date: Recently Updated, Newest Releases, Classic Content',
                         '📊 By Activity: Trending Now, Recently Added to TVDB',
                         '🔤 Alphabetical: A-Z sorted content for easy browsing',
-                        'Genre filtering with multi-select support and clear selection button'
-                    ]
+                        'Genre filtering with multi-select support and clear selection button',
+                    ],
                 },
                 {
                     title: 'Content Filtering & Limits',
@@ -673,10 +672,10 @@ function getHelpContentForSection(sectionId) {
                         'Genre filtering supports multi-select for all sources (Plex, TMDB, TVDB)',
                         'Set reasonable limits for movies and shows to maintain good performance',
                         'TMDB has daily API limits, so moderate requests',
-                        'TVDB has no API key limitations but respects reasonable request limits'
-                    ]
-                }
-            ]
+                        'TVDB has no API key limitations but respects reasonable request limits',
+                    ],
+                },
+            ],
         },
         'authentication-section': {
             title: '<i class="fas fa-shield-alt"></i>&nbsp;&nbsp;Authentication & Security',
@@ -688,8 +687,8 @@ function getHelpContentForSection(sectionId) {
                         'Use a strong password with at least 8 characters',
                         'Combine uppercase, lowercase, numbers and symbols',
                         'Change the password regularly for optimal security',
-                        'Store the password in a safe place'
-                    ]
+                        'Store the password in a safe place',
+                    ],
                 },
                 {
                     title: 'Two-Factor Authentication (2FA)',
@@ -699,8 +698,8 @@ function getHelpContentForSection(sectionId) {
                         'Scan the QR code with your authentication app during setup',
                         'Enter the 6-digit code from your app at each login',
                         'Save the backup codes in a safe place',
-                        'Recommended for all admin accounts'
-                    ]
+                        'Recommended for all admin accounts',
+                    ],
                 },
                 {
                     title: 'API Keys',
@@ -708,48 +707,51 @@ function getHelpContentForSection(sectionId) {
                     details: [
                         'Generate API keys to allow external applications to access Posterrama',
                         'Each API key provides programmatic access to the service',
-                        'Revoke unused API keys for security'
-                    ]
-                }
-            ]
+                        'Revoke unused API keys for security',
+                    ],
+                },
+            ],
         },
         'promobox-section': {
             title: '<i class="fas fa-globe"></i>&nbsp;&nbsp;Promobox Site',
             sections: [
                 {
                     title: 'Promobox Website',
-                    description: 'Enable an additional web server that serves the Posterrama promotional website.',
+                    description:
+                        'Enable an additional web server that serves the Posterrama promotional website.',
                     details: [
                         'Starts a separate web server for promotional content',
                         'Configure port and enable/disable the service',
-                        'Useful for showcasing Posterrama to visitors'
-                    ]
-                }
-            ]
+                        'Useful for showcasing Posterrama to visitors',
+                    ],
+                },
+            ],
         },
         'management-section': {
             title: '<i class="fas fa-tools"></i>&nbsp;&nbsp;Management & Tools',
             sections: [
                 {
                     title: 'Cache Management',
-                    description: 'Monitor and manage cached poster images and data to optimize performance and disk usage.',
+                    description:
+                        'Monitor and manage cached poster images and data to optimize performance and disk usage.',
                     details: [
                         'Cache Storage: View disk space used by cached poster images',
                         'Memory Cache: Monitor the number of cached items in memory',
                         'Refresh Stats: Update cache statistics display',
                         'Run Cleanup: Remove old or unused cache files automatically',
                         'View Cache: Browse cached images and metadata (debug mode)',
-                        'Clear Cache: Delete all cached data to free up disk space'
-                    ]
+                        'Clear Cache: Delete all cached data to free up disk space',
+                    ],
                 },
                 {
                     title: 'Media Management',
-                    description: 'Control how media content is fetched and refreshed from your sources.',
+                    description:
+                        'Control how media content is fetched and refreshed from your sources.',
                     details: [
                         'Refresh Media: Manually trigger a refresh of all media from configured sources',
                         'Updates poster collection from Plex, TMDB, TVDB, and other configured sources',
-                        'Useful when you\'ve added new content or changed source configurations'
-                    ]
+                        "Useful when you've added new content or changed source configurations",
+                    ],
                 },
                 {
                     title: 'Application Controls',
@@ -757,19 +759,20 @@ function getHelpContentForSection(sectionId) {
                     details: [
                         'Restart Application: Safely restart Posterrama to apply changes or fix issues',
                         'Status Check: View detailed system health including memory usage, uptime, and API status',
-                        'Performance Monitor: Real-time performance metrics including CPU and memory usage'
-                    ]
+                        'Performance Monitor: Real-time performance metrics including CPU and memory usage',
+                    ],
                 },
                 {
                     title: 'Automatic Updates',
-                    description: 'Manage automatic updates and backups for the Posterrama application.',
+                    description:
+                        'Manage automatic updates and backups for the Posterrama application.',
                     details: [
                         'Start Auto-Update: Check for and install the latest Posterrama version automatically',
                         'Rollback: Restore to a previous version if issues occur after an update',
                         'View Backups: Browse available backup versions with timestamps',
                         'Update Status: Monitor update progress with real-time progress indicators',
-                        'Automatic backup creation before updates for safe rollback capability'
-                    ]
+                        'Automatic backup creation before updates for safe rollback capability',
+                    ],
                 },
                 {
                     title: 'Project & Support',
@@ -778,22 +781,23 @@ function getHelpContentForSection(sectionId) {
                         'View on GitHub: Access the official Posterrama repository for source code and documentation',
                         'Report Issue: Submit bug reports or feature requests directly to the development team',
                         'Open source project: Posterrama is free software that welcomes community contributions',
-                        'Direct links to GitHub issues and project pages for easy access to support resources'
-                    ]
+                        'Direct links to GitHub issues and project pages for easy access to support resources',
+                    ],
                 },
                 {
                     title: 'Developer Resources',
-                    description: 'Access technical documentation and API references for integration and development.',
+                    description:
+                        'Access technical documentation and API references for integration and development.',
                     details: [
                         '<strong>API Documentation</strong>: Interactive Swagger/OpenAPI documentation for all REST endpoints',
                         'Complete API reference with request/response examples and authentication details',
                         'Test API endpoints directly from the documentation interface',
                         'Perfect for developers building integrations or external applications',
                         'Access via "API Docs" button in the top navigation bar',
-                        'Covers all public and admin endpoints with full technical specifications'
-                    ]
-                }
-            ]
+                        'Covers all public and admin endpoints with full technical specifications',
+                    ],
+                },
+            ],
         },
         'logs-section': {
             title: '<i class="fas fa-file-alt"></i>&nbsp;&nbsp;Logs & Debug',
@@ -804,13 +808,13 @@ function getHelpContentForSection(sectionId) {
                     details: [
                         'Live Logs: View real-time system messages and activity as they happen',
                         'Monitor application status, errors, and performance information',
-                        'Useful for troubleshooting connection issues and system problems'
-                    ]
-                }
-            ]
-        }
+                        'Useful for troubleshooting connection issues and system problems',
+                    ],
+                },
+            ],
+        },
     };
-    
+
     return helpContent[sectionId] || helpContent['general-section'];
 }
 // Expose globally
@@ -820,7 +824,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listener to help button as backup
     const helpButton = document.getElementById('toggle-help-panel');
     if (helpButton) {
-        helpButton.addEventListener('click', function(e) {
+        helpButton.addEventListener('click', function (e) {
             e.preventDefault(); // Prevent any default behavior
             // Use the EXACT same call as the 'H' key
             if (window.toggleHelpPanel) {
@@ -828,45 +832,54 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
     // Register Service Worker for caching
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
+        navigator.serviceWorker
+            .register('/sw.js')
+            .then(_registration => {
                 // Service worker registered successfully
             })
-            .catch((error) => {
+            .catch(_error => {
                 // Service worker registration failed
             });
     }
-    
+
     // Performance monitoring
     if ('performance' in window) {
         window.addEventListener('load', () => {
-            const perfData = performance.getEntriesByType('navigation')[0];
+            performance.getEntriesByType('navigation')[0];
             // Performance data collected but not logged in production
         });
     }
-    
+
     // Global runtime error capture overlay (diagnostic aid)
-    (function installGlobalErrorHandler(){
-        if (window.__ADMIN_ERROR_HANDLER_INSTALLED) return; window.__ADMIN_ERROR_HANDLER_INSTALLED=true;
-        function showRuntimeError(title, msg){
+    (function installGlobalErrorHandler() {
+        if (window.__ADMIN_ERROR_HANDLER_INSTALLED) return;
+        window.__ADMIN_ERROR_HANDLER_INSTALLED = true;
+        function showRuntimeError(title, msg) {
             let box = document.getElementById('admin-runtime-error-box');
-            if(!box){
-                box=document.createElement('div');
-                box.id='admin-runtime-error-box';
-                box.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);max-width:860px;width:90%;background:#300;border:2px solid #f33;color:#fff;font:12px monospace;z-index:70000;padding:10px;white-space:pre-wrap;overflow:auto;max-height:70vh;';
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'admin-runtime-error-box';
+                box.style.cssText =
+                    'position:fixed;top:8px;left:50%;transform:translateX(-50%);max-width:860px;width:90%;background:#300;border:2px solid #f33;color:#fff;font:12px monospace;z-index:70000;padding:10px;white-space:pre-wrap;overflow:auto;max-height:70vh;';
                 document.body.appendChild(box);
             }
-            const ts=new Date().toISOString();
+            const ts = new Date().toISOString();
             box.innerHTML = `[${ts}] ${title}\n${msg}\n` + box.innerHTML;
         }
-        window.addEventListener('error', e=>{
-            showRuntimeError('JS Error', `${e.message}\nSource:${e.filename}:${e.lineno}:${e.colno}`);
+        window.addEventListener('error', e => {
+            showRuntimeError(
+                'JS Error',
+                `${e.message}\nSource:${e.filename}:${e.lineno}:${e.colno}`
+            );
         });
-        window.addEventListener('unhandledrejection', e=>{
-            showRuntimeError('Unhandled Promise Rejection', String(e.reason && e.reason.stack || e.reason));
+        window.addEventListener('unhandledrejection', e => {
+            showRuntimeError(
+                'Unhandled Promise Rejection',
+                String((e.reason && e.reason.stack) || e.reason)
+            );
         });
         window.__showRuntimeError = showRuntimeError;
     })();
@@ -878,7 +891,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const navItems = document.querySelectorAll('.nav-item');
     let sections = document.querySelectorAll('.section-content');
 
-    const expectedSectionKeys = ['general','display','media','authentication','promobox','management','logs'];
+    const expectedSectionKeys = [
+        'general',
+        'display',
+        'media',
+        'authentication',
+        'promobox',
+        'management',
+        'logs',
+    ];
 
     // Mobile detection and initialization
     function isMobile() {
@@ -895,32 +916,33 @@ document.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('sidebarCollapsed')) {
                 localStorage.removeItem('sidebarCollapsed');
             }
-            
+
             // PHYSICALLY remove ALL desktop sidebar toggles on mobile (more aggressive)
             const desktopToggle = document.getElementById('sidebar-toggle');
             if (desktopToggle) {
                 desktopToggle.remove();
             }
-            
+
             // Remove any remaining desktop toggles (BUT NOT the help button!)
-            const allDesktopToggles = document.querySelectorAll('.sidebar-toggle, .sidebar-header button, #sidebar-toggle, button[class*="toggle"]:not(#toggle-help-panel)');
-            allDesktopToggles.forEach((toggle, index) => {
+            const allDesktopToggles = document.querySelectorAll(
+                '.sidebar-toggle, .sidebar-header button, #sidebar-toggle, button[class*="toggle"]:not(#toggle-help-panel)'
+            );
+            allDesktopToggles.forEach(toggle => {
                 // Double check we're not removing the help button
                 if (toggle.id !== 'toggle-help-panel') {
                     toggle.remove();
                 }
             });
-            
+
             // Remove the entire sidebar header to prevent any lingering event handlers
             const sidebarHeader = document.querySelector('.sidebar-header');
             if (sidebarHeader) {
                 sidebarHeader.remove();
             }
-            
+
             // REMOVED: Mobile menu button creation
             // We no longer create a hamburger menu on mobile
             // The sidebar is completely hidden on mobile via CSS and HTML changes
-            
         } else {
             // Remove mobile menu button on desktop (cleanup)
             const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
@@ -934,7 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleResize() {
         const wasMobile = false; // No mobile menu anymore
         const nowMobile = isMobile();
-        
+
         if (wasMobile !== nowMobile) {
             if (nowMobile) {
                 // Switching to mobile - remove desktop toggle
@@ -942,37 +964,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (desktopToggle) {
                     desktopToggle.remove();
                 }
-                
+
                 // Remove all desktop sidebar toggles
                 const allDesktopToggles = document.querySelectorAll('.sidebar-toggle');
                 allDesktopToggles.forEach(toggle => {
                     toggle.remove();
                 });
             }
-            
+
             initializeMobileState();
         }
     }
 
     // Initialize mobile state on load
     initializeMobileState();
-    
+
     // Listen for window resize
     window.addEventListener('resize', handleResize);
 
     function ensureAllSectionsPresent() {
         sections = document.querySelectorAll('.section-content');
-        const presentIds = Array.from(sections).map(s=>s.id);
-        const missing = expectedSectionKeys.filter(key=>!presentIds.includes(`${key}-section`));
+        const presentIds = Array.from(sections).map(s => s.id);
+        const missing = expectedSectionKeys.filter(key => !presentIds.includes(`${key}-section`));
         if (missing.length) {
-            console.warn('[ADMIN] Missing section DOM nodes detected, creating placeholders for:', missing);
+            console.warn(
+                '[ADMIN] Missing section DOM nodes detected, creating placeholders for:',
+                missing
+            );
             const form = document.getElementById('config-form');
             if (form) {
                 missing.forEach(key => {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'section-content';
                     wrapper.id = `${key}-section`;
-                    wrapper.innerHTML = `\n<div class="section-main-content">\n  <div class="section-title">${key.charAt(0).toUpperCase()+key.slice(1)} (placeholder injected)</div>\n  <div class="form-section">\n    <p style="padding:8px 4px;margin:0;color:#fff;font-family:monospace;font-size:14px;">Original HTML for this section was not delivered by the server. Placeholder injected client-side.</p>\n  </div>\n</div>`;
+                    wrapper.innerHTML = `\n<div class="section-main-content">\n  <div class="section-title">${key.charAt(0).toUpperCase() + key.slice(1)} (placeholder injected)</div>\n  <div class="form-section">\n    <p style="padding:8px 4px;margin:0;color:#fff;font-family:monospace;font-size:14px;">Original HTML for this section was not delivered by the server. Placeholder injected client-side.</p>\n  </div>\n</div>`;
                     form.appendChild(wrapper);
                 });
                 sections = document.querySelectorAll('.section-content');
@@ -990,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedSidebarState === 'true') {
         sidebar.classList.add('collapsed');
     }
-    
+
     // Set initial ARIA state
     if (sidebarToggle) {
         const isExpanded = !sidebar.classList.contains('collapsed');
@@ -1001,11 +1026,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sidebarToggle && !isMobile()) {
         sidebarToggle.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
-            
+
             // Update ARIA attributes (true when sidebar is expanded/visible)
             const isExpanded = !sidebar.classList.contains('collapsed');
             sidebarToggle.setAttribute('aria-expanded', isExpanded);
-            
+
             // Save the new state to localStorage (only on desktop)
             if (!isMobile()) {
                 localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
@@ -1020,27 +1045,27 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebar.classList.remove('mobile-open');
         });
     }
-    
+
     // Click outside to close mobile sidebar
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', _e => {
         // Mobile sidebar is now completely hidden via CSS
         // No click handling needed for mobile menu
     });
 
     // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', e => {
         // Quick Help shortcut: Press 'H' key (defensive for browsers/events without key)
-        const key = (e && typeof e.key === 'string') ? e.key.toLowerCase() : '';
-        
+        const key = e && typeof e.key === 'string' ? e.key.toLowerCase() : '';
+
         if (key === 'h' && !e.ctrlKey && !e.altKey && !e.metaKey) {
             // Only activate if we're not typing in an input field
             const activeElement = document.activeElement;
-            const isInputField = activeElement && (
-                activeElement.tagName === 'INPUT' || 
-                activeElement.tagName === 'TEXTAREA' || 
-                activeElement.contentEditable === 'true'
-            );
-            
+            const isInputField =
+                activeElement &&
+                (activeElement.tagName === 'INPUT' ||
+                    activeElement.tagName === 'TEXTAREA' ||
+                    activeElement.contentEditable === 'true');
+
             if (!isInputField) {
                 e.preventDefault();
                 // Use globally attached function (set later) to avoid scope issues
@@ -1049,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-        
+
         // Close help panel with Escape key
         if (key === 'escape') {
             const helpPanel = document.getElementById('quick-help-panel');
@@ -1062,7 +1087,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Store original section content before any modifications
     window.originalSectionContent = {};
-    
+
     // Store all section content at page load
     const allSections = document.querySelectorAll('.section-content');
     allSections.forEach(section => {
@@ -1089,22 +1114,24 @@ document.addEventListener('DOMContentLoaded', () => {
             content: 100,
             clearlogo: 100,
             clock: 100,
-            global: 100
+            global: 100,
         },
-        mediaServers: [{
-            enabled: true,
-            hostname: '',
-            port: 32400,
-            movieLibraryNames: ["Movies"],
-            showLibraryNames: ["TV Shows"],
-            movieCount: 30,
-            showCount: 15,
-            ratingFilter: '',
-            genreFilter: '',
-            recentlyAddedOnly: false,
-            recentlyAddedDays: 30,
-            qualityFilter: ''
-        }],
+        mediaServers: [
+            {
+                enabled: true,
+                hostname: '',
+                port: 32400,
+                movieLibraryNames: ['Movies'],
+                showLibraryNames: ['TV Shows'],
+                movieCount: 30,
+                showCount: 15,
+                ratingFilter: '',
+                genreFilter: '',
+                recentlyAddedOnly: false,
+                recentlyAddedDays: 30,
+                qualityFilter: '',
+            },
+        ],
         tmdbSource: {
             enabled: false,
             apiKey: '',
@@ -1113,11 +1140,11 @@ document.addEventListener('DOMContentLoaded', () => {
             showCount: 25,
             minRating: 0,
             yearFilter: null,
-            genreFilter: ''
+            genreFilter: '',
         },
         siteServer: {
             enabled: false,
-            port: 4001
+            port: 4001,
         },
         SERVER_PORT: 4000,
         DEBUG: false,
@@ -1138,8 +1165,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mutation observer diagnostics to detect unexpected child removals / empties
     // (Removed mutation observers & legacy debug toggles – simplifying production build)
 
-    function cleanupLegacyDebug() { /* no-op after cleanup */ }
-
     function activateSection(targetSection) {
         if (!targetSection) return;
         // Remove the logic that stops background slideshow - fanart should always run
@@ -1150,34 +1175,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const isTarget = sec.id === `${targetSection}-section`;
             if (isTarget) {
                 sec.classList.add('active');
-                sec.style.display='block';
+                sec.style.display = 'block';
             } else {
                 sec.classList.remove('active');
-                sec.style.display='none';
+                sec.style.display = 'none';
             }
         });
-        
+
         // Always update help content when section changes
         updateHelpContent(targetSection);
-        
+
         // If help panel is open, make sure it updates immediately
         const helpPanel = document.getElementById('quick-help-panel');
         if (helpPanel && helpPanel.classList.contains('open')) {
             // Force update by calling with forceUpdate parameter
             updateHelpContentForced(targetSection);
         }
-        
+
         // Load cache stats when Management section is activated
         if (targetSection === 'management') {
             setTimeout(() => {
                 loadCacheStats();
                 loadCacheConfig();
-                
+
                 // Also ensure cache config event listeners are attached
                 setupCacheConfigEventListeners();
             }, 100); // Small delay to ensure DOM is ready
         }
-        
+
         // Libraries are now loaded during config load, no need for lazy loading here
     }
 
@@ -1185,19 +1210,19 @@ document.addEventListener('DOMContentLoaded', () => {
     window.activateSection = activateSection;
 
     navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
+        item.addEventListener('click', e => {
             e.preventDefault();
             const targetSection = item.dataset.section;
-            
+
             // Update ARIA attributes and classes for tab navigation
             navItems.forEach(nav => {
                 nav.classList.remove('active');
                 nav.setAttribute('aria-selected', 'false');
             });
-            
+
             item.classList.add('active');
             item.setAttribute('aria-selected', 'true');
-            
+
             activateSection(targetSection);
         });
     });
@@ -1209,11 +1234,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (navItems.length > 0) {
         const initial = navItems[0].dataset.section;
         const firstItem = navItems[0];
-        
+
         // Only set ARIA and class, don't override existing inline styles
         firstItem.classList.add('active');
         firstItem.setAttribute('aria-selected', 'true');
-        
+
         // Reset other items (but not the first one)
         navItems.forEach((nav, index) => {
             if (index !== 0) {
@@ -1221,49 +1246,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 nav.setAttribute('aria-selected', 'false');
             }
         });
-        
+
         activateSection(initial);
     }
 
     // Legacy debug helpers removed
-
-    // Mobile responsive
-    function handleResize() {
-        if (window.innerWidth <= 768) {
-            sidebar.classList.remove('collapsed');
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', () => {
-                    sidebar.classList.toggle('open');
-                });
-            }
-        }
-    }
 
     window.addEventListener('resize', handleResize);
     handleResize();
 
     // (defaults & state moved earlier)
 
-    /**
-     * Helper to safely get a value from a nested object.
-     * @param {object} obj The object to query.
-     * @param {string} path The path to the value (e.g., 'kenBurnsEffect.enabled').
-     * @param {*} defaultValue The default value to return if the path is not found.
-     * @returns The found value or the default.
-     */
-    function get(obj, path, defaultValue) {
-        const value = path.split('.').reduce((acc, part) => acc && acc[part], obj);
-        return value !== undefined && value !== null ? value : defaultValue;
-    }
-
     function populateGeneralSettings(config, env, defaults) {
         // Normalize env values to predictable runtime types (strings for ports, booleans for flags)
         const normalizedEnv = {
-            SERVER_PORT: env.SERVER_PORT != null ? String(env.SERVER_PORT) : String(defaults.SERVER_PORT),
-            DEBUG: env.DEBUG != null ? (env.DEBUG === true || env.DEBUG === 'true') : !!defaults.DEBUG,
+            SERVER_PORT:
+                env.SERVER_PORT != null ? String(env.SERVER_PORT) : String(defaults.SERVER_PORT),
+            DEBUG:
+                env.DEBUG != null ? env.DEBUG === true || env.DEBUG === 'true' : !!defaults.DEBUG,
             PLEX_HOSTNAME: env.PLEX_HOSTNAME != null ? String(env.PLEX_HOSTNAME) : undefined,
             PLEX_PORT: env.PLEX_PORT != null ? String(env.PLEX_PORT) : undefined,
-            PLEX_TOKEN: env.PLEX_TOKEN === true // server already sends boolean for token presence
+            PLEX_TOKEN: env.PLEX_TOKEN === true, // server already sends boolean for token presence
         };
         // Persist normalized version for other functions (read-only usage)
         window.__normalizedEnv = normalizedEnv;
@@ -1271,8 +1274,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update the defaults object with server DEBUG value so console.log conditions work
         defaults.DEBUG = normalizedEnv.DEBUG;
 
-        document.getElementById('transitionIntervalSeconds').value = config.transitionIntervalSeconds ?? defaults.transitionIntervalSeconds;
-        document.getElementById('backgroundRefreshMinutes').value = config.backgroundRefreshMinutes ?? defaults.backgroundRefreshMinutes;
+        document.getElementById('transitionIntervalSeconds').value =
+            config.transitionIntervalSeconds ?? defaults.transitionIntervalSeconds;
+        document.getElementById('backgroundRefreshMinutes').value =
+            config.backgroundRefreshMinutes ?? defaults.backgroundRefreshMinutes;
         document.getElementById('SERVER_PORT').value = normalizedEnv.SERVER_PORT;
         document.getElementById('DEBUG').checked = normalizedEnv.DEBUG;
 
@@ -1281,8 +1286,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (debugAction) {
             debugAction.classList.toggle('is-hidden', !debugCheckbox.checked);
         }
-    // Site server settings are populated after server meta (IP) is available in loadConfig.
-    // (Avoid early call with placeholder IP to prevent inconsistent link text.)
+        // Site server settings are populated after server meta (IP) is available in loadConfig.
+        // (Avoid early call with placeholder IP to prevent inconsistent link text.)
     }
 
     function populateSiteServerSettings(config, server = {}) {
@@ -1292,20 +1297,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const portInput = document.getElementById('siteServer.port');
         const portGroup = document.getElementById('siteServerPortGroup');
         const statusIndicator = document.getElementById('siteServerStatus');
-        
+
         if (enabledCheckbox) {
             enabledCheckbox.checked = siteServer.enabled || false;
         }
-        
+
         if (portInput) {
             portInput.value = siteServer.port || 4001;
         }
-        
+
         // Show/hide port input based on enabled state
         if (portGroup) {
             portGroup.style.display = siteServer.enabled ? 'block' : 'none';
         }
-        
+
         // Show/hide status indicator based on enabled state
         if (statusIndicator) {
             statusIndicator.style.display = siteServer.enabled ? 'block' : 'none';
@@ -1323,10 +1328,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-        
+
         // Add event listener for site server checkbox
         if (enabledCheckbox) {
-            enabledCheckbox.addEventListener('change', function() {
+            enabledCheckbox.addEventListener('change', function () {
                 const isEnabled = this.checked;
                 if (portGroup) {
                     portGroup.style.display = isEnabled ? 'block' : 'none';
@@ -1334,7 +1339,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (statusIndicator) {
                     statusIndicator.style.display = isEnabled ? 'block' : 'none';
                     if (isEnabled) {
-                        const port = portInput ? (portInput.value || 4001) : 4001;
+                        const port = portInput ? portInput.value || 4001 : 4001;
                         const statusLink = statusIndicator.querySelector('.status-link');
                         if (statusLink) {
                             if (serverIP) {
@@ -1349,10 +1354,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        
+
         // Add event listener for port input
         if (portInput && statusIndicator && serverIP) {
-            portInput.addEventListener('input', function() {
+            portInput.addEventListener('input', function () {
                 const port = this.value || 4001;
                 const statusLink = statusIndicator.querySelector('.status-link');
                 if (statusLink) {
@@ -1375,19 +1380,19 @@ document.addEventListener('DOMContentLoaded', () => {
             { id: 'mediaServers[0].port', min: 1, max: 65535, label: 'Plex Port' },
             { id: 'mediaServers[0].movieCount', min: 1, max: 10000, label: 'Movie Count' },
             { id: 'mediaServers[0].showCount', min: 1, max: 10000, label: 'Show Count' },
-            { id: 'effectPauseTime', min: 0, max: 10, label: 'Effect Pause Time' }
+            { id: 'effectPauseTime', min: 0, max: 10, label: 'Effect Pause Time' },
         ];
 
         numericFields.forEach(field => {
             const element = document.getElementById(field.id);
             if (element) {
                 // Add input event listener for real-time validation
-                element.addEventListener('input', function() {
+                element.addEventListener('input', function () {
                     validateNumericInput(element, field);
                 });
-                
+
                 // Add blur event for more thorough validation
-                element.addEventListener('blur', function() {
+                element.addEventListener('blur', function () {
                     validateNumericInput(element, field);
                 });
             }
@@ -1396,24 +1401,26 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add validation for password confirmation
         const newPasswordInput = document.getElementById('newPassword');
         const confirmPasswordInput = document.getElementById('confirmPassword');
-        
+
         if (newPasswordInput && confirmPasswordInput) {
             const validatePasswords = () => {
                 const newPassword = newPasswordInput.value;
                 const confirmPassword = confirmPasswordInput.value;
-                
+
                 // Clear previous validation state
                 confirmPasswordInput.setCustomValidity('');
-                
+
                 if (confirmPassword && newPassword !== confirmPassword) {
                     confirmPasswordInput.setCustomValidity('Passwords do not match');
                 } else if (newPassword && newPassword.length < 6) {
-                    newPasswordInput.setCustomValidity('Password must be at least 6 characters long');
+                    newPasswordInput.setCustomValidity(
+                        'Password must be at least 6 characters long'
+                    );
                 } else {
                     newPasswordInput.setCustomValidity('');
                 }
             };
-            
+
             newPasswordInput.addEventListener('input', validatePasswords);
             confirmPasswordInput.addEventListener('input', validatePasswords);
         }
@@ -1421,10 +1428,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add validation for hostname/IP format
         const hostnameInput = document.getElementById('mediaServers[0].hostname');
         if (hostnameInput) {
-            hostnameInput.addEventListener('input', function() {
+            hostnameInput.addEventListener('input', function () {
                 const value = this.value.trim();
-                if (value && !/^[a-zA-Z0-9\.\-]+$/.test(value)) {
-                    this.setCustomValidity('Hostname must contain only letters, numbers, dots, and hyphens');
+                if (value && !/^[a-zA-Z0-9.-]+$/.test(value)) {
+                    this.setCustomValidity(
+                        'Hostname must contain only letters, numbers, dots, and hyphens'
+                    );
                 } else {
                     this.setCustomValidity('');
                 }
@@ -1434,27 +1443,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function validateNumericInput(element, field) {
         const value = element.value.trim();
-        
+
         // Clear previous validation state
         element.setCustomValidity('');
-        
+
         if (value === '') {
             // Empty is allowed for most fields
             return;
         }
-        
+
         const numValue = Number(value);
-        
+
         if (!Number.isFinite(numValue)) {
             element.setCustomValidity(`${field.label} must be a valid number`);
             return;
         }
-        
+
         if (field.min !== undefined && numValue < field.min) {
             element.setCustomValidity(`${field.label} must be at least ${field.min}`);
             return;
         }
-        
+
         if (field.max !== undefined && numValue > field.max) {
             element.setCustomValidity(`${field.label} must be at most ${field.max}`);
             return;
@@ -1479,7 +1488,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData(configForm);
             const state = {};
             for (const [key, value] of formData.entries()) state[key] = value;
-            configForm.querySelectorAll('input[type="checkbox"]').forEach(cb => { state[cb.name] = cb.checked; });
+            configForm.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                state[cb.name] = cb.checked;
+            });
             return state;
         };
 
@@ -1508,7 +1519,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 400);
 
         // Initial snapshot after current tick (ensures population done)
-        setTimeout(() => { originalFormData = captureFormState(); }, 120);
+        setTimeout(() => {
+            originalFormData = captureFormState();
+        }, 120);
 
         configForm.addEventListener('input', handleFormChange);
         configForm.addEventListener('change', handleFormChange);
@@ -1518,7 +1531,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hasChanges = false;
             updateStatus('Configuration saved successfully', 'success');
             saveButton.classList.remove('has-changes');
-            
+
             // Update saved library selections after successful save
             const movieLibraries = getSelectedLibraries('movie');
             const showLibraries = getSelectedLibraries('show');
@@ -1526,7 +1539,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.__savedShowLibs = showLibraries;
         });
 
-        window.addEventListener('beforeunload', (e) => {
+        window.addEventListener('beforeunload', e => {
             if (hasChanges) {
                 e.preventDefault();
                 e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
@@ -1545,7 +1558,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Setup keyboard shortcuts for improved accessibility
     function setupKeyboardShortcuts() {
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', e => {
             // Ctrl+S or Cmd+S to save
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
@@ -1554,7 +1567,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveButton.click();
                 }
             }
-            
+
             // Ctrl+T or Cmd+T to test Plex connection
             if ((e.ctrlKey || e.metaKey) && e.key === 't') {
                 e.preventDefault();
@@ -1563,7 +1576,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     testButton.click();
                 }
             }
-            
+
             // Escape to close modals
             if (e.key === 'Escape') {
                 const modals = document.querySelectorAll('.modal:not(.is-hidden)');
@@ -1572,13 +1585,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
-        
+
         // Add keyboard shortcuts help tooltip
         const saveButton = document.getElementById('save-config-button');
         if (saveButton) {
             saveButton.title = 'Save all settings (Ctrl+S)';
         }
-        
+
         const testButton = document.getElementById('test-plex-button');
         if (testButton) {
             testButton.title = 'Test Plex connection (Ctrl+T)';
@@ -1586,34 +1599,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateDisplaySettings(config, defaults) {
-        document.getElementById('showClearLogo').checked = config.showClearLogo ?? defaults.showClearLogo;
-        document.getElementById('showRottenTomatoes').checked = config.showRottenTomatoes ?? defaults.showRottenTomatoes;
-        document.getElementById('rottenTomatoesMinimumScore').value = config.rottenTomatoesMinimumScore ?? defaults.rottenTomatoesMinimumScore;
+        document.getElementById('showClearLogo').checked =
+            config.showClearLogo ?? defaults.showClearLogo;
+        document.getElementById('showRottenTomatoes').checked =
+            config.showRottenTomatoes ?? defaults.showRottenTomatoes;
+        document.getElementById('rottenTomatoesMinimumScore').value =
+            config.rottenTomatoesMinimumScore ?? defaults.rottenTomatoesMinimumScore;
         document.getElementById('showPoster').checked = config.showPoster ?? defaults.showPoster;
-        document.getElementById('showMetadata').checked = config.showMetadata ?? defaults.showMetadata;
+        document.getElementById('showMetadata').checked =
+            config.showMetadata ?? defaults.showMetadata;
         document.getElementById('clockWidget').checked = config.clockWidget ?? defaults.clockWidget;
-        document.getElementById('clockTimezone').value = config.clockTimezone ?? defaults.clockTimezone;
+        document.getElementById('clockTimezone').value =
+            config.clockTimezone ?? defaults.clockTimezone;
         document.getElementById('clockFormat').value = config.clockFormat ?? defaults.clockFormat;
-        
+
         // Wallart Mode (object-based)
-        const wallartMode = config.wallartMode ?? defaults.wallartMode ?? { 
-            enabled: false, 
-            density: 'medium', 
-            refreshRate: 5,
-            randomness: 3,
-            animationType: 'fade'
-        };
+        const wallartMode = config.wallartMode ??
+            defaults.wallartMode ?? {
+                enabled: false,
+                density: 'medium',
+                refreshRate: 5,
+                randomness: 3,
+                animationType: 'fade',
+            };
         document.getElementById('wallartModeEnabled').checked = wallartMode.enabled;
         document.getElementById('wallartDensity').value = wallartMode.density ?? 'medium';
-        document.getElementById('wallartRefreshRate').value = wallartMode.refreshRate ?? wallartMode.randomness ?? 5; // Backward compatibility
+        document.getElementById('wallartRefreshRate').value =
+            wallartMode.refreshRate ?? wallartMode.randomness ?? 5; // Backward compatibility
         document.getElementById('wallartRandomness').value = wallartMode.randomness ?? 3;
         document.getElementById('wallartAnimationType').value = wallartMode.animationType ?? 'fade';
         document.getElementById('wallartAutoRefresh').checked = wallartMode.autoRefresh !== false;
-        
+
         // Update slider labels
         updateRefreshRateLabel(wallartMode.refreshRate ?? wallartMode.randomness ?? 5);
         updateRandomnessLabel(wallartMode.randomness ?? 3);
-        
+
         // Handle backward compatibility: convert old kenBurnsEffect to new transitionEffect
         let transitionEffect = config.transitionEffect ?? defaults.transitionEffect;
 
@@ -1622,20 +1642,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         document.getElementById('transitionEffect').value = transitionEffect;
-        document.getElementById('effectPauseTime').value = config.effectPauseTime ?? defaults.effectPauseTime;
+        document.getElementById('effectPauseTime').value =
+            config.effectPauseTime ?? defaults.effectPauseTime;
         document.getElementById('cinemaMode').checked = config.cinemaMode ?? defaults.cinemaMode;
-        document.getElementById('cinemaOrientation').value = config.cinemaOrientation ?? defaults.cinemaOrientation;
-        
+        document.getElementById('cinemaOrientation').value =
+            config.cinemaOrientation ?? defaults.cinemaOrientation;
+
         // Set cinema mode state from config
         isCinemaMode = config.cinemaMode ?? defaults.cinemaMode;
-        
+
         // Set wallart mode state from config
         const wallartModeState = config.wallartMode ?? defaults.wallartMode ?? { enabled: false };
         const isWallartMode = wallartModeState.enabled;
-        
+
         // Show/hide effect pause time based on transition effect
         toggleEffectPauseTime();
-        
+
         // Show/hide wallart settings based on wallart mode
         const wallartSettingsGroup = document.getElementById('wallartSettingsGroup');
         if (wallartSettingsGroup) {
@@ -1646,22 +1668,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 wallartSettingsGroup.classList.add('hidden');
             }
         }
-        
+
         // Show/hide cinema orientation settings based on cinema mode
         const cinemaOrientationGroup = document.getElementById('cinemaOrientationGroup');
         if (cinemaOrientationGroup) {
             cinemaOrientationGroup.style.display = isCinemaMode ? 'block' : 'none';
         }
-        
+
         // Handle mutual exclusivity between Cinema Mode and Wallart Mode
         const cinemaModeCheckbox = document.getElementById('cinemaMode');
         const wallartModeCheckbox = document.getElementById('wallartModeEnabled');
-        
+
         if (isCinemaMode && wallartModeCheckbox) {
             // If Cinema Mode is enabled, disable and hide Wallart Mode subsection
             wallartModeCheckbox.checked = false;
             wallartModeCheckbox.disabled = true;
-            
+
             // Find and hide the Wallart Mode subsection (header + content)
             const wallartHeaders = document.querySelectorAll('.subsection-header');
             wallartHeaders.forEach(header => {
@@ -1673,7 +1695,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
-            
+
             // Also hide wallart settings submenu
             const wallartSettingsGroup = document.getElementById('wallartSettingsGroup');
             if (wallartSettingsGroup) {
@@ -1685,7 +1707,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cinemaModeCheckbox.checked = false;
             cinemaModeCheckbox.disabled = true;
             isCinemaMode = false;
-            
+
             // Find and hide the Cinema Mode subsection (header + content)
             const cinemaHeaders = document.querySelectorAll('.subsection-header');
             cinemaHeaders.forEach(header => {
@@ -1697,39 +1719,39 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
-            
+
             // Hide cinema orientation settings
             if (cinemaOrientationGroup) {
                 cinemaOrientationGroup.style.display = 'none';
             }
         }
-        
-    // Apply cinema mode settings (including Ken Burns dropdown handling) - single invocation
-    toggleCinemaModeSettings(isCinemaMode);
-    
-    // Apply wallart mode settings 
-    toggleWallartModeSettings(isWallartMode);
-    
-    // Update spacing for first visible subsection
-    updateFirstVisibleSubsectionSpacing();
-        
+
+        // Apply cinema mode settings (including Ken Burns dropdown handling) - single invocation
+        toggleCinemaModeSettings(isCinemaMode);
+
+        // Apply wallart mode settings
+        toggleWallartModeSettings(isWallartMode);
+
+        // Update spacing for first visible subsection
+        updateFirstVisibleSubsectionSpacing();
+
         // Set up real-time input validation
         setupInputValidation();
-        
+
         // Set up form change tracking
         setupFormChangeTracking();
-        
+
         // Set up keyboard shortcuts
         setupKeyboardShortcuts();
-        
-    // (Removed duplicate toggleCinemaModeSettings call)
-        
+
+        // (Removed duplicate toggleCinemaModeSettings call)
+
         // Populate UI scaling settings
         populateUIScalingSettings(config, defaults);
-        
+
         // Show/hide timezone settings based on clockWidget state
         toggleClockSettings();
-        
+
         // Show/hide recently added days field based on checkbox state
         toggleRecentlyAddedDays();
     }
@@ -1742,13 +1764,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function populateUIScalingSettings(config, defaults) {
         const scalingConfig = config.uiScaling || defaults.uiScaling;
-        
+
         // Populate range sliders and their value displays
         const scalingFields = ['poster', 'text', 'clearlogo', 'clock', 'global'];
         scalingFields.forEach(field => {
             const slider = document.getElementById(`uiScaling.${field}`);
             const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
-            
+
             if (slider && valueDisplay) {
                 let raw = scalingConfig[field];
                 if (raw === undefined || raw === null || raw === '') {
@@ -1757,38 +1779,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 const value = Number(raw);
                 slider.value = value;
                 valueDisplay.textContent = `${value}%`;
-                
+
                 // Update slider background to show progress
                 updateSliderBackground(slider);
-                
+
                 // Add event listener to update display in real-time
                 slider.addEventListener('input', () => {
                     valueDisplay.textContent = `${slider.value}%`;
                     updateSliderBackground(slider);
                 });
-                
+
                 // Add event listener for live preview updates
                 slider.addEventListener('change', async () => {
+                    // Save the individual slider value to backend
+                    const configKey = `uiScaling.${field}`;
                     try {
-                        // Save the individual slider value to backend
-                        const configKey = `uiScaling.${field}`;
                         const value = parseInt(slider.value);
-                        
+
                         // Map frontend fields to backend fields for saving
                         const savePromises = [];
                         if (field === 'poster' || field === 'text') {
-                            savePromises.push(fetch('/api/config', {
+                            savePromises.push(
+                                fetch('/api/config', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ 'uiScaling.content': value }),
+                                })
+                            );
+                        }
+                        savePromises.push(
+                            fetch('/api/config', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 'uiScaling.content': value })
-                            }));
-                        }
-                        savePromises.push(fetch('/api/config', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ [configKey]: value })
-                        }));
-                        
+                                body: JSON.stringify({ [configKey]: value }),
+                            })
+                        );
+
                         await Promise.all(savePromises);
                         console.log(`Saved ${configKey}: ${value}`);
                     } catch (error) {
@@ -1796,13 +1822,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         showNotification('Failed to save setting', 'error');
                     }
                 });
-                
+
                 // Add keyboard support for fine control
-                slider.addEventListener('keydown', (e) => {
-                    let currentValue = parseInt(slider.value);
+                slider.addEventListener('keydown', e => {
+                    const currentValue = parseInt(slider.value);
                     let newValue = currentValue;
-                    
-                    switch(e.key) {
+
+                    switch (e.key) {
                         case 'ArrowLeft':
                         case 'ArrowDown':
                             newValue = Math.max(parseInt(slider.min), currentValue - 1);
@@ -1826,7 +1852,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         default:
                             return; // Don't prevent default for other keys
                     }
-                    
+
                     if (newValue !== currentValue) {
                         e.preventDefault();
                         slider.value = newValue;
@@ -1853,14 +1879,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Visual feedback - disable button temporarily
             resetButton.disabled = true;
             resetButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
-            
+
             // Reset all sliders to default values (100%)
             const scalingFields = ['poster', 'text', 'clearlogo', 'clock', 'global'];
-            
+
             scalingFields.forEach(field => {
                 const slider = document.getElementById(`uiScaling.${field}`);
                 const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
-                
+
                 if (slider && valueDisplay) {
                     slider.value = 100;
                     valueDisplay.textContent = '100%';
@@ -1872,20 +1898,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Save all values as 100 using the standard config save
                 const resetConfig = {
                     'uiScaling.content': 100,
-                    'uiScaling.content': 100,
                     'uiScaling.text': 100,
                     'uiScaling.clearlogo': 100,
                     'uiScaling.clock': 100,
-                    'uiScaling.global': 100
+                    'uiScaling.global': 100,
                 };
-                
+
                 // Save using single config call
                 await fetch('/api/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(resetConfig)
+                    body: JSON.stringify(resetConfig),
                 });
-                
+
                 // Show success notification
                 showNotification('UI scaling reset to defaults', 'success');
             } catch (error) {
@@ -1947,7 +1972,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const clockWidget = document.getElementById('clockWidget');
         const timezoneGroup = document.getElementById('clockTimezoneGroup');
         const formatGroup = document.getElementById('clockFormatGroup');
-        
+
         if (clockWidget.checked) {
             timezoneGroup.style.display = 'block';
             formatGroup.style.display = 'block';
@@ -1960,7 +1985,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleRecentlyAddedDays() {
         const recentlyAddedCheckbox = document.getElementById('mediaServers[0].recentlyAddedOnly');
         const daysContainer = document.getElementById('recentlyAddedDaysContainer');
-        
+
         if (daysContainer) {
             daysContainer.style.display = recentlyAddedCheckbox.checked ? 'block' : 'none';
         }
@@ -1974,36 +1999,46 @@ document.addEventListener('DOMContentLoaded', () => {
     async function populatePlexSettings(config, env, defaults) {
         // Prefer normalized env if available
         const nEnv = window.__normalizedEnv || {};
-        const plexServerConfig = config.mediaServers && config.mediaServers[0] ? config.mediaServers[0] : {};
+        const plexServerConfig =
+            config.mediaServers && config.mediaServers[0] ? config.mediaServers[0] : {};
         const plexDefaults = defaults.mediaServers[0];
 
-        document.getElementById('mediaServers[0].enabled').checked = plexServerConfig.enabled ?? plexDefaults.enabled;
-        document.getElementById('mediaServers[0].hostname').value = nEnv.PLEX_HOSTNAME ?? env.PLEX_HOSTNAME ?? plexDefaults.hostname;
-        document.getElementById('mediaServers[0].port').value = nEnv.PLEX_PORT ?? env.PLEX_PORT ?? plexDefaults.port;
+        document.getElementById('mediaServers[0].enabled').checked =
+            plexServerConfig.enabled ?? plexDefaults.enabled;
+        document.getElementById('mediaServers[0].hostname').value =
+            nEnv.PLEX_HOSTNAME ?? env.PLEX_HOSTNAME ?? plexDefaults.hostname;
+        document.getElementById('mediaServers[0].port').value =
+            nEnv.PLEX_PORT ?? env.PLEX_PORT ?? plexDefaults.port;
         // For security, don't display the token. Show a placeholder if it's set.
         const tokenInput = document.getElementById('mediaServers[0].token');
         tokenInput.value = ''; // Always clear the value on load
-    // env.PLEX_TOKEN is now a boolean indicating if the token is set on the server
-    const tokenIsSet = (nEnv.PLEX_TOKEN || env.PLEX_TOKEN === true);
-    tokenInput.dataset.tokenSet = tokenIsSet ? 'true' : 'false';
-    tokenInput.placeholder = tokenIsSet ? '******** (token stored)' : 'Enter new token...';
+        // env.PLEX_TOKEN is now a boolean indicating if the token is set on the server
+        const tokenIsSet = nEnv.PLEX_TOKEN || env.PLEX_TOKEN === true;
+        tokenInput.dataset.tokenSet = tokenIsSet ? 'true' : 'false';
+        tokenInput.placeholder = tokenIsSet ? '******** (token stored)' : 'Enter new token...';
 
         const savedMovieLibs = plexServerConfig.movieLibraryNames || plexDefaults.movieLibraryNames;
         const savedShowLibs = plexServerConfig.showLibraryNames || plexDefaults.showLibraryNames;
 
-        document.getElementById('mediaServers[0].movieCount').value = plexServerConfig.movieCount ?? plexDefaults.movieCount;
-        document.getElementById('mediaServers[0].showCount').value = plexServerConfig.showCount ?? plexDefaults.showCount;
+        document.getElementById('mediaServers[0].movieCount').value =
+            plexServerConfig.movieCount ?? plexDefaults.movieCount;
+        document.getElementById('mediaServers[0].showCount').value =
+            plexServerConfig.showCount ?? plexDefaults.showCount;
 
         // Content Filtering settings
-        document.getElementById('mediaServers[0].ratingFilter').value = plexServerConfig.ratingFilter ?? plexDefaults.ratingFilter;
-        
+        document.getElementById('mediaServers[0].ratingFilter').value =
+            plexServerConfig.ratingFilter ?? plexDefaults.ratingFilter;
+
         // Load genres first, then set selected values
         await loadPlexGenres();
         setGenreFilterValues(plexServerConfig.genreFilter ?? plexDefaults.genreFilter);
-        
-        document.getElementById('mediaServers[0].recentlyAddedOnly').checked = plexServerConfig.recentlyAddedOnly ?? plexDefaults.recentlyAddedOnly;
-        document.getElementById('mediaServers[0].recentlyAddedDays').value = plexServerConfig.recentlyAddedDays ?? plexDefaults.recentlyAddedDays;
-        document.getElementById('mediaServers[0].qualityFilter').value = plexServerConfig.qualityFilter ?? plexDefaults.qualityFilter;
+
+        document.getElementById('mediaServers[0].recentlyAddedOnly').checked =
+            plexServerConfig.recentlyAddedOnly ?? plexDefaults.recentlyAddedOnly;
+        document.getElementById('mediaServers[0].recentlyAddedDays').value =
+            plexServerConfig.recentlyAddedDays ?? plexDefaults.recentlyAddedDays;
+        document.getElementById('mediaServers[0].qualityFilter').value =
+            plexServerConfig.qualityFilter ?? plexDefaults.qualityFilter;
 
         return { savedMovieLibs, savedShowLibs };
     }
@@ -2013,7 +2048,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!genreSelect) return;
 
         // Save currently selected genres before clearing
-        const currentlySelected = Array.from(genreSelect.selectedOptions).map(option => option.value);
+        const currentlySelected = Array.from(genreSelect.selectedOptions).map(
+            option => option.value
+        );
 
         try {
             // Get connection parameters for testing (same as libraries)
@@ -2030,8 +2067,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({
                         hostname: hostname || undefined,
                         port: port || undefined,
-                        token: token || undefined
-                    })
+                        token: token || undefined,
+                    }),
                 });
             } else {
                 response = await fetch('/api/admin/plex-genres');
@@ -2062,7 +2099,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 genreSelect.appendChild(option);
             });
 
-            
             // Setup listeners after genres are loaded
             setupGenreFilterListeners();
         } catch (error) {
@@ -2076,8 +2112,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!genreSelect || !genreFilterString) return;
 
         // Split comma-separated genres and trim whitespace
-        const selectedGenres = genreFilterString.split(',').map(g => g.trim()).filter(g => g);
-        
+        const selectedGenres = genreFilterString
+            .split(',')
+            .map(g => g.trim())
+            .filter(g => g);
+
         // Select matching options
         Array.from(genreSelect.options).forEach(option => {
             option.selected = selectedGenres.includes(option.value);
@@ -2115,7 +2154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Make loadPlexGenres globally accessible
     window.loadPlexGenres = loadPlexGenres;
 
-    function populateTMDBSettings(config, env, defaults) {
+    function populateTMDBSettings(config) {
         const tmdbConfig = config.tmdbSource || {};
         const tmdbDefaults = {
             enabled: false,
@@ -2124,7 +2163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             movieCount: 50,
             showCount: 25,
             minRating: 0,
-            yearFilter: null
+            yearFilter: null,
         };
 
         // Populate TMDB form fields
@@ -2141,11 +2180,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // For security, don't display the API key. Show a placeholder if it's set.
             apiKeyField.value = '';
             const apiKeyIsSet = tmdbConfig.apiKey && tmdbConfig.apiKey.length > 0;
-            apiKeyField.placeholder = apiKeyIsSet ? '******** (API key stored)' : 'Enter TMDB API key...';
+            apiKeyField.placeholder = apiKeyIsSet
+                ? '******** (API key stored)'
+                : 'Enter TMDB API key...';
             apiKeyField.dataset.apiKeySet = apiKeyIsSet ? 'true' : 'false';
         }
         if (categoryField) categoryField.value = tmdbConfig.category ?? tmdbDefaults.category;
-        if (movieCountField) movieCountField.value = tmdbConfig.movieCount ?? tmdbDefaults.movieCount;
+        if (movieCountField)
+            movieCountField.value = tmdbConfig.movieCount ?? tmdbDefaults.movieCount;
         if (showCountField) showCountField.value = tmdbConfig.showCount ?? tmdbDefaults.showCount;
         if (minRatingField) minRatingField.value = tmdbConfig.minRating ?? tmdbDefaults.minRating;
         if (yearFilterField) yearFilterField.value = tmdbConfig.yearFilter || '';
@@ -2159,10 +2201,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Setup TMDB test button
         setupTMDBTestButton();
-        
+
         // Setup Streaming configuration
         populateStreamingSettings(config);
-        
+
         // Setup TVDB configuration
         const tvdbConfig = config.tvdbSource || {};
         const tvdbEnabledField = document.getElementById('tvdbSource.enabled');
@@ -2192,7 +2234,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!genreSelect) return;
 
         // Save currently selected genres before clearing
-        const currentlySelected = Array.from(genreSelect.selectedOptions).map(option => option.value);
+        const currentlySelected = Array.from(genreSelect.selectedOptions).map(
+            option => option.value
+        );
 
         try {
             // Get API key and category for testing (same as test connection)
@@ -2207,8 +2251,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         apiKey: apiKey || undefined,
-                        category: category || 'popular'
-                    })
+                        category: category || 'popular',
+                    }),
                 });
             } else {
                 response = await fetch('/api/admin/tmdb-genres');
@@ -2247,7 +2291,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Make loadTMDBGenres globally accessible  
+    // Make loadTMDBGenres globally accessible
     window.loadTMDBGenres = loadTMDBGenres;
 
     function setTMDBGenreFilterValues(genreFilterString) {
@@ -2255,8 +2299,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!genreSelect || !genreFilterString) return;
 
         // Split comma-separated genres and trim whitespace
-        const selectedGenres = genreFilterString.split(',').map(g => g.trim()).filter(g => g);
-        
+        const selectedGenres = genreFilterString
+            .split(',')
+            .map(g => g.trim())
+            .filter(g => g);
+
         // Select matching options
         Array.from(genreSelect.options).forEach(option => {
             option.selected = selectedGenres.includes(option.value);
@@ -2296,14 +2343,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!genreSelect) return;
 
         // Save currently selected genres before clearing
-        const currentlySelected = Array.from(genreSelect.selectedOptions).map(option => option.value);
+        const currentlySelected = Array.from(genreSelect.selectedOptions).map(
+            option => option.value
+        );
 
         try {
             // Since TVDB has a hardcoded API key, we can always call the test endpoint
             const response = await fetch('/api/admin/tvdb-genres-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}) // Empty body since API key is hardcoded
+                body: JSON.stringify({}), // Empty body since API key is hardcoded
             });
 
             if (!response.ok) {
@@ -2349,8 +2398,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!genreSelect || !genreFilterString) return;
 
         // Split comma-separated genres and trim whitespace
-        const selectedGenres = genreFilterString.split(',').map(g => g.trim()).filter(g => g);
-        
+        const selectedGenres = genreFilterString
+            .split(',')
+            .map(g => g.trim())
+            .filter(g => g);
+
         // Select matching options
         Array.from(genreSelect.options).forEach(option => {
             option.selected = selectedGenres.includes(option.value);
@@ -2388,13 +2440,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupTMDBTestButton() {
         const testButton = document.getElementById('test-tmdb-button');
         const statusElement = document.getElementById('tmdb-connection-status');
-        
+
         if (!testButton) return;
 
         testButton.addEventListener('click', async () => {
             const apiKeyField = document.getElementById('tmdbSource.apiKey');
             const categoryField = document.getElementById('tmdbSource.category');
-            
+
             // Check if API key is entered or already stored
             let apiKey = apiKeyField?.value?.trim() || '';
             const isApiKeyStored = apiKeyField?.dataset?.apiKeySet === 'true';
@@ -2414,7 +2466,10 @@ document.addEventListener('DOMContentLoaded', () => {
             testButton.disabled = true;
             testButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
             if (statusElement) {
-                const keySource = isApiKeyStored && !apiKeyField?.value?.trim() ? 'stored API key' : 'provided API key';
+                const keySource =
+                    isApiKeyStored && !apiKeyField?.value?.trim()
+                        ? 'stored API key'
+                        : 'provided API key';
                 statusElement.textContent = `Testing TMDB connection with ${keySource}...`;
                 statusElement.style.color = '#ffd93d';
             }
@@ -2423,7 +2478,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch('/api/admin/test-tmdb', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey, category })
+                    body: JSON.stringify({ apiKey, category }),
                 });
 
                 const result = await response.json();
@@ -2433,21 +2488,27 @@ document.addEventListener('DOMContentLoaded', () => {
                         statusElement.textContent = `✅ Connection successful! Found ${result.count || 0} ${category} items.`;
                         statusElement.style.color = '#51cf66';
                     }
-                    
+
                     // Automatically load TMDB genres after successful connection
                     try {
                         await loadTMDBGenres();
                         showNotification('TMDB connection successful and genres loaded', 'success');
                     } catch (genreError) {
                         console.warn('Failed to load TMDB genres:', genreError);
-                        showNotification('TMDB connection successful, but genres could not be loaded', 'error');
+                        showNotification(
+                            'TMDB connection successful, but genres could not be loaded',
+                            'error'
+                        );
                     }
                 } else {
                     if (statusElement) {
                         statusElement.textContent = `❌ Connection failed: ${result.error || 'Unknown error'}`;
                         statusElement.style.color = '#ff6b6b';
                     }
-                    showNotification(`TMDB connection failed: ${result.error || 'Unknown error'}`, 'error');
+                    showNotification(
+                        `TMDB connection failed: ${result.error || 'Unknown error'}`,
+                        'error'
+                    );
                 }
             } catch (error) {
                 if (statusElement) {
@@ -2458,7 +2519,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 // Restore button state
                 testButton.disabled = false;
-                testButton.innerHTML = '<i class="fas fa-plug icon"></i><span>Test TMDB Connection</span>';
+                testButton.innerHTML =
+                    '<i class="fas fa-plug icon"></i><span>Test TMDB Connection</span>';
             }
         });
     }
@@ -2474,7 +2536,7 @@ document.addEventListener('DOMContentLoaded', () => {
             disney: false,
             prime: false,
             hbo: false,
-            newReleases: false
+            newReleases: false,
         };
 
         // Populate streaming form fields
@@ -2482,7 +2544,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const regionField = document.getElementById('streamingSources.region');
         const maxItemsField = document.getElementById('streamingSources.maxItems');
         const minRatingField = document.getElementById('streamingSources.minRating');
-        
+
         // Provider checkboxes
         const netflixField = document.getElementById('streamingSources.netflix');
         const disneyField = document.getElementById('streamingSources.disney');
@@ -2490,17 +2552,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const hboField = document.getElementById('streamingSources.hbo');
         const newReleasesField = document.getElementById('streamingSources.newReleases');
 
-        if (enabledField) enabledField.checked = streamingConfig.enabled ?? streamingDefaults.enabled;
+        if (enabledField)
+            enabledField.checked = streamingConfig.enabled ?? streamingDefaults.enabled;
         if (regionField) regionField.value = streamingConfig.region ?? streamingDefaults.region;
-        if (maxItemsField) maxItemsField.value = streamingConfig.maxItems ?? streamingDefaults.maxItems;
-        if (minRatingField) minRatingField.value = streamingConfig.minRating ?? streamingDefaults.minRating;
-        
+        if (maxItemsField)
+            maxItemsField.value = streamingConfig.maxItems ?? streamingDefaults.maxItems;
+        if (minRatingField)
+            minRatingField.value = streamingConfig.minRating ?? streamingDefaults.minRating;
+
         // Set provider checkboxes
-        if (netflixField) netflixField.checked = streamingConfig.netflix ?? streamingDefaults.netflix;
+        if (netflixField)
+            netflixField.checked = streamingConfig.netflix ?? streamingDefaults.netflix;
         if (disneyField) disneyField.checked = streamingConfig.disney ?? streamingDefaults.disney;
         if (primeField) primeField.checked = streamingConfig.prime ?? streamingDefaults.prime;
         if (hboField) hboField.checked = streamingConfig.hbo ?? streamingDefaults.hbo;
-        if (newReleasesField) newReleasesField.checked = streamingConfig.newReleases ?? streamingDefaults.newReleases;
+        if (newReleasesField)
+            newReleasesField.checked = streamingConfig.newReleases ?? streamingDefaults.newReleases;
 
         // Setup streaming test button
         setupStreamingTestButton();
@@ -2512,11 +2579,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         testButton.addEventListener('click', async () => {
             const statusElement = document.getElementById('streaming-connection-status');
-            
+
             // Disable button and show loading state
             testButton.disabled = true;
-            testButton.innerHTML = '<i class="fas fa-spinner fa-spin icon"></i><span>Testing...</span>';
-            
+            testButton.innerHTML =
+                '<i class="fas fa-spinner fa-spin icon"></i><span>Testing...</span>';
+
             if (statusElement) {
                 statusElement.textContent = 'Testing streaming connection...';
                 statusElement.style.color = '#94a3b8';
@@ -2526,7 +2594,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Get streaming configuration
                 const enabledField = document.getElementById('streamingSources.enabled');
                 const regionField = document.getElementById('streamingSources.region');
-                
+
                 if (!enabledField?.checked) {
                     if (statusElement) {
                         statusElement.textContent = '⚠️ Streaming sources are disabled';
@@ -2536,17 +2604,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const region = regionField?.value || 'US';
-                
+
                 // Check if TMDB API key is available (streaming uses TMDB)
                 const apiKeyField = document.getElementById('tmdbSource.apiKey');
                 const isApiKeyStored = apiKeyField?.dataset?.apiKeySet === 'true';
                 const apiKey = apiKeyField?.value?.trim() || '';
-                
+
                 if (!apiKey && !isApiKeyStored) {
                     showNotification('Please enter a TMDB API key first.', 'error');
                     return;
                 }
-                
+
                 // Test TMDB API (streaming uses TMDB)
                 const response = await fetch('/api/admin/test-tmdb', {
                     method: 'POST',
@@ -2556,24 +2624,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({
                         testType: 'streaming',
                         region: region,
-                        apiKey: 'stored_key'
-                    })
+                        apiKey: 'stored_key',
+                    }),
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
                     if (statusElement) {
                         statusElement.textContent = `✅ Streaming API ready! Region: ${region}`;
                         statusElement.style.color = '#51cf66';
                     }
-                    showNotification(`Streaming connection successful! Region: ${region}`, 'success');
+                    showNotification(
+                        `Streaming connection successful! Region: ${region}`,
+                        'success'
+                    );
                 } else {
                     if (statusElement) {
                         statusElement.textContent = `❌ Connection failed: ${result.error || 'Unknown error'}`;
                         statusElement.style.color = '#ff6b6b';
                     }
-                    showNotification(`Streaming connection failed: ${result.error || 'Unknown error'}`, 'error');
+                    showNotification(
+                        `Streaming connection failed: ${result.error || 'Unknown error'}`,
+                        'error'
+                    );
                 }
             } catch (error) {
                 if (statusElement) {
@@ -2584,7 +2658,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 // Restore button state
                 testButton.disabled = false;
-                testButton.innerHTML = '<i class="fas fa-stream icon"></i><span>Test Streaming Connection</span>';
+                testButton.innerHTML =
+                    '<i class="fas fa-stream icon"></i><span>Test Streaming Connection</span>';
             }
         });
     }
@@ -2593,7 +2668,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await authenticatedFetch(apiUrlWithCacheBust('/api/admin/config'));
             if (!response.ok) {
-                throw new Error(`Could not load configuration from the server. Status: ${response.status} ${response.statusText}`);
+                throw new Error(
+                    `Could not load configuration from the server. Status: ${response.status} ${response.statusText}`
+                );
             }
             const { config = {}, env = {}, security = {}, server = {} } = await response.json();
 
@@ -2604,10 +2681,14 @@ document.addEventListener('DOMContentLoaded', () => {
             setupCinemaModeListeners();
             setupWallartModeListeners();
             populateSecuritySettings(security);
-            const { savedMovieLibs, savedShowLibs } = await populatePlexSettings(config, env, defaults);
+            const { savedMovieLibs, savedShowLibs } = await populatePlexSettings(
+                config,
+                env,
+                defaults
+            );
             window.__savedMovieLibs = savedMovieLibs;
             window.__savedShowLibs = savedShowLibs;
-            
+
             // Populate TMDB settings
             populateTMDBSettings(config, env, defaults);
 
@@ -2616,28 +2697,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // If Plex is configured, fetch libraries and start background slideshow
             const nEnv = window.__normalizedEnv || {};
-            const isNonEmpty = v => v !== undefined && v !== null && String(v).trim() !== '' && String(v).toLowerCase() !== 'null' && String(v).toLowerCase() !== 'undefined';
+            const isNonEmpty = v =>
+                v !== undefined &&
+                v !== null &&
+                String(v).trim() !== '' &&
+                String(v).toLowerCase() !== 'null' &&
+                String(v).toLowerCase() !== 'undefined';
             const hasPlexHost = isNonEmpty(nEnv.PLEX_HOSTNAME ?? env.PLEX_HOSTNAME);
             const rawPort = nEnv.PLEX_PORT ?? env.PLEX_PORT;
             const portNum = Number(rawPort);
             // Accept only numeric port within valid range (1-65535). Port '0' is invalid for Plex.
             const hasPlexPort = Number.isFinite(portNum) && portNum >= 1 && portNum <= 65535;
-            const rawToken = (nEnv.PLEX_TOKEN !== undefined ? nEnv.PLEX_TOKEN : env.PLEX_TOKEN);
-            const hasPlexToken = rawToken === true || rawToken === 'true' || (typeof rawToken === 'string' && rawToken.length > 0);
-            window.__plexReady = (hasPlexHost && hasPlexPort && hasPlexToken);
+            const rawToken = nEnv.PLEX_TOKEN !== undefined ? nEnv.PLEX_TOKEN : env.PLEX_TOKEN;
+            const hasPlexToken =
+                rawToken === true ||
+                rawToken === 'true' ||
+                (typeof rawToken === 'string' && rawToken.length > 0);
+            window.__plexReady = hasPlexHost && hasPlexPort && hasPlexToken;
             if (!window.__plexReady) {
                 const missing = [];
                 if (!hasPlexHost) missing.push('PLEX_HOSTNAME');
                 if (!hasPlexPort) missing.push('PLEX_PORT(valid)');
                 if (!hasPlexToken) missing.push('PLEX_TOKEN');
-                if (missing.length < 3) console.warn('Plex not initialized — missing:', missing.join(', '));
+                if (missing.length < 3)
+                    console.warn('Plex not initialized — missing:', missing.join(', '));
             } else {
                 // Load Plex libraries immediately when config is loaded
                 const movieContainer = document.getElementById('movie-libraries-container');
                 const showContainer = document.getElementById('show-libraries-container');
-                if (movieContainer) movieContainer.innerHTML = '<small>Loading libraries...</small>';
+                if (movieContainer)
+                    movieContainer.innerHTML = '<small>Loading libraries...</small>';
                 if (showContainer) showContainer.innerHTML = '<small>Loading libraries...</small>';
-                
+
                 // Load libraries with saved selections - only if Plex is properly configured
                 setTimeout(() => {
                     try {
@@ -2645,27 +2736,36 @@ document.addEventListener('DOMContentLoaded', () => {
                         const port = document.getElementById('mediaServers[0].port')?.value;
                         const tokenInput = document.getElementById('mediaServers[0].token');
                         const tokenIsSet = tokenInput?.dataset.tokenSet === 'true';
-                        
+
                         // Only fetch libraries if we have valid Plex configuration
                         if (hostname && hostname.trim() && port && port.trim() && tokenIsSet) {
-                            fetchAndDisplayPlexLibraries(window.__savedMovieLibs||[], window.__savedShowLibs||[]);
+                            fetchAndDisplayPlexLibraries(
+                                window.__savedMovieLibs || [],
+                                window.__savedShowLibs || []
+                            );
                         } else {
                             // Show placeholder message instead of trying to connect
-                            if (movieContainer) movieContainer.innerHTML = '<small>Configure Plex connection to load libraries</small>';
-                            if (showContainer) showContainer.innerHTML = '<small>Configure Plex connection to load libraries</small>';
+                            if (movieContainer)
+                                movieContainer.innerHTML =
+                                    '<small>Configure Plex connection to load libraries</small>';
+                            if (showContainer)
+                                showContainer.innerHTML =
+                                    '<small>Configure Plex connection to load libraries</small>';
                         }
                         window.__mediaLazyLoaded = true; // Mark as loaded
-                    } catch(e) { 
-                        console.warn('[ADMIN] Library load failed during config load', e); 
-                        if (movieContainer) movieContainer.innerHTML = '<small>Failed to load libraries</small>';
-                        if (showContainer) showContainer.innerHTML = '<small>Failed to load libraries</small>';
+                    } catch (e) {
+                        console.warn('[ADMIN] Library load failed during config load', e);
+                        if (movieContainer)
+                            movieContainer.innerHTML = '<small>Failed to load libraries</small>';
+                        if (showContainer)
+                            showContainer.innerHTML = '<small>Failed to load libraries</small>';
                     }
                 }, 100);
             }
 
             // Forcefully remove focus from any element that the browser might have auto-focused.
             if (document.activeElement) document.activeElement.blur();
-            
+
             // Always initialize fanart background regardless of active section
             initializeAdminBackground();
         } catch (error) {
@@ -2678,7 +2778,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Initializes and starts the admin background slideshow.
      * Fetches the media list if not already present and starts a timer.
      */
-    async function initializeAdminBackground() {        
+    async function initializeAdminBackground() {
         // Clear any existing timer
         if (adminBgTimer) {
             clearInterval(adminBgTimer);
@@ -2706,7 +2806,9 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await fetch(`/get-media?_=${Date.now()}`);
                 if (!response.ok) {
-                    console.warn('Could not fetch media for admin background, server might be starting up.');
+                    console.warn(
+                        'Could not fetch media for admin background, server might be starting up.'
+                    );
                     setGradientBackground();
                     return;
                 }
@@ -2725,11 +2827,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-    if (defaults.DEBUG) console.log(`[AdminBG] Starting slideshow with ${adminBgQueue.length} images`);
-        
+        if (defaults.DEBUG)
+            console.log(`[AdminBG] Starting slideshow with ${adminBgQueue.length} images`);
+
         // Show first image immediately
         changeAdminBackground();
-        
+
         // Set up regular interval
         adminBgTimer = setInterval(changeAdminBackground, 30000); // Change every 30 seconds
     }
@@ -2744,12 +2847,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             if (defaults.DEBUG) console.log('[AdminBG] tick');
         }
-        
+
         if (adminBgQueue.length === 0 || !activeAdminLayer || !inactiveAdminLayer) {
             return;
         }
 
-        const oldIndex = adminBgIndex;
         adminBgIndex = (adminBgIndex + 1) % adminBgQueue.length;
         const currentItem = adminBgQueue[adminBgIndex];
 
@@ -2769,63 +2871,66 @@ document.addEventListener('DOMContentLoaded', () => {
         if (defaults.DEBUG) {
             console.log('[AdminBG] BEFORE', {
                 activeOpacity: window.getComputedStyle(activeAdminLayer).opacity,
-                inactiveOpacity: window.getComputedStyle(inactiveAdminLayer).opacity
+                inactiveOpacity: window.getComputedStyle(inactiveAdminLayer).opacity,
             });
         }
 
         const img = new Image();
         img.onload = () => {
             if (defaults.DEBUG) console.log('[AdminBG] image loaded');
-            
+
             // Show the overlay again when fanart is available (it darkens the fanart for better readability)
             const overlay = document.querySelector('.admin-background-overlay');
             if (overlay) {
                 overlay.style.opacity = '1';
                 if (defaults.DEBUG) console.log('Admin background overlay restored for fanart');
             }
-            
+
             // Set new image on inactive layer and make it visible
             inactiveAdminLayer.style.backgroundImage = `url('${currentItem.backgroundUrl}')`;
             inactiveAdminLayer.style.opacity = 0;
-            
+
             if (defaults.DEBUG) console.log('[AdminBG] inactive layer prepared');
-            
+
             // Start fade transition immediately
             setTimeout(() => {
                 if (defaults.DEBUG) console.log('[AdminBG] fade start');
-                
+
                 // Fade out current active layer
                 activeAdminLayer.style.opacity = 0;
                 // Fade in new layer
                 inactiveAdminLayer.style.opacity = 0.7;
-                
+
                 if (defaults.DEBUG) console.log('[AdminBG] transition props applied');
-                
-                // After transition, swap the layer references 
+
+                // After transition, swap the layer references
                 // The inactive layer (which now has the new image and is visible) becomes active
                 setTimeout(() => {
                     if (defaults.DEBUG) console.log('[AdminBG] swapping layers');
-                    
+
                     const tempLayer = activeAdminLayer;
-                    activeAdminLayer = inactiveAdminLayer;  // The one with the new image becomes active
-                    inactiveAdminLayer = tempLayer;         // The old active becomes inactive
-                    
+                    activeAdminLayer = inactiveAdminLayer; // The one with the new image becomes active
+                    inactiveAdminLayer = tempLayer; // The old active becomes inactive
+
                     // DO NOT clear the background image - keep it for debugging
                     // inactiveAdminLayer.style.backgroundImage = 'none';
-                    
-                    if (defaults.DEBUG) console.log('[AdminBG] swap complete', { active: activeAdminLayer.id, inactive: inactiveAdminLayer.id });
-                    
+
+                    if (defaults.DEBUG)
+                        console.log('[AdminBG] swap complete', {
+                            active: activeAdminLayer.id,
+                            inactive: inactiveAdminLayer.id,
+                        });
+
                     // Log final states
-                    if (defaults.DEBUG) console.log('[AdminBG] AFTER', {
-                        activeOpacity: window.getComputedStyle(activeAdminLayer).opacity,
-                        inactiveOpacity: window.getComputedStyle(inactiveAdminLayer).opacity
-                    });
-                    
+                    if (defaults.DEBUG)
+                        console.log('[AdminBG] AFTER', {
+                            activeOpacity: window.getComputedStyle(activeAdminLayer).opacity,
+                            inactiveOpacity: window.getComputedStyle(inactiveAdminLayer).opacity,
+                        });
                 }, 1100); // Wait a bit longer for CSS transition to complete
-                
             }, 50); // Small delay to ensure image is set
         };
-        
+
         img.onerror = () => {
             console.warn(`Failed to load admin background image: ${currentItem.backgroundUrl}`);
             // Try next image
@@ -2833,7 +2938,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 changeAdminBackground();
             }, 1000);
         };
-        
+
         if (defaults.DEBUG) console.log('[AdminBG] loading image');
         img.src = currentItem.backgroundUrl;
     }
@@ -2848,26 +2953,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Use the same static gradient as the admin login for consistency
-        const staticGradient = 'linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%)';
-        
+        const staticGradient =
+            'linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%)';
+
         // Clear any existing background images and animations
         activeAdminLayer.style.backgroundImage = staticGradient;
         inactiveAdminLayer.style.backgroundImage = '';
-        
+
         // Ensure active layer is visible
         activeAdminLayer.style.opacity = '1';
         inactiveAdminLayer.style.opacity = '0';
-        
+
         // Remove animation for a calm, stable background
         activeAdminLayer.style.backgroundSize = '100% 100%';
         activeAdminLayer.style.animation = 'none';
-        
+
         // Hide the dark overlay when showing gradient fallback so it's clearly visible
         const overlay = document.querySelector('.admin-background-overlay');
         if (overlay) {
             overlay.style.opacity = '0';
         }
-        
+
         // Clear any existing rotation timer since we want a static background
         if (adminBgTimer) {
             clearInterval(adminBgTimer);
@@ -2896,13 +3002,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error('Hostname and port are required to run a test.');
                 }
                 if (!token && !isTokenSetOnServer) {
-                    throw new Error('A new token is required to test the connection, as none is set yet.');
+                    throw new Error(
+                        'A new token is required to test the connection, as none is set yet.'
+                    );
                 }
 
                 const response = await fetch('/api/admin/test-plex', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hostname, port, token: token || undefined }) // Send token only if it has a value
+                    body: JSON.stringify({ hostname, port, token: token || undefined }), // Send token only if it has a value
                 });
                 const result = await response.json();
 
@@ -2916,23 +3024,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 const refreshButton = document.getElementById('refresh-media-button');
                 if (refreshButton) refreshButton.disabled = false;
 
-                 // On success, fetch and display libraries, preserving current selections
-                 const currentMovieLibs = getSelectedLibraries('movie');
-                 const currentShowLibs = getSelectedLibraries('show');
-                 fetchAndDisplayPlexLibraries(currentMovieLibs, currentShowLibs);
-                 
-                 // Load genres after successful connection test
-                 try {
-                     await window.loadPlexGenres();
-                     showNotification('Plex connection successful and genres loaded', 'success');
-                 } catch (genreError) {
-                     console.warn('Failed to load genres after connection test:', genreError);
-                     showNotification('Plex connection successful, but genres could not be loaded', 'warning');
-                 }
-                 
-                 adminBgQueue = []; // Force a re-fetch of the media queue
-                 initializeAdminBackground();
+                // On success, fetch and display libraries, preserving current selections
+                const currentMovieLibs = getSelectedLibraries('movie');
+                const currentShowLibs = getSelectedLibraries('show');
+                fetchAndDisplayPlexLibraries(currentMovieLibs, currentShowLibs);
 
+                // Load genres after successful connection test
+                try {
+                    await window.loadPlexGenres();
+                    showNotification('Plex connection successful and genres loaded', 'success');
+                } catch (genreError) {
+                    console.warn('Failed to load genres after connection test:', genreError);
+                    showNotification(
+                        'Plex connection successful, but genres could not be loaded',
+                        'warning'
+                    );
+                }
+
+                adminBgQueue = []; // Force a re-fetch of the media queue
+                initializeAdminBackground();
             } catch (error) {
                 setButtonState(testButton, 'error', { text: 'Connection failed' });
                 showNotification(`Plex connection failed: ${error.message}`, 'error');
@@ -2940,7 +3050,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Disable the "Refresh Media" button
                 const refreshButton = document.getElementById('refresh-media-button');
                 if (refreshButton) refreshButton.disabled = true;
-
             }
             // Revert to original state after a delay
             setTimeout(() => {
@@ -2951,36 +3060,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addPlexTestButton();
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /**
      * Fetches Plex libraries from the server and populates checkbox lists.
      * @param {string[]} preSelectedMovieLibs - Array of movie library names to pre-check.
      * @param {string[]} preSelectedShowLibs - Array of show library names to pre-check.
      */
-    async function fetchAndDisplayPlexLibraries(preSelectedMovieLibs = [], preSelectedShowLibs = []) {
+    async function fetchAndDisplayPlexLibraries(
+        preSelectedMovieLibs = [],
+        preSelectedShowLibs = []
+    ) {
         const movieContainer = document.getElementById('movie-libraries-container');
         const showContainer = document.getElementById('show-libraries-container');
         const refreshButton = document.getElementById('refresh-media-button');
@@ -2999,8 +3087,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     hostname: hostname || undefined,
                     port: port || undefined,
-                    token: token || undefined
-                })
+                    token: token || undefined,
+                }),
             });
 
             const result = await response.json();
@@ -3033,7 +3121,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Enable refresh button on successful library fetch
             if (refreshButton) refreshButton.disabled = false;
-
         } catch (error) {
             console.error('Failed to fetch Plex libraries:', error);
             const errorMessage = `<small class="error-text">Error: ${error.message}</small>`;
@@ -3054,10 +3141,11 @@ document.addEventListener('DOMContentLoaded', () => {
         input.name = `${type}Library`;
         input.value = name;
         input.checked = isChecked;
-        
+
         // Add change listener to automatically load genres when a library is selected
         input.addEventListener('change', async () => {
-            const hasAnyLibrarySelected = getSelectedLibraries('movie').length > 0 || getSelectedLibraries('show').length > 0;
+            const hasAnyLibrarySelected =
+                getSelectedLibraries('movie').length > 0 || getSelectedLibraries('show').length > 0;
             if (hasAnyLibrarySelected) {
                 // Load genres immediately when a library is selected
                 try {
@@ -3068,7 +3156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-        
+
         const label = document.createElement('label');
         label.htmlFor = id;
         label.textContent = name;
@@ -3107,15 +3195,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelDisable2FAButton = document.getElementById('cancel-disable-2fa-button');
 
     function show2FAModal() {
-        
         // NUCLEAR OPTION: Create a completely new modal element
-        
+
         // Remove any existing custom modal
         const existingCustomModal = document.getElementById('custom-2fa-modal');
         if (existingCustomModal) {
             existingCustomModal.remove();
         }
-        
+
         // Create completely new modal
         const customModal = document.createElement('div');
         customModal.id = 'custom-2fa-modal';
@@ -3223,10 +3310,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             </style>
         `;
-        
+
         // Add to body directly
         document.body.appendChild(customModal);
-        
+
         // Add QR code to custom modal
         const customQrContainer = document.getElementById('custom-qr-container');
         if (customQrContainer && qrCodeContainer && qrCodeContainer.innerHTML) {
@@ -3248,12 +3335,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 customQrContainer.innerHTML = qrCodeContainer.innerHTML;
             }
         }
-        
+
         // Add event listeners
         const cancelBtn = document.getElementById('custom-cancel-2fa');
         const verifyBtn = document.getElementById('custom-verify-2fa');
         const tokenInput = document.getElementById('custom-2fa-token');
-        
+
         // Add hover effects
         if (cancelBtn) {
             cancelBtn.addEventListener('mouseenter', () => {
@@ -3267,7 +3354,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 update2FAStatusText(false);
             });
         }
-        
+
         if (verifyBtn) {
             verifyBtn.addEventListener('mouseenter', () => {
                 verifyBtn.style.transform = 'translateY(-2px)';
@@ -3278,7 +3365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 verifyBtn.style.boxShadow = 'none';
             });
         }
-        
+
         // Add input focus effects
         if (tokenInput) {
             tokenInput.addEventListener('focus', () => {
@@ -3290,45 +3377,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 tokenInput.style.boxShadow = 'none';
             });
             // Auto-format input (digits only)
-            tokenInput.addEventListener('input', (e) => {
+            tokenInput.addEventListener('input', e => {
                 e.target.value = e.target.value.replace(/\D/g, '').substring(0, 6);
             });
         }
-        
+
         if (verifyBtn && tokenInput) {
             verifyBtn.addEventListener('click', async () => {
                 const token = tokenInput.value;
                 if (token.length === 6) {
                     // Show loading state
                     const originalText = verifyBtn.innerHTML;
-                    verifyBtn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⟳</span> Verifying...';
+                    verifyBtn.innerHTML =
+                        '<span style="display: inline-block; animation: spin 1s linear infinite;">⟳</span> Verifying...';
                     verifyBtn.disabled = true;
                     verifyBtn.style.opacity = '0.7';
-                    
+
                     // Use the existing verification logic
                     try {
                         const response = await authenticatedFetch('/api/admin/2fa/verify', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ token })
+                            body: JSON.stringify({ token }),
                         });
                         const result = await response.json();
-                        
+
                         if (response.status === 401) {
                             throw new Error('Your session has expired. Please log in again.');
                         }
                         if (!response.ok) throw new Error(result.error || 'Verification failed.');
 
                         customModal.remove();
-                        showNotification('🎉 Two-Factor Authentication enabled successfully!', 'success');
+                        showNotification(
+                            '🎉 Two-Factor Authentication enabled successfully!',
+                            'success'
+                        );
                         update2FAStatusText(true);
                     } catch (error) {
                         showNotification(`❌ ${error.message}`, 'error');
                         tokenInput.value = '';
                         tokenInput.focus();
-                        
+
                         // Reset button state
-                        verifyBtn.innerHTML = '✓ Verify Code';
+                        verifyBtn.innerHTML = originalText;
                         verifyBtn.disabled = false;
                         verifyBtn.style.opacity = '1';
                     }
@@ -3343,15 +3434,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 500);
                 }
             });
-            
+
             // Allow Enter key to submit
-            tokenInput.addEventListener('keypress', (e) => {
+            tokenInput.addEventListener('keypress', e => {
                 if (e.key === 'Enter' && tokenInput.value.length === 6) {
                     verifyBtn.click();
                 }
             });
         }
-        
+
         // Focus on input
         if (tokenInput) {
             setTimeout(() => tokenInput.focus(), 100);
@@ -3367,7 +3458,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (qrCodeContainer) qrCodeContainer.innerHTML = '';
         const tokenInput = document.getElementById('2fa-token');
         if (tokenInput) tokenInput.value = '';
-        
+
         // Also remove custom modal if it exists
         const customModal = document.getElementById('custom-2fa-modal');
         if (customModal) {
@@ -3382,14 +3473,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (existingCustomModal) {
             existingCustomModal.remove();
         }
-        
+
         // Create completely new disable modal with ULTRA protection
         const customDisableModal = document.createElement('div');
         customDisableModal.id = 'ultra-protected-disable-2fa-modal';
-        
+
         // Make it nearly impossible to remove accidentally
         Object.defineProperty(customDisableModal, 'remove', {
-            value: function() {
+            value: function () {
                 // Only allow removal if explicitly called with the secret key
                 if (arguments[0] === 'ALLOW_REMOVE_SECRET_KEY_2FA_DISABLE') {
                     Element.prototype.remove.call(this);
@@ -3399,9 +3490,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             writable: false,
-            configurable: false
+            configurable: false,
         });
-        
+
         customDisableModal.innerHTML = `
             <div style="
                 position: fixed !important;
@@ -3525,22 +3616,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             </style>
         `;
-        
+
         // Inject into body
         document.body.appendChild(customDisableModal);
-        
+
         // Prevent accidental closing - even more aggressive
-        customDisableModal.addEventListener('click', (e) => {
+        customDisableModal.addEventListener('click', e => {
             e.stopPropagation();
             e.preventDefault();
         });
-        
+
         // Get elements from the new modal
         const passwordInput = document.getElementById('ultra-disable-password');
         const cancelBtn = document.getElementById('ultra-cancel-disable');
         const confirmBtn = document.getElementById('ultra-confirm-disable');
         const errorDiv = document.getElementById('ultra-disable-error');
-        
+
         // Add event listeners
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => {
@@ -3550,7 +3641,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 update2FAStatusText(true);
             });
         }
-        
+
         if (confirmBtn && passwordInput) {
             confirmBtn.addEventListener('click', async () => {
                 const password = passwordInput.value;
@@ -3564,40 +3655,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 500);
                     return;
                 }
-                
+
                 // HIDE modal from querySelector/getElementById during request
                 const originalId = customDisableModal.id;
                 customDisableModal.id = 'hidden-during-request-' + Date.now();
-                
+
                 // Show loading state
                 const originalText = confirmBtn.innerHTML;
-                confirmBtn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⟳</span> Disabling...';
+                confirmBtn.innerHTML =
+                    '<span style="display: inline-block; animation: spin 1s linear infinite;">⟳</span> Disabling...';
                 confirmBtn.disabled = true;
                 confirmBtn.style.opacity = '0.7';
-                
+
                 // Hide any previous error
                 if (errorDiv) {
                     errorDiv.style.display = 'none';
                 }
-                
+
                 try {
                     // Use pure fetch to avoid any side effects from authenticatedFetch
                     const response = await fetch('/api/admin/2fa/disable', {
                         method: 'POST',
                         credentials: 'include',
-                        headers: { 
+                        headers: {
                             'Content-Type': 'application/json',
-                            'Cache-Control': 'no-cache'
+                            'Cache-Control': 'no-cache',
                         },
-                        body: JSON.stringify({ password })
+                        body: JSON.stringify({ password }),
                     });
-                    
+
                     const result = await response.json();
-                    
+
                     // Handle different types of 401 errors
                     if (response.status === 401) {
                         if (result.error && result.error.includes('Authentication required')) {
-                            throw new Error('Your session has expired. Please refresh the page and log in again.');
+                            throw new Error(
+                                'Your session has expired. Please refresh the page and log in again.'
+                            );
                         } else if (result.error && result.error.includes('Incorrect password')) {
                             throw new Error('Incorrect password');
                         } else {
@@ -3608,38 +3702,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Restore modal ID before removing
                     customDisableModal.id = originalId;
-                    
+
                     // Use secret key to allow removal on success
                     customDisableModal.remove('ALLOW_REMOVE_SECRET_KEY_2FA_DISABLE');
                     update2FAStatusText(false);
-                    showNotification('🔓 Two-Factor Authentication disabled successfully.', 'success');
+                    showNotification(
+                        '🔓 Two-Factor Authentication disabled successfully.',
+                        'success'
+                    );
                 } catch (error) {
                     // RESTORE modal ID immediately in error case
                     customDisableModal.id = originalId;
-                    
+
                     // Reset button state IMMEDIATELY
                     confirmBtn.innerHTML = originalText;
                     confirmBtn.disabled = false;
                     confirmBtn.style.opacity = '1';
-                    
+
                     // Handle error WITHOUT any external calls that might close modal
                     let errorMessage = error.message;
-                    
+
                     // Customize error messages for better UX
                     if (errorMessage.includes('Incorrect password')) {
                         errorMessage = '❌ Incorrect password. Please try again.';
-                    } else if (errorMessage.includes('session has expired') || errorMessage.includes('Authentication required')) {
-                        errorMessage = '⚠️ Your session has expired. Please refresh the page and log in again.';
+                    } else if (
+                        errorMessage.includes('session has expired') ||
+                        errorMessage.includes('Authentication required')
+                    ) {
+                        errorMessage =
+                            '⚠️ Your session has expired. Please refresh the page and log in again.';
                         // For session expiry, we should probably close the modal and redirect
                         setTimeout(() => {
                             window.location.reload();
                         }, 3000);
                     } else if (errorMessage.includes('Failed to disable 2FA')) {
-                        errorMessage = '❌ Failed to disable 2FA. Please check your password and try again.';
+                        errorMessage =
+                            '❌ Failed to disable 2FA. Please check your password and try again.';
                     } else {
                         errorMessage = `❌ ${errorMessage}`;
                     }
-                    
+
                     // Show error ONLY in modal - NO external calls whatsoever
                     if (errorDiv) {
                         errorDiv.textContent = errorMessage;
@@ -3651,31 +3753,31 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }, 8000);
                     }
-                    
+
                     // Clear password and focus for retry
                     passwordInput.value = '';
                     passwordInput.style.borderColor = '#ff4757';
                     passwordInput.focus();
-                    
+
                     // Reset border color after animation
                     setTimeout(() => {
                         if (passwordInput && document.body.contains(passwordInput)) {
                             passwordInput.style.borderColor = 'rgba(239, 68, 68, 0.3)';
                         }
                     }, 1000);
-                    
+
                     // Prevent any further error propagation
                     return false;
                 }
             });
-            
+
             // Allow Enter key to submit
-            passwordInput.addEventListener('keypress', (e) => {
+            passwordInput.addEventListener('keypress', e => {
                 if (e.key === 'Enter' && passwordInput.value) {
                     confirmBtn.click();
                 }
             });
-            
+
             // Hide error message when user starts typing
             passwordInput.addEventListener('input', () => {
                 if (errorDiv && errorDiv.style.display === 'block') {
@@ -3685,7 +3787,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 passwordInput.style.borderColor = 'rgba(239, 68, 68, 0.3)';
             });
         }
-        
+
         // Focus on password input
         if (passwordInput) {
             setTimeout(() => passwordInput.focus(), 100);
@@ -3696,20 +3798,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hide original modal if it exists
         if (disable2FAModal) disable2FAModal.classList.add('is-hidden');
         if (disable2FAForm) disable2FAForm.reset();
-        
+
         // Remove ultra protected modal if it exists
         const ultraProtectedModal = document.getElementById('ultra-protected-disable-2fa-modal');
         if (ultraProtectedModal) {
             // Use secret key to allow removal
             ultraProtectedModal.remove('ALLOW_REMOVE_SECRET_KEY_2FA_DISABLE');
         }
-        
+
         // Also try to remove old custom modal if it exists
         const customDisableModal = document.getElementById('custom-disable-2fa-modal');
         if (customDisableModal) {
             customDisableModal.remove();
         }
-        
+
         // Always restore the checkbox to enabled state when modal is hidden
         // (unless 2FA was actually successfully disabled)
         const actuallyEnabled = twoFaCheckbox && twoFaCheckbox.dataset.actuallyEnabled === 'true';
@@ -3721,16 +3823,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function update2FAStatusText(isEnabled) {
         if (!twoFaStatusText) return;
-        
+
         // Update the visual status
         if (isEnabled) {
-            twoFaStatusText.innerHTML = '<i class="fas fa-shield-alt" style="color: #28a745;"></i> Two-Factor Authentication is <strong>enabled</strong> and protecting your account.';
+            twoFaStatusText.innerHTML =
+                '<i class="fas fa-shield-alt" style="color: #28a745;"></i> Two-Factor Authentication is <strong>enabled</strong> and protecting your account.';
             twoFaStatusText.className = 'status-text enabled';
         } else {
-            twoFaStatusText.innerHTML = '<i class="fas fa-shield-alt" style="color: #6c757d;"></i> Two-Factor Authentication is <strong>disabled</strong>. Click above to set it up.';
+            twoFaStatusText.innerHTML =
+                '<i class="fas fa-shield-alt" style="color: #6c757d;"></i> Two-Factor Authentication is <strong>disabled</strong>. Click above to set it up.';
             twoFaStatusText.className = 'status-text disabled';
         }
-        
+
         // Update checkbox state and store actual status
         if (twoFaCheckbox) {
             twoFaCheckbox.checked = isEnabled;
@@ -3741,11 +3845,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleEnable2FA() {
         // Show loading notification
         const loadingNotification = showNotification('🔄 Generating 2FA setup...', 'info');
-        
+
         try {
-            const response = await authenticatedFetch('/api/admin/2fa/generate', { method: 'POST' });
+            const response = await authenticatedFetch('/api/admin/2fa/generate', {
+                method: 'POST',
+            });
             const result = await response.json();
-            
+
             if (response.status === 401) {
                 throw new Error('Your session has expired. Please log in again.');
             }
@@ -3762,9 +3868,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             qrCodeContainer.innerHTML = `<img src="${result.qrCodeDataUrl}" alt="QR Code" style="max-width: 200px; border: 1px solid #ddd; padding: 10px; background: white;">`;
-            
+
             show2FAModal();
-            
+
             // Focus is now handled in show2FAModal function
         } catch (error) {
             // Hide loading notification immediately
@@ -3788,11 +3894,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const testResponse = await fetch('/api/admin/config', {
                 method: 'GET',
                 credentials: 'include',
-                headers: { 'Cache-Control': 'no-cache' }
+                headers: { 'Cache-Control': 'no-cache' },
             });
-            
+
             if (testResponse.status === 401) {
-                showNotification('⚠️ Your session has expired. Please refresh the page and log in again.', 'error');
+                showNotification(
+                    '⚠️ Your session has expired. Please refresh the page and log in again.',
+                    'error'
+                );
                 setTimeout(() => window.location.reload(), 2000);
                 return;
             }
@@ -3800,20 +3909,20 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('Failed to test authentication:', error);
             // Continue anyway, the actual request will handle auth errors
         }
-        
+
         // This function now just shows the modal. The logic is moved to the form submit handler.
         showDisable2FAModal();
     }
 
     if (twoFaCheckbox) {
-        twoFaCheckbox.addEventListener('click', (event) => {
+        twoFaCheckbox.addEventListener('click', event => {
             // Prevent the default checkbox behavior
             event.preventDefault();
-            
+
             // Check current actual state from server
             const currentlyEnabled = twoFaCheckbox.dataset.actuallyEnabled === 'true';
             const clickedToEnable = !currentlyEnabled;
-            
+
             if (clickedToEnable) {
                 // User wants to enable 2FA - start wizard
                 handleEnable2FA();
@@ -3821,9 +3930,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // User wants to disable 2FA - immediately update visual state and show confirmation
                 // Temporarily update the checkbox to show unchecked state
                 twoFaCheckbox.checked = false;
-                twoFaStatusText.innerHTML = '<i class="fas fa-shield-alt" style="color: #ffc107;"></i> Two-Factor Authentication is being <strong>disabled</strong>... Please confirm below.';
+                twoFaStatusText.innerHTML =
+                    '<i class="fas fa-shield-alt" style="color: #ffc107;"></i> Two-Factor Authentication is being <strong>disabled</strong>... Please confirm below.';
                 twoFaStatusText.className = 'status-text warning';
-                
+
                 handleDisable2FA();
             }
         });
@@ -3838,7 +3948,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (twoFaVerifyForm) {
-        twoFaVerifyForm.addEventListener('submit', async (event) => {
+        twoFaVerifyForm.addEventListener('submit', async event => {
             event.preventDefault();
             const tokenInput = document.getElementById('2fa-token');
             const submitButton = event.target.querySelector('button[type="submit"]');
@@ -3853,10 +3963,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await authenticatedFetch('/api/admin/2fa/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token })
+                    body: JSON.stringify({ token }),
                 });
                 const result = await response.json();
-                
+
                 if (response.status === 401) {
                     throw new Error('Your session has expired. Please log in again.');
                 }
@@ -3878,7 +3988,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (disable2FAForm) {
-        disable2FAForm.addEventListener('submit', async (event) => {
+        disable2FAForm.addEventListener('submit', async event => {
             event.preventDefault();
             const passwordInput = document.getElementById('disable-2fa-password');
             const submitButton = event.target.querySelector('button[type="submit"]');
@@ -3893,10 +4003,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await authenticatedFetch('/api/admin/2fa/disable', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
+                    body: JSON.stringify({ password }),
                 });
                 const result = await response.json();
-                
+
                 if (response.status === 401) {
                     throw new Error('Your session has expired. Please log in again.');
                 }
@@ -3951,7 +4061,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.remove('is-warning');
         };
 
-        button.addEventListener('click', (event) => {
+        button.addEventListener('click', event => {
             if (button.disabled) return;
 
             if (button.dataset.confirming === 'true') {
@@ -3975,7 +4085,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiKeyDisplayContainer = document.getElementById('api-key-display-container');
     const apiKeyInput = document.getElementById('api-key-input');
     const copyApiKeyButton = document.getElementById('copy-api-key-button');
-    const toggleApiKeyVisibilityButton = document.getElementById('toggle-api-key-visibility-button');
+    const toggleApiKeyVisibilityButton = document.getElementById(
+        'toggle-api-key-visibility-button'
+    );
     const generateApiKeyButton = document.getElementById('generate-api-key-button');
     const revokeApiKeyButton = document.getElementById('revoke-api-key-button');
 
@@ -4050,11 +4162,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (copyApiKeyButton) {
         copyApiKeyButton.addEventListener('click', () => {
-            navigator.clipboard.writeText(apiKeyInput.value).then(() => {
-                showNotification('API key copied to clipboard!', 'success');
-            }, () => {
-                showNotification('Copy failed.', 'error');
-            });
+            navigator.clipboard.writeText(apiKeyInput.value).then(
+                () => {
+                    showNotification('API key copied to clipboard!', 'success');
+                },
+                () => {
+                    showNotification('Copy failed.', 'error');
+                }
+            );
         });
     }
 
@@ -4076,28 +4191,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initialization ---
 
     loadConfig();
-    
+
     // Load cache configuration on page load with multiple attempts
     setTimeout(() => {
         loadCacheConfig();
     }, 500); // Small delay to ensure main config is loaded first
-    
+
     // Additional attempt when management section is first viewed
     setTimeout(() => {
         loadCacheConfig();
     }, 2000); // Longer delay as backup
-    
+
     // Track original form values to detect actual changes
     let originalConfigValues = {};
-    
+
     // Function to capture current form state
     function captureFormState() {
         const form = document.getElementById('config-form');
         if (!form) return {};
-        
-        const formData = new FormData(form);
+
         const values = {};
-        
+
         // Get all form inputs
         const inputs = form.querySelectorAll('input, select, textarea');
         inputs.forEach(input => {
@@ -4111,36 +4225,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 values[input.id || input.name] = input.value;
             }
         });
-        
+
         return values;
     }
-    
+
     // Capture initial state after config loads
     setTimeout(() => {
         originalConfigValues = captureFormState();
     }, 1000);
-    
+
     // Function to check if form has actually changed
     function hasFormChanged() {
         const currentValues = captureFormState();
-        
+
         // Compare with original values
         for (const key in currentValues) {
             if (originalConfigValues[key] !== currentValues[key]) {
                 return true;
             }
         }
-        
+
         // Check for new keys
         for (const key in originalConfigValues) {
             if (!(key in currentValues)) {
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     // Remove automatic background initialization - it will be handled by section switching
 
     // Cleanup timers when page unloads
@@ -4161,9 +4275,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-     const configForm = document.getElementById('config-form');
+    const configForm = document.getElementById('config-form');
     if (configForm) {
-        configForm.addEventListener('submit', async (event) => {
+        configForm.addEventListener('submit', async event => {
             event.preventDefault();
             const button = document.getElementById('save-config-button'); // Direct ID selector instead
             if (!button) return;
@@ -4180,16 +4294,14 @@ document.addEventListener('DOMContentLoaded', () => {
              * @param {object} obj The object to clean.
              * @returns {object} A new object with null values removed.
              */
-            const cleanNulls = (obj) => {
+            const cleanNulls = obj => {
                 // Primitive handling: convert empty strings to undefined sentinel (drop later)
                 if (obj === '') return undefined;
                 if (obj === null || typeof obj !== 'object') {
                     return obj;
                 }
                 if (Array.isArray(obj)) {
-                    return obj
-                        .map(cleanNulls)
-                        .filter(item => item !== null && item !== undefined);
+                    return obj.map(cleanNulls).filter(item => item !== null && item !== undefined);
                 }
                 const newObj = {};
                 for (const key in obj) {
@@ -4205,28 +4317,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 // --- Validation ---
                 // Only validate Plex library selection if we're actively configuring in the media section
                 const mediaSection = document.getElementById('media-section');
-                const isMediaSectionActive = mediaSection && mediaSection.classList.contains('active');
+                const isMediaSectionActive =
+                    mediaSection && mediaSection.classList.contains('active');
                 const isPlexEnabled = document.getElementById('mediaServers[0].enabled')?.checked;
-                
+
                 // Only require library selection if user is actually in media section configuring Plex
                 if (isPlexEnabled && isMediaSectionActive) {
                     const selectedMovieLibs = getSelectedLibraries('movie');
                     const selectedShowLibs = getSelectedLibraries('show');
 
                     if (selectedMovieLibs.length === 0 && selectedShowLibs.length === 0) {
-                        throw new Error('When configuring Plex in the Media section, you must select at least one movie or show library.');
+                        throw new Error(
+                            'When configuring Plex in the Media section, you must select at least one movie or show library.'
+                        );
                     }
                 }
-                
+
                 // Allow Plex to be saved even from other sections for fanart functionality
 
                 // --- Numeric Field Validation ---
                 const numericFieldIds = [
-                    'transitionIntervalSeconds', 'backgroundRefreshMinutes',
-                    'SERVER_PORT', 'rottenTomatoesMinimumScore', 'effectPauseTime',
-                    'mediaServers[0].movieCount', 'mediaServers[0].showCount',
-                    'wallartItemsPerScreen', 'wallartColumns', 'wallartTransitionInterval',
-                    'siteServer.port'
+                    'transitionIntervalSeconds',
+                    'backgroundRefreshMinutes',
+                    'SERVER_PORT',
+                    'rottenTomatoesMinimumScore',
+                    'effectPauseTime',
+                    'mediaServers[0].movieCount',
+                    'mediaServers[0].showCount',
+                    'wallartItemsPerScreen',
+                    'wallartColumns',
+                    'wallartTransitionInterval',
+                    'siteServer.port',
                 ];
 
                 for (const id of numericFieldIds) {
@@ -4239,22 +4360,33 @@ document.addEventListener('DOMContentLoaded', () => {
                             const fieldName = label ? label.textContent : id;
                             throw new Error(`The field "${fieldName}" must be a valid number.`);
                         }
-                        
+
                         // Additional range validation for specific fields
                         const value = Number(element.value);
                         if (id === 'transitionIntervalSeconds' && (value < 1 || value > 300)) {
-                            throw new Error('Transition Interval must be between 1 and 300 seconds.');
+                            throw new Error(
+                                'Transition Interval must be between 1 and 300 seconds.'
+                            );
                         }
                         if (id === 'backgroundRefreshMinutes' && (value < 0 || value > 1440)) {
-                            throw new Error('Background Refresh must be between 0 and 1440 minutes (24 hours).');
+                            throw new Error(
+                                'Background Refresh must be between 0 and 1440 minutes (24 hours).'
+                            );
                         }
-                        if ((id === 'SERVER_PORT' || id === 'siteServer.port') && (value < 1024 || value > 65535)) {
+                        if (
+                            (id === 'SERVER_PORT' || id === 'siteServer.port') &&
+                            (value < 1024 || value > 65535)
+                        ) {
                             throw new Error('Port numbers must be between 1024 and 65535.');
                         }
                         if (id === 'rottenTomatoesMinimumScore' && (value < 0 || value > 10)) {
                             throw new Error('Rotten Tomatoes score must be between 0 and 10.');
                         }
-                        if ((id === 'mediaServers[0].movieCount' || id === 'mediaServers[0].showCount') && (value < 1 || value > 10000)) {
+                        if (
+                            (id === 'mediaServers[0].movieCount' ||
+                                id === 'mediaServers[0].showCount') &&
+                            (value < 1 || value > 10000)
+                        ) {
                             throw new Error('Movie/Show count must be between 1 and 10,000.');
                         }
                         if (id === 'wallartItemsPerScreen' && (value < 4 || value > 100)) {
@@ -4264,7 +4396,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             throw new Error('Wallart columns must be between 2 and 12.');
                         }
                         if (id === 'wallartTransitionInterval' && (value < 5 || value > 300)) {
-                            throw new Error('Wallart transition interval must be between 5 and 300 seconds.');
+                            throw new Error(
+                                'Wallart transition interval must be between 5 and 300 seconds.'
+                            );
                         }
                     }
                 }
@@ -4303,53 +4437,72 @@ document.addEventListener('DOMContentLoaded', () => {
                         refreshRate: getValue('wallartRefreshRate', 'number'),
                         randomness: getValue('wallartRandomness', 'number'),
                         animationType: getValue('wallartAnimationType'),
-                        autoRefresh: getValue('wallartAutoRefresh')
+                        autoRefresh: getValue('wallartAutoRefresh'),
                     },
                     cinemaMode: getValue('cinemaMode'),
                     cinemaOrientation: getValue('cinemaOrientation'),
                     transitionEffect: getValue('transitionEffect'),
                     effectPauseTime: getValue('effectPauseTime', 'number'),
                     uiScaling: {
-                        content: (()=>{ const v=getValue('uiScaling.content','number'); return Number.isFinite(v)?v:defaults.uiScaling.content || 100; })(),
-                        clearlogo: (()=>{ const v=getValue('uiScaling.clearlogo','number'); return Number.isFinite(v)?v:defaults.uiScaling.clearlogo; })(),
-                        clock: (()=>{ const v=getValue('uiScaling.clock','number'); return Number.isFinite(v)?v:defaults.uiScaling.clock; })(),
-                        global: (()=>{ const v=getValue('uiScaling.global','number'); return Number.isFinite(v)?v:defaults.uiScaling.global; })()
+                        content: (() => {
+                            const v = getValue('uiScaling.content', 'number');
+                            return Number.isFinite(v) ? v : defaults.uiScaling.content || 100;
+                        })(),
+                        clearlogo: (() => {
+                            const v = getValue('uiScaling.clearlogo', 'number');
+                            return Number.isFinite(v) ? v : defaults.uiScaling.clearlogo;
+                        })(),
+                        clock: (() => {
+                            const v = getValue('uiScaling.clock', 'number');
+                            return Number.isFinite(v) ? v : defaults.uiScaling.clock;
+                        })(),
+                        global: (() => {
+                            const v = getValue('uiScaling.global', 'number');
+                            return Number.isFinite(v) ? v : defaults.uiScaling.global;
+                        })(),
                     },
-                    mediaServers: [{
-                        name: "Plex Server", // This is not editable in the UI
-                        type: "plex", // This is not editable in the UI
-                        enabled: getValue('mediaServers[0].enabled'),
-                        hostnameEnvVar: "PLEX_HOSTNAME",
-                        portEnvVar: "PLEX_PORT",
-                        tokenEnvVar: "PLEX_TOKEN",
-                        movieLibraryNames: getSelectedLibraries('movie'),
-                        showLibraryNames: getSelectedLibraries('show'),
-                        movieCount: getValue('mediaServers[0].movieCount', 'number'),
-                        showCount: getValue('mediaServers[0].showCount', 'number'),
-                        ratingFilter: getValue('mediaServers[0].ratingFilter'),
-                        genreFilter: getGenreFilterValues(),
-                        recentlyAddedOnly: getValue('mediaServers[0].recentlyAddedOnly'),
-                        recentlyAddedDays: getValue('mediaServers[0].recentlyAddedDays', 'number'),
-                        qualityFilter: getValue('mediaServers[0].qualityFilter')
-                    }],
+                    mediaServers: [
+                        {
+                            name: 'Plex Server', // This is not editable in the UI
+                            type: 'plex', // This is not editable in the UI
+                            enabled: getValue('mediaServers[0].enabled'),
+                            hostnameEnvVar: 'PLEX_HOSTNAME',
+                            portEnvVar: 'PLEX_PORT',
+                            tokenEnvVar: 'PLEX_TOKEN',
+                            movieLibraryNames: getSelectedLibraries('movie'),
+                            showLibraryNames: getSelectedLibraries('show'),
+                            movieCount: getValue('mediaServers[0].movieCount', 'number'),
+                            showCount: getValue('mediaServers[0].showCount', 'number'),
+                            ratingFilter: getValue('mediaServers[0].ratingFilter'),
+                            genreFilter: getGenreFilterValues(),
+                            recentlyAddedOnly: getValue('mediaServers[0].recentlyAddedOnly'),
+                            recentlyAddedDays: getValue(
+                                'mediaServers[0].recentlyAddedDays',
+                                'number'
+                            ),
+                            qualityFilter: getValue('mediaServers[0].qualityFilter'),
+                        },
+                    ],
                     tmdbSource: {
                         enabled: getValue('tmdbSource.enabled'),
                         apiKey: (() => {
                             const apiKeyField = document.getElementById('tmdbSource.apiKey');
                             const enteredKey = apiKeyField ? apiKeyField.value : '';
-                            const apiKeyIsSet = apiKeyField ? apiKeyField.dataset.apiKeySet === 'true' : false;
-                            
+                            const apiKeyIsSet = apiKeyField
+                                ? apiKeyField.dataset.apiKeySet === 'true'
+                                : false;
+
                             // If user entered a new key, use it
                             if (enteredKey && enteredKey.trim() !== '') {
                                 return enteredKey.trim();
                             }
-                            
+
                             // If field is empty but there's an existing key, preserve it by returning null
                             // (null means "don't change the existing value" in the backend)
                             if (apiKeyIsSet) {
                                 return null;
                             }
-                            
+
                             // If field is empty and no key was set, use empty string
                             return '';
                         })(),
@@ -4358,7 +4511,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         showCount: getValue('tmdbSource.showCount', 'number'),
                         minRating: getValue('tmdbSource.minRating', 'number'),
                         yearFilter: getValue('tmdbSource.yearFilter', 'number'),
-                        genreFilter: getTMDBGenreFilterValues()
+                        genreFilter: getTMDBGenreFilterValues(),
                     },
                     tvdbSource: {
                         enabled: getValue('tvdbSource.enabled'),
@@ -4367,7 +4520,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         showCount: getValue('tvdbSource.showCount', 'number'),
                         minRating: getValue('tvdbSource.minRating', 'number'),
                         yearFilter: getValue('tvdbSource.yearFilter', 'number'),
-                        genreFilter: getTVDBGenreFilterValues()
+                        genreFilter: getTVDBGenreFilterValues(),
                     },
                     streamingSources: {
                         enabled: getValue('streamingSources.enabled'),
@@ -4378,12 +4531,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         disney: getValue('streamingSources.disney'),
                         prime: getValue('streamingSources.prime'),
                         hbo: getValue('streamingSources.hbo'),
-                        newReleases: getValue('streamingSources.newReleases')
+                        newReleases: getValue('streamingSources.newReleases'),
                     },
                     siteServer: {
                         enabled: getValue('siteServer.enabled'),
-                        port: getValue('siteServer.port', 'number') || 4001
-                    }
+                        port: getValue('siteServer.port', 'number') || 4001,
+                    },
                 };
 
                 const newEnv = {
@@ -4404,51 +4557,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cleanedConfig = cleanNulls(newConfig);
 
                 // Coordinate with auto-save to avoid race
-                window.__saveCoordinator = window.__saveCoordinator || { 
+                window.__saveCoordinator = window.__saveCoordinator || {
                     manualInProgress: false,
                     lastRequestAt: 0,
-                    lastManualAt: 0
+                    lastManualAt: 0,
                 };
                 window.__saveCoordinator.manualInProgress = true;
                 // Don't set lastRequestAt for manual saves - only auto-saves use this for rate limiting
-                
+
                 // Debug: Log request data
                 console.log('🔍 Saving config with data:', {
                     configSize: JSON.stringify(cleanedConfig).length,
                     envSize: JSON.stringify(newEnv).length,
-                    totalSize: JSON.stringify({ config: cleanedConfig, env: newEnv }).length
+                    totalSize: JSON.stringify({ config: cleanedConfig, env: newEnv }).length,
                 });
-                
+
                 const requestBody = JSON.stringify({ config: cleanedConfig, env: newEnv });
-                
+
                 // If request is large, add additional headers to help with HTTP/2 issues
                 const requestOptions = {
                     method: 'POST',
-                    body: requestBody
+                    body: requestBody,
                 };
-                
+
                 if (requestBody.length > 50000) {
                     console.warn('⚠️ Large request detected, adding HTTP/2 compatibility headers');
                     requestOptions.headers = {
                         'Content-Length': requestBody.length.toString(),
-                        'Transfer-Encoding': 'chunked'
+                        'Transfer-Encoding': 'chunked',
                     };
                 }
-                
-                
+
                 // Retry mechanism for network errors
                 let lastError;
                 let retryCount = 0;
                 const maxRetries = 3;
-                
+
                 while (retryCount <= maxRetries) {
                     try {
                         if (retryCount > 0) {
                             buttonTextSpan.textContent = `Retrying... (${retryCount}/${maxRetries})`;
                             await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
                         }
-                        
-                        const response = await authenticatedFetch(apiUrl('/api/admin/config'), requestOptions);
+
+                        const response = await authenticatedFetch(
+                            apiUrl('/api/admin/config'),
+                            requestOptions
+                        );
 
                         if (!response.ok) {
                             // Try to get error message from response
@@ -4462,59 +4617,61 @@ document.addEventListener('DOMContentLoaded', () => {
                                 // If response is not JSON, use status text
                                 console.warn('Response is not JSON, using status text as error');
                             }
-                            
+
                             // Retry on 502 Bad Gateway or 503 Service Unavailable
-                            if ((response.status === 502 || response.status === 503) && retryCount < maxRetries) {
+                            if (
+                                (response.status === 502 || response.status === 503) &&
+                                retryCount < maxRetries
+                            ) {
                                 lastError = new Error(errorMessage);
                                 retryCount++;
                                 continue;
                             }
-                            
+
                             throw new Error(errorMessage);
                         }
 
-                        const result = await response.json();
+                        await response.json();
 
                         // Config saved successfully - check if restart is needed
                         showNotification('Settings saved successfully!', 'success');
-                        
+
                         // Only show restart button if form actually changed
                         if (hasFormChanged()) {
                             showRestartButton();
                         }
-                        
+
                         // Update original values after successful save
                         originalConfigValues = captureFormState();
-                        
+
                         if (window.__saveCoordinator) {
                             window.__saveCoordinator.lastManualAt = Date.now();
                         }
                         // Notify form tracking listeners
                         document.dispatchEvent(new CustomEvent('configSaved'));
                         return; // Success - exit retry loop
-                        
                     } catch (error) {
                         lastError = error;
-                        
+
                         // Check if this is a retryable error
-                        const isRetryable = error.message.includes('502') || 
-                                          error.message.includes('503') || 
-                                          error.message.includes('Failed to fetch') ||
-                                          error.message.includes('ERR_HTTP2_PROTOCOL_ERROR');
-                        
+                        const isRetryable =
+                            error.message.includes('502') ||
+                            error.message.includes('503') ||
+                            error.message.includes('Failed to fetch') ||
+                            error.message.includes('ERR_HTTP2_PROTOCOL_ERROR');
+
                         if (isRetryable && retryCount < maxRetries) {
                             retryCount++;
                             continue;
                         }
-                        
+
                         // Not retryable or max retries reached
                         break;
                     }
                 }
-                
+
                 // If we get here, all retries failed
                 throw lastError;
-
             } catch (error) {
                 console.error('Failed to save config:', error);
                 showNotification(`Error saving settings: ${error.message}`, 'error');
@@ -4545,18 +4702,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = {
                     currentPassword: currentPasswordInput.value,
                     newPassword: newPasswordInput.value,
-                    confirmPassword: confirmPasswordInput.value
+                    confirmPassword: confirmPasswordInput.value,
                 };
 
                 // Client-side validation
                 if (!data.currentPassword || !data.newPassword || !data.confirmPassword) {
                     throw new Error('All password fields are required.');
                 }
-                
+
                 if (data.newPassword.length < 6) {
                     throw new Error('New password must be at least 6 characters long.');
                 }
-                
+
                 if (data.newPassword !== data.confirmPassword) {
                     throw new Error('New password and confirmation do not match.');
                 }
@@ -4567,7 +4724,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch('/api/admin/change-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(data),
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Failed to change password.');
@@ -4603,7 +4760,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Store original state if not already stored
         if (!button.dataset.originalText) {
-            button.dataset.originalText = buttonTextSpan ? buttonTextSpan.textContent : button.textContent;
+            button.dataset.originalText = buttonTextSpan
+                ? buttonTextSpan.textContent
+                : button.textContent;
             button.dataset.originalIconClass = icon ? icon.className : '';
             button.dataset.originalButtonClass = button.className;
         }
@@ -4625,12 +4784,16 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'error':
                 button.disabled = true; // Keep disabled until revert
                 if (buttonTextSpan) {
-                    buttonTextSpan.textContent = options.text || (state === 'success' ? 'Success!' : 'Failed');
+                    buttonTextSpan.textContent =
+                        options.text || (state === 'success' ? 'Success!' : 'Failed');
                 } else {
-                    button.textContent = options.text || (state === 'success' ? 'Success!' : 'Failed');
+                    button.textContent =
+                        options.text || (state === 'success' ? 'Success!' : 'Failed');
                 }
                 if (icon) {
-                    icon.className = options.iconClass || (state === 'success' ? 'fas fa-check' : 'fas fa-exclamation-triangle');
+                    icon.className =
+                        options.iconClass ||
+                        (state === 'success' ? 'fas fa-check' : 'fas fa-exclamation-triangle');
                 }
                 button.className = `${button.dataset.originalButtonClass} ${options.buttonClass || (state === 'success' ? 'is-success' : 'is-danger')}`;
                 break;
@@ -4652,35 +4815,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const restartButton = document.getElementById('restart-app-button');
     if (restartButton) {
         addConfirmClickHandler(restartButton, 'Are you sure? Click again', async () => {
-             setButtonState(restartButton, 'loading', { text: 'Restarting...' });
+            setButtonState(restartButton, 'loading', { text: 'Restarting...' });
 
-             const handleRestartInitiated = (message) => {
-                 showNotification(message || 'Restart initiated.', 'success');
-                 // After a short delay, show completion and then re-enable for another attempt without full page reload.
-                 setTimeout(() => {
-                     showNotification('Restart complete (refresh page if UI seems stale).', 'success');
-                     setButtonState(restartButton, 'success', { text: 'Restart Complete' });
-                     // Revert after a further delay so user can restart again later if needed.
-                     setTimeout(()=> setButtonState(restartButton, 'revert'), 4000);
-                 }, 2500);
-             };
- 
-             try {
-                 const response = await fetch('/api/admin/restart-app', { method: 'POST' });
-                 const result = await response.json();
- 
-                 if (!response.ok) {
-                     // This will now catch genuine errors returned by the server before the restart is attempted.
-                     throw new Error(result.error || 'Could not send restart command to the server.');
-                 }
-                 // The server now guarantees a response before restarting, so we can trust the result.
-                 handleRestartInitiated(result.message);
-             } catch (error) {
-                 // Any error here is now a real error, not an expected one.
-                 console.error('[Admin] Error during restart request:', error);
-                 showNotification(`Error restarting: ${error.message}`, 'error');
-                 setButtonState(restartButton, 'revert');
-             }
+            const handleRestartInitiated = message => {
+                showNotification(message || 'Restart initiated.', 'success');
+                // After a short delay, show completion and then re-enable for another attempt without full page reload.
+                setTimeout(() => {
+                    showNotification(
+                        'Restart complete (refresh page if UI seems stale).',
+                        'success'
+                    );
+                    setButtonState(restartButton, 'success', { text: 'Restart Complete' });
+                    // Revert after a further delay so user can restart again later if needed.
+                    setTimeout(() => setButtonState(restartButton, 'revert'), 4000);
+                }, 2500);
+            };
+
+            try {
+                const response = await fetch('/api/admin/restart-app', { method: 'POST' });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    // This will now catch genuine errors returned by the server before the restart is attempted.
+                    throw new Error(
+                        result.error || 'Could not send restart command to the server.'
+                    );
+                }
+                // The server now guarantees a response before restarting, so we can trust the result.
+                handleRestartInitiated(result.message);
+            } catch (error) {
+                // Any error here is now a real error, not an expected one.
+                console.error('[Admin] Error during restart request:', error);
+                showNotification(`Error restarting: ${error.message}`, 'error');
+                setButtonState(restartButton, 'revert');
+            }
         });
     }
 
@@ -4689,7 +4857,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (statusCheckButton) {
         statusCheckButton.addEventListener('click', async () => {
             setButtonState(statusCheckButton, 'loading', { text: 'Checking...' });
-            
+
             try {
                 await performStatusCheck();
                 setButtonState(statusCheckButton, 'success', { text: 'Status Checked' });
@@ -4711,7 +4879,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (performanceMonitorButton) {
         performanceMonitorButton.addEventListener('click', async () => {
             setButtonState(performanceMonitorButton, 'loading', { text: 'Loading...' });
-            
+
             try {
                 await loadPerformanceMonitor();
                 setButtonState(performanceMonitorButton, 'success', { text: 'Monitor Loaded' });
@@ -4730,17 +4898,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Remove any existing event listeners by cloning the element
         const newButton = startAutoUpdateButton.cloneNode(true);
         startAutoUpdateButton.parentNode.replaceChild(newButton, startAutoUpdateButton);
-        
+
         // Add single clean event listener
-        newButton.addEventListener('click', (event) => {
+        newButton.addEventListener('click', event => {
             event.preventDefault();
             event.stopPropagation();
-            
+
             // Check if button is in updating state
             if (newButton.getAttribute('data-updating') === 'true') {
                 return;
             }
-            
+
             // Open the confirmation modal
             openUpdateConfirmationModal();
         });
@@ -4757,7 +4925,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (listBackupsButton) {
         listBackupsButton.addEventListener('click', async () => {
             setButtonState(listBackupsButton, 'loading', { text: 'Loading...' });
-            
+
             try {
                 await loadBackupList();
                 setButtonState(listBackupsButton, 'success', { text: 'Backups Loaded' });
@@ -4775,14 +4943,18 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshMediaButton.addEventListener('click', async () => {
             setButtonState(refreshMediaButton, 'loading', { text: 'Refreshing...' });
 
-            console.log('[Admin Debug] "Refresh Media" button clicked. Preparing to call API endpoint.');
+            console.log(
+                '[Admin Debug] "Refresh Media" button clicked. Preparing to call API endpoint.'
+            );
 
             try {
                 console.log('[Admin Debug] Sending POST request to /api/admin/refresh-media');
                 const response = await fetch('/api/admin/refresh-media', { method: 'POST' });
 
                 if (!response.ok) {
-                    console.error(`[Admin Debug] API call failed. Status: ${response.status} ${response.statusText}`);
+                    console.error(
+                        `[Admin Debug] API call failed. Status: ${response.status} ${response.statusText}`
+                    );
                     let errorMsg = `HTTP error! Status: ${response.status}`;
                     try {
                         const errorResult = await response.json();
@@ -4793,8 +4965,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     if (response.status === 401) {
-                        showNotification('Your session has expired. You will be redirected to the login page.', 'error');
-                        setTimeout(() => window.location.href = '/admin/login', 2500);
+                        showNotification(
+                            'Your session has expired. You will be redirected to the login page.',
+                            'error'
+                        );
+                        setTimeout(() => (window.location.href = '/admin/login'), 2500);
                     }
                     throw new Error(errorMsg);
                 }
@@ -4806,7 +4981,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Also refresh the admin background to show new items
                 adminBgQueue = [];
                 initializeAdminBackground();
-
             } catch (error) {
                 console.error('[Admin] Error during media refresh:', error);
                 showNotification(`Error refreshing: ${error.message}`, 'error');
@@ -4866,19 +5040,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-/**
- * Setup event listeners for cache configuration inputs
- */
-function setupCacheConfigEventListeners() {
-    console.log('[Cache Config] Cache configuration fields have been removed from UI');
-    
-    // Since cache configuration fields have been removed, just log that cache is auto-managed
-    console.log('[Cache Config] Cache is auto-managed with fixed settings: 5GB max, 500MB min free space');
-    
-    // Clean up any existing auto-managed notices (user requested removal)
-    const existingNotices = document.querySelectorAll('.auto-managed-notice');
-    existingNotices.forEach(notice => notice.remove());
-}
+    /**
+     * Setup event listeners for cache configuration inputs
+     */
+    function setupCacheConfigEventListeners() {
+        console.log('[Cache Config] Cache configuration fields have been removed from UI');
+
+        // Since cache configuration fields have been removed, just log that cache is auto-managed
+        console.log(
+            '[Cache Config] Cache is auto-managed with fixed settings: 5GB max, 500MB min free space'
+        );
+
+        // Clean up any existing auto-managed notices (user requested removal)
+        const existingNotices = document.querySelectorAll('.auto-managed-notice');
+        existingNotices.forEach(notice => notice.remove());
+    }
 
     // Load cache stats when Management section is first accessed
     // Test: Also load stats on page load for debugging
@@ -4895,50 +5071,37 @@ function setupCacheConfigEventListeners() {
 
     // Preview functionality removed
 
-    function updatePreviewOrientation() { /* removed */ }
-
-    function updatePreview() { /* removed */ }
+    function updatePreviewOrientation() {
+        /* removed */
+    }
 
     // Removed preview timer logic
 
-    function clearAllPreviewTimers() { /* removed */ }
-
-    function updatePreviewElements() { /* removed */ }
-
-    function updateCinemaPreview() { /* removed */ }
-
-    function updateNormalPreview() { /* removed */ }
-
-    function restoreNormalPreviewStructure() { /* removed */ }
-
-    function updatePreviewClock() { /* removed */ }
-
-    function updatePreviewWithMockData() { /* removed */ }
-
-    function setupLivePreviewUpdates() { /* removed */ }
-
-    function setupPreviewTimerListener() { /* removed */ }
+    function clearAllPreviewTimers() {
+        /* removed */
+    }
 
     function setupCinemaModeListeners() {
         const cinemaModeCheckbox = document.getElementById('cinemaMode');
         const cinemaOrientationGroup = document.getElementById('cinemaOrientationGroup');
         const cinemaOrientationSelect = document.getElementById('cinemaOrientation');
-        
+
         if (cinemaModeCheckbox) {
             cinemaModeCheckbox.addEventListener('change', () => {
                 isCinemaMode = cinemaModeCheckbox.checked;
-                
+
                 // Handle mutual exclusivity with Wallart Mode
                 const wallartModeCheckbox = document.getElementById('wallartModeEnabled');
-                
+
                 if (isCinemaMode) {
                     // Disable and hide Wallart Mode subsection when Cinema Mode is enabled
                     if (wallartModeCheckbox) {
                         wallartModeCheckbox.checked = false;
                         wallartModeCheckbox.disabled = true;
-                        
+
                         // Hide wallart settings if they were visible
-                        const wallartSettingsGroup = document.getElementById('wallartSettingsGroup');
+                        const wallartSettingsGroup =
+                            document.getElementById('wallartSettingsGroup');
                         if (wallartSettingsGroup) {
                             wallartSettingsGroup.classList.add('hidden');
                             wallartSettingsGroup.style.display = 'none';
@@ -4950,7 +5113,10 @@ function setupCacheConfigEventListeners() {
                         if (header.textContent.includes('Wallart Mode')) {
                             header.style.display = 'none';
                             const wallartContent = header.nextElementSibling;
-                            if (wallartContent && wallartContent.classList.contains('subsection-content')) {
+                            if (
+                                wallartContent &&
+                                wallartContent.classList.contains('subsection-content')
+                            ) {
                                 wallartContent.style.display = 'none';
                             }
                         }
@@ -4966,56 +5132,60 @@ function setupCacheConfigEventListeners() {
                         if (header.textContent.includes('Wallart Mode')) {
                             header.style.display = 'block';
                             const wallartContent = header.nextElementSibling;
-                            if (wallartContent && wallartContent.classList.contains('subsection-content')) {
+                            if (
+                                wallartContent &&
+                                wallartContent.classList.contains('subsection-content')
+                            ) {
                                 wallartContent.style.display = 'block';
                             }
                         }
                     });
                     // Don't automatically show wallart settings - let the checkbox state control it
                 }
-                
+
                 // Update spacing for first visible subsection
                 updateFirstVisibleSubsectionSpacing();
-                
+
                 // Show/hide orientation settings
                 if (cinemaOrientationGroup) {
                     cinemaOrientationGroup.style.display = isCinemaMode ? 'block' : 'none';
                 }
-                
+
                 // Show/hide irrelevant display settings for cinema mode
                 toggleCinemaModeSettings(isCinemaMode);
-                
+
                 // Update preview orientation
                 updatePreviewOrientation();
-                
+
                 console.log('Cinema mode toggled:', isCinemaMode ? 'enabled' : 'disabled');
             });
-            
+
             // Initial state handled once inside populateDisplaySettings to avoid duplicate invocation here.
         }
-        
+
         // Add event listener for Wallart Mode mutual exclusivity
         const wallartModeCheckbox = document.getElementById('wallartModeEnabled');
         if (wallartModeCheckbox) {
             wallartModeCheckbox.addEventListener('change', () => {
                 const isWallartMode = wallartModeCheckbox.checked;
-                
+
                 // Handle mutual exclusivity with Cinema Mode
                 const cinemaModeCheckbox = document.getElementById('cinemaMode');
-                
+
                 if (isWallartMode) {
                     // Disable and hide Cinema Mode subsection when Wallart Mode is enabled
                     if (cinemaModeCheckbox) {
                         cinemaModeCheckbox.checked = false;
                         cinemaModeCheckbox.disabled = true;
                         isCinemaMode = false;
-                        
+
                         // Hide cinema settings if they were visible
-                        const cinemaOrientationGroup = document.getElementById('cinemaOrientationGroup');
+                        const cinemaOrientationGroup =
+                            document.getElementById('cinemaOrientationGroup');
                         if (cinemaOrientationGroup) {
                             cinemaOrientationGroup.style.display = 'none';
                         }
-                        
+
                         // Reset cinema mode settings
                         toggleCinemaModeSettings(false);
                         updatePreviewOrientation();
@@ -5026,7 +5196,10 @@ function setupCacheConfigEventListeners() {
                         if (header.textContent.includes('Cinema Mode')) {
                             header.style.display = 'none';
                             const cinemaContent = header.nextElementSibling;
-                            if (cinemaContent && cinemaContent.classList.contains('subsection-content')) {
+                            if (
+                                cinemaContent &&
+                                cinemaContent.classList.contains('subsection-content')
+                            ) {
                                 cinemaContent.style.display = 'none';
                             }
                         }
@@ -5042,20 +5215,23 @@ function setupCacheConfigEventListeners() {
                         if (header.textContent.includes('Cinema Mode')) {
                             header.style.display = 'block';
                             const cinemaContent = header.nextElementSibling;
-                            if (cinemaContent && cinemaContent.classList.contains('subsection-content')) {
+                            if (
+                                cinemaContent &&
+                                cinemaContent.classList.contains('subsection-content')
+                            ) {
                                 cinemaContent.style.display = 'block';
                             }
                         }
                     });
                 }
-                
+
                 // Update spacing for first visible subsection
                 updateFirstVisibleSubsectionSpacing();
-                
+
                 console.log('Wallart mode toggled:', isWallartMode ? 'enabled' : 'disabled');
             });
         }
-        
+
         // Add event listener for cinema orientation changes
         if (cinemaOrientationSelect) {
             cinemaOrientationSelect.addEventListener('change', () => {
@@ -5069,11 +5245,11 @@ function setupCacheConfigEventListeners() {
         const wallartModeCheckbox = document.getElementById('wallartModeEnabled');
         const wallartSettingsGroup = document.getElementById('wallartSettingsGroup');
         const randomnessSlider = document.getElementById('wallartRandomness');
-        
+
         if (wallartModeCheckbox) {
             wallartModeCheckbox.addEventListener('change', () => {
                 const isWallartMode = wallartModeCheckbox.checked;
-                
+
                 // Show/hide wallart settings
                 if (wallartSettingsGroup) {
                     wallartSettingsGroup.style.display = isWallartMode ? 'block' : 'none';
@@ -5083,21 +5259,21 @@ function setupCacheConfigEventListeners() {
                         wallartSettingsGroup.classList.add('hidden');
                     }
                 }
-                
+
                 // Show/hide cinema mode and visual elements when wallart mode is active
                 toggleWallartModeSettings(isWallartMode);
-                
+
                 console.log('Wallart mode toggled:', isWallartMode ? 'enabled' : 'disabled');
             });
         }
-        
+
         // Setup randomness slider
         if (randomnessSlider) {
             randomnessSlider.addEventListener('input', () => {
                 updateRandomnessLabel(randomnessSlider.value);
             });
         }
-        
+
         // Setup refresh rate slider
         const refreshRateSlider = document.getElementById('wallartRefreshRate');
         if (refreshRateSlider) {
@@ -5111,21 +5287,21 @@ function setupCacheConfigEventListeners() {
         // Hide Cinema Mode section when wallart mode is active
         const cinemaModeHeader = document.getElementById('cinemaModeHeader');
         const cinemaModeContent = document.getElementById('cinemaModeContent');
-        
+
         if (cinemaModeHeader && cinemaModeContent) {
             cinemaModeHeader.style.display = isWallartMode ? 'none' : 'block';
             cinemaModeContent.style.display = isWallartMode ? 'none' : 'block';
         }
-        
+
         // Hide Visual Elements section when wallart mode is active
         const visualElementsHeader = document.getElementById('visualElementsHeader');
         const visualElementsContent = document.getElementById('visualElementsContent');
-        
+
         if (visualElementsHeader && visualElementsContent) {
             visualElementsHeader.style.display = isWallartMode ? 'none' : 'block';
             visualElementsContent.style.display = isWallartMode ? 'none' : 'block';
         }
-        
+
         // If wallart mode is enabled, disable cinema mode
         if (isWallartMode) {
             const cinemaModeCheckbox = document.getElementById('cinemaMode');
@@ -5140,18 +5316,22 @@ function setupCacheConfigEventListeners() {
     function toggleCinemaModeSettings(isCinemaMode) {
         // Preserve user preference for Ken Burns effect when toggling cinema mode
         const transitionEffectSelect = document.getElementById('transitionEffect');
-        if (!isCinemaMode && transitionEffectSelect && transitionEffectSelect.value === 'kenburns') {
+        if (
+            !isCinemaMode &&
+            transitionEffectSelect &&
+            transitionEffectSelect.value === 'kenburns'
+        ) {
             window.__wantedKenBurnsBeforeCinema = true;
         }
         // Elements to hide in cinema mode (these are not applicable)
         const elementsToHide = [
             'showClearLogo',
-            'showRottenTomatoes', 
+            'showRottenTomatoes',
             'rottenTomatoesMinimumScore',
             'showPoster',
-            'showMetadata'
+            'showMetadata',
         ];
-        
+
         // Hide/show individual form groups
         elementsToHide.forEach(elementId => {
             const element = document.getElementById(elementId);
@@ -5162,7 +5342,7 @@ function setupCacheConfigEventListeners() {
                 }
             }
         });
-        
+
         // Handle Ken Burns option with restoration after exiting cinema mode
         if (transitionEffectSelect) {
             const kenBurnsOption = transitionEffectSelect.querySelector('option[value="kenburns"]');
@@ -5183,7 +5363,7 @@ function setupCacheConfigEventListeners() {
                 }
             }
         }
-        
+
         // Hide entire UI Scaling section in cinema mode
         const uiScalingSections = document.querySelectorAll('.form-section h3');
         let uiScalingSection = null;
@@ -5198,7 +5378,7 @@ function setupCacheConfigEventListeners() {
                 scalingSection.style.display = isCinemaMode ? 'none' : 'block';
             }
         }
-        
+
         // Add visual indication for cinema mode
         const displaySettingsHeaders = document.querySelectorAll('h2');
         let displaySettingsHeader = null;
@@ -5207,10 +5387,11 @@ function setupCacheConfigEventListeners() {
                 displaySettingsHeader = header;
             }
         });
-        
+
         if (displaySettingsHeader) {
-            const existingIndicator = displaySettingsHeader.parentNode.querySelector('.cinema-mode-subtitle');
-            
+            const existingIndicator =
+                displaySettingsHeader.parentNode.querySelector('.cinema-mode-subtitle');
+
             if (isCinemaMode) {
                 if (!existingIndicator) {
                     // Create subtitle element
@@ -5227,9 +5408,12 @@ function setupCacheConfigEventListeners() {
                         letter-spacing: 0.5px;
                         opacity: 0.9;
                     `;
-                    
+
                     // Insert after the h2 header
-                    displaySettingsHeader.parentNode.insertBefore(subtitle, displaySettingsHeader.nextSibling);
+                    displaySettingsHeader.parentNode.insertBefore(
+                        subtitle,
+                        displaySettingsHeader.nextSibling
+                    );
                 }
             } else {
                 if (existingIndicator) {
@@ -5241,13 +5425,23 @@ function setupCacheConfigEventListeners() {
 
     function updateFirstVisibleSubsectionSpacing() {
         // Only target Wallart Mode and Cinema Mode subsection headers specifically
-        const wallartHeader = document.querySelector('.subsection-header:has(+ .subsection-content [id="wallartModeEnabled"])') ||
-                              document.querySelector('[id="wallartModeHeader"]') ||
-                              Array.from(document.querySelectorAll('.subsection-header')).find(h => h.textContent.includes('Wallart Mode'));
-                              
-        const cinemaHeader = document.querySelector('.subsection-header:has(+ .subsection-content [id="cinemaMode"])') ||
-                            document.querySelector('[id="cinemaModeHeader"]') ||
-                            Array.from(document.querySelectorAll('.subsection-header')).find(h => h.textContent.includes('Cinema Mode'));
+        const wallartHeader =
+            document.querySelector(
+                '.subsection-header:has(+ .subsection-content [id="wallartModeEnabled"])'
+            ) ||
+            document.querySelector('[id="wallartModeHeader"]') ||
+            Array.from(document.querySelectorAll('.subsection-header')).find(h =>
+                h.textContent.includes('Wallart Mode')
+            );
+
+        const cinemaHeader =
+            document.querySelector(
+                '.subsection-header:has(+ .subsection-content [id="cinemaMode"])'
+            ) ||
+            document.querySelector('[id="cinemaModeHeader"]') ||
+            Array.from(document.querySelectorAll('.subsection-header')).find(h =>
+                h.textContent.includes('Cinema Mode')
+            );
 
         // Reset both headers first
         [wallartHeader, cinemaHeader].forEach(header => {
@@ -5262,8 +5456,9 @@ function setupCacheConfigEventListeners() {
         const visibleHeaders = headers.filter(header => {
             const displayStyle = header.style.display;
             const computedStyle = window.getComputedStyle(header);
-            const isVisible = (displayStyle !== 'none' && computedStyle.display !== 'none') || 
-                             displayStyle === 'block';
+            const isVisible =
+                (displayStyle !== 'none' && computedStyle.display !== 'none') ||
+                displayStyle === 'block';
             return isVisible;
         });
 
@@ -5277,11 +5472,11 @@ function setupCacheConfigEventListeners() {
     function toggleEffectPauseTime() {
         const transitionEffectSelect = document.getElementById('transitionEffect');
         const effectPauseTimeElement = document.getElementById('effectPauseTime');
-        
+
         if (transitionEffectSelect && effectPauseTimeElement) {
             const isKenBurns = transitionEffectSelect.value === 'kenburns';
             const formGroup = effectPauseTimeElement.closest('.form-group');
-            
+
             if (formGroup) {
                 formGroup.style.display = isKenBurns ? 'none' : 'block';
             }
@@ -5291,7 +5486,7 @@ function setupCacheConfigEventListeners() {
     // applyScalingToPreview removed (no preview UI)
 
     // Save configuration without showing notifications and clear cache
-    async function saveConfigurationSilently() {
+    window.saveConfigurationSilently = async function saveConfigurationSilently() {
         // Coordinated auto-save to avoid race with manual save
         window.__saveCoordinator = window.__saveCoordinator || {
             manualInProgress: false,
@@ -5299,7 +5494,7 @@ function setupCacheConfigEventListeners() {
             pending: false,
             lastManualAt: 0,
             lastAutoAt: 0,
-            lastRequestAt: 0
+            lastRequestAt: 0,
         };
         const state = window.__saveCoordinator;
 
@@ -5324,7 +5519,7 @@ function setupCacheConfigEventListeners() {
         state.autoInProgress = true;
         state.pending = false;
         state.lastRequestAt = now;
-        
+
         try {
             // Fetch latest to merge safely
             const currentConfigResponse = await fetch('/api/admin/config');
@@ -5337,16 +5532,30 @@ function setupCacheConfigEventListeners() {
             const envData = { ...currentData.env };
 
             const displayInputs = [
-                'showClearLogo','showRottenTomatoes','rottenTomatoesMinimumScore','showPoster','showMetadata','clockWidget','clockTimezone','clockFormat'
+                'showClearLogo',
+                'showRottenTomatoes',
+                'rottenTomatoesMinimumScore',
+                'showPoster',
+                'showMetadata',
+                'clockWidget',
+                'clockTimezone',
+                'clockFormat',
             ];
-            const uiScalingInputs = ['uiScaling.content','uiScaling.clearlogo','uiScaling.clock','uiScaling.global'];
+            const uiScalingInputs = [
+                'uiScaling.content',
+                'uiScaling.clearlogo',
+                'uiScaling.clock',
+                'uiScaling.global',
+            ];
             const updates = {};
 
             displayInputs.forEach(fieldName => {
                 const input = document.querySelector(`[name="${fieldName}"]`);
                 if (!input) return;
                 let newValue;
-                if (input.type === 'checkbox') newValue = input.checked; else if (input.type === 'number') newValue = parseFloat(input.value) || 0; else newValue = input.value;
+                if (input.type === 'checkbox') newValue = input.checked;
+                else if (input.type === 'number') newValue = parseFloat(input.value) || 0;
+                else newValue = input.value;
                 if (configData[fieldName] !== newValue) {
                     configData[fieldName] = newValue;
                     updates[fieldName] = newValue;
@@ -5374,7 +5583,7 @@ function setupCacheConfigEventListeners() {
             const resp = await fetch('/api/admin/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ config: configData, env: envData })
+                body: JSON.stringify({ config: configData, env: envData }),
             });
             if (resp.ok) {
                 state.lastAutoAt = Date.now();
@@ -5393,7 +5602,7 @@ function setupCacheConfigEventListeners() {
                 queueMicrotask(() => requestAnimationFrame(() => saveConfigurationSilently()));
             }
         }
-    }
+    };
 
     // Debounce function to prevent too many updates
     function debounce(func, wait) {
@@ -5408,11 +5617,6 @@ function setupCacheConfigEventListeners() {
         };
     }
 
-    function triggerConfigChanged() {
-        // Dispatch custom event when config is saved
-        document.dispatchEvent(new CustomEvent('configChanged'));
-    }
-
     // (Preview initialization removed)
 
     function setupUIScalingPresets() {
@@ -5423,22 +5627,22 @@ function setupCacheConfigEventListeners() {
                 content: 150,
                 clearlogo: 140,
                 clock: 140,
-                global: 100
+                global: 100,
             },
             'full-hd': {
                 name: 'Full HD',
                 content: 100,
                 clearlogo: 100,
                 clock: 100,
-                global: 100
+                global: 100,
             },
-            'ultrawide': {
+            ultrawide: {
                 name: 'Ultrawide',
                 content: 115,
                 clearlogo: 120,
                 clock: 110,
-                global: 100
-            }
+                global: 100,
+            },
         };
 
         // Setup click handlers for preset buttons
@@ -5447,7 +5651,7 @@ function setupCacheConfigEventListeners() {
             button.addEventListener('click', async () => {
                 const presetKey = button.dataset.preset;
                 const preset = presets[presetKey];
-                
+
                 if (!preset) return;
 
                 // Visual feedback
@@ -5461,15 +5665,15 @@ function setupCacheConfigEventListeners() {
                         'uiScaling.content': preset.content || 100,
                         'uiScaling.clearlogo': preset.clearlogo,
                         'uiScaling.clock': preset.clock,
-                        'uiScaling.global': preset.global
+                        'uiScaling.global': preset.global,
                     };
-                    
+
                     Object.keys(preset).forEach(field => {
                         if (field === 'name') return;
-                        
+
                         const slider = document.getElementById(`uiScaling.${field}`);
                         const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
-                        
+
                         if (slider && valueDisplay) {
                             slider.value = preset[field];
                             valueDisplay.textContent = `${preset[field]}%`;
@@ -5481,12 +5685,12 @@ function setupCacheConfigEventListeners() {
                     await fetch('/api/config', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(configUpdate)
+                        body: JSON.stringify(configUpdate),
                     });
-                    
+
                     // Show success notification
                     showNotification(`Applied ${preset.name} preset`, 'success');
-                    
+
                     console.log(`Applied ${preset.name} preset:`, preset);
                 } catch (error) {
                     console.error('Failed to apply preset:', error);
@@ -5516,7 +5720,6 @@ function setupCacheConfigEventListeners() {
             valueDisplay.textContent = input.value + '%';
         }
     });
-
 });
 
 // UI Scaling Template Functions
@@ -5527,22 +5730,22 @@ function applyScalingTemplate(template) {
             text: 100,
             clearlogo: 100,
             clock: 100,
-            global: 100
+            global: 100,
         },
         '4k': {
             poster: 150,
             text: 130,
             clearlogo: 140,
             clock: 120,
-            global: 130
+            global: 130,
         },
         widescreen: {
             poster: 120,
             text: 110,
             clearlogo: 125,
             clock: 110,
-            global: 115
-        }
+            global: 115,
+        },
     };
 
     const values = templates[template];
@@ -5550,7 +5753,7 @@ function applyScalingTemplate(template) {
         Object.keys(values).forEach(key => {
             const input = document.getElementById(`uiScaling.${key}`);
             const valueDisplay = document.querySelector(`[data-target="uiScaling.${key}"]`);
-            
+
             if (input && valueDisplay) {
                 input.value = values[key];
                 valueDisplay.textContent = values[key] + '%';
@@ -5568,16 +5771,16 @@ function resetScalingToDefaults() {
 function incrementValue(inputId) {
     const input = document.getElementById(inputId);
     if (!input) return;
-    
+
     const currentValue = parseInt(input.value) || 0;
     const step = parseInt(input.step) || 1;
     const max = parseInt(input.max);
-    
+
     let newValue = currentValue + step;
     if (max && newValue > max) {
         newValue = max;
     }
-    
+
     input.value = newValue;
     input.dispatchEvent(new Event('input', { bubbles: true }));
 }
@@ -5585,16 +5788,16 @@ function incrementValue(inputId) {
 function decrementValue(inputId) {
     const input = document.getElementById(inputId);
     if (!input) return;
-    
+
     const currentValue = parseInt(input.value) || 0;
     const step = parseInt(input.step) || 1;
     const min = parseInt(input.min);
-    
+
     let newValue = currentValue - step;
     if (min !== undefined && newValue < min) {
         newValue = min;
     }
-    
+
     input.value = newValue;
     input.dispatchEvent(new Event('input', { bubbles: true }));
 }
@@ -5606,27 +5809,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // Number input increment/decrement buttons
     const incrementButtons = document.querySelectorAll('[id^="increment-"]');
     const decrementButtons = document.querySelectorAll('[id^="decrement-"]');
-    
+
     incrementButtons.forEach(button => {
         button.addEventListener('click', () => {
             const fieldName = button.id.replace('increment-', '');
             incrementValue(fieldName);
         });
     });
-    
+
     decrementButtons.forEach(button => {
         button.addEventListener('click', () => {
             const fieldName = button.id.replace('decrement-', '');
             decrementValue(fieldName);
         });
     });
-    
+
     // Scaling template buttons
     const fullhdTemplateBtn = document.getElementById('apply-fullhd-template');
     const fourKTemplateBtn = document.getElementById('apply-4k-template');
     const widescreenTemplateBtn = document.getElementById('apply-widescreen-template');
     const resetScalingBtn = document.getElementById('reset-scaling-defaults');
-    
+
     if (fullhdTemplateBtn) {
         fullhdTemplateBtn.addEventListener('click', () => applyScalingTemplate('fullhd'));
     }
@@ -5639,74 +5842,54 @@ document.addEventListener('DOMContentLoaded', () => {
     if (resetScalingBtn) {
         resetScalingBtn.addEventListener('click', () => resetScalingToDefaults());
     }
-    
+
     // Simple help panel - no complex event listeners needed
     // Button has onclick="toggleHelpPanel()" in HTML
 });
-
-// Function to scroll to a specific subsection
-function scrollToSubsection(subsectionId) {
-    const element = document.getElementById(subsectionId);
-    if (element) {
-        // Close help panel first
-        const helpPanel = document.getElementById('quick-help-panel');
-        if (helpPanel && helpPanel.classList.contains('open')) {
-            helpPanel.classList.remove('open');
-        }
-        
-        // Scroll to the subsection with smooth behavior
-        element.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start',
-            inline: 'nearest'
-        });
-        
-        // Add a subtle highlight effect
-        element.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
-        element.style.transition = 'background-color 0.3s ease';
-        setTimeout(() => {
-            element.style.backgroundColor = '';
-        }, 2000);
-    }
-}
 
 // TVDB Connection Test
 async function testTVDBConnection() {
     const testButton = document.getElementById('test-tvdb-connection');
     const statusElement = document.getElementById('tvdb-connection-status');
-    
+
     if (!testButton || !statusElement) return;
-    
+
     // Disable button and show loading state
     testButton.disabled = true;
     testButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
     statusElement.textContent = 'Testing TVDB connection...';
     statusElement.style.color = '#ffd93d';
-    
+
     try {
         const response = await fetch('/api/admin/test-tvdb', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             statusElement.textContent = `✅ Connection successful! Found ${result.sampleData?.length || 0} sample items.`;
             statusElement.style.color = '#51cf66';
-            
+
             // Automatically load TVDB genres after successful connection
             try {
                 await window.loadTVDBGenres();
                 showNotification('TVDB connection successful and genres loaded', 'success');
             } catch (genreError) {
                 console.warn('Failed to load TVDB genres:', genreError);
-                showNotification('TVDB connection successful, but genres could not be loaded', 'error');
+                showNotification(
+                    'TVDB connection successful, but genres could not be loaded',
+                    'error'
+                );
             }
         } else {
-            showNotification(`TVDB connection failed: ${result.error || 'Connection test failed'}`, 'error');
+            showNotification(
+                `TVDB connection failed: ${result.error || 'Connection test failed'}`,
+                'error'
+            );
             return; // Don't show success status, just the toast
         }
     } catch (error) {
@@ -5735,11 +5918,11 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
-    
+
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
@@ -5751,10 +5934,13 @@ async function loadCacheStats() {
         await refreshCacheStats();
     } catch (error) {
         console.error('Error loading cache stats:', error);
-        updateCacheStatsDisplay({ 
-            diskUsage: { total: 0 }, 
-            itemCount: { total: 0 } 
-        }, true);
+        updateCacheStatsDisplay(
+            {
+                diskUsage: { total: 0 },
+                itemCount: { total: 0 },
+            },
+            true
+        );
     }
 }
 
@@ -5764,22 +5950,24 @@ async function loadCacheStats() {
 async function refreshCacheStats() {
     try {
         const response = await authenticatedFetch(apiUrlWithCacheBust('/api/admin/cache-stats'), {
-            method: 'GET'
+            method: 'GET',
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         updateCacheStatsDisplay(data);
-        
     } catch (error) {
         console.error('Error refreshing cache stats:', error);
-        updateCacheStatsDisplay({ 
-            diskUsage: { total: 0 }, 
-            itemCount: { total: 0 } 
-        }, true);
+        updateCacheStatsDisplay(
+            {
+                diskUsage: { total: 0 },
+                itemCount: { total: 0 },
+            },
+            true
+        );
     }
 }
 
@@ -5789,7 +5977,7 @@ async function refreshCacheStats() {
 function updateCacheStatsDisplay(data, isError = false) {
     const diskUsageElement = document.getElementById('cache-disk-usage');
     const itemCountElement = document.getElementById('cache-item-count');
-    
+
     if (!diskUsageElement || !itemCountElement) {
         // Retry after a delay in case DOM isn't ready
         setTimeout(() => {
@@ -5801,33 +5989,34 @@ function updateCacheStatsDisplay(data, isError = false) {
         }, 1000);
         return;
     }
-    
+
     if (isError) {
         diskUsageElement.innerHTML = '<span class="error">Error loading</span>';
         itemCountElement.innerHTML = '<span class="error">Error loading</span>';
         return;
     }
-    
+
     // Update disk usage with combined format: "1.2 GB / 5.0 GB (24%)"
     const totalSize = data.diskUsage?.total || 0;
     const imageCacheSize = data.diskUsage?.imageCache || 0;
     const logSize = data.diskUsage?.logFiles || 0;
-    
+
     // Use hardcoded max cache size (5GB)
     const maxSizeGB = 5;
     const maxSizeBytes = maxSizeGB * 1024 * 1024 * 1024; // Convert GB to bytes
-    
+
     // Calculate usage percentage
-    const usagePercentage = maxSizeBytes > 0 ? Math.round((imageCacheSize / maxSizeBytes) * 100) : 0;
-    
+    const usagePercentage =
+        maxSizeBytes > 0 ? Math.round((imageCacheSize / maxSizeBytes) * 100) : 0;
+
     diskUsageElement.innerHTML = `
         <div>${formatBytes(imageCacheSize)} / ${formatBytes(maxSizeBytes)} (${usagePercentage}%)</div>
         <div class="size-bytes">Logs: ${formatBytes(logSize)} | Total: ${formatBytes(totalSize)}</div>
     `;
-    
+
     // Update item count (Memory cache items)
     const totalItems = data.itemCount?.total || 0;
-    
+
     itemCountElement.innerHTML = `
         <div>${totalItems.toLocaleString()}</div>
         <div class="size-bytes">Active in RAM</div>
@@ -5843,30 +6032,21 @@ async function loadCacheConfig() {
     // Configuration is now hardcoded in the backend
 }
 
-/**
- * Cache configuration save function - no longer needed since fields are removed
- */
-async function saveCacheConfig() {
-    console.log('[Cache Config] Save attempted - cache configuration fields have been removed');
-    
-    if (typeof showNotification === 'function') {
-        showNotification('Cache is automatically managed with optimal settings (5GB max, 500MB min free)', 'info');
-    }
-}
-
 // ===================================
 // Global Test Functions for Debugging
 // ===================================
-// Management Section Observer  
+// Management Section Observer
 // ===================================
 
 // Watch for management section becoming visible
-const managementObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
+const managementObserver = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
         if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
             const managementSection = document.getElementById('management-section');
             if (managementSection && managementSection.style.display !== 'none') {
-                console.log('Management section is now visible, loading cache stats and update status...');
+                console.log(
+                    'Management section is now visible, loading cache stats and update status...'
+                );
                 loadCacheStats();
                 loadUpdateStatus();
             }
@@ -5880,12 +6060,17 @@ setTimeout(() => {
     if (managementSection) {
         managementObserver.observe(managementSection, {
             attributes: true,
-            attributeFilter: ['style', 'class']
+            attributeFilter: ['style', 'class'],
         });
-        
+
         // Check if management section is already visible
-        if (managementSection.style.display !== 'none' && managementSection.classList.contains('active')) {
-            console.log('Management section is already visible, loading cache stats and update status...');
+        if (
+            managementSection.style.display !== 'none' &&
+            managementSection.classList.contains('active')
+        ) {
+            console.log(
+                'Management section is already visible, loading cache stats and update status...'
+            );
             loadCacheStats();
             loadUpdateStatus();
         }
@@ -5902,7 +6087,7 @@ setTimeout(() => {
 function hideAllStatusDisplays() {
     // Stop any running auto-refresh when switching displays
     stopAutoRefresh();
-    
+
     const displays = ['status-display', 'update-display', 'performance-display'];
     displays.forEach(id => {
         const element = document.getElementById(id);
@@ -5917,30 +6102,30 @@ function hideAllStatusDisplays() {
  */
 async function performStatusCheck() {
     hideAllStatusDisplays(); // Hide other displays first
-    
+
     const statusDisplay = document.getElementById('status-display');
     const statusContent = document.getElementById('status-content');
-    
+
     if (!statusDisplay || !statusContent) return;
-    
+
     statusDisplay.style.display = 'block';
     statusContent.innerHTML = '<div class="loading">Checking system status...</div>';
-    
+
     try {
         const response = await fetch('/api/admin/status', {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         displayStatusResults(data);
-        
+
         // Start auto-refresh for status check
         startAutoRefresh('status', 30); // Refresh every 30 seconds
     } catch (error) {
@@ -5955,19 +6140,46 @@ async function performStatusCheck() {
 function displayStatusResults(data) {
     const statusContent = document.getElementById('status-content');
     if (!statusContent) return;
-    
+
     const statusItems = [
-        { label: 'Application', value: data.app?.status || 'Unknown', icon: 'fas fa-cog', status: data.app?.status === 'running' ? 'success' : 'error' },
-        { label: 'Database', value: data.database?.status || 'Unknown', icon: 'fas fa-database', status: data.database?.status === 'connected' ? 'success' : 'error' },
-        { label: 'Cache', value: data.cache?.status || 'Unknown', icon: 'fas fa-memory', status: data.cache?.status === 'active' ? 'success' : 'warning' },
-        { label: 'Disk Space', value: data.disk?.available || 'Unknown', icon: 'fas fa-hdd', status: data.disk?.status || 'info' },
-        { label: 'Memory Usage', value: data.memory?.usage || 'Unknown', icon: 'fas fa-microchip', status: data.memory?.status || 'info' },
-        { label: 'Uptime', value: data.uptime || 'Unknown', icon: 'fas fa-clock', status: 'info' }
+        {
+            label: 'Application',
+            value: data.app?.status || 'Unknown',
+            icon: 'fas fa-cog',
+            status: data.app?.status === 'running' ? 'success' : 'error',
+        },
+        {
+            label: 'Database',
+            value: data.database?.status || 'Unknown',
+            icon: 'fas fa-database',
+            status: data.database?.status === 'connected' ? 'success' : 'error',
+        },
+        {
+            label: 'Cache',
+            value: data.cache?.status || 'Unknown',
+            icon: 'fas fa-memory',
+            status: data.cache?.status === 'active' ? 'success' : 'warning',
+        },
+        {
+            label: 'Disk Space',
+            value: data.disk?.available || 'Unknown',
+            icon: 'fas fa-hdd',
+            status: data.disk?.status || 'info',
+        },
+        {
+            label: 'Memory Usage',
+            value: data.memory?.usage || 'Unknown',
+            icon: 'fas fa-microchip',
+            status: data.memory?.status || 'info',
+        },
+        { label: 'Uptime', value: data.uptime || 'Unknown', icon: 'fas fa-clock', status: 'info' },
     ];
-    
+
     statusContent.innerHTML = `
         <div class="status-grid">
-            ${statusItems.map(item => `
+            ${statusItems
+                .map(
+                    item => `
                 <div class="status-item">
                     <div class="status-item-header">
                         <i class="${item.icon}"></i>
@@ -5977,135 +6189,10 @@ function displayStatusResults(data) {
                         ${item.value}
                     </div>
                 </div>
-            `).join('')}
+            `
+                )
+                .join('')}
         </div>
-    `;
-}
-
-/**
- * Check for application updates
- */
-async function performUpdateCheck() {
-    hideAllStatusDisplays(); // Hide other displays first
-    
-    const updateDisplay = document.getElementById('update-display');
-    const updateContent = document.getElementById('update-content');
-    
-    if (!updateDisplay || !updateContent) return;
-    
-    updateDisplay.style.display = 'block';
-    updateContent.innerHTML = '<div class="loading">Checking for updates...</div>';
-    
-    try {
-        const response = await fetch('/api/admin/update-check', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        displayUpdateResults(data);
-    } catch (error) {
-        console.error('Update check failed:', error);
-        updateContent.innerHTML = `<div class="status-error">Failed to check for updates: ${error.message}</div>`;
-    }
-}
-
-/**
- * Display update check results
- */
-function displayUpdateResults(data) {
-    const updateContent = document.getElementById('update-content');
-    if (!updateContent) return;
-    
-    const currentVersion = data.currentVersion || 'Unknown';
-    const latestVersion = data.latestVersion || 'Unknown';
-    const hasUpdate = data.hasUpdate || data.updateAvailable || false; // Support both old and new format
-    const updateType = data.updateType || null;
-    const releaseUrl = data.releaseUrl || null;
-    const publishedAt = data.publishedAt || null;
-    const releaseName = data.releaseName || null;
-    const releaseNotes = data.releaseNotes || null;
-    
-    // Format published date
-    let publishedText = '';
-    if (publishedAt) {
-        try {
-            const date = new Date(publishedAt);
-            publishedText = date.toLocaleDateString();
-        } catch (e) {
-            publishedText = publishedAt;
-        }
-    }
-    
-    updateContent.innerHTML = `
-        <div class="status-grid">
-            <div class="status-item">
-                <div class="status-item-header">
-                    <i class="fas fa-tag"></i>
-                    Installed Version
-                </div>
-                <div class="status-item-value status-info">
-                    ${currentVersion}
-                </div>
-            </div>
-            <div class="status-item">
-                <div class="status-item-header">
-                    <i class="fab fa-github"></i>
-                    Latest Release
-                </div>
-                <div class="status-item-value status-info">
-                    ${latestVersion}${publishedText ? ` (${publishedText})` : ''}
-                </div>
-            </div>
-            <div class="status-item">
-                <div class="status-item-header">
-                    <i class="fas fa-exclamation-circle"></i>
-                    Update Status
-                </div>
-                <div class="status-item-value ${hasUpdate ? 'status-warning' : 'status-success'}">
-                    ${hasUpdate ? `Update Available${updateType ? ` (${updateType})` : ''}` : 'Up to Date'}
-                </div>
-            </div>
-        </div>
-        ${hasUpdate ? `
-            <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 152, 0, 0.1); border: 1px solid rgba(255, 152, 0, 0.3); border-radius: 6px;">
-                <div style="margin-bottom: 1rem;">
-                    <h4 style="margin: 0 0 0.5rem 0; color: #ff9800;">
-                        <i class="fas fa-download"></i> 
-                        ${releaseName || `Version ${latestVersion}`} Available
-                    </h4>
-                    ${releaseNotes ? `
-                        <div style="margin: 0.5rem 0; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 0.85rem; color: #ccc; white-space: pre-wrap; max-height: 150px; overflow-y: auto;">
-                            ${releaseNotes.substring(0, 500)}${releaseNotes.length > 500 ? '...' : ''}
-                        </div>
-                    ` : ''}
-                </div>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    ${releaseUrl ? `
-                        <a href="${releaseUrl}" target="_blank" class="btn btn-primary" style="flex: 1; min-width: 120px; text-align: center;">
-                            <i class="fab fa-github"></i> View Release
-                        </a>
-                    ` : ''}
-                    <a href="https://github.com/Posterrama/posterrama/releases/latest" target="_blank" class="btn btn-secondary" style="flex: 1; min-width: 120px; text-align: center;">
-                        <i class="fas fa-download"></i> Download
-                    </a>
-                </div>
-            </div>
-        ` : ''}
-        ${data.error ? `
-            <div style="margin-top: 1rem; padding: 1rem; background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.3); border-radius: 6px;">
-                <p style="margin: 0; color: #f44336;">
-                    <i class="fas fa-exclamation-triangle"></i> 
-                    ${data.error}
-                </p>
-            </div>
-        ` : ''}
     `;
 }
 
@@ -6114,30 +6201,30 @@ function displayUpdateResults(data) {
  */
 async function loadPerformanceMonitor() {
     hideAllStatusDisplays(); // Hide other displays first
-    
+
     const performanceDisplay = document.getElementById('performance-display');
     const performanceContent = document.getElementById('performance-content');
-    
+
     if (!performanceDisplay || !performanceContent) return;
-    
+
     performanceDisplay.style.display = 'block';
     performanceContent.innerHTML = '<div class="loading">Loading performance data...</div>';
-    
+
     try {
         const response = await fetch('/api/admin/performance', {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         displayPerformanceResults(data);
-        
+
         // Start auto-refresh for performance monitor
         startAutoRefresh('performance', 5); // Refresh every 5 seconds
     } catch (error) {
@@ -6152,11 +6239,11 @@ async function loadPerformanceMonitor() {
 function displayPerformanceResults(data) {
     const performanceContent = document.getElementById('performance-content');
     if (!performanceContent) return;
-    
+
     const cpu = data.cpu || {};
     const memory = data.memory || {};
     const disk = data.disk || {};
-    
+
     performanceContent.innerHTML = `
         <div class="performance-metric">
             <div class="metric-label">
@@ -6240,14 +6327,14 @@ let currentAutoRefreshType = null;
 function startAutoRefresh(type, intervalSeconds = 5) {
     // Stop any existing auto-refresh
     stopAutoRefresh();
-    
+
     currentAutoRefreshType = type;
-    
+
     autoRefreshInterval = setInterval(() => {
         const display = document.getElementById(`${type}-display`);
         if (display && display.style.display === 'block') {
             console.log(`Auto-refreshing ${type} data...`);
-            
+
             switch (type) {
                 case 'performance':
                     loadPerformanceMonitorSilent();
@@ -6261,7 +6348,7 @@ function startAutoRefresh(type, intervalSeconds = 5) {
             stopAutoRefresh();
         }
     }, intervalSeconds * 1000);
-    
+
     console.log(`Started auto-refresh for ${type} every ${intervalSeconds} seconds`);
 }
 
@@ -6285,14 +6372,14 @@ async function loadPerformanceMonitorSilent() {
         const response = await fetch('/api/admin/performance', {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         displayPerformanceResults(data);
     } catch (error) {
@@ -6309,14 +6396,14 @@ async function performStatusCheckSilent() {
         const response = await fetch('/api/admin/status', {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         displayStatusResults(data);
     } catch (error) {
@@ -6357,7 +6444,7 @@ function showNotification(message, type = 'success') {
         notification.classList.remove('show');
         notification.addEventListener('transitionend', () => notification.remove());
     }, timeout);
-    
+
     // Return the notification element so it can be managed externally
     return notification;
 }
@@ -6365,21 +6452,21 @@ function showNotification(message, type = 'success') {
 // Restart Button Management
 function showRestartButton() {
     const restartBtn = document.getElementById('restart-now-btn');
-    
+
     if (restartBtn) {
         // Force show the button by removing all hiding styles
         restartBtn.removeAttribute('style');
         restartBtn.removeAttribute('hidden');
         restartBtn.classList.remove('hidden');
-        
+
         // Add specific show styles
         restartBtn.style.setProperty('display', 'inline-flex', 'important');
         restartBtn.style.setProperty('visibility', 'visible', 'important');
         restartBtn.style.setProperty('opacity', '1', 'important');
-        
+
         // Store in sessionStorage so button persists across page navigation
         sessionStorage.setItem('restartButtonVisible', 'true');
-        
+
         // Force a reflow to ensure changes are applied
         restartBtn.offsetHeight;
     } else {
@@ -6389,7 +6476,7 @@ function showRestartButton() {
 
 function hideRestartButton() {
     const restartBtn = document.getElementById('restart-now-btn');
-    
+
     if (restartBtn) {
         // Force hide with multiple methods to override any CSS
         restartBtn.style.setProperty('display', 'none', 'important');
@@ -6397,10 +6484,10 @@ function hideRestartButton() {
         restartBtn.style.setProperty('opacity', '0', 'important');
         restartBtn.setAttribute('hidden', 'true');
         restartBtn.classList.add('hidden');
-        
+
         // Remove from sessionStorage
         sessionStorage.removeItem('restartButtonVisible');
-        
+
         // Force a reflow to ensure changes are applied
         restartBtn.offsetHeight;
     } else {
@@ -6411,45 +6498,54 @@ function hideRestartButton() {
 function performRestart() {
     const restartBtn = document.getElementById('restart-now-btn');
     const originalText = restartBtn.innerHTML;
-    
+
     // Show loading state
     restartBtn.disabled = true;
-    restartBtn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Restarting...';
-    
+    restartBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Restarting...';
+
     // Trigger restart
-    fetch('/api/admin/restart-app', { 
+    fetch('/api/admin/restart-app', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-    }).then(() => {
-        hideRestartButton();
-        sessionStorage.removeItem('restartButtonVisible'); // Verwijder flag zodat knop niet terugkomt na reload
-        
-        // Show notification and auto-refresh
-        if (typeof showNotification === 'function') {
-            showNotification('Server is restarting... Please refresh the page in a few seconds.', 'success');
-        }
-        
-        // Auto-refresh na 3 seconden
-        setTimeout(() => {
-            window.location.reload();
-        }, 3000);
-    }).catch(error => {
-        console.error('Restart failed:', error);
-        if (typeof showNotification === 'function') {
-            showNotification('Could not restart server automatically. Please restart manually if needed.', 'error');
-        }
-        // Restore button state
-        restartBtn.disabled = false;
-        restartBtn.innerHTML = originalText;
-    });
+        headers: { 'Content-Type': 'application/json' },
+    })
+        .then(() => {
+            hideRestartButton();
+            sessionStorage.removeItem('restartButtonVisible'); // Verwijder flag zodat knop niet terugkomt na reload
+
+            // Show notification and auto-refresh
+            if (typeof showNotification === 'function') {
+                showNotification(
+                    'Server is restarting... Please refresh the page in a few seconds.',
+                    'success'
+                );
+            }
+
+            // Auto-refresh na 3 seconden
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        })
+        .catch(error => {
+            console.error('Restart failed:', error);
+            if (typeof showNotification === 'function') {
+                showNotification(
+                    'Could not restart server automatically. Please restart manually if needed.',
+                    'error'
+                );
+            }
+            // Restore button state
+            restartBtn.disabled = false;
+            restartBtn.innerHTML = originalText;
+        });
 }
 
 // Initialize restart button functionality
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Check if restart button should be visible (from sessionStorage)
     const shouldShowRestart = sessionStorage.getItem('restartButtonVisible') === 'true';
-    
+
     if (shouldShowRestart) {
         // Show the button because restart is still needed
         showRestartButton();
@@ -6457,210 +6553,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Make sure button is hidden
         hideRestartButton();
     }
-    
+
     // Restart now button handler
     const restartNowBtn = document.getElementById('restart-now-btn');
     if (restartNowBtn) {
         restartNowBtn.addEventListener('click', performRestart);
     }
 });
-
-/**
- * Load GitHub releases data
- */
-async function loadGithubReleases() {
-    hideAllStatusDisplays(); // Hide other displays first
-    
-    const githubReleasesDisplay = document.getElementById('github-releases-display');
-    const githubReleasesContent = document.getElementById('github-releases-content');
-    
-    if (!githubReleasesDisplay || !githubReleasesContent) return;
-    
-    githubReleasesDisplay.style.display = 'block';
-    githubReleasesContent.innerHTML = '<div class="loading">Loading releases...</div>';
-    
-    try {
-        const response = await authenticatedFetch(apiUrl('/api/admin/github/releases?limit=10'));
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const releases = await response.json();
-        displayGithubReleases(releases);
-    } catch (error) {
-        console.error('GitHub releases loading failed:', error);
-        githubReleasesContent.innerHTML = `<div class="status-error">Failed to load releases: ${error.message}</div>`;
-    }
-}
-
-/**
- * Display GitHub releases data
- */
-function displayGithubReleases(releases) {
-    const githubReleasesContent = document.getElementById('github-releases-content');
-    if (!githubReleasesContent) return;
-    
-    if (!releases || releases.length === 0) {
-        githubReleasesContent.innerHTML = '<div class="status-info">No releases found.</div>';
-        return;
-    }
-    
-    const releasesHtml = releases.map(release => {
-        const publishedDate = release.publishedAt ? new Date(release.publishedAt).toLocaleDateString() : 'Unknown';
-        const releaseBody = release.body ? release.body.substring(0, 200) + (release.body.length > 200 ? '...' : '') : '';
-        
-        return `
-            <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <h4 style="margin: 0; color: #fff; font-size: 0.95rem;">
-                        <i class="fas fa-tag" style="color: #667eea; margin-right: 0.5rem;"></i>
-                        ${release.name}
-                    </h4>
-                    <span style="color: #b3b3b3; font-size: 0.8rem;">${publishedDate}</span>
-                </div>
-                ${releaseBody ? `
-                    <p style="margin: 0.5rem 0; color: #ccc; font-size: 0.85rem; line-height: 1.4;">
-                        ${releaseBody}
-                    </p>
-                ` : ''}
-                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                    <a href="${release.url}" target="_blank" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
-                        <i class="fab fa-github"></i> View Release
-                    </a>
-                    ${release.prerelease ? '<span style="color: #ff9800; font-size: 0.8rem;"><i class="fas fa-flask"></i> Pre-release</span>' : ''}
-                    ${release.draft ? '<span style="color: #f44336; font-size: 0.8rem;"><i class="fas fa-edit"></i> Draft</span>' : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    githubReleasesContent.innerHTML = releasesHtml;
-}
-
-/**
- * Load GitHub repository information
- */
-async function loadGithubRepositoryInfo() {
-    hideAllStatusDisplays(); // Hide other displays first
-    
-    const githubRepoDisplay = document.getElementById('github-repo-display');
-    const githubRepoContent = document.getElementById('github-repo-content');
-    
-    if (!githubRepoDisplay || !githubRepoContent) return;
-    
-    githubRepoDisplay.style.display = 'block';
-    githubRepoContent.innerHTML = '<div class="loading">Loading repository information...</div>';
-    
-    try {
-        const response = await authenticatedFetch(apiUrl('/api/admin/github/repository'));
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const repoInfo = await response.json();
-        displayGithubRepositoryInfo(repoInfo);
-    } catch (error) {
-        console.error('GitHub repository info loading failed:', error);
-        githubRepoContent.innerHTML = `<div class="status-error">Failed to load repository info: ${error.message}</div>`;
-    }
-}
-
-/**
- * Display GitHub repository information
- */
-function displayGithubRepositoryInfo(repoInfo) {
-    const githubRepoContent = document.getElementById('github-repo-content');
-    if (!githubRepoContent) return;
-    
-    const updatedDate = repoInfo.updatedAt ? new Date(repoInfo.updatedAt).toLocaleDateString() : 'Unknown';
-    
-    githubRepoContent.innerHTML = `
-        <div class="status-grid">
-            <div class="status-item">
-                <div class="status-item-header">
-                    <i class="fab fa-github"></i>
-                    Repository
-                </div>
-                <div class="status-item-value status-info">
-                    ${repoInfo.fullName || 'Unknown'}
-                </div>
-            </div>
-            <div class="status-item">
-                <div class="status-item-header">
-                    <i class="fas fa-star"></i>
-                    Stars
-                </div>
-                <div class="status-item-value status-success">
-                    ${repoInfo.stars || 0}
-                </div>
-            </div>
-            <div class="status-item">
-                <div class="status-item-header">
-                    <i class="fas fa-code-branch"></i>
-                    Forks
-                </div>
-                <div class="status-item-value status-info">
-                    ${repoInfo.forks || 0}
-                </div>
-            </div>
-            <div class="status-item">
-                <div class="status-item-header">
-                    <i class="fas fa-exclamation-circle"></i>
-                    Open Issues
-                </div>
-                <div class="status-item-value ${(repoInfo.issues || 0) > 10 ? 'status-warning' : 'status-success'}">
-                    ${repoInfo.issues || 0}
-                </div>
-            </div>
-            <div class="status-item">
-                <div class="status-item-header">
-                    <i class="fas fa-code"></i>
-                    Language
-                </div>
-                <div class="status-item-value status-info">
-                    ${repoInfo.language || 'Unknown'}
-                </div>
-            </div>
-            <div class="status-item">
-                <div class="status-item-header">
-                    <i class="fas fa-balance-scale"></i>
-                    License
-                </div>
-                <div class="status-item-value status-info">
-                    ${repoInfo.license || 'Unknown'}
-                </div>
-            </div>
-        </div>
-        ${repoInfo.description ? `
-            <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.95rem;">
-                    <i class="fas fa-info-circle"></i> Description
-                </h4>
-                <p style="margin: 0; color: #ccc; font-size: 0.85rem; line-height: 1.4;">
-                    ${repoInfo.description}
-                </p>
-            </div>
-        ` : ''}
-        <div style="margin-top: 1rem; padding: 1rem; background: rgba(103, 126, 234, 0.1); border: 1px solid rgba(103, 126, 234, 0.3); border-radius: 6px;">
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <a href="${repoInfo.url}" target="_blank" class="btn btn-primary" style="flex: 1; min-width: 120px; text-align: center;">
-                    <i class="fab fa-github"></i> View Repository
-                </a>
-                <a href="${repoInfo.url}/issues" target="_blank" class="btn btn-secondary" style="flex: 1; min-width: 120px; text-align: center;">
-                    <i class="fas fa-bug"></i> Report Issue
-                </a>
-                <a href="${repoInfo.url}/releases" target="_blank" class="btn btn-secondary" style="flex: 1; min-width: 120px; text-align: center;">
-                    <i class="fas fa-tags"></i> All Releases
-                </a>
-            </div>
-            <div style="margin-top: 0.5rem; color: #b3b3b3; font-size: 0.8rem; text-align: center;">
-                Last updated: ${updatedDate}
-            </div>
-        </div>
-    `;
-}
 
 // Update status monitoring
 let updateStatusInterval = null;
@@ -6698,32 +6597,32 @@ function stopUpdateStatusMonitoring() {
 async function updateProgressBar() {
     try {
         const response = await authenticatedFetch(apiUrl('/api/admin/update/status'));
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        
+
         const status = await response.json();
-        
+
         const progressContainer = document.getElementById('update-progress-container');
         const progressLabel = document.getElementById('update-progress-label');
         const progressPercentage = document.getElementById('update-progress-percentage');
         const progressFill = document.getElementById('update-progress-fill');
-        
+
         if (!progressContainer) return;
-        
+
         // Update progress bar
         if (progressLabel) progressLabel.textContent = status.message || 'Update in progress...';
         if (progressPercentage) progressPercentage.textContent = `${status.progress || 0}%`;
         if (progressFill) progressFill.style.width = `${status.progress || 0}%`;
-        
+
         // Apply phase-specific styling
         progressLabel.className = `update-phase-${status.phase || 'idle'}`;
-        
+
         // Stop monitoring if update is complete or failed
         if (status.phase === 'completed' || status.phase === 'error' || !status.isUpdating) {
             stopUpdateStatusMonitoring();
-            
+
             if (status.phase === 'completed') {
                 showNotification('Update completed successfully!', 'success');
                 setTimeout(() => {
@@ -6733,7 +6632,6 @@ async function updateProgressBar() {
                 showNotification(`Update failed: ${status.error}`, 'error');
             }
         }
-        
     } catch (error) {
         console.error('[Admin] Error updating progress bar:', error);
         stopUpdateStatusMonitoring();
@@ -6745,22 +6643,22 @@ async function updateProgressBar() {
  */
 async function loadUpdateStatus() {
     hideAllStatusDisplays();
-    
+
     const updateStatusDisplay = document.getElementById('update-status-display');
     const updateStatusContent = document.getElementById('update-status-content');
-    
+
     if (!updateStatusDisplay || !updateStatusContent) return;
-    
+
     updateStatusDisplay.style.display = 'block';
     updateStatusContent.innerHTML = '<div class="loading">Loading update status...</div>';
-    
+
     try {
         const response = await authenticatedFetch(apiUrl('/api/admin/update/status'));
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const status = await response.json();
         displayUpdateStatus(status);
     } catch (error) {
@@ -6776,16 +6674,20 @@ async function loadUpdateStatus() {
 function displayUpdateStatus(status) {
     const updateStatusContent = document.getElementById('update-status-content');
     if (!updateStatusContent) return;
-    
+
     // If not updating, show version info and update check
     if (!status.isUpdating) {
         displayIdleUpdateStatus(status);
         return;
     }
-    
-    const startTime = status.startTime ? new Date(status.startTime).toLocaleString() : 'Not started';
-    const duration = status.startTime ? Math.floor((Date.now() - new Date(status.startTime)) / 1000) : 0;
-    
+
+    const startTime = status.startTime
+        ? new Date(status.startTime).toLocaleString()
+        : 'Not started';
+    const duration = status.startTime
+        ? Math.floor((Date.now() - new Date(status.startTime)) / 1000)
+        : 0;
+
     updateStatusContent.innerHTML = `
         <div class="status-grid">
             <div class="status-item">
@@ -6825,7 +6727,9 @@ function displayUpdateStatus(status) {
                 </div>
             </div>
         </div>
-        ${status.message ? `
+        ${
+            status.message
+                ? `
             <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
                 <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.95rem;">
                     <i class="fas fa-comment"></i> Current Message
@@ -6834,8 +6738,12 @@ function displayUpdateStatus(status) {
                     ${status.message}
                 </p>
             </div>
-        ` : ''}
-        ${status.error ? `
+        `
+                : ''
+        }
+        ${
+            status.error
+                ? `
             <div style="margin-top: 1rem; padding: 1rem; background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.3); border-radius: 6px;">
                 <h4 style="margin: 0 0 0.5rem 0; color: #f44336; font-size: 0.95rem;">
                     <i class="fas fa-exclamation-triangle"></i> Error Details
@@ -6844,8 +6752,12 @@ function displayUpdateStatus(status) {
                     ${status.error}
                 </p>
             </div>
-        ` : ''}
-        ${status.backupPath ? `
+        `
+                : ''
+        }
+        ${
+            status.backupPath
+                ? `
             <div style="margin-top: 1rem; padding: 1rem; background: rgba(103, 126, 234, 0.1); border: 1px solid rgba(103, 126, 234, 0.3); border-radius: 6px;">
                 <h4 style="margin: 0 0 0.5rem 0; color: #667eea; font-size: 0.95rem;">
                     <i class="fas fa-archive"></i> Backup Information
@@ -6854,22 +6766,28 @@ function displayUpdateStatus(status) {
                     Backup location: ${status.backupPath}
                 </p>
             </div>
-        ` : ''}
-        ${duration > 0 ? `
+        `
+                : ''
+        }
+        ${
+            duration > 0
+                ? `
             <div style="margin-top: 1rem; color: #b3b3b3; font-size: 0.85rem; text-align: center;">
                 Duration: ${Math.floor(duration / 60)}m ${duration % 60}s
             </div>
-        ` : ''}
+        `
+                : ''
+        }
     `;
 }
 
 /**
  * Display idle update status with version information
  */
-async function displayIdleUpdateStatus(status) {
+async function displayIdleUpdateStatus(_status) {
     const updateStatusContent = document.getElementById('update-status-content');
     if (!updateStatusContent) return;
-    
+
     // Show loading state first with current version if available
     updateStatusContent.innerHTML = `
         <div class="status-grid">
@@ -6893,17 +6811,17 @@ async function displayIdleUpdateStatus(status) {
             </div>
         </div>
     `;
-    
+
     try {
         // Check for available updates
         const updateCheckResponse = await authenticatedFetch(apiUrl('/api/admin/update-check'));
         const updateInfo = await updateCheckResponse.json();
-        
+
         const hasUpdate = updateInfo.hasUpdate;
         const currentVersion = updateInfo.currentVersion;
         const latestVersion = updateInfo.latestVersion;
         const releaseNotes = updateInfo.releaseNotes;
-        
+
         updateStatusContent.innerHTML = `
             <div class="status-grid">
                 <div class="status-item">
@@ -6915,7 +6833,9 @@ async function displayIdleUpdateStatus(status) {
                         v${currentVersion}
                     </div>
                 </div>
-                ${hasUpdate ? `
+                ${
+                    hasUpdate
+                        ? `
                     <div class="status-item">
                         <div class="status-item-header">
                             <i class="fas fa-download"></i>
@@ -6943,7 +6863,8 @@ async function displayIdleUpdateStatus(status) {
                             Update Available
                         </div>
                     </div>
-                ` : `
+                `
+                        : `
                     <div class="status-item">
                         <div class="status-item-header">
                             <i class="fas fa-check-circle"></i>
@@ -6953,23 +6874,32 @@ async function displayIdleUpdateStatus(status) {
                             Up to Date
                         </div>
                     </div>
-                `}
+                `
+                }
             </div>
-            ${hasUpdate && releaseNotes ? `
+            ${
+                hasUpdate && releaseNotes
+                    ? `
                 <div style="margin-top: 1rem; padding: 1rem; background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 6px;">
                     <h4 style="margin: 0 0 0.5rem 0; color: #4caf50; font-size: 0.95rem;">
                         <i class="fas fa-list"></i> Release Notes for v${latestVersion}
                     </h4>
                     <div style="color: #ccc; font-size: 0.85rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">${releaseNotes}</div>
                 </div>
-            ` : ''}
-            ${!hasUpdate ? `
+            `
+                    : ''
+            }
+            ${
+                !hasUpdate
+                    ? `
                 <div style="margin-top: 1rem; padding: 1rem; background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 6px; text-align: center;">
                     <i class="fas fa-check-circle" style="color: #4caf50; font-size: 2rem; margin-bottom: 0.5rem;"></i>
                     <p style="margin: 0; color: #4caf50; font-weight: 600;">Your installation is up to date!</p>
                     <p style="margin: 0.5rem 0 0 0; color: #ccc; font-size: 0.85rem;">Running the latest version v${currentVersion}</p>
                 </div>
-            ` : ''}
+            `
+                    : ''
+            }
         `;
     } catch (error) {
         console.error('Failed to check for updates:', error);
@@ -7000,7 +6930,7 @@ async function displayIdleUpdateStatus(status) {
 function showVersion(currentVersion, availableVersion = null) {
     const updateStatusDisplay = document.getElementById('update-status-display');
     if (!updateStatusDisplay) return;
-    
+
     updateStatusDisplay.innerHTML = `
         <div class="status-card">
             <div class="status-header">
@@ -7011,97 +6941,20 @@ function showVersion(currentVersion, availableVersion = null) {
                 <div style="margin-bottom: 1rem;">
                     <strong>Current Version:</strong> <span class="version-tag">${currentVersion}</span>
                 </div>
-                ${availableVersion ? `
+                ${
+                    availableVersion
+                        ? `
                     <div style="margin-bottom: 1rem;">
                         <strong>Available Version:</strong> <span class="version-tag">${availableVersion}</span>
                     </div>
-                ` : ''}
+                `
+                        : ''
+                }
                 <div style="color: #b3b3b3; font-size: 0.85rem; margin-top: 1rem;">
                     Click "Check for Updates" to check for new versions
                 </div>
             </div>
         </div>
-    `;
-}
-
-/**
- * Load backups list
- */
-async function loadBackupsList() {
-    hideAllStatusDisplays();
-    
-    const backupsListDisplay = document.getElementById('backups-list-display');
-    const backupsListContent = document.getElementById('backups-list-content');
-    
-    if (!backupsListDisplay || !backupsListContent) return;
-    
-    backupsListDisplay.style.display = 'block';
-    backupsListContent.innerHTML = '<div class="loading">Loading backups...</div>';
-    
-    try {
-        const response = await authenticatedFetch(apiUrl('/api/admin/update/backups'));
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const backups = await response.json();
-        displayBackupsList(backups);
-    } catch (error) {
-        console.error('Backups list loading failed:', error);
-        backupsListContent.innerHTML = `<div class="status-error">Failed to load backups: ${error.message}</div>`;
-    }
-}
-
-/**
- * Display backups list
- */
-function displayBackupsList(backups) {
-    const backupsListContent = document.getElementById('backups-list-content');
-    if (!backupsListContent) return;
-    
-    if (!backups || backups.length === 0) {
-        backupsListContent.innerHTML = '<div class="status-info">No backups found.</div>';
-        return;
-    }
-    
-    const backupsHtml = backups.map(backup => {
-        const createdDate = backup.created ? new Date(backup.created).toLocaleDateString() : 'Unknown';
-        const createdTime = backup.created ? new Date(backup.created).toLocaleTimeString() : '';
-        const sizeKB = backup.size ? Math.round(backup.size / 1024) : 0;
-        const sizeMB = sizeKB > 1024 ? (sizeKB / 1024).toFixed(1) + ' MB' : sizeKB + ' KB';
-        
-        return `
-            <div class="backup-item">
-                <div class="backup-item-header">
-                    <div class="backup-item-title">
-                        <i class="fas fa-archive" style="color: #667eea; margin-right: 0.5rem;"></i>
-                        ${backup.name}
-                    </div>
-                    <div class="backup-item-version">
-                        v${backup.version}
-                    </div>
-                </div>
-                <div class="backup-item-meta">
-                    <div>
-                        <i class="fas fa-calendar"></i> 
-                        ${createdDate} ${createdTime}
-                    </div>
-                    <div>
-                        <i class="fas fa-database"></i> 
-                        ${sizeMB}
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    backupsListContent.innerHTML = `
-        <div style="margin-bottom: 1rem; color: #b3b3b3; font-size: 0.9rem;">
-            <i class="fas fa-info-circle"></i> 
-            Found ${backups.length} backup${backups.length !== 1 ? 's' : ''} (sorted by date, newest first)
-        </div>
-        ${backupsHtml}
     `;
 }
 
@@ -7115,10 +6968,10 @@ function displayBackupsList(backups) {
 function initializeAutoUpdate() {
     // Start monitoring update status
     startUpdateStatusMonitoring();
-    
+
     // Initial status check
     checkUpdateStatus();
-    
+
     // Show current version info initially
     fetch('/api/v1/config')
         .then(response => response.json())
@@ -7133,46 +6986,23 @@ function initializeAutoUpdate() {
 }
 
 /**
- * Start monitoring update status
- */
-function startUpdateStatusMonitoring() {
-    if (updateStatusInterval) {
-        clearInterval(updateStatusInterval);
-    }
-    
-    // Check status every 2 seconds during updates
-    updateStatusInterval = setInterval(checkUpdateStatus, 2000);
-}
-
-/**
- * Stop monitoring update status
- */
-function stopUpdateStatusMonitoring() {
-    if (updateStatusInterval) {
-        clearInterval(updateStatusInterval);
-        updateStatusInterval = null;
-    }
-}
-
-/**
  * Check current update status
  */
 async function checkUpdateStatus() {
     try {
         const response = await authenticatedFetch(apiUrl('/api/admin/update/status'));
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const status = await response.json();
         updateStatusDisplay(status);
-        
+
         // Stop monitoring if update is complete or idle
         if (status.phase === 'completed' || status.phase === 'idle' || status.phase === 'error') {
             stopUpdateStatusMonitoring();
         }
-        
     } catch (error) {
         console.error('Failed to check update status:', error);
         // Continue monitoring even on error
@@ -7191,12 +7021,13 @@ function updateStatusDisplay(status) {
     const messageText = document.getElementById('update-message');
     const startButton = document.getElementById('start-auto-update-button');
     const rollbackButton = document.getElementById('rollback-update-button');
-    
+
     if (!idleState || !progressState) return;
-    
+
     // Update button states
-    const isUpdating = status.phase !== 'idle' && status.phase !== 'completed' && status.phase !== 'error';
-    
+    const isUpdating =
+        status.phase !== 'idle' && status.phase !== 'completed' && status.phase !== 'error';
+
     if (startButton) {
         startButton.setAttribute('data-updating', isUpdating.toString());
         if (isUpdating) {
@@ -7207,16 +7038,16 @@ function updateStatusDisplay(status) {
             startButton.querySelector('i').className = 'fas fa-download icon';
         }
     }
-    
+
     if (rollbackButton) {
         rollbackButton.style.display = status.backupPath ? 'block' : 'none';
     }
-    
+
     if (status.phase === 'idle' || status.phase === 'completed') {
         // Show idle state
         idleState.style.display = 'block';
         progressState.style.display = 'none';
-        
+
         if (status.phase === 'completed') {
             const statusValue = idleState.querySelector('.status-item-value');
             if (statusValue) {
@@ -7228,19 +7059,19 @@ function updateStatusDisplay(status) {
         // Show progress state
         idleState.style.display = 'none';
         progressState.style.display = 'block';
-        
+
         // Update progress elements
         if (phaseText) {
             phaseText.textContent = getPhaseDisplayText(status.phase);
         }
-        
+
         if (progressPercent) {
             progressPercent.textContent = `${status.progress || 0}%`;
         }
-        
+
         if (progressBar) {
             progressBar.style.width = `${status.progress || 0}%`;
-            
+
             // Update progress bar class based on phase
             progressBar.className = 'progress-fill';
             if (status.phase === 'error') {
@@ -7249,18 +7080,18 @@ function updateStatusDisplay(status) {
                 progressBar.classList.add('success');
             }
         }
-        
+
         if (messageText) {
             messageText.textContent = status.message || 'Processing...';
             messageText.className = 'update-message';
-            
+
             if (status.error) {
                 messageText.classList.add('error');
                 messageText.textContent = status.error;
             } else if (status.phase === 'completed') {
                 messageText.classList.add('success');
             }
-            
+
             // Add phase-specific class
             messageText.classList.add(`update-phase-${status.phase}`);
         }
@@ -7272,20 +7103,20 @@ function updateStatusDisplay(status) {
  */
 function getPhaseDisplayText(phase) {
     const phaseTexts = {
-        'checking': 'Checking for Updates',
-        'backup': 'Creating Backup',
-        'download': 'Downloading Update',
-        'validation': 'Validating Download',
-        'stopping': 'Stopping Services',
-        'applying': 'Applying Update',
-        'dependencies': 'Updating Dependencies',
-        'starting': 'Starting Services',
-        'verification': 'Verifying Update',
-        'completed': 'Update Completed',
-        'error': 'Update Failed',
-        'rollback': 'Rolling Back'
+        checking: 'Checking for Updates',
+        backup: 'Creating Backup',
+        download: 'Downloading Update',
+        validation: 'Validating Download',
+        stopping: 'Stopping Services',
+        applying: 'Applying Update',
+        dependencies: 'Updating Dependencies',
+        starting: 'Starting Services',
+        verification: 'Verifying Update',
+        completed: 'Update Completed',
+        error: 'Update Failed',
+        rollback: 'Rolling Back',
     };
-    
+
     return phaseTexts[phase] || phase;
 }
 
@@ -7296,35 +7127,34 @@ async function startAutoUpdate(targetVersion = null) {
     try {
         const startButton = document.getElementById('start-auto-update-button');
         setButtonState(startButton, 'loading', { text: 'Starting...' });
-        
+
         const requestBody = targetVersion ? { targetVersion } : {};
-        
+
         const response = await authenticatedFetch(apiUrl('/api/admin/update/start'), {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const result = await response.json();
         showNotification(`Update started: ${result.message}`, 'success');
-        
+
         // Start monitoring
         startUpdateStatusMonitoring();
-        
+
         // Initial status check
         setTimeout(checkUpdateStatus, 1000);
-        
     } catch (error) {
         console.error('Failed to start update:', error);
         showNotification(`Failed to start update: ${error.message}`, 'error');
-        
+
         const startButton = document.getElementById('start-auto-update-button');
         setButtonState(startButton, 'revert');
     }
@@ -7337,21 +7167,20 @@ async function rollbackUpdate() {
     try {
         // Load backup list first
         const response = await authenticatedFetch(apiUrl('/api/admin/update/backups'));
-        
+
         if (!response.ok) {
             throw new Error(`Failed to load backups: HTTP ${response.status}`);
         }
-        
+
         const backups = await response.json();
-        
+
         if (!backups || backups.length === 0) {
             showNotification('No backups available for rollback', 'warning');
             return;
         }
-        
+
         // Show modal with backup selection
         showRollbackModal(backups);
-        
     } catch (error) {
         console.error('Failed to load backups for rollback:', error);
         showNotification(`Failed to load backups: ${error.message}`, 'error');
@@ -7371,7 +7200,9 @@ function showRollbackModal(backups) {
                 <p style="color: #ccc; margin-bottom: 1.5rem;">Choose a backup to rollback to. This will replace your current installation with the selected backup.</p>
                 
                 <div id="backup-selection-list" style="max-height: 400px; overflow-y: auto; margin-bottom: 1.5rem;">
-                    ${backups.map((backup, index) => `
+                    ${backups
+                        .map(
+                            (backup, index) => `
                         <div class="backup-selection-item" data-backup-path="${backup.path}" data-backup-version="${backup.version}" 
                              style="margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.05); border: 2px solid transparent; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
                              onclick="selectBackupForRollback(this)">
@@ -7398,13 +7229,19 @@ function showRollbackModal(backups) {
                                     ${backup.size ? (backup.size > 1024 * 1024 ? (backup.size / (1024 * 1024)).toFixed(1) + ' MB' : Math.round(backup.size / 1024) + ' KB') : 'Unknown size'}
                                 </div>
                             </div>
-                            ${index === 0 ? `
+                            ${
+                                index === 0
+                                    ? `
                                 <div style="margin-top: 0.5rem; color: #4caf50; font-size: 0.8rem; font-weight: 600;">
                                     <i class="fas fa-star"></i> Most Recent Backup
                                 </div>
-                            ` : ''}
+                            `
+                                    : ''
+                            }
                         </div>
-                    `).join('')}
+                    `
+                        )
+                        .join('')}
                 </div>
                 
                 <div style="padding: 1rem; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 6px; margin-bottom: 1.5rem;">
@@ -7427,19 +7264,19 @@ function showRollbackModal(backups) {
             </div>
         </div>
     `;
-    
+
     // Remove existing modal if present
     const existingModal = document.getElementById('rollback-modal');
     if (existingModal) {
         existingModal.remove();
     }
-    
+
     // Add modal to page
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
+
     // Add click outside to close
     const modal = document.getElementById('rollback-modal');
-    modal.addEventListener('click', function(event) {
+    modal.addEventListener('click', function (event) {
         if (event.target === modal) {
             closeRollbackModal();
         }
@@ -7448,79 +7285,80 @@ function showRollbackModal(backups) {
 
 /**
  * Select backup for rollback
+ * Note: Used as onclick handler in dynamically generated HTML
  */
-function selectBackupForRollback(element) {
+window.selectBackupForRollback = function selectBackupForRollback(element) {
     // Remove selection from all items
     document.querySelectorAll('.backup-selection-item').forEach(item => {
         item.style.border = '2px solid transparent';
         item.style.background = 'rgba(255, 255, 255, 0.05)';
     });
-    
+
     // Select current item
     element.style.border = '2px solid #667eea';
     element.style.background = 'rgba(103, 126, 234, 0.1)';
-    
+
     // Enable confirm button
     const confirmButton = document.getElementById('confirm-rollback-button');
     if (confirmButton) {
         confirmButton.disabled = false;
-        
+
         const version = element.getAttribute('data-backup-version');
         confirmButton.querySelector('span').textContent = `Rollback to v${version}`;
-        
+
         // Store selected backup info
         confirmButton.setAttribute('data-backup-path', element.getAttribute('data-backup-path'));
         confirmButton.setAttribute('data-backup-version', version);
     }
-}
+};
 
 /**
  * Confirm rollback with selected backup
+ * Note: Used as onclick handler in dynamically generated HTML
  */
-async function confirmRollback() {
+window.confirmRollback = async function confirmRollback() {
     const confirmButton = document.getElementById('confirm-rollback-button');
     const backupPath = confirmButton.getAttribute('data-backup-path');
     const backupVersion = confirmButton.getAttribute('data-backup-version');
-    
+
     if (!backupPath) {
         showNotification('Please select a backup first', 'warning');
         return;
     }
-    
+
     closeRollbackModal();
-    
+
     try {
         setButtonState(confirmButton, 'loading', { text: 'Rolling back...' });
-        
+
         const response = await authenticatedFetch(apiUrl('/api/admin/update/rollback'), {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 backupPath: backupPath,
-                version: backupVersion
-            })
+                version: backupVersion,
+            }),
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
         }
-        
-        const result = await response.json();
+
+        await response.json(); // Consume response but don't use result
         showNotification(`Rollback to v${backupVersion} completed successfully`, 'success');
-        
+
         // Refresh page after rollback
         setTimeout(() => {
             window.location.reload();
         }, 2000);
-        
     } catch (error) {
         console.error('Rollback failed:', error);
         showNotification(`Rollback failed: ${error.message}`, 'error');
     }
-}
+};
 
 /**
  * Close rollback modal
@@ -7537,22 +7375,22 @@ function closeRollbackModal() {
  */
 async function loadBackupList() {
     hideAllStatusDisplays(); // Hide other displays first
-    
+
     const backupsDisplay = document.getElementById('backups-display');
     const backupsContent = document.getElementById('backups-content');
-    
+
     if (!backupsDisplay || !backupsContent) return;
-    
+
     backupsDisplay.style.display = 'block';
     backupsContent.innerHTML = '<div class="loading">Loading backups...</div>';
-    
+
     try {
         const response = await authenticatedFetch(apiUrl('/api/admin/update/backups'));
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const backups = await response.json();
         displayBackupList(backups);
     } catch (error) {
@@ -7567,18 +7405,19 @@ async function loadBackupList() {
 function displayBackupList(backups) {
     const backupsContent = document.getElementById('backups-content');
     if (!backupsContent) return;
-    
+
     if (!backups || backups.length === 0) {
         backupsContent.innerHTML = '<div class="status-info">No backups found.</div>';
         return;
     }
-    
-    const backupsHtml = backups.map(backup => {
-        const createdDate = new Date(backup.timestamp).toLocaleDateString();
-        const createdTime = new Date(backup.timestamp).toLocaleTimeString();
-        const sizeMB = (backup.size / (1024 * 1024)).toFixed(1) + ' MB';
-        
-        return `
+
+    const backupsHtml = backups
+        .map(backup => {
+            const createdDate = new Date(backup.timestamp).toLocaleDateString();
+            const createdTime = new Date(backup.timestamp).toLocaleTimeString();
+            const sizeMB = (backup.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+            return `
             <div class="backup-item">
                 <div class="backup-info">
                     <div class="backup-name">
@@ -7598,8 +7437,9 @@ function displayBackupList(backups) {
                 </div>
             </div>
         `;
-    }).join('');
-    
+        })
+        .join('');
+
     backupsContent.innerHTML = `
         <div style="margin-bottom: 1rem; color: #b3b3b3; font-size: 0.9rem;">
             <i class="fas fa-info-circle"></i> 
@@ -7619,27 +7459,34 @@ function displayBackupList(backups) {
 
 /**
  * Restore from a specific backup
+ * Note: Used as onclick handler in dynamically generated HTML
  */
-async function restoreFromBackup(backupPath, version) {
-    if (!confirm(`Are you sure you want to restore from backup version ${version}? This will replace the current installation.`)) {
+window.restoreFromBackup = async function restoreFromBackup(backupPath, version) {
+    if (
+        !confirm(
+            `Are you sure you want to restore from backup version ${version}? This will replace the current installation.`
+        )
+    ) {
         return;
     }
-    
+
     try {
         showNotification('Restoring from backup...', 'info');
-        
+
         // Note: This would require a new API endpoint for restoring specific backups
         // For now, we'll show a message that this feature is coming soon
-        showNotification('Specific backup restoration is not yet implemented. Use the general rollback function instead.', 'warning');
-        
+        showNotification(
+            'Specific backup restoration is not yet implemented. Use the general rollback function instead.',
+            'warning'
+        );
     } catch (error) {
         console.error('Failed to restore backup:', error);
         showNotification(`Failed to restore backup: ${error.message}`, 'error');
     }
-}
+};
 
 // Initialize auto-update functionality when the page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Initialize auto-update monitoring
     initializeAutoUpdate();
 });
@@ -7649,47 +7496,47 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 async function openUpdateConfirmationModal() {
     console.log('📂 Opening update confirmation modal');
-    
+
     const modal = document.getElementById('update-confirmation-modal');
     const content = document.getElementById('update-confirmation-content');
     const confirmButton = document.getElementById('confirm-update-button');
-    
+
     console.log('🔍 Modal elements:', {
         modal: modal ? 'found' : 'NOT FOUND',
         content: content ? 'found' : 'NOT FOUND',
-        confirmButton: confirmButton ? 'found' : 'NOT FOUND'
+        confirmButton: confirmButton ? 'found' : 'NOT FOUND',
     });
-    
+
     if (!modal || !content) {
         console.error('❌ Modal elements not found!');
         return;
     }
-    
+
     // NUCLEAR FIX: Move modal to body if it's not already there
     if (modal.parentElement !== document.body) {
         document.body.appendChild(modal);
     }
-    
+
     modal.classList.remove('is-hidden');
     modal.style.display = 'flex'; // Use flex as per CSS
     confirmButton.disabled = true;
-    
+
     // Prevent body scrolling when modal is open - use CSS classes
     document.body.classList.add('modal-open');
     document.documentElement.classList.add('modal-open');
     modal.classList.add('modal-open');
-    
+
     // Load update information
     try {
         const updateCheckResponse = await authenticatedFetch(apiUrl('/api/admin/update-check'));
-        
+
         const updateInfo = await updateCheckResponse.json();
-        
+
         const hasUpdate = updateInfo.hasUpdate;
         const currentVersion = updateInfo.currentVersion;
         const latestVersion = updateInfo.latestVersion;
         const releaseNotes = updateInfo.releaseNotes;
-        
+
         if (!hasUpdate) {
             content.innerHTML = `
                 <div style="text-align: center; padding: 1rem;">
@@ -7713,14 +7560,18 @@ async function openUpdateConfirmationModal() {
                             <div style="font-size: 1.2rem; font-weight: 600; color: #4caf50;">v${latestVersion}</div>
                         </div>
                     </div>
-                    ${releaseNotes ? `
+                    ${
+                        releaseNotes
+                            ? `
                         <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
                             <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.95rem;">
                                 <i class="fas fa-list"></i> What's New in v${latestVersion}
                             </h4>
                             <div style="color: #ccc; font-size: 0.85rem; white-space: pre-wrap; max-height: 150px; overflow-y: auto;">${releaseNotes}</div>
                         </div>
-                    ` : ''}
+                    `
+                            : ''
+                    }
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.95rem;">
@@ -7759,9 +7610,9 @@ async function openUpdateConfirmationModal() {
         confirmButton.disabled = true;
         confirmButton.querySelector('span').textContent = 'Unable to Check';
     }
-    
+
     // Add event listener for clicking outside modal
-    modal.addEventListener('click', function(event) {
+    modal.addEventListener('click', function (event) {
         if (event.target === modal) {
             closeUpdateConfirmationModal();
         }
@@ -7773,7 +7624,7 @@ function closeUpdateConfirmationModal() {
     if (modal) {
         modal.classList.add('is-hidden');
         modal.style.display = 'none';
-        
+
         // Re-enable body scrolling when modal closes - remove CSS classes
         document.body.classList.remove('modal-open');
         document.documentElement.classList.remove('modal-open');
@@ -7781,11 +7632,14 @@ function closeUpdateConfirmationModal() {
     }
 }
 
-function confirmAutoUpdate() {
+/**
+ * Confirm auto update - used as onclick handler in HTML
+ */
+window.confirmAutoUpdate = function confirmAutoUpdate() {
     closeUpdateConfirmationModal();
     // Call the actual update function
     startAutoUpdate();
-}
+};
 
 // Mobile Navigation Panel Management
 function initMobileNavPanel() {
@@ -7797,7 +7651,7 @@ function initMobileNavPanel() {
     if (!mobileNavToggle || !mobileNavPanel) return;
 
     // Open mobile nav panel
-    mobileNavToggle.addEventListener('click', (e) => {
+    mobileNavToggle.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
         mobileNavPanel.classList.add('open');
@@ -7805,7 +7659,7 @@ function initMobileNavPanel() {
 
     // Close mobile nav panel
     if (closeMobileNav) {
-        closeMobileNav.addEventListener('click', (e) => {
+        closeMobileNav.addEventListener('click', e => {
             e.preventDefault();
             e.stopPropagation();
             mobileNavPanel.classList.remove('open');
@@ -7814,44 +7668,48 @@ function initMobileNavPanel() {
 
     // Handle navigation item clicks
     mobileNavItems.forEach(item => {
-        item.addEventListener('click', (e) => {
+        item.addEventListener('click', e => {
             e.preventDefault();
             const sectionId = item.getAttribute('data-section');
-            
+
             // Remove active class from all mobile nav items
             mobileNavItems.forEach(navItem => navItem.classList.remove('active'));
-            
+
             // Add active class to clicked mobile nav item
             item.classList.add('active');
-            
+
             // Also update desktop nav items
             const desktopNavItems = document.querySelectorAll('.nav-item');
             desktopNavItems.forEach(nav => {
                 nav.classList.remove('active');
                 nav.setAttribute('aria-selected', 'false');
             });
-            
-            const correspondingDesktopItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+
+            const correspondingDesktopItem = document.querySelector(
+                `.nav-item[data-section="${sectionId}"]`
+            );
             if (correspondingDesktopItem) {
                 correspondingDesktopItem.classList.add('active');
                 correspondingDesktopItem.setAttribute('aria-selected', 'true');
             }
-            
+
             // Switch to the selected section (same logic as desktop sidebar)
             if (window.activateSection) {
                 window.activateSection(sectionId);
             }
-            
+
             // Close the mobile nav panel
             mobileNavPanel.classList.remove('open');
         });
     });
 
     // Close mobile nav when clicking outside
-    document.addEventListener('click', (e) => {
-        if (mobileNavPanel.classList.contains('open') && 
-            !mobileNavPanel.contains(e.target) && 
-            !mobileNavToggle.contains(e.target)) {
+    document.addEventListener('click', e => {
+        if (
+            mobileNavPanel.classList.contains('open') &&
+            !mobileNavPanel.contains(e.target) &&
+            !mobileNavToggle.contains(e.target)
+        ) {
             mobileNavPanel.classList.remove('open');
         }
     });

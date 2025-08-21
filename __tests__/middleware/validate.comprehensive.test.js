@@ -3,7 +3,7 @@ const {
     validateQueryParams,
     sanitizeInput,
     validateRequest,
-    schemas
+    schemas,
 } = require('../../middleware/validate');
 
 // Mock DOMPurify
@@ -12,7 +12,7 @@ jest.mock('dompurify', () => jest.fn(() => ({ sanitize: mockSanitize })));
 
 // Mock JSDOM
 jest.mock('jsdom', () => ({
-    JSDOM: jest.fn(() => ({ window: {} }))
+    JSDOM: jest.fn(() => ({ window: {} })),
 }));
 
 // Mock validators module
@@ -33,20 +33,20 @@ describe('Validate Middleware', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockSanitize.mockReturnValue('sanitized');
-        
+
         req = {
             body: {},
             query: {},
             path: '/api/test',
             method: 'POST',
-            id: 'test-request-id'
+            id: 'test-request-id',
         };
-        
+
         res = {
             status: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis()
+            json: jest.fn().mockReturnThis(),
         };
-        
+
         next = jest.fn();
 
         // Reset NODE_ENV
@@ -56,9 +56,9 @@ describe('Validate Middleware', () => {
     describe('sanitizeInput function', () => {
         test('should handle string input correctly', () => {
             mockSanitize.mockReturnValue('clean string');
-            
+
             const result = sanitizeInput('<script>alert("xss")</script>');
-            
+
             // The function should attempt to sanitize strings
             expect(typeof result).toBe('string');
         });
@@ -67,15 +67,15 @@ describe('Validate Middleware', () => {
             mockSanitize.mockImplementation(() => {
                 throw new Error('Sanitization failed');
             });
-            
+
             const result = sanitizeInput('test string');
-            
+
             expect(result).toBe('test string');
         });
 
         test('should handle arrays correctly', () => {
             const result = sanitizeInput(['script', 'normal', 'img']);
-            
+
             expect(Array.isArray(result)).toBe(true);
             expect(result.length).toBe(3);
         });
@@ -84,12 +84,12 @@ describe('Validate Middleware', () => {
             const input = {
                 name: 'script',
                 nested: {
-                    value: 'img'
-                }
+                    value: 'img',
+                },
             };
-            
+
             const result = sanitizeInput(input);
-            
+
             expect(typeof result).toBe('object');
             expect(result.name).toBeDefined();
             expect(result.nested.value).toBeDefined();
@@ -98,9 +98,9 @@ describe('Validate Middleware', () => {
         test('should handle circular references', () => {
             const obj = { name: 'test' };
             obj.self = obj;
-            
+
             const result = sanitizeInput(obj);
-            
+
             expect(result).toEqual(obj);
         });
 
@@ -113,9 +113,9 @@ describe('Validate Middleware', () => {
 
         test('should handle environment correctly', () => {
             process.env.NODE_ENV = 'test';
-            
+
             const result = sanitizeInput('test');
-            
+
             expect(typeof result).toBe('string');
         });
     });
@@ -137,8 +137,8 @@ describe('Validate Middleware', () => {
                     showPoster: true,
                     showMetadata: true,
                     showRottenTomatoes: true,
-                    rottenTomatoesMinimumScore: 7
-                }
+                    rottenTomatoesMinimumScore: 7,
+                },
             };
             mockSanitize.mockImplementation(val => val);
 
@@ -152,8 +152,8 @@ describe('Validate Middleware', () => {
             req.body = {
                 config: {
                     clockWidget: 'invalid',
-                    transitionIntervalSeconds: -1
-                }
+                    transitionIntervalSeconds: -1,
+                },
             };
             mockSanitize.mockImplementation(val => val);
 
@@ -166,13 +166,13 @@ describe('Validate Middleware', () => {
                 details: expect.arrayContaining([
                     expect.objectContaining({
                         field: 'config.clockWidget',
-                        message: expect.any(String)
-                    })
+                        message: expect.any(String),
+                    }),
                 ]),
                 timestamp: expect.any(String),
                 path: '/api/test',
                 method: 'POST',
-                requestId: 'test-request-id'
+                requestId: 'test-request-id',
             });
             expect(next).not.toHaveBeenCalled();
         });
@@ -190,7 +190,7 @@ describe('Validate Middleware', () => {
                 timestamp: expect.any(String),
                 path: '/api/test',
                 method: 'POST',
-                requestId: 'test-request-id'
+                requestId: 'test-request-id',
             });
             expect(next).not.toHaveBeenCalled();
         });
@@ -216,8 +216,8 @@ describe('Validate Middleware', () => {
                     showPoster: true,
                     showMetadata: true,
                     showRottenTomatoes: true,
-                    rottenTomatoesMinimumScore: 7
-                }
+                    rottenTomatoesMinimumScore: 7,
+                },
             };
 
             validationMiddleware(req, res, next);
@@ -264,9 +264,7 @@ describe('Validate Middleware', () => {
             expect(res.status).toHaveBeenCalledWith(400);
             expect(res.json).toHaveBeenCalledWith({
                 error: 'Invalid query parameters',
-                details: expect.arrayContaining([
-                    expect.any(String)
-                ])
+                details: expect.arrayContaining([expect.any(String)]),
             });
             expect(next).not.toHaveBeenCalled();
         });
@@ -295,7 +293,7 @@ describe('Validate Middleware', () => {
             req.method = 'GET';
             req.query = { test: 'value' };
             mockValidate.mockReturnValue({ validated: 'data' });
-            
+
             const middleware = validateRequest('testSchema');
             middleware(req, res, next);
 
@@ -308,7 +306,7 @@ describe('Validate Middleware', () => {
             req.method = 'POST';
             req.body = { test: 'value' };
             mockValidate.mockReturnValue({ validated: 'data' });
-            
+
             const middleware = validateRequest('testSchema');
             middleware(req, res, next);
 
@@ -323,7 +321,7 @@ describe('Validate Middleware', () => {
             mockValidate.mockImplementation(() => {
                 throw new Error('Validation error: Invalid field');
             });
-            
+
             const middleware = validateRequest('testSchema');
             middleware(req, res, next);
 
@@ -337,7 +335,7 @@ describe('Validate Middleware', () => {
             mockValidate.mockImplementation(() => {
                 throw new Error('Validation error: Field is required');
             });
-            
+
             const middleware = validateRequest('testSchema');
             middleware(req, res, next);
 
@@ -350,7 +348,7 @@ describe('Validate Middleware', () => {
             mockValidate.mockImplementation(() => {
                 throw new Error('Simple error');
             });
-            
+
             const middleware = validateRequest('testSchema');
             middleware(req, res, next);
 
@@ -378,7 +376,7 @@ describe('Validate Middleware', () => {
             const validData = {
                 hostname: 'plex.example.com',
                 port: 32400,
-                token: 'abc123'
+                token: 'abc123',
             };
 
             const { error } = schemas.plexConnection.validate(validData);
@@ -388,7 +386,7 @@ describe('Validate Middleware', () => {
         test('should validate plex connection with IP address', () => {
             const validData = {
                 hostname: '192.168.1.100',
-                port: 32400
+                port: 32400,
             };
 
             const { error } = schemas.plexConnection.validate(validData);
@@ -398,7 +396,7 @@ describe('Validate Middleware', () => {
         test('should reject invalid plex hostname', () => {
             const invalidData = {
                 hostname: 'invalid..hostname',
-                port: 32400
+                port: 32400,
             };
 
             const { error } = schemas.plexConnection.validate(invalidData);
@@ -420,18 +418,18 @@ describe('Validate Middleware', () => {
                     rottenTomatoesMinimumScore: 7.5,
                     kenBurnsEffect: {
                         enabled: true,
-                        durationSeconds: 30
+                        durationSeconds: 30,
                     },
                     mediaServers: {
                         plex: {
                             hostname: 'plex.local',
                             port: 32400,
                             token: 'abc123',
-                            ssl: true
-                        }
+                            ssl: true,
+                        },
                     },
-                    customMessage: 'Welcome to Posterrama'
-                }
+                    customMessage: 'Welcome to Posterrama',
+                },
             };
 
             const { error } = schemas.config.validate(validConfig);
@@ -454,9 +452,9 @@ describe('Validate Middleware', () => {
                     rottenTomatoesMinimumScore: 7,
                     kenBurnsEffect: {
                         enabled: true,
-                        durationSeconds: 45
-                    }
-                }
+                        durationSeconds: 45,
+                    },
+                },
             };
             mockSanitize.mockImplementation(val => val);
 
@@ -472,8 +470,8 @@ describe('Validate Middleware', () => {
                     clockWidget: 'not_boolean',
                     transitionIntervalSeconds: -5,
                     backgroundRefreshMinutes: 2000,
-                    showClearLogo: 'not_boolean'
-                }
+                    showClearLogo: 'not_boolean',
+                },
             };
             mockSanitize.mockImplementation(val => val);
 
@@ -488,7 +486,7 @@ describe('Validate Middleware', () => {
             const middleware = createValidationMiddleware(schemas.plexConnection);
             req.body = {
                 hostname: 'invalid..hostname',
-                port: 32400
+                port: 32400,
             };
             mockSanitize.mockImplementation(val => val);
 
@@ -496,7 +494,9 @@ describe('Validate Middleware', () => {
 
             expect(res.status).toHaveBeenCalledWith(400);
             const callArgs = res.json.mock.calls[0][0];
-            expect(callArgs.details.some(d => d.message.includes('Invalid hostname format'))).toBe(true);
+            expect(callArgs.details.some(d => d.message.includes('Invalid hostname format'))).toBe(
+                true
+            );
         });
     });
 

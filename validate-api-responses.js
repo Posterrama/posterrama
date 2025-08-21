@@ -6,20 +6,19 @@
  */
 
 const request = require('supertest');
-const fs = require('fs');
 
 async function validateApiDocumentation() {
     console.log('🧪 API Response Schema Validation\n');
-    
+
     // Import the app (but don't start the full server)
     let app;
     try {
         // Temporarily suppress console output during app loading
         const originalConsole = { ...console };
         console.log = console.error = console.warn = () => {};
-        
+
         app = require('./server.js');
-        
+
         // Restore console
         Object.assign(console, originalConsole);
         console.log('✅ Server module loaded successfully\n');
@@ -43,13 +42,13 @@ async function validateApiDocumentation() {
                     service: { type: 'string' },
                     version: { type: 'string' },
                     timestamp: { type: 'string' },
-                    uptime: { type: 'number' }
-                }
-            }
+                    uptime: { type: 'number' },
+                },
+            },
         },
         {
             name: 'GET /get-config - Configuration',
-            method: 'get', 
+            method: 'get',
             path: '/get-config',
             expectedStatus: 200,
             expectedSchema: {
@@ -63,30 +62,30 @@ async function validateApiDocumentation() {
                     showMetadata: { type: 'boolean' },
                     showRottenTomatoes: { type: 'boolean' },
                     rottenTomatoesMinimumScore: { type: 'number' },
-                    kenBurnsEffect: { type: 'object' }
-                }
-            }
+                    kenBurnsEffect: { type: 'object' },
+                },
+            },
         },
         {
             name: 'GET /api/v1/config - Config Alias',
             method: 'get',
-            path: '/api/v1/config', 
+            path: '/api/v1/config',
             expectedStatus: 200,
-            shouldMatchPath: '/get-config'
+            shouldMatchPath: '/get-config',
         },
         {
             name: 'GET /get-media - Media Playlist',
             method: 'get',
             path: '/get-media',
             expectedStatus: [200, 202, 503], // Multiple valid responses
-            skipSchemaValidation: true // Can vary based on server state
+            skipSchemaValidation: true, // Can vary based on server state
         },
         {
             name: 'GET /api/v1/media - Media Alias',
             method: 'get',
             path: '/api/v1/media',
             expectedStatus: [200, 202, 503],
-            shouldMatchPath: '/get-media'
+            shouldMatchPath: '/get-media',
         },
         {
             name: 'GET /image - Image Proxy (missing params)',
@@ -96,10 +95,10 @@ async function validateApiDocumentation() {
             expectedSchema: {
                 type: 'object',
                 properties: {
-                    error: { type: 'string' }
-                }
-            }
-        }
+                    error: { type: 'string' },
+                },
+            },
+        },
     ];
 
     let passed = 0;
@@ -107,17 +106,19 @@ async function validateApiDocumentation() {
 
     for (const testCase of testCases) {
         console.log(`🔍 Testing: ${testCase.name}`);
-        
+
         try {
             const response = await request(app)[testCase.method](testCase.path);
-            
+
             // Check status code
-            const expectedStatuses = Array.isArray(testCase.expectedStatus) 
-                ? testCase.expectedStatus 
+            const expectedStatuses = Array.isArray(testCase.expectedStatus)
+                ? testCase.expectedStatus
                 : [testCase.expectedStatus];
-                
+
             if (!expectedStatuses.includes(response.status)) {
-                console.log(`   ❌ Status: Expected ${expectedStatuses.join(' or ')}, got ${response.status}`);
+                console.log(
+                    `   ❌ Status: Expected ${expectedStatuses.join(' or ')}, got ${response.status}`
+                );
                 failed++;
                 continue;
             } else {
@@ -126,7 +127,9 @@ async function validateApiDocumentation() {
 
             // Check if response should match another path
             if (testCase.shouldMatchPath) {
-                const originalResponse = await request(app)[testCase.method](testCase.shouldMatchPath);
+                const originalResponse = await request(app)[testCase.method](
+                    testCase.shouldMatchPath
+                );
                 if (JSON.stringify(response.body) === JSON.stringify(originalResponse.body)) {
                     console.log(`   ✅ Alias: Matches ${testCase.shouldMatchPath}`);
                 } else {
@@ -161,7 +164,6 @@ async function validateApiDocumentation() {
 
             passed++;
             console.log(`   ✅ PASSED\n`);
-
         } catch (error) {
             console.log(`   ❌ ERROR: ${error.message}`);
             failed++;
@@ -169,7 +171,7 @@ async function validateApiDocumentation() {
         }
     }
 
-    // Test Swagger UI availability 
+    // Test Swagger UI availability
     console.log('🔍 Testing: Swagger UI Availability');
     try {
         const swaggerResponse = await request(app).get('/api-docs/');
@@ -211,12 +213,12 @@ async function validateApiDocumentation() {
 // Simple schema validation function
 function validateSchema(data, schema) {
     const errors = [];
-    
+
     if (schema.type === 'object') {
         if (typeof data !== 'object' || data === null) {
             return { valid: false, errors: ['Expected object'] };
         }
-        
+
         if (schema.required) {
             for (const field of schema.required) {
                 if (!(field in data)) {
@@ -224,7 +226,7 @@ function validateSchema(data, schema) {
                 }
             }
         }
-        
+
         if (schema.properties) {
             for (const [field, fieldSchema] of Object.entries(schema.properties)) {
                 if (field in data) {
@@ -238,7 +240,7 @@ function validateSchema(data, schema) {
     } else if (schema.type && typeof data !== schema.type) {
         errors.push(`Expected ${schema.type}, got ${typeof data}`);
     }
-    
+
     return { valid: errors.length === 0, errors };
 }
 

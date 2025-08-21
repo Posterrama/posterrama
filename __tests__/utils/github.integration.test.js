@@ -12,10 +12,10 @@ describe('GitHub Service - Integration Tests', () => {
 
     test('should handle caching correctly', async () => {
         const GitHubService = require('../../utils/github');
-        
+
         // Clear cache before test
         GitHubService.clearCache();
-        
+
         // Mock makeRequest to track calls
         const originalMakeRequest = GitHubService.makeRequest;
         let callCount = 0;
@@ -24,20 +24,20 @@ describe('GitHub Service - Integration Tests', () => {
             return Promise.resolve({
                 name: 'v1.0.0',
                 tag_name: 'v1.0.0',
-                published_at: '2023-01-01T00:00:00Z'
+                published_at: '2023-01-01T00:00:00Z',
             });
         });
-        
+
         // First call - should hit API
         const result1 = await GitHubService.getLatestRelease();
         expect(callCount).toBe(1);
-        
+
         // Second call - should use cache
         const result2 = await GitHubService.getLatestRelease();
         expect(callCount).toBe(1); // Should still be 1 due to caching
-        
+
         expect(result1).toEqual(result2);
-        
+
         // Restore original method
         GitHubService.makeRequest = originalMakeRequest;
     });
@@ -45,7 +45,7 @@ describe('GitHub Service - Integration Tests', () => {
     test('should export singleton instance', () => {
         const instance1 = require('../../utils/github');
         const instance2 = require('../../utils/github');
-        
+
         expect(instance1).toBe(instance2);
         expect(typeof instance1).toBe('object');
         expect(typeof instance1.getLatestRelease).toBe('function');
@@ -63,11 +63,11 @@ describe('GitHub Service - Integration Tests', () => {
             assets: [{ name: 'app.tar.gz', browser_download_url: 'https://download.url' }],
             body: 'Release notes',
             published_at: '2023-01-01T00:00:00Z',
-            name: 'v1.0.0'
+            name: 'v1.0.0',
         };
 
         jest.spyOn(GitHubService, 'makeRequest').mockResolvedValue(mockRelease);
-        
+
         const semver = require('semver');
         semver.lt = jest.fn().mockReturnValue(true);
         semver.diff = jest.fn().mockReturnValue('minor');

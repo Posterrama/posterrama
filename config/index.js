@@ -1,21 +1,19 @@
-const path = require('path');
-const fs = require('fs');
 const { validate } = require('../validate-env');
 
 class Config {
     constructor() {
         this.config = require('../config.json');
         this.env = process.env;
-        
+
         // Validate environment variables
         validate();
-        
+
         // Set default values
         this.defaults = {
             serverPort: 4000,
             logLevel: 'info',
             backgroundRefreshMinutes: 30,
-            maxLogLines: 200
+            maxLogLines: 200,
         };
     }
 

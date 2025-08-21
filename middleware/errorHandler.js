@@ -7,8 +7,8 @@ class AppError extends Error {
         this.details = details;
         this.isOperational = true;
         this.timestamp = new Date().toISOString();
-    this.name = 'AppError';
-        
+        this.name = 'AppError';
+
         Error.captureStackTrace(this, this.constructor);
     }
 }
@@ -16,15 +16,15 @@ class AppError extends Error {
 // Calculate similarity between two strings (for suggestions)
 function levenshteinDistance(str1, str2) {
     const matrix = [];
-    
+
     for (let i = 0; i <= str2.length; i++) {
         matrix[i] = [i];
     }
-    
+
     for (let j = 0; j <= str1.length; j++) {
         matrix[0][j] = j;
     }
-    
+
     for (let i = 1; i <= str2.length; i++) {
         for (let j = 1; j <= str1.length; j++) {
             if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
@@ -32,13 +32,13 @@ function levenshteinDistance(str1, str2) {
             } else {
                 matrix[i][j] = Math.min(
                     matrix[i - 1][j - 1] + 1, // substitution
-                    matrix[i][j - 1] + 1,     // insertion
-                    matrix[i - 1][j] + 1      // deletion
+                    matrix[i][j - 1] + 1, // insertion
+                    matrix[i - 1][j] + 1 // deletion
                 );
             }
         }
     }
-    
+
     return matrix[str2.length][str1.length];
 }
 
@@ -52,9 +52,9 @@ function findSimilarEndpoints(requestedPath) {
         '/api/v1/admin/config/validate',
         '/api-docs',
         '/get-config',
-        '/get-media'
+        '/get-media',
     ];
-    
+
     // Special handling for common typos
     if (requestedPath.includes('get-config')) {
         return ['/api/v1/config', '/get-config'];
@@ -62,22 +62,22 @@ function findSimilarEndpoints(requestedPath) {
     if (requestedPath.includes('get-media')) {
         return ['/api/v1/media', '/get-media'];
     }
-    
+
     const suggestions = knownEndpoints
         .map(endpoint => ({
             endpoint,
-            distance: levenshteinDistance(requestedPath, endpoint)
+            distance: levenshteinDistance(requestedPath, endpoint),
         }))
         .filter(item => item.distance <= 3) // Only suggest if reasonably close
         .sort((a, b) => a.distance - b.distance)
         .slice(0, 3) // Max 3 suggestions
         .map(item => item.endpoint);
-    
+
     return suggestions;
 }
 
 // Centralized error handler middleware
-function error(err, req, res, next) {
+function error(err, req, res, _next) {
     const requestId = req.requestId || res.locals.requestId || 'unknown';
     const isProduction = process.env.NODE_ENV === 'production';
     const timestamp = new Date().toISOString();
@@ -101,12 +101,12 @@ function error(err, req, res, next) {
     // Log the error
     logger.error(`[Error Handler] Caught error for ${req.method} ${req.path}: ${err.message}`, {
         stack: err.stack,
-        timestamp
+        timestamp,
     });
 
     // Determine status code
     let statusCode = err.statusCode || err.status || 500;
-    
+
     // Handle specific error types
     if (err.name === 'ValidationError') {
         statusCode = 400;
@@ -117,13 +117,17 @@ function error(err, req, res, next) {
     }
 
     // Build error response
-    const baseMessage = (!err || err.message === 'Unknown error occurred') ? 'Unknown error occurred' : err.message;
+    const baseMessage =
+        !err || err.message === 'Unknown error occurred' ? 'Unknown error occurred' : err.message;
     const errorResponse = {
-        error: isProduction && statusCode === 500 && baseMessage !== 'Unknown error occurred' ? 'Internal Server Error' : baseMessage,
+        error:
+            isProduction && statusCode === 500 && baseMessage !== 'Unknown error occurred'
+                ? 'Internal Server Error'
+                : baseMessage,
         timestamp,
         path: req.path,
         method: req.method,
-        requestId
+        requestId,
     };
 
     // Add additional context in development (only for server errors or non-operational)
@@ -136,33 +140,33 @@ function error(err, req, res, next) {
 }
 
 // 404 handler for unmatched routes
-function notFoundHandler(req, res, next) {
+function notFoundHandler(req, res, _next) {
     const requestId = req.requestId || res.locals.requestId || 'unknown';
     const timestamp = new Date().toISOString();
     const method = req.method;
     const path = req.path;
-    
+
     // Log the 404
     logger.warn(`Route ${method} ${path} not found`, {
         ip: req.ip,
         method,
         path,
         requestId,
-        stack: (new Error(`Route ${method} ${path} not found`)).stack,
+        stack: new Error(`Route ${method} ${path} not found`).stack,
         statusCode: 404,
         timestamp,
-        userAgent: req.get('User-Agent')
+        userAgent: req.get('User-Agent'),
     });
 
     // Build response with suggestions
     const suggestions = findSimilarEndpoints(path);
-    
+
     const errorResponse = {
         error: 'Not Found',
         timestamp,
         path,
         method,
-        requestId
+        requestId,
     };
 
     // Add suggestions if available
@@ -177,5 +181,5 @@ module.exports = {
     AppError,
     errorHandler: error,
     notFoundHandler,
-    findSimilarEndpoints
+    findSimilarEndpoints,
 };

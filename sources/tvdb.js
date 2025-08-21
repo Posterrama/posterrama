@@ -16,15 +16,15 @@ class TVDBSource {
         this.minRating = config.minRating || 0;
         this.yearFilter = config.yearFilter || null;
         this.genreFilter = config.genreFilter || '';
-        
+
         // Cache for API responses
         this.cache = new Map();
         this.cacheTimeout = 30 * 60 * 1000; // 30 minutes
-        
+
         // Genre mapping cache
         this.genreMap = new Map();
         this.genresLoaded = false;
-        
+
         // Performance metrics
         this.metrics = {
             requestCount: 0,
@@ -33,7 +33,7 @@ class TVDBSource {
             cacheMisses: 0,
             averageResponseTime: 0,
             lastRequestTime: null,
-            errorCount: 0
+            errorCount: 0,
         };
     }
 
@@ -44,10 +44,12 @@ class TVDBSource {
     getMetrics() {
         return {
             ...this.metrics,
-            cacheHitRate: this.metrics.requestCount > 0 ? 
-                (this.metrics.cacheHits / this.metrics.requestCount) : 0,
+            cacheHitRate:
+                this.metrics.requestCount > 0
+                    ? this.metrics.cacheHits / this.metrics.requestCount
+                    : 0,
             cacheSize: this.cache.size,
-            genreMapSize: this.genreMap.size
+            genreMapSize: this.genreMap.size,
         };
     }
 
@@ -62,7 +64,7 @@ class TVDBSource {
             cacheMisses: 0,
             averageResponseTime: 0,
             lastRequestTime: null,
-            errorCount: 0
+            errorCount: 0,
         };
     }
 
@@ -74,9 +76,9 @@ class TVDBSource {
         try {
             // For developer API keys, we don't need a PIN
             const authBody = {
-                apikey: this.apiKey
+                apikey: this.apiKey,
             };
-            
+
             // Only add PIN if it's provided (for user accounts)
             if (this.pin && this.pin.trim() !== '') {
                 authBody.pin = this.pin;
@@ -87,7 +89,7 @@ class TVDBSource {
             if (response.data && response.data.data && response.data.data.token) {
                 this.token = response.data.data.token;
                 // TVDB tokens expire after 1 month, but we'll refresh every 24 hours to be safe
-                this.tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
+                this.tokenExpiry = Date.now() + 24 * 60 * 60 * 1000;
                 logger.info('TVDB authentication successful');
                 return this.token;
             } else {
@@ -102,13 +104,13 @@ class TVDBSource {
     async makeAuthenticatedRequest(endpoint, params = {}) {
         try {
             await this.authenticate();
-            
+
             const response = await axios.get(`${this.baseURL}${endpoint}`, {
                 headers: {
-                    'Authorization': `Bearer ${this.token}`,
-                    'Accept': 'application/json'
+                    Authorization: `Bearer ${this.token}`,
+                    Accept: 'application/json',
                 },
-                params
+                params,
             });
 
             return response.data;
@@ -117,15 +119,15 @@ class TVDBSource {
                 // Token expired, clear it and retry once
                 this.token = null;
                 this.tokenExpiry = null;
-                
+
                 try {
                     await this.authenticate();
                     const retryResponse = await axios.get(`${this.baseURL}${endpoint}`, {
                         headers: {
-                            'Authorization': `Bearer ${this.token}`,
-                            'Accept': 'application/json'
+                            Authorization: `Bearer ${this.token}`,
+                            Accept: 'application/json',
                         },
-                        params
+                        params,
                     });
                     return retryResponse.data;
                 } catch (retryError) {
@@ -133,7 +135,7 @@ class TVDBSource {
                     throw retryError;
                 }
             }
-            
+
             logger.error('TVDB API request failed:', error.message);
             throw error;
         }
@@ -155,29 +157,30 @@ class TVDBSource {
             }
 
             const response = await this.makeAuthenticatedRequest(endpoint);
-            
+
             if (!response.data || !Array.isArray(response.data.artworks)) {
                 return { fanart: null, poster: null };
             }
 
             const artworks = response.data.artworks;
-            
+
             // Find fanart (background) and poster
-            const fanart = artworks.find(art => art.type === 5) || // type 5 = fanart
-                          artworks.find(art => art.type === 3) || // type 3 = background  
-                          artworks.find(art => art.language === 'eng' && art.type === 15); // type 15 = series images
-            
-            const poster = artworks.find(art => art.type === 2 && art.language === 'eng') || // type 2 = poster
-                          artworks.find(art => art.type === 1); // type 1 = poster (any language)
+            const fanart =
+                artworks.find(art => art.type === 5) || // type 5 = fanart
+                artworks.find(art => art.type === 3) || // type 3 = background
+                artworks.find(art => art.language === 'eng' && art.type === 15); // type 15 = series images
+
+            const poster =
+                artworks.find(art => art.type === 2 && art.language === 'eng') || // type 2 = poster
+                artworks.find(art => art.type === 1); // type 1 = poster (any language)
 
             const result = {
                 fanart: fanart ? this.getImageUrl(fanart.image) : null,
-                poster: poster ? this.getImageUrl(poster.image) : null
+                poster: poster ? this.getImageUrl(poster.image) : null,
             };
 
             this.setCachedData(cacheKey, result);
             return result;
-
         } catch (error) {
             logger.warn(`Failed to fetch artwork for ${itemType} ${itemId}:`, error.message);
             return { fanart: null, poster: null };
@@ -196,7 +199,7 @@ class TVDBSource {
             }
 
             const response = await this.makeAuthenticatedRequest('/genres');
-            
+
             if (response.data && Array.isArray(response.data)) {
                 this.setCachedData(cacheKey, response.data);
                 this.processGenreData(response.data);
@@ -221,7 +224,7 @@ class TVDBSource {
         await this.loadGenres();
         return Array.from(this.genreMap.entries()).map(([id, name]) => ({
             id: id.toString(),
-            name
+            name,
         }));
     }
 
@@ -236,7 +239,7 @@ class TVDBSource {
     setCachedData(key, data) {
         this.cache.set(key, {
             data,
-            timestamp: Date.now()
+            timestamp: Date.now(),
         });
     }
 
@@ -252,9 +255,9 @@ class TVDBSource {
                 return cached;
             }
 
-            let endpoint = '/series';
-            let params = {
-                limit: Math.min(this.showCount * 2, 500) // Get more to filter
+            const endpoint = '/series';
+            const params = {
+                limit: Math.min(this.showCount * 2, 500), // Get more to filter
             };
 
             // Add category-specific parameters
@@ -297,17 +300,16 @@ class TVDBSource {
             }
 
             const response = await this.makeAuthenticatedRequest(endpoint, params);
-            
+
             if (!response.data || !Array.isArray(response.data)) {
                 logger.warn('Invalid TVDB series response format');
                 return [];
             }
 
             const shows = await this.processShows(response.data);
-            
+
             this.setCachedData(cacheKey, shows);
             return shows;
-
         } catch (error) {
             logger.error('Failed to fetch TVDB shows:', error.message);
             return [];
@@ -326,9 +328,9 @@ class TVDBSource {
                 return cached;
             }
 
-            let endpoint = '/movies';
-            let params = {
-                limit: Math.min(this.movieCount * 2, 500)
+            const endpoint = '/movies';
+            const params = {
+                limit: Math.min(this.movieCount * 2, 500),
             };
 
             // Add category-specific parameters
@@ -371,17 +373,16 @@ class TVDBSource {
             }
 
             const response = await this.makeAuthenticatedRequest(endpoint, params);
-            
+
             if (!response.data || !Array.isArray(response.data)) {
                 logger.warn('Invalid TVDB movies response format');
                 return [];
             }
 
             const movies = await this.processMovies(response.data);
-            
+
             this.setCachedData(cacheKey, movies);
             return movies;
-
         } catch (error) {
             logger.error('Failed to fetch TVDB movies:', error.message);
             return [];
@@ -390,18 +391,21 @@ class TVDBSource {
 
     async processShows(shows) {
         const processed = [];
-        
+
         for (const show of shows) {
             try {
                 // Apply rating filter
-                if (this.minRating > 0 && (!show.averageRating || show.averageRating < this.minRating)) {
+                if (
+                    this.minRating > 0 &&
+                    (!show.averageRating || show.averageRating < this.minRating)
+                ) {
                     continue;
                 }
 
                 // Try to get better artwork for first few items
                 let backgroundUrl = this.getImageUrl(show.fanart) || this.getImageUrl(show.image);
                 let posterUrl = this.getImageUrl(show.image);
-                
+
                 // For the first 5 items, try to get high quality artwork
                 if (processed.length < 5) {
                     try {
@@ -431,11 +435,11 @@ class TVDBSource {
                     rottenTomatoes: null, // Not available from TVDB
                     source: 'tvdb',
                     id: show.id,
-                    type: 'tv'
+                    type: 'tv',
                 };
 
                 processed.push(processedShow);
-                
+
                 if (processed.length >= this.showCount) {
                     break;
                 }
@@ -449,18 +453,21 @@ class TVDBSource {
 
     async processMovies(movies) {
         const processed = [];
-        
+
         for (const movie of movies) {
             try {
                 // Apply rating filter
-                if (this.minRating > 0 && (!movie.averageRating || movie.averageRating < this.minRating)) {
+                if (
+                    this.minRating > 0 &&
+                    (!movie.averageRating || movie.averageRating < this.minRating)
+                ) {
                     continue;
                 }
 
                 // Try to get better artwork for first few items
                 let backgroundUrl = this.getImageUrl(movie.fanart) || this.getImageUrl(movie.image);
                 let posterUrl = this.getImageUrl(movie.image);
-                
+
                 // For the first 5 items, try to get high quality artwork
                 if (processed.length < 5) {
                     try {
@@ -490,11 +497,11 @@ class TVDBSource {
                     rottenTomatoes: null, // Not available from TVDB
                     source: 'tvdb',
                     id: movie.id,
-                    type: 'movie'
+                    type: 'movie',
                 };
 
                 processed.push(processedMovie);
-                
+
                 if (processed.length >= this.movieCount) {
                     break;
                 }
@@ -512,10 +519,8 @@ class TVDBSource {
         }
 
         await this.loadGenres();
-        
-        return genreIds
-            .map(id => this.genreMap.get(id))
-            .filter(name => name);
+
+        return genreIds.map(id => this.genreMap.get(id)).filter(name => name);
     }
 
     extractYear(dateString) {
@@ -526,41 +531,41 @@ class TVDBSource {
 
     getImageUrl(imagePath) {
         if (!imagePath) return null;
-        
+
         // TVDB image URLs are typically full URLs or relative paths
         if (imagePath.startsWith('http')) {
             return imagePath;
         }
-        
+
         return `https://artworks.thetvdb.com${imagePath}`;
     }
 
     async testConnection() {
         try {
             await this.authenticate();
-            
+
             // Test with a simple API call
             const response = await this.makeAuthenticatedRequest('/series', { limit: 1 });
-            
+
             if (response && response.data) {
                 return {
                     success: true,
                     message: 'TVDB connection successful',
                     details: {
                         authenticated: true,
-                        apiVersion: 'v4'
-                    }
+                        apiVersion: 'v4',
+                    },
                 };
             } else {
                 return {
                     success: false,
-                    message: 'Invalid response from TVDB API'
+                    message: 'Invalid response from TVDB API',
                 };
             }
         } catch (error) {
             return {
                 success: false,
-                message: `TVDB connection failed: ${error.message}`
+                message: `TVDB connection failed: ${error.message}`,
             };
         }
     }
@@ -568,18 +573,18 @@ class TVDBSource {
     getCacheStats() {
         const stats = {
             totalEntries: this.cache.size,
-            entries: []
+            entries: [],
         };
 
         for (const [key, value] of this.cache.entries()) {
             const age = Date.now() - value.timestamp;
             const remaining = Math.max(0, this.cacheTimeout - age);
-            
+
             stats.entries.push({
                 key,
                 age: Math.round(age / 1000),
                 remaining: Math.round(remaining / 1000),
-                size: JSON.stringify(value.data).length
+                size: JSON.stringify(value.data).length,
             });
         }
 

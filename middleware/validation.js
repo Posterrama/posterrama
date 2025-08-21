@@ -15,14 +15,14 @@ function handleValidationErrors(req, res, next) {
         const errorDetails = errors.array().map(error => ({
             field: error.path || error.param,
             message: error.msg,
-            value: error.value
+            value: error.value,
         }));
 
         logger.warn('Validation failed', {
             url: req.url,
             method: req.method,
             errors: errorDetails,
-            ip: req.ip
+            ip: req.ip,
         });
 
         return res.status(400).json({
@@ -30,8 +30,8 @@ function handleValidationErrors(req, res, next) {
             error: {
                 message: 'Validation failed',
                 code: 400,
-                details: errorDetails
-            }
+                details: errorDetails,
+            },
         });
     }
     next();
@@ -56,10 +56,7 @@ const validationRules = {
             .isAlphanumeric()
             .isLength({ max: 50 })
             .withMessage('Source must be alphanumeric and max 50 characters'),
-        query('nocache')
-            .optional()
-            .isBoolean()
-            .withMessage('Nocache must be a boolean')
+        query('nocache').optional().isBoolean().withMessage('Nocache must be a boolean'),
     ],
 
     // Admin authentication validation
@@ -68,11 +65,13 @@ const validationRules = {
             .notEmpty()
             .isLength({ min: 1, max: 50 })
             .matches(/^[a-zA-Z0-9_-]+$/)
-            .withMessage('Username must be 1-50 characters, letters, numbers, underscore, or dash only'),
+            .withMessage(
+                'Username must be 1-50 characters, letters, numbers, underscore, or dash only'
+            ),
         body('password')
             .notEmpty()
             .isLength({ min: 3, max: 200 })
-            .withMessage('Password must be 3-200 characters')
+            .withMessage('Password must be 3-200 characters'),
     ],
 
     // Configuration validation
@@ -90,24 +89,22 @@ const validationRules = {
             .optional()
             .isLength({ min: 1, max: 50 })
             .matches(/^[a-zA-Z0-9_-]+$/)
-            .withMessage('Admin username must be 1-50 characters, alphanumeric with underscore or dash'),
-        body('enableDebugMode')
-            .optional()
-            .isBoolean()
-            .withMessage('Debug mode must be a boolean'),
-        body('sources')
-            .optional()
-            .isArray()
-            .withMessage('Sources must be an array'),
+            .withMessage(
+                'Admin username must be 1-50 characters, alphanumeric with underscore or dash'
+            ),
+        body('enableDebugMode').optional().isBoolean().withMessage('Debug mode must be a boolean'),
+        body('sources').optional().isArray().withMessage('Sources must be an array'),
         body('sources.*.name')
             .optional()
             .isLength({ min: 1, max: 100 })
             .matches(/^[a-zA-Z0-9\s_-]+$/)
-            .withMessage('Source name must be 1-100 characters, alphanumeric with spaces, underscore, or dash'),
+            .withMessage(
+                'Source name must be 1-100 characters, alphanumeric with spaces, underscore, or dash'
+            ),
         body('sources.*.apiKey')
             .optional()
             .isLength({ min: 5, max: 200 })
-            .withMessage('API key must be 5-200 characters')
+            .withMessage('API key must be 5-200 characters'),
     ],
 
     // Image proxy validation
@@ -123,7 +120,7 @@ const validationRules = {
         query('height')
             .optional()
             .isInt({ min: 10, max: 2000 })
-            .withMessage('Height must be between 10 and 2000 pixels')
+            .withMessage('Height must be between 10 and 2000 pixels'),
     ],
 
     // Cache management validation
@@ -135,7 +132,7 @@ const validationRules = {
         body('type')
             .optional()
             .isIn(['image', 'api', 'response', 'all'])
-            .withMessage('Type must be image, api, response, or all')
+            .withMessage('Type must be image, api, response, or all'),
     ],
 
     // Search validation
@@ -149,7 +146,7 @@ const validationRules = {
         query('limit')
             .optional()
             .isInt({ min: 1, max: 50 })
-            .withMessage('Limit must be between 1 and 50')
+            .withMessage('Limit must be between 1 and 50'),
     ],
 
     // Generic ID validation
@@ -158,13 +155,13 @@ const validationRules = {
             .notEmpty()
             .matches(/^[a-zA-Z0-9_-]+$/)
             .isLength({ max: 100 })
-            .withMessage('ID must be alphanumeric with underscore or dash, max 100 characters')
+            .withMessage('ID must be alphanumeric with underscore or dash, max 100 characters'),
     ],
 
     // Admin request validation (minimal for authenticated routes)
     adminRequest: [
         // No specific validation needed for cache stats - authentication is handled by middleware
-    ]
+    ],
 };
 
 /**
@@ -179,12 +176,12 @@ const rateLimitRules = {
             success: false,
             error: {
                 message: 'Too many authentication attempts, please try again later',
-                code: 429
-            }
+                code: 429,
+            },
         },
         standardHeaders: true,
         legacyHeaders: false,
-        skipSuccessfulRequests: true
+        skipSuccessfulRequests: true,
     },
 
     // Moderate limits for API endpoints
@@ -195,11 +192,11 @@ const rateLimitRules = {
             success: false,
             error: {
                 message: 'Too many API requests, please slow down',
-                code: 429
-            }
+                code: 429,
+            },
         },
         standardHeaders: true,
-        legacyHeaders: false
+        legacyHeaders: false,
     },
 
     // Generous limits for media endpoints
@@ -210,11 +207,11 @@ const rateLimitRules = {
             success: false,
             error: {
                 message: 'Too many media requests, please slow down',
-                code: 429
-            }
+                code: 429,
+            },
         },
         standardHeaders: true,
-        legacyHeaders: false
+        legacyHeaders: false,
     },
 
     // Very strict limits for admin actions
@@ -225,12 +222,12 @@ const rateLimitRules = {
             success: false,
             error: {
                 message: 'Too many admin requests, please slow down',
-                code: 429
-            }
+                code: 429,
+            },
         },
         standardHeaders: true,
-        legacyHeaders: false
-    }
+        legacyHeaders: false,
+    },
 };
 
 /**
@@ -238,7 +235,7 @@ const rateLimitRules = {
  */
 function sanitizePath(path) {
     if (typeof path !== 'string') return '';
-    
+
     // Remove any path traversal attempts
     return path
         .replace(/\.\./g, '')
@@ -252,20 +249,15 @@ function sanitizePath(path) {
  */
 function sanitizeHtml(content) {
     if (typeof content !== 'string') return '';
-    
-    return content
-        .replace(/[<>]/g, '')
-        .trim();
+
+    return content.replace(/[<>]/g, '').trim();
 }
 
 /**
  * Create validation middleware for specific endpoint
  */
 function createValidationMiddleware(rules) {
-    return [
-        ...rules,
-        handleValidationErrors
-    ];
+    return [...rules, handleValidationErrors];
 }
 
 module.exports = {
@@ -274,5 +266,5 @@ module.exports = {
     handleValidationErrors,
     createValidationMiddleware,
     sanitizePath,
-    sanitizeHtml
+    sanitizeHtml,
 };

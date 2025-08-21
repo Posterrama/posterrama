@@ -10,7 +10,7 @@ describe('GitHub Service - checkForUpdates', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         GitHubService.clearCache();
-        
+
         // Mock semver functions
         semver.lt.mockReturnValue(false);
         semver.diff.mockReturnValue(null);
@@ -18,16 +18,16 @@ describe('GitHub Service - checkForUpdates', () => {
 
     test('should compare versions and detect update', async () => {
         const currentVersion = '0.9.0';
-        
+
         const mockRelease = {
             tag_name: '1.0.0',
             html_url: 'https://github.com/Posterrama/posterrama/releases/tag/v1.0.0',
             assets: [
-                { name: 'posterrama-v1.0.0.zip', browser_download_url: 'https://download.url' }
+                { name: 'posterrama-v1.0.0.zip', browser_download_url: 'https://download.url' },
             ],
             body: 'Release notes',
             published_at: '2023-01-01T00:00:00Z',
-            name: 'Version 1.0.0'
+            name: 'Version 1.0.0',
         };
 
         jest.spyOn(GitHubService, 'getLatestRelease').mockResolvedValue(mockRelease);
@@ -45,7 +45,7 @@ describe('GitHub Service - checkForUpdates', () => {
             downloadUrl: 'https://download.url',
             releaseNotes: 'Release notes',
             publishedAt: '2023-01-01T00:00:00Z',
-            releaseName: 'Version 1.0.0'
+            releaseName: 'Version 1.0.0',
         });
 
         expect(semver.lt).toHaveBeenCalledWith('0.9.0', '1.0.0');
@@ -54,7 +54,7 @@ describe('GitHub Service - checkForUpdates', () => {
             current: '0.9.0',
             latest: '1.0.0',
             hasUpdate: true,
-            updateType: 'minor'
+            updateType: 'minor',
         });
     });
 
@@ -66,11 +66,11 @@ describe('GitHub Service - checkForUpdates', () => {
             tarball_url: 'https://tarball.url',
             body: null,
             published_at: '2023-01-01T00:00:00Z',
-            name: null
+            name: null,
         };
 
         jest.spyOn(GitHubService, 'getLatestRelease').mockResolvedValue(mockRelease);
-        
+
         await GitHubService.checkForUpdates('v0.9.0');
 
         expect(semver.lt).toHaveBeenCalledWith('0.9.0', '1.0.0');
@@ -84,7 +84,7 @@ describe('GitHub Service - checkForUpdates', () => {
             zipball_url: 'https://zipball.url',
             body: 'Notes',
             published_at: '2023-01-01T00:00:00Z',
-            name: null
+            name: null,
         };
 
         jest.spyOn(GitHubService, 'getLatestRelease').mockResolvedValue(mockRelease);
@@ -99,13 +99,11 @@ describe('GitHub Service - checkForUpdates', () => {
         const mockRelease = {
             tag_name: '1.0.0',
             html_url: 'https://github.com/test',
-            assets: [
-                { name: 'posterrama-v1.0.0.zip', browser_download_url: 'https://zip.url' }
-            ],
+            assets: [{ name: 'posterrama-v1.0.0.zip', browser_download_url: 'https://zip.url' }],
             zipball_url: 'https://zipball.url',
             body: 'Notes',
             published_at: '2023-01-01T00:00:00Z',
-            name: 'Release'
+            name: 'Release',
         };
 
         jest.spyOn(GitHubService, 'getLatestRelease').mockResolvedValue(mockRelease);
@@ -123,7 +121,7 @@ describe('GitHub Service - checkForUpdates', () => {
             zipball_url: 'https://zipball.url',
             body: 'Notes',
             published_at: '2023-01-01T00:00:00Z',
-            name: 'Release'
+            name: 'Release',
         };
 
         jest.spyOn(GitHubService, 'getLatestRelease').mockResolvedValue(mockRelease);
@@ -142,19 +140,19 @@ describe('GitHub Service - checkForUpdates', () => {
 
         await expect(GitHubService.checkForUpdates('1.0.0')).rejects.toThrow('API Error');
         expect(logger.error).toHaveBeenCalledWith('Failed to check for updates', {
-            error: 'API Error'
+            error: 'API Error',
         });
     });
 
     test('should handle semver comparison errors', async () => {
-        const mockRelease = { 
+        const mockRelease = {
             tag_name: 'invalid-version',
             html_url: 'https://github.com/test',
             assets: [],
             tarball_url: 'https://tarball.url',
             body: 'Notes',
             published_at: '2023-01-01T00:00:00Z',
-            name: 'Release'
+            name: 'Release',
         };
         jest.spyOn(GitHubService, 'getLatestRelease').mockResolvedValue(mockRelease);
         semver.lt.mockImplementation(() => {
@@ -172,12 +170,12 @@ describe('GitHub Service - checkForUpdates', () => {
             tarball_url: 'https://tarball.url',
             body: '',
             published_at: '2023-01-01T00:00:00Z',
-            name: ''
+            name: '',
         };
 
         jest.spyOn(GitHubService, 'getLatestRelease').mockResolvedValue(mockRelease);
 
-        const result = await GitHubService.checkForUpdates('release-0.9.0-alpha');
+        await GitHubService.checkForUpdates('release-0.9.0-alpha');
 
         expect(semver.lt).toHaveBeenCalledWith('release-0.9.0-alpha', 'release-1.0.0-beta');
     });

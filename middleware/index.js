@@ -17,22 +17,22 @@ function securityMiddleware() {
         contentSecurityPolicy: {
             directives: {
                 defaultSrc: ["'self'"],
-                styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-                fontSrc: ["'self'", "https://fonts.gstatic.com"],
-                imgSrc: ["'self'", "data:", "https:", "http:"],
+                styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+                fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+                imgSrc: ["'self'", 'data:', 'https:', 'http:'],
                 scriptSrc: ["'self'", "'unsafe-inline'"],
                 connectSrc: ["'self'"],
                 frameSrc: ["'none'"],
                 objectSrc: ["'none'"],
-                mediaSrc: ["'self'", "https:", "http:"]
+                mediaSrc: ["'self'", 'https:', 'http:'],
             },
         },
         crossOriginEmbedderPolicy: false,
         hsts: {
             maxAge: 31536000,
             includeSubDomains: true,
-            preload: true
-        }
+            preload: true,
+        },
     });
 }
 
@@ -46,23 +46,25 @@ function compressionMiddleware() {
         if (req.path === '/get-media' || req.path.includes('get-media')) {
             return next();
         }
-        
+
         // Use default compression for other routes
         return compression({
             filter: (req, res) => {
                 // Don't compress already compressed content or images
-                if (req.headers['x-no-compression'] || 
+                if (
+                    req.headers['x-no-compression'] ||
                     req.url.includes('/image/') ||
-                    req.url.endsWith('.jpg') || 
+                    req.url.endsWith('.jpg') ||
                     req.url.endsWith('.png') ||
                     req.url.endsWith('.gif') ||
-                    req.url.endsWith('.webp')) {
+                    req.url.endsWith('.webp')
+                ) {
                     return false;
                 }
                 return compression.filter(req, res);
             },
             level: 6,
-            threshold: 1024
+            threshold: 1024,
         })(req, res, next);
     };
 }
@@ -79,14 +81,14 @@ function corsMiddleware() {
                 callback(null, true);
                 return;
             }
-            
+
             // Allow all origins for self-hosted applications
             // Users can host Posterrama on any domain they want
             callback(null, true);
         },
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     });
 }
 
@@ -98,9 +100,9 @@ function requestLoggingMiddleware() {
     return (req, res, next) => {
         const startTime = Date.now();
         const originalJson = res.json;
-        
+
         // Override res.json to capture response size
-        res.json = function(data) {
+        res.json = function (data) {
             const responseSize = JSON.stringify(data).length;
             res.locals.responseSize = responseSize;
             return originalJson.call(this, data);
@@ -116,7 +118,7 @@ function requestLoggingMiddleware() {
                 duration: `${duration}ms`,
                 userAgent: req.get('User-Agent')?.substring(0, 100),
                 ip: req.ip || req.connection.remoteAddress,
-                responseSize: res.locals.responseSize || 0
+                responseSize: res.locals.responseSize || 0,
             };
 
             if (res.statusCode >= 400) {
@@ -145,7 +147,7 @@ function errorHandlingMiddleware() {
             url: req.url,
             method: req.method,
             ip: req.ip || req.connection.remoteAddress,
-            userAgent: req.get('User-Agent')?.substring(0, 100)
+            userAgent: req.get('User-Agent')?.substring(0, 100),
         };
 
         if (error.statusCode && error.statusCode < 500) {
@@ -167,8 +169,8 @@ function errorHandlingMiddleware() {
             error: {
                 message,
                 code: statusCode,
-                ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-            }
+                ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
+            },
         });
     };
 }
@@ -181,25 +183,25 @@ function healthCheckMiddleware() {
     return (req, res) => {
         const uptime = process.uptime();
         const memoryUsage = process.memoryUsage();
-        
+
         const health = {
             status: 'healthy',
             timestamp: new Date().toISOString(),
             uptime: {
                 seconds: Math.floor(uptime),
-                human: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`
+                human: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
             },
             memory: {
                 rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
                 heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
                 heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
-                external: `${Math.round(memoryUsage.external / 1024 / 1024)}MB`
+                external: `${Math.round(memoryUsage.external / 1024 / 1024)}MB`,
             },
             environment: {
                 nodeVersion: process.version,
                 platform: process.platform,
-                arch: process.arch
-            }
+                arch: process.arch,
+            },
         };
 
         res.json(health);
@@ -212,5 +214,5 @@ module.exports = {
     corsMiddleware,
     requestLoggingMiddleware,
     errorHandlingMiddleware,
-    healthCheckMiddleware
+    healthCheckMiddleware,
 };

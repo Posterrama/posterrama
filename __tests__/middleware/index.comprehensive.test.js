@@ -11,26 +11,26 @@ const {
     corsMiddleware,
     requestLoggingMiddleware,
     errorHandlingMiddleware,
-    healthCheckMiddleware
+    healthCheckMiddleware,
 } = require('../../middleware/index');
 
 // Mock dependencies
 jest.mock('../../logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
-    error: jest.fn()
+    error: jest.fn(),
 }));
 
 const logger = require('../../logger');
 
 describe('Middleware Index - Comprehensive Tests', () => {
     let app;
-    
+
     beforeEach(() => {
         app = express();
         // Reset all mocks
         jest.clearAllMocks();
-        
+
         // Reset environment
         delete process.env.NODE_ENV;
     });
@@ -73,8 +73,12 @@ describe('Middleware Index - Comprehensive Tests', () => {
             const response = await request(app).get('/test');
 
             expect(response.headers['content-security-policy']).toContain("default-src 'self'");
-            expect(response.headers['content-security-policy']).toContain("script-src 'self' 'unsafe-inline'");
-            expect(response.headers['content-security-policy']).toContain("img-src 'self' data: https: http:");
+            expect(response.headers['content-security-policy']).toContain(
+                "script-src 'self' 'unsafe-inline'"
+            );
+            expect(response.headers['content-security-policy']).toContain(
+                "img-src 'self' data: https: http:"
+            );
         });
 
         test('should configure HSTS with correct settings', async () => {
@@ -97,9 +101,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
                 res.json(largeData);
             });
 
-            const response = await request(app)
-                .get('/large-json')
-                .set('Accept-Encoding', 'gzip');
+            const response = await request(app).get('/large-json').set('Accept-Encoding', 'gzip');
 
             expect(response.headers['content-encoding']).toBe('gzip');
         });
@@ -138,9 +140,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
                 res.send('x'.repeat(2000));
             });
 
-            const response = await request(app)
-                .get('/test.png')
-                .set('Accept-Encoding', 'gzip');
+            const response = await request(app).get('/test.png').set('Accept-Encoding', 'gzip');
 
             expect(response.headers['content-encoding']).toBeUndefined();
         });
@@ -151,9 +151,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
                 res.send('x'.repeat(2000));
             });
 
-            const response = await request(app)
-                .get('/test.gif')
-                .set('Accept-Encoding', 'gzip');
+            const response = await request(app).get('/test.gif').set('Accept-Encoding', 'gzip');
 
             expect(response.headers['content-encoding']).toBeUndefined();
         });
@@ -164,9 +162,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
                 res.send('x'.repeat(2000));
             });
 
-            const response = await request(app)
-                .get('/test.webp')
-                .set('Accept-Encoding', 'gzip');
+            const response = await request(app).get('/test.webp').set('Accept-Encoding', 'gzip');
 
             expect(response.headers['content-encoding']).toBeUndefined();
         });
@@ -177,9 +173,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
                 res.json({ small: 'data' }); // < 1KB
             });
 
-            const response = await request(app)
-                .get('/small')
-                .set('Accept-Encoding', 'gzip');
+            const response = await request(app).get('/small').set('Accept-Encoding', 'gzip');
 
             expect(response.headers['content-encoding']).toBeUndefined();
         });
@@ -202,9 +196,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
             app.use(corsMiddleware());
             app.options('/test', (req, res) => res.sendStatus(200));
 
-            const response = await request(app)
-                .options('/test')
-                .set('Origin', 'null');
+            const response = await request(app).options('/test').set('Origin', 'null');
 
             expect(response.headers['access-control-allow-origin']).toBe('null');
         });
@@ -264,7 +256,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
                     method: 'GET',
                     url: '/api/test',
                     statusCode: 200,
-                    duration: expect.stringMatching(/\d+ms/)
+                    duration: expect.stringMatching(/\d+ms/),
                 })
             );
         });
@@ -278,7 +270,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
             expect(logger.warn).toHaveBeenCalledWith(
                 'Request completed with error',
                 expect.objectContaining({
-                    statusCode: 404
+                    statusCode: 404,
                 })
             );
         });
@@ -292,7 +284,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
             expect(logger.warn).toHaveBeenCalledWith(
                 'Request completed with error',
                 expect.objectContaining({
-                    statusCode: 500
+                    statusCode: 500,
                 })
             );
         });
@@ -306,7 +298,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
             expect(logger.info).toHaveBeenCalledWith(
                 'API request completed',
                 expect.objectContaining({
-                    responseSize: expect.any(Number)
+                    responseSize: expect.any(Number),
                 })
             );
 
@@ -320,14 +312,12 @@ describe('Middleware Index - Comprehensive Tests', () => {
 
             const longUserAgent = 'x'.repeat(200);
 
-            await request(app)
-                .get('/api/test')
-                .set('User-Agent', longUserAgent);
+            await request(app).get('/api/test').set('User-Agent', longUserAgent);
 
             expect(logger.info).toHaveBeenCalledWith(
                 'API request completed',
                 expect.objectContaining({
-                    userAgent: expect.stringMatching(/^x{100}$/)
+                    userAgent: expect.stringMatching(/^x{100}$/),
                 })
             );
         });
@@ -341,7 +331,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
             expect(logger.info).toHaveBeenCalledWith(
                 'API request completed',
                 expect.objectContaining({
-                    userAgent: undefined
+                    userAgent: undefined,
                 })
             );
         });
@@ -355,7 +345,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
             expect(logger.info).toHaveBeenCalledWith(
                 'API request completed',
                 expect.objectContaining({
-                    ip: expect.any(String)
+                    ip: expect.any(String),
                 })
             );
         });
@@ -393,7 +383,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
             expect(logger.warn).toHaveBeenCalledWith(
                 'Slow request detected',
                 expect.objectContaining({
-                    duration: expect.stringMatching(/^60\d\dms$/) // 6000+ms due to async timing
+                    duration: expect.stringMatching(/^60\d\dms$/), // 6000+ms due to async timing
                 })
             );
 
@@ -418,8 +408,8 @@ describe('Middleware Index - Comprehensive Tests', () => {
                 success: false,
                 error: {
                     message: 'Client error',
-                    code: 400
-                }
+                    code: 400,
+                },
             });
 
             expect(logger.warn).toHaveBeenCalledWith(
@@ -427,7 +417,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
                 expect.objectContaining({
                     error: 'Client error',
                     url: '/test',
-                    method: 'GET'
+                    method: 'GET',
                 })
             );
         });
@@ -447,14 +437,14 @@ describe('Middleware Index - Comprehensive Tests', () => {
                 success: false,
                 error: {
                     message: 'Internal Server Error',
-                    code: 500
-                }
+                    code: 500,
+                },
             });
 
             expect(logger.error).toHaveBeenCalledWith(
                 'Server error occurred',
                 expect.objectContaining({
-                    error: 'Server error'
+                    error: 'Server error',
                 })
             );
         });
@@ -474,7 +464,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
 
         test('should include stack trace in development mode', async () => {
             process.env.NODE_ENV = 'development';
-            
+
             app.get('/test', (req, res, next) => {
                 const error = new Error('Test error');
                 error.statusCode = 400;
@@ -490,7 +480,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
 
         test('should not include stack trace in production', async () => {
             process.env.NODE_ENV = 'production';
-            
+
             app.get('/test', (req, res, next) => {
                 const error = new Error('Test error');
                 error.statusCode = 400;
@@ -503,7 +493,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
             expect(response.body.error).not.toHaveProperty('stack');
         });
 
-        test('should handle errors when headers are already sent', (done) => {
+        test('should handle errors when headers are already sent', done => {
             app.get('/test', (req, res, next) => {
                 res.write('Partial response');
                 const error = new Error('Late error');
@@ -514,7 +504,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
 
             request(app)
                 .get('/test')
-                .end((err, res) => {
+                .end((_err, _res) => {
                     // This test mainly ensures no crash occurs and error is logged
                     expect(logger.error).toHaveBeenCalled();
                     done();
@@ -529,9 +519,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
             });
             app.use(errorHandlingMiddleware());
 
-            await request(app)
-                .get('/test')
-                .set('User-Agent', 'Test Agent');
+            await request(app).get('/test').set('User-Agent', 'Test Agent');
 
             expect(logger.warn).toHaveBeenCalledWith(
                 'Client error occurred',
@@ -541,7 +529,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
                     url: '/test',
                     method: 'GET',
                     ip: expect.any(String),
-                    userAgent: 'Test Agent'
+                    userAgent: 'Test Agent',
                 })
             );
         });
@@ -559,19 +547,19 @@ describe('Middleware Index - Comprehensive Tests', () => {
                 timestamp: expect.any(String),
                 uptime: {
                     seconds: expect.any(Number),
-                    human: expect.stringMatching(/\d+h \d+m \d+s/)
+                    human: expect.stringMatching(/\d+h \d+m \d+s/),
                 },
                 memory: {
                     rss: expect.stringMatching(/\d+MB/),
                     heapTotal: expect.stringMatching(/\d+MB/),
                     heapUsed: expect.stringMatching(/\d+MB/),
-                    external: expect.stringMatching(/\d+MB/)
+                    external: expect.stringMatching(/\d+MB/),
                 },
                 environment: {
                     nodeVersion: process.version,
                     platform: process.platform,
-                    arch: process.arch
-                }
+                    arch: process.arch,
+                },
             });
         });
 
@@ -623,11 +611,11 @@ describe('Middleware Index - Comprehensive Tests', () => {
             app.use(compressionMiddleware());
             app.use(corsMiddleware());
             app.use(requestLoggingMiddleware());
-            
+
             app.get('/api/integrated', (req, res) => {
                 res.json({ message: 'All middleware working' });
             });
-            
+
             app.use(errorHandlingMiddleware());
 
             const response = await request(app)
@@ -640,7 +628,7 @@ describe('Middleware Index - Comprehensive Tests', () => {
             expect(logger.info).toHaveBeenCalledWith(
                 'API request completed',
                 expect.objectContaining({
-                    url: '/api/integrated'
+                    url: '/api/integrated',
                 })
             );
         });

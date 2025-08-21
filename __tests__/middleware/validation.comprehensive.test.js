@@ -4,7 +4,7 @@ const {
     handleValidationErrors,
     createValidationMiddleware,
     sanitizePath,
-    sanitizeHtml
+    sanitizeHtml,
 } = require('../../middleware/validation');
 
 const logger = require('../../logger');
@@ -15,10 +15,10 @@ jest.mock('../../logger');
 // Mock express-validator
 jest.mock('express-validator', () => ({
     validationResult: jest.fn(),
-    body: jest.fn(() => ({ 
-        notEmpty: jest.fn().mockReturnThis(), 
-        isLength: jest.fn().mockReturnThis(), 
-        matches: jest.fn().mockReturnThis(), 
+    body: jest.fn(() => ({
+        notEmpty: jest.fn().mockReturnThis(),
+        isLength: jest.fn().mockReturnThis(),
+        matches: jest.fn().mockReturnThis(),
         withMessage: jest.fn().mockReturnThis(),
         optional: jest.fn().mockReturnThis(),
         isIn: jest.fn().mockReturnThis(),
@@ -28,11 +28,11 @@ jest.mock('express-validator', () => ({
         isURL: jest.fn().mockReturnThis(),
         trim: jest.fn().mockReturnThis(),
         escape: jest.fn().mockReturnThis(),
-        isArray: jest.fn().mockReturnThis()
+        isArray: jest.fn().mockReturnThis(),
     })),
-    query: jest.fn(() => ({ 
-        optional: jest.fn().mockReturnThis(), 
-        isIn: jest.fn().mockReturnThis(), 
+    query: jest.fn(() => ({
+        optional: jest.fn().mockReturnThis(),
+        isIn: jest.fn().mockReturnThis(),
         withMessage: jest.fn().mockReturnThis(),
         isInt: jest.fn().mockReturnThis(),
         isAlphanumeric: jest.fn().mockReturnThis(),
@@ -41,14 +41,14 @@ jest.mock('express-validator', () => ({
         notEmpty: jest.fn().mockReturnThis(),
         isURL: jest.fn().mockReturnThis(),
         trim: jest.fn().mockReturnThis(),
-        escape: jest.fn().mockReturnThis()
+        escape: jest.fn().mockReturnThis(),
     })),
-    param: jest.fn(() => ({ 
-        notEmpty: jest.fn().mockReturnThis(), 
-        matches: jest.fn().mockReturnThis(), 
-        isLength: jest.fn().mockReturnThis(), 
-        withMessage: jest.fn().mockReturnThis()
-    }))
+    param: jest.fn(() => ({
+        notEmpty: jest.fn().mockReturnThis(),
+        matches: jest.fn().mockReturnThis(),
+        isLength: jest.fn().mockReturnThis(),
+        withMessage: jest.fn().mockReturnThis(),
+    })),
 }));
 
 const { validationResult } = require('express-validator');
@@ -66,13 +66,13 @@ describe('Validation Middleware - Comprehensive Tests', () => {
             ip: '127.0.0.1',
             query: {},
             body: {},
-            params: {}
+            params: {},
         };
 
         // Mock response object
         res = {
             status: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis()
+            json: jest.fn().mockReturnThis(),
         };
 
         // Mock next function
@@ -94,12 +94,17 @@ describe('Validation Middleware - Comprehensive Tests', () => {
         test('should return 400 when validation errors exist', () => {
             const errors = [
                 { path: 'username', param: 'username', msg: 'Username is required', value: '' },
-                { path: 'email', param: 'email', msg: 'Invalid email format', value: 'invalid-email' }
+                {
+                    path: 'email',
+                    param: 'email',
+                    msg: 'Invalid email format',
+                    value: 'invalid-email',
+                },
             ];
 
             const mockErrors = {
                 isEmpty: jest.fn().mockReturnValue(false),
-                array: jest.fn().mockReturnValue(errors)
+                array: jest.fn().mockReturnValue(errors),
             };
             validationResult.mockReturnValue(mockErrors);
 
@@ -113,21 +118,19 @@ describe('Validation Middleware - Comprehensive Tests', () => {
                     code: 400,
                     details: [
                         { field: 'username', message: 'Username is required', value: '' },
-                        { field: 'email', message: 'Invalid email format', value: 'invalid-email' }
-                    ]
-                }
+                        { field: 'email', message: 'Invalid email format', value: 'invalid-email' },
+                    ],
+                },
             });
             expect(next).not.toHaveBeenCalled();
         });
 
         test('should handle errors without path field', () => {
-            const errors = [
-                { param: 'password', msg: 'Password too short', value: '123' }
-            ];
+            const errors = [{ param: 'password', msg: 'Password too short', value: '123' }];
 
             const mockErrors = {
                 isEmpty: jest.fn().mockReturnValue(false),
-                array: jest.fn().mockReturnValue(errors)
+                array: jest.fn().mockReturnValue(errors),
             };
             validationResult.mockReturnValue(mockErrors);
 
@@ -138,21 +141,17 @@ describe('Validation Middleware - Comprehensive Tests', () => {
                 error: {
                     message: 'Validation failed',
                     code: 400,
-                    details: [
-                        { field: 'password', message: 'Password too short', value: '123' }
-                    ]
-                }
+                    details: [{ field: 'password', message: 'Password too short', value: '123' }],
+                },
             });
         });
 
         test('should log validation failures', () => {
-            const errors = [
-                { path: 'username', msg: 'Invalid username', value: 'test@user' }
-            ];
+            const errors = [{ path: 'username', msg: 'Invalid username', value: 'test@user' }];
 
             const mockErrors = {
                 isEmpty: jest.fn().mockReturnValue(false),
-                array: jest.fn().mockReturnValue(errors)
+                array: jest.fn().mockReturnValue(errors),
             };
             validationResult.mockReturnValue(mockErrors);
 
@@ -162,7 +161,7 @@ describe('Validation Middleware - Comprehensive Tests', () => {
                 url: '/api/test',
                 method: 'GET',
                 errors: [{ field: 'username', message: 'Invalid username', value: 'test@user' }],
-                ip: '127.0.0.1'
+                ip: '127.0.0.1',
             });
         });
     });
@@ -395,11 +394,11 @@ describe('Validation Middleware - Comprehensive Tests', () => {
             const validation = require('../../middleware/validation');
             const expectedKeys = [
                 'validationRules',
-                'rateLimitRules', 
+                'rateLimitRules',
                 'handleValidationErrors',
                 'createValidationMiddleware',
                 'sanitizePath',
-                'sanitizeHtml'
+                'sanitizeHtml',
             ];
 
             const actualKeys = Object.keys(validation);
@@ -415,11 +414,11 @@ describe('Validation Middleware - Comprehensive Tests', () => {
 
             const testRules = [
                 jest.fn((req, res, next) => next()),
-                jest.fn((req, res, next) => next())
+                jest.fn((req, res, next) => next()),
             ];
 
             const middleware = createValidationMiddleware(testRules);
-            
+
             // Simulate calling each middleware except the last one (handleValidationErrors)
             middleware.slice(0, -1).forEach(mw => {
                 if (typeof mw === 'function') {
@@ -434,7 +433,7 @@ describe('Validation Middleware - Comprehensive Tests', () => {
         test('should handle complex sanitization scenarios', () => {
             const complexPath = '  ../../../<script>alert("xss")</script>/folder//file|name?.txt  ';
             const sanitized = sanitizePath(complexPath);
-            
+
             expect(sanitized).not.toContain('..');
             expect(sanitized).not.toMatch(/[<>:"|?*]/);
             expect(sanitized).toBe('/scriptalert(xss)/script/folder/filename.txt');
@@ -451,7 +450,7 @@ describe('Validation Middleware - Comprehensive Tests', () => {
                 'cacheManagement',
                 'search',
                 'id',
-                'adminRequest'
+                'adminRequest',
             ];
 
             requiredRules.forEach(ruleName => {
@@ -485,9 +484,9 @@ describe('Validation Middleware - Comprehensive Tests', () => {
                 '<script>alert("xss")</script>',
                 '<img src="x" onerror="alert(1)">',
                 '<div onload="alert(2)">content</div>',
-                '&lt;script&gt;alert(3)&lt;/script&gt;'
+                '&lt;script&gt;alert(3)&lt;/script&gt;',
             ].join('');
-            
+
             const sanitized = sanitizeHtml(xssAttempts);
             expect(sanitized).not.toMatch(/[<>]/);
             // The function only removes < and > characters, so script text remains
@@ -498,10 +497,10 @@ describe('Validation Middleware - Comprehensive Tests', () => {
             // Auth should have the strictest limits and longest window
             expect(rateLimitRules.auth.max).toBeLessThanOrEqual(5);
             expect(rateLimitRules.auth.windowMs).toBeGreaterThanOrEqual(15 * 60 * 1000);
-            
+
             // All rate limits should skip successful requests for auth
             expect(rateLimitRules.auth.skipSuccessfulRequests).toBe(true);
-            
+
             // All rate limits should use modern headers
             Object.values(rateLimitRules).forEach(config => {
                 expect(config.standardHeaders).toBe(true);
@@ -512,35 +511,40 @@ describe('Validation Middleware - Comprehensive Tests', () => {
         test('should handle concurrent validation error handling', () => {
             const errors = [
                 { path: 'field1', msg: 'Error 1', value: 'val1' },
-                { path: 'field2', msg: 'Error 2', value: 'val2' }
+                { path: 'field2', msg: 'Error 2', value: 'val2' },
             ];
-            
+
             const mockErrors = {
                 isEmpty: jest.fn().mockReturnValue(false),
-                array: jest.fn().mockReturnValue(errors)
+                array: jest.fn().mockReturnValue(errors),
             };
             validationResult.mockReturnValue(mockErrors);
 
             // Simulate multiple concurrent validation calls
-            const requests = Array(5).fill().map((_, i) => ({
-                ...req,
-                url: `/api/test${i}`,
-                method: 'POST'
-            }));
+            const requests = Array(5)
+                .fill()
+                .map((_, i) => ({
+                    ...req,
+                    url: `/api/test${i}`,
+                    method: 'POST',
+                }));
 
             requests.forEach((request, i) => {
                 const response = {
                     status: jest.fn().mockReturnThis(),
-                    json: jest.fn().mockReturnThis()
+                    json: jest.fn().mockReturnThis(),
                 };
-                
+
                 handleValidationErrors(request, response, next);
-                
+
                 expect(response.status).toHaveBeenCalledWith(400);
-                expect(logger.warn).toHaveBeenCalledWith('Validation failed', expect.objectContaining({
-                    url: `/api/test${i}`,
-                    method: 'POST'
-                }));
+                expect(logger.warn).toHaveBeenCalledWith(
+                    'Validation failed',
+                    expect.objectContaining({
+                        url: `/api/test${i}`,
+                        method: 'POST',
+                    })
+                );
             });
         });
     });

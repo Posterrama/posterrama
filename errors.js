@@ -14,7 +14,7 @@ class ApiError extends Error {
             name: this.name,
             message: this.message,
             statusCode: this.statusCode,
-            stack: this.stack
+            stack: this.stack,
         };
     }
 }
@@ -30,7 +30,7 @@ class NotFoundError extends ApiError {
             name: this.name,
             message: this.message,
             statusCode: this.statusCode,
-            stack: this.stack
+            stack: this.stack,
         };
     }
 }

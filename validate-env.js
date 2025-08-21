@@ -9,25 +9,25 @@ const path = require('path');
 const envPath = path.join(__dirname, '.env');
 const exampleEnvPath = path.join(__dirname, 'config.example.env');
 if (!fs.existsSync(envPath)) {
-  if (fs.existsSync(exampleEnvPath)) {
-    fs.copyFileSync(exampleEnvPath, envPath);
-    console.log('[Config] .env aangemaakt op basis van config.example.env');
-  } else {
-    console.error('[Config] config.example.env ontbreekt, kan geen .env aanmaken!');
-    process.exit(1);
-  }
+    if (fs.existsSync(exampleEnvPath)) {
+        fs.copyFileSync(exampleEnvPath, envPath);
+        console.log('[Config] .env aangemaakt op basis van config.example.env');
+    } else {
+        console.error('[Config] config.example.env ontbreekt, kan geen .env aanmaken!');
+        process.exit(1);
+    }
 }
 // --- Auto-create config.json if missing ---
 const configPath = path.join(__dirname, 'config.json');
 const exampleConfigPath = path.join(__dirname, 'config.example.json');
 if (!fs.existsSync(configPath)) {
-  if (fs.existsSync(exampleConfigPath)) {
-    fs.copyFileSync(exampleConfigPath, configPath);
-    console.log('[Config] config.json aangemaakt op basis van config.example.json');
-  } else {
-    console.error('[Config] config.example.json ontbreekt, kan geen config.json aanmaken!');
-    process.exit(1);
-  }
+    if (fs.existsSync(exampleConfigPath)) {
+        fs.copyFileSync(exampleConfigPath, configPath);
+        console.log('[Config] config.json aangemaakt op basis van config.example.json');
+    } else {
+        console.error('[Config] config.example.json ontbreekt, kan geen config.json aanmaken!');
+        process.exit(1);
+    }
 }
 
 const Ajv = require('ajv');
@@ -66,7 +66,10 @@ function getRequiredVars(appConfig) {
 
     const enabledServers = (appConfig.mediaServers || []).filter(s => s.enabled);
     if (enabledServers.length === 0) {
-        console.warn('\x1b[33m%s\x1b[0m', 'WARNING: No media servers are enabled in config.json. The application will run but will not display any media.');
+        console.warn(
+            '\x1b[33m%s\x1b[0m',
+            'WARNING: No media servers are enabled in config.json. The application will run but will not display any media.'
+        );
     }
 
     for (const server of enabledServers) {
@@ -90,13 +93,18 @@ if (missingVars.length > 0) {
     console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: Missing required environment variables.');
     console.error('The following variables are not set in your .env file:');
     missingVars.forEach(varName => console.error(`  - ${varName}`));
-    console.error('\nPlease copy `config.example.env` to a new file named `.env` and fill in the required values.');
+    console.error(
+        '\nPlease copy `config.example.env` to a new file named `.env` and fill in the required values.'
+    );
     process.exit(1); // Exit with an error code to prevent server from starting
 }
 
 // Only now report config schema validation errors (if any) after env var fatal checks
 if (!isConfigValid) {
-    console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: config.json is invalid. Please correct the following errors:');
+    console.error(
+        '\x1b[31m%s\x1b[0m',
+        'FATAL ERROR: config.json is invalid. Please correct the following errors:'
+    );
     validate.errors.forEach(error => {
         const instancePath = error.instancePath || 'root';
         const readablePath = instancePath.replace(/\//g, ' -> ').substring(3) || 'root';
@@ -111,7 +119,10 @@ if (!isConfigValid) {
 
 tokenVars.forEach(tokenVar => {
     if (process.env[tokenVar] === 'YourPlexTokenHere') {
-        console.warn('\x1b[33m%s\x1b[0m', `WARNING: The environment variable ${tokenVar} seems to be a placeholder value.`);
+        console.warn(
+            '\x1b[33m%s\x1b[0m',
+            `WARNING: The environment variable ${tokenVar} seems to be a placeholder value.`
+        );
         console.warn('Please replace "YourPlexTokenHere" with your actual token in the .env file.');
     }
 });

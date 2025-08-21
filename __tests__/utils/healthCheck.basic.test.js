@@ -1,41 +1,38 @@
-const fs = require('fs').promises;
-const path = require('path');
-
 describe('HealthCheck - Basic Tests', () => {
     let healthCheck;
     let mockLogger;
     let mockPackageJson;
-    
+
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         // Mock logger
         mockLogger = {
             info: jest.fn(),
             error: jest.fn(),
             warn: jest.fn(),
-            debug: jest.fn()
+            debug: jest.fn(),
         };
-        
+
         // Mock package.json
         mockPackageJson = { version: '1.5.0' };
-        
+
         // Clear require cache
         delete require.cache[require.resolve('../../utils/healthCheck')];
         delete require.cache[require.resolve('../../logger')];
         delete require.cache[require.resolve('../../package.json')];
-        
+
         // Mock modules
         jest.doMock('../../logger', () => mockLogger);
         jest.doMock('../../package.json', () => mockPackageJson);
-        
+
         healthCheck = require('../../utils/healthCheck');
     });
 
     afterEach(() => {
         jest.dontMock('../../logger');
         jest.dontMock('../../package.json');
-        
+
         // Reset cache
         if (healthCheck.__resetCache) {
             healthCheck.__resetCache();
@@ -46,16 +43,16 @@ describe('HealthCheck - Basic Tests', () => {
         test('should return basic health information', () => {
             const originalUptime = process.uptime;
             process.uptime = jest.fn().mockReturnValue(123.45);
-            
+
             const health = healthCheck.getBasicHealth();
-            
+
             expect(health).toHaveProperty('status', 'ok');
             expect(health).toHaveProperty('service', 'posterrama');
             expect(health).toHaveProperty('version', '1.5.0');
             expect(health).toHaveProperty('timestamp');
             expect(health).toHaveProperty('uptime', 123.45);
             expect(health.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/);
-            
+
             process.uptime = originalUptime;
         });
 

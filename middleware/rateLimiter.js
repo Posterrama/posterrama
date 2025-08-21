@@ -7,17 +7,17 @@ const createRateLimiter = (windowMs, max, messageText) => {
         max: process.env.RATE_LIMIT_TEST === 'strict' ? Math.max(1, Math.floor(max / 50)) : max,
         standardHeaders: true,
         legacyHeaders: false,
-        message: (req) => ({
+        message: req => ({
             error: messageText,
             timestamp: new Date().toISOString(),
             path: req.path,
             method: req.method,
             requestId: req.id || 'unknown',
-            retryAfter: Math.ceil(windowMs / 1000) // in seconds
-        })
+            retryAfter: Math.ceil(windowMs / 1000), // in seconds
+        }),
     });
 };
 
 module.exports = {
-    createRateLimiter
+    createRateLimiter,
 };

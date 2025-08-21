@@ -1,8 +1,13 @@
-const { ApiCache, apiCache, createCacheMiddleware, cacheMiddleware } = require('../../middleware/cache.js');
+const {
+    ApiCache,
+    apiCache,
+    createCacheMiddleware,
+    cacheMiddleware,
+} = require('../../middleware/cache.js');
 
 // Mock logger
 jest.mock('../../logger', () => ({
-    info: jest.fn()
+    info: jest.fn(),
 }));
 const logger = require('../../logger');
 
@@ -29,7 +34,7 @@ describe('Middleware Cache Tests', () => {
                 hits: 0,
                 misses: 0,
                 sets: 0,
-                deletes: 0
+                deletes: 0,
             });
             cache.destroy();
         });
@@ -46,10 +51,10 @@ describe('Middleware Cache Tests', () => {
         test('should store and retrieve data', () => {
             const key = 'test-key';
             const data = { message: 'test data' };
-            
+
             testCache.set(key, data);
             const retrieved = testCache.get(key);
-            
+
             expect(retrieved).toEqual(data);
             expect(testCache.stats.sets).toBe(1);
             expect(testCache.stats.hits).toBe(1);
@@ -57,7 +62,7 @@ describe('Middleware Cache Tests', () => {
 
         test('should return null for non-existent key', () => {
             const result = testCache.get('non-existent');
-            
+
             expect(result).toBeNull();
             expect(testCache.stats.misses).toBe(1);
         });
@@ -65,10 +70,10 @@ describe('Middleware Cache Tests', () => {
         test('should expire data after TTL', async () => {
             const key = 'expire-test';
             const data = 'test data';
-            
+
             testCache.set(key, data, 50); // 50ms TTL
             expect(testCache.get(key)).toBe(data);
-            
+
             // Wait for expiry
             await new Promise(resolve => setTimeout(resolve, 100));
             expect(testCache.get(key)).toBeNull();
@@ -79,20 +84,20 @@ describe('Middleware Cache Tests', () => {
         test('should generate consistent keys', () => {
             const req1 = { method: 'GET', url: '/api/test', query: { a: 1, b: 2 } };
             const req2 = { method: 'GET', url: '/api/test', query: { a: 1, b: 2 } };
-            
+
             const key1 = testCache.generateKey(req1);
             const key2 = testCache.generateKey(req2);
-            
+
             expect(key1).toBe(key2);
         });
 
         test('should sort query parameters', () => {
             const req1 = { method: 'GET', url: '/api/test', query: { b: 2, a: 1 } };
             const req2 = { method: 'GET', url: '/api/test', query: { a: 1, b: 2 } };
-            
+
             const key1 = testCache.generateKey(req1);
             const key2 = testCache.generateKey(req2);
-            
+
             expect(key1).toBe(key2);
         });
     });
@@ -101,9 +106,9 @@ describe('Middleware Cache Tests', () => {
         test('should delete entries', () => {
             const key = 'delete-test';
             testCache.set(key, 'data');
-            
+
             const result = testCache.delete(key);
-            
+
             expect(result).toBe(true);
             expect(testCache.get(key)).toBeNull();
             expect(testCache.stats.deletes).toBe(1);
@@ -112,9 +117,9 @@ describe('Middleware Cache Tests', () => {
         test('should clear all entries', () => {
             testCache.set('key1', 'data1');
             testCache.set('key2', 'data2');
-            
+
             testCache.clear();
-            
+
             expect(testCache.cache.size).toBe(0);
             expect(testCache.stats.deletes).toBe(2);
             expect(logger.info).toHaveBeenCalledWith('API cache cleared', { deletedEntries: 2 });
@@ -123,10 +128,10 @@ describe('Middleware Cache Tests', () => {
         test('should cleanup expired entries', async () => {
             testCache.set('key1', 'data1', 50); // 50ms TTL
             testCache.set('key2', 'data2', 10000); // 10s TTL
-            
+
             await new Promise(resolve => setTimeout(resolve, 100));
             testCache.cleanup();
-            
+
             expect(testCache.cache.has('key1')).toBe(false);
             expect(testCache.cache.has('key2')).toBe(true);
         });
@@ -138,9 +143,9 @@ describe('Middleware Cache Tests', () => {
             testCache.get('key1'); // Hit
             testCache.get('key2'); // Miss
             testCache.delete('key1');
-            
+
             const stats = testCache.getStats();
-            
+
             expect(stats.hits).toBe(1);
             expect(stats.misses).toBe(1);
             expect(stats.sets).toBe(1);
@@ -151,14 +156,14 @@ describe('Middleware Cache Tests', () => {
         test('should reset statistics', () => {
             testCache.set('key1', 'data1');
             testCache.get('key1');
-            
+
             testCache.resetStats();
-            
+
             expect(testCache.stats).toEqual({
                 hits: 0,
                 misses: 0,
                 sets: 0,
-                deletes: 0
+                deletes: 0,
             });
         });
     });
@@ -171,12 +176,12 @@ describe('Middleware Cache Tests', () => {
                 method: 'GET',
                 url: '/api/test',
                 query: {},
-                body: {}
+                body: {},
             };
             res = {
                 statusCode: 200,
                 json: jest.fn(),
-                set: jest.fn()
+                set: jest.fn(),
             };
             next = jest.fn();
         });
@@ -189,18 +194,18 @@ describe('Middleware Cache Tests', () => {
         test('should skip non-GET requests by default', () => {
             const middleware = createCacheMiddleware();
             req.method = 'POST';
-            
+
             middleware(req, res, next);
-            
+
             expect(next).toHaveBeenCalled();
         });
 
         test('should override res.json for caching', () => {
             const middleware = createCacheMiddleware();
             const originalJson = res.json;
-            
+
             middleware(req, res, next);
-            
+
             expect(res.json).not.toBe(originalJson);
             expect(next).toHaveBeenCalled();
         });
@@ -208,10 +213,10 @@ describe('Middleware Cache Tests', () => {
         test('should set cache headers on response', () => {
             const middleware = createCacheMiddleware();
             const responseData = { message: 'test' };
-            
+
             middleware(req, res, next);
             res.json(responseData);
-            
+
             expect(res.set).toHaveBeenCalledWith('X-Cache', 'MISS');
             expect(res.set).toHaveBeenCalledWith('X-Cache-Key', expect.stringContaining('...'));
         });
@@ -227,16 +232,16 @@ describe('Middleware Cache Tests', () => {
         });
 
         test('media middleware should skip when nocache=true', () => {
-            const req = { 
-                method: 'GET', 
+            const req = {
+                method: 'GET',
                 url: '/api/media',
-                query: { nocache: 'true' }
+                query: { nocache: 'true' },
             };
             const res = { json: jest.fn(), set: jest.fn() };
             const next = jest.fn();
-            
+
             cacheMiddleware.media(req, res, next);
-            
+
             expect(next).toHaveBeenCalled();
         });
     });
@@ -265,9 +270,9 @@ describe('Middleware Cache Tests', () => {
         test('should handle destroy method', () => {
             const cache = new ApiCache();
             cache.set('test', 'data');
-            
+
             cache.destroy();
-            
+
             expect(cache.cleanupInterval).toBeNull();
             expect(cache.cache.size).toBe(0);
         });

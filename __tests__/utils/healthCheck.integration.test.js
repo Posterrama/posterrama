@@ -1,6 +1,6 @@
 // Mock sources/plex
 jest.mock('../../sources/plex', () => ({
-    testServerConnection: jest.fn()
+    testServerConnection: jest.fn(),
 }));
 
 describe('HealthCheck - Plex and Integration', () => {
@@ -9,52 +9,52 @@ describe('HealthCheck - Plex and Integration', () => {
     let mockPackageJson;
     let mockPlexSource;
     let fs;
-    
+
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         // Mock filesystem
         fs = require('fs').promises;
         fs.readFile = jest.fn();
         fs.access = jest.fn();
         fs.stat = jest.fn();
         fs.readdir = jest.fn();
-        
+
         // Mock logger
         mockLogger = {
             info: jest.fn(),
             error: jest.fn(),
             warn: jest.fn(),
-            debug: jest.fn()
+            debug: jest.fn(),
         };
-        
+
         // Mock package.json
         mockPackageJson = { version: '1.5.0' };
-        
+
         // Mock Plex source
         mockPlexSource = require('../../sources/plex');
-        
+
         // Setup default mocks
         fs.readFile.mockResolvedValue('{"mediaServers": []}');
         fs.access.mockResolvedValue();
         fs.stat.mockResolvedValue({ mtime: new Date() });
         fs.readdir.mockResolvedValue([]);
-        
+
         // Clear require cache and setup mocks
         delete require.cache[require.resolve('../../utils/healthCheck')];
         delete require.cache[require.resolve('../../logger')];
         delete require.cache[require.resolve('../../package.json')];
-        
+
         jest.doMock('../../logger', () => mockLogger);
         jest.doMock('../../package.json', () => mockPackageJson);
-        
+
         healthCheck = require('../../utils/healthCheck');
     });
 
     afterEach(() => {
         jest.dontMock('../../logger');
         jest.dontMock('../../package.json');
-        
+
         if (healthCheck.__resetCache) {
             healthCheck.__resetCache();
         }
@@ -65,8 +65,8 @@ describe('HealthCheck - Plex and Integration', () => {
             const mockConfig = {
                 mediaServers: [
                     { name: 'server1', enabled: false, type: 'plex' },
-                    { name: 'server2', enabled: true, type: 'jellyfin' }
-                ]
+                    { name: 'server2', enabled: true, type: 'jellyfin' },
+                ],
             };
             fs.readFile.mockResolvedValue(JSON.stringify(mockConfig));
 
@@ -76,7 +76,7 @@ describe('HealthCheck - Plex and Integration', () => {
                 name: 'plex_connectivity',
                 status: 'ok',
                 message: 'No Plex servers are configured.',
-                details: { servers: [] }
+                details: { servers: [] },
             });
             expect(mockPlexSource.testServerConnection).not.toHaveBeenCalled();
         });
@@ -90,7 +90,7 @@ describe('HealthCheck - Plex and Integration', () => {
                 name: 'plex_connectivity',
                 status: 'ok',
                 message: 'No Plex servers are configured.',
-                details: { servers: [] }
+                details: { servers: [] },
             });
         });
 
@@ -99,11 +99,11 @@ describe('HealthCheck - Plex and Integration', () => {
                 mediaServers: [
                     { name: 'plex1', enabled: true, type: 'plex' },
                     { name: 'plex2', enabled: true, type: 'plex' },
-                    { name: 'jellyfin1', enabled: true, type: 'jellyfin' }
-                ]
+                    { name: 'jellyfin1', enabled: true, type: 'jellyfin' },
+                ],
             };
             fs.readFile.mockResolvedValue(JSON.stringify(mockConfig));
-            
+
             mockPlexSource.testServerConnection
                 .mockResolvedValueOnce({ status: 'ok', message: 'Connected' })
                 .mockResolvedValueOnce({ status: 'warning', message: 'Slow response' });
@@ -114,33 +114,31 @@ describe('HealthCheck - Plex and Integration', () => {
             expect(['ok', 'warning', 'error']).toContain(result.status); // Can be any status in fallback mode
             expect(result.message).toMatch(/Checked 2 Plex server/);
             expect(result.details.servers).toHaveLength(2);
-            
+
             expect(result.details.servers[0]).toMatchObject({
                 server: 'plex1',
                 status: 'error', // In fallback mode, expects environment variables
-                message: 'Hostname not configured'
+                message: 'Hostname not configured',
             });
             expect(result.details.servers[0]).toHaveProperty('responseTime');
-            
+
             expect(result.details.servers[1]).toMatchObject({
                 server: 'plex2',
                 status: 'error',
-                message: 'Hostname not configured'
+                message: 'Hostname not configured',
             });
             expect(result.details.servers[1]).toHaveProperty('responseTime');
         });
 
         test('should return error status when servers have errors', async () => {
             const mockConfig = {
-                mediaServers: [
-                    { name: 'plex1', enabled: true, type: 'plex' }
-                ]
+                mediaServers: [{ name: 'plex1', enabled: true, type: 'plex' }],
             };
             fs.readFile.mockResolvedValue(JSON.stringify(mockConfig));
-            
+
             mockPlexSource.testServerConnection.mockResolvedValue({
                 status: 'error',
-                message: 'Connection failed'
+                message: 'Connection failed',
             });
 
             const result = await healthCheck.checkPlexConnectivity();
@@ -151,16 +149,18 @@ describe('HealthCheck - Plex and Integration', () => {
 
         test('should handle Plex connectivity check errors', async () => {
             const mockConfig = {
-                mediaServers: [{ name: 'plex1', enabled: true, type: 'plex' }]
+                mediaServers: [{ name: 'plex1', enabled: true, type: 'plex' }],
             };
             fs.readFile.mockResolvedValue(JSON.stringify(mockConfig));
-            
+
             mockPlexSource.testServerConnection.mockRejectedValue(new Error('Network error'));
 
             const result = await healthCheck.checkPlexConnectivity();
 
             expect(result.status).toBe('error');
-            expect(result.message).toContain('using fallback method' || 'connectivity check failed');
+            expect(result.message).toContain(
+                'using fallback method' || 'connectivity check failed'
+            );
             // The actual message may vary depending on fallback vs normal mode
         });
     });
@@ -168,16 +168,16 @@ describe('HealthCheck - Plex and Integration', () => {
     describe('getDetailedHealth - Integration', () => {
         test('should perform all health checks and cache results', async () => {
             const mockConfig = {
-                mediaServers: [{ name: 'plex1', enabled: true, type: 'plex' }]
+                mediaServers: [{ name: 'plex1', enabled: true, type: 'plex' }],
             };
             fs.readFile.mockResolvedValue(JSON.stringify(mockConfig));
             fs.access.mockResolvedValue();
             fs.stat.mockResolvedValue({ mtime: new Date() });
             fs.readdir.mockResolvedValue(['file1.jpg']);
-            
+
             mockPlexSource.testServerConnection.mockResolvedValue({
                 status: 'ok',
-                message: 'Connected'
+                message: 'Connected',
             });
 
             const result = await healthCheck.getDetailedHealth();
@@ -185,7 +185,7 @@ describe('HealthCheck - Plex and Integration', () => {
             expect(['ok', 'warning', 'error']).toContain(result.status); // Can vary based on fallback behavior
             expect(result).toHaveProperty('timestamp');
             expect(result.checks).toHaveLength(4); // config, filesystem, cache, plex
-            
+
             expect(result.checks[0].name).toBe('configuration');
             expect(result.checks[1].name).toBe('filesystem');
             expect(result.checks[2].name).toBe('cache');
@@ -223,10 +223,10 @@ describe('HealthCheck - Plex and Integration', () => {
 
             // First call
             const result1 = await healthCheck.getDetailedHealth();
-            
+
             // Clear mock calls
             jest.clearAllMocks();
-            
+
             // Second call immediately (within cache duration)
             const result2 = await healthCheck.getDetailedHealth();
 
@@ -239,17 +239,17 @@ describe('HealthCheck - Plex and Integration', () => {
             fs.readFile.mockResolvedValue('{"mediaServers": []}'); // Warning
             fs.access.mockRejectedValue(new Error('System failure')); // Error
             fs.stat.mockRejectedValue(new Error('System failure')); // Warning
-            
+
             const result = await healthCheck.getDetailedHealth();
 
             expect(result.status).toBe('error'); // Has errors
             expect(result.checks.length).toBeGreaterThan(0);
-            
+
             // Should include individual check results
             const hasConfigCheck = result.checks.some(c => c.name === 'configuration');
             const hasFilesystemCheck = result.checks.some(c => c.name === 'filesystem');
             const hasCacheCheck = result.checks.some(c => c.name === 'cache');
-            
+
             expect(hasConfigCheck).toBe(true);
             expect(hasFilesystemCheck).toBe(true);
             expect(hasCacheCheck).toBe(true);
@@ -259,7 +259,7 @@ describe('HealthCheck - Plex and Integration', () => {
     describe('Cache management', () => {
         test('should reset cache correctly', () => {
             healthCheck.__resetCache();
-            
+
             // This is primarily for coverage - cache reset should work
             expect(healthCheck.__resetCache).toBeDefined();
         });
@@ -272,13 +272,13 @@ describe('HealthCheck - Plex and Integration', () => {
 
             // First call
             await healthCheck.getDetailedHealth();
-            
+
             // Reset cache to simulate expiration
             healthCheck.__resetCache();
-            
+
             // Clear mocks to track second call
             jest.clearAllMocks();
-            
+
             // Second call after cache expiration
             await healthCheck.getDetailedHealth();
 

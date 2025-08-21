@@ -6,16 +6,17 @@
 const logger = require('../logger');
 
 class ApiCache {
-    constructor(defaultTTL = 5 * 60 * 1000) { // 5 minutes default
+    constructor(defaultTTL = 5 * 60 * 1000) {
+        // 5 minutes default
         this.cache = new Map();
         this.defaultTTL = defaultTTL;
         this.stats = {
             hits: 0,
             misses: 0,
             sets: 0,
-            deletes: 0
+            deletes: 0,
         };
-        
+
         // Cleanup expired entries every 2 minutes
         this.cleanupInterval = setInterval(() => this.cleanup(), 2 * 60 * 1000);
     }
@@ -40,7 +41,7 @@ class ApiCache {
             method,
             url: url.split('?')[0], // Remove query params from URL
             query: this.sortObject(query || {}),
-            body: method === 'POST' ? this.sortObject(body || {}) : undefined
+            body: method === 'POST' ? this.sortObject(body || {}) : undefined,
         };
         return JSON.stringify(keyData);
     }
@@ -50,11 +51,13 @@ class ApiCache {
      */
     sortObject(obj) {
         if (typeof obj !== 'object' || obj === null) return obj;
-        
+
         const sorted = {};
-        Object.keys(obj).sort().forEach(key => {
-            sorted[key] = obj[key];
-        });
+        Object.keys(obj)
+            .sort()
+            .forEach(key => {
+                sorted[key] = obj[key];
+            });
         return sorted;
     }
 
@@ -87,7 +90,7 @@ class ApiCache {
             data,
             createdAt: Date.now(),
             expiresAt: Date.now() + ttl,
-            lastAccessed: Date.now()
+            lastAccessed: Date.now(),
         });
         this.stats.sets++;
     }
@@ -128,9 +131,9 @@ class ApiCache {
         }
 
         if (deletedCount > 0) {
-            logger.info('API cache cleanup completed', { 
+            logger.info('API cache cleanup completed', {
                 deletedEntries: deletedCount,
-                remainingEntries: this.cache.size 
+                remainingEntries: this.cache.size,
             });
         }
     }
@@ -143,9 +146,9 @@ class ApiCache {
         return {
             ...this.stats,
             totalRequests,
-            hitRate: totalRequests > 0 ? (this.stats.hits / totalRequests) : 0,
+            hitRate: totalRequests > 0 ? this.stats.hits / totalRequests : 0,
             size: this.cache.size,
-            memoryUsage: this.cache.size * 1024 // rough estimate
+            memoryUsage: this.cache.size * 1024, // rough estimate
         };
     }
 
@@ -157,7 +160,7 @@ class ApiCache {
             hits: 0,
             misses: 0,
             sets: 0,
-            deletes: 0
+            deletes: 0,
         };
     }
 }
@@ -173,7 +176,7 @@ function createCacheMiddleware(options = {}) {
         ttl = 5 * 60 * 1000, // 5 minutes
         methods = ['GET'], // Only cache GET requests by default
         skipIf = () => false, // Function to skip caching
-        keyGenerator = null // Custom key generator
+        keyGenerator = null, // Custom key generator
     } = options;
 
     return (req, res, next) => {
@@ -189,7 +192,7 @@ function createCacheMiddleware(options = {}) {
 
         // Generate cache key
         const cacheKey = keyGenerator ? keyGenerator(req) : apiCache.generateKey(req);
-        
+
         // Try to get cached response
         const cachedResponse = apiCache.get(cacheKey);
         if (cachedResponse) {
@@ -200,7 +203,7 @@ function createCacheMiddleware(options = {}) {
 
         // Override res.json to cache response
         const originalJson = res.json;
-        res.json = function(data) {
+        res.json = function (data) {
             // Only cache successful responses
             if (res.statusCode >= 200 && res.statusCode < 300) {
                 apiCache.set(cacheKey, data, ttl);
@@ -220,29 +223,29 @@ function createCacheMiddleware(options = {}) {
 const cacheMiddleware = {
     // Short cache for frequently changing data
     short: createCacheMiddleware({ ttl: 1 * 60 * 1000 }), // 1 minute
-    
+
     // Medium cache for semi-static data
     medium: createCacheMiddleware({ ttl: 5 * 60 * 1000 }), // 5 minutes
-    
+
     // Long cache for static data
     long: createCacheMiddleware({ ttl: 30 * 60 * 1000 }), // 30 minutes
-    
+
     // Media cache for media listings
-    media: createCacheMiddleware({ 
+    media: createCacheMiddleware({
         ttl: 10 * 60 * 1000, // 10 minutes
-        skipIf: (req) => req.query.nocache === 'true'
+        skipIf: req => req.query.nocache === 'true',
     }),
-    
+
     // Config cache for configuration data
-    config: createCacheMiddleware({ 
+    config: createCacheMiddleware({
         ttl: 60 * 60 * 1000, // 1 hour
-        skipIf: (req) => req.method !== 'GET'
-    })
+        skipIf: req => req.method !== 'GET',
+    }),
 };
 
 module.exports = {
     ApiCache,
     apiCache,
     createCacheMiddleware,
-    cacheMiddleware
+    cacheMiddleware,
 };

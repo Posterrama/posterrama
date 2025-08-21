@@ -2,8 +2,6 @@
  * Jest global teardown for cleaning up server instances and cache
  */
 
-const path = require('path');
-
 // Global teardown function
 module.exports = async () => {
     // Clean up any remaining timers

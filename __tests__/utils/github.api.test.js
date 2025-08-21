@@ -15,7 +15,7 @@ describe('GitHub Service - API Methods', () => {
             const mockRelease = {
                 tag_name: 'v1.0.0',
                 published_at: '2023-01-01T00:00:00Z',
-                html_url: 'https://github.com/Posterrama/posterrama/releases/tag/v1.0.0'
+                html_url: 'https://github.com/Posterrama/posterrama/releases/tag/v1.0.0',
             };
 
             // Mock makeRequest
@@ -24,13 +24,15 @@ describe('GitHub Service - API Methods', () => {
             const result = await GitHubService.getLatestRelease();
 
             expect(result).toEqual(mockRelease);
-            expect(GitHubService.makeRequest).toHaveBeenCalledWith('/repos/Posterrama/posterrama/releases/latest');
+            expect(GitHubService.makeRequest).toHaveBeenCalledWith(
+                '/repos/Posterrama/posterrama/releases/latest'
+            );
             expect(logger.info).toHaveBeenCalledWith('Fetching latest release from GitHub');
             expect(logger.info).toHaveBeenCalledWith('Latest release fetched: v1.0.0', {
                 version: 'v1.0.0',
-                published: '2023-01-01T00:00:00Z'
+                published: '2023-01-01T00:00:00Z',
             });
-            
+
             // Check cache
             expect(GitHubService.cache.data).toEqual(mockRelease);
             expect(typeof GitHubService.cache.timestamp).toBe('number');
@@ -40,13 +42,13 @@ describe('GitHub Service - API Methods', () => {
         test('should return cached data when cache is valid', async () => {
             const mockRelease = {
                 tag_name: 'v1.0.0',
-                published_at: '2023-01-01T00:00:00Z'
+                published_at: '2023-01-01T00:00:00Z',
             };
 
             // Set cache with valid timestamp
             GitHubService.cache = {
                 data: mockRelease,
-                timestamp: Date.now() - 1000 // 1 second ago, within cache duration
+                timestamp: Date.now() - 1000, // 1 second ago, within cache duration
             };
 
             const spy = jest.spyOn(GitHubService, 'makeRequest');
@@ -65,7 +67,7 @@ describe('GitHub Service - API Methods', () => {
             // Set cache with expired timestamp
             GitHubService.cache = {
                 data: oldRelease,
-                timestamp: Date.now() - (6 * 60 * 1000) // 6 minutes ago, expired
+                timestamp: Date.now() - 6 * 60 * 1000, // 6 minutes ago, expired
             };
 
             jest.spyOn(GitHubService, 'makeRequest').mockResolvedValue(newRelease);
@@ -73,7 +75,9 @@ describe('GitHub Service - API Methods', () => {
             const result = await GitHubService.getLatestRelease();
 
             expect(result).toEqual(newRelease);
-            expect(GitHubService.makeRequest).toHaveBeenCalledWith('/repos/Posterrama/posterrama/releases/latest');
+            expect(GitHubService.makeRequest).toHaveBeenCalledWith(
+                '/repos/Posterrama/posterrama/releases/latest'
+            );
         });
 
         test('should handle API errors', async () => {
@@ -81,14 +85,17 @@ describe('GitHub Service - API Methods', () => {
             jest.spyOn(GitHubService, 'makeRequest').mockRejectedValue(error);
 
             await expect(GitHubService.getLatestRelease()).rejects.toThrow('API Error');
-            expect(logger.error).toHaveBeenCalledWith('Failed to fetch latest release from GitHub', {
-                error: 'API Error'
-            });
+            expect(logger.error).toHaveBeenCalledWith(
+                'Failed to fetch latest release from GitHub',
+                {
+                    error: 'API Error',
+                }
+            );
         });
 
         test('should handle cache with null values', async () => {
             GitHubService.cache = { data: null, timestamp: null };
-            
+
             const mockRelease = { tag_name: 'v1.0.0', published_at: '2023-01-01T00:00:00Z' };
             jest.spyOn(GitHubService, 'makeRequest').mockResolvedValue(mockRelease);
 
@@ -101,17 +108,16 @@ describe('GitHub Service - API Methods', () => {
 
     describe('getReleases', () => {
         test('should fetch releases with default limit', async () => {
-            const mockReleases = [
-                { tag_name: 'v1.0.0' },
-                { tag_name: 'v0.9.0' }
-            ];
+            const mockReleases = [{ tag_name: 'v1.0.0' }, { tag_name: 'v0.9.0' }];
 
             jest.spyOn(GitHubService, 'makeRequest').mockResolvedValue(mockReleases);
 
             const result = await GitHubService.getReleases();
 
             expect(result).toEqual(mockReleases);
-            expect(GitHubService.makeRequest).toHaveBeenCalledWith('/repos/Posterrama/posterrama/releases?per_page=10');
+            expect(GitHubService.makeRequest).toHaveBeenCalledWith(
+                '/repos/Posterrama/posterrama/releases?per_page=10'
+            );
             expect(logger.info).toHaveBeenCalledWith('Fetching 10 releases from GitHub');
             expect(logger.info).toHaveBeenCalledWith('Fetched 2 releases from GitHub');
         });
@@ -123,7 +129,9 @@ describe('GitHub Service - API Methods', () => {
             const result = await GitHubService.getReleases(5);
 
             expect(result).toEqual(mockReleases);
-            expect(GitHubService.makeRequest).toHaveBeenCalledWith('/repos/Posterrama/posterrama/releases?per_page=5');
+            expect(GitHubService.makeRequest).toHaveBeenCalledWith(
+                '/repos/Posterrama/posterrama/releases?per_page=5'
+            );
             expect(logger.info).toHaveBeenCalledWith('Fetching 5 releases from GitHub');
         });
 
@@ -133,7 +141,7 @@ describe('GitHub Service - API Methods', () => {
 
             await expect(GitHubService.getReleases()).rejects.toThrow('API Error');
             expect(logger.error).toHaveBeenCalledWith('Failed to fetch releases from GitHub', {
-                error: 'API Error'
+                error: 'API Error',
             });
         });
 
@@ -159,7 +167,7 @@ describe('GitHub Service - API Methods', () => {
                 open_issues_count: 2,
                 language: 'JavaScript',
                 updated_at: '2023-01-01T00:00:00Z',
-                license: { name: 'MIT' }
+                license: { name: 'MIT' },
             };
 
             jest.spyOn(GitHubService, 'makeRequest').mockResolvedValue(mockRepo);
@@ -176,7 +184,7 @@ describe('GitHub Service - API Methods', () => {
                 issues: 2,
                 language: 'JavaScript',
                 updatedAt: '2023-01-01T00:00:00Z',
-                license: 'MIT'
+                license: 'MIT',
             });
 
             expect(GitHubService.makeRequest).toHaveBeenCalledWith('/repos/Posterrama/posterrama');
@@ -184,7 +192,7 @@ describe('GitHub Service - API Methods', () => {
             expect(logger.info).toHaveBeenCalledWith('Repository information fetched', {
                 name: 'posterrama',
                 stars: 10,
-                forks: 5
+                forks: 5,
             });
         });
 
@@ -199,7 +207,7 @@ describe('GitHub Service - API Methods', () => {
                 open_issues_count: 2,
                 language: 'JavaScript',
                 updated_at: '2023-01-01T00:00:00Z',
-                license: null
+                license: null,
             };
 
             jest.spyOn(GitHubService, 'makeRequest').mockResolvedValue(mockRepo);
@@ -215,7 +223,7 @@ describe('GitHub Service - API Methods', () => {
 
             await expect(GitHubService.getRepositoryInfo()).rejects.toThrow('API Error');
             expect(logger.error).toHaveBeenCalledWith('Failed to fetch repository information', {
-                error: 'API Error'
+                error: 'API Error',
             });
         });
     });
