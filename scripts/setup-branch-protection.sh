@@ -50,9 +50,13 @@ echo "🔒 Setting up branch protection for 'main' branch..."
 
 gh api repos/$REPO/branches/main/protection \
   --method PUT \
-  --field required_status_checks='{"strict":true,"contexts":["test (Node.js 18.x)","code-quality"]}' \
+  --field required_status_checks[strict]=true \
+  --field required_status_checks[contexts][]="test (Node.js 18.x)" \
+  --field required_status_checks[contexts][]="code-quality" \
   --field enforce_admins=true \
-  --field required_pull_request_reviews='{"required_approving_review_count":1,"dismiss_stale_reviews":true,"require_code_owner_reviews":true}' \
+  --field required_pull_request_reviews[required_approving_review_count]=1 \
+  --field required_pull_request_reviews[dismiss_stale_reviews]=true \
+  --field required_pull_request_reviews[require_code_owner_reviews]=true \
   --field restrictions=null \
   --field required_linear_history=true \
   --field allow_force_pushes=false \

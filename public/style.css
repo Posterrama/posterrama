@@ -71,7 +71,7 @@ body {
 }
 
 /* --- Loader & Error Message --- */
-/* --- Clean Minimalist Posterrama Loader --- */
+/* --- Modern Dual-Ring Spinner Loader --- */
 #loader {
     position: fixed;
     top: 50%;
@@ -85,34 +85,44 @@ body {
     gap: 2rem;
 }
 
-/* Clean poster rectangle with subtle breathing animation */
+/* Dual-ring spinner */
 .poster-loader {
-    width: 40px;
-    height: 60px;
-    background: #667eea;
-    border-radius: 4px;
     position: relative;
-    animation: posterBreathe 3s ease-in-out infinite;
-    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+    width: 60px;
+    height: 60px;
 }
 
-.poster-loader::before {
+.poster-loader::before,
+.poster-loader::after {
     content: '';
     position: absolute;
-    inset: 0;
-    background: linear-gradient(
-        135deg,
-        transparent 30%,
-        rgba(255, 255, 255, 0.2) 50%,
-        transparent 70%
-    );
-    border-radius: 4px;
-    animation: posterShine 3s ease-in-out infinite;
+    border-radius: 50%;
+    border: 3px solid transparent;
+}
+
+/* Outer ring - clockwise */
+.poster-loader::before {
+    width: 60px;
+    height: 60px;
+    border-top: 3px solid #667eea;
+    border-right: 3px solid #667eea;
+    animation: spinClockwise 1.2s linear infinite;
+}
+
+/* Inner ring - counter-clockwise */
+.poster-loader::after {
+    width: 40px;
+    height: 40px;
+    top: 10px;
+    left: 10px;
+    border-bottom: 3px solid #764ba2;
+    border-left: 3px solid #764ba2;
+    animation: spinCounterClockwise 1s linear infinite;
 }
 
 /* Clean loading text */
 .loader-text {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.8);
     font-family:
         'Inter',
         -apple-system,
@@ -123,51 +133,24 @@ body {
     font-size: 14px;
     font-weight: 500;
     letter-spacing: 0.5px;
-    animation: textPulse 3s ease-in-out infinite;
+    animation: textPulse 2.5s ease-in-out infinite;
 }
 
-/* Minimalist progress bar */
-.loader-dots {
-    width: 80px;
-    height: 2px;
-    background: rgba(102, 126, 234, 0.2);
-    border-radius: 1px;
-    position: relative;
-    overflow: hidden;
-}
-
-.loader-dots::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 40px;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, #667eea, transparent);
-    animation: progressSweep 2s ease-in-out infinite;
-}
-
-@keyframes posterBreathe {
-    0%,
+@keyframes spinClockwise {
+    0% {
+        transform: rotate(0deg);
+    }
     100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
-    }
-    50% {
-        transform: scale(1.05);
-        box-shadow: 0 0 20px 4px rgba(102, 126, 234, 0.15);
+        transform: rotate(360deg);
     }
 }
 
-@keyframes posterShine {
-    0%,
-    100% {
-        opacity: 0;
-        transform: translateX(-100%);
+@keyframes spinCounterClockwise {
+    0% {
+        transform: rotate(0deg);
     }
-    50% {
-        opacity: 1;
-        transform: translateX(100%);
+    100% {
+        transform: rotate(-360deg);
     }
 }
 
@@ -178,15 +161,6 @@ body {
     }
     50% {
         opacity: 0.8;
-    }
-}
-
-@keyframes progressSweep {
-    0% {
-        left: -40px;
-    }
-    100% {
-        left: 80px;
     }
 }
 
@@ -702,7 +676,7 @@ body.promo-site #promo-box.is-hidden {
 }
 
 /* --- Widgets (Clock & ClearLogo) --- */
-#widget-container {
+#clock-widget-container {
     position: fixed;
     top: 30px;
     left: 50px; /* Align with poster and controls margin */
@@ -1093,7 +1067,7 @@ body.screensaver-mode #poster-wrapper {
     }
 
     /* Position the clock and clearlogo differently */
-    #widget-container {
+    #clock-widget-container {
         left: 15px;
         top: 15px;
         padding-left: 0; /* Reset desktop alignment */
@@ -1341,7 +1315,7 @@ body.cinema-mode::before {
 /* Hide other elements in cinema mode */
 body.cinema-mode #layer-a,
 body.cinema-mode #layer-b,
-body.cinema-mode #widget-container,
+body.cinema-mode #clock-widget-container,
 body.cinema-mode #clearlogo-container,
 body.cinema-mode #branding-container,
 body.cinema-mode #rt-badge,
@@ -1685,9 +1659,6 @@ body.wallart-mode::after {
 
 body.wallart-mode #background-image,
 body.wallart-mode .background-layer,
-body.wallart-mode #layer-a,
-body.wallart-mode #layer-b,
-body.wallart-mode .screensaver-layer,
 body.wallart-mode .fanart-background,
 body.wallart-mode #fanart-container,
 body.wallart-mode .poster-layer {
@@ -1785,7 +1756,7 @@ body.wallart-mode #clear-logo,
 body.wallart-mode #clearlogo,
 body.wallart-mode #rotten-tomatoes,
 body.wallart-mode #clock-widget,
-body.wallart-mode #widget-container,
+body.wallart-mode #clock-widget-container,
 body.wallart-mode #controls-container,
 body.wallart-mode #rt-badge,
 body.wallart-mode .metadata-overlay {

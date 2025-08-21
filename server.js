@@ -1879,8 +1879,8 @@ async function getPlaylistMedia() {
         }
 
         const [movies, shows] = await Promise.all([
-            source.fetchMedia(server.movieLibraryNames || [], 'movie', server.movieCount || 0),
-            source.fetchMedia(server.showLibraryNames || [], 'show', server.showCount || 0),
+            source.fetchMedia(server.movieLibraryNames || [], 'movie', 150), // Hardcoded for wallart mode
+            source.fetchMedia(server.showLibraryNames || [], 'show', 75), // Hardcoded for wallart mode
         ]);
         const mediaFromServer = movies.concat(shows);
 
@@ -1911,8 +1911,8 @@ async function getPlaylistMedia() {
         global.tmdbSourceInstance = tmdbSource;
 
         const [tmdbMovies, tmdbShows] = await Promise.all([
-            tmdbSource.fetchMedia('movie', config.tmdbSource.movieCount || 0),
-            tmdbSource.fetchMedia('tv', config.tmdbSource.showCount || 0),
+            tmdbSource.fetchMedia('movie', 100), // Hardcoded for wallart mode
+            tmdbSource.fetchMedia('tv', 50), // Hardcoded for wallart mode
         ]);
         const tmdbMedia = tmdbMovies.concat(tmdbShows);
 
@@ -1935,8 +1935,8 @@ async function getPlaylistMedia() {
 
                 try {
                     const [streamingMovies, streamingShows] = await Promise.all([
-                        streamingSource.fetchMedia('movie', streamingConfig.movieCount || 0),
-                        streamingSource.fetchMedia('tv', streamingConfig.showCount || 0),
+                        streamingSource.fetchMedia('movie', 100), // Hardcoded for wallart mode
+                        streamingSource.fetchMedia('tv', 50), // Hardcoded for wallart mode
                     ]);
                     const streamingMedia = streamingMovies.concat(streamingShows);
 

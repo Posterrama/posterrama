@@ -68,15 +68,13 @@
         <style>
             /* Hide everything in wallart mode */
             body.wallart-mode #poster-wrapper,
-            body.wallart-mode #layer-a,
-            body.wallart-mode #layer-b,
             body.wallart-mode #background-image,
             body.wallart-mode .background-layer,
             body.wallart-mode #clearlogo,
             body.wallart-mode #clear-logo,
             body.wallart-mode #info-container,
             body.wallart-mode #controls-container,
-            body.wallart-mode #widget-container {
+            body.wallart-mode #clock-widget-container {
                 display: none !important;
             }
 
@@ -125,11 +123,6 @@
         <div id="loader">
             <div class="poster-loader"></div>
             <div class="loader-text">Loading...</div>
-            <div class="loader-dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
         </div>
         <div id="error-message" class="is-hidden"></div>
 
@@ -196,7 +189,7 @@
         <div id="layer-a" class="screensaver-layer"></div>
         <div id="layer-b" class="screensaver-layer"></div>
 
-        <div id="widget-container">
+        <div id="clock-widget-container">
             <div id="time-widget">
                 <span id="time-hours">00</span>
                 <span id="time-separator">:</span>

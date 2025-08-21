@@ -189,11 +189,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (appConfig.clockWidget) {
-            document.getElementById('widget-container').style.display = 'block';
-            updateClock();
-            setInterval(updateClock, 1000);
+            console.log('🕐 CLOCK: Activating clock widget...');
+            const widgetContainer = document.getElementById('clock-widget-container');
+            console.log('🕐 CLOCK: Widget container found:', !!widgetContainer);
+            if (widgetContainer) {
+                console.log('🕐 CLOCK: Setting display to block');
+                widgetContainer.style.display = 'block';
+                console.log(
+                    '🕐 CLOCK: Widget container display is now:',
+                    widgetContainer.style.display
+                );
+                console.log('🕐 CLOCK: Calling updateClock()');
+                updateClock();
+                setInterval(updateClock, 1000);
+                console.log('🕐 CLOCK: Clock widget activation complete');
+            }
         } else {
-            document.getElementById('widget-container').style.display = 'none';
+            console.log('🕐 CLOCK: Clock widget disabled in config');
+            const widgetContainer = document.getElementById('clock-widget-container');
+            if (widgetContainer) {
+                widgetContainer.style.display = 'none';
+            }
         }
 
         if (appConfig.backgroundRefreshMinutes > 0) {
@@ -287,23 +303,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     function applyWallartMode(config) {
         const body = document.body;
 
-        // Remove any existing wallart mode classes
-        body.classList.remove('wallart-mode');
-
-        // Clean up wallart resize listener when leaving wallart mode
-        if (window.wallartResizeListener) {
-            window.removeEventListener('resize', window.wallartResizeListener);
-            window.wallartResizeListener = null;
-        }
-
         if (config.wallartMode?.enabled) {
+            // Check if wallart mode is already active BEFORE removing the class
+            const isAlreadyActive = body.classList.contains('wallart-mode');
+
+            if (isAlreadyActive) {
+                return; // Don't restart if already running
+            }
+
             // Add wallart mode class to body
             body.classList.add('wallart-mode');
 
             const elementsToHide = [
-                'layer-a',
-                'layer-b',
-                'widget-container',
+                'clock-widget-container',
                 'clearlogo-container',
                 'info-container',
                 'controls-container',
@@ -311,6 +323,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 'poster-wrapper',
                 'background-image',
                 'loader',
+                'layer-a',
+                'layer-b',
             ];
 
             // Only hide promo-box if NOT on promo site
@@ -378,6 +392,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.addEventListener('resize', window.wallartResizeListener);
             }
         } else {
+            // Remove wallart mode classes and cleanup when disabled
+            body.classList.remove('wallart-mode');
+
+            // Clean up wallart resize listener when leaving wallart mode
+            if (window.wallartResizeListener) {
+                window.removeEventListener('resize', window.wallartResizeListener);
+                window.wallartResizeListener = null;
+            }
+
             // Clean up wallart grid if disabled
             if (wallartTransitionTimer) {
                 clearInterval(wallartTransitionTimer);
@@ -465,17 +488,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     function calculateWallartLayout(density = 'medium') {
         const screenWidth = window.innerWidth;
         const screenHeight = window.innerHeight;
+        const isPortrait = screenHeight > screenWidth;
+        const isMobile = screenWidth <= 768; // Mobile breakpoint
 
         // Standard movie poster aspect ratio - NEVER change this!
         const posterAspectRatio = 2 / 3; // width/height
 
-        // Optimize for 16:9 screens with maximum space utilization
-        // Define poster density as percentage of screen width
-        const densityFactors = {
-            low: 0.15, // Posters take ~15% of screen width each
-            medium: 0.12, // Posters take ~12% of screen width each
-            high: 0.09, // Posters take ~9% of screen width each
-        };
+        // Optimize for both desktop and mobile with different density factors
+        let densityFactors;
+
+        if (isMobile || isPortrait) {
+            // Mobile/Portrait: smaller posters to fit more on screen
+            densityFactors = {
+                low: 0.25, // Posters take ~25% of screen width each (4 across)
+                medium: 0.2, // Posters take ~20% of screen width each (5 across)
+                high: 0.167, // Posters take ~16.7% of screen width each (6 across)
+            };
+        } else {
+            // Desktop/Landscape: original density factors
+            densityFactors = {
+                low: 0.15, // Posters take ~15% of screen width each
+                medium: 0.12, // Posters take ~12% of screen width each
+                high: 0.09, // Posters take ~9% of screen width each
+            };
+        }
 
         const densityFactor = densityFactors[density] || 0.12;
 
@@ -600,7 +636,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (mediaQueue.length === 0) {
             // Prevent multiple simultaneous initialization attempts
             if (wallartInitializing) {
-                // console.log removed for cleaner browser console
                 return;
             }
 
@@ -679,9 +714,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Append directly to body
         document.body.appendChild(wallartGrid);
 
+        // Initialize variables that will be used by initializeWallartGrid
+        let currentPosters = []; // Track current posters for uniqueness
+        const usedPosters = new Set(); // Track used poster IDs
+
         // Get dynamically calculated poster count
-        const posterCount = layoutInfo.posterCount;
+        const posterCount = Math.min(layoutInfo.posterCount, mediaQueue.length);
         const animationType = wallartConfig.animationType || 'fade';
+
+        // Initialize the grid with posters
+        initializeWallartGrid(posterCount);
 
         // Get refresh rate and randomness settings separately
         const refreshRate = wallartConfig.refreshRate || wallartConfig.randomness || 5; // Use refreshRate, fallback to old randomness for compatibility
@@ -704,14 +746,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             maxRandomVariation = Math.round(baseVariation * randomnessMultiplier);
         }
 
-        let currentPosters = []; // Track current posters for uniqueness
-        const usedPosters = new Set(); // Track used poster IDs
-
         function createPosterElement(item, index) {
             const posterItem = document.createElement('div');
             posterItem.className = 'wallart-poster-item';
             posterItem.dataset.originalIndex = index;
             posterItem.dataset.posterId = item.id || item.title || index;
+
+            // Mobile detection for optimized styling
+            const isMobile =
+                window.innerWidth <= 768 || /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
 
             // Use grid cell dimensions but preserve poster proportions with object-fit
             posterItem.style.cssText = `
@@ -722,6 +765,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 width: 100% !important;
                 height: 100% !important;
                 position: relative !important;
+                ${isMobile ? 'will-change: opacity !important;' : ''}
             `;
 
             const img = document.createElement('img');
@@ -730,14 +774,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             img.loading = 'lazy';
 
             // Fill the grid cell while maintaining poster aspect ratio
-            img.style.cssText = `
-                width: 100% !important;
-                height: 100% !important;
-                object-fit: cover !important;
-                object-position: center !important;
-                display: block !important;
-                transform: scale(1.05) !important;
-            `;
+            // Simplified styling for mobile
+            if (isMobile) {
+                img.style.cssText = `
+                    width: 100% !important;
+                    height: 100% !important;
+                    object-fit: cover !important;
+                    object-position: center !important;
+                    display: block !important;
+                    transform: scale(1) !important;
+                    will-change: opacity !important;
+                `;
+            } else {
+                img.style.cssText = `
+                    width: 100% !important;
+                    height: 100% !important;
+                    object-fit: cover !important;
+                    object-position: center !important;
+                    display: block !important;
+                    transform: scale(1.05) !important;
+                `;
+            }
 
             posterItem.appendChild(img);
             return posterItem;
@@ -791,9 +848,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            // If we've used all available posters, reset the used set
+            // If we've used all available posters, we're done - no more unique options
             if (usedPosters.size >= mediaQueue.length) {
-                usedPosters.clear();
+                return null;
             }
 
             // Find posters that haven't been used yet AND are not the excluded poster AND are not currently visible
@@ -862,17 +919,63 @@ document.addEventListener('DOMContentLoaded', async () => {
             return selectedPoster;
         }
 
-        function initializeWallartGrid() {
+        function initializeWallartGrid(posterCount) {
             // Clear existing items
             wallartGrid.innerHTML = '';
             currentPosters = [];
             usedPosters.clear();
 
-            // Apply dynamic grid layout based on screen-filling calculation
-            const layoutInfo = calculateWallartLayout(wallartConfig.density);
+            // Recalculate layout based on actual poster count to use optimal space
+            const optimalPosterCount = Math.min(posterCount, mediaQueue.length);
+            let layoutInfo;
+
+            if (optimalPosterCount < posterCount) {
+                // Recalculate layout for fewer posters to maximize space usage
+
+                // Calculate optimal columns and rows for available posters
+                const screenWidth = window.innerWidth;
+                const screenHeight = window.innerHeight;
+                const posterAspectRatio = 2 / 3;
+
+                // Try different column counts to find optimal layout
+                let bestLayout = null;
+                let bestCoverage = 0;
+
+                for (let cols = 1; cols <= Math.min(optimalPosterCount, 15); cols++) {
+                    const rows = Math.ceil(optimalPosterCount / cols);
+                    const posterWidth = Math.floor(screenWidth / cols);
+                    const posterHeight = Math.round(posterWidth / posterAspectRatio);
+
+                    if (rows * posterHeight <= screenHeight) {
+                        const coverage =
+                            (cols * posterWidth * rows * posterHeight) /
+                            (screenWidth * screenHeight);
+                        if (coverage > bestCoverage) {
+                            bestCoverage = coverage;
+                            bestLayout = {
+                                columns: cols,
+                                rows: rows,
+                                actualPosterWidth: posterWidth,
+                                actualPosterHeight: posterHeight,
+                                gridLeft: Math.round((screenWidth - cols * posterWidth) / 2),
+                                gridTop: Math.round((screenHeight - rows * posterHeight) / 2),
+                                posterCount: optimalPosterCount,
+                            };
+                        }
+                    }
+                }
+
+                layoutInfo = bestLayout || calculateWallartLayout(wallartConfig.density);
+            } else {
+                layoutInfo = calculateWallartLayout(wallartConfig.density);
+            }
+
+            // Mobile detection for optimized grid CSS
+            const isMobile =
+                window.innerWidth <= 768 || /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
 
             // Update CSS grid with proper centering and fixed poster sizes
-            wallartGrid.style.cssText = `
+            let gridCSS = `
                 display: grid !important;
                 grid-template-columns: repeat(${layoutInfo.columns}, ${layoutInfo.actualPosterWidth}px) !important;
                 grid-template-rows: repeat(${layoutInfo.rows}, ${layoutInfo.actualPosterHeight}px) !important;
@@ -888,6 +991,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 z-index: 1000 !important;
                 overflow: visible !important;
             `;
+
+            // Add mobile-specific optimizations
+            if (isMobile) {
+                gridCSS += `
+                    will-change: auto !important;
+                    transform: translateZ(0) !important;
+                    -webkit-transform: translateZ(0) !important;
+                    backface-visibility: hidden !important;
+                    -webkit-backface-visibility: hidden !important;
+                `;
+            }
+
+            wallartGrid.style.cssText = gridCSS;
 
             // Check if we have enough media
             if (mediaQueue.length === 0) {
@@ -912,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .then(() => {
                         // After media is fetched, reinitialize the grid
                         if (mediaQueue.length > 0) {
-                            initializeWallartGrid();
+                            initializeWallartGrid(layoutInfo.posterCount);
                         }
                     })
                     .catch(error => {
@@ -936,6 +1052,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     posterItem.style.animation = 'wallartFadeIn 0.6s ease-out forwards';
 
                     wallartGrid.appendChild(posterItem);
+                } else {
+                    break; // Stop if no unique posters are available
                 }
             }
         }
@@ -971,7 +1089,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Get a new unique poster that's different from the current one at this position
             const newPoster = getUniqueRandomPoster(currentPosterId);
             if (!newPoster) {
-                // console.log removed for cleaner browser console
                 return;
             }
 
@@ -1041,6 +1158,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const img = element.querySelector('img');
             if (!img) return;
 
+            // Mobile detection for optimized animations
+            const isMobile =
+                window.innerWidth <= 768 || /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+
             // If animation type is 'random', select a random type from all available types
             if (animationType === 'random') {
                 animationType = getRandomAnimationType();
@@ -1048,8 +1169,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Start with just a simple, reliable fade animation
             if (animationType === 'fade') {
+                // Mobile optimized timing
+                const fadeTime = isMobile ? '0.4s' : '0.5s';
+                const waitTime = isMobile ? 400 : 500;
+
                 // Step 1: Fade out current image
-                img.style.transition = 'opacity 0.5s ease-in-out';
+                img.style.transition = `opacity ${fadeTime} ease-in-out`;
                 img.style.opacity = '0';
 
                 // Step 2: After fade out, change image and fade in
@@ -1063,19 +1188,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                     setTimeout(() => {
                         img.style.opacity = '1';
                     }, 50);
-                }, 500);
+                }, waitTime);
             } else if (animationType === 'slideLeft') {
+                // Mobile optimized timings and transforms
+                const slideScale = isMobile ? 'scale(1)' : 'scale(1.05)';
+                const slideTime = isMobile ? '0.4s' : '0.6s';
+                const waitTime = isMobile ? 400 : 600;
+                const slideDistance = isMobile ? '50px' : '100px';
+
                 // Reset any existing transition first
                 img.style.transition = 'none';
-                img.style.transform = 'scale(1.05) translateX(0px)';
+                img.style.transform = `${slideScale} translateX(0px)`;
 
                 // Force reflow
                 img.offsetHeight;
 
                 // Step 1: Slide out to the left with fade
-                img.style.transition = 'all 0.6s ease-in-out';
+                img.style.transition = `all ${slideTime} ease-in-out`;
                 img.style.opacity = '0';
-                img.style.transform = 'scale(1.05) translateX(-100px)';
+                img.style.transform = `${slideScale} translateX(-${slideDistance})`;
 
                 // Step 2: Change image and slide in from right
                 setTimeout(() => {
@@ -1086,31 +1217,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // Position image off-screen right (no transition)
                     img.style.transition = 'none';
-                    img.style.transform = 'scale(1.05) translateX(100px)';
+                    img.style.transform = `${slideScale} translateX(${slideDistance})`;
                     img.style.opacity = '0';
 
                     // Force reflow
                     img.offsetHeight;
 
                     // Step 3: Slide in from right
-                    img.style.transition = 'all 0.6s ease-out';
+                    img.style.transition = `all ${slideTime} ease-out`;
                     setTimeout(() => {
                         img.style.opacity = '1';
-                        img.style.transform = 'scale(1.05) translateX(0px)';
+                        img.style.transform = `${slideScale} translateX(0px)`;
                     }, 50);
-                }, 600);
+                }, waitTime);
             } else if (animationType === 'slideUp') {
+                // Mobile optimized timings and transforms
+                const slideScale = isMobile ? 'scale(1)' : 'scale(1.05)';
+                const slideTime = isMobile ? '0.4s' : '0.6s';
+                const waitTime = isMobile ? 400 : 600;
+                const slideDistance = isMobile ? '50px' : '100px';
+
                 // Reset any existing transition first
                 img.style.transition = 'none';
-                img.style.transform = 'scale(1.05) translateY(0px)';
+                img.style.transform = `${slideScale} translateY(0px)`;
 
                 // Force reflow
                 img.offsetHeight;
 
                 // Step 1: Slide up and fade out
-                img.style.transition = 'all 0.6s ease-in-out';
+                img.style.transition = `all ${slideTime} ease-in-out`;
                 img.style.opacity = '0';
-                img.style.transform = 'scale(1.05) translateY(-100px)';
+                img.style.transform = `${slideScale} translateY(-${slideDistance})`;
 
                 // Step 2: Change image and slide in from bottom
                 setTimeout(() => {
@@ -1121,19 +1258,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // Position image off-screen bottom (no transition)
                     img.style.transition = 'none';
-                    img.style.transform = 'scale(1.05) translateY(100px)';
+                    img.style.transform = `${slideScale} translateY(${slideDistance})`;
                     img.style.opacity = '0';
 
                     // Force reflow
                     img.offsetHeight;
 
                     // Step 3: Slide in from bottom
-                    img.style.transition = 'all 0.6s ease-out';
+                    img.style.transition = `all ${slideTime} ease-out`;
                     setTimeout(() => {
                         img.style.opacity = '1';
-                        img.style.transform = 'scale(1.05) translateY(0px)';
+                        img.style.transform = `${slideScale} translateY(0px)`;
                     }, 50);
-                }, 600);
+                }, waitTime);
             } else if (animationType === 'zoom') {
                 // Reset any existing transition first
                 img.style.transition = 'none';
@@ -1222,7 +1359,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
                 // console.log removed for cleaner browser console
-                initializeWallartGrid();
+                const newLayoutInfo = calculateWallartLayout(wallartConfig.density);
+                initializeWallartGrid(newLayoutInfo.posterCount);
             }, 250); // Debounce resize events
         }
 
@@ -1234,6 +1372,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Add new listener
         window.wallartResizeListener = handleWallartResize;
         window.addEventListener('resize', window.wallartResizeListener);
+
+        // Start the initial refresh timer to begin the poster cycling
+        if (wallartConfig.autoRefresh !== false) {
+            wallartRefreshTimeout = setTimeout(window.refreshSinglePoster, refreshInterval);
+        }
     }
 
     async function refreshConfig() {
@@ -1286,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Handle clock widget changes
         if (oldConfig.clockWidget !== newConfig.clockWidget) {
-            const widgetContainer = document.getElementById('widget-container');
+            const widgetContainer = document.getElementById('clock-widget-container');
             if (newConfig.clockWidget) {
                 widgetContainer.style.display = 'block';
                 updateClock();
@@ -1370,6 +1513,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function fetchMedia(isInitialLoad = false) {
+        console.log('🎬 MEDIA: fetchMedia called, isInitialLoad:', isInitialLoad);
+        console.log('🎬 MEDIA: Body classes:', document.body.className);
         try {
             // Add a cache-busting query parameter to ensure the browser always fetches a fresh response.
             const cacheBuster = `?_=${Date.now()}`;
@@ -2300,7 +2445,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function updateClock() {
+        console.log('🕐 UPDATE: updateClock() called');
+
+        // Check if clock elements exist
+        if (!timeHours || !timeMinutes) {
+            console.error('🕐 UPDATE: Clock elements not found!', {
+                timeHours: !!timeHours,
+                timeMinutes: !!timeMinutes,
+            });
+            return;
+        }
+
         const now = new Date();
+        console.log('🕐 UPDATE: Current time:', now.toLocaleTimeString());
 
         // Get timezone and format from config
         const timezone = appConfig.clockTimezone || 'auto';
