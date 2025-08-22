@@ -160,6 +160,10 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
+            - name: Validate config.json against schema
+              run: |
+                  node -e "const Ajv=require('ajv');const fs=require('fs');const path=require('path');const ajv=new Ajv({allErrors:true});const schema=JSON.parse(fs.readFileSync('config.schema.json','utf8'));const data=JSON.parse(fs.readFileSync('config.json','utf8'));const validate=ajv.compile(schema);if(!validate(data)){console.error('Config validation failed:',validate.errors);process.exit(1)}console.log('Config validation passed')"
+
             - name: Build application
               run: |
                   echo "✅ Building application..."
