@@ -3,7 +3,6 @@
  * Focus on error handling, edge cases, and uncovered paths
  */
 
-const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const healthCheck = require('../../utils/healthCheck');

@@ -4,7 +4,6 @@
  */
 
 const updater = require('../../utils/updater');
-const fs = require('fs').promises;
 
 describe('Updater Coverage Enhancement', () => {
     beforeEach(() => {
