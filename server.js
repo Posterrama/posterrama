@@ -1295,6 +1295,39 @@ app.use(securityMiddleware());
 app.use(corsMiddleware());
 app.use(requestLoggingMiddleware());
 
+// Minimal CSP violation report endpoint
+// Accepts both deprecated report-uri (application/csp-report) and modern report-to (application/reports+json)
+const cspReportJson = express.json({
+    type: req => {
+        const ct = (req.headers['content-type'] || '').toLowerCase();
+        return (
+            ct.includes('application/csp-report') ||
+            ct.includes('application/reports+json') ||
+            ct.includes('application/json')
+        );
+    },
+});
+
+app.post('/csp-report', cspReportJson, (req, res) => {
+    try {
+        let report = req.body;
+        // Old-style: { "csp-report": { ... } }
+        if (report && report['csp-report']) report = report['csp-report'];
+        // New-style Report-To batches: [ { type: 'csp-violation', body: {...} }, ... ]
+        if (Array.isArray(report)) {
+            const first = report.find(r => r?.type?.includes('csp')) || report[0];
+            report = first?.body || first || {};
+        }
+
+        const safe = JSON.stringify(report || {}).slice(0, 5000);
+        logger.warn('CSP Violation Report', { report: safe });
+    } catch (e) {
+        logger.warn('CSP Violation Report (unparseable)', { error: e.message });
+    }
+    // Always respond 204 No Content to avoid probing
+    res.status(204).end();
+});
+
 // API cache stats endpoint (admin only)
 /**
  * @swagger
