@@ -2621,4 +2621,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
         { passive: true }
     );
+
+    // Export updateClock function for promo site clock synchronization
+    window.updateClock = updateClock;
 });

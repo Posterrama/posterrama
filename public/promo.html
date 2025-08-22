@@ -65,6 +65,20 @@
 
             /* Let main site CSS handle all layer and info-container animations */
             /* DON'T force visibility on layers - they need to transition */
+
+            /* PROMO SITE SPECIFIC: Ensure clock is positioned correctly behind promo box */
+            body.promo-site #clock-widget-container {
+                position: fixed !important;
+                top: 30px !important;
+                left: 50px !important;
+                z-index: 10 !important;
+                display: block !important;
+            }
+
+            /* Ensure promo box doesn't interfere with clock positioning */
+            body.promo-site #promo-box {
+                z-index: 99999 !important;
+            }
         </style>
 
         <script>
@@ -107,6 +121,21 @@
 
                 // IMPORTANT: Let the main script handle clock initialization
                 // We just ensure the promo site doesn't interfere
+                
+                // Debug: Check if clock elements exist and are being updated
+                setTimeout(() => {
+                    const timeHours = document.getElementById('time-hours');
+                    const timeMinutes = document.getElementById('time-minutes');
+                    if (timeHours && timeMinutes) {
+                        // If clock elements are empty after 2 seconds, manually trigger update
+                        if (!timeHours.textContent || !timeMinutes.textContent) {
+                            // Try to call main app's updateClock if it exists
+                            if (window.updateClock && typeof window.updateClock === 'function') {
+                                window.updateClock();
+                            }
+                        }
+                    }
+                }, 2000);
             }
 
             // Block mode functions
