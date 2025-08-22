@@ -267,13 +267,29 @@ install_posterrama() {
     # Install dependencies
     print_status "Installing Node.js dependencies..."
     
-    # Ensure npm is in PATH
-    export PATH="/usr/bin:/usr/local/bin:$PATH"
+    # Find the actual npm location
+    NPM_PATH=$(which npm 2>/dev/null || echo "")
+    NODE_PATH=$(which node 2>/dev/null || echo "")
+    
+    if [[ -z "$NPM_PATH" ]]; then
+        print_error "npm not found in current PATH"
+        exit 1
+    fi
+    
+    print_status "Using npm at: $NPM_PATH"
+    print_status "Using node at: $NODE_PATH"
+    
+    # Get the directory containing npm and node
+    NPM_DIR=$(dirname "$NPM_PATH")
+    NODE_DIR=$(dirname "$NODE_PATH")
+    
+    # Create a comprehensive PATH that includes both directories
+    FULL_PATH="$NPM_DIR:$NODE_DIR:/usr/bin:/usr/local/bin:$PATH"
     
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && cd $POSTERRAMA_DIR && npm install"
+        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='$FULL_PATH' && cd $POSTERRAMA_DIR && npm install"
     else
-        su - $POSTERRAMA_USER -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && cd $POSTERRAMA_DIR && npm install"
+        su - $POSTERRAMA_USER -c "export PATH='$FULL_PATH' && cd $POSTERRAMA_DIR && npm install"
     fi
     
     # Copy configuration file
@@ -319,25 +335,42 @@ setup_service() {
     
     cd $POSTERRAMA_DIR
     
-    # Ensure PATH includes Node.js and PM2 binaries
-    export PATH="/usr/bin:/usr/local/bin:$PATH"
+    # Find the actual paths for node, npm, and pm2
+    NPM_PATH=$(which npm 2>/dev/null || echo "")
+    NODE_PATH=$(which node 2>/dev/null || echo "")
+    PM2_PATH=$(which pm2 2>/dev/null || echo "")
+    
+    if [[ -z "$PM2_PATH" ]]; then
+        print_error "PM2 not found in current PATH"
+        exit 1
+    fi
+    
+    print_status "Using PM2 at: $PM2_PATH"
+    
+    # Get the directories containing the binaries
+    NPM_DIR=$(dirname "$NPM_PATH")
+    NODE_DIR=$(dirname "$NODE_PATH")
+    PM2_DIR=$(dirname "$PM2_PATH")
+    
+    # Create a comprehensive PATH
+    FULL_PATH="$PM2_DIR:$NPM_DIR:$NODE_DIR:/usr/bin:/usr/local/bin:$PATH"
     
     # Start application with PM2
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='$FULL_PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
     else
-        su - $POSTERRAMA_USER -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+        su - $POSTERRAMA_USER -c "export PATH='$FULL_PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
     fi
     
     # Save PM2 configuration
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && pm2 save"
+        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='$FULL_PATH' && pm2 save"
     else
-        su - $POSTERRAMA_USER -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && pm2 save"
+        su - $POSTERRAMA_USER -c "export PATH='$FULL_PATH' && pm2 save"
     fi
     
     # Generate systemd service
-    su - $POSTERRAMA_USER -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
+    su - $POSTERRAMA_USER -c "export PATH='$FULL_PATH' && cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
     
     # Enable and start the service
     $SUDO systemctl enable pm2-$POSTERRAMA_USER
