@@ -92,7 +92,25 @@ install_nodejs() {
         
         if [[ $MAJOR_VERSION -ge 18 ]]; then
             print_success "Node.js $NODE_VERSION is already installed and compatible"
-            return 0
+            # Ensure npm is also available
+            if ! command -v npm >/dev/null 2>&1; then
+                print_warning "npm not found in PATH, attempting to fix..."
+                # Try to add common Node.js paths to PATH
+                export PATH="/usr/bin:/usr/local/bin:$PATH"
+                # Try alternative npm locations
+                if [[ -x "/usr/bin/npm" ]]; then
+                    export PATH="/usr/bin:$PATH"
+                elif [[ -x "/usr/local/bin/npm" ]]; then
+                    export PATH="/usr/local/bin:$PATH"
+                fi
+            fi
+            
+            if command -v npm >/dev/null 2>&1; then
+                print_success "npm is available"
+                return 0
+            else
+                print_warning "npm still not found, will attempt reinstall"
+            fi
         else
             print_warning "Node.js $NODE_VERSION is installed but version 18+ is required"
         fi
@@ -119,12 +137,16 @@ install_nodejs() {
             ;;
     esac
     
+    # Update PATH to include Node.js binaries
+    export PATH="/usr/bin:/usr/local/bin:$PATH"
+    
     # Verify installation
-    if command -v node >/dev/null 2>&1; then
+    if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
         NODE_VERSION=$(node --version)
-        print_success "Node.js $NODE_VERSION installed successfully"
+        NPM_VERSION=$(npm --version)
+        print_success "Node.js $NODE_VERSION and npm $NPM_VERSION installed successfully"
     else
-        print_error "Failed to install Node.js"
+        print_error "Failed to install Node.js or npm"
         exit 1
     fi
 }
@@ -162,12 +184,25 @@ install_git() {
 install_pm2() {
     print_status "Installing PM2..."
     
+    # Ensure npm is in PATH
+    export PATH="/usr/bin:/usr/local/bin:$PATH"
+    
     if command -v pm2 >/dev/null 2>&1; then
         print_success "PM2 is already installed"
         return 0
     fi
     
+    # Verify npm is available before installing PM2
+    if ! command -v npm >/dev/null 2>&1; then
+        print_error "npm not found. Cannot install PM2."
+        print_status "Please ensure Node.js and npm are properly installed."
+        exit 1
+    fi
+    
     npm install -g pm2
+    
+    # Update PATH again after PM2 installation
+    export PATH="/usr/bin:/usr/local/bin:$PATH"
     
     if command -v pm2 >/dev/null 2>&1; then
         print_success "PM2 installed successfully"
@@ -231,10 +266,14 @@ install_posterrama() {
     
     # Install dependencies
     print_status "Installing Node.js dependencies..."
+    
+    # Ensure npm is in PATH
+    export PATH="/usr/bin:/usr/local/bin:$PATH"
+    
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER npm install
+        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && cd $POSTERRAMA_DIR && npm install"
     else
-        su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && npm install"
+        su - $POSTERRAMA_USER -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && cd $POSTERRAMA_DIR && npm install"
     fi
     
     # Copy configuration file
@@ -280,22 +319,25 @@ setup_service() {
     
     cd $POSTERRAMA_DIR
     
+    # Ensure PATH includes Node.js and PM2 binaries
+    export PATH="/usr/bin:/usr/local/bin:$PATH"
+    
     # Start application with PM2
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER pm2 start ecosystem.config.js
+        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
     else
-        su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+        su - $POSTERRAMA_USER -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
     fi
     
     # Save PM2 configuration
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER pm2 save
+        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && pm2 save"
     else
-        su - $POSTERRAMA_USER -c "pm2 save"
+        su - $POSTERRAMA_USER -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && pm2 save"
     fi
     
     # Generate systemd service
-    su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
+    su - $POSTERRAMA_USER -c "export PATH='/usr/bin:/usr/local/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
     
     # Enable and start the service
     $SUDO systemctl enable pm2-$POSTERRAMA_USER
