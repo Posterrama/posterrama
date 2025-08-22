@@ -290,28 +290,71 @@ install_posterrama() {
         $SUDO ln -sf "$NPM_PATH" /usr/local/bin/npm
     fi
     
+    # Set up proper PATH in posterrama user's profile
+    POSTERRAMA_BASHRC="$POSTERRAMA_DIR/.bashrc"
+    if [[ ! -f "$POSTERRAMA_BASHRC" ]] || ! grep -q "/usr/local/bin" "$POSTERRAMA_BASHRC" 2>/dev/null; then
+        print_status "Setting up PATH in posterrama user's .bashrc..."
+        echo 'export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"' | $SUDO tee -a "$POSTERRAMA_BASHRC" > /dev/null
+        $SUDO chown $POSTERRAMA_USER:$POSTERRAMA_USER "$POSTERRAMA_BASHRC"
+    fi
+    
     # Verify the posterrama user can access node and npm
     if [[ -n "$SUDO" ]]; then
-        NODE_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which node 2>/dev/null || echo 'NOT_FOUND'")
-        NPM_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which npm 2>/dev/null || echo 'NOT_FOUND'")
+        NODE_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which node 2>/dev/null || echo 'NOT_FOUND'")
+        NPM_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which npm 2>/dev/null || echo 'NOT_FOUND'")
     else
-        NODE_TEST=$(su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which node 2>/dev/null || echo 'NOT_FOUND'")
-        NPM_TEST=$(su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which npm 2>/dev/null || echo 'NOT_FOUND'")
+        NODE_TEST=$(su - $POSTERRAMA_USER -c "which node 2>/dev/null || echo 'NOT_FOUND'")
+        NPM_TEST=$(su - $POSTERRAMA_USER -c "which npm 2>/dev/null || echo 'NOT_FOUND'")
     fi
     
     print_status "Node accessible to posterrama user: $NODE_TEST"
     print_status "npm accessible to posterrama user: $NPM_TEST"
     
+    # If still not found, try direct path access
     if [[ "$NPM_TEST" == "NOT_FOUND" ]]; then
-        print_error "npm still not accessible to posterrama user after symlink creation"
-        exit 1
+        print_warning "npm not found via which, testing direct path access..."
+        if [[ -n "$SUDO" ]]; then
+            NPM_DIRECT_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "/usr/local/bin/npm --version 2>/dev/null && echo 'DIRECT_ACCESS_OK' || echo 'DIRECT_ACCESS_FAILED'")
+        else
+            NPM_DIRECT_TEST=$(su - $POSTERRAMA_USER -c "/usr/local/bin/npm --version 2>/dev/null && echo 'DIRECT_ACCESS_OK' || echo 'DIRECT_ACCESS_FAILED'")
+        fi
+        
+        if [[ "$NPM_DIRECT_TEST" == "DIRECT_ACCESS_OK" ]]; then
+            print_status "npm accessible via direct path - continuing..."
+        else
+            print_error "npm still not accessible to posterrama user even via direct path"
+            print_status "Attempting to fix permissions on Node.js binaries..."
+            $SUDO chmod +x /usr/local/bin/node /usr/local/bin/npm 2>/dev/null || true
+            # Try one more time
+            if [[ -n "$SUDO" ]]; then
+                NPM_FINAL_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "/usr/local/bin/npm --version 2>/dev/null && echo 'OK' || echo 'FAILED'")
+            else
+                NPM_FINAL_TEST=$(su - $POSTERRAMA_USER -c "/usr/local/bin/npm --version 2>/dev/null && echo 'OK' || echo 'FAILED'")
+            fi
+            
+            if [[ "$NPM_FINAL_TEST" == "FAILED" ]]; then
+                print_error "Unable to fix npm access for posterrama user"
+                exit 1
+            fi
+        fi
     fi
     
     # Run npm install with proper PATH
+    print_status "Running npm install..."
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && cd $POSTERRAMA_DIR && npm install"
+        if $SUDO -u $POSTERRAMA_USER bash -l -c "which npm >/dev/null 2>&1"; then
+            $SUDO -u $POSTERRAMA_USER bash -l -c "cd $POSTERRAMA_DIR && npm install"
+        else
+            # Fallback to direct path
+            $SUDO -u $POSTERRAMA_USER bash -c "cd $POSTERRAMA_DIR && /usr/local/bin/npm install"
+        fi
     else
-        su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && cd $POSTERRAMA_DIR && npm install"
+        if su - $POSTERRAMA_USER -c "which npm >/dev/null 2>&1"; then
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && npm install"
+        else
+            # Fallback to direct path
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/npm install"
+        fi
     fi
     
     # Copy configuration file
@@ -377,34 +420,74 @@ setup_service() {
     
     # Verify PM2 access for posterrama user
     if [[ -n "$SUDO" ]]; then
-        PM2_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which pm2 2>/dev/null || echo 'NOT_FOUND'")
+        PM2_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which pm2 2>/dev/null || echo 'NOT_FOUND'")
     else
-        PM2_TEST=$(su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which pm2 2>/dev/null || echo 'NOT_FOUND'")
+        PM2_TEST=$(su - $POSTERRAMA_USER -c "which pm2 2>/dev/null || echo 'NOT_FOUND'")
     fi
     
     print_status "PM2 accessible to posterrama user: $PM2_TEST"
     
+    # If PM2 not found in PATH, test direct access
     if [[ "$PM2_TEST" == "NOT_FOUND" ]]; then
-        print_error "PM2 still not accessible to posterrama user after symlink creation"
-        exit 1
+        print_warning "PM2 not found via which, testing direct path access..."
+        if [[ -n "$SUDO" ]]; then
+            PM2_DIRECT_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "/usr/local/bin/pm2 --version 2>/dev/null && echo 'DIRECT_ACCESS_OK' || echo 'DIRECT_ACCESS_FAILED'")
+        else
+            PM2_DIRECT_TEST=$(su - $POSTERRAMA_USER -c "/usr/local/bin/pm2 --version 2>/dev/null && echo 'DIRECT_ACCESS_OK' || echo 'DIRECT_ACCESS_FAILED'")
+        fi
+        
+        if [[ "$PM2_DIRECT_TEST" != "DIRECT_ACCESS_OK" ]]; then
+            print_error "PM2 not accessible to posterrama user"
+            exit 1
+        else
+            print_status "PM2 accessible via direct path - continuing..."
+        fi
     fi
     
     # Start application with PM2
+    print_status "Starting application with PM2..."
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+        if $SUDO -u $POSTERRAMA_USER bash -l -c "which pm2 >/dev/null 2>&1"; then
+            $SUDO -u $POSTERRAMA_USER bash -l -c "cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+        else
+            # Fallback to direct path
+            $SUDO -u $POSTERRAMA_USER bash -c "cd $POSTERRAMA_DIR && /usr/local/bin/pm2 start ecosystem.config.js"
+        fi
     else
-        su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+        if su - $POSTERRAMA_USER -c "which pm2 >/dev/null 2>&1"; then
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+        else
+            # Fallback to direct path
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/pm2 start ecosystem.config.js"
+        fi
     fi
     
     # Save PM2 configuration
+    print_status "Saving PM2 configuration..."
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && pm2 save"
+        if $SUDO -u $POSTERRAMA_USER bash -l -c "which pm2 >/dev/null 2>&1"; then
+            $SUDO -u $POSTERRAMA_USER bash -l -c "pm2 save"
+        else
+            # Fallback to direct path
+            $SUDO -u $POSTERRAMA_USER bash -c "/usr/local/bin/pm2 save"
+        fi
     else
-        su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && pm2 save"
+        if su - $POSTERRAMA_USER -c "which pm2 >/dev/null 2>&1"; then
+            su - $POSTERRAMA_USER -c "pm2 save"
+        else
+            # Fallback to direct path
+            su - $POSTERRAMA_USER -c "/usr/local/bin/pm2 save"
+        fi
     fi
     
     # Generate systemd service
-    su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
+    print_status "Generating systemd service..."
+    if su - $POSTERRAMA_USER -c "which pm2 >/dev/null 2>&1"; then
+        su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
+    else
+        # Fallback to direct path
+        su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
+    fi
     
     # Enable and start the service
     $SUDO systemctl enable pm2-$POSTERRAMA_USER
