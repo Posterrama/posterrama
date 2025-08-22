@@ -489,6 +489,23 @@ install_posterrama() {
     $SUDO chown -R $POSTERRAMA_USER:$POSTERRAMA_USER $POSTERRAMA_DIR
     $SUDO chmod +x $POSTERRAMA_DIR/server.js
     
+    # Create runtime directories with proper ownership
+    print_status "Creating runtime directories with proper ownership..."
+    RUNTIME_DIRS=("cache" "image_cache" "logs" "sessions")
+    
+    for dir in "${RUNTIME_DIRS[@]}"; do
+        FULL_DIR_PATH="$POSTERRAMA_DIR/$dir"
+        if [[ ! -d "$FULL_DIR_PATH" ]]; then
+            print_status "Creating directory: $dir"
+            $SUDO mkdir -p "$FULL_DIR_PATH"
+        fi
+        # Ensure proper ownership and permissions
+        $SUDO chown -R $POSTERRAMA_USER:$POSTERRAMA_USER "$FULL_DIR_PATH"
+        $SUDO chmod 755 "$FULL_DIR_PATH"
+    done
+    
+    print_success "Runtime directories configured with posterrama user ownership"
+    
     print_success "Posterrama installed successfully"
 }
 
