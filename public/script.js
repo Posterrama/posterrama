@@ -9,6 +9,14 @@
  * (at your option) any later version.
  */
 
+// Simple frontend logger to match backend logger interface
+const logger = {
+    debug: (message, data) => console.debug(`[DEBUG] ${message}`, data || ''),
+    info: (message, data) => console.info(`[INFO] ${message}`, data || ''),
+    warn: (message, data) => console.warn(`[WARN] ${message}`, data || ''),
+    error: (message, data) => console.error(`[ERROR] ${message}`, data || ''),
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
     // --- Element References ---
     const layerA = document.getElementById('layer-a');
@@ -188,7 +196,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             textWrapper.classList.remove('is-hidden');
         }
 
-        if (appConfig.clockWidget) {
+        // Clock widget logic - only show in screensaver mode
+        const isScreensaverMode = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
+        const shouldShowClock = appConfig.clockWidget && isScreensaverMode;
+
+        if (shouldShowClock) {
             const widgetContainer = document.getElementById('clock-widget-container');
             if (widgetContainer) {
                 widgetContainer.style.display = 'block';

@@ -6888,12 +6888,10 @@ if (require.main === module) {
                         ),
                         // Force promo box to be visible
                         promoBoxEnabled: true,
-                        // Force screensaver mode (disable other modes)
-                        wallartMode: {
-                            ...originalConfig.wallartMode,
-                            enabled: false,
-                        },
-                        cinemaMode: false,
+                        // Preserve original mode settings - promo box shows on top
+                        wallartMode: originalConfig.wallartMode,
+                        // Preserve original cinema mode setting
+                        cinemaMode: originalConfig.cinemaMode,
                     };
                     // We send the modified JSON and stop further processing for this request.
                     return res.json(modifiedConfig);
