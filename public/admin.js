@@ -245,6 +245,28 @@ window.checkNetworkStatus = function () {
     };
 };
 
+// Smoothly scroll to a subsection header by id (used by quick-nav links in Sources)
+window.scrollToSubsection = function (id) {
+    try {
+        const el = document.getElementById(id);
+        if (!el) {
+            console.warn('scrollToSubsection: element not found:', id);
+            return;
+        }
+
+        // Compute target Y with a small offset to avoid sticking under any top UI
+        const offset = 16;
+        const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+
+        // Briefly highlight the target header for orientation
+        el.classList.add('pulse-highlight');
+        setTimeout(() => el.classList.remove('pulse-highlight'), 800);
+    } catch (e) {
+        console.error('scrollToSubsection error:', e);
+    }
+};
+
 // Debug function to test config save with different methods
 window.testConfigSave = async function () {
     const testConfig = {
@@ -721,7 +743,6 @@ function getHelpContentForSection(sectionId) {
                         'Memory Cache: Monitor the number of cached items in memory',
                         'Refresh Stats: Update cache statistics display',
                         'Run Cleanup: Remove old or unused cache files automatically',
-                        'View Cache: Browse cached images and metadata (debug mode)',
                         'Clear Cache: Delete all cached data to free up disk space',
                     ],
                 },
@@ -1309,11 +1330,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('SERVER_PORT').value = normalizedEnv.SERVER_PORT;
         document.getElementById('DEBUG').checked = normalizedEnv.DEBUG;
 
-        const debugCheckbox = document.getElementById('DEBUG');
-        const debugAction = document.getElementById('debug-cache-action');
-        if (debugAction) {
-            debugAction.classList.toggle('is-hidden', !debugCheckbox.checked);
-        }
+        // Debug cache action removed from UI
         // Site server settings are populated after server meta (IP) is available in loadConfig.
         // (Avoid early call with placeholder IP to prevent inconsistent link text.)
     }
@@ -4284,14 +4301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const debugCheckbox = document.getElementById('DEBUG');
-    const debugAction = document.getElementById('debug-cache-action');
-
-    if (debugCheckbox && debugAction) {
-        debugCheckbox.addEventListener('change', () => {
-            debugAction.classList.toggle('is-hidden', !debugCheckbox.checked);
-        });
-    }
+    // Removed: debug cache action toggle (button removed from UI)
 
     const configForm = document.getElementById('config-form');
     if (configForm) {
