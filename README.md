@@ -25,18 +25,16 @@ Multi-poster grid that intelligently fills your screen with dynamic layouts.
 Works seamlessly with Plex, TMDB, TVDB, and streaming services across all devices.
 
 <div align="center">
-<table>
-<tr>
-<td width="50%" align="center">
-<img src="./screenshots/screensaver.png" alt="Cinema Mode" width="100%">
-<br><strong>Cinema Mode</strong>
-</td>
-<td width="50%" align="center">
-<img src="./screenshots/wallart.png" alt="Wallart Mode" width="100%">
-<br><strong>Wallart Mode</strong>
-</td>
-</tr>
-</table>
+
+<img src="./screenshots/screensaver.png" alt="Cinema Mode" width="45%">
+&nbsp;&nbsp;&nbsp;&nbsp;
+<img src="./screenshots/wallart.png" alt="Wallart Mode" width="45%">
+
+<br>
+<strong>Cinema Mode</strong>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<strong>Wallart Mode</strong>
+
 </div>
 
 ## Installation
@@ -91,22 +89,20 @@ pm2 start ecosystem.config.js
 - Optimized for mobile, tablet, and desktop
 
 <div align="center">
-<table>
-<tr>
-<td width="33%" align="center">
+
 <img src="./screenshots/mobile.png" alt="Mobile" width="150">
-<br><strong>Mobile</strong>
-</td>
-<td width="33%" align="center">
+&nbsp;&nbsp;&nbsp;&nbsp;
 <img src="./screenshots/admin.png" alt="Admin" width="200">
-<br><strong>Admin</strong>
-</td>
-<td width="33%" align="center">
+&nbsp;&nbsp;&nbsp;&nbsp;
 <img src="./screenshots/screensaver.png" alt="TV" width="200">
-<br><strong>TV</strong>
-</td>
-</tr>
-</table>
+
+<br>
+<strong>Mobile</strong>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<strong>Admin</strong>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<strong>TV</strong>
+
 </div>
 
 ## Requirements
