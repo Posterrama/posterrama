@@ -189,23 +189,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (appConfig.clockWidget) {
-            console.log('🕐 CLOCK: Activating clock widget...');
             const widgetContainer = document.getElementById('clock-widget-container');
-            console.log('🕐 CLOCK: Widget container found:', !!widgetContainer);
             if (widgetContainer) {
-                console.log('🕐 CLOCK: Setting display to block');
                 widgetContainer.style.display = 'block';
-                console.log(
-                    '🕐 CLOCK: Widget container display is now:',
-                    widgetContainer.style.display
-                );
-                console.log('🕐 CLOCK: Calling updateClock()');
                 updateClock();
                 setInterval(updateClock, 1000);
-                console.log('🕐 CLOCK: Clock widget activation complete');
             }
         } else {
-            console.log('🕐 CLOCK: Clock widget disabled in config');
             const widgetContainer = document.getElementById('clock-widget-container');
             if (widgetContainer) {
                 widgetContainer.style.display = 'none';
@@ -1513,8 +1503,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function fetchMedia(isInitialLoad = false) {
-        console.log('🎬 MEDIA: fetchMedia called, isInitialLoad:', isInitialLoad);
-        console.log('🎬 MEDIA: Body classes:', document.body.className);
         try {
             // Add a cache-busting query parameter to ensure the browser always fetches a fresh response.
             const cacheBuster = `?_=${Date.now()}`;
@@ -2445,19 +2433,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function updateClock() {
-        console.log('🕐 UPDATE: updateClock() called');
-
         // Check if clock elements exist
         if (!timeHours || !timeMinutes) {
-            console.error('🕐 UPDATE: Clock elements not found!', {
-                timeHours: !!timeHours,
-                timeMinutes: !!timeMinutes,
-            });
             return;
         }
 
         const now = new Date();
-        console.log('🕐 UPDATE: Current time:', now.toLocaleTimeString());
 
         // Get timezone and format from config
         const timezone = appConfig.clockTimezone || 'auto';
