@@ -1,174 +1,247 @@
 # Posterrama - Bring your media library to life
 
+<div align="center">
+
 [![Version](https://img.shields.io/badge/version-1.8.8-blue.svg)](https://github.com/Posterrama/posterrama)
 [![Downloads](https://img.shields.io/github/downloads/Posterrama/posterrama/total?style=flat&logo=github&label=Downloads&color=brightgreen)](https://github.com/Posterrama/posterrama/releases)
-[![Tests](https://img.shields.io/badge/tests-615%20tests%20in%2043%20suites-brightgreen)](#testing)
-[![Coverage](https://img.shields.io/badge/coverage-87.75%25-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-681%20tests%20in%2047%20suites-brightgreen)](#testing)
+[![Coverage](https://img.shields.io/badge/coverage-87.53%25-brightgreen)](#testing)
 [![Node.js](https://img.shields.io/badge/node.js-%E2%89%A518.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
+
+**Transform any screen into a stunning digital movie poster display**
+
+<img src="./screenshots/screensaver.png" alt="Posterrama Cinema Display" width="750">
+
+_Perfect for TV screensavers, wall-mounted tablets, or creating your own cinema lobby experience at home_
+
 [![Plex](https://img.shields.io/badge/Plex-Compatible-orange.svg)](https://www.plex.tv/)
 [![TMDB](https://img.shields.io/badge/TMDB-Powered-blue.svg)](https://www.themoviedb.org/)
 [![TVDB](https://img.shields.io/badge/TVDB-Powered-green.svg)](https://thetvdb.com/)
 
-Transform any screen into a **stunning digital movie poster display** that showcases your personal media collection! Perfect for TV screensavers, wall-mounted tablets, or creating your own cinema lobby experience at home.
+</div>
 
-![Screenshot of screensaver](./screenshots/screensaver.png)
+---
 
-### 🌟 **Coming Soon: Game-Changing Features**
+## 🎭 Display Modes
 
-Get ready for an explosion of **cinema magic**:
+<table>
+<tr>
+<td width="50%" align="center">
 
-#### **🎭 Cinema Mode Revolution**
+### 🖼️ **Cinema Mode**
 
-- **Movie Trailers Integration** - Watch trailers directly in your poster displays
-- **Motion Posters** - Animated movie artwork that brings posters to life
-- **Real-time Preview** - See your changes instantly as you configure settings
-- **Advanced Animations** - Stunning transitions and cinematic effects
+**Professional digital movie poster display**
 
-#### **🔌 Universal Content Sources**
+<img src="./screenshots/screensaver.png" alt="Cinema Mode - Single Poster Display" width="100%">
 
-- **Emby & Jellyfin Support** - Connect to any media server you love
-- **Kodi Integration** - Seamless integration with your existing setup
-- **Radarr, Sonarr & Lidarr** - Rich metadata from your \*arr stack
-- **Multi-Content Types** - Movies, TV shows, music, and gaming collections
+_Clean, cinema-quality presentation perfect for theaters and home displays_
 
-#### **🖥️ Multi-Display Ecosystem**
+</td>
+<td width="50%" align="center">
 
-- **Multiple Screens** - Manage different displays with unique configurations
-- **Gaming Collections** - Showcase your Steam, PlayStation, Xbox libraries
-- **Music Visualizations** - Album art displays for your music collection
-- **Smart Sync** - Coordinated displays across your entire home
+### � **Wallart Mode**
+
+**Multi-poster grid that fills your screen**
+
+<img src="./screenshots/wallart.png" alt="Wallart Mode - Multi-Poster Grid" width="100%">
+
+_Dynamic grid layout with intelligent screen-filling algorithm_
+
+</td>
+</tr>
+</table>
+
+---
+
+## � Multi-Device Experience
+
+<div align="center">
+<table>
+<tr>
+<td align="center" width="33%">
+<img src="./screenshots/mobile.png" alt="Mobile Optimized View" width="200"><br>
+<strong>📱 Mobile Optimized</strong><br>
+<em>Perfect layouts for phones & tablets</em>
+</td>
+<td align="center" width="33%">
+<img src="./screenshots/admin.png" alt="Admin Dashboard" width="280"><br>
+<strong>🛠️ Admin Dashboard</strong><br>
+<em>Easy configuration & management</em>
+</td>
+<td align="center" width="33%">
+<img src="./screenshots/screensaver.png" alt="TV Display" width="280"><br>
+<strong>📺 TV Ready</strong><br>
+<em>Optimized for big screens</em>
+</td>
+</tr>
+</table>
+</div>
+
+---
 
 ## ✨ What Makes Posterrama Special?
 
 Imagine walking into a movie theater and seeing those beautiful, professional movie posters displayed everywhere. Now imagine having that same cinematic experience in your home, automatically showcasing **your** favorite movies and shows!
 
-### Perfect For:
+<div align="center">
 
-- **TV Screensavers** - Transform your TV into a cinema display when not in use
-- **Wall-Mounted Tablets** - Create permanent digital movie posters for any room
-- **Home Theater Lobbies** - Professional cinema experience in your own space
-- **Media Room Displays** - Show off your collection in style
+### 🎯 Perfect For Every Space
 
-### Visual Magic
+| 📺 **TV Screensavers** | 🖼️ **Wall Displays**  |   🏠 **Home Theaters**   |    📱 **Media Rooms**    |
+| :--------------------: | :-------------------: | :----------------------: | :----------------------: |
+| Transform idle TV time | Permanent digital art | Professional cinema feel | Showcase your collection |
 
-- **Cinema-Quality Backgrounds** - High-resolution movie artwork with smooth Ken Burns effects
-- **Movie Logos & Ratings** - Clean ClearLogo integration with Rotten Tomatoes scores
-- **Smart Widgets** - Customizable clock and information overlays
-- **Responsive Design** - Looks amazing on any screen size
+</div>
 
-![Wallart mode showcase](./screenshots/wallart.png)
+### 🎨 Visual Magic Features
 
-![Screenshot of admin](./screenshots/admin.png)
+- **🎬 Cinema-Quality Backgrounds** - High-resolution movie artwork with smooth Ken Burns effects
+- **🏷️ Movie Logos & Ratings** - Clean ClearLogo integration with Rotten Tomatoes scores
+- **🕐 Smart Widgets** - Customizable clock and information overlays
+- **📐 Responsive Design** - Looks amazing on any screen size
+- **🎭 Dynamic Transitions** - Smooth animations between posters
+- **🌈 Custom Themes** - Personalize colors and layouts
 
-## ✨ Cool Features That Make It Awesome
+---
 
-### 🎭 Media Server Magic
+## 🌟 Coming Soon: Game-Changing Features
 
-Connect to your **Plex** server and watch as Posterrama automatically:
+<div align="center">
 
-- Discovers all your movies and TV shows
-- Downloads beautiful backdrop images and movie posters
-- Shows ratings, release years, and movie taglines
-- Cycles through your collection with smooth transitions
+### Get ready for an explosion of **cinema magic**! 🚀
 
-### Content Sources & Discovery
+</div>
 
-Posterrama connects to multiple sources to bring your media library to life:
+<table>
+<tr>
+<td width="33%" align="center">
 
-**Supported Media Servers:**
+#### **🎭 Cinema Revolution**
 
-- **Plex** - Your personal media server
+- **Movie Trailers Integration**
+- **Motion Posters**
+- **Real-time Preview**
+- **Advanced Animations**
 
-**Enhanced Metadata Sources:**
+</td>
+<td width="33%" align="center">
 
-- **TMDB** - Rich movie and TV show information
+#### **🔌 Universal Sources**
+
+- **Emby & Jellyfin Support**
+- **Kodi Integration**
+- **Radarr/Sonarr/Lidarr**
+- **Gaming Collections**
+
+</td>
+<td width="33%" align="center">
+
+#### **🖥️ Multi-Display**
+
+- **Multiple Screens**
+- **Smart Sync**
+- **Music Visualizations**
+- **Gaming Libraries**
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🎮 Content Sources & Discovery
+
+<div align="center">
+
+### 📚 **Supported Media Sources**
+
+</div>
+
+<table>
+<tr>
+<td width="50%">
+
+#### **🏠 Your Media Server**
+
+- **Plex** - Full integration with your personal library
+- Automatic discovery of movies and TV shows
+- High-quality artwork and metadata
+- Smart filtering and collections
+
+#### **🌐 External Sources**
+
+- **TMDB** - Rich movie and TV information
 - **TVDB** - Comprehensive TV series database
+- **Streaming Providers** - Netflix, Disney+, Prime, Apple TV+, HBO Max, Hulu, Paramount+, Crunchyroll
 
-**Smart Features:**
+</td>
+<td width="50%">
 
-- Advanced filtering by rating, genre, and release date
-- Automatic artwork and metadata enrichment
-- Curated collections and trending content
-- Professional movie posters and backdrops
-  Posterrama connects to **The Movie Database (TMDB)** for enhanced content discovery:
-- **Curated Collections** - Browse "New Releases" and trending content
-- **Global Streaming Providers** - Support for Netflix, Disney+, Prime Video, Apple TV+, Max (HBO), Hulu, Paramount+, and Crunchyroll
-- **Worldwide Regions** - Choose from 49+ countries to see region-specific content
-- **Smart Filtering** - Customize by rating, genre, and streaming availability
-- **Rich Metadata** - Complete movie descriptions, cast info, and detailed ratings
+#### **🎯 Smart Features**
 
-### 📱 Responsive Design
+- **Advanced Filtering** - By rating, genre, release date
+- **Automatic Enrichment** - Enhanced artwork and metadata
+- **Curated Collections** - Trending and new releases
+- **Global Regions** - 49+ countries supported
+- **Professional Quality** - Cinema-grade posters and backdrops
 
-Posterrama works perfectly on any device:
+</td>
+</tr>
+</table>
 
-- **Mobile Layout** - Optimized poster and metadata positioning for phones
-- **Desktop Experience** - Full descriptions with proper text wrapping
-- **TV Optimization** - Clean, readable layouts for large screens
-- **Smart Text Display** - Titles and ratings always visible, descriptions intelligently managed
+---
 
-<img src="./screenshots/mobile.png" alt="Mobile responsive design" width="300">
+## � Quick Installation
 
-### Android TV Integration
+<div align="center">
 
-Turn your **Android TV** into a movie poster screensaver using the **Dashboard** screensaver app:
-
-1. Install "Dashboard" screensaver from Google Play Store
-2. Set it as your screensaver in Android TV settings
-3. Configure Dashboard to display Posterrama: `http://your-posterrama-ip:4000`
-4. Enjoy automatic movie posters when your TV is idle!
-
-### Apple TV Setup
-
-While Apple TV doesn't support custom screensavers directly, you can still enjoy Posterrama:
-
-**Option 1: AirPlay Display**
-
-- Open Posterrama in Safari on your iPhone/iPad
-- Use AirPlay to mirror to your Apple TV
-- Enable "Guided Access" to prevent accidental exits
-
-**Option 2: Apple TV Browser Apps**
-
-- Install a browser app like "Web Browser for Apple TV"
-- Navigate to your Posterrama URL: `http://your-posterrama-ip:4000`
-- Use it as a manual screensaver when desired
-
-## 🛠️ Easy Installation
-
-### 🚀 Automated Installation (Recommended)
-
-**One-line installation** - Works as root or with sudo:
+### **One command installs everything!**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Posterrama/posterrama/main/install.sh | bash
 ```
 
-> 💡 The script automatically detects if you're running as root or need sudo privileges
+<img src="./screenshots/admin.png" alt="Installation Process" width="500">
 
-This script will automatically:
+_Automated setup in under 2 minutes on Ubuntu, Debian, CentOS, RHEL, Rocky Linux, AlmaLinux, Fedora_
 
-- ✅ Install Node.js 18+ and all dependencies
-- ✅ Create a dedicated system user for security
-- ✅ Download and setup Posterrama
-- ✅ Configure PM2 process manager
-- ✅ Setup systemd service for auto-start
-- ✅ Configure firewall (if available)
-- ✅ Provide you with next steps
+</div>
 
-**Supported Systems:** Ubuntu, Debian, CentOS, RHEL, Rocky Linux, AlmaLinux, Fedora
+### ✅ **What the installer does:**
 
-### 📋 Manual Installation
+<table>
+<tr>
+<td width="50%">
 
-If you prefer to install manually or need more control:
+- ✅ **Install Node.js 18+** and dependencies
+- ✅ **Create system user** for security
+- ✅ **Download & setup** Posterrama
+- ✅ **Configure PM2** process manager
+
+</td>
+<td width="50%">
+
+- ✅ **Setup systemd service** for auto-start
+- ✅ **Configure firewall** (if available)
+- ✅ **Provide next steps** for configuration
+- ✅ **Test installation** and connectivity
+
+</td>
+</tr>
+</table>
+
+---
+
+## 📋 Manual Installation
+
+<details>
+<summary><strong>🔧 Click here for manual installation steps</strong></summary>
 
 ### What You'll Need
 
-- **Node.js 18+** (the engine that runs Posterrama)
-    - Download from [nodejs.org](https://nodejs.org/) - choose the LTS version
-    - This is like installing a program that lets Posterrama run on your computer
-- **A Media Server** (Plex)
-    - Your existing Plex server with movies and TV shows
+- **Node.js 18+** - [Download from nodejs.org](https://nodejs.org/) (LTS version)
+- **A Media Server** - Your existing Plex server with movies and TV shows
 - **5 minutes** of your time!
 
 ### Quick Start Guide
@@ -180,59 +253,129 @@ If you prefer to install manually or need more control:
     cd posterrama
     ```
 
-2. **Install Everything**
+2. **Install Dependencies**
 
     ```bash
     npm install
     npm install -g pm2
     ```
 
-3. **Start It Up!**
+3. **Start the Application**
 
     ```bash
     pm2 start ecosystem.config.js
     ```
 
-4. **Configuration Setup**
-    - On first run, Posterrama automatically creates `config.json` from `config.example.json`
-    - Your personal `config.json` is **not** tracked in Git, so your settings stay private
-    - Safe to pull updates without losing your configuration!
-
-5. **Complete Setup Through Web Interface**
+4. **Complete Setup**
     - Open `http://your-server-ip:4000/admin/setup`
-    - Create your admin account (don't forget to enable 2FA!)
-    - Connect your media servers (Plex, TMDB, etc.)
-    - Select which movie/TV libraries to display
-    - Customize your display settings
+    - Create your admin account (enable 2FA!)
+    - Connect your media servers
+    - Customize display settings
 
-## 🎮 How to Use
-
-### Main Display
-
-Visit `http://your-server-ip:4000` to see your beautiful movie poster screensaver in action!
-
-### Admin Panel
-
-Visit `http://your-server-ip:4000/admin` to:
-
-- Connect your media servers
-- Choose which libraries to display
-- Customize visual settings
-- Monitor system health
-
-## 💡 Pro Tips
-
-- **For best results**: Use high-quality movie artwork in your media server
-- **Performance**: Posterrama works great on Raspberry Pi 4+ for dedicated displays
-- **Multiple displays**: Run multiple Posterrama instances for different rooms
-- **Customize everything**: The admin panel lets you tweak colors, timing, and display options
-
-## 📜 License
-
-This project is **free and open source** under the GPL-3.0-or-later license. You can use it, modify it, and share it - just keep it open source too!
+</details>
 
 ---
 
+## 📺 Platform Integration
+
+<table>
+<tr>
+<td width="50%">
+
+### **🤖 Android TV**
+
+Turn your Android TV into a movie poster screensaver:
+
+1. Install **"Dashboard"** screensaver from Google Play
+2. Set as screensaver in Android TV settings
+3. Configure: `http://your-posterrama-ip:4000`
+4. Enjoy automatic movie posters when idle!
+
+</td>
+<td width="50%">
+
+### **🍎 Apple TV**
+
+Multiple ways to enjoy Posterrama:
+
+**AirPlay Display:**
+
+- Open in Safari on iPhone/iPad
+- Use AirPlay to mirror to Apple TV
+- Enable "Guided Access" to prevent exits
+
+**Browser Apps:**
+
+- Install "Web Browser for Apple TV"
+- Navigate to your Posterrama URL
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🎮 How to Use
+
+<div align="center">
+
+### **🖥️ Main Display**
+
+Visit `http://your-server-ip:4000` for your beautiful movie poster screensaver
+
+### **⚙️ Admin Panel**
+
+Visit `http://your-server-ip:4000/admin` to configure everything
+
+</div>
+
+<table>
+<tr>
+<td width="25%" align="center">
+<strong>🔗 Connect</strong><br>
+Link your media servers
+</td>
+<td width="25%" align="center">
+<strong>📚 Select</strong><br>
+Choose libraries to display
+</td>
+<td width="25%" align="center">
+<strong>🎨 Customize</strong><br>
+Adjust visual settings
+</td>
+<td width="25%" align="center">
+<strong>📊 Monitor</strong><br>
+Track system health
+</td>
+</tr>
+</table>
+
+---
+
+## 💡 Pro Tips
+
+<div align="center">
+
+|   🎯 **Best Results**    |    🖥️ **Performance**    | 🏠 **Multiple Displays** |      ⚙️ **Customization**       |
+| :----------------------: | :----------------------: | :----------------------: | :-----------------------------: |
+| Use high-quality artwork | Great on Raspberry Pi 4+ |  Run multiple instances  | Admin panel controls everything |
+
+</div>
+
+---
+
+## 📜 License & Support
+
+<div align="center">
+
+This project is **free and open source** under the GPL-3.0-or-later license.
+
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-black?logo=github)](https://github.com/Posterrama/posterrama)
+[![Issues](https://img.shields.io/badge/Issues-Report%20Bug-red?logo=github)](https://github.com/Posterrama/posterrama/issues)
+[![Discussions](https://img.shields.io/badge/Discussions-Community-blue?logo=github)](https://github.com/Posterrama/posterrama/discussions)
+
 **Ready to transform your space into a personal cinema?**
 
-_Posterrama - Because your movie collection deserves to be seen!_
+_Posterrama - Because your movie collection deserves to be seen!_ ✨
+
+</div>

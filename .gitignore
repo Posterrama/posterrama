@@ -10,13 +10,36 @@ config.json
 # Log files
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime logs
+logs/*.log
+*.pid
+*.seed
+*.pid.lock
 
 # OS-generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
 
 # IDE-specific files
 .idea/
 *.iml
+.vscode/
+.vs/
+*.sublime-*
+.eclipse/
+.project
+.classpath
+.settings/
 
 /sessions
 /logs
@@ -34,7 +57,9 @@ test-*.html
 *.backup.*
 *.old
 *.tmp
-*~
+*.bak
+*.orig
+*.rej
 
 # Runtime cache and temporary data
 # These directories contain runtime generated cache files and should never be committed
@@ -42,7 +67,6 @@ image_cache/
 cache/
 temp/
 *.cache
-logs/*.log
 
 # Session data (runtime generated)
 sessions/*.json
@@ -50,3 +74,23 @@ sessions/*.json
 # Private development files
 # Personal notes, todo lists, and other private development files
 private/
+
+# Security files (certificates, keys, etc.)
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+*.cer
+*.der
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Editor swap files
+*.swp
+*.swo
+*.un~

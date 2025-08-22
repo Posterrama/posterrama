@@ -257,7 +257,7 @@
                     </div>
                     <div class="form-group">
                         <label for="password">Admin Password</label>
-                        <input type="password" id="password" name="password" required />
+                        <input type="password" id="password" name="password" required minlength="8" />
                     </div>
                     <button type="submit" class="btn btn-primary">Continue</button>
                 </form>
@@ -384,6 +384,11 @@
 
                     if (!username || !password) {
                         alert('Please fill in all fields');
+                        return;
+                    }
+
+                    if (password.length < 8) {
+                        alert('Password must be at least 8 characters long');
                         return;
                     }
 

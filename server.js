@@ -390,7 +390,7 @@ app.use('/api', (req, res, next) => {
  *   get:
  *     summary: Get configuration (v1 API alias)
  *     description: Version 1 API alias that redirects to the main configuration endpoint /get-config
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     responses:
  *       200:
  *         description: Configuration data (handled by /get-config endpoint)
@@ -411,7 +411,7 @@ app.get('/api/v1/config', (req, res) => {
  *   get:
  *     summary: Get media data (v1 API alias)
  *     description: Version 1 API alias that redirects to the main media endpoint /get-media
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     parameters:
  *       - in: query
  *         name: search
@@ -519,7 +519,7 @@ app.use('/image', apiLimiter);
  *     description: >
  *       Serves the admin panel HTML with asset version stamping for cache busting.
  *       Injects the ASSET_VERSION into the HTML template before serving.
- *     tags: [Frontend]
+ *     tags: ['Frontend']
  *     responses:
  *       200:
  *         description: Admin panel HTML
@@ -531,7 +531,7 @@ app.use('/image', apiLimiter);
  *   get:
  *     summary: Serve admin panel HTML (alternative route)
  *     description: Alternative route for admin panel HTML with asset version stamping
- *     tags: [Frontend]
+ *     tags: ['Frontend']
  *     responses:
  *       200:
  *         description: Admin panel HTML
@@ -565,6 +565,35 @@ app.get(['/admin', '/admin.html'], (req, res, next) => {
     });
 });
 
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: Serve main application HTML
+ *     description: >
+ *       Serves the main application HTML with asset version stamping for cache busting.
+ *       Injects the ASSET_VERSION into the HTML template before serving.
+ *     tags: ['Frontend']
+ *     responses:
+ *       200:
+ *         description: Main application HTML
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ * /index.html:
+ *   get:
+ *     summary: Serve main application HTML (alternative route)
+ *     description: Alternative route for main application HTML with asset version stamping
+ *     tags: ['Frontend']
+ *     responses:
+ *       200:
+ *         description: Main application HTML
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ */
 // Serve main index.html with automatic asset versioning
 app.get(['/', '/index.html'], (req, res, next) => {
     const filePath = path.join(__dirname, 'public', 'index.html');
@@ -606,7 +635,7 @@ const {
  *   post:
  *     summary: Validate configuration data
  *     description: Validates configuration object against schema and returns sanitized data
- *     tags: [Validation]
+ *     tags: ['Validation']
  *     requestBody:
  *       required: true
  *       content:
@@ -653,7 +682,7 @@ app.post(
  *   post:
  *     summary: Validate Plex connection data
  *     description: Validates Plex server connection parameters against schema
- *     tags: [Validation]
+ *     tags: ['Validation']
  *     requestBody:
  *       required: true
  *       content:
@@ -712,7 +741,7 @@ app.use('/api/v1/get-media', validateQueryParams);
  *   get:
  *     summary: Test error handling (Development only)
  *     description: Throws a test error to verify error handling middleware works correctly
- *     tags: [Testing]
+ *     tags: ['Testing']
  *     responses:
  *       500:
  *         description: Test error thrown successfully
@@ -736,7 +765,7 @@ app.get('/api/v1/test-error', (req, res, next) => {
  *   get:
  *     summary: Test async error handling (Development only)
  *     description: Throws a test async error to verify async error handling middleware works correctly
- *     tags: [Testing]
+ *     tags: ['Testing']
  *     responses:
  *       500:
  *         description: Test async error thrown successfully
@@ -765,7 +794,7 @@ app.get('/api/v1/test-async-error', async (req, res, next) => {
  *   get:
  *     summary: Get performance metrics
  *     description: Returns current performance metrics including response times, throughput, and resource usage
- *     tags: [Metrics]
+ *     tags: ['Metrics']
  *     responses:
  *       200:
  *         description: Performance metrics retrieved successfully
@@ -795,7 +824,7 @@ app.get('/api/v1/metrics/performance', (req, res) => {
  *   get:
  *     summary: Get endpoint metrics
  *     description: Returns metrics for individual API endpoints including request counts and response times
- *     tags: [Metrics]
+ *     tags: ['Metrics']
  *     responses:
  *       200:
  *         description: Endpoint metrics retrieved successfully
@@ -819,7 +848,7 @@ app.get('/api/v1/metrics/endpoints', (req, res) => {
  *   get:
  *     summary: Get error metrics
  *     description: Returns error statistics including error rates, error types, and recent errors
- *     tags: [Metrics]
+ *     tags: ['Metrics']
  *     responses:
  *       200:
  *         description: Error metrics retrieved successfully
@@ -849,7 +878,7 @@ app.get('/api/v1/metrics/errors', (req, res) => {
  *   get:
  *     summary: Get cache metrics
  *     description: Returns cache performance metrics including hit rates, miss rates, and cache sizes
- *     tags: [Metrics]
+ *     tags: ['Metrics']
  *     responses:
  *       200:
  *         description: Cache metrics retrieved successfully
@@ -879,7 +908,7 @@ app.get('/api/v1/metrics/cache', (req, res) => {
  *   get:
  *     summary: Get system metrics
  *     description: Returns system-level metrics including memory usage, CPU usage, and uptime
- *     tags: [Metrics]
+ *     tags: ['Metrics']
  *     responses:
  *       200:
  *         description: System metrics retrieved successfully
@@ -909,7 +938,7 @@ app.get('/api/v1/metrics/system', (req, res) => {
  *   get:
  *     summary: Get real-time metrics
  *     description: Returns current real-time metrics for live monitoring dashboards
- *     tags: [Metrics]
+ *     tags: ['Metrics']
  *     responses:
  *       200:
  *         description: Real-time metrics retrieved successfully
@@ -937,7 +966,7 @@ app.get('/api/v1/metrics/realtime', (req, res) => {
  *   get:
  *     summary: Get historical metrics
  *     description: Returns historical metrics data for the specified time period
- *     tags: [Metrics]
+ *     tags: ['Metrics']
  *     parameters:
  *       - in: query
  *         name: period
@@ -973,7 +1002,7 @@ app.get('/api/v1/metrics/history', (req, res) => {
  *   get:
  *     summary: Get dashboard summary metrics
  *     description: Returns a summary of key metrics suitable for dashboard display
- *     tags: [Metrics]
+ *     tags: ['Metrics']
  *     responses:
  *       200:
  *         description: Dashboard metrics retrieved successfully
@@ -1000,7 +1029,7 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
  *   get:
  *     summary: Prometheus metrics endpoint
  *     description: Returns metrics in Prometheus format for monitoring systems
- *     tags: [Metrics]
+ *     tags: ['Metrics']
  *     responses:
  *       200:
  *         description: Prometheus metrics data
@@ -1022,7 +1051,7 @@ app.get('/metrics', (req, res) => {
  *   get:
  *     summary: Export metrics in various formats
  *     description: Exports all metrics data in the specified format (JSON or Prometheus)
- *     tags: [Metrics]
+ *     tags: ['Metrics']
  *     parameters:
  *       - in: query
  *         name: format
@@ -1062,7 +1091,7 @@ app.get('/api/v1/metrics/export', (req, res) => {
  *   post:
  *     summary: Update metrics configuration
  *     description: Updates the metrics collection configuration
- *     tags: [Metrics, Admin]
+ *     tags: ['Metrics', 'Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -1130,7 +1159,7 @@ app.post('/api/v1/admin/metrics/config', express.json(), (req, res) => {
  *   get:
  *     summary: Redirect to admin setup
  *     description: Redirects legacy setup.html requests to the unified admin setup route
- *     tags: [Frontend]
+ *     tags: ['Frontend']
  *     responses:
  *       302:
  *         description: Redirect to /admin/setup
@@ -1146,7 +1175,7 @@ app.get('/setup.html', (req, res) => {
  *   get:
  *     summary: Redirect to admin login
  *     description: Redirects legacy login.html requests to the unified admin login route
- *     tags: [Frontend]
+ *     tags: ['Frontend']
  *     responses:
  *       302:
  *         description: Redirect to /admin/login
@@ -1164,7 +1193,7 @@ app.get('/login.html', (req, res) => {
  *     description: >
  *       Serves the 2FA verification page if user is in an active 2FA flow,
  *       otherwise redirects to login page for security.
- *     tags: [Frontend]
+ *     tags: ['Frontend']
  *     responses:
  *       200:
  *         description: 2FA verification page HTML
@@ -1191,7 +1220,7 @@ app.get('/2fa-verify.html', (req, res) => {
  *   get:
  *     summary: Serve admin CSS with cache busting
  *     description: Serves the admin panel CSS file with no-cache headers to ensure latest version is always loaded
- *     tags: [Frontend]
+ *     tags: ['Frontend']
  *     responses:
  *       200:
  *         description: Admin CSS file
@@ -1213,7 +1242,7 @@ app.get('/admin.css', (req, res) => {
  *   get:
  *     summary: Serve admin JavaScript with cache busting
  *     description: Serves the admin panel JavaScript file with no-cache headers to ensure latest version is always loaded
- *     tags: [Frontend]
+ *     tags: ['Frontend']
  *     responses:
  *       200:
  *         description: Admin JavaScript file
@@ -1260,7 +1289,7 @@ app.use(requestLoggingMiddleware());
  *   get:
  *     summary: Get API cache statistics
  *     description: Retrieve detailed statistics about API cache performance and usage
- *     tags: [Cache]
+ *     tags: ['Cache']
  *     security:
  *       - isAuthenticated: []
  *     responses:
@@ -1302,7 +1331,7 @@ app.get(
  *   get:
  *     summary: Get OpenAPI/Swagger specification
  *     description: Returns the complete OpenAPI specification for the API
- *     tags: [Documentation]
+ *     tags: ['Documentation']
  *     responses:
  *       200:
  *         description: OpenAPI specification
@@ -2361,7 +2390,7 @@ function isAdminSetup() {
  *   get:
  *     summary: Admin panel homepage
  *     description: Serves the main admin panel interface. Redirects to setup if not configured, requires authentication.
- *     tags: [Admin Panel]
+ *     tags: ['Admin Panel']
  *     responses:
  *       200:
  *         description: Admin panel served successfully
@@ -2442,7 +2471,7 @@ app.get('/admin', (req, res) => {
  *   get:
  *     summary: Admin logs viewer
  *     description: Serves the live log viewer page for administrators
- *     tags: [Admin Panel]
+ *     tags: ['Admin Panel']
  *     security:
  *       - isAuthenticated: []
  *     responses:
@@ -2528,7 +2557,7 @@ app.get('/admin/logs', isAuthenticated, (req, res) => {
  *       status information for each component. Returns a 200 OK status if all critical checks pass,
  *       and a 503 Service Unavailable if any critical check fails. Some non-critical warnings
  *       (like having no media servers enabled) will not cause a 503 status.
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     responses:
  *       200:
  *         description: All systems are operational.
@@ -2555,7 +2584,7 @@ const { getBasicHealth, getDetailedHealth } = require('./utils/healthCheck');
  *       Simple health check endpoint for basic monitoring and load balancers.
  *       Always returns 200 OK if the service is running, along with basic
  *       service information like version and uptime.
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     responses:
  *       200:
  *         description: Service is running
@@ -2579,7 +2608,7 @@ app.get('/health', (req, res) => {
  *       media cache status, and connectivity to configured media servers. This endpoint
  *       performs actual connectivity tests and may take longer to respond. Results are
  *       cached for 30 seconds to improve performance.
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     responses:
  *       200:
  *         description: Health check completed successfully
@@ -2613,7 +2642,7 @@ app.get(
  *       Alternative route for the detailed health check endpoint. This provides
  *       the same comprehensive health information as /api/health, included for
  *       convenience and API consistency.
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     responses:
  *       200:
  *         description: Health check completed successfully
@@ -2641,7 +2670,7 @@ app.get(
  *       Fetches the non-sensitive configuration needed by the frontend for display logic.
  *       This endpoint is also accessible via the versioned API at /api/v1/config.
  *       The response is cached for 30 seconds to improve performance.
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     responses:
  *       200:
  *         description: The public configuration object.
@@ -2720,7 +2749,7 @@ app.get(
  *       a 202 Accepted response while the playlist is being built. If no media servers
  *       are configured or the initial fetch fails, returns a 503 Service Unavailable.
  *       The playlist is shuffled to ensure random playback order.
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     responses:
  *       200:
  *         description: An array of media items.
@@ -2820,7 +2849,7 @@ app.get(
  *   get:
  *     summary: Retrieve a single media item by its unique key
  *     description: Fetches the full details for a specific media item, typically used when a user clicks on a 'recently added' item that isn't in the main playlist.
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     parameters:
  *       - in: path
  *         name: key
@@ -2880,7 +2909,7 @@ app.get(
  *   get:
  *     summary: Image proxy
  *     description: Proxies image requests to the media server (Plex/Jellyfin) to avoid exposing server details and tokens to the client.
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     parameters:
  *       - in: query
  *         name: server
@@ -3073,7 +3102,7 @@ app.get(
  *   get:
  *     summary: Admin setup page
  *     description: Serves the initial admin setup page if no admin user exists, otherwise redirects to admin panel
- *     tags: [Admin Setup]
+ *     tags: ['Admin Setup']
  *     responses:
  *       200:
  *         description: Setup page served successfully
@@ -3116,7 +3145,7 @@ app.get('/admin/setup', (req, res) => {
  *   post:
  *     summary: Complete admin setup
  *     description: Creates the initial admin user account with username and password
- *     tags: [Admin Setup]
+ *     tags: ['Admin Setup']
  *     requestBody:
  *       required: true
  *       content:
@@ -3156,6 +3185,11 @@ app.post(
         if (!username || !password) {
             if (isDebug) logger.debug('[Admin Setup] Aborted: Username or password missing.');
             throw new ApiError(400, 'Username and password are required.');
+        }
+
+        if (password.length < 8) {
+            if (isDebug) logger.debug('[Admin Setup] Aborted: Password too short.');
+            throw new ApiError(400, 'Password must be at least 8 characters long.');
         }
 
         const saltRounds = 10;
@@ -3220,7 +3254,7 @@ app.post(
  *   get:
  *     summary: Admin login page
  *     description: Serves the admin login page, redirects to setup if admin not configured, or to admin panel if already logged in
- *     tags: [Admin Authentication]
+ *     tags: ['Admin Authentication']
  *     responses:
  *       200:
  *         description: Login page served successfully
@@ -3281,7 +3315,7 @@ const loginLimiter = rateLimit({
  *   post:
  *     summary: Admin login authentication
  *     description: Authenticate admin user with username and password. May require 2FA verification if enabled.
- *     tags: [Admin Authentication]
+ *     tags: ['Admin Authentication']
  *     requestBody:
  *       required: true
  *       content:
@@ -3379,7 +3413,7 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
  *   get:
  *     summary: Two-factor authentication verification page
  *     description: Serves the 2FA verification page for users who have completed initial login
- *     tags: [Authentication]
+ *     tags: ['Authentication']
  *     responses:
  *       200:
  *         description: 2FA verification page served successfully
@@ -3435,7 +3469,7 @@ const twoFaLimiter = rateLimit({
  *   post:
  *     summary: Verify two-factor authentication code
  *     description: Verifies the TOTP code and completes the admin login process
- *     tags: [Authentication]
+ *     tags: ['Authentication']
  *     requestBody:
  *       required: true
  *       content:
@@ -3519,7 +3553,7 @@ app.post(
  *   get:
  *     summary: Admin logout
  *     description: Logs out the admin user by destroying their session and redirects to login page
- *     tags: [Admin Authentication]
+ *     tags: ['Admin Authentication']
  *     responses:
  *       302:
  *         description: Session destroyed, redirects to login page
@@ -3547,7 +3581,7 @@ app.get('/admin/logout', (req, res, next) => {
  *       Generates a new secret for Two-Factor Authentication (2FA) and returns a QR code
  *       that the user can scan with an authenticator app. The secret is temporarily stored in the session
  *       and only becomes permanent after successful verification.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -3595,7 +3629,7 @@ app.post(
  *     description: >
  *       Verifies the TOTP code entered by the user against the temporary secret in the session.
  *       Upon success, the 2FA secret is permanently stored in the .env file and 2FA is activated.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -3665,7 +3699,7 @@ app.post(
  *     description: >
  *       Disables Two-Factor Authentication for the admin account.
  *       The user must provide their current password for confirmation.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -3714,7 +3748,7 @@ app.post(
  *   get:
  *     summary: Get public configuration
  *     description: Returns basic configuration information for client-side functionality (fanart, etc.) without sensitive data
- *     tags: [Configuration]
+ *     tags: ['Configuration']
  *     responses:
  *       200:
  *         description: Public configuration data
@@ -3740,7 +3774,7 @@ app.post(
  *   get:
  *     summary: Get application version
  *     description: Returns the current version of the Posterrama application
- *     tags: [Public]
+ *     tags: ['Public']
  *     responses:
  *       200:
  *         description: Application version information
@@ -3775,7 +3809,7 @@ app.get(
  *     description: >
  *       Public endpoint to check for the latest GitHub release.
  *       Returns basic version comparison without authentication.
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     responses:
  *       200:
  *         description: Latest release information
@@ -3855,7 +3889,7 @@ app.get(
  *     description: >
  *       Public endpoint that returns non-sensitive configuration data,
  *       such as server availability and enabled services status.
- *     tags: [Public API]
+ *     tags: ['Public API']
  *     responses:
  *       200:
  *         description: Public configuration data
@@ -3935,7 +3969,7 @@ app.get(
  *     description: >
  *       Retrieves the complete `config.json` along with relevant environment variables
  *       and security status (like 2FA) needed for the admin panel.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -4063,7 +4097,7 @@ app.get(
  *     description: >
  *       Checks if the application can connect to a Plex server with the provided
  *       hostname, port, and token. This is a lightweight check that queries the server root.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -4174,7 +4208,7 @@ app.post(
  *     description: >
  *       Retrieves a list of all available libraries (such as 'Movies', 'TV Shows')
  *       from the configured Plex server.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -4266,7 +4300,7 @@ app.post(
  *     description: >
  *       Tests the connection to TVDB API using the hardcoded developer key and fetches sample data
  *       to verify that the integration is working correctly.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -4381,7 +4415,7 @@ app.post(
  *       Saves the changes to both `config.json` and the `.env` file.
  *       After a successful save, the application caches and clients are cleared
  *       and a background refresh of the playlist is initiated.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -4576,7 +4610,7 @@ app.post(
  *   get:
  *     summary: Get all available genres from Plex servers
  *     description: Retrieves a list of all genres available in the configured Plex servers.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -4635,7 +4669,7 @@ app.get(
  *   post:
  *     summary: Get Plex genres for testing (with connection parameters)
  *     description: Retrieves all available genres from a Plex server using provided connection parameters.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -4740,7 +4774,7 @@ app.post(
  *   post:
  *     summary: Test TMDB API connection
  *     description: Tests the connection to TMDB API with provided credentials.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -4879,7 +4913,7 @@ app.post(
  *   get:
  *     summary: Get available TMDB genres
  *     description: Fetches the list of available genres from TMDB API for filtering.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -4933,7 +4967,7 @@ app.get(
  *   post:
  *     summary: Get TMDB genres for testing (with connection parameters)
  *     description: Retrieves all available genres from TMDB using provided API key.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -5013,7 +5047,7 @@ app.post(
  *   get:
  *     summary: Get available TVDB genres
  *     description: Fetches the list of available genres from TVDB API for filtering.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -5063,7 +5097,7 @@ app.get(
  *   post:
  *     summary: Get TVDB genres for testing
  *     description: Retrieves all available genres from TVDB API for testing purposes.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -5132,7 +5166,7 @@ app.post(
  *   get:
  *     summary: Get TMDB cache statistics
  *     description: Returns cache statistics for debugging TMDB performance.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -5177,7 +5211,7 @@ app.get(
  *   post:
  *     summary: Change the admin password
  *     description: Allows the user to change their own admin password.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -5215,6 +5249,12 @@ app.post(
             if (isDebug)
                 logger.debug('[Admin API] Password change failed: new passwords do not match.');
             throw new ApiError(400, 'New password and confirmation do not match.');
+        }
+
+        if (newPassword.length < 8) {
+            if (isDebug)
+                logger.debug('[Admin API] Password change failed: new password too short.');
+            throw new ApiError(400, 'New password must be at least 8 characters long.');
         }
 
         const isValidPassword = await bcrypt.compare(
@@ -5264,7 +5304,7 @@ app.post(
  *       Sends a command to PM2 to restart the application.
  *       This is useful after modifying critical settings such as the port.
  *       The API responds immediately with a 202 Accepted status.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -5321,7 +5361,7 @@ app.post(
  *     description: >
  *       Returns comprehensive system status including application, database, cache,
  *       disk space, memory usage, and uptime information.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     responses:
  *       200:
  *         description: System status retrieved successfully
@@ -6047,7 +6087,7 @@ app.post(
  *     description: >
  *       Returns real-time system performance data including CPU usage,
  *       memory usage, disk usage, and load average.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     responses:
  *       200:
  *         description: Performance metrics retrieved successfully
@@ -6176,7 +6216,7 @@ app.get(
  *       Manually starts the process to fetch media from all configured servers.
  *       This is an asynchronous operation. The API responds when the refresh is complete.
  *       This endpoint is secured and requires an active admin session.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -6274,7 +6314,7 @@ app.get(
  *     description: >
  *       Deletes all cached images from the `image_cache` directory on the server.
  *       This forces the application to re-fetch all images from the origin media servers.
- *     tags: [Cache]
+ *     tags: ['Cache']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -6319,7 +6359,7 @@ app.post(
  *   get:
  *     summary: Get cache statistics
  *     description: Returns cache size and disk usage information using session authentication
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - isAuthenticated: []
  *     responses:
@@ -6445,7 +6485,7 @@ function getCacheConfig() {
  *   post:
  *     summary: Cleanup cache directories
  *     description: Performs cleanup of cache directories by removing old or expired files based on configuration
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -6608,7 +6648,7 @@ app.post(
  *   get:
  *     summary: Get the current API key
  *     description: Retrieves the currently configured API access key. This is only returned to an authenticated admin session.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -6633,7 +6673,7 @@ app.get('/api/admin/api-key', isAuthenticated, (req, res) => {
  *   get:
  *     summary: Check the API key status
  *     description: Indicates whether an API access key is currently configured in the application.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -6663,7 +6703,7 @@ app.get('/api/admin/api-key/status', isAuthenticated, (req, res) => {
  *       Generates a new, cryptographically secure API access token and stores it in the .env file
  *       and overwrites any existing key. The new key is returned ONCE ONLY.
  *       Store it securely, as it cannot be retrieved again.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -6695,7 +6735,7 @@ app.post(
  *   post:
  *     summary: Revoke current API key
  *     description: Removes the current API access token from the configuration, making it unusable.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -6724,7 +6764,7 @@ app.post(
  *     description: >
  *       Retrieves a list of the most recent log entries stored in memory.
  *       This is useful for debugging from the admin panel without direct server access.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -6751,7 +6791,7 @@ app.get('/api/admin/logs', isAuthenticated, (req, res) => {
  *     description: >
  *       Returns the raw data of all items in the current *cached* playlist.
  *       This endpoint is only available when debug mode is enabled in the .env file.
- *     tags: [Admin API]
+ *     tags: ['Admin API']
  *     security:
  *       - bearerAuth: []
  *     responses:

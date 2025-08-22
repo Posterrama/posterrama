@@ -42,8 +42,24 @@ function generateSwaggerSpec() {
                         'Secured endpoints for managing the application. Requires an active admin session.',
                 },
                 {
+                    name: 'Admin Authentication',
+                    description: 'Admin user authentication and authorization endpoints.',
+                },
+                {
                     name: 'Authentication',
-                    description: 'User authentication and authorization endpoints.',
+                    description: 'General authentication and authorization endpoints.',
+                },
+                {
+                    name: 'Admin Panel',
+                    description: 'Admin panel interface and management endpoints.',
+                },
+                {
+                    name: 'Admin Setup',
+                    description: 'Initial admin setup and configuration endpoints.',
+                },
+                {
+                    name: 'Configuration',
+                    description: 'Application configuration management endpoints.',
                 },
                 {
                     name: 'Validation',
@@ -76,10 +92,6 @@ function generateSwaggerSpec() {
                 {
                     name: 'Documentation',
                     description: 'API documentation and specification endpoints.',
-                },
-                {
-                    name: 'Admin Setup',
-                    description: 'Initial admin setup and configuration endpoints.',
                 },
             ],
             servers: [
@@ -620,553 +632,70 @@ function generateSwaggerSpec() {
                             },
                         },
                     },
+                    TMDBConnectionRequest: {
+                        type: 'object',
+                        required: ['apiKey'],
+                        properties: {
+                            apiKey: {
+                                type: 'string',
+                                description: 'The TMDB API key',
+                            },
+                        },
+                    },
+                    TMDBGenresResponse: {
+                        type: 'object',
+                        properties: {
+                            success: { type: 'boolean', example: true },
+                            genres: {
+                                type: 'array',
+                                items: { type: 'string' },
+                                description: 'List of TMDB genres',
+                            },
+                        },
+                    },
+                    PlexGenresResponse: {
+                        type: 'object',
+                        properties: {
+                            success: { type: 'boolean', example: true },
+                            genres: {
+                                type: 'array',
+                                items: { type: 'string' },
+                                description: 'List of Plex genres',
+                            },
+                        },
+                    },
+                    GitHubRelease: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'integer' },
+                            tag_name: { type: 'string' },
+                            name: { type: 'string' },
+                            body: { type: 'string' },
+                            published_at: { type: 'string', format: 'date-time' },
+                            prerelease: { type: 'boolean' },
+                        },
+                    },
+                    GitHubReleaseResponse: {
+                        type: 'object',
+                        properties: {
+                            success: { type: 'boolean', example: true },
+                            release: { $ref: '#/components/schemas/GitHubRelease' },
+                        },
+                    },
+                    UpdateCheckResponse: {
+                        type: 'object',
+                        properties: {
+                            success: { type: 'boolean', example: true },
+                            hasUpdate: { type: 'boolean' },
+                            currentVersion: { type: 'string' },
+                            latestVersion: { type: 'string' },
+                            releaseInfo: { $ref: '#/components/schemas/GitHubRelease' },
+                        },
+                    },
                 },
             },
         },
         apis: ['./server.js'], // Path to files with OpenAPI definitions
-        paths: {
-            '/api/v1/config': {
-                get: {
-                    summary: 'Retrieve the public application configuration (v1 API)',
-                    description:
-                        'Fetches the non-sensitive configuration needed by the frontend for display logic. This is a versioned alias for /get-config that ensures API compatibility.',
-                    tags: ['Public API'],
-                    responses: {
-                        200: {
-                            description: 'The public configuration object.',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/Config' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/v1/media': {
-                get: {
-                    summary: 'Retrieve the shuffled media playlist (v1 API)',
-                    description:
-                        'Returns an array of media items from all configured and enabled media servers. This is a versioned alias for /get-media that ensures API compatibility. The response is served from an in-memory cache that is periodically refreshed in the background.',
-                    tags: ['Public API'],
-                    responses: {
-                        200: {
-                            description: 'An array of media items.',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        type: 'array',
-                                        items: { $ref: '#/components/schemas/MediaItem' },
-                                    },
-                                },
-                            },
-                        },
-                        202: {
-                            description: 'The playlist is being built, please try again.',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/ApiMessage' },
-                                },
-                            },
-                        },
-                        503: {
-                            description:
-                                'Service unavailable. The initial media fetch may have failed.',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/ApiMessage' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/health': {
-                get: {
-                    summary: 'Basic Health Check',
-                    description:
-                        'Quick health check that returns basic service information without performing external connectivity tests.',
-                    tags: ['Public API'],
-                    responses: {
-                        200: {
-                            description: 'Basic health information',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/BasicHealthResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/config': {
-                get: {
-                    summary: 'Get admin configuration',
-                    description:
-                        'Retrieve the current configuration for the admin panel including config.json and environment variables.',
-                    tags: ['Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    responses: {
-                        200: {
-                            description: 'Configuration retrieved successfully',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/AdminConfigResponse' },
-                                },
-                            },
-                        },
-                        401: {
-                            description: 'Authentication required',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-                post: {
-                    summary: 'Save admin configuration',
-                    description:
-                        'Save configuration changes to config.json and environment variables.',
-                    tags: ['Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    requestBody: {
-                        required: true,
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/SaveConfigRequest' },
-                            },
-                        },
-                    },
-                    responses: {
-                        200: {
-                            description: 'Configuration saved successfully',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/AdminApiResponse' },
-                                },
-                            },
-                        },
-                        400: {
-                            description: 'Invalid configuration data',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/ErrorResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/plex-libraries': {
-                post: {
-                    summary: 'Get Plex libraries',
-                    description: 'Retrieve available libraries from the configured Plex server.',
-                    tags: ['Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    requestBody: {
-                        required: true,
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/PlexConnectionRequest' },
-                            },
-                        },
-                    },
-                    responses: {
-                        200: {
-                            description: 'Libraries retrieved successfully',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/PlexLibrariesResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/test-plex': {
-                post: {
-                    summary: 'Test Plex connection',
-                    description: 'Test connection to Plex server with provided credentials.',
-                    tags: ['Admin API', 'Testing'],
-                    security: [{ sessionAuth: [] }],
-                    requestBody: {
-                        required: true,
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/PlexConnectionRequest' },
-                            },
-                        },
-                    },
-                    responses: {
-                        200: {
-                            description: 'Connection test completed',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/PlexTestResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/api-key/status': {
-                get: {
-                    summary: 'Get API key status',
-                    description: 'Check if an API key is configured.',
-                    tags: ['Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    responses: {
-                        200: {
-                            description: 'API key status retrieved',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/ApiKeyStatusResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/api-key': {
-                get: {
-                    summary: 'Get current API key',
-                    description: 'Retrieve the current API key information.',
-                    tags: ['Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    responses: {
-                        200: {
-                            description: 'API key information',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/ApiKeyResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/api-key/generate': {
-                post: {
-                    summary: 'Generate new API key',
-                    description:
-                        'Generate a new API access token. The old token will be invalidated.',
-                    tags: ['Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    responses: {
-                        200: {
-                            description: 'New API key generated successfully',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/ApiKeyResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/api-key/revoke': {
-                post: {
-                    summary: 'Revoke current API key',
-                    description: 'Revoke the current API access token, making it unusable.',
-                    tags: ['Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    responses: {
-                        200: {
-                            description: 'API key revoked successfully',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/AdminApiResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/2fa/generate': {
-                post: {
-                    summary: 'Generate 2FA setup',
-                    description: 'Generate QR code and secret for 2FA setup.',
-                    tags: ['Admin API', 'Authentication'],
-                    security: [{ sessionAuth: [] }],
-                    responses: {
-                        200: {
-                            description: '2FA setup data generated',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/Generate2FAResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/2fa/verify': {
-                post: {
-                    summary: 'Verify 2FA setup',
-                    description: 'Verify 2FA token to complete setup or authentication.',
-                    tags: ['Admin API', 'Authentication'],
-                    security: [{ sessionAuth: [] }],
-                    requestBody: {
-                        required: true,
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Verify2FARequest' },
-                            },
-                        },
-                    },
-                    responses: {
-                        200: {
-                            description: '2FA verification successful',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/AdminApiResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/2fa/disable': {
-                post: {
-                    summary: 'Disable 2FA',
-                    description: 'Disable two-factor authentication for the admin account.',
-                    tags: ['Admin API', 'Authentication'],
-                    security: [{ sessionAuth: [] }],
-                    requestBody: {
-                        required: true,
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/Disable2FARequest' },
-                            },
-                        },
-                    },
-                    responses: {
-                        200: {
-                            description: '2FA disabled successfully',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/AdminApiResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/plex-genres': {
-                get: {
-                    summary: 'Get Plex genres',
-                    description: 'Retrieve available genres from Plex server.',
-                    tags: ['Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    responses: {
-                        200: {
-                            description: 'Genres retrieved successfully',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/GenreResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/plex-genres-test': {
-                post: {
-                    summary: 'Test Plex genres connection',
-                    description:
-                        'Test retrieval of genres from Plex server with provided credentials.',
-                    tags: ['Admin API', 'Testing'],
-                    security: [{ sessionAuth: [] }],
-                    requestBody: {
-                        required: true,
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/PlexConnectionRequest' },
-                            },
-                        },
-                    },
-                    responses: {
-                        200: {
-                            description: 'Genre test completed',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/GenreResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/tmdb-genres': {
-                get: {
-                    summary: 'Get TMDB genres',
-                    description: 'Retrieve available genres from The Movie Database.',
-                    tags: ['Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    responses: {
-                        200: {
-                            description: 'TMDB genres retrieved successfully',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/GenreResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/tmdb-genres-test': {
-                post: {
-                    summary: 'Test TMDB genres connection',
-                    description: 'Test retrieval of genres from TMDB with provided API key.',
-                    tags: ['Admin API', 'Testing'],
-                    security: [{ sessionAuth: [] }],
-                    requestBody: {
-                        required: true,
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        apiKey: { type: 'string', description: 'TMDB API key' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    responses: {
-                        200: {
-                            description: 'TMDB genre test completed',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/GenreResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/test-tmdb': {
-                post: {
-                    summary: 'Test TMDB connection',
-                    description: 'Test connection to The Movie Database API.',
-                    tags: ['Admin API', 'Testing'],
-                    security: [{ sessionAuth: [] }],
-                    requestBody: {
-                        required: true,
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        apiKey: { type: 'string', description: 'TMDB API key' },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    responses: {
-                        200: {
-                            description: 'TMDB connection test completed',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/AdminApiResponse' },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/github/latest': {
-                get: {
-                    summary: 'Get latest release',
-                    description: 'Get the latest release information from GitHub.',
-                    tags: ['GitHub Integration'],
-                    responses: {
-                        200: {
-                            description: 'Latest release information',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        type: 'object',
-                                        properties: {
-                                            tag_name: {
-                                                type: 'string',
-                                                description: 'Release tag',
-                                            },
-                                            name: { type: 'string', description: 'Release name' },
-                                            published_at: {
-                                                type: 'string',
-                                                description: 'Publish date',
-                                            },
-                                            html_url: {
-                                                type: 'string',
-                                                description: 'Release URL',
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/update-check': {
-                get: {
-                    summary: 'Check for updates',
-                    description: 'Check if a new version is available.',
-                    tags: ['Auto-Update', 'Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    responses: {
-                        200: {
-                            description: 'Update status',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        type: 'object',
-                                        properties: {
-                                            updateAvailable: { type: 'boolean' },
-                                            currentVersion: { type: 'string' },
-                                            latestVersion: { type: 'string' },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            '/api/admin/github/releases': {
-                get: {
-                    summary: 'Get GitHub releases',
-                    description: 'Get all releases from GitHub repository.',
-                    tags: ['GitHub Integration', 'Admin API'],
-                    security: [{ sessionAuth: [] }],
-                    responses: {
-                        200: {
-                            description: 'List of releases',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        type: 'array',
-                                        items: {
-                                            type: 'object',
-                                            properties: {
-                                                tag_name: { type: 'string' },
-                                                name: { type: 'string' },
-                                                published_at: { type: 'string' },
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
     };
 
     return swaggerJSDoc(options);

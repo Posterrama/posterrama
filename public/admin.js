@@ -409,7 +409,6 @@ function updateHelpContentForced(sectionId) {
         authentication: 'authentication-section',
         promobox: 'promobox-section',
         management: 'management-section',
-        logs: 'logs-section',
     };
 
     const mappedSectionId = sectionMap[sectionId] || 'general-section';
@@ -493,15 +492,13 @@ function getHelpContentForSection(sectionId) {
                     ],
                 },
                 {
-                    title: 'Keyboard Shortcuts',
-                    description: 'Speed up your workflow with these handy keyboard shortcuts.',
+                    title: 'Development & Debug',
+                    description: 'Development tools and debugging features for troubleshooting.',
                     details: [
-                        '<strong>H</strong> - Toggle Quick Help panel (this panel)',
-                        '<strong>Ctrl+S</strong> (or <strong>Cmd+S</strong> on Mac) - Save all configuration changes',
-                        '<strong>Ctrl+T</strong> (or <strong>Cmd+T</strong> on Mac) - Test Plex server connection',
-                        '<strong>Escape</strong> - Close any open modal dialogs',
-                        'Shortcuts work from anywhere in the admin interface',
-                        'Tooltips on buttons show their associated shortcuts',
+                        'Live Logs: View real-time system messages and activity as they happen',
+                        'Monitor application status, errors, and performance information',
+                        'Useful for troubleshooting connection issues and system problems',
+                        'Debug information helps identify configuration or connectivity issues',
                     ],
                 },
             ],
@@ -795,20 +792,6 @@ function getHelpContentForSection(sectionId) {
                         'Perfect for developers building integrations or external applications',
                         'Access via "API Docs" button in the top navigation bar',
                         'Covers all public and admin endpoints with full technical specifications',
-                    ],
-                },
-            ],
-        },
-        'logs-section': {
-            title: '<i class="fas fa-file-alt"></i>&nbsp;&nbsp;Logs & Debug',
-            sections: [
-                {
-                    title: 'Log Monitoring',
-                    description: 'View real-time system activity and messages.',
-                    details: [
-                        'Live Logs: View real-time system messages and activity as they happen',
-                        'Monitor application status, errors, and performance information',
-                        'Useful for troubleshooting connection issues and system problems',
                     ],
                 },
             ],
@@ -1443,9 +1426,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (confirmPassword && newPassword !== confirmPassword) {
                     confirmPasswordInput.setCustomValidity('Passwords do not match');
-                } else if (newPassword && newPassword.length < 6) {
+                } else if (newPassword && newPassword.length < 8) {
                     newPasswordInput.setCustomValidity(
-                        'Password must be at least 6 characters long'
+                        'Password must be at least 8 characters long'
                     );
                 } else {
                     newPasswordInput.setCustomValidity('');
@@ -4741,8 +4724,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error('All password fields are required.');
                 }
 
-                if (data.newPassword.length < 6) {
-                    throw new Error('New password must be at least 6 characters long.');
+                if (data.newPassword.length < 8) {
+                    throw new Error('New password must be at least 8 characters long.');
                 }
 
                 if (data.newPassword !== data.confirmPassword) {

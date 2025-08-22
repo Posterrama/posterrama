@@ -191,11 +191,6 @@
                     <i class="fas fa-tools nav-icon"></i>
                     <span class="nav-text">Management</span>
                 </button>
-                
-                <button class="nav-item" data-section="logs" title="Logs & Debug" role="tab" id="logs-tab">
-                    <i class="fas fa-file-alt nav-icon"></i>
-                    <span class="nav-text">Logs & Debug</span>
-                </button>
             </div>
         </nav>
 
@@ -295,6 +290,13 @@
                                         <label for="DEBUG">Enable Debug Mode</label>
                                     </div>
                                     <div id="DEBUG-help" class="form-help">Enable detailed logging for troubleshooting</div>
+                                    
+                                    <div class="form-actions">
+                                        <a href="/admin/logs" target="_blank" class="btn btn-primary">
+                                            <i class="fas fa-terminal"></i>
+                                            View Live Logs
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1038,7 +1040,7 @@
                                         </div>
                                         <div class="form-group">
                                             <label for="newPassword">New Password</label>
-                                            <input type="password" id="newPassword" name="newPassword" autocomplete="new-password">
+                                            <input type="password" id="newPassword" name="newPassword" autocomplete="new-password" minlength="8">
                                         </div>
                                         <div class="form-group">
                                             <label for="confirmPassword">Confirm New Password</label>
@@ -1362,35 +1364,6 @@
                             </div>
                         </div>
                     </section>
-
-                    <!-- Logs & Debug Section -->
-                    <section class="section-content" id="logs-section" role="tabpanel">
-                        <div class="section-main-content">
-                            <div class="section-title">
-                                <i class="fas fa-file-alt"></i>
-                                Logs & Debug
-                            </div>
-                            
-                            <!-- Unified Logs & Debug Container -->
-                            <div class="form-section unified-section">
-                                
-                                <!-- Debug Tools Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-bug"></i>
-                                    Debug Tools
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-actions">
-                                        <a href="/admin/logs" target="_blank" class="btn btn-primary">
-                                            <i class="fas fa-terminal"></i>
-                                            View Live Logs
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                    
                     <!-- Save Settings Button -->
                     <div class="form-save-section">
                         <div id="config-status">
@@ -1444,10 +1417,6 @@
             <button class="mobile-nav-item" data-section="management">
                 <i class="fas fa-tools nav-icon"></i>
                 <span>Management</span>
-            </button>
-            <button class="mobile-nav-item" data-section="logs">
-                <i class="fas fa-file-alt nav-icon"></i>
-                <span>Logs & Debug</span>
             </button>
         </nav>
     </aside>

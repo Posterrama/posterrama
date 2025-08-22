@@ -70,8 +70,8 @@ const validationRules = {
             ),
         body('password')
             .notEmpty()
-            .isLength({ min: 3, max: 200 })
-            .withMessage('Password must be 3-200 characters'),
+            .isLength({ min: 8, max: 200 })
+            .withMessage('Password must be 8-200 characters'),
     ],
 
     // Configuration validation
