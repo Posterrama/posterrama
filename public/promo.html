@@ -2,6 +2,9 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta http-equiv="Pragma" content="no-cache" />
+        <meta http-equiv="Expires" content="0" />
         <title>Posterrama - Promo Site</title>
 
         <!-- Preconnects for performance -->
@@ -21,8 +24,9 @@
             referrerpolicy="no-referrer"
         />
 
-        <link rel="stylesheet" href="style.css?v=20250819b" />
+        <link rel="stylesheet" href="style.css?v=20250822b" />
         <style>
+            /* Cache buster: mobile oneliner transparent - 10:25 */
             #loader {
                 display: none !important;
             }
@@ -37,6 +41,172 @@
                 position: fixed !important;
                 top: 50% !important;
                 left: 50% !important;
+            }
+
+            /* Mobile promo box styling - optimal size and prominent text on mobile */
+            @media screen and (max-width: 1024px) {
+                /* Force parent body to allow full width */
+                body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow-x: hidden !important;
+                }
+                
+                /* Force promo box to use full screen width with small edge margin */
+                body #promo-box,
+                body main#promo-box {
+                    width: calc(100vw - 10px) !important; /* Almost full width for maximum text space */
+                    max-width: none !important;
+                    padding: 50px 15px !important; /* Much more vertical padding top/bottom for breathing room */
+                    box-sizing: border-box !important;
+                    min-height: auto !important; /* Remove forced height, let content determine size */
+                    margin: 0 5px !important; /* Minimal margin on each side */
+                    position: relative !important;
+                    left: 50% !important;
+                    right: auto !important;
+                    transform: translateX(-50%) !important; /* Center it perfectly */
+                    margin-left: 0 !important;
+                    margin-right: 0 !important;
+                }
+                
+                /* Make text exactly like old version */
+                body #promo-box h1 {
+                    font-size: 3.8em !important; /* Big title like old version */
+                    margin-bottom: 15px !important; /* More margin below title */
+                    line-height: 1.0 !important;
+                    font-weight: bold !important;
+                    /* Remove white-space restrictions to allow natural wrapping */
+                }
+                
+                body #promo-box p {
+                    font-size: 2.2em !important; /* Big text like old version */
+                    line-height: 1.2 !important;
+                    margin-bottom: 25px !important; /* More margin below paragraph */
+                    max-width: none !important;
+                    text-align: center !important;
+                    /* Remove word-spacing and let it flow naturally */
+                }
+                
+                /* Make button bigger with more padding */
+                body #promo-box .promo-cta a.button-promo {
+                    font-size: 2.0em !important; /* Bigger button text */
+                    padding: 25px 50px !important; /* Much more padding around button */
+                    margin-top: 20px !important; /* More margin above button */
+                    margin-bottom: 10px !important; /* Add margin below button for bottom spacing */
+                    display: inline-block !important;
+                }
+                
+                /* Make logo bigger with more space around it */
+                body #promo-box .promo-logo {
+                    width: 90px !important; /* Bigger logo */
+                    height: 90px !important;
+                    margin-bottom: 20px !important; /* More margin below logo */
+                    margin-top: 15px !important; /* More margin above logo for top spacing */
+                }
+                
+                /* Mobile-specific oneliner styling - FORCE transparent */
+                body.promo-site #promo-box .oneliner-text {
+                    font-size: 0.9em !important; /* Even smaller font for mobile */
+                }
+                
+                body.promo-site #promo-box .oneliner-command {
+                    background: transparent !important; /* No background on mobile */
+                    backdrop-filter: none !important;
+                    -webkit-backdrop-filter: none !important;
+                    border: none !important;
+                    border-radius: 0 !important;
+                    padding: 8px 30px 8px 8px !important; /* Minimal padding */
+                    box-shadow: none !important;
+                }
+                
+                body.promo-site #promo-box .oneliner-command:hover {
+                    background: transparent !important; /* Keep transparent on hover */
+                }
+                
+                body.promo-site #promo-box .oneliner-command code {
+                    font-size: 0.8em !important; /* Much smaller font for mobile */
+                    color: #cccccc !important; /* Lighter color since no background */
+                }
+                
+                /* Style the oneliner installation section */
+                body #promo-box .oneliner-install {
+                    margin-top: 25px !important;
+                    text-align: center !important;
+                }
+                
+                body #promo-box .oneliner-text {
+                    font-size: 1.2em !important;
+                    color: #ccc !important;
+                    margin-bottom: 12px !important;
+                    font-weight: normal !important;
+                }
+                
+                body #promo-box .oneliner-command {
+                    background: rgba(255, 255, 255, 0.1) !important;
+                    backdrop-filter: blur(10px) !important;
+                    -webkit-backdrop-filter: blur(10px) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                    border-radius: 12px !important;
+                    padding: 16px 50px 16px 20px !important;
+                    margin: 12px 0 !important;
+                    cursor: pointer !important;
+                    transition: all 0.3s ease !important;
+                    position: relative !important;
+                    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+                }
+                
+                body #promo-box .oneliner-command:hover {
+                    background: rgba(255, 255, 255, 0.15) !important;
+                    border-color: rgba(255, 255, 255, 0.3) !important;
+                    backdrop-filter: blur(15px) !important;
+                    -webkit-backdrop-filter: blur(15px) !important;
+                    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15) !important;
+                }
+                
+                body #promo-box .oneliner-command code {
+                    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace !important;
+                    font-size: 1.1em !important;
+                    color: #ffffff !important;
+                    background: none !important;
+                    padding: 0 !important;
+                    word-break: break-all !important;
+                    font-weight: 600 !important;
+                }
+                
+                body #promo-box .copy-indicator {
+                    position: absolute !important;
+                    right: 15px !important;
+                    top: 50% !important;
+                    transform: translateY(-50%) !important;
+                    color: #cccccc !important;
+                    transition: all 0.3s ease !important;
+                    opacity: 0.7 !important;
+                }
+                
+                body #promo-box .copy-indicator:hover {
+                    opacity: 1 !important;
+                    color: #ffffff !important;
+                }
+            }
+            
+            /* Smaller devices - still big text but adjusted */
+            @media screen and (max-width: 480px) {
+                body #promo-box {
+                    width: calc(100vw - 20px) !important;
+                    padding: 40px 25px !important;
+                }
+                
+                body #promo-box h1 {
+                    font-size: 3em !important;
+                }
+                
+                body #promo-box p {
+                    font-size: 1.7em !important;
+                }
+                
+                body #promo-box .promo-cta a.button-promo {
+                    font-size: 1.5em !important;
+                }
             }
 
             /* COMPLETELY BLOCK wallart mode on promo site - removed, now handled by server config */
@@ -83,6 +253,38 @@
         </style>
 
         <script>
+            // Copy to clipboard function for the oneliner
+            function copyToClipboard(element) {
+                const code = element.querySelector('code').textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    const indicator = element.querySelector('.copy-indicator');
+                    const originalSVG = indicator.innerHTML;
+                    indicator.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20,6 9,17 4,12"></polyline>
+                    </svg>`;
+                    setTimeout(() => {
+                        indicator.innerHTML = originalSVG;
+                    }, 2000);
+                }).catch(() => {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = code;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    const indicator = element.querySelector('.copy-indicator');
+                    const originalSVG = indicator.innerHTML;
+                    indicator.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20,6 9,17 4,12"></polyline>
+                    </svg>`;
+                    setTimeout(() => {
+                        indicator.innerHTML = originalSVG;
+                    }, 2000);
+                });
+            }
+
             // Minimal promo site setup - don't interfere with main app modes
             function setupPromoSite() {
                 // Only add promo-site class, let main app handle mode classes
@@ -95,6 +297,28 @@
                     promoBox.style.opacity = '1';
                     promoBox.style.visibility = 'visible';
                     promoBox.classList.remove('is-hidden');
+                    
+                    // Make promo box optimal size with big text on mobile devices
+                    if (window.innerWidth <= 1024) {
+                        // Force body settings for full width
+                        document.body.style.margin = '0';
+                        document.body.style.padding = '0';
+                        document.body.style.overflowX = 'hidden';
+                        
+                        // Force promo box to almost full width for maximum text space
+                        promoBox.style.width = 'calc(100vw - 10px)'; /* Almost full width */
+                        promoBox.style.maxWidth = 'none';
+                        promoBox.style.padding = '50px 15px'; /* Much more vertical padding for breathing room */
+                        promoBox.style.minHeight = 'auto'; /* Let content determine height */
+                        promoBox.style.boxSizing = 'border-box';
+                        promoBox.style.margin = '0 5px'; /* Minimal margin on each side */
+                        promoBox.style.position = 'relative';
+                        promoBox.style.left = '50%';
+                        promoBox.style.right = 'auto';
+                        promoBox.style.transform = 'translateX(-50%)'; /* Perfect centering */
+                        promoBox.style.marginLeft = '0';
+                        promoBox.style.marginRight = '0';
+                    }
                 }
 
                 // Setup controls auto-hide (one time only) - but respect cinema mode
@@ -238,6 +462,20 @@
                     <i class="fab fa-github"></i>
                     Get it on GitHub
                 </a>
+                
+                <!-- One-liner installation section -->
+                <div class="oneliner-install">
+                    <p class="oneliner-text">Or install instantly with one command:</p>
+                    <div class="oneliner-command" onclick="copyToClipboard(this)">
+                        <code>curl -fsSL https://raw.githubusercontent.com/Posterrama/posterrama/main/install.sh | sudo bash</code>
+                        <span class="copy-indicator">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="m5 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </span>
+                    </div>
+                </div>
             </section>
         </main>
 
@@ -326,6 +564,6 @@
             </a>
         </div>
 
-        <script src="script.js?v=20250819b"></script>
+        <script src="script.js?v=20250822a"></script>
     </body>
 </html>

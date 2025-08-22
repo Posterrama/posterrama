@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4ecdc4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#grad)" />
+  <!-- Film strip border -->
+  <rect x="80" y="120" width="352" height="272" rx="20" fill="#1a1a1a" />
+  <rect x="100" y="140" width="312" height="232" rx="10" fill="#2a2a2a" />
+  <!-- Poster frame -->
+  <rect x="120" y="160" width="120" height="180" rx="8" fill="#444" />
+  <rect x="130" y="170" width="100" height="160" rx="4" fill="#666" />
+  <!-- Play icon -->
+  <polygon points="280,220 280,290 340,255" fill="#ff6b6b" />
+  <!-- Film holes -->
+  <circle cx="60" cy="150" r="8" fill="#333" />
+  <circle cx="60" cy="200" r="8" fill="#333" />
+  <circle cx="60" cy="250" r="8" fill="#333" />
+  <circle cx="60" cy="300" r="8" fill="#333" />
+  <circle cx="60" cy="350" r="8" fill="#333" />
+  <circle cx="452" cy="150" r="8" fill="#333" />
+  <circle cx="452" cy="200" r="8" fill="#333" />
+  <circle cx="452" cy="250" r="8" fill="#333" />
+  <circle cx="452" cy="300" r="8" fill="#333" />
+  <circle cx="452" cy="350" r="8" fill="#333" />
+</svg>

@@ -103,6 +103,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Simple network status indicator
+    function showNetworkStatus(status) {
+        let indicator = document.getElementById('network-status');
+
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'network-status';
+            indicator.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 8px 16px;
+                border-radius: 20px;
+                color: white;
+                font-size: 12px;
+                font-weight: 500;
+                z-index: 1000;
+                transition: all 0.3s ease;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                display: none;
+            `;
+            document.body.appendChild(indicator);
+        }
+
+        if (status === 'offline') {
+            indicator.textContent = '⚠️ Offline Mode';
+            indicator.style.background = 'rgba(255, 152, 0, 0.9)';
+            indicator.style.display = 'block';
+        } else if (status === 'online') {
+            indicator.textContent = '✅ Connected';
+            indicator.style.background = 'rgba(76, 175, 80, 0.9)';
+            indicator.style.display = 'block';
+            setTimeout(() => (indicator.style.display = 'none'), 3000);
+        } else {
+            indicator.style.display = 'none';
+        }
+    }
+
     function showError(message) {
         // Add fallback background to body
         document.body.classList.add('no-media-background');
@@ -1383,6 +1422,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function refreshConfig() {
         try {
+            // Skip config refresh when offline
+            if (!navigator.onLine) {
+                return;
+            }
+
             // Enhanced cache-busting with timestamp and random parameter
             const cacheBuster = `?_t=${Date.now()}&_r=${Math.random().toString(36).substring(7)}`;
             const configResponse = await fetch('/get-config' + cacheBuster, {
@@ -1393,6 +1437,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     Expires: '0',
                 },
             });
+
+            if (!configResponse.ok) {
+                throw new Error(`Config fetch failed: ${configResponse.status}`);
+            }
+
             const newConfig = await configResponse.json();
 
             // Check if configuration has changed
@@ -1415,7 +1464,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 applyWallartMode(newConfig);
             }
         } catch (error) {
-            console.error('Failed to refresh configuration:', error);
+            // Silent fail in offline mode - don't spam console
+            if (navigator.onLine) {
+                console.error('Failed to refresh configuration:', error);
+            }
         }
     }
 
@@ -1680,7 +1732,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (appConfig.cinemaMode) {
             applyPosterTransitionEffect(mediaItem.posterUrl);
         } else {
-            posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+            // Handle offline mode gracefully for posters
+            if (!navigator.onLine && mediaItem.posterUrl) {
+                // Test if poster is cached, otherwise use placeholder
+                const testImg = new Image();
+                testImg.onerror = () => {
+                    // Poster not cached, use placeholder
+                    posterEl.style.backgroundImage = 'none';
+                    posterEl.style.backgroundColor = '#2a2a2a';
+                    posterEl.innerHTML = `
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100%;
+                            color: #888;
+                            font-size: 3rem;
+                            text-align: center;
+                            flex-direction: column;
+                        ">
+                            🎬
+                            <div style="font-size: 0.8rem; margin-top: 0.5rem;">
+                                ${mediaItem.title || 'Movie'}
+                            </div>
+                        </div>
+                    `;
+                };
+                testImg.onload = () => {
+                    // Poster is cached, use it
+                    posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+                    posterEl.innerHTML = '';
+                };
+                testImg.src = mediaItem.posterUrl;
+            } else {
+                posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+                posterEl.innerHTML = '';
+            }
         }
 
         // Check if poster should be shown
@@ -1872,6 +1959,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const img = new Image();
         img.onerror = () => {
+            // In offline mode, don't skip items - keep showing current content
+            if (!navigator.onLine) {
+                console.warn(
+                    `Background unavailable offline for: ${currentMedia.title}. Keeping current display.`
+                );
+
+                // Don't change anything - keep current content visible
+                // Just update the text content if needed
+                if (currentMedia.title !== titleEl.textContent) {
+                    titleEl.textContent = currentMedia.title || 'Unknown Title';
+                    taglineEl.textContent = currentMedia.tagline || '';
+                    yearEl.textContent = currentMedia.year || '';
+                }
+
+                // Don't call applyTransitionEffect or change background
+                // This keeps the last working background and poster visible
+                return;
+            }
+
             console.error(`Could not load background for: ${currentMedia.title}. Skipping item.`);
             changeMedia('next', false, true);
         };
@@ -2004,21 +2110,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'kenburns':
             // Ken Burns disabled for cinema mode - fall through to fade
             case 'fade': {
-                const fadeInDuration = 1.5; // Fixed fade in duration
-                const holdDuration = actualDuration - actualPauseTime - fadeInDuration; // Hold visible
+                const fadeDuration = 1.5; // Fixed short duration for fade
 
                 // Fade in new layer while fading out old layer
-                newLayer.style.transition = `opacity ${fadeInDuration}s ease-in-out`;
-                currentLayer.style.transition = `opacity ${fadeInDuration}s ease-in-out`;
+                newLayer.style.transition = `opacity ${fadeDuration}s ease-in-out`;
+                currentLayer.style.transition = `opacity ${fadeDuration}s ease-in-out`;
 
                 setTimeout(() => {
                     newLayer.style.opacity = '1';
                     currentLayer.style.opacity = '0';
-
-                    // Hold visible for calculated time
-                    setTimeout(() => {
-                        // Fade hold complete
-                    }, holdDuration * 1000);
                 }, 100);
                 break;
             }
@@ -2257,12 +2357,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Apply the selected effect with proper layering
         switch (transitionEffect) {
             case 'fade':
-                // Proper crossfade: both layers visible, new layer fades in while old fades out
+                // Short crossfade: 1.5 seconds fade, then display for remaining time
+                const fadeDuration = 1.5; // Fixed short duration for fade
                 newLayer.style.opacity = 0;
-                newLayer.style.transition = `opacity ${actualDuration}s ease-in-out`;
+                newLayer.style.transition = `opacity ${fadeDuration}s ease-in-out`;
 
                 if (oldLayer) {
-                    oldLayer.style.transition = `opacity ${actualDuration}s ease-in-out`;
+                    oldLayer.style.transition = `opacity ${fadeDuration}s ease-in-out`;
                 }
 
                 requestAnimationFrame(() => {
@@ -2271,13 +2372,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         oldLayer.style.opacity = 0;
                     }
 
-                    // Swap layers after effect + pause
-                    setTimeout(
-                        () => {
-                            swapLayers(newLayer, oldLayer);
-                        },
-                        (actualDuration + actualPauseTime) * 1000
-                    );
+                    // Swap layers after short fade
+                    setTimeout(() => {
+                        swapLayers(newLayer, oldLayer);
+                    }, fadeDuration * 1000);
                 });
                 break;
 
@@ -2400,6 +2498,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function changeMedia(direction = 'next', isFirstLoad = false, isErrorSkip = false) {
         if (mediaQueue.length === 0) return;
+
+        // In offline mode, don't cycle through media unless it's the first load
+        if (!navigator.onLine && !isFirstLoad) {
+            console.warn('Offline mode: Keeping current media displayed');
+            return;
+        }
 
         // Don't change media in wallart mode (wallart has its own system)
         if (document.body.classList.contains('wallart-mode') && !isFirstLoad) {
@@ -2585,6 +2689,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             '1';
         posterEl.style.transform = `scale(${contentScale}) perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)`;
     });
+
+    // Initialize network monitoring
+    function initNetworkMonitoring() {
+        window.addEventListener('online', () => {
+            logger.info('Network connection restored');
+            showNetworkStatus('online');
+        });
+
+        window.addEventListener('offline', () => {
+            logger.warn('Network connection lost');
+            showNetworkStatus('offline');
+        });
+    }
+
+    // Initialize network monitoring
+    initNetworkMonitoring();
 
     initialize();
 

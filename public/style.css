@@ -996,8 +996,8 @@ body.screensaver-mode #poster-wrapper {
         margin-bottom: 15px;
     }
     #promo-box {
-        padding: 20px 15px;
-        width: 90%;
+        padding: 25px 20px; /* More generous padding */
+        width: 90%; /* Keep original mobile styling as fallback */
     }
     #promo-box h1 {
         font-size: 1.4em;

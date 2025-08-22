@@ -289,11 +289,36 @@ a:hover {
     min-width: 60px;
 }
 
-/* Desktop: Always open sidebar - no collapse functionality */
+/* Desktop/Tablet: Always open sidebar - no collapse functionality */
 @media (min-width: 769px) {
-    /* Hide mobile-only elements on desktop */
+    /* Hide mobile-only elements on desktop/tablet */
     .mobile-only {
         display: none !important;
+    }
+
+    /* Force sidebar to always be open on tablets and desktop */
+    .sidebar {
+        width: 180px !important;
+        min-width: 180px !important;
+    }
+
+    /* Override collapsed state on tablets/desktop - force text visibility */
+    .sidebar.collapsed {
+        width: 180px !important;
+        min-width: 180px !important;
+    }
+
+    .sidebar.collapsed .nav-text {
+        display: block !important; /* Force text to show on tablets/desktop */
+    }
+
+    .sidebar.collapsed .sidebar-logo {
+        display: block !important; /* Force logo/admin text to show on tablets/desktop */
+    }
+
+    .sidebar.collapsed .nav-item {
+        padding: 0.875rem 1rem !important; /* Reset to normal padding on tablets/desktop */
+        justify-content: flex-start !important; /* Reset to left alignment */
     }
 
     .sidebar-always-open {

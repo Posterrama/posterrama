@@ -19,7 +19,7 @@
     },
     "cinemaMode": false,
     "cinemaOrientation": "auto",
-    "transitionEffect": "fade",
+    "transitionEffect": "kenburns",
     "effectPauseTime": 3,
     "uiScaling": {
         "content": 100,

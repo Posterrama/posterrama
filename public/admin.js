@@ -906,6 +906,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return window.innerWidth <= 768;
     }
 
+    function isTabletOrDesktop() {
+        return window.innerWidth >= 769;
+    }
+
     // Initialize mobile state
     function initializeMobileState() {
         if (isMobile()) {
@@ -944,6 +948,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // We no longer create a hamburger menu on mobile
             // The sidebar is completely hidden on mobile via CSS and HTML changes
         } else {
+            // On tablet/desktop, ensure sidebar is NEVER collapsed
+            sidebar.classList.remove('collapsed');
+            sidebar.classList.add('sidebar-always-open');
+
+            // Clear any saved collapsed state for tablets/desktop
+            if (localStorage.getItem('sidebarCollapsed')) {
+                localStorage.removeItem('sidebarCollapsed');
+            }
+
             // Remove mobile menu button on desktop (cleanup)
             const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
             if (mobileMenuBtn) {
@@ -959,7 +972,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (wasMobile !== nowMobile) {
             if (nowMobile) {
-                // Switching to mobile - remove desktop toggle
+                // Switching to mobile - remove desktop toggle and force collapsed
+                sidebar.classList.add('collapsed');
+                sidebar.classList.remove('sidebar-always-open');
                 const desktopToggle = document.getElementById('sidebar-toggle');
                 if (desktopToggle) {
                     desktopToggle.remove();
@@ -970,6 +985,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 allDesktopToggles.forEach(toggle => {
                     toggle.remove();
                 });
+            } else {
+                // Switching to tablet/desktop - ensure sidebar is open
+                sidebar.classList.remove('collapsed');
+                sidebar.classList.add('sidebar-always-open');
+
+                // Clear any saved collapsed state
+                if (localStorage.getItem('sidebarCollapsed')) {
+                    localStorage.removeItem('sidebarCollapsed');
+                }
             }
 
             initializeMobileState();
@@ -1010,10 +1034,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // (Removed legacy layout fallback interval – no longer required after portal approach)
 
-    // Restore sidebar state from localStorage
-    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
-    if (savedSidebarState === 'true') {
-        sidebar.classList.add('collapsed');
+    // Restore sidebar state from localStorage (only for mobile devices)
+    if (isMobile()) {
+        const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+        if (savedSidebarState === 'true') {
+            sidebar.classList.add('collapsed');
+        }
+    } else {
+        // On tablet/desktop, always ensure sidebar is open
+        sidebar.classList.remove('collapsed');
+        sidebar.classList.add('sidebar-always-open');
+        // Clear any lingering collapsed state
+        if (localStorage.getItem('sidebarCollapsed')) {
+            localStorage.removeItem('sidebarCollapsed');
+        }
     }
 
     // Set initial ARIA state
@@ -1022,8 +1056,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebarToggle.setAttribute('aria-expanded', isExpanded);
     }
 
-    // Toggle sidebar - ONLY on desktop
-    if (sidebarToggle && !isMobile()) {
+    // Toggle sidebar - DISABLED for tablets/desktop (always open)
+    if (sidebarToggle && isMobile()) {
         sidebarToggle.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
 
@@ -1031,11 +1065,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const isExpanded = !sidebar.classList.contains('collapsed');
             sidebarToggle.setAttribute('aria-expanded', isExpanded);
 
-            // Save the new state to localStorage (only on desktop)
-            if (!isMobile()) {
-                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
-            }
+            // Save the new state to localStorage (only on mobile)
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
         });
+    } else if (sidebarToggle && !isMobile()) {
+        // Remove toggle button on tablets/desktop since sidebar is always open
+        sidebarToggle.remove();
     }
 
     // Mobile overlay and click outside functionality
