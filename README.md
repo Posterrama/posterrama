@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-1.8.8-blue.svg)](https://github.com/Posterrama/posterrama)
+[![Version](https://img.shields.io/badge/version-1.9.0-blue.svg)](https://github.com/Posterrama/posterrama)
 [![Downloads](https://img.shields.io/github/downloads/Posterrama/posterrama/total?style=flat&logo=github&label=Downloads&color=brightgreen)](https://github.com/Posterrama/posterrama/releases)
 [![Tests](https://img.shields.io/badge/tests-681%20tests%20in%2047%20suites-brightgreen)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-87.53%25-brightgreen)](#testing)
