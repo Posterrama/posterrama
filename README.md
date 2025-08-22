@@ -21,8 +21,23 @@ Professional digital movie poster display with high-quality artwork and smooth t
 **Wallart Mode**  
 Multi-poster grid that intelligently fills your screen with dynamic layouts.
 
+**Smart Caching**  
+Advanced image caching system with automatic cleanup and optimization for faster loading.
+
 **Universal Compatibility**  
 Works seamlessly with Plex, TMDB, TVDB, and streaming services across all devices.
+
+**Admin Dashboard**  
+Comprehensive web interface for managing sources, display settings, and monitoring system health.
+
+**Real-time Updates**  
+Automatic synchronization with your media servers for the latest posters and metadata.
+
+**Responsive Design**  
+Optimized layouts for every screen size from mobile phones to 4K displays.
+
+**API Integration**  
+RESTful API with OpenAPI documentation for custom integrations and automation.
 
 <div align="center">
 
@@ -63,17 +78,52 @@ pm2 start ecosystem.config.js
 4. Configure display settings
 5. Visit `http://your-server-ip:4000` to view your display
 
+## API Documentation
+
+Posterrama includes a comprehensive REST API with OpenAPI documentation:
+
+- **API Docs**: `http://your-server-ip:4000/api-docs`
+- **Health Check**: `http://your-server-ip:4000/health`
+- **Admin API**: `http://your-server-ip:4000/admin/api`
+
+**Example API Usage**
+
+```bash
+# Get all posters
+curl http://your-server-ip:4000/api/posters
+
+# Get poster by ID
+curl http://your-server-ip:4000/api/posters/{id}
+
+# Refresh media sources
+curl -X POST http://your-server-ip:4000/api/refresh
+```
+
 ## Media Sources
 
-**Local Media**
+**Local Media Servers**
 
-- Plex Media Server
+- Plex Media Server (Full integration with metadata)
+- Jellyfin (Basic support)
+- Emby (Basic support)
 
-**External Sources**
+**Online Databases**
 
-- The Movie Database (TMDB)
-- The TV Database (TVDB)
-- Streaming Services (Netflix, Disney+, Prime Video, Apple TV+, HBO Max, Hulu, Paramount+, Crunchyroll)
+- The Movie Database (TMDB) - Movies and TV shows
+- The TV Database (TVDB) - Enhanced TV metadata
+- Fanart.tv - High-quality artwork
+
+**Streaming Platforms**
+
+- Netflix, Disney+, Prime Video, Apple TV+
+- HBO Max, Hulu, Paramount+, Crunchyroll
+- And many more through TMDB integration
+
+**Custom Sources**
+
+- Local folder scanning
+- Custom API endpoints
+- Manual poster uploads
 
 ## Platform Support
 
@@ -110,6 +160,58 @@ pm2 start ecosystem.config.js
 - Node.js 18 or later
 - A media server (Plex recommended)
 - 5 minutes for setup
+
+## Updates
+
+To update Posterrama to the latest version:
+
+```bash
+# Update as the posterrama user to maintain correct file ownership
+sudo -u posterrama git pull
+
+# Or if you need to update as root, fix ownership afterwards
+git pull && chown -R posterrama:posterrama /var/www/posterrama
+
+# Restart the service
+pm2 restart posterrama
+```
+
+## Coming Soon
+
+**Enhanced Display Modes**
+
+- Slideshow mode with customizable transitions
+- Seasonal themes and collections
+- Dynamic lighting integration
+
+**Advanced Media Support**
+
+- 4K poster optimization
+- Video trailer integration
+- Music album artwork support
+
+**Smart Features**
+
+- AI-powered poster recommendations
+- Automatic genre-based collections
+- Voice control integration
+
+## Troubleshooting
+
+**Service not starting?**
+
+```bash
+pm2 logs posterrama
+```
+
+**Images not loading?**
+Check your media source configuration in the admin panel.
+
+**Permission issues after git pull?**
+
+```bash
+sudo chown -R posterrama:posterrama /var/www/posterrama
+```
 
 ## License
 
