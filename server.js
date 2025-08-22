@@ -6869,18 +6869,30 @@ if (require.main === module) {
                     const modifiedConfig = {
                         ...originalConfig,
                         isPublicSite: true,
-                        // Force screensaver settings for promo site
-                        showPoster: true,
+                        // Preserve ALL original settings for promo site consistency
+                        showPoster: originalConfig.showPoster,
+                        showMetadata: originalConfig.showMetadata,
+                        showClearLogo: originalConfig.showClearLogo,
+                        showRottenTomatoes: originalConfig.showRottenTomatoes,
+                        clockWidget: originalConfig.clockWidget,
+                        clockTimezone: originalConfig.clockTimezone,
+                        clockFormat: originalConfig.clockFormat,
+                        uiScaling: originalConfig.uiScaling,
+                        transitionEffect: originalConfig.transitionEffect,
+                        effectPauseTime: originalConfig.effectPauseTime,
                         autoTransition: true,
-                        transitionIntervalSeconds: 8,
+                        // Promo site forces faster transitions for demo
+                        transitionIntervalSeconds: Math.max(
+                            8,
+                            originalConfig.transitionIntervalSeconds || 15
+                        ),
                         // Force promo box to be visible
                         promoBoxEnabled: true,
-                        // Disable wallart mode on promo site
+                        // Force screensaver mode (disable other modes)
                         wallartMode: {
                             ...originalConfig.wallartMode,
                             enabled: false,
                         },
-                        // Force screensaver-like behavior
                         cinemaMode: false,
                     };
                     // We send the modified JSON and stop further processing for this request.

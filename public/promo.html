@@ -48,7 +48,7 @@
             body.wallart-mode #clearlogo-container,
             body.wallart-mode #info-container,
             body.wallart-mode #controls-container,
-            body.wallart-mode #widget-container,
+            body.wallart-mode #clock-widget-container,
             body.cinema-mode #poster-wrapper,
             body.cinema-mode #layer-a,
             body.cinema-mode #layer-b,
@@ -57,7 +57,7 @@
             body.cinema-mode #clearlogo-container,
             body.cinema-mode #info-container,
             body.cinema-mode #controls-container,
-            body.cinema-mode #widget-container {
+            body.cinema-mode #clock-widget-container {
                 display: block !important;
                 opacity: 1 !important;
                 visibility: visible !important;
@@ -104,6 +104,9 @@
                     document.body.addEventListener('touchstart', showControls, { passive: true });
                     showControls();
                 }
+
+                // IMPORTANT: Let the main script handle clock initialization
+                // We just ensure the promo site doesn't interfere
             }
 
             // Block mode functions
@@ -117,7 +120,10 @@
                 setupPromoSite();
             }
 
-            window.addEventListener('load', setupPromoSite);
+            // Delay setup to let main script initialize first
+            window.addEventListener('load', () => {
+                setTimeout(setupPromoSite, 100);
+            });
 
             // Very minimal check - only body classes
             setInterval(() => {
@@ -202,11 +208,11 @@
         <div id="layer-b" class="screensaver-layer"></div>
         <div id="background-image"></div>
 
-        <div id="widget-container">
+        <div id="clock-widget-container">
             <div id="time-widget">
-                <span id="time-hours">00</span>
+                <span id="time-hours"></span>
                 <span id="time-separator">:</span>
-                <span id="time-minutes">00</span>
+                <span id="time-minutes"></span>
             </div>
         </div>
 
