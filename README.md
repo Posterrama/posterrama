@@ -142,6 +142,24 @@ Setup steps:
 - AirPlay from Safari (iPhone/iPad) and enable "Guided Access" if needed
 - Or install a TV browser app and open your Posterrama URL
 
+### Windows and macOS (PWA + Autostart)
+
+Windows
+
+- Open Posterrama in Edge or Chrome
+- Menu → "Install app" / "Install this site as an app"
+- Autostart: Win+R → shell:startup → drag the app shortcut into that folder
+
+macOS
+
+- Open Posterrama in Chrome or Edge
+- Menu → "Install this site as an app" / "Install"
+- System Settings → General → Login Items → add the app
+
+Benefits
+
+- Fullscreen without tabs, 2–3 steps, auto‑updates via the web
+
 ---
 
 ## Coming Soon — turn it up to eleven
