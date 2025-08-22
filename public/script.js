@@ -2356,7 +2356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Apply the selected effect with proper layering
         switch (transitionEffect) {
-            case 'fade':
+            case 'fade': {
                 // Short crossfade: 1.5 seconds fade, then display for remaining time
                 const fadeDuration = 1.5; // Fixed short duration for fade
                 newLayer.style.opacity = 0;
@@ -2378,6 +2378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }, fadeDuration * 1000);
                 });
                 break;
+            }
 
             case 'slide': {
                 // True slide effect with proper layer management

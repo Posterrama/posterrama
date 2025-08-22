@@ -906,10 +906,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return window.innerWidth <= 768;
     }
 
-    function isTabletOrDesktop() {
-        return window.innerWidth >= 769;
-    }
-
     // Initialize mobile state
     function initializeMobileState() {
         if (isMobile()) {
