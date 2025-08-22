@@ -60,7 +60,18 @@ check_root() {
     if [[ $EUID -eq 0 ]]; then
         print_status "Running as root - OK"
         SUDO=""
+        ROOT_INSTALL=true
+        
+        # Check if this is a root-only system (no regular users)
+        if ! command -v sudo >/dev/null 2>&1; then
+            print_status "Detected root-only system (no sudo available)"
+            ROOT_ONLY_SYSTEM=true
+        else
+            ROOT_ONLY_SYSTEM=false
+        fi
     else
+        ROOT_INSTALL=false
+        ROOT_ONLY_SYSTEM=false
         print_status "Not running as root, checking for sudo..."
         if command -v sudo >/dev/null 2>&1; then
             print_status "sudo found, will use sudo for privileged operations"
@@ -189,6 +200,20 @@ install_pm2() {
     
     if command -v pm2 >/dev/null 2>&1; then
         print_success "PM2 is already installed"
+        
+        # For root installations, ensure PM2 is accessible to posterrama user
+        if [[ "$ROOT_INSTALL" == true ]]; then
+            PM2_PATH=$(which pm2 2>/dev/null || echo "")
+            if [[ -n "$PM2_PATH" ]]; then
+                print_status "Ensuring PM2 accessibility for posterrama user..."
+                $SUDO chmod 755 "$PM2_PATH" 2>/dev/null || true
+                if [[ ! -L "/usr/local/bin/pm2" && ! -f "/usr/local/bin/pm2" ]]; then
+                    $SUDO ln -sf "$PM2_PATH" /usr/local/bin/pm2
+                    $SUDO chmod 755 /usr/local/bin/pm2 2>/dev/null || true
+                fi
+            fi
+        fi
+        
         return 0
     fi
     
@@ -199,10 +224,30 @@ install_pm2() {
         exit 1
     fi
     
+    print_status "Installing PM2 globally..."
     npm install -g pm2
     
     # Update PATH again after PM2 installation
     export PATH="/usr/bin:/usr/local/bin:$PATH"
+    
+    # For root installations, ensure proper permissions
+    if [[ "$ROOT_INSTALL" == true ]]; then
+        PM2_PATH=$(which pm2 2>/dev/null || echo "")
+        if [[ -n "$PM2_PATH" ]]; then
+            print_status "Setting up PM2 for multi-user access..."
+            $SUDO chmod 755 "$PM2_PATH" 2>/dev/null || true
+            if [[ ! -L "/usr/local/bin/pm2" && ! -f "/usr/local/bin/pm2" ]]; then
+                $SUDO ln -sf "$PM2_PATH" /usr/local/bin/pm2
+                $SUDO chmod 755 /usr/local/bin/pm2 2>/dev/null || true
+            fi
+            
+            # Ensure global node_modules PM2 directory is accessible
+            NPM_GLOBAL_DIR=$(npm config get prefix 2>/dev/null || echo "/usr/local")
+            if [[ -d "$NPM_GLOBAL_DIR/lib/node_modules/pm2" ]]; then
+                $SUDO chmod -R 755 "$NPM_GLOBAL_DIR/lib/node_modules/pm2" 2>/dev/null || true
+            fi
+        fi
+    fi
     
     if command -v pm2 >/dev/null 2>&1; then
         print_success "PM2 installed successfully"
@@ -290,6 +335,24 @@ install_posterrama() {
         $SUDO ln -sf "$NPM_PATH" /usr/local/bin/npm
     fi
     
+    # Ensure binaries are executable by all users
+    print_status "Setting proper permissions on Node.js binaries..."
+    $SUDO chmod 755 "$NODE_PATH" "$NPM_PATH" 2>/dev/null || true
+    $SUDO chmod 755 /usr/local/bin/node /usr/local/bin/npm 2>/dev/null || true
+    
+    # For root-only systems, ensure the global node_modules directory is accessible
+    if [[ "$ROOT_INSTALL" == true ]]; then
+        print_status "Configuring for root installation..."
+        # Find npm global directory
+        NPM_GLOBAL_DIR=$(npm config get prefix 2>/dev/null || echo "/usr/local")
+        if [[ -d "$NPM_GLOBAL_DIR/lib/node_modules" ]]; then
+            $SUDO chmod -R 755 "$NPM_GLOBAL_DIR/lib/node_modules" 2>/dev/null || true
+        fi
+        if [[ -d "$NPM_GLOBAL_DIR/bin" ]]; then
+            $SUDO chmod -R 755 "$NPM_GLOBAL_DIR/bin" 2>/dev/null || true
+        fi
+    fi
+    
     # Set up proper PATH in posterrama user's profile
     POSTERRAMA_BASHRC="$POSTERRAMA_DIR/.bashrc"
     if [[ ! -f "$POSTERRAMA_BASHRC" ]] || ! grep -q "/usr/local/bin" "$POSTERRAMA_BASHRC" 2>/dev/null; then
@@ -299,12 +362,32 @@ install_posterrama() {
     fi
     
     # Verify the posterrama user can access node and npm
-    if [[ -n "$SUDO" ]]; then
-        NODE_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which node 2>/dev/null || echo 'NOT_FOUND'")
-        NPM_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which npm 2>/dev/null || echo 'NOT_FOUND'")
+    if [[ "$ROOT_INSTALL" == true ]]; then
+        # For root installations, test both as root and as posterrama user
+        print_status "Testing Node.js access (root installation mode)..."
+        
+        if [[ -n "$SUDO" ]]; then
+            NODE_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which node 2>/dev/null || echo 'NOT_FOUND'")
+            NPM_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which npm 2>/dev/null || echo 'NOT_FOUND'")
+        else
+            # Running as root, test both direct and user access
+            NODE_TEST_ROOT=$(which node 2>/dev/null || echo 'NOT_FOUND')
+            NPM_TEST_ROOT=$(which npm 2>/dev/null || echo 'NOT_FOUND')
+            NODE_TEST=$(su - $POSTERRAMA_USER -c "which node 2>/dev/null || echo 'NOT_FOUND'")
+            NPM_TEST=$(su - $POSTERRAMA_USER -c "which npm 2>/dev/null || echo 'NOT_FOUND'")
+            
+            print_status "Node accessible to root: $NODE_TEST_ROOT"
+            print_status "npm accessible to root: $NPM_TEST_ROOT"
+        fi
     else
-        NODE_TEST=$(su - $POSTERRAMA_USER -c "which node 2>/dev/null || echo 'NOT_FOUND'")
-        NPM_TEST=$(su - $POSTERRAMA_USER -c "which npm 2>/dev/null || echo 'NOT_FOUND'")
+        # Standard non-root installation
+        if [[ -n "$SUDO" ]]; then
+            NODE_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which node 2>/dev/null || echo 'NOT_FOUND'")
+            NPM_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which npm 2>/dev/null || echo 'NOT_FOUND'")
+        else
+            NODE_TEST=$(su - $POSTERRAMA_USER -c "which node 2>/dev/null || echo 'NOT_FOUND'")
+            NPM_TEST=$(su - $POSTERRAMA_USER -c "which npm 2>/dev/null || echo 'NOT_FOUND'")
+        fi
     fi
     
     print_status "Node accessible to posterrama user: $NODE_TEST"
@@ -313,7 +396,11 @@ install_posterrama() {
     # If still not found, try direct path access
     if [[ "$NPM_TEST" == "NOT_FOUND" ]]; then
         print_warning "npm not found via which, testing direct path access..."
-        if [[ -n "$SUDO" ]]; then
+        
+        if [[ "$ROOT_INSTALL" == true && -z "$SUDO" ]]; then
+            # Running as root, test direct path access
+            NPM_DIRECT_TEST=$(su - $POSTERRAMA_USER -c "/usr/local/bin/npm --version 2>/dev/null && echo 'DIRECT_ACCESS_OK' || echo 'DIRECT_ACCESS_FAILED'")
+        elif [[ -n "$SUDO" ]]; then
             NPM_DIRECT_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "/usr/local/bin/npm --version 2>/dev/null && echo 'DIRECT_ACCESS_OK' || echo 'DIRECT_ACCESS_FAILED'")
         else
             NPM_DIRECT_TEST=$(su - $POSTERRAMA_USER -c "/usr/local/bin/npm --version 2>/dev/null && echo 'DIRECT_ACCESS_OK' || echo 'DIRECT_ACCESS_FAILED'")
@@ -322,38 +409,69 @@ install_posterrama() {
         if [[ "$NPM_DIRECT_TEST" == "DIRECT_ACCESS_OK" ]]; then
             print_status "npm accessible via direct path - continuing..."
         else
-            print_error "npm still not accessible to posterrama user even via direct path"
-            print_status "Attempting to fix permissions on Node.js binaries..."
-            $SUDO chmod +x /usr/local/bin/node /usr/local/bin/npm 2>/dev/null || true
-            # Try one more time
-            if [[ -n "$SUDO" ]]; then
-                NPM_FINAL_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "/usr/local/bin/npm --version 2>/dev/null && echo 'OK' || echo 'FAILED'")
-            else
-                NPM_FINAL_TEST=$(su - $POSTERRAMA_USER -c "/usr/local/bin/npm --version 2>/dev/null && echo 'OK' || echo 'FAILED'")
-            fi
+            print_warning "npm not accessible via direct path, attempting additional fixes..."
             
-            if [[ "$NPM_FINAL_TEST" == "FAILED" ]]; then
+            # Additional permissions fix for root installations
+            if [[ "$ROOT_INSTALL" == true ]]; then
+                print_status "Applying root installation fixes..."
+                $SUDO chmod +x /usr/local/bin/node /usr/local/bin/npm 2>/dev/null || true
+                
+                # Ensure the actual binaries are also executable
+                if [[ -f "$NODE_PATH" ]]; then
+                    $SUDO chmod 755 "$NODE_PATH" 2>/dev/null || true
+                fi
+                if [[ -f "$NPM_PATH" ]]; then
+                    $SUDO chmod 755 "$NPM_PATH" 2>/dev/null || true
+                fi
+                
+                # Test again
+                if [[ -z "$SUDO" ]]; then
+                    NPM_FINAL_TEST=$(su - $POSTERRAMA_USER -c "/usr/local/bin/npm --version 2>/dev/null && echo 'OK' || echo 'FAILED'")
+                else
+                    NPM_FINAL_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "/usr/local/bin/npm --version 2>/dev/null && echo 'OK' || echo 'FAILED'")
+                fi
+                
+                if [[ "$NPM_FINAL_TEST" == "FAILED" ]]; then
+                    print_warning "npm still not accessible to posterrama user, will use root for npm operations"
+                    USE_ROOT_FOR_NPM=true
+                else
+                    print_success "npm access fixed for posterrama user"
+                    USE_ROOT_FOR_NPM=false
+                fi
+            else
                 print_error "Unable to fix npm access for posterrama user"
                 exit 1
             fi
         fi
+    else
+        USE_ROOT_FOR_NPM=false
     fi
     
     # Run npm install with proper PATH
     print_status "Running npm install..."
-    if [[ -n "$SUDO" ]]; then
-        if $SUDO -u $POSTERRAMA_USER bash -l -c "which npm >/dev/null 2>&1"; then
-            $SUDO -u $POSTERRAMA_USER bash -l -c "cd $POSTERRAMA_DIR && npm install"
-        else
-            # Fallback to direct path
-            $SUDO -u $POSTERRAMA_USER bash -c "cd $POSTERRAMA_DIR && /usr/local/bin/npm install"
-        fi
+    
+    if [[ "$USE_ROOT_FOR_NPM" == true ]]; then
+        print_status "Using root for npm operations due to access limitations..."
+        cd $POSTERRAMA_DIR
+        npm install
+        # Fix ownership after root npm install
+        $SUDO chown -R $POSTERRAMA_USER:$POSTERRAMA_USER $POSTERRAMA_DIR
     else
-        if su - $POSTERRAMA_USER -c "which npm >/dev/null 2>&1"; then
-            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && npm install"
+        # Use posterrama user for npm install
+        if [[ -n "$SUDO" ]]; then
+            if $SUDO -u $POSTERRAMA_USER bash -l -c "which npm >/dev/null 2>&1"; then
+                $SUDO -u $POSTERRAMA_USER bash -l -c "cd $POSTERRAMA_DIR && npm install"
+            else
+                # Fallback to direct path
+                $SUDO -u $POSTERRAMA_USER bash -c "cd $POSTERRAMA_DIR && /usr/local/bin/npm install"
+            fi
         else
-            # Fallback to direct path
-            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/npm install"
+            if su - $POSTERRAMA_USER -c "which npm >/dev/null 2>&1"; then
+                su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && npm install"
+            else
+                # Fallback to direct path
+                su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/npm install"
+            fi
         fi
     fi
     
@@ -419,10 +537,23 @@ setup_service() {
     fi
     
     # Verify PM2 access for posterrama user
-    if [[ -n "$SUDO" ]]; then
-        PM2_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which pm2 2>/dev/null || echo 'NOT_FOUND'")
+    if [[ "$ROOT_INSTALL" == true ]]; then
+        print_status "Testing PM2 access (root installation mode)..."
+        
+        if [[ -z "$SUDO" ]]; then
+            # Running as root, test both direct and user access
+            PM2_TEST_ROOT=$(which pm2 2>/dev/null || echo 'NOT_FOUND')
+            PM2_TEST=$(su - $POSTERRAMA_USER -c "which pm2 2>/dev/null || echo 'NOT_FOUND'")
+            print_status "PM2 accessible to root: $PM2_TEST_ROOT"
+        else
+            PM2_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which pm2 2>/dev/null || echo 'NOT_FOUND'")
+        fi
     else
-        PM2_TEST=$(su - $POSTERRAMA_USER -c "which pm2 2>/dev/null || echo 'NOT_FOUND'")
+        if [[ -n "$SUDO" ]]; then
+            PM2_TEST=$($SUDO -u $POSTERRAMA_USER bash -l -c "which pm2 2>/dev/null || echo 'NOT_FOUND'")
+        else
+            PM2_TEST=$(su - $POSTERRAMA_USER -c "which pm2 2>/dev/null || echo 'NOT_FOUND'")
+        fi
     fi
     
     print_status "PM2 accessible to posterrama user: $PM2_TEST"
@@ -430,68 +561,110 @@ setup_service() {
     # If PM2 not found in PATH, test direct access
     if [[ "$PM2_TEST" == "NOT_FOUND" ]]; then
         print_warning "PM2 not found via which, testing direct path access..."
-        if [[ -n "$SUDO" ]]; then
+        
+        if [[ "$ROOT_INSTALL" == true && -z "$SUDO" ]]; then
+            PM2_DIRECT_TEST=$(su - $POSTERRAMA_USER -c "/usr/local/bin/pm2 --version 2>/dev/null && echo 'DIRECT_ACCESS_OK' || echo 'DIRECT_ACCESS_FAILED'")
+        elif [[ -n "$SUDO" ]]; then
             PM2_DIRECT_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "/usr/local/bin/pm2 --version 2>/dev/null && echo 'DIRECT_ACCESS_OK' || echo 'DIRECT_ACCESS_FAILED'")
         else
             PM2_DIRECT_TEST=$(su - $POSTERRAMA_USER -c "/usr/local/bin/pm2 --version 2>/dev/null && echo 'DIRECT_ACCESS_OK' || echo 'DIRECT_ACCESS_FAILED'")
         fi
         
         if [[ "$PM2_DIRECT_TEST" != "DIRECT_ACCESS_OK" ]]; then
-            print_error "PM2 not accessible to posterrama user"
-            exit 1
+            if [[ "$ROOT_INSTALL" == true ]]; then
+                print_warning "PM2 not accessible to posterrama user, will use root for PM2 operations"
+                USE_ROOT_FOR_PM2=true
+            else
+                print_error "PM2 not accessible to posterrama user"
+                exit 1
+            fi
         else
             print_status "PM2 accessible via direct path - continuing..."
+            USE_ROOT_FOR_PM2=false
         fi
+    else
+        USE_ROOT_FOR_PM2=false
     fi
     
     # Start application with PM2
     print_status "Starting application with PM2..."
-    if [[ -n "$SUDO" ]]; then
-        if $SUDO -u $POSTERRAMA_USER bash -l -c "which pm2 >/dev/null 2>&1"; then
-            $SUDO -u $POSTERRAMA_USER bash -l -c "cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
-        else
-            # Fallback to direct path
-            $SUDO -u $POSTERRAMA_USER bash -c "cd $POSTERRAMA_DIR && /usr/local/bin/pm2 start ecosystem.config.js"
+    
+    if [[ "$USE_ROOT_FOR_PM2" == true ]]; then
+        print_status "Using root for PM2 operations due to access limitations..."
+        cd $POSTERRAMA_DIR
+        pm2 start ecosystem.config.js
+        # Change ownership of PM2 files to posterrama user where possible
+        PM2_HOME="/root/.pm2"
+        if [[ -d "$PM2_HOME" ]]; then
+            print_status "PM2 running as root, service will manage as root user"
         fi
     else
-        if su - $POSTERRAMA_USER -c "which pm2 >/dev/null 2>&1"; then
-            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+        # Use posterrama user for PM2
+        if [[ -n "$SUDO" ]]; then
+            if $SUDO -u $POSTERRAMA_USER bash -l -c "which pm2 >/dev/null 2>&1"; then
+                $SUDO -u $POSTERRAMA_USER bash -l -c "cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+            else
+                # Fallback to direct path
+                $SUDO -u $POSTERRAMA_USER bash -c "cd $POSTERRAMA_DIR && /usr/local/bin/pm2 start ecosystem.config.js"
+            fi
         else
-            # Fallback to direct path
-            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/pm2 start ecosystem.config.js"
+            if su - $POSTERRAMA_USER -c "which pm2 >/dev/null 2>&1"; then
+                su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+            else
+                # Fallback to direct path
+                su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/pm2 start ecosystem.config.js"
+            fi
         fi
     fi
     
     # Save PM2 configuration
     print_status "Saving PM2 configuration..."
-    if [[ -n "$SUDO" ]]; then
-        if $SUDO -u $POSTERRAMA_USER bash -l -c "which pm2 >/dev/null 2>&1"; then
-            $SUDO -u $POSTERRAMA_USER bash -l -c "pm2 save"
-        else
-            # Fallback to direct path
-            $SUDO -u $POSTERRAMA_USER bash -c "/usr/local/bin/pm2 save"
-        fi
+    
+    if [[ "$USE_ROOT_FOR_PM2" == true ]]; then
+        pm2 save
     else
-        if su - $POSTERRAMA_USER -c "which pm2 >/dev/null 2>&1"; then
-            su - $POSTERRAMA_USER -c "pm2 save"
+        if [[ -n "$SUDO" ]]; then
+            if $SUDO -u $POSTERRAMA_USER bash -l -c "which pm2 >/dev/null 2>&1"; then
+                $SUDO -u $POSTERRAMA_USER bash -l -c "pm2 save"
+            else
+                # Fallback to direct path
+                $SUDO -u $POSTERRAMA_USER bash -c "/usr/local/bin/pm2 save"
+            fi
         else
-            # Fallback to direct path
-            su - $POSTERRAMA_USER -c "/usr/local/bin/pm2 save"
+            if su - $POSTERRAMA_USER -c "which pm2 >/dev/null 2>&1"; then
+                su - $POSTERRAMA_USER -c "pm2 save"
+            else
+                # Fallback to direct path
+                su - $POSTERRAMA_USER -c "/usr/local/bin/pm2 save"
+            fi
         fi
     fi
     
     # Generate systemd service
     print_status "Generating systemd service..."
-    if su - $POSTERRAMA_USER -c "which pm2 >/dev/null 2>&1"; then
-        su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
+    
+    if [[ "$USE_ROOT_FOR_PM2" == true ]]; then
+        # For root PM2, we need to generate service as root
+        pm2 startup systemd -u root --hp /root
+        SERVICE_USER="root"
     else
-        # Fallback to direct path
-        su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
+        if su - $POSTERRAMA_USER -c "which pm2 >/dev/null 2>&1"; then
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
+        else
+            # Fallback to direct path
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
+        fi
+        SERVICE_USER="$POSTERRAMA_USER"
     fi
     
     # Enable and start the service
-    $SUDO systemctl enable pm2-$POSTERRAMA_USER
-    $SUDO systemctl start pm2-$POSTERRAMA_USER
+    if [[ "$USE_ROOT_FOR_PM2" == true ]]; then
+        $SUDO systemctl enable pm2-root
+        $SUDO systemctl start pm2-root
+    else
+        $SUDO systemctl enable pm2-$POSTERRAMA_USER
+        $SUDO systemctl start pm2-$POSTERRAMA_USER
+    fi
     
     print_success "PM2 service configured and started"
 }
@@ -517,18 +690,38 @@ show_completion_info() {
     echo "4. Configure your display settings"
     echo ""
     echo -e "${YELLOW}🔧 Management Commands:${NC}"
-    if [[ -n "$SUDO" ]]; then
-        echo "• View status:    ${SUDO} systemctl status pm2-$POSTERRAMA_USER"
-        echo "• Stop service:   ${SUDO} systemctl stop pm2-$POSTERRAMA_USER"
-        echo "• Start service:  ${SUDO} systemctl start pm2-$POSTERRAMA_USER"
-        echo "• View logs:      ${SUDO} -u $POSTERRAMA_USER pm2 logs"
-        echo "• Update:         cd $POSTERRAMA_DIR && ${SUDO} -u $POSTERRAMA_USER git pull && ${SUDO} -u $POSTERRAMA_USER npm install && ${SUDO} -u $POSTERRAMA_USER pm2 restart all"
+    
+    # Determine the correct service name and user
+    if [[ -n "$USE_ROOT_FOR_PM2" && "$USE_ROOT_FOR_PM2" == true ]]; then
+        SERVICE_NAME="pm2-root"
+        PM2_USER="root"
     else
-        echo "• View status:    systemctl status pm2-$POSTERRAMA_USER"
-        echo "• Stop service:   systemctl stop pm2-$POSTERRAMA_USER"
-        echo "• Start service:  systemctl start pm2-$POSTERRAMA_USER"
-        echo "• View logs:      su - $POSTERRAMA_USER -c 'pm2 logs'"
-        echo "• Update:         cd $POSTERRAMA_DIR && su - $POSTERRAMA_USER -c 'git pull && npm install && pm2 restart all'"
+        SERVICE_NAME="pm2-$POSTERRAMA_USER"
+        PM2_USER="$POSTERRAMA_USER"
+    fi
+    
+    if [[ -n "$SUDO" ]]; then
+        echo "• View status:    ${SUDO} systemctl status $SERVICE_NAME"
+        echo "• Stop service:   ${SUDO} systemctl stop $SERVICE_NAME"
+        echo "• Start service:  ${SUDO} systemctl start $SERVICE_NAME"
+        if [[ "$PM2_USER" == "root" ]]; then
+            echo "• View logs:      pm2 logs"
+            echo "• Update:         cd $POSTERRAMA_DIR && git pull && npm install && pm2 restart all && chown -R $POSTERRAMA_USER:$POSTERRAMA_USER $POSTERRAMA_DIR"
+        else
+            echo "• View logs:      ${SUDO} -u $PM2_USER pm2 logs"
+            echo "• Update:         cd $POSTERRAMA_DIR && ${SUDO} -u $POSTERRAMA_USER git pull && ${SUDO} -u $POSTERRAMA_USER npm install && ${SUDO} -u $PM2_USER pm2 restart all"
+        fi
+    else
+        echo "• View status:    systemctl status $SERVICE_NAME"
+        echo "• Stop service:   systemctl stop $SERVICE_NAME"
+        echo "• Start service:  systemctl start $SERVICE_NAME"
+        if [[ "$PM2_USER" == "root" ]]; then
+            echo "• View logs:      pm2 logs"
+            echo "• Update:         cd $POSTERRAMA_DIR && git pull && npm install && pm2 restart all && chown -R $POSTERRAMA_USER:$POSTERRAMA_USER $POSTERRAMA_DIR"
+        else
+            echo "• View logs:      su - $PM2_USER -c 'pm2 logs'"
+            echo "• Update:         cd $POSTERRAMA_DIR && su - $POSTERRAMA_USER -c 'git pull && npm install' && su - $PM2_USER -c 'pm2 restart all'"
+        fi
     fi
     echo ""
     echo -e "${GREEN}Enjoy your new digital movie poster display! 🎬${NC}"
