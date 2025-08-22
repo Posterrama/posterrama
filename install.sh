@@ -194,27 +194,40 @@ create_user() {
 install_posterrama() {
     print_status "Downloading and installing Posterrama..."
     
-    # Create directory if it doesn't exist
-    mkdir -p $POSTERRAMA_DIR
+    # Create directory if it doesn't exist and set proper ownership
+    if [[ ! -d "$POSTERRAMA_DIR" ]]; then
+        $SUDO mkdir -p $POSTERRAMA_DIR
+        $SUDO chown $POSTERRAMA_USER:$POSTERRAMA_USER $POSTERRAMA_DIR
+    else
+        # Directory exists, ensure proper ownership
+        $SUDO chown -R $POSTERRAMA_USER:$POSTERRAMA_USER $POSTERRAMA_DIR
+    fi
     
     # Clone repository
     if [[ -d "$POSTERRAMA_DIR/.git" ]]; then
         print_status "Updating existing Posterrama installation..."
-        cd $POSTERRAMA_DIR
         if [[ -n "$SUDO" ]]; then
-            $SUDO -u $POSTERRAMA_USER git pull
+            $SUDO -u $POSTERRAMA_USER git -C $POSTERRAMA_DIR pull
         else
             su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && git pull"
         fi
     else
         print_status "Cloning Posterrama repository..."
+        # Remove any existing files first
+        if [[ "$(ls -A $POSTERRAMA_DIR 2>/dev/null)" ]]; then
+            print_status "Cleaning existing directory..."
+            $SUDO rm -rf $POSTERRAMA_DIR/*
+            $SUDO rm -rf $POSTERRAMA_DIR/.*  2>/dev/null || true
+        fi
+        
         if [[ -n "$SUDO" ]]; then
             $SUDO -u $POSTERRAMA_USER git clone https://github.com/Posterrama/posterrama.git $POSTERRAMA_DIR
         else
             su - $POSTERRAMA_USER -c "git clone https://github.com/Posterrama/posterrama.git $POSTERRAMA_DIR"
         fi
-        cd $POSTERRAMA_DIR
     fi
+    
+    cd $POSTERRAMA_DIR
     
     # Install dependencies
     print_status "Installing Node.js dependencies..."
