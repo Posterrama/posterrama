@@ -1,4 +1,4 @@
-# Posterrama
+# Posterrama - Bring your media library to life.
 
 Transform any screen into a stunning digital movie poster display.
 
@@ -25,18 +25,22 @@ Perfect for TV screensavers, wall-mounted tablets, or creating your own cinema l
 
 <div align="center">
 
-<img src="./screenshots/screensaver.png" alt="Cinema Mode" width="45%">
+<img src="./screenshots/screensaver.png" alt="Screensaver Mode" width="45%">
 &nbsp;&nbsp;&nbsp;&nbsp;
 <img src="./screenshots/wallart.png" alt="Wallart Mode" width="45%">
 
-<br>
-<strong>Cinema Mode</strong>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<strong>Wallart Mode</strong>
-
 </div>
 
-**Cinema Mode**  
+<div style="display: flex; justify-content: space-between; max-width: 100%;">
+<div style="width: 45%;">
+<strong>Screensaver Mode</strong>
+</div>
+<div style="width: 45%;">
+<strong>Wallart Mode</strong>
+</div>
+</div>
+
+**Screensaver Mode**  
 Professional digital movie poster display with clean, cinema-quality presentation perfect for theaters and home displays.
 
 **Wallart Mode**  
@@ -52,13 +56,18 @@ Multi-poster grid that fills your screen with dynamic grid layout and intelligen
 &nbsp;&nbsp;&nbsp;&nbsp;
 <img src="./screenshots/screensaver.png" alt="TV" width="200">
 
-<br>
-<strong>Mobile</strong>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<strong>Admin</strong>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<strong>TV</strong>
+</div>
 
+<div style="display: flex; justify-content: space-between; max-width: 100%;">
+<div style="width: 150px;">
+<strong>Mobile</strong>
+</div>
+<div style="width: 200px; margin-left: 50px;">
+<strong>Admin</strong>
+</div>
+<div style="width: 200px; margin-left: 50px;">
+<strong>TV</strong>
+</div>
 </div>
 
 **Mobile Optimized**  
