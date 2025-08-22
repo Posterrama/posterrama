@@ -279,17 +279,39 @@ install_posterrama() {
     print_status "Using npm at: $NPM_PATH"
     print_status "Using node at: $NODE_PATH"
     
-    # Get the directory containing npm and node
-    NPM_DIR=$(dirname "$NPM_PATH")
-    NODE_DIR=$(dirname "$NODE_PATH")
+    # Create symlinks in /usr/local/bin so they're accessible to all users
+    if [[ ! -L "/usr/local/bin/node" && ! -f "/usr/local/bin/node" ]]; then
+        print_status "Creating symlink for node..."
+        $SUDO ln -sf "$NODE_PATH" /usr/local/bin/node
+    fi
     
-    # Create a comprehensive PATH that includes both directories
-    FULL_PATH="$NPM_DIR:$NODE_DIR:/usr/bin:/usr/local/bin:$PATH"
+    if [[ ! -L "/usr/local/bin/npm" && ! -f "/usr/local/bin/npm" ]]; then
+        print_status "Creating symlink for npm..."
+        $SUDO ln -sf "$NPM_PATH" /usr/local/bin/npm
+    fi
     
+    # Verify the posterrama user can access node and npm
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='$FULL_PATH' && cd $POSTERRAMA_DIR && npm install"
+        NODE_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which node 2>/dev/null || echo 'NOT_FOUND'")
+        NPM_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which npm 2>/dev/null || echo 'NOT_FOUND'")
     else
-        su - $POSTERRAMA_USER -c "export PATH='$FULL_PATH' && cd $POSTERRAMA_DIR && npm install"
+        NODE_TEST=$(su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which node 2>/dev/null || echo 'NOT_FOUND'")
+        NPM_TEST=$(su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which npm 2>/dev/null || echo 'NOT_FOUND'")
+    fi
+    
+    print_status "Node accessible to posterrama user: $NODE_TEST"
+    print_status "npm accessible to posterrama user: $NPM_TEST"
+    
+    if [[ "$NPM_TEST" == "NOT_FOUND" ]]; then
+        print_error "npm still not accessible to posterrama user after symlink creation"
+        exit 1
+    fi
+    
+    # Run npm install with proper PATH
+    if [[ -n "$SUDO" ]]; then
+        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && cd $POSTERRAMA_DIR && npm install"
+    else
+        su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && cd $POSTERRAMA_DIR && npm install"
     fi
     
     # Copy configuration file
@@ -347,30 +369,42 @@ setup_service() {
     
     print_status "Using PM2 at: $PM2_PATH"
     
-    # Get the directories containing the binaries
-    NPM_DIR=$(dirname "$NPM_PATH")
-    NODE_DIR=$(dirname "$NODE_PATH")
-    PM2_DIR=$(dirname "$PM2_PATH")
+    # Create symlinks for PM2 if needed
+    if [[ ! -L "/usr/local/bin/pm2" && ! -f "/usr/local/bin/pm2" ]]; then
+        print_status "Creating symlink for pm2..."
+        $SUDO ln -sf "$PM2_PATH" /usr/local/bin/pm2
+    fi
     
-    # Create a comprehensive PATH
-    FULL_PATH="$PM2_DIR:$NPM_DIR:$NODE_DIR:/usr/bin:/usr/local/bin:$PATH"
+    # Verify PM2 access for posterrama user
+    if [[ -n "$SUDO" ]]; then
+        PM2_TEST=$($SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which pm2 2>/dev/null || echo 'NOT_FOUND'")
+    else
+        PM2_TEST=$(su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && which pm2 2>/dev/null || echo 'NOT_FOUND'")
+    fi
+    
+    print_status "PM2 accessible to posterrama user: $PM2_TEST"
+    
+    if [[ "$PM2_TEST" == "NOT_FOUND" ]]; then
+        print_error "PM2 still not accessible to posterrama user after symlink creation"
+        exit 1
+    fi
     
     # Start application with PM2
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='$FULL_PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
     else
-        su - $POSTERRAMA_USER -c "export PATH='$FULL_PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+        su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
     fi
     
     # Save PM2 configuration
     if [[ -n "$SUDO" ]]; then
-        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='$FULL_PATH' && pm2 save"
+        $SUDO -u $POSTERRAMA_USER bash -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && pm2 save"
     else
-        su - $POSTERRAMA_USER -c "export PATH='$FULL_PATH' && pm2 save"
+        su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && pm2 save"
     fi
     
     # Generate systemd service
-    su - $POSTERRAMA_USER -c "export PATH='$FULL_PATH' && cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
+    su - $POSTERRAMA_USER -c "export PATH='/usr/local/bin:/usr/bin:$PATH' && cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
     
     # Enable and start the service
     $SUDO systemctl enable pm2-$POSTERRAMA_USER
