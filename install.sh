@@ -506,6 +506,13 @@ install_posterrama() {
     
     print_success "Runtime directories configured with posterrama user ownership"
     
+    # Configure Git safe directory for root access
+    if [[ "$ROOT_INSTALL" == true ]]; then
+        print_status "Configuring Git safe directory for root access..."
+        git config --global --add safe.directory $POSTERRAMA_DIR
+        print_success "Git configured to allow root access to posterrama repository"
+    fi
+    
     print_success "Posterrama installed successfully"
 }
 
