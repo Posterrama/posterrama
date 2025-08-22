@@ -28,6 +28,8 @@ function securityMiddleware() {
             },
         },
         crossOriginEmbedderPolicy: false,
+        // Set a privacy-preserving referrer policy by default
+        referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
         hsts: {
             maxAge: 31536000,
             includeSubDomains: true,
