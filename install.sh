@@ -55,14 +55,29 @@ detect_os() {
     print_status "Detected OS: $OS $VER"
 }
 
-# Function to check if running as root
+# Function to check if running as root and handle sudo
 check_root() {
     if [[ $EUID -eq 0 ]]; then
         print_status "Running as root - OK"
+        SUDO=""
     else
-        print_error "This script must be run as root or with sudo"
-        print_status "Please run: sudo $0"
-        exit 1
+        print_status "Not running as root, checking for sudo..."
+        if command -v sudo >/dev/null 2>&1; then
+            print_status "sudo found, will use sudo for privileged operations"
+            SUDO="sudo"
+            # Test if sudo works without password or with cached credentials
+            if sudo -n true 2>/dev/null; then
+                print_status "sudo available without password prompt"
+            else
+                print_warning "sudo requires password authentication"
+                print_status "You may be prompted for your password during installation"
+            fi
+        else
+            print_error "This script requires root privileges, but sudo is not available"
+            print_error "Please run this script as root or install sudo first"
+            print_status "To run as root: su - root, then run this script"
+            exit 1
+        fi
     fi
 }
 
@@ -86,16 +101,16 @@ install_nodejs() {
     # Install Node.js based on OS
     case $OS in
         "Ubuntu"|"Debian"*)
-            curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
-            apt-get install -y nodejs
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | $SUDO bash -
+            $SUDO apt-get install -y nodejs
             ;;
         "CentOS"*|"Red Hat"*|"Rocky"*|"AlmaLinux"*)
-            curl -fsSL https://rpm.nodesource.com/setup_lts.x | bash -
-            yum install -y nodejs
+            curl -fsSL https://rpm.nodesource.com/setup_lts.x | $SUDO bash -
+            $SUDO yum install -y nodejs
             ;;
         "Fedora"*)
-            curl -fsSL https://rpm.nodesource.com/setup_lts.x | bash -
-            dnf install -y nodejs
+            curl -fsSL https://rpm.nodesource.com/setup_lts.x | $SUDO bash -
+            $SUDO dnf install -y nodejs
             ;;
         *)
             print_error "Unsupported OS for automatic Node.js installation: $OS"
@@ -125,14 +140,14 @@ install_git() {
     
     case $OS in
         "Ubuntu"|"Debian"*)
-            apt-get update
-            apt-get install -y git
+            $SUDO apt-get update
+            $SUDO apt-get install -y git
             ;;
         "CentOS"*|"Red Hat"*|"Rocky"*|"AlmaLinux"*)
-            yum install -y git
+            $SUDO yum install -y git
             ;;
         "Fedora"*)
-            dnf install -y git
+            $SUDO dnf install -y git
             ;;
         *)
             print_error "Unsupported OS for automatic Git installation: $OS"
@@ -171,7 +186,7 @@ create_user() {
         return 0
     fi
     
-    useradd --system --shell /bin/bash --home-dir $POSTERRAMA_DIR --create-home $POSTERRAMA_USER
+    $SUDO useradd --system --shell /bin/bash --home-dir $POSTERRAMA_DIR --create-home $POSTERRAMA_USER
     print_success "User '$POSTERRAMA_USER' created successfully"
 }
 
@@ -204,8 +219,8 @@ install_posterrama() {
     fi
     
     # Set proper permissions
-    chown -R $POSTERRAMA_USER:$POSTERRAMA_USER $POSTERRAMA_DIR
-    chmod +x $POSTERRAMA_DIR/server.js
+    $SUDO chown -R $POSTERRAMA_USER:$POSTERRAMA_USER $POSTERRAMA_DIR
+    $SUDO chmod +x $POSTERRAMA_DIR/server.js
     
     print_success "Posterrama installed successfully"
 }
@@ -217,13 +232,13 @@ configure_firewall() {
     # Check if UFW is available
     if command -v ufw >/dev/null 2>&1; then
         print_status "Configuring UFW firewall..."
-        ufw allow $DEFAULT_PORT/tcp
+        $SUDO ufw allow $DEFAULT_PORT/tcp
         print_success "UFW configured to allow port $DEFAULT_PORT"
     # Check if firewalld is available
     elif command -v firewall-cmd >/dev/null 2>&1; then
         print_status "Configuring firewalld..."
-        firewall-cmd --permanent --add-port=$DEFAULT_PORT/tcp
-        firewall-cmd --reload
+        $SUDO firewall-cmd --permanent --add-port=$DEFAULT_PORT/tcp
+        $SUDO firewall-cmd --reload
         print_success "Firewalld configured to allow port $DEFAULT_PORT"
     else
         print_warning "No supported firewall found. Please manually allow port $DEFAULT_PORT"
@@ -243,11 +258,11 @@ setup_service() {
     sudo -u $POSTERRAMA_USER pm2 save
     
     # Generate systemd service
-    pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR
+    su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
     
     # Enable and start the service
-    systemctl enable pm2-$POSTERRAMA_USER
-    systemctl start pm2-$POSTERRAMA_USER
+    $SUDO systemctl enable pm2-$POSTERRAMA_USER
+    $SUDO systemctl start pm2-$POSTERRAMA_USER
     
     print_success "PM2 service configured and started"
 }
@@ -273,11 +288,19 @@ show_completion_info() {
     echo "4. Configure your display settings"
     echo ""
     echo -e "${YELLOW}🔧 Management Commands:${NC}"
-    echo "• View status:    sudo systemctl status pm2-$POSTERRAMA_USER"
-    echo "• Stop service:   sudo systemctl stop pm2-$POSTERRAMA_USER"
-    echo "• Start service:  sudo systemctl start pm2-$POSTERRAMA_USER"
-    echo "• View logs:      sudo -u $POSTERRAMA_USER pm2 logs"
-    echo "• Update:         cd $POSTERRAMA_DIR && sudo -u $POSTERRAMA_USER git pull && sudo -u $POSTERRAMA_USER npm install && sudo -u $POSTERRAMA_USER pm2 restart all"
+    if [[ -n "$SUDO" ]]; then
+        echo "• View status:    ${SUDO} systemctl status pm2-$POSTERRAMA_USER"
+        echo "• Stop service:   ${SUDO} systemctl stop pm2-$POSTERRAMA_USER"
+        echo "• Start service:  ${SUDO} systemctl start pm2-$POSTERRAMA_USER"
+        echo "• View logs:      ${SUDO} -u $POSTERRAMA_USER pm2 logs"
+        echo "• Update:         cd $POSTERRAMA_DIR && ${SUDO} -u $POSTERRAMA_USER git pull && ${SUDO} -u $POSTERRAMA_USER npm install && ${SUDO} -u $POSTERRAMA_USER pm2 restart all"
+    else
+        echo "• View status:    systemctl status pm2-$POSTERRAMA_USER"
+        echo "• Stop service:   systemctl stop pm2-$POSTERRAMA_USER"
+        echo "• Start service:  systemctl start pm2-$POSTERRAMA_USER"
+        echo "• View logs:      su - $POSTERRAMA_USER -c 'pm2 logs'"
+        echo "• Update:         cd $POSTERRAMA_DIR && su - $POSTERRAMA_USER -c 'git pull && npm install && pm2 restart all'"
+    fi
     echo ""
     echo -e "${GREEN}Enjoy your new digital movie poster display! 🎬${NC}"
     echo "=================================================================="

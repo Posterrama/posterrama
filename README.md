@@ -138,11 +138,13 @@ While Apple TV doesn't support custom screensavers directly, you can still enjoy
 
 ### 🚀 Automated Installation (Recommended)
 
-**One-line installation** - Just copy and paste this command:
+**One-line installation** - Works as root or with sudo:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Posterrama/posterrama/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/Posterrama/posterrama/main/install.sh | bash
 ```
+
+> 💡 The script automatically detects if you're running as root or need sudo privileges
 
 This script will automatically:
 
