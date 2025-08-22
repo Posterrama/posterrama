@@ -1016,30 +1016,40 @@ body.screensaver-mode #poster-wrapper {
         display: none !important;
     }
 
-    /* Adjust the main information container */
+    /* Adjust the main information container for mobile - keep horizontal layout */
     #info-container {
-        flex-direction: row; /* Poster and text next to each other */
-        align-items: flex-end; /* Align at the bottom */ /* Test: move the poster and metadata all the way down */
-        text-align: left;
+        flex-direction: row; /* Keep poster and text side by side like desktop */
+        align-items: flex-end; /* Align at the bottom */
+        justify-content: flex-start; /* Align to left */
+        text-align: left; /* Left align text like desktop */
         bottom: 0;
         left: 0;
         right: 0;
         width: auto;
         padding: 0 15px 25px 15px; /* More bottom padding for the dropshadow */
-        gap: 20px;
+        gap: 16px; /* Nice comfortable gap between poster and text on mobile */
         box-sizing: border-box;
     }
 
     #poster-wrapper {
         filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.4));
+        /* Reset wrapper size to exactly fit the poster on mobile */
+        width: 25vw !important; /* Match poster width exactly */
+        height: 37.5vw !important; /* Match poster height exactly */
+        max-width: 90px !important; /* Match poster max-width */
+        max-height: 135px !important; /* Match poster max-height */
+        min-width: unset !important; /* Remove minimum width */
+        min-height: unset !important; /* Remove minimum height */
+        padding-left: 0 !important; /* Remove left padding that adds extra space */
     }
 
     #poster {
-        /* Use viewport units for a scalable poster */
-        width: 28vw; /* Poster significantly smaller */
-        height: 42vw;
-        max-width: 100px;
-        max-height: 150px;
+        /* Smaller poster to leave room for metadata on mobile */
+        width: 25vw; /* Smaller to fit better with text */
+        height: 37.5vw; /* Maintain 2:3 aspect ratio */
+        max-width: 90px; /* Smaller max size for mobile */
+        max-height: 135px; /* Maintain aspect ratio */
+        flex-shrink: 0; /* Don't let poster shrink */
     }
 
     /* Disable poster hover effects on touch devices */
@@ -1051,19 +1061,31 @@ body.screensaver-mode #poster-wrapper {
     }
     /* Keep the scaling transform even on hover for touch devices */
 
-    /* Adjust text sizes with clamp() for flexibility */
+    /* Adjust text sizes and layout for mobile horizontal layout */
+    #text-wrapper {
+        text-align: left; /* Left align like desktop */
+        width: auto; /* Let it take remaining space */
+        flex: 1; /* Take up remaining space after poster */
+        min-width: 0; /* Allow text to wrap/shrink */
+        padding-left: 0 !important; /* Remove the desktop padding that pushes text right */
+        transform: none !important; /* Remove scaling transform on mobile */
+        transform-origin: unset !important; /* Reset transform origin */
+    }
+
     #title {
-        /* min, ideal, max */
-        font-size: clamp(1.4rem, 5vw, 1.8rem);
+        /* min, ideal, max - smaller for mobile */
+        font-size: clamp(1.1rem, 4vw, 1.4rem);
         line-height: 1.1;
+        margin-bottom: 4px; /* Compact spacing */
     }
 
     #tagline {
-        font-size: clamp(0.8rem, 3vw, 1rem);
+        font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+        margin-bottom: 4px; /* Compact spacing */
     }
 
     #meta-info {
-        font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+        font-size: clamp(0.6rem, 2vw, 0.8rem);
     }
 
     /* Position the clock and clearlogo differently */
