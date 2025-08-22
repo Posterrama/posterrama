@@ -201,21 +201,37 @@ install_posterrama() {
     if [[ -d "$POSTERRAMA_DIR/.git" ]]; then
         print_status "Updating existing Posterrama installation..."
         cd $POSTERRAMA_DIR
-        sudo -u $POSTERRAMA_USER git pull
+        if [[ -n "$SUDO" ]]; then
+            $SUDO -u $POSTERRAMA_USER git pull
+        else
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && git pull"
+        fi
     else
         print_status "Cloning Posterrama repository..."
-        sudo -u $POSTERRAMA_USER git clone https://github.com/Posterrama/posterrama.git $POSTERRAMA_DIR
+        if [[ -n "$SUDO" ]]; then
+            $SUDO -u $POSTERRAMA_USER git clone https://github.com/Posterrama/posterrama.git $POSTERRAMA_DIR
+        else
+            su - $POSTERRAMA_USER -c "git clone https://github.com/Posterrama/posterrama.git $POSTERRAMA_DIR"
+        fi
         cd $POSTERRAMA_DIR
     fi
     
     # Install dependencies
     print_status "Installing Node.js dependencies..."
-    sudo -u $POSTERRAMA_USER npm install
+    if [[ -n "$SUDO" ]]; then
+        $SUDO -u $POSTERRAMA_USER npm install
+    else
+        su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && npm install"
+    fi
     
     # Copy configuration file
     if [[ ! -f "$POSTERRAMA_DIR/config.json" ]]; then
         print_status "Creating initial configuration..."
-        sudo -u $POSTERRAMA_USER cp config.example.json config.json
+        if [[ -n "$SUDO" ]]; then
+            $SUDO -u $POSTERRAMA_USER cp config.example.json config.json
+        else
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && cp config.example.json config.json"
+        fi
     fi
     
     # Set proper permissions
@@ -252,10 +268,18 @@ setup_service() {
     cd $POSTERRAMA_DIR
     
     # Start application with PM2
-    sudo -u $POSTERRAMA_USER pm2 start ecosystem.config.js
+    if [[ -n "$SUDO" ]]; then
+        $SUDO -u $POSTERRAMA_USER pm2 start ecosystem.config.js
+    else
+        su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 start ecosystem.config.js"
+    fi
     
     # Save PM2 configuration
-    sudo -u $POSTERRAMA_USER pm2 save
+    if [[ -n "$SUDO" ]]; then
+        $SUDO -u $POSTERRAMA_USER pm2 save
+    else
+        su - $POSTERRAMA_USER -c "pm2 save"
+    fi
     
     # Generate systemd service
     su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
