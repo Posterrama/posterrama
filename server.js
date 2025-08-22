@@ -1419,14 +1419,17 @@ app.use(
             reapInterval: 86400, // Clean up expired sessions once a day
             retries: 3, // Retry file operations up to 3 times
         }),
+        name: 'posterrama.sid',
         secret: process.env.SESSION_SECRET,
         resave: false,
         saveUninitialized: false,
         rolling: true, // Extend session lifetime on each request
+        proxy: process.env.NODE_ENV === 'production',
         cookie: {
             maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
             httpOnly: true,
-            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
         },
     })
 );
@@ -3424,12 +3427,20 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
                 .status(200)
                 .json({ success: true, requires2FA: true, redirectTo: '/admin/2fa-verify' });
         } else {
-            // No 2FA, log the user in directly.
-            req.session.user = { username: username };
-            if (isDebug) logger.debug(`[Admin Login] Login successful for user "${username}".`);
-            return res
-                .status(200)
-                .json({ success: true, requires2FA: false, redirectTo: '/admin' });
+            // No 2FA, log the user in directly. Regenerate session to prevent fixation.
+            return req.session.regenerate(err => {
+                if (err) {
+                    logger.error('[Admin Login] Error regenerating session:', err);
+                    return res.status(500).json({ error: 'Internal server error.' });
+                }
+                req.session.user = { username };
+                if (isDebug) logger.debug(`[Admin Login] Login successful for user "${username}".`);
+                return res.status(200).json({
+                    success: true,
+                    requires2FA: false,
+                    redirectTo: '/admin',
+                });
+            });
         }
     } catch (error) {
         console.error('[Admin Login] Error:', error);
@@ -3557,6 +3568,13 @@ app.post(
         });
 
         if (verified) {
+            // Rotate session on successful 2FA to prevent fixation
+            await new Promise((resolve, reject) => {
+                req.session.regenerate(err => {
+                    if (err) return reject(err);
+                    return resolve();
+                });
+            });
             req.session.user = { username: req.session.tfa_user.username };
             delete req.session.tfa_required;
             delete req.session.tfa_user;
@@ -3598,6 +3616,8 @@ app.get('/admin/logout', (req, res, next) => {
             return next(new ApiError(500, 'Could not log out.'));
         }
         if (isDebug) logger.debug('[Admin Logout] Session destroyed successfully.');
+        // Clear cookie explicitly
+        res.clearCookie('posterrama.sid');
         res.redirect('/admin/login');
     });
 });
