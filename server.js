@@ -244,6 +244,19 @@ const { shuffleArray } = require('./utils.js');
 // Asset version (can later be replaced by build hash); fallback to package.json version
 const ASSET_VERSION = pkg.version || '1.0.0';
 
+// --- Fixed hardcoded limits (not user-configurable) ---
+const FIXED_LIMITS = Object.freeze({
+    PLEX_MOVIES: 150,
+    PLEX_SHOWS: 75,
+    TMDB_MOVIES: 100,
+    TMDB_TV: 50,
+    STREAMING_MOVIES_PER_PROVIDER: 10,
+    STREAMING_TV_PER_PROVIDER: 10,
+    TVDB_MOVIES: 50,
+    TVDB_SHOWS: 50,
+    TOTAL_CAP: 500, // Max total items in final playlist
+});
+
 const PlexSource = require('./sources/plex');
 const TMDBSource = require('./sources/tmdb');
 const TVDBSource = require('./sources/tvdb');
@@ -1908,8 +1921,9 @@ async function getPlaylistMedia() {
         }
 
         const [movies, shows] = await Promise.all([
-            source.fetchMedia(server.movieLibraryNames || [], 'movie', 150), // Hardcoded for wallart mode
-            source.fetchMedia(server.showLibraryNames || [], 'show', 75), // Hardcoded for wallart mode
+            // Wallart mode: use fixed hardcoded limits
+            source.fetchMedia(server.movieLibraryNames || [], 'movie', FIXED_LIMITS.PLEX_MOVIES),
+            source.fetchMedia(server.showLibraryNames || [], 'show', FIXED_LIMITS.PLEX_SHOWS),
         ]);
         const mediaFromServer = movies.concat(shows);
 
@@ -1940,8 +1954,8 @@ async function getPlaylistMedia() {
         global.tmdbSourceInstance = tmdbSource;
 
         const [tmdbMovies, tmdbShows] = await Promise.all([
-            tmdbSource.fetchMedia('movie', 100), // Hardcoded for wallart mode
-            tmdbSource.fetchMedia('tv', 50), // Hardcoded for wallart mode
+            tmdbSource.fetchMedia('movie', FIXED_LIMITS.TMDB_MOVIES),
+            tmdbSource.fetchMedia('tv', FIXED_LIMITS.TMDB_TV),
         ]);
         const tmdbMedia = tmdbMovies.concat(tmdbShows);
 
@@ -1964,8 +1978,12 @@ async function getPlaylistMedia() {
 
                 try {
                     const [streamingMovies, streamingShows] = await Promise.all([
-                        streamingSource.fetchMedia('movie', 100), // Hardcoded for wallart mode
-                        streamingSource.fetchMedia('tv', 50), // Hardcoded for wallart mode
+                        // Per provider fixed small limits to keep latency low
+                        streamingSource.fetchMedia(
+                            'movie',
+                            FIXED_LIMITS.STREAMING_MOVIES_PER_PROVIDER
+                        ),
+                        streamingSource.fetchMedia('tv', FIXED_LIMITS.STREAMING_TV_PER_PROVIDER),
                     ]);
                     const streamingMedia = streamingMovies.concat(streamingShows);
 
@@ -1997,7 +2015,12 @@ async function getPlaylistMedia() {
     if (config.tvdbSource && config.tvdbSource.enabled) {
         if (isDebug) logger.debug(`[Debug] Fetching from TVDB source`);
 
-        const tvdbSource = new TVDBSource(config.tvdbSource);
+        // Enforce fixed limits regardless of admin-config
+        const tvdbSource = new TVDBSource({
+            ...config.tvdbSource,
+            movieCount: FIXED_LIMITS.TVDB_MOVIES,
+            showCount: FIXED_LIMITS.TVDB_SHOWS,
+        });
 
         // Schedule periodic cache cleanup for TVDB source
         if (!global.tvdbCacheCleanupInterval) {
@@ -2058,7 +2081,14 @@ async function refreshPlaylistCache() {
         // Track memory usage before fetch
         const memBefore = process.memoryUsage();
 
-        const allMedia = await getPlaylistMedia();
+        let allMedia = await getPlaylistMedia();
+        // Apply global cap before shuffling to bound payload size
+        if (allMedia.length > FIXED_LIMITS.TOTAL_CAP) {
+            logger.debug(
+                `[Limits] Applying global cap: trimming ${allMedia.length} -> ${FIXED_LIMITS.TOTAL_CAP}`
+            );
+            allMedia = allMedia.slice(0, FIXED_LIMITS.TOTAL_CAP);
+        }
         playlistCache = shuffleArray(allMedia);
         cacheTimestamp = Date.now();
 
@@ -2709,7 +2739,7 @@ app.get(
                 transitionInterval: 30,
             },
             transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
-            backgroundRefreshMinutes: config.backgroundRefreshMinutes || 30,
+            backgroundRefreshMinutes: 30,
             showClearLogo: config.showClearLogo !== false,
             showPoster: config.showPoster !== false,
             showMetadata: config.showMetadata === true,
@@ -4009,7 +4039,10 @@ app.get(
             const firstEnabled = streamingArray.find(source => source.enabled);
             if (firstEnabled) {
                 streamingObject.region = firstEnabled.watchRegion || 'US';
-                streamingObject.maxItems = firstEnabled.movieCount + firstEnabled.showCount || 20;
+                // Reflect fixed per-provider limits in the admin view
+                streamingObject.maxItems =
+                    FIXED_LIMITS.STREAMING_MOVIES_PER_PROVIDER +
+                        FIXED_LIMITS.STREAMING_TV_PER_PROVIDER || 20;
                 streamingObject.minRating = firstEnabled.minRating || 0;
             }
 
@@ -4556,8 +4589,8 @@ app.post(
                             apiKey: apiKey,
                             category: provider.category,
                             watchRegion: streamingConfig.region || 'US',
-                            movieCount: Math.floor((streamingConfig.maxItems || 20) / 2),
-                            showCount: Math.floor((streamingConfig.maxItems || 20) / 2),
+                            movieCount: FIXED_LIMITS.STREAMING_MOVIES_PER_PROVIDER,
+                            showCount: FIXED_LIMITS.STREAMING_TV_PER_PROVIDER,
                             minRating: streamingConfig.minRating || 0,
                             yearFilter: null,
                             genreFilter: '',
@@ -6851,12 +6884,11 @@ if (require.main === module) {
                 console.error('An error occurred during the initial background fetch:', err)
             );
 
-        const refreshInterval = (config.backgroundRefreshMinutes || 30) * 60 * 1000;
+        // Fixed background refresh interval (30 minutes)
+        const refreshInterval = 30 * 60 * 1000;
         if (refreshInterval > 0) {
             global.playlistRefreshInterval = setInterval(refreshPlaylistCache, refreshInterval);
-            logger.debug(
-                `Playlist will be refreshed in the background every ${config.backgroundRefreshMinutes} minutes.`
-            );
+            logger.debug(`Playlist will be refreshed in the background every 30 minutes.`);
         }
 
         // Set up automatic cache cleanup every 30 minutes

@@ -249,7 +249,7 @@ window.checkNetworkStatus = function () {
 window.testConfigSave = async function () {
     const testConfig = {
         transitionIntervalSeconds: 10,
-        backgroundRefreshMinutes: 30,
+
         showMetadata: true,
         clockWidget: false,
         transitionEffect: 'slide',
@@ -407,7 +407,6 @@ function updateHelpContentForced(sectionId) {
         display: 'display-section',
         media: 'media-section',
         authentication: 'authentication-section',
-        promobox: 'promobox-section',
         management: 'management-section',
     };
 
@@ -709,21 +708,7 @@ function getHelpContentForSection(sectionId) {
                 },
             ],
         },
-        'promobox-section': {
-            title: '<i class="fas fa-globe"></i>&nbsp;&nbsp;Promobox Site',
-            sections: [
-                {
-                    title: 'Promobox Website',
-                    description:
-                        'Enable an additional web server that serves the Posterrama promotional website.',
-                    details: [
-                        'Starts a separate web server for promotional content',
-                        'Configure port and enable/disable the service',
-                        'Useful for showcasing Posterrama to visitors',
-                    ],
-                },
-            ],
-        },
+
         'management-section': {
             title: '<i class="fas fa-tools"></i>&nbsp;&nbsp;Management & Tools',
             sections: [
@@ -769,6 +754,37 @@ function getHelpContentForSection(sectionId) {
                         'View Backups: Browse available backup versions with timestamps',
                         'Update Status: Monitor update progress with real-time progress indicators',
                         'Automatic backup creation before updates for safe rollback capability',
+                    ],
+                },
+                {
+                    title: 'Server Settings',
+                    description: 'Configure the application server port.',
+                    details: [
+                        'Application Port: The port number where the admin interface and app are available',
+                        'Valid range: 1024-65535; default is typically 4000',
+                        'Ensure the port is free and not used by other services',
+                        'A restart is required after changing the port',
+                    ],
+                },
+                {
+                    title: 'Debug & Logging',
+                    description:
+                        'Enable detailed logging and access live logs for troubleshooting.',
+                    details: [
+                        'Debug Mode: Shows verbose logs; disable when not troubleshooting',
+                        'Live Logs: View real-time application logs in a separate window',
+                        'Can impact performance while enabled; use temporarily',
+                    ],
+                },
+                {
+                    title: 'Promobox Site',
+                    description: 'Manage the optional Promobox Site server.',
+                    details: [
+                        'Enable Site: Starts an additional web server for the promotional website',
+                        'Port Number: Configure the port (1024-65535), default 4001',
+                        'Site Status: Shows the access URL when enabled; updates automatically with your server IP and port',
+                        'After changing the port, use the new URL to access the site',
+                        'Security: Enabling exposes an extra endpoint on your network—ensure your firewall rules are appropriate',
                     ],
                 },
                 {
@@ -879,7 +895,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'display',
         'media',
         'authentication',
-        'promobox',
         'management',
         'logs',
     ];
@@ -1111,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Default values for settings (moved up to precede any timer cleanup calls)
     const defaults = {
         transitionIntervalSeconds: 15,
-        backgroundRefreshMinutes: 30,
+
         showClearLogo: true,
         showRottenTomatoes: true,
         rottenTomatoesMinimumScore: 0,
@@ -1290,8 +1305,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('transitionIntervalSeconds').value =
             config.transitionIntervalSeconds ?? defaults.transitionIntervalSeconds;
-        document.getElementById('backgroundRefreshMinutes').value =
-            config.backgroundRefreshMinutes ?? defaults.backgroundRefreshMinutes;
+
         document.getElementById('SERVER_PORT').value = normalizedEnv.SERVER_PORT;
         document.getElementById('DEBUG').checked = normalizedEnv.DEBUG;
 
@@ -1387,13 +1401,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add validation for numeric fields
         const numericFields = [
             { id: 'transitionIntervalSeconds', min: 1, max: 300, label: 'Transition Interval' },
-            { id: 'backgroundRefreshMinutes', min: 0, max: 1440, label: 'Background Refresh' },
+
             { id: 'SERVER_PORT', min: 1024, max: 65535, label: 'Application Port' },
-            { id: 'siteServer.port', min: 1024, max: 65535, label: 'Promobox Site Port' },
+            { id: 'siteServer.port', min: 1024, max: 65535, label: 'Port Number' },
             { id: 'rottenTomatoesMinimumScore', min: 0, max: 10, label: 'Rotten Tomatoes Score' },
             { id: 'mediaServers[0].port', min: 1, max: 65535, label: 'Plex Port' },
-            { id: 'mediaServers[0].movieCount', min: 1, max: 10000, label: 'Movie Count' },
-            { id: 'mediaServers[0].showCount', min: 1, max: 10000, label: 'Show Count' },
+
             { id: 'effectPauseTime', min: 0, max: 10, label: 'Effect Pause Time' },
         ];
 
@@ -2034,10 +2047,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedMovieLibs = plexServerConfig.movieLibraryNames || plexDefaults.movieLibraryNames;
         const savedShowLibs = plexServerConfig.showLibraryNames || plexDefaults.showLibraryNames;
 
-        document.getElementById('mediaServers[0].movieCount').value =
-            plexServerConfig.movieCount ?? plexDefaults.movieCount;
-        document.getElementById('mediaServers[0].showCount').value =
-            plexServerConfig.showCount ?? plexDefaults.showCount;
+        // Removed movie/show count inputs from UI
 
         // Content Filtering settings
         document.getElementById('mediaServers[0].ratingFilter').value =
@@ -2184,8 +2194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const enabledField = document.getElementById('tmdbSource.enabled');
         const apiKeyField = document.getElementById('tmdbSource.apiKey');
         const categoryField = document.getElementById('tmdbSource.category');
-        const movieCountField = document.getElementById('tmdbSource.movieCount');
-        const showCountField = document.getElementById('tmdbSource.showCount');
+        // Removed TMDB count inputs
         const minRatingField = document.getElementById('tmdbSource.minRating');
         const yearFilterField = document.getElementById('tmdbSource.yearFilter');
 
@@ -2200,9 +2209,7 @@ document.addEventListener('DOMContentLoaded', () => {
             apiKeyField.dataset.apiKeySet = apiKeyIsSet ? 'true' : 'false';
         }
         if (categoryField) categoryField.value = tmdbConfig.category ?? tmdbDefaults.category;
-        if (movieCountField)
-            movieCountField.value = tmdbConfig.movieCount ?? tmdbDefaults.movieCount;
-        if (showCountField) showCountField.value = tmdbConfig.showCount ?? tmdbDefaults.showCount;
+
         if (minRatingField) minRatingField.value = tmdbConfig.minRating ?? tmdbDefaults.minRating;
         if (yearFilterField) yearFilterField.value = tmdbConfig.yearFilter || '';
 
@@ -2223,15 +2230,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const tvdbConfig = config.tvdbSource || {};
         const tvdbEnabledField = document.getElementById('tvdbSource.enabled');
         const tvdbCategoryField = document.getElementById('tvdbSource.category');
-        const tvdbMovieCountField = document.getElementById('tvdbSource.movieCount');
-        const tvdbShowCountField = document.getElementById('tvdbSource.showCount');
+        // Removed TVDB count inputs
         const tvdbMinRatingField = document.getElementById('tvdbSource.minRating');
         const tvdbYearFilterField = document.getElementById('tvdbSource.yearFilter');
 
         if (tvdbEnabledField) tvdbEnabledField.checked = tvdbConfig.enabled || false;
         if (tvdbCategoryField) tvdbCategoryField.value = tvdbConfig.category || 'popular';
-        if (tvdbMovieCountField) tvdbMovieCountField.value = tvdbConfig.movieCount || 25;
-        if (tvdbShowCountField) tvdbShowCountField.value = tvdbConfig.showCount || 50;
+
         if (tvdbMinRatingField) tvdbMinRatingField.value = tvdbConfig.minRating || 0;
         if (tvdbYearFilterField) tvdbYearFilterField.value = tvdbConfig.yearFilter || '';
 
@@ -2556,7 +2561,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Populate streaming form fields
         const enabledField = document.getElementById('streamingSources.enabled');
         const regionField = document.getElementById('streamingSources.region');
-        const maxItemsField = document.getElementById('streamingSources.maxItems');
+        // Removed streaming maxItems input
         const minRatingField = document.getElementById('streamingSources.minRating');
 
         // Provider checkboxes
@@ -2569,8 +2574,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (enabledField)
             enabledField.checked = streamingConfig.enabled ?? streamingDefaults.enabled;
         if (regionField) regionField.value = streamingConfig.region ?? streamingDefaults.region;
-        if (maxItemsField)
-            maxItemsField.value = streamingConfig.maxItems ?? streamingDefaults.maxItems;
+
         if (minRatingField)
             minRatingField.value = streamingConfig.minRating ?? streamingDefaults.minRating;
 
@@ -4352,12 +4356,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // --- Numeric Field Validation ---
                 const numericFieldIds = [
                     'transitionIntervalSeconds',
-                    'backgroundRefreshMinutes',
+
                     'SERVER_PORT',
                     'rottenTomatoesMinimumScore',
                     'effectPauseTime',
-                    'mediaServers[0].movieCount',
-                    'mediaServers[0].showCount',
                     'wallartItemsPerScreen',
                     'wallartColumns',
                     'wallartTransitionInterval',
@@ -4382,11 +4384,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'Transition Interval must be between 1 and 300 seconds.'
                             );
                         }
-                        if (id === 'backgroundRefreshMinutes' && (value < 0 || value > 1440)) {
-                            throw new Error(
-                                'Background Refresh must be between 0 and 1440 minutes (24 hours).'
-                            );
-                        }
+
                         if (
                             (id === 'SERVER_PORT' || id === 'siteServer.port') &&
                             (value < 1024 || value > 65535)
@@ -4396,13 +4394,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (id === 'rottenTomatoesMinimumScore' && (value < 0 || value > 10)) {
                             throw new Error('Rotten Tomatoes score must be between 0 and 10.');
                         }
-                        if (
-                            (id === 'mediaServers[0].movieCount' ||
-                                id === 'mediaServers[0].showCount') &&
-                            (value < 1 || value > 10000)
-                        ) {
-                            throw new Error('Movie/Show count must be between 1 and 10,000.');
-                        }
+
                         if (id === 'wallartItemsPerScreen' && (value < 4 || value > 100)) {
                             throw new Error('Wallart items per screen must be between 4 and 100.');
                         }
@@ -4435,7 +4427,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const newConfig = {
                     transitionIntervalSeconds: getValue('transitionIntervalSeconds', 'number'),
-                    backgroundRefreshMinutes: getValue('backgroundRefreshMinutes', 'number'),
+
                     showClearLogo: getValue('showClearLogo'),
                     // Rotten Tomatoes: minimum score applied only if badge enabled; when disabled we still send value for persistence.
                     showRottenTomatoes: getValue('showRottenTomatoes'),
@@ -4485,8 +4477,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             tokenEnvVar: 'PLEX_TOKEN',
                             movieLibraryNames: getSelectedLibraries('movie'),
                             showLibraryNames: getSelectedLibraries('show'),
-                            movieCount: getValue('mediaServers[0].movieCount', 'number'),
-                            showCount: getValue('mediaServers[0].showCount', 'number'),
+                            // Fixed limits now; don't submit counts from UI
                             ratingFilter: getValue('mediaServers[0].ratingFilter'),
                             genreFilter: getGenreFilterValues(),
                             recentlyAddedOnly: getValue('mediaServers[0].recentlyAddedOnly'),
@@ -4521,8 +4512,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             return '';
                         })(),
                         category: getValue('tmdbSource.category'),
-                        movieCount: getValue('tmdbSource.movieCount', 'number'),
-                        showCount: getValue('tmdbSource.showCount', 'number'),
+                        // Fixed limits; omit from payload
                         minRating: getValue('tmdbSource.minRating', 'number'),
                         yearFilter: getValue('tmdbSource.yearFilter', 'number'),
                         genreFilter: getTMDBGenreFilterValues(),
@@ -4530,8 +4520,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tvdbSource: {
                         enabled: getValue('tvdbSource.enabled'),
                         category: getValue('tvdbSource.category'),
-                        movieCount: getValue('tvdbSource.movieCount', 'number'),
-                        showCount: getValue('tvdbSource.showCount', 'number'),
+                        // Fixed limits; omit from payload
                         minRating: getValue('tvdbSource.minRating', 'number'),
                         yearFilter: getValue('tvdbSource.yearFilter', 'number'),
                         genreFilter: getTVDBGenreFilterValues(),
@@ -4539,7 +4528,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     streamingSources: {
                         enabled: getValue('streamingSources.enabled'),
                         region: getValue('streamingSources.region'),
-                        maxItems: getValue('streamingSources.maxItems', 'number'),
+                        // Fixed per-provider; omit from payload
                         minRating: getValue('streamingSources.minRating', 'number'),
                         netflix: getValue('streamingSources.netflix'),
                         disney: getValue('streamingSources.disney'),

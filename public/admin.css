@@ -269,7 +269,7 @@ a:hover {
     overflow-y: auto;
     overflow-x: hidden;
     color: white;
-    width: 180px; /* Reduced from 200px to 180px */
+    width: 180px; /* Slimmed to better fit shorter labels with padding */
     transition: width 0.3s ease; /* Synchronized with header and main content */
     display: flex;
     flex-direction: column;
@@ -624,7 +624,7 @@ a:hover {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.875rem 1rem; /* Reduced right padding from 1.5rem to 1rem */
+    padding: 0.875rem 1.1rem; /* Slightly more right padding to avoid edge touch */
     color: #b3b3b3;
     background: none;
     border: none;
@@ -1817,7 +1817,6 @@ div:nth-of-type(2).subsection-header i {
 div#general-section.section-content.active,
 div#media-section.section-content.active,
 div#authentication-section.section-content.active,
-div#promobox-section.section-content.active,
 div#management-section.section-content.active,
 div#logs-section.section-content.active {
     display: block !important;
@@ -1830,7 +1829,6 @@ div#logs-section.section-content.active {
 div#general-section.section-content.active .section-main-content,
 div#media-section.section-content.active .section-main-content,
 div#authentication-section.section-content.active .section-main-content,
-div#promobox-section.section-content.active .section-main-content,
 div#management-section.section-content.active .section-main-content,
 div#logs-section.section-content.active .section-main-content {
     width: 100% !important;
@@ -3506,18 +3504,7 @@ fieldset:focus-within {
     color: rgba(249, 115, 22, 1) !important;
 }
 
-/* GitHub button specific styling - gray theme */
-#github-btn {
-    background: rgba(107, 114, 128, 0.15) !important;
-    border: 1px solid rgba(107, 114, 128, 0.3) !important;
-    color: rgba(107, 114, 128, 1) !important;
-}
-
-#github-btn:hover {
-    background: rgba(107, 114, 128, 0.25) !important;
-    border-color: rgba(107, 114, 128, 0.4) !important;
-    color: rgba(107, 114, 128, 1) !important;
-}
+/* GitHub button specific styling removed (header GitHub link no longer present) */
 
 /* ===== DESIGN LANGUAGE: Button Styling System ===== */
 
@@ -3665,10 +3652,10 @@ fieldset:focus-within {
 /* Quick Help Panel */
 .quick-help-panel {
     position: fixed;
-    top: 50px; /* Start exactly 50px from top */
+    top: var(--header-height); /* Align with header bottom */
     right: 0;
     width: 320px;
-    height: calc(100vh - 50px); /* Full height minus 50px from top */
+    height: calc(100vh - var(--header-height)); /* Full height minus header */
     /* background: linear-gradient(180deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%); */
     backdrop-filter: blur(20px);
     border-left: 1px solid rgba(255, 255, 255, 0.1);
@@ -3687,10 +3674,10 @@ fieldset:focus-within {
 /* Mobile Navigation Panel - similar to help panel but smaller and left-positioned */
 .mobile-nav-panel {
     position: fixed;
-    top: 50px; /* Start exactly 50px from top */
+    top: var(--header-height); /* Align with header bottom */
     left: 0;
     width: 100px; /* Perfect width for icon-only navigation */
-    height: calc(100vh - 50px); /* Full height minus 50px from top */
+    height: calc(100vh - var(--header-height)); /* Full height minus header */
     /* background: linear-gradient(180deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%); */
     backdrop-filter: blur(20px);
     border-right: 1px solid rgba(255, 255, 255, 0.1);
@@ -6028,7 +6015,6 @@ html.modal-open {
     /* Specific overrides for buttons with text (EXCLUDE help button) */
     #view-posterrama-btn,
     #api-docs-btn,
-    #github-btn,
     #logout-btn,
     #restart-now-btn {
         font-size: 0 !important;
@@ -6042,7 +6028,6 @@ html.modal-open {
     /* Icon positioning for text-hidden buttons (EXCLUDE help button) */
     #view-posterrama-btn i,
     #api-docs-btn i,
-    #github-btn i,
     #logout-btn i,
     #restart-now-btn i {
         font-size: 13px !important;
@@ -6635,6 +6620,7 @@ input[type='range'] {
     background: rgba(255, 255, 255, 0.1);
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
 }
 
 input[type='range']::-webkit-slider-thumb {

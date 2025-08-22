@@ -141,10 +141,7 @@
                     <i class="fas fa-book"></i>
                     API Docs
                 </a>
-                <a href="https://github.com/Posterrama/posterrama" target="_blank" class="btn btn-secondary" id="github-btn">
-                    <i class="fab fa-github"></i>
-                    GitHub
-                </a>
+                
                 <a href="/admin/logout" class="btn btn-danger" id="logout-btn">
                     <i class="fas fa-sign-out-alt"></i>
                     Logout
@@ -162,32 +159,24 @@
             </div>
             
             <div class="sidebar-nav" role="tablist">
-                <button class="nav-item active" data-section="general" title="General Settings" role="tab" id="general-tab">
-                    <i class="fas fa-cog nav-icon"></i>
-                    <span class="nav-text">General</span>
-                </button>
-                
-                <button class="nav-item" data-section="display" title="Display Settings" role="tab" id="display-tab">
+                <button class="nav-item active" data-section="display" title="Display Settings" role="tab" id="display-tab">
                     <i class="fas fa-tv nav-icon"></i>
                     <span class="nav-text">Display</span>
                 </button>
                 
-                                <button class="nav-item" data-section="media" title="Sources" role="tab" id="media-tab">
+                                <button class="nav-item" data-section="media" title="Content Sources" role="tab" id="media-tab">
                     <i class="fas fa-database nav-icon"></i>
                     <span class="nav-text">Sources</span>
                 </button>
                 
-                <button class="nav-item" data-section="authentication" title="Authentication" role="tab" id="authentication-tab">
+                <button class="nav-item" data-section="authentication" title="Authentication & Security" role="tab" id="authentication-tab">
                     <i class="fas fa-shield-alt nav-icon"></i>
-                    <span class="nav-text">Authentication</span>
+                    <span class="nav-text">Security</span>
                 </button>
                 
-                <button class="nav-item" data-section="promobox" title="Promobox Site" role="tab" id="promobox-tab">
-                    <i class="fas fa-globe nav-icon"></i>
-                    <span class="nav-text">Promobox Site</span>
-                </button>
                 
-                <button class="nav-item" data-section="management" title="Management" role="tab" id="management-tab">
+                
+                <button class="nav-item" data-section="management" title="Management & Tools" role="tab" id="management-tab">
                     <i class="fas fa-tools nav-icon"></i>
                     <span class="nav-text">Management</span>
                 </button>
@@ -207,103 +196,8 @@
                 <div id="notification-area" class="notification-container" role="region"></div>
 
                 <form id="config-form" role="form" novalidate>
-                    <!-- General Settings Section -->
-                    <section class="section-content active" id="general-section" role="tabpanel" tabindex="0">
-                        <div class="section-main-content">
-                            <div class="section-title">
-                                <i class="fas fa-cog"></i>
-                                General Settings
-                            </div>
-                            
-                            <!-- Unified General Settings Container -->
-                            <div class="form-section unified-section">
-                                
-                                <!-- Application Settings Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-cogs"></i>
-                                    Application Settings
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <label for="transitionIntervalSeconds" title="How many seconds each poster is visible.">Transition Interval (seconds)</label>
-                                        <div class="number-input-wrapper">
-                                            <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds" min="1" max="300" step="1" required>
-                                            <div class="number-controls" role="group">
-                                                <button type="button" class="number-btn" id="increment-transitionIntervalSeconds">
-                                                    <i class="fas fa-chevron-up"></i>
-                                                </button>
-                                                <button type="button" class="number-btn" id="decrement-transitionIntervalSeconds">
-                                                    <i class="fas fa-chevron-down"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div id="transitionIntervalSeconds-help" class="form-help">Time in seconds between poster transitions (1-300). <strong>Note:</strong> Does not apply to Wallart Mode - use Wallart Mode refresh settings instead.</div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="backgroundRefreshMinutes">Background Refresh (minutes)</label>
-                                        <div class="number-input-wrapper">
-                                            <input type="number" id="backgroundRefreshMinutes" name="backgroundRefreshMinutes" min="0" max="1440" step="1">
-                                            <div class="number-controls" role="group">
-                                                <button type="button" class="number-btn" id="increment-backgroundRefreshMinutes">
-                                                    <i class="fas fa-chevron-up"></i>
-                                                </button>
-                                                <button type="button" class="number-btn" id="decrement-backgroundRefreshMinutes">
-                                                    <i class="fas fa-chevron-down"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div id="backgroundRefreshMinutes-help" class="form-help">How often to refresh background images (0 to disable, max 1440 minutes)</div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Server Configuration Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-server"></i>
-                                    Server Configuration
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <label for="SERVER_PORT">Application Port</label>
-                                        <div class="number-input-wrapper">
-                                            <input type="number" id="SERVER_PORT" name="SERVER_PORT" min="1024" max="65535" step="1" required>
-                                            <div class="number-controls" role="group">
-                                                <button type="button" class="number-btn" id="increment-serverPort">
-                                                    <i class="fas fa-chevron-up"></i>
-                                                </button>
-                                                <button type="button" class="number-btn" id="decrement-serverPort">
-                                                    <i class="fas fa-chevron-down"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div id="serverPort-help" class="form-help">Port number for the application server (1024-65535)</div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Development & Debug Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-bug"></i>
-                                    Development & Debug
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group checkbox-group">
-                                        <input type="checkbox" id="DEBUG" name="DEBUG">
-                                        <label for="DEBUG">Enable Debug Mode</label>
-                                    </div>
-                                    <div id="DEBUG-help" class="form-help">Enable detailed logging for troubleshooting</div>
-                                    
-                                    <div class="form-actions">
-                                        <a href="/admin/logs" target="_blank" class="btn btn-primary">
-                                            <i class="fas fa-terminal"></i>
-                                            View Live Logs
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
                     <!-- Display Settings Section -->
-                    <section class="section-content" id="display-section" role="tabpanel">
+                    <section class="section-content active" id="display-section" role="tabpanel">
                         <div class="section-main-content">
                             <div class="section-title">
                                 <i class="fas fa-tv"></i>
@@ -563,9 +457,32 @@
                                     <input type="number" id="effectPauseTime" name="effectPauseTime" min="0" max="10" step="0.5" value="2">
                                 </div>
                             </div>
+                            <!-- Playback Timing Subsection (moved from General) -->
+                            <div class="subsection-header">
+                                <i class="fas fa-cogs"></i>
+                                Playback Timing
+                            </div>
+                            <div class="subsection-content">
+                                <div class="form-group">
+                                    <label for="transitionIntervalSeconds" title="How many seconds each poster is visible.">Transition Interval (seconds)</label>
+                                    <div class="number-input-wrapper">
+                                        <input type="number" id="transitionIntervalSeconds" name="transitionIntervalSeconds" min="1" max="300" step="1" required>
+                                        <div class="number-controls" role="group">
+                                            <button type="button" class="number-btn" id="increment-transitionIntervalSeconds">
+                                                <i class="fas fa-chevron-up"></i>
+                                            </button>
+                                            <button type="button" class="number-btn" id="decrement-transitionIntervalSeconds">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="transitionIntervalSeconds-help" class="form-help">Time in seconds between poster transitions (1-300). <strong>Note:</strong> Does not apply to Wallart Mode - use Wallart Mode refresh settings instead.</div>
+                                </div>
+                            </div>
                         </div>
                         </div>
                     </section>
+                    
 
                     <!-- Sources Section -->
                     <section class="section-content" id="media-section" role="tabpanel">
@@ -640,14 +557,7 @@
                                             <small>Test the connection to fetch the libraries.</small>
                                         </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].movieCount">Number of Movies to Show</label>
-                                        <input type="number" id="mediaServers[0].movieCount" name="mediaServers[0].movieCount" min="1" max="10000" placeholder="100">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].showCount">Number of Shows to Show</label>
-                                        <input type="number" id="mediaServers[0].showCount" name="mediaServers[0].showCount" min="1" max="10000" placeholder="50">
-                                    </div>
+                                    
                                 </div>
                                 
                                 <!-- Content Filtering Subsection -->
@@ -761,14 +671,7 @@
                                         </select>
                                         <small class="help-text">🎯 Choose the type of content to fetch from TMDB. Trending shows what's hot right now!</small>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="tmdbSource.movieCount">Number of Movies to Show</label>
-                                        <input type="number" id="tmdbSource.movieCount" name="tmdbSource.movieCount" min="0" max="1000" placeholder="50">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="tmdbSource.showCount">Number of TV Shows to Show</label>
-                                        <input type="number" id="tmdbSource.showCount" name="tmdbSource.showCount" min="0" max="1000" placeholder="25">
-                                    </div>
+                                    
                                     <div class="form-group">
                                         <label for="tmdbSource.minRating">Minimum Rating (0-10)</label>
                                         <input type="number" id="tmdbSource.minRating" name="tmdbSource.minRating" min="0" max="10" step="0.1" placeholder="6.0">
@@ -919,10 +822,7 @@
                                         </div>
                                     </div>
                                     
-                                    <div class="form-group">
-                                        <label for="streamingSources.maxItems">Maximum Items per Provider</label>
-                                        <input type="number" id="streamingSources.maxItems" name="streamingSources.maxItems" min="5" max="100" value="10">
-                                    </div>
+                                    
                                     
                                     <div class="form-group">
                                         <label for="streamingSources.minRating">Minimum Rating (0-10)</label>
@@ -970,16 +870,7 @@
                                         </select>
                                         <small class="help-text">🎯 Choose how to sort and discover content from TVDB's extensive database!</small>
                                     </div>
-                                    <div class="form-group number-input-group">
-                                        <div class="form-group">
-                                            <label for="tvdbSource.movieCount">Movies to Display</label>
-                                            <input type="number" id="tvdbSource.movieCount" name="tvdbSource.movieCount" min="0" max="500" value="25">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="tvdbSource.showCount">TV Shows to Display</label>
-                                            <input type="number" id="tvdbSource.showCount" name="tvdbSource.showCount" min="0" max="500" value="50">
-                                        </div>
-                                    </div>
+                                    
                                     <div class="form-group number-input-group">
                                         <div class="form-group">
                                             <label for="tvdbSource.minRating">Minimum Rating</label>
@@ -1107,49 +998,7 @@
                         </div>
                     </section>
 
-                    <!-- Promobox Site Settings Section -->
-                    <section class="section-content" id="promobox-section" role="tabpanel">
-                        <div class="section-main-content">
-                            <div class="section-title">
-                                <i class="fas fa-globe"></i>
-                                Promobox Site
-                            </div>
-                            
-                            <!-- Unified Promobox Site Container -->
-                            <div class="form-section unified-section">
-                                
-                                <!-- Site Configuration Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-server"></i>
-                                    Site Configuration
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group checkbox-group">
-                                        <input type="checkbox" id="siteServer.enabled" name="siteServer.enabled">
-                                        <label for="siteServer.enabled">Enable Promobox Site</label>
-                                    </div>
-                                    <div class="form-group site-server-port-group" id="siteServerPortGroup">
-                                        <label for="siteServer.port">Promobox Site Port</label>
-                                        <input type="number" id="siteServer.port" name="siteServer.port" min="1024" max="65535" value="4001">
-                                    </div>
-                                </div>
-                                
-                                <!-- Site Status Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-info-circle"></i>
-                                    Site Status
-                                </div>
-                                <div class="subsection-content">
-                                    <div id="siteServerStatus" class="status-indicator site-server-status">
-                                        <div class="status-badge">
-                                            <span class="status-icon">🌐</span>
-                                            <span class="status-text">Promobox site running on <a href="http://localhost:4001" target="_blank" class="status-link">http://localhost:4001</a></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+                    
 
                     <!-- Management Section -->
                     <section class="section-content" id="management-section" role="tabpanel">
@@ -1335,6 +1184,72 @@
                                     </div>
                                 </div>
                                 
+                                <!-- Server Settings Subsection (moved from General) -->
+                                <div class="subsection-header">
+                                    <i class="fas fa-server"></i>
+                                    Server Settings
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group">
+                                        <label for="SERVER_PORT">Port Number</label>
+                                        <div class="number-input-wrapper">
+                                            <input type="number" id="SERVER_PORT" name="SERVER_PORT" min="1024" max="65535" step="1" required>
+                                            <div class="number-controls" role="group">
+                                                <button type="button" class="number-btn" id="increment-serverPort">
+                                                    <i class="fas fa-chevron-up"></i>
+                                                </button>
+                                                <button type="button" class="number-btn" id="decrement-serverPort">
+                                                    <i class="fas fa-chevron-down"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div id="serverPort-help" class="form-help">Port number for the application server (1024-65535)</div>
+                                    </div>
+                                </div>
+
+                                <!-- Debug & Logging Subsection (moved from General) -->
+                                <div class="subsection-header">
+                                    <i class="fas fa-bug"></i>
+                                    Debug & Logging
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="DEBUG" name="DEBUG">
+                                        <label for="DEBUG">Enable debug mode</label>
+                                    </div>
+                                    <div id="DEBUG-help" class="form-help">Enable detailed logging for troubleshooting</div>
+                                    
+                                    <div class="form-actions">
+                                        <a href="/admin/logs" target="_blank" class="btn btn-primary">
+                                            <i class="fas fa-terminal"></i>
+                                            View live logs
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- Promobox Site Subsection -->
+                                <div class="subsection-header">
+                                    <i class="fas fa-server"></i>
+                                    Promobox Site
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="siteServer.enabled" name="siteServer.enabled">
+                                        <label for="siteServer.enabled">Enable Site</label>
+                                    </div>
+                                    <div class="form-group site-server-port-group" id="siteServerPortGroup">
+                                        <label for="siteServer.port">Port Number</label>
+                                        <input type="number" id="siteServer.port" name="siteServer.port" min="1024" max="65535" value="4001">
+                                    </div>
+                                    <!-- Site Status Inline (moved from Promobox Site) -->
+                                    <div id="siteServerStatus" class="status-indicator site-server-status" style="margin-top: 0.75rem;">
+                                        <div class="status-badge">
+                                            <span class="status-icon">🌐</span>
+                                            <span class="status-text">Promobox site running on <a href="http://localhost:4001" target="_blank" class="status-link">http://localhost:4001</a></span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Project & Support Subsection -->
                                 <div class="subsection-header">
                                     <i class="fab fa-github"></i>
@@ -1394,11 +1309,7 @@
             </button>
         </div>
         <nav class="mobile-nav-content">
-            <button class="mobile-nav-item active" data-section="general">
-                <i class="fas fa-cog nav-icon"></i>
-                <span>General</span>
-            </button>
-            <button class="mobile-nav-item" data-section="display">
+            <button class="mobile-nav-item active" data-section="display">
                 <i class="fas fa-tv nav-icon"></i>
                 <span>Display</span>
             </button>
@@ -1408,12 +1319,9 @@
             </button>
             <button class="mobile-nav-item" data-section="authentication">
                 <i class="fas fa-shield-alt nav-icon"></i>
-                <span>Authentication</span>
+                <span>Security</span>
             </button>
-            <button class="mobile-nav-item" data-section="promobox">
-                <i class="fas fa-globe nav-icon"></i>
-                <span>Promobox Site</span>
-            </button>
+            
             <button class="mobile-nav-item" data-section="management">
                 <i class="fas fa-tools nav-icon"></i>
                 <span>Management</span>
@@ -1424,7 +1332,7 @@
     <!-- Quick Help Panel -->
     <aside id="quick-help-panel" class="quick-help-panel" role="dialog">
         <div class="help-header">
-            <h3 id="help-title">General Settings Help</h3>
+            <h3 id="help-title">Display Settings Help</h3>
             <button class="btn btn-icon" id="close-help-panel">
                 <i class="fas fa-times"></i>
             </button>
@@ -1432,19 +1340,44 @@
         <div class="help-content" id="help-content" role="document">
             <div class="help-section">
                 <h4>Transition Interval</h4>
-                <p>Controls how long each poster is displayed before switching to the next one. Set between 1-300 seconds. Shorter intervals create more dynamic displays, while longer intervals are better for reading metadata.</p>
+                <p>How long each poster is displayed before switching to the next one (1–300 seconds). Shorter intervals are more dynamic; longer intervals allow more time to read details.</p>
+                <p><em>Tip:</em> A range of <strong>8–15s</strong> usually feels smooth without being too fast.</p>
+                <p><strong>Note:</strong> Wallart Mode uses its own refresh logic and ignores the transition interval.</p>
             </div>
             <div class="help-section">
-                <h4>Background Refresh (minutes)</h4>
-                <p>How often the system fetches new content from your media server. Set to 0 to disable automatic refresh. Regular refreshing ensures new content appears in the rotation.</p>
+                <h4>Wallart Mode</h4>
+                <ul>
+                    <li><strong>Enable Wallart Mode:</strong> Switch to a multi‑poster grid layout.</li>
+                    <li><strong>Poster Density:</strong> Controls how many posters are visible at once.</li>
+                    <li><strong>Poster Refresh Rate:</strong> How frequently grid tiles update.</li>
+                    <li><strong>Timing Randomness:</strong> Adds variation to refresh timing for a natural look.</li>
+                    <li><strong>Animation Type:</strong> Choose a specific animation or use random.</li>
+                </ul>
+                <p><em>Tip:</em> A randomness of <strong>2–4</strong> and refresh rate around <strong>3–6</strong> gives a balanced, natural flow.</p>
             </div>
             <div class="help-section">
-                <h4>Application Port</h4>
-                <p>The network port for the admin interface. Default is 4000. Changing this requires an application restart. Make sure the port isn't used by other applications.</p>
+                <h4>Cinema Mode</h4>
+                <p>Portrait‑style digital movie poster mode. You can set the display orientation to Auto or a fixed Portrait option.</p>
             </div>
             <div class="help-section">
-                <h4>Debug Mode</h4>
-                <p>Enables detailed logging for troubleshooting. Check the live logs to see debug information. Only enable when investigating issues as it can impact performance.</p>
+                <h4>Visual Elements</h4>
+                <ul>
+                    <li>Toggle ClearLogo, Poster, and Metadata visibility.</li>
+                    <li>Show Rotten Tomatoes badge and set a minimum score threshold.</li>
+                </ul>
+            </div>
+            <div class="help-section">
+                <h4>Clock Widget</h4>
+                <p>Shows a clock in screensaver mode. Choose the timezone (Auto or specific) and 24h/12h format.</p>
+            </div>
+            <div class="help-section">
+                <h4>UI Element Scaling</h4>
+                <p>Resize content, clearlogo, clock, and global UI scale. Use presets for quick device‑specific setups or Reset to defaults.</p>
+                <p><em>Presets:</em> Try <strong>4K TV</strong> for living‑room distances, and <strong>Ultrawide</strong> for 21:9 monitors; then fine‑tune Global to <strong>110–120%</strong> if needed.</p>
+            </div>
+            <div class="help-section">
+                <h4>Effects & Transitions</h4>
+                <p>Select the transition effect (e.g., Ken Burns, Fade, Slide) and adjust the pause time between effects.</p>
             </div>
         </div>
     </div>
