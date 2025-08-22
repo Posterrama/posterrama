@@ -1776,6 +1776,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Apply wallart mode settings
         toggleWallartModeSettings(isWallartMode);
 
+        // Hide Effects & Transitions when Wallart mode is enabled
+        const effectsHeader = document.getElementById('effectsHeader');
+        const effectsContent = document.getElementById('effectsContent');
+        if (effectsHeader && effectsContent) {
+            const display = isWallartMode ? 'none' : 'block';
+            effectsHeader.style.display = display;
+            effectsContent.style.display = display;
+        }
+
         // Update spacing for first visible subsection
         updateFirstVisibleSubsectionSpacing();
 
@@ -5275,6 +5284,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Show/hide cinema mode and visual elements when wallart mode is active
                 toggleWallartModeSettings(isWallartMode);
+
+                // Also hide/show Effects & Transitions subsection
+                const effectsHeader = document.getElementById('effectsHeader');
+                const effectsContent = document.getElementById('effectsContent');
+                if (effectsHeader && effectsContent) {
+                    const display = isWallartMode ? 'none' : 'block';
+                    effectsHeader.style.display = display;
+                    effectsContent.style.display = display;
+                }
 
                 logger.debug('Wallart mode toggled:', isWallartMode ? 'enabled' : 'disabled');
             });
