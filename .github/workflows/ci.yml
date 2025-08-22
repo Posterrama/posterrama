@@ -51,7 +51,6 @@ jobs:
                   else
                     echo "✅ No console.log statements found in production code"
                   fi
-                  fi
 
     # Comprehensive test suite - must pass before merge
     test:
