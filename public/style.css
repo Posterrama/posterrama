@@ -1219,11 +1219,6 @@ body.cinema-mode #poster-wrapper:hover #poster {
     box-shadow: none !important;
 }
 
-/* Hide text wrapper in cinema mode */
-body.cinema-mode #text-wrapper {
-    display: none;
-}
-
 /* Cinema mode header space */
 body.cinema-mode::before {
     content: '';
@@ -1312,24 +1307,19 @@ body.cinema-mode::before {
     }
 }
 
-/* Hide other elements in cinema mode */
+/* Hide elements that should not appear in cinema mode */
 body.cinema-mode #layer-a,
 body.cinema-mode #layer-b,
 body.cinema-mode #clock-widget-container,
 body.cinema-mode #clearlogo-container,
 body.cinema-mode #branding-container,
 body.cinema-mode #rt-badge,
-body.cinema-mode #controls-container {
-    display: none;
-}
-
-/* Keep controls visible but minimal */
-body.cinema-mode #controls-container {
-    bottom: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 8px;
-    padding: 8px;
+body.cinema-mode #controls-container,
+body.cinema-mode #background-image,
+body.cinema-mode .background-layer,
+body.cinema-mode .fanart-background,
+body.cinema-mode #text-wrapper {
+    display: none !important;
 }
 
 /* --- Transition Effects Animations --- */
