@@ -201,7 +201,16 @@ class AutoUpdater {
                 this.updateStatus.message = 'Restarting services via PM2...';
                 await this.writeStatus();
 
-                await this.startServices(); // will pm2 restart
+                // Kick off restart but do not block the status progression; if it takes
+                // too long or fails, we still mark completion so the UI doesn’t hang.
+                try {
+                    await Promise.race([
+                        this.startServices(),
+                        new Promise(resolve => setTimeout(resolve, 5000)),
+                    ]);
+                } catch (_e) {
+                    // best-effort
+                }
 
                 // Mark completed immediately after issuing restart
                 this.updateStatus.phase = 'completed';
