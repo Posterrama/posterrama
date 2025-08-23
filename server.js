@@ -5927,59 +5927,67 @@ app.post(
                 user: req.user?.username,
             });
 
-            // Prefer spawning the updater via PM2 so it survives stopping the main app
+            // Prepare runner details
             const path = require('path');
             const runner = path.resolve(__dirname, 'utils', 'update-runner.js');
-            const pm2Args = [
-                'start',
-                runner,
-                '--name',
-                'posterrama-updater',
-                '--time',
-                '--interpreter',
-                process.execPath,
-                '--',
-            ];
-            if (requestedVersion) {
-                pm2Args.push('--version', String(requestedVersion));
-            }
-            if (dryRun) {
-                pm2Args.push('--dry-run');
-            }
+            const appRoot = path.resolve(__dirname);
 
-            try {
-                const { exec } = require('child_process');
-                const cmd = `pm2 ${pm2Args.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ')}`;
-                await require('util').promisify(exec)(cmd);
-                logger.info('Updater process started via PM2', { runner, requestedVersion });
-            } catch (pm2Error) {
-                // Fallback to detached spawn if PM2 is not available
-                const { spawn } = require('child_process');
-                const child = spawn(
-                    process.execPath,
-                    [
-                        runner,
-                        requestedVersion ? '--version' : '',
-                        requestedVersion ? String(requestedVersion) : '',
-                        dryRun ? '--dry-run' : '',
-                    ].filter(Boolean),
-                    {
-                        cwd: path.resolve(__dirname),
-                        detached: true,
-                        stdio: 'ignore',
-                    }
-                );
-                child.unref();
-                logger.warn('PM2 start failed, fell back to detached spawn', {
-                    error: pm2Error.message,
-                });
-            }
-
-            // Return immediately
+            // Respond immediately so the client isn't impacted when services stop
             res.json({
                 success: true,
                 message: dryRun ? 'Dry-run update started' : 'Update process started',
                 updateId: Date.now().toString(),
+            });
+
+            // Fire-and-forget: start updater via PM2, fallback to detached spawn
+            setImmediate(async () => {
+                try {
+                    const pm2Args = [
+                        'start',
+                        runner,
+                        '--name',
+                        'posterrama-updater',
+                        '--cwd',
+                        appRoot,
+                        '--time',
+                        '--interpreter',
+                        process.execPath,
+                        '--',
+                    ];
+                    if (requestedVersion) pm2Args.push('--version', String(requestedVersion));
+                    if (dryRun) pm2Args.push('--dry-run');
+
+                    const { exec } = require('child_process');
+                    const cmd = `pm2 ${pm2Args.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ')}`;
+                    await require('util').promisify(exec)(cmd);
+                    logger.info('Updater process started via PM2', { runner, requestedVersion });
+                } catch (pm2Error) {
+                    try {
+                        const { spawn } = require('child_process');
+                        const child = spawn(
+                            process.execPath,
+                            [
+                                runner,
+                                requestedVersion ? '--version' : '',
+                                requestedVersion ? String(requestedVersion) : '',
+                                dryRun ? '--dry-run' : '',
+                            ].filter(Boolean),
+                            {
+                                cwd: appRoot,
+                                detached: true,
+                                stdio: 'ignore',
+                            }
+                        );
+                        child.unref();
+                        logger.warn('PM2 start failed, fell back to detached spawn', {
+                            error: pm2Error.message,
+                        });
+                    } catch (spawnError) {
+                        logger.error('Failed to start updater process', {
+                            error: spawnError.message,
+                        });
+                    }
+                }
             });
         } catch (error) {
             logger.error('Failed to start update process', { error: error.message });

@@ -191,6 +191,39 @@ install_git() {
     print_success "Git installed successfully"
 }
 
+# Function to install jq (used for JSON parsing in troubleshooting/ops)
+install_jq() {
+    print_status "Installing jq..."
+
+    if command -v jq >/dev/null 2>&1; then
+        print_success "jq is already installed"
+        return 0
+    fi
+
+    case $OS in
+        "Ubuntu"|"Debian"*)
+            $SUDO apt-get update
+            $SUDO apt-get install -y jq
+            ;;
+        "CentOS"*|"Red Hat"*|"Rocky"*|"AlmaLinux"*)
+            $SUDO yum install -y jq || $SUDO yum install -y epel-release jq || true
+            ;;
+        "Fedora"*)
+            $SUDO dnf install -y jq
+            ;;
+        *)
+            print_warning "Unsupported OS for automatic jq installation: $OS"
+            return 0
+            ;;
+    esac
+
+    if command -v jq >/dev/null 2>&1; then
+        print_success "jq installed successfully"
+    else
+        print_warning "Failed to install jq automatically. You can install it manually later."
+    fi
+}
+
 # Function to install PM2
 install_pm2() {
     print_status "Installing PM2..."
@@ -765,6 +798,7 @@ main() {
     check_root
     detect_os
     install_git
+    install_jq
     install_nodejs
     install_pm2
     create_user
