@@ -7159,7 +7159,8 @@ async function startAutoUpdate(targetVersion = null) {
         const startButton = document.getElementById('start-auto-update-button');
         setButtonState(startButton, 'loading', { text: 'Starting...' });
 
-        const requestBody = targetVersion ? { targetVersion } : {};
+        // Server accepts both `version` and `targetVersion`, send `version`
+        const requestBody = targetVersion ? { version: targetVersion } : {};
 
         const response = await authenticatedFetch(apiUrl('/api/admin/update/start'), {
             method: 'POST',
@@ -7170,8 +7171,8 @@ async function startAutoUpdate(targetVersion = null) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Failed to start update (HTTP ${response.status})`);
         }
 
         const result = await response.json();
