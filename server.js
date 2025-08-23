@@ -5917,24 +5917,26 @@ app.post(
                 user: req.user?.username,
             });
 
-            // Start update process in background
-            const updatePromise = autoUpdater.startUpdate(version);
+            // Spawn a detached updater worker so it survives PM2 stop
+            const { spawn } = require('child_process');
+            const nodeBin = process.execPath;
+            const runner = require('path').resolve(__dirname, 'utils', 'update-runner.js');
+            const args = [runner];
+            if (version) args.push('--version', String(version));
 
-            // Don't wait for completion, return immediately
+            const child = spawn(nodeBin, args, {
+                cwd: require('path').resolve(__dirname),
+                detached: true,
+                stdio: 'ignore',
+            });
+            child.unref();
+
+            // Return immediately
             res.json({
                 success: true,
                 message: 'Update process started',
                 updateId: Date.now().toString(),
             });
-
-            // Handle update completion/failure in background
-            updatePromise
-                .then(result => {
-                    logger.info('Background update completed successfully', result);
-                })
-                .catch(error => {
-                    logger.error('Background update failed', { error: error.message });
-                });
         } catch (error) {
             logger.error('Failed to start update process', { error: error.message });
             res.status(500).json({ error: 'Failed to start update process' });
