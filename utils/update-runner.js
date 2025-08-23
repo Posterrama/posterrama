@@ -17,7 +17,13 @@ function log(level, msg, extra = {}) {
     try {
         fs.mkdirSync(path.dirname(logFile), { recursive: true });
         fs.appendFileSync(logFile, line);
-    } catch (_) {}
+    } catch (e) {
+        try {
+            process.stderr.write(`[update-runner] log write failed: ${e && e.message}\n`);
+        } catch (e2) {
+            // last resort: swallow to avoid throwing in logger
+        }
+    }
 }
 
 async function main() {
