@@ -1665,6 +1665,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 refreshRate: 5,
                 randomness: 3,
                 animationType: 'fade',
+                ambientGradient: false,
+                spotlight: false,
             };
         document.getElementById('wallartModeEnabled').checked = wallartMode.enabled;
         document.getElementById('wallartDensity').value = wallartMode.density ?? 'medium';
@@ -1672,6 +1674,10 @@ document.addEventListener('DOMContentLoaded', () => {
             wallartMode.refreshRate ?? wallartMode.randomness ?? 5; // Backward compatibility
         document.getElementById('wallartRandomness').value = wallartMode.randomness ?? 3;
         document.getElementById('wallartAnimationType').value = wallartMode.animationType ?? 'fade';
+        const ambientEl = document.getElementById('wallartAmbientGradient');
+        if (ambientEl) ambientEl.checked = wallartMode.ambientGradient === true;
+        const spotlightEl = document.getElementById('wallartSpotlight');
+        if (spotlightEl) spotlightEl.checked = wallartMode.spotlight === true;
         document.getElementById('wallartAutoRefresh').checked = wallartMode.autoRefresh !== false;
 
         // Update slider labels
@@ -4462,6 +4468,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         refreshRate: getValue('wallartRefreshRate', 'number'),
                         randomness: getValue('wallartRandomness', 'number'),
                         animationType: getValue('wallartAnimationType'),
+                        ambientGradient: getValue('wallartAmbientGradient'),
+                        spotlight: getValue('wallartSpotlight'),
                         autoRefresh: getValue('wallartAutoRefresh'),
                     },
                     cinemaMode: getValue('cinemaMode'),

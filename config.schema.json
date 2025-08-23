@@ -59,6 +59,56 @@
                     "type": "boolean",
                     "default": false
                 },
+                "density": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high"],
+                    "default": "medium",
+                    "description": "Grid density preset that influences number of rows/columns"
+                },
+                "refreshRate": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "default": 5,
+                    "description": "Relative refresh tempo (1=slow, 10=fast)"
+                },
+                "randomness": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "default": 3,
+                    "description": "Amount of random staggering in the cycle timing"
+                },
+                "animationType": {
+                    "type": "string",
+                    "enum": [
+                        "random",
+                        "fade",
+                        "slideLeft",
+                        "slideUp",
+                        "zoom",
+                        "flip",
+                        "staggered",
+                        "ripple"
+                    ],
+                    "default": "fade",
+                    "description": "Animation style used for grid updates"
+                },
+                "ambientGradient": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable subtle ambient gradient background overlay"
+                },
+                "spotlight": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable rotating spotlight highlight over the grid"
+                },
+                "autoRefresh": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically rotate posters in the grid"
+                },
                 "itemsPerScreen": {
                     "type": "number",
                     "minimum": 4,
