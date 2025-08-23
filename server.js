@@ -78,7 +78,7 @@ function generateAssetVersion(filePath) {
 function getAssetVersions() {
     const now = Date.now();
     if (now - lastVersionCheck > VERSION_CACHE_TTL) {
-        const criticalAssets = ['script.js', 'admin.js', 'style.css', 'admin.css'];
+        const criticalAssets = ['script.js', 'admin.js', 'style.css', 'admin.css', 'sw.js'];
 
         criticalAssets.forEach(asset => {
             cachedVersions[asset] = generateAssetVersion(asset);
@@ -618,16 +618,23 @@ app.get(['/', '/index.html'], (req, res, next) => {
 
         // Get current asset versions
         const versions = getAssetVersions();
+        // Optional manual cache-buster: add &cb=<timestamp> to asset URLs if ?cb is present
+        const cbParam = typeof req.query.cb !== 'undefined' ? `&cb=${Date.now()}` : '';
 
         // Replace asset version placeholders with individual file versions
         const stamped = contents
             .replace(
                 /script\.js\?v=[^"&\s]+/g,
-                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
+                `script.js?v=${versions['script.js'] || ASSET_VERSION}${cbParam}`
             )
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
-                `style.css?v=${versions['style.css'] || ASSET_VERSION}`
+                `style.css?v=${versions['style.css'] || ASSET_VERSION}${cbParam}`
+            )
+            // Ensure service worker registration always fetches latest sw.js
+            .replace(
+                /\/sw\.js(\?v=[^"'\s>]+)?/g,
+                `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}${cbParam}`
             );
 
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell

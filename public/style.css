@@ -586,11 +586,15 @@ body.promo-site #promo-box.is-hidden {
 
 /* --- Background Layers & Ken Burns Effect --- */
 .screensaver-layer {
-    position: fixed; /* A modern shorthand for top: 0; right: 0; bottom: 0; left: 0; */
-    inset: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     width: 100%;
-    /* This layer now inherits its height from the body, which is set to 100dvh. */
-    height: 100%;
+    /* Prefer large/dynamic viewport units so background paints under Safari bars */
+    height: 100dvh;
+    height: 100svh;
+    height: 100lvh;
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
@@ -614,6 +618,13 @@ body.promo-site #promo-box.is-hidden {
 .screensaver-layer[data-ken-burns='true'] {
     background-attachment: scroll;
     transform: none;
+}
+
+/* iOS Safari: avoid background-attachment: fixed to ensure painting under bottom bar */
+@supports (-webkit-touch-callout: none) {
+    .screensaver-layer:not([data-ken-burns='true']) {
+        background-attachment: scroll;
+    }
 }
 
 /* --- Ken Burns Effect Keyframes --- */
@@ -741,7 +752,7 @@ body.promo-site #promo-box.is-hidden {
 /* --- Main Information Container --- */
 #info-container {
     position: fixed;
-    bottom: 0px;
+    bottom: env(safe-area-inset-bottom, 0px);
     left: 50px;
     right: 50px; /* Use right instead of fixed width for better responsiveness */
     top: 50px; /* Add top constraint to prevent overflow at top */
@@ -921,7 +932,7 @@ body.screensaver-mode #poster-wrapper {
 /* --- Controls --- */
 #controls-container {
     position: fixed; /* A bit lower for better visual alignment with the poster's shadow */
-    bottom: 35px; /* Same distance from the edge as the left side */
+    bottom: calc(35px + env(safe-area-inset-bottom, 0px)); /* Keep above iOS bottom bar */
     right: 50px;
     display: flex;
     gap: 15px;
@@ -980,7 +991,7 @@ body.screensaver-mode #poster-wrapper {
 /* --- Branding --- */
 #branding-container {
     position: fixed; /* A bit lower for a better balance */
-    bottom: 15px;
+    bottom: calc(15px + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;

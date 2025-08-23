@@ -1,21 +1,19 @@
 // Posterrama PWA Service Worker
-// Version 2.1.0 - Enhanced with Preemptive Poster Caching
+// Version 2.2.0 - Network-first for HTML, SWR for static assets, enhanced media caching
 
-const CACHE_NAME = 'posterrama-pwa-v2.1.0';
+const CACHE_NAME = 'posterrama-pwa-v2.2.0';
 const MEDIA_CACHE_NAME = 'posterrama-media-v1.1.0';
 
 const STATIC_ASSETS = [
     '/',
     '/index.html',
-    '/style.css',
-    '/script.js',
+    // Note: CSS/JS are versioned via query params; we'll cache them at runtime (SWR)
     '/manifest.json',
     '/favicon.ico',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png',
     // Admin assets
-    '/admin.css',
-    '/admin.js',
+    // Admin assets are also versioned; cached at runtime
     '/admin-help.js',
 ];
 
@@ -137,35 +135,51 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // Handle static assets with cache-first strategy
-    event.respondWith(
-        caches.match(request).then(cachedResponse => {
-            if (cachedResponse) {
-                return cachedResponse;
-            }
-
-            return fetch(request)
+    // HTML/navigation requests: network-first with cache fallback
+    const acceptsHTML = request.headers.get('accept')?.includes('text/html');
+    if (request.mode === 'navigate' || acceptsHTML || url.pathname.endsWith('.html')) {
+        event.respondWith(
+            fetch(request)
                 .then(networkResponse => {
-                    // Cache successful responses for static assets
-                    if (networkResponse.ok && isStaticAsset(url.pathname)) {
-                        const responseClone = networkResponse.clone();
-                        caches.open(CACHE_NAME).then(cache => {
-                            cache.put(request, responseClone);
-                        });
-                    }
+                    // Cache a fresh copy for offline use
+                    const copy = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
                     return networkResponse;
                 })
                 .catch(() => {
-                    // Offline fallback
-                    if (url.pathname === '/' || url.pathname.endsWith('.html')) {
-                        return caches.match('/index.html');
-                    }
-                    return new Response('Offline', {
-                        status: 503,
-                        statusText: 'Service Unavailable',
-                    });
-                });
-        })
+                    // Fallback to cached shell
+                    return caches.match(request).then(resp => resp || caches.match('/index.html'));
+                })
+        );
+        return;
+    }
+
+    // Static asset requests (.css, .js, images): stale-while-revalidate
+    if (isStaticAsset(url.pathname)) {
+        event.respondWith(
+            caches.match(request).then(cached => {
+                const fetchPromise = fetch(request)
+                    .then(networkResponse => {
+                        if (networkResponse && networkResponse.ok) {
+                            const copy = networkResponse.clone();
+                            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+                        }
+                        return networkResponse;
+                    })
+                    .catch(() => undefined);
+
+                // Return cached immediately if present, else wait for network
+                return cached || fetchPromise || new Response('Offline', { status: 503 });
+            })
+        );
+        return;
+    }
+
+    // Default: try network, then cache
+    event.respondWith(
+        fetch(request)
+            .then(networkResponse => networkResponse)
+            .catch(() => caches.match(request))
     );
 });
 
