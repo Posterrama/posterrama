@@ -5935,11 +5935,13 @@ app.post(
             // Start updater via a detached Node process first to avoid PM2 side-effects
             try {
                 const { spawn } = require('child_process');
+                const underPM2 = !!process.env.PM2_HOME;
                 const args = [
                     runner,
                     requestedVersion ? '--version' : '',
                     requestedVersion ? String(requestedVersion) : '',
                     dryRun ? '--dry-run' : '',
+                    underPM2 ? '--defer-stop' : '',
                 ].filter(Boolean);
                 const child = spawn(process.execPath, args, {
                     cwd: appRoot,
@@ -5951,6 +5953,7 @@ app.post(
                     runner,
                     requestedVersion,
                     dryRun,
+                    deferStop: underPM2,
                 });
             } catch (spawnError) {
                 logger.error('Failed to start updater process (detached spawn)', {
