@@ -7160,7 +7160,9 @@ async function startAutoUpdate(targetVersion = null) {
         setButtonState(startButton, 'loading', { text: 'Starting...' });
 
         // Server accepts both `version` and `targetVersion`, send `version`
-        const requestBody = targetVersion ? { version: targetVersion } : {};
+        const forceToggle = document.getElementById('force-update-toggle');
+        const force = forceToggle ? !!forceToggle.checked : false;
+        const requestBody = targetVersion ? { version: targetVersion, force } : { force };
 
         const response = await authenticatedFetch(apiUrl('/api/admin/update/start'), {
             method: 'POST',

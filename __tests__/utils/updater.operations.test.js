@@ -227,7 +227,7 @@ describe('AutoUpdater - Advanced Operations', () => {
 
     describe('rollback', () => {
         test('should perform rollback successfully', async () => {
-            AutoUpdater.updateStatus.backupPath = '/backups/test-backup';
+            AutoUpdater.updateStatus.backupPath = 'backups/test-backup';
 
             // Mock all the rollback operations
             jest.spyOn(AutoUpdater, 'stopServices').mockResolvedValue();
@@ -240,7 +240,7 @@ describe('AutoUpdater - Advanced Operations', () => {
             expect(AutoUpdater.updateStatus.phase).toBe('rollback');
             expect(AutoUpdater.stopServices).toHaveBeenCalled();
             expect(AutoUpdater.copyDirectory).toHaveBeenCalledWith(
-                '/backups/test-backup',
+                'backups/test-backup',
                 expect.any(String)
             );
             expect(AutoUpdater.updateDependencies).toHaveBeenCalled();

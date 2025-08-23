@@ -5941,6 +5941,7 @@ app.post(
                     requestedVersion ? '--version' : '',
                     requestedVersion ? String(requestedVersion) : '',
                     dryRun ? '--dry-run' : '',
+                    force ? '--force' : '',
                     underPM2 ? '--defer-stop' : '',
                 ].filter(Boolean);
                 const child = spawn(process.execPath, args, {
@@ -5953,6 +5954,7 @@ app.post(
                     runner,
                     requestedVersion,
                     dryRun,
+                    force,
                     deferStop: underPM2,
                 });
             } catch (spawnError) {

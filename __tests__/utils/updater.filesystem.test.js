@@ -168,7 +168,7 @@ describe('AutoUpdater - Filesystem Operations', () => {
         test('should cleanup old backups', async () => {
             const mockBackups = Array.from({ length: 8 }, (_, i) => ({
                 name: `backup-${i}`,
-                path: `/backups/backup-${i}`,
+                path: `backups/backup-${i}`,
                 date: new Date(2023, 0, i + 1),
             }));
 
@@ -184,7 +184,7 @@ describe('AutoUpdater - Filesystem Operations', () => {
             const mockBackups = [
                 {
                     name: 'backup-1',
-                    path: '/backups/backup-1',
+                    path: 'backups/backup-1',
                     timestamp: '2023-01-01T00:00:00.000Z',
                 },
             ];

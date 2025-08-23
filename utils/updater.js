@@ -22,8 +22,8 @@ class AutoUpdater {
             backupPath: null,
         };
         this.appRoot = path.resolve(__dirname, '..');
-        // Store backups next to the app directory by default (../backups)
-        this.backupDir = path.resolve(this.appRoot, '..', 'backups');
+        // Store backups inside the app directory under ./backups
+        this.backupDir = path.resolve(this.appRoot, 'backups');
         this.tempDir = path.resolve(this.appRoot, 'temp');
         this.statusFile = path.resolve(this.appRoot, 'logs', 'updater-status.json');
         this.deferStop = false;
@@ -72,7 +72,7 @@ class AutoUpdater {
      * Start automatic update process
      */
     async startUpdate(targetVersion = null, options = {}) {
-        const { dryRun = false, deferStop = false } = options || {};
+        const { dryRun = false, force = false, deferStop = false } = options || {};
         if (this.updateInProgress) {
             throw new Error('Update already in progress');
         }
@@ -96,12 +96,25 @@ class AutoUpdater {
 
             // Step 1: Check for updates
             const updateInfo = await this.checkForUpdates(targetVersion);
-            if (!updateInfo.hasUpdate && !targetVersion) {
+            if (!updateInfo.hasUpdate && !targetVersion && !force) {
                 this.updateStatus.phase = 'completed';
                 this.updateStatus.progress = 100;
                 this.updateStatus.message = 'No updates available';
                 this.updateInProgress = false;
                 return { success: true, message: 'No updates available' };
+            }
+            // If force is true, ensure we set latestVersion sensibly for messages
+            if (force && !targetVersion) {
+                // When forcing without a specific target, use the detected latestVersion
+                // so messages and validations refer to it; if checkForUpdates couldn't
+                // determine a newer version, treat current version as target.
+                if (!updateInfo.latestVersion) {
+                    const pkg = JSON.parse(
+                        await fs.readFile(path.join(this.appRoot, 'package.json'), 'utf8')
+                    );
+                    updateInfo.latestVersion = pkg.version;
+                }
+                updateInfo.hasUpdate = true; // proceed through the pipeline
             }
 
             // Step 2: Create backup
@@ -310,11 +323,12 @@ class AutoUpdater {
 
         logger.info('Creating backup', { backupPath });
 
-        // Copy entire application directory excluding temp files and logs
+        // Copy entire application directory excluding temp files, logs, and backups (to avoid recursion)
         const excludePatterns = [
             'node_modules',
             'temp',
             'logs',
+            'backups',
             '.git',
             'image_cache',
             'sessions',

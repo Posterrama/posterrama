@@ -244,8 +244,8 @@ describe('Updater Coverage Enhancement', () => {
             expect(updater.getStatus().backupPath).toBeNull();
 
             // Absolute path
-            updater.updateStatus.backupPath = '/var/backups/posterrama-backup-20240101';
-            expect(updater.getStatus().backupPath).toBe('/var/backups/posterrama-backup-20240101');
+            updater.updateStatus.backupPath = 'backups/posterrama-backup-20240101';
+            expect(updater.getStatus().backupPath).toBe('backups/posterrama-backup-20240101');
 
             // Relative path
             updater.updateStatus.backupPath = '../backups/latest';

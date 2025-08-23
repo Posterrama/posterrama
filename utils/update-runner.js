@@ -32,6 +32,7 @@ async function main() {
         const args = process.argv.slice(2);
         let targetVersion = null;
         let dryRun = false;
+        let force = false;
         let deferStop = !!process.env.PM2_HOME; // if spawned from PM2-managed app, defer stopping services
         for (let i = 0; i < args.length; i++) {
             const a = args[i];
@@ -44,13 +45,15 @@ async function main() {
                 deferStop = true;
             } else if (a === '--no-defer-stop') {
                 deferStop = false;
+            } else if (a === '--force' || a === '-f') {
+                force = true;
             }
         }
 
-        log('info', 'update-runner starting', { targetVersion, dryRun, deferStop });
+        log('info', 'update-runner starting', { targetVersion, dryRun, force, deferStop });
         const autoUpdater = require('./updater');
 
-        await autoUpdater.startUpdate(targetVersion, { dryRun, deferStop });
+        await autoUpdater.startUpdate(targetVersion, { dryRun, force, deferStop });
         log('info', 'update-runner completed successfully');
         process.exit(0);
     } catch (err) {

@@ -67,7 +67,7 @@ describe('AutoUpdater - Full Workflow & Edge Cases', () => {
                 currentVersion: '1.0.0',
                 latestVersion: '2.0.0',
             });
-            jest.spyOn(AutoUpdater, 'createBackup').mockResolvedValue('/backups/backup-test');
+            jest.spyOn(AutoUpdater, 'createBackup').mockResolvedValue('backups/backup-test');
             jest.spyOn(AutoUpdater, 'downloadUpdate').mockResolvedValue('/tmp/update.zip');
             jest.spyOn(AutoUpdater, 'validateDownload').mockResolvedValue();
             jest.spyOn(AutoUpdater, 'stopServices').mockResolvedValue();
@@ -92,7 +92,7 @@ describe('AutoUpdater - Full Workflow & Edge Cases', () => {
                 currentVersion: '1.0.0',
                 latestVersion: '2.0.0',
             });
-            jest.spyOn(AutoUpdater, 'createBackup').mockResolvedValue('/backups/backup-test');
+            jest.spyOn(AutoUpdater, 'createBackup').mockResolvedValue('backups/backup-test');
             jest.spyOn(AutoUpdater, 'downloadUpdate').mockResolvedValue('/tmp/update.zip');
             jest.spyOn(AutoUpdater, 'validateDownload').mockResolvedValue();
             jest.spyOn(AutoUpdater, 'stopServices').mockResolvedValue();
