@@ -375,7 +375,7 @@ function updateHelpContent(sectionId) {
     }
 
     // Call the forced update function
-    updateHelpContentForced(sectionId);
+    updateHelpContent(sectionId);
 }
 
 function updateRefreshRateLabel(value) {
@@ -7160,8 +7160,7 @@ async function startAutoUpdate(targetVersion = null) {
         setButtonState(startButton, 'loading', { text: 'Starting...' });
 
         // Server accepts both `version` and `targetVersion`, send `version`
-        const forceToggle = document.getElementById('force-update-toggle');
-        const force = forceToggle ? !!forceToggle.checked : false;
+        const force = false;
         const requestBody = targetVersion ? { version: targetVersion, force } : { force };
 
         const response = await authenticatedFetch(apiUrl('/api/admin/update/start'), {
@@ -7191,6 +7190,44 @@ async function startAutoUpdate(targetVersion = null) {
 
         const startButton = document.getElementById('start-auto-update-button');
         setButtonState(startButton, 'revert');
+    }
+}
+
+// Helper to trigger an update with force=true (used by modal Force Update button)
+async function startAutoUpdateWithForce(targetVersion = null) {
+    try {
+        const startButton = document.getElementById('start-auto-update-button');
+        if (startButton) setButtonState(startButton, 'loading', { text: 'Starting...' });
+
+        const requestBody = targetVersion
+            ? { version: targetVersion, force: true }
+            : { force: true };
+
+        const response = await authenticatedFetch(apiUrl('/api/admin/update/start'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Failed to start update (HTTP ${response.status})`);
+        }
+
+        const result = await response.json();
+        showNotification(`Update started: ${result.message}`, 'success');
+
+        // Start monitoring
+        startUpdateStatusMonitoring();
+        setTimeout(checkUpdateStatus, 1000);
+    } catch (error) {
+        console.error('Failed to start forced update:', error);
+        showNotification(`Failed to start forced update: ${error.message}`, 'error');
+    } finally {
+        const startButton = document.getElementById('start-auto-update-button');
+        if (startButton) setButtonState(startButton, 'revert');
+        // Close the modal after initiating
+        closeUpdateConfirmationModal();
     }
 }
 
@@ -7578,7 +7615,38 @@ async function openUpdateConfirmationModal() {
                     <h4 style="color: #4caf50; margin: 0 0 0.5rem 0;">Already Up to Date</h4>
                     <p style="margin: 0; color: #ccc;">You are already running the latest version v${currentVersion}</p>
                 </div>
+                <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 193, 7, 0.08); border: 1px solid rgba(255, 193, 7, 0.25); border-radius: 6px; text-align: left;">
+                    <div style="color: #ffc107; font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-tools"></i> Repair / Force Reinstall
+                    </div>
+                    <p style="margin: 0 0 0.75rem 0; color: #e6e6e6; font-size: 0.9rem;">
+                        Need to repair your installation or re-run the installer even though you're on the latest version? Use Force Update.
+                    </p>
+                    <button type="button" id="force-reinstall-button" class="btn btn-warning">
+                        <i class="fas fa-hammer icon"></i>
+                        <span>Force Update (Repair)</span>
+                    </button>
+                </div>
             `;
+
+            // Wire up the force button to call startAutoUpdate with force=true
+            const forceBtn = document.getElementById('force-reinstall-button');
+            if (forceBtn) {
+                forceBtn.addEventListener('click', async e => {
+                    e.preventDefault();
+                    setButtonState(forceBtn, 'loading', { text: 'Starting...' });
+                    try {
+                        await startAutoUpdateWithForce();
+                        setButtonState(forceBtn, 'success', { text: 'Started' });
+                        setTimeout(() => setButtonState(forceBtn, 'revert'), 1200);
+                    } catch (err) {
+                        setButtonState(forceBtn, 'error', { text: 'Failed' });
+                        setTimeout(() => setButtonState(forceBtn, 'revert'), 1500);
+                    }
+                });
+            }
+
+            // Keep the confirm button disabled since no normal update is available
             confirmButton.disabled = true;
             confirmButton.querySelector('span').textContent = 'No Update Needed';
         } else {
