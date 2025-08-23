@@ -438,7 +438,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wallartSpotlightTimer = setInterval(() => {
                     try {
                         rotateWallartSpotlight();
-                    } catch (e) {}
+                    } catch (e) {
+                        // noop: spotlight rotation is best-effort
+                    }
                 }, 10000);
             }
 
@@ -1173,12 +1175,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (wallartConfig.ambientGradient) {
                 try {
                     updateAmbientFromGrid(wallartGrid);
-                } catch (e) {}
+                } catch (e) {
+                    // noop: ambient overlay update can fail if images not ready
+                }
             }
             if (wallartConfig.spotlight) {
                 try {
                     rotateWallartSpotlight(true);
-                } catch (e) {}
+                } catch (e) {
+                    // noop: spotlight is optional
+                }
             }
         }
 
