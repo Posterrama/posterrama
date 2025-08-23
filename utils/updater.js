@@ -8,6 +8,7 @@ const AdmZip = require('adm-zip');
 const semver = require('semver');
 const logger = require('../logger');
 const githubService = require('./github');
+const fsSync = require('fs');
 
 class AutoUpdater {
     constructor() {
@@ -25,6 +26,9 @@ class AutoUpdater {
         this.backupDir = path.resolve(this.appRoot, '..', 'backups');
         this.tempDir = path.resolve(this.appRoot, 'temp');
         this.statusFile = path.resolve(this.appRoot, 'logs', 'updater-status.json');
+        this.deferStop = false;
+        this.targetUid = null;
+        this.targetGid = null;
     }
 
     async writeStatus() {
@@ -83,6 +87,8 @@ class AutoUpdater {
             backupPath: null,
         };
         this.deferStop = !!deferStop;
+        // Detect desired file ownership before making changes
+        await this.detectOwnership();
         await this.writeStatus();
 
         try {
@@ -168,38 +174,62 @@ class AutoUpdater {
                 await this.updateDependencies();
             }
 
-            // Step 8: Start services
-            this.updateStatus.phase = 'starting';
-            this.updateStatus.progress = 95;
-            this.updateStatus.message = dryRun
-                ? 'Skipping start services (dry-run)'
-                : 'Starting services...';
-            await this.writeStatus();
+            // Step 7.5: Fix ownership if running as root and we detected a non-root owner
             if (!dryRun) {
-                await this.startServices();
+                await this.fixOwnership();
             }
-
-            // Step 9: Verify update
-            this.updateStatus.phase = 'verification';
-            this.updateStatus.progress = 98;
-            this.updateStatus.message = dryRun
-                ? 'Simulating verification (dry-run)'
-                : 'Verifying update...';
-            await this.writeStatus();
-            if (!dryRun) {
-                await this.verifyUpdate(updateInfo.latestVersion);
-            }
-
-            // Cleanup
-            if (!dryRun) {
+            // Branch for deferStop to avoid losing final status on PM2 restart
+            if (this.deferStop && !dryRun) {
+                // Cleanup before restart
                 await this.cleanup(downloadPath);
-            }
 
-            this.updateStatus.phase = 'completed';
-            this.updateStatus.progress = 100;
-            this.updateStatus.message = `Successfully updated to version ${updateInfo.latestVersion}`;
-            this.updateInProgress = false;
-            await this.writeStatus();
+                this.updateStatus.phase = 'restarting';
+                this.updateStatus.progress = 99;
+                this.updateStatus.message = 'Restarting services via PM2...';
+                await this.writeStatus();
+
+                await this.startServices(); // will pm2 restart
+
+                // Mark completed immediately after issuing restart
+                this.updateStatus.phase = 'completed';
+                this.updateStatus.progress = 100;
+                this.updateStatus.message = `Successfully updated to version ${updateInfo.latestVersion}`;
+                this.updateInProgress = false;
+                await this.writeStatus();
+            } else {
+                // Step 8: Start services
+                this.updateStatus.phase = 'starting';
+                this.updateStatus.progress = 95;
+                this.updateStatus.message = dryRun
+                    ? 'Skipping start services (dry-run)'
+                    : 'Starting services...';
+                await this.writeStatus();
+                if (!dryRun) {
+                    await this.startServices();
+                }
+
+                // Step 9: Verify update
+                this.updateStatus.phase = 'verification';
+                this.updateStatus.progress = 98;
+                this.updateStatus.message = dryRun
+                    ? 'Simulating verification (dry-run)'
+                    : 'Verifying update...';
+                await this.writeStatus();
+                if (!dryRun) {
+                    await this.verifyUpdate(updateInfo.latestVersion);
+                }
+
+                // Cleanup
+                if (!dryRun) {
+                    await this.cleanup(downloadPath);
+                }
+
+                this.updateStatus.phase = 'completed';
+                this.updateStatus.progress = 100;
+                this.updateStatus.message = `Successfully updated to version ${updateInfo.latestVersion}`;
+                this.updateInProgress = false;
+                await this.writeStatus();
+            }
 
             logger.info(
                 dryRun ? 'Dry-run update completed successfully' : 'Update completed successfully',
@@ -528,6 +558,43 @@ class AutoUpdater {
             logger.info('Dependencies updated successfully');
         } catch (error) {
             throw new Error(`Failed to update dependencies: ${error.message}`);
+        }
+    }
+
+    /**
+     * Detect desired ownership based on current appRoot owner (before changes)
+     */
+    async detectOwnership() {
+        try {
+            const stat = fsSync.statSync(this.appRoot);
+            this.targetUid = stat.uid;
+            this.targetGid = stat.gid;
+            logger.info('Detected target ownership', { uid: this.targetUid, gid: this.targetGid });
+        } catch (e) {
+            logger.warn('Failed to detect target ownership', { error: e.message });
+        }
+    }
+
+    /**
+     * Recursively fix ownership of app files to match detected user/group
+     */
+    async fixOwnership() {
+        try {
+            if (process.getuid && process.getuid() !== 0) {
+                // Not root; cannot change ownership
+                return;
+            }
+            if (this.targetUid == null || this.targetGid == null) return;
+
+            // Prefer chown -R for speed
+            const cmd = `chown -R ${this.targetUid}:${this.targetGid} .`;
+            await execAsync(cmd, { cwd: this.appRoot });
+            logger.info('Ownership fixed recursively for app directory', {
+                uid: this.targetUid,
+                gid: this.targetGid,
+            });
+        } catch (e) {
+            logger.warn('Ownership fix failed', { error: e.message });
         }
     }
 
