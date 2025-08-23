@@ -1735,6 +1735,20 @@ body.wallart-mode #wallart-grid {
     transition: transform 0.6s ease-in-out !important;
 }
 
+/* Ambient gradient overlay for Wallart mode */
+#wallart-ambient-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9000 !important; /* Below wallart grid (which uses ~9999) */
+    pointer-events: none !important;
+    opacity: 0.35 !important; /* Subtle by default */
+    transition: opacity 0.6s ease !important;
+    background: linear-gradient(135deg, #0f172a 0%, #111827 100%) !important; /* fallback */
+}
+
 /* Individual wallart poster items - Clean, edge-to-edge layout */
 .wallart-poster-item {
     background: #111 !important;
@@ -1789,6 +1803,28 @@ body.wallart-mode #wallart-grid {
         opacity: 1;
         transform: scale(1);
     }
+}
+
+/* Spotlight highlight for rotating focus poster */
+.wallart-poster-item.is-spotlight img {
+    filter: none !important;
+    transform: scale(1.06) !important;
+}
+.wallart-poster-item.is-spotlight::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.06),
+        0 12px 40px rgba(255, 255, 255, 0.16);
+    pointer-events: none;
+}
+
+/* Dim non-spotlight items slightly when a spotlight is active */
+#wallart-grid.spotlight-active .wallart-poster-item:not(.is-spotlight) img {
+    filter: brightness(0.86) contrast(0.98) saturate(0.98) !important;
+    transition: filter 0.3s ease !important;
 }
 
 /* Hide all UI elements in wallart mode */

@@ -73,6 +73,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     let wallartRefreshTimeout = null;
     let wallartTitleTimer = null; // Timer to keep title as "Posterrama" in wallart mode
     let wallartInitializing = false; // Flag to prevent multiple initialization attempts
+    // Wallart Phase 1 additions
+    let wallartSpotlightTimer = null;
+    let wallartAmbientTweenTimer = null;
     let appConfig = {};
 
     const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
@@ -428,6 +431,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Start the new wallart cycle system
             startWallartCycle(config.wallartMode);
 
+            // Setup optional spotlight rotation
+            if (config.wallartMode.spotlight) {
+                if (wallartSpotlightTimer) clearInterval(wallartSpotlightTimer);
+                // rotate spotlight every 10s (configurable later via tempo)
+                wallartSpotlightTimer = setInterval(() => {
+                    try {
+                        rotateWallartSpotlight();
+                    } catch (e) {}
+                }, 10000);
+            }
+
             // Add resize listener for dynamic grid recalculation
             if (!window.wallartResizeListener) {
                 window.wallartResizeListener = function () {
@@ -467,6 +481,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wallartRefreshTimeout = null;
             }
 
+            // Clear spotlight/ambient timers
+            if (wallartSpotlightTimer) {
+                clearInterval(wallartSpotlightTimer);
+                wallartSpotlightTimer = null;
+            }
+            if (wallartAmbientTweenTimer) {
+                clearInterval(wallartAmbientTweenTimer);
+                wallartAmbientTweenTimer = null;
+            }
+
             // Clear wallart title timer
             if (wallartTitleTimer) {
                 clearInterval(wallartTitleTimer);
@@ -477,6 +501,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (wallartGrid) {
                 wallartGrid.remove();
             }
+
+            // Remove ambient overlay if present
+            const ambient = document.getElementById('wallart-ambient-overlay');
+            if (ambient) ambient.remove();
 
             // Remove resize listener
             if (window.wallartResizeListener) {
@@ -726,6 +754,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // Create ambient overlay (optional)
+        if (wallartConfig.ambientGradient) {
+            ensureAmbientOverlay();
+        }
+
         // Create wallart grid container
         const wallartGrid = document.createElement('div');
         wallartGrid.id = 'wallart-grid';
@@ -770,7 +803,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Get dynamically calculated poster count
         const posterCount = Math.min(layoutInfo.posterCount, mediaQueue.length);
-        const animationType = wallartConfig.animationType || 'fade';
+        const animationType = wallartConfig.animationType || wallartConfig.animationPack || 'fade';
 
         // Initialize the grid with posters
         initializeWallartGrid(posterCount);
@@ -1097,14 +1130,55 @@ document.addEventListener('DOMContentLoaded', async () => {
                     currentPosters.push(poster);
                     const posterItem = createPosterElement(poster, i);
 
-                    // Add subtle fade-in animation with staggered timing
-                    posterItem.style.animationDelay = `${i * 0.02}s`;
-                    posterItem.style.animation = 'wallartFadeIn 0.6s ease-out forwards';
+                    // Animatie: staggered reveal (Phase 1)
+                    const pack = (wallartConfig.animationPack || 'staggered').toLowerCase();
+                    if (pack === 'staggered') {
+                        posterItem.style.opacity = '0';
+                        posterItem.style.transform = 'scale(0.96)';
+                        posterItem.style.transition = 'opacity 500ms ease, transform 600ms ease';
+                        const delay =
+                            (i % layoutInfo.columns) * 60 + Math.floor(i / layoutInfo.columns) * 40;
+                        setTimeout(() => {
+                            posterItem.style.opacity = '1';
+                            posterItem.style.transform = 'scale(1)';
+                        }, delay);
+                    } else if (pack === 'ripple') {
+                        // Compute distance from center for ripple delay
+                        const col = i % layoutInfo.columns;
+                        const row = Math.floor(i / layoutInfo.columns);
+                        const cx = (layoutInfo.columns - 1) / 2;
+                        const cy = (layoutInfo.rows - 1) / 2;
+                        const dist = Math.hypot(col - cx, row - cy);
+                        const delay = Math.round(dist * 90);
+                        posterItem.style.opacity = '0';
+                        posterItem.style.transform = 'scale(0.94)';
+                        posterItem.style.transition = 'opacity 520ms ease, transform 620ms ease';
+                        setTimeout(() => {
+                            posterItem.style.opacity = '1';
+                            posterItem.style.transform = 'scale(1)';
+                        }, delay);
+                    } else {
+                        // fallback: simple fade-in
+                        posterItem.style.animationDelay = `${i * 0.02}s`;
+                        posterItem.style.animation = 'wallartFadeIn 0.6s ease-out forwards';
+                    }
 
                     wallartGrid.appendChild(posterItem);
                 } else {
                     break; // Stop if no unique posters are available
                 }
+            }
+
+            // After initial render, apply ambient colors and optionally spotlight
+            if (wallartConfig.ambientGradient) {
+                try {
+                    updateAmbientFromGrid(wallartGrid);
+                } catch (e) {}
+            }
+            if (wallartConfig.spotlight) {
+                try {
+                    rotateWallartSpotlight(true);
+                } catch (e) {}
             }
         }
 
@@ -1183,6 +1257,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 'flip',
                 'shiftUp',
                 'shiftDown',
+                'staggered',
+                'ripple',
             ];
 
             return knownTypes;
@@ -1427,6 +1503,93 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (wallartConfig.autoRefresh !== false) {
             wallartRefreshTimeout = setTimeout(window.refreshSinglePoster, refreshInterval);
         }
+    }
+
+    // --- Wallart ambient overlay helpers ---
+    function ensureAmbientOverlay() {
+        let ambient = document.getElementById('wallart-ambient-overlay');
+        if (!ambient) {
+            ambient = document.createElement('div');
+            ambient.id = 'wallart-ambient-overlay';
+            document.body.appendChild(ambient);
+        }
+        return ambient;
+    }
+
+    // Compute a rough dominant color from visible posters (fast and simple)
+    function updateAmbientFromGrid(gridEl) {
+        const ambient = ensureAmbientOverlay();
+        const imgs = Array.from(gridEl.querySelectorAll('img')).slice(0, 24); // sample first 24
+        if (imgs.length === 0) return;
+
+        // Simple average of mid-sample pixels to avoid heavy processing
+        let r = 18,
+            g = 23,
+            b = 34; // dark baseline
+        let count = 1;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        canvas.width = 8;
+        canvas.height = 8; // tiny sample
+
+        for (const img of imgs) {
+            try {
+                ctx.clearRect(0, 0, 8, 8);
+                ctx.drawImage(img, 0, 0, 8, 8);
+                const data = ctx.getImageData(2, 2, 4, 4).data; // sample center 4x4
+                for (let i = 0; i < data.length; i += 4) {
+                    r += data[i];
+                    g += data[i + 1];
+                    b += data[i + 2];
+                    count++;
+                }
+            } catch (_) {
+                /* cross-origin or not ready */
+            }
+        }
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
+
+        // Compute a complementary color for gradient end
+        const comp = [255 - r, 255 - g, 255 - b].map(v => Math.max(24, Math.min(220, v)));
+
+        const start = `rgba(${r}, ${g}, ${b}, 0.85)`;
+        const end = `rgba(${comp[0]}, ${comp[1]}, ${comp[2]}, 0.85)`;
+        const nextBg = `linear-gradient(135deg, ${start} 0%, ${end} 100%)`;
+
+        // Smooth tween by cross-fading via opacity if background changes
+        ambient.style.background = nextBg;
+        ambient.style.opacity = '0.35';
+    }
+
+    // --- Wallart spotlight helpers ---
+    function rotateWallartSpotlight(initial = false) {
+        const grid = document.getElementById('wallart-grid');
+        if (!grid) return;
+        const items = grid.querySelectorAll('.wallart-poster-item');
+        if (items.length === 0) return;
+
+        grid.classList.add('spotlight-active');
+
+        // Clear existing spotlight
+        const current = grid.querySelector('.wallart-poster-item.is-spotlight');
+        if (current) current.classList.remove('is-spotlight');
+
+        // Pick a new index (avoid repeating the same)
+        let idx = Math.floor(Math.random() * items.length);
+        if (!initial && typeof window.__lastSpotlightIdx === 'number' && items.length > 1) {
+            let tries = 0;
+            while (idx === window.__lastSpotlightIdx && tries < 5) {
+                idx = Math.floor(Math.random() * items.length);
+                tries++;
+            }
+        }
+        window.__lastSpotlightIdx = idx;
+
+        const target = items[idx];
+        if (target) target.classList.add('is-spotlight');
     }
 
     async function refreshConfig() {
