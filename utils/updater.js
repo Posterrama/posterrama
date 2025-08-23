@@ -68,7 +68,7 @@ class AutoUpdater {
      * Start automatic update process
      */
     async startUpdate(targetVersion = null, options = {}) {
-        const { dryRun = false } = options || {};
+        const { dryRun = false, deferStop = false } = options || {};
         if (this.updateInProgress) {
             throw new Error('Update already in progress');
         }
@@ -82,6 +82,7 @@ class AutoUpdater {
             startTime: new Date(),
             backupPath: null,
         };
+        this.deferStop = !!deferStop;
         await this.writeStatus();
 
         try {
@@ -206,6 +207,7 @@ class AutoUpdater {
                     version: updateInfo.latestVersion,
                     duration: Date.now() - this.updateStatus.startTime.getTime(),
                     dryRun,
+                    deferStop: this.deferStop,
                 }
             );
 
@@ -423,8 +425,15 @@ class AutoUpdater {
         logger.info('Stopping services');
 
         try {
-            // Try to stop PM2 process if running
-            await execAsync('pm2 stop posterrama || true');
+            // If deferStop is enabled, don't stop the PM2 process now to avoid killing the parent
+            if (this.deferStop) {
+                logger.info(
+                    'Defer-stop is enabled; skipping pm2 stop to avoid killing parent process'
+                );
+            } else {
+                // Try to stop PM2 process if running
+                await execAsync('pm2 stop posterrama || true');
+            }
 
             // Give it a moment to stop gracefully
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -529,13 +538,11 @@ class AutoUpdater {
         logger.info('Starting services');
 
         try {
-            // Start with PM2 if available, otherwise just log
-            await execAsync(
-                'pm2 start ecosystem.config.js || echo "PM2 not available, manual start required"',
-                {
-                    cwd: this.appRoot,
-                }
-            );
+            // When deferStop is enabled, prefer a pm2 restart of the app instead of start
+            const cmd = this.deferStop
+                ? 'pm2 restart posterrama || pm2 start ecosystem.config.js'
+                : 'pm2 start ecosystem.config.js || echo "PM2 not available, manual start required"';
+            await execAsync(cmd, { cwd: this.appRoot });
 
             // Give it a moment to start
             await new Promise(resolve => setTimeout(resolve, 3000));
