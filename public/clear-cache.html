@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Posterrama — Clear Cache</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#111; color:#eee; margin:0; min-height:100vh; display:grid; place-items:center; }
+      .card { background:#1a1a1a; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:24px 28px; width:min(520px, 92vw); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+      h1 { margin:0 0 8px; font-size:20px; }
+      p { margin:6px 0 14px; color:#cbd5e1; font-size:14px; }
+      code { background:#0f172a; color:#e2e8f0; padding:2px 6px; border-radius:6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; }
+      .status { margin-top:12px; padding:10px 12px; border-radius:8px; background:#0b1220; color:#a5b4fc; font-size:13px; white-space:pre-line; }
+      .ok { color:#34d399; }
+      .warn { color:#fbbf24; }
+      .err { color:#f87171; }
+      .actions { margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; }
+      button { background:#334155; color:#fff; border:none; border-radius:8px; padding:10px 14px; cursor:pointer; font-weight:600; }
+      button:hover { background:#3f4b63; }
+      a { color:#93c5fd; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Posterrama — Clear Service Worker Cache</h1>
+      <p>This clears locally cached files and optionally unregisters the service worker. Open this page on the affected device/browser.</p>
+      <p>Tip: add <code>?unregister=1</code> to also unregister the service worker before reloading.</p>
+      <div class="actions">
+        <button id="clear">Clear cache</button>
+        <button id="clear-unregister">Clear + Unregister</button>
+      </div>
+      <div id="status" class="status">Ready.</div>
+    </div>
+
+    <script>
+      function log(msg, cls) {
+        const el = document.getElementById('status');
+        el.textContent = msg;
+        el.className = 'status' + (cls ? ' ' + cls : '');
+      }
+
+      async function clearWindowCaches() {
+        if (!('caches' in window)) return { ok: false, msg: 'Cache API not available.' };
+        const names = await caches.keys();
+        await Promise.all(names.map(n => caches.delete(n)));
+        return { ok: true, msg: `Window caches cleared: ${names.length} entr${names.length===1?'y':'ies'}.` };
+      }
+
+      function postMessageToSW(message) {
+        return new Promise(async (resolve) => {
+          if (!('serviceWorker' in navigator)) return resolve({ ok: false, msg: 'SW not supported.' });
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (!reg || !reg.active) return resolve({ ok: false, msg: 'No active SW to message.' });
+          const channel = new MessageChannel();
+          const timeout = setTimeout(() => resolve({ ok: false, msg: 'SW message timeout.' }), 3000);
+          channel.port1.onmessage = (event) => { clearTimeout(timeout); resolve({ ok: true, msg: 'SW cleared its caches.' }); };
+          reg.active.postMessage(message, [channel.port2]);
+        });
+      }
+
+      async function unregisterSW() {
+        if (!('serviceWorker' in navigator)) return { ok: false, msg: 'SW not supported.' };
+        const regs = await navigator.serviceWorker.getRegistrations();
+        const results = await Promise.all(regs.map(r => r.unregister()));
+        const count = results.filter(Boolean).length;
+        return { ok: true, msg: `Unregistered ${count} SW registration${count===1?'':'s'}.` };
+      }
+
+      async function performClear(unregister) {
+        try {
+          log('Clearing window caches…');
+          const winRes = await clearWindowCaches();
+          log(`${winRes.msg}\nMessaging service worker…`);
+          const swRes = await postMessageToSW({ type: 'CLEAR_CACHE' });
+
+          let extra = '';
+          if (unregister) {
+            log(`${winRes.msg}\n${swRes.msg || 'SW message sent.'}\nUnregistering service worker…`);
+            const unregRes = await unregisterSW();
+            extra = `\n${unregRes.msg}`;
+          }
+
+          log(`${winRes.msg}\n${swRes.msg || 'SW message sent.'}${extra}\n\nDone. Reloading…`, 'ok');
+          setTimeout(() => location.reload(true), 800);
+        } catch (e) {
+          log('Error while clearing cache: ' + (e && e.message ? e.message : e), 'err');
+        }
+      }
+
+      document.getElementById('clear').addEventListener('click', () => performClear(false));
+      document.getElementById('clear-unregister').addEventListener('click', () => performClear(true));
+
+      // Auto-execute based on query parameters
+      const params = new URLSearchParams(location.search);
+      if (params.get('auto') === '1') {
+        performClear(params.get('unregister') === '1');
+      }
+    </script>
+  </body>
+</html>

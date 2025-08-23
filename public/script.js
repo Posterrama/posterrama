@@ -18,6 +18,15 @@ const logger = {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // --- iOS background behavior: lock to 'clip' mode ---
+    (function () {
+        const ua = navigator.userAgent || '';
+        const isIOS = /iPhone|iPad|iPod/i.test(ua);
+        if (!isIOS) return; // only apply on iOS
+        // Force clip behavior consistently; ignore URL/localStorage
+        document.body.classList.add('ios-bg-clip');
+        document.body.classList.remove('ios-bg-full');
+    })();
     // --- Element References ---
     const layerA = document.getElementById('layer-a');
     const layerB = document.getElementById('layer-b');
@@ -651,7 +660,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             top: 0 !important;
             left: 0 !important;
             width: 100vw !important;
-            height: 100lvh !important;
+            height: 100vh !important;
             z-index: 999999 !important;
             background: #000 !important;
             display: flex !important;

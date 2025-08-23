@@ -27,16 +27,13 @@
 
 html,
 body {
-    /* Prefer large viewport height so backgrounds extend behind Safari's bottom bar */
-    height: 100dvh;
-    height: 100svh;
-    height: 100lvh;
-    /* Use dynamic viewport height to correctly handle mobile browser UI */
+    /* Use standard viewport height so content stops above mobile browser address bar */
+    height: 100vh;
+    /* Keep layout consistent across browsers */
     width: 100%;
     margin: 0;
-    /* Apply safe-area padding to prevent UI elements from being obscured by notches or system UI. */
-    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
-        env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    /* No global safe-area padding; we offset specific UI elements instead */
+    padding: 0;
     overflow: hidden;
     /* Prevents unwanted scrollbars */
     background-color: var(--background-color);
@@ -61,13 +58,7 @@ body {
     backface-visibility: hidden;
 }
 
-/* iOS specific full-height fixes */
-@supports (-webkit-touch-callout: none) {
-    html,
-    body {
-        height: 100lvh;
-    }
-}
+/* Removed iOS-specific overrides to restore original behavior */
 
 /* --- Utility Classes --- */
 .is-hidden {
@@ -586,15 +577,12 @@ body.promo-site #promo-box.is-hidden {
 
 /* --- Background Layers & Ken Burns Effect --- */
 .screensaver-layer {
-    position: fixed;
+    position: fixed; /* Cover full viewport; under iOS bars when combined with scroll bg */
     top: 0;
     left: 0;
     right: 0;
     width: 100%;
-    /* Prefer large/dynamic viewport units so background paints under Safari bars */
-    height: 100dvh;
-    height: 100svh;
-    height: 100lvh;
+    height: 100vh;
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
@@ -620,12 +608,7 @@ body.promo-site #promo-box.is-hidden {
     transform: none;
 }
 
-/* iOS Safari: avoid background-attachment: fixed to ensure painting under bottom bar */
-@supports (-webkit-touch-callout: none) {
-    .screensaver-layer:not([data-ken-burns='true']) {
-        background-attachment: scroll;
-    }
-}
+/* Removed iOS-specific background attachment override */
 
 /* --- Ken Burns Effect Keyframes --- */
 /* More subtle and varied animations for a smoother, more cinematic feel. */
@@ -752,7 +735,7 @@ body.promo-site #promo-box.is-hidden {
 /* --- Main Information Container --- */
 #info-container {
     position: fixed;
-    bottom: env(safe-area-inset-bottom, 0px);
+    bottom: 0px;
     left: 50px;
     right: 50px; /* Use right instead of fixed width for better responsiveness */
     top: 50px; /* Add top constraint to prevent overflow at top */
@@ -932,7 +915,7 @@ body.screensaver-mode #poster-wrapper {
 /* --- Controls --- */
 #controls-container {
     position: fixed; /* A bit lower for better visual alignment with the poster's shadow */
-    bottom: calc(35px + env(safe-area-inset-bottom, 0px)); /* Keep above iOS bottom bar */
+    bottom: 35px; /* Default spacing */
     right: 50px;
     display: flex;
     gap: 15px;
@@ -991,11 +974,13 @@ body.screensaver-mode #poster-wrapper {
 /* --- Branding --- */
 #branding-container {
     position: fixed; /* A bit lower for a better balance */
-    bottom: calc(15px + env(safe-area-inset-bottom, 0px));
+    bottom: 15px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
 }
+
+/* Removed iOS safe-area overrides to restore original spacing */
 
 #branding-container a {
     color: rgba(255, 255, 255, 0.4);
@@ -1009,6 +994,28 @@ body.screensaver-mode #poster-wrapper {
 #branding-container svg {
     width: 24px;
     height: 24px;
+}
+
+/* iOS-only: lock to clip behavior for screensaver view */
+@supports (-webkit-touch-callout: none) {
+    /* Use modern viewport units on iOS Safari */
+    /* Clip mode: stop above the visible toolbar area */
+    body.ios-bg-clip:not(.cinema-mode):not(.wallart-mode) .screensaver-layer {
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: auto !important;
+        /* Fallbacks: use 100vh, then prefer 100svh when supported */
+        height: 100vh !important; /* baseline: stops above address bar */
+        height: 100svh !important; /* preferred: small viewport height excludes the address bar */
+        background-attachment: scroll !important;
+    }
+    body.ios-bg-clip:not(.cinema-mode):not(.wallart-mode) #info-container {
+        padding-bottom: 50px !important; /* keep original spacing */
+    }
+    body.ios-bg-clip:not(.cinema-mode):not(.wallart-mode) #controls-container {
+        bottom: 70px !important; /* ensure controls do not cross the background edge */
+    }
 }
 /* --- Media Queries for Mobile Devices --- */
 @media (max-width: 768px) {

@@ -626,36 +626,29 @@ app.get(['/', '/index.html'], (req, res, next) => {
 
         // Get current asset versions
         const versions = getAssetVersions();
-        // Automatic iOS cache-buster (and manual via ?cb): append &cb=<ts> for iOS Safari or when ?cb is present
-        const ua = (req.headers['user-agent'] || '').toString();
-        const isIOS = /iPhone|iPad|iPod/i.test(ua);
-        const cbParam = typeof req.query.cb !== 'undefined' || isIOS ? `&cb=${Date.now()}` : '';
 
         // Replace asset version placeholders with individual file versions
         const stamped = contents
             .replace(
                 /script\.js\?v=[^"&\s]+/g,
-                `script.js?v=${versions['script.js'] || ASSET_VERSION}${cbParam}`
+                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
             )
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
-                `style.css?v=${versions['style.css'] || ASSET_VERSION}${cbParam}`
+                `style.css?v=${versions['style.css'] || ASSET_VERSION}`
             )
             // Stamp client-side logger
             .replace(
                 /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
-                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}${cbParam}`
+                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
             )
             // Stamp manifest
             .replace(
                 /\/manifest\.json(\?v=[^"'\s>]+)?/g,
-                `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}${cbParam}`
+                `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
             )
             // Ensure service worker registration always fetches latest sw.js
-            .replace(
-                /\/sw\.js(\?v=[^"'\s>]+)?/g,
-                `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}${cbParam}`
-            );
+            .replace(/\/sw\.js(\?v=[^"'\s>]+)?/g, `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`);
 
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
         res.send(stamped);
@@ -669,31 +662,25 @@ app.get('/promo.html', (req, res, next) => {
         if (err) return next(err);
 
         const versions = getAssetVersions();
-        const ua = (req.headers['user-agent'] || '').toString();
-        const isIOS = /iPhone|iPad|iPod/i.test(ua);
-        const cbParam = typeof req.query.cb !== 'undefined' || isIOS ? `&cb=${Date.now()}` : '';
 
         const stamped = contents
             .replace(
                 /script\.js\?v=[^"&\s]+/g,
-                `script.js?v=${versions['script.js'] || ASSET_VERSION}${cbParam}`
+                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
             )
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
-                `style.css?v=${versions['style.css'] || ASSET_VERSION}${cbParam}`
+                `style.css?v=${versions['style.css'] || ASSET_VERSION}`
             )
             .replace(
                 /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
-                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}${cbParam}`
+                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
             )
             .replace(
                 /\/manifest\.json(\?v=[^"'\s>]+)?/g,
-                `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}${cbParam}`
+                `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
             )
-            .replace(
-                /\/sw\.js(\?v=[^"'\s>]+)?/g,
-                `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}${cbParam}`
-            );
+            .replace(/\/sw\.js(\?v=[^"'\s>]+)?/g, `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`);
 
         res.setHeader('Cache-Control', 'no-cache');
         res.send(stamped);
@@ -6730,7 +6717,7 @@ app.get(
 
 // Cache configuration is now hardcoded for simplicity and security
 const CACHE_CONFIG = {
-    maxSizeGB: 5,
+    maxSizeGB: 2,
     minFreeDiskSpaceMB: 500,
 };
 

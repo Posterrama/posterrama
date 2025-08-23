@@ -375,7 +375,7 @@ function updateHelpContent(sectionId) {
     }
 
     // Call the forced update function
-    updateHelpContent(sectionId);
+    updateHelpContentForced(sectionId);
 }
 
 function updateRefreshRateLabel(value) {
@@ -5070,7 +5070,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Since cache configuration fields have been removed, just log that cache is auto-managed
         logger.debug(
-            '[Cache Config] Cache is auto-managed with fixed settings: 5GB max, 500MB min free space'
+            '[Cache Config] Cache is auto-managed with fixed settings: 2GB max, 500MB min free space'
         );
 
         // Clean up any existing auto-managed notices (user requested removal)
@@ -6027,13 +6027,13 @@ function updateCacheStatsDisplay(data, isError = false) {
         return;
     }
 
-    // Update disk usage with combined format: "1.2 GB / 5.0 GB (24%)"
+    // Update disk usage with combined format: "1.2 GB / 2.0 GB (24%)"
     const totalSize = data.diskUsage?.total || 0;
     const imageCacheSize = data.diskUsage?.imageCache || 0;
     const logSize = data.diskUsage?.logFiles || 0;
 
-    // Use hardcoded max cache size (5GB)
-    const maxSizeGB = 5;
+    // Use hardcoded max cache size (2GB)
+    const maxSizeGB = 2;
     const maxSizeBytes = maxSizeGB * 1024 * 1024 * 1024; // Convert GB to bytes
 
     // Calculate usage percentage
