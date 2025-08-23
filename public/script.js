@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let wallartTitleTimer = null; // Timer to keep title as "Posterrama" in wallart mode
     let wallartInitializing = false; // Flag to prevent multiple initialization attempts
     // Wallart Phase 1 additions
-    let wallartSpotlightTimer = null;
+    // Spotlight feature removed
     let wallartAmbientTweenTimer = null;
     let appConfig = {};
 
@@ -431,18 +431,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Start the new wallart cycle system
             startWallartCycle(config.wallartMode);
 
-            // Setup optional spotlight rotation
-            if (config.wallartMode.spotlight) {
-                if (wallartSpotlightTimer) clearInterval(wallartSpotlightTimer);
-                // rotate spotlight every 10s (configurable later via tempo)
-                wallartSpotlightTimer = setInterval(() => {
-                    try {
-                        rotateWallartSpotlight();
-                    } catch (e) {
-                        // noop: spotlight rotation is best-effort
-                    }
-                }, 10000);
-            }
+            // Spotlight removed
 
             // Add resize listener for dynamic grid recalculation
             if (!window.wallartResizeListener) {
@@ -483,11 +472,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wallartRefreshTimeout = null;
             }
 
-            // Clear spotlight/ambient timers
-            if (wallartSpotlightTimer) {
-                clearInterval(wallartSpotlightTimer);
-                wallartSpotlightTimer = null;
-            }
+            // Clear ambient timers only (spotlight removed)
             if (wallartAmbientTweenTimer) {
                 clearInterval(wallartAmbientTweenTimer);
                 wallartAmbientTweenTimer = null;
@@ -583,6 +568,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 low: 0.25, // Posters take ~25% of screen width each (4 across)
                 medium: 0.2, // Posters take ~20% of screen width each (5 across)
                 high: 0.167, // Posters take ~16.7% of screen width each (6 across)
+                ludicrous: 0.1, // ~10% of screen width each (~10 across)
             };
         } else {
             // Desktop/Landscape: original density factors
@@ -590,10 +576,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 low: 0.15, // Posters take ~15% of screen width each
                 medium: 0.12, // Posters take ~12% of screen width each
                 high: 0.09, // Posters take ~9% of screen width each
+                ludicrous: 0.06, // ~6% of screen width each (about 200% of medium)
             };
         }
 
-        const densityFactor = densityFactors[density] || 0.12;
+        const densityFactor = densityFactors[density] || densityFactors['medium'];
 
         // Calculate optimal poster width based on screen width and density
         const optimalPosterWidth = Math.round(screenWidth * densityFactor);
@@ -680,29 +667,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function createLoadingGrid(message = 'Loading posters...') {
-        const wallartGrid = document.createElement('div');
-        wallartGrid.id = 'wallart-grid';
-        wallartGrid.className = 'wallart-grid';
+        // Show the global centered spinner instead of textual loading message
+        try {
+            const loaderEl = document.getElementById('loader');
+            if (loaderEl) {
+                loaderEl.style.display = 'flex';
+                loaderEl.style.opacity = '1';
+            }
+        } catch (e) {
+            // no-op; loader element not found
+        }
 
-        const loadingItem = document.createElement('div');
-        loadingItem.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 999999 !important;
-            background: #000 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: white !important;
-            font-size: 24px !important;
-            font-family: Arial, sans-serif !important;
-        `;
-        loadingItem.textContent = message;
-        wallartGrid.appendChild(loadingItem);
-        document.body.appendChild(wallartGrid);
+        // Ensure no stray loading grid with text remains
+        const existingGrid = document.getElementById('wallart-grid');
+        if (existingGrid && existingGrid.parentNode) {
+            existingGrid.remove();
+        }
     }
 
     function startWallartCycle(wallartConfig) {
@@ -735,7 +715,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         logger.debug(
                             '[WALLART] Still no media after fetch, showing loading message...'
                         );
-                        // Continue with showing loading message and retry after delay
+                        // Show spinner overlay while waiting and retry after delay
                         createLoadingGrid('Loading posters...');
                         setTimeout(() => {
                             // console.log removed for cleaner browser console
@@ -746,6 +726,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .catch(error => {
                     wallartInitializing = false;
                     console.error('[WALLART] Failed to fetch media:', error);
+                    // Show spinner overlay while retrying after an error
                     createLoadingGrid('Failed to load posters. Retrying...');
                     // Retry after error
                     setTimeout(() => {
@@ -795,6 +776,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         wallartGrid.dataset.minPosterWidth = layoutInfo.minPosterWidth;
         wallartGrid.dataset.posterCount = layoutInfo.posterCount;
         wallartGrid.dataset.totalNeeded = layoutInfo.totalNeeded;
+        wallartGrid.dataset.columns = layoutInfo.columns;
+        wallartGrid.dataset.rows = layoutInfo.rows;
 
         // Append directly to body
         document.body.appendChild(wallartGrid);
@@ -843,14 +826,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Use grid cell dimensions but preserve poster proportions with object-fit
             posterItem.style.cssText = `
-                background: #111 !important;
-                overflow: hidden !important;
-                opacity: 1 !important;
-                display: block !important;
-                width: 100% !important;
-                height: 100% !important;
-                position: relative !important;
-                ${isMobile ? 'will-change: opacity !important;' : ''}
+                background: #111;
+                overflow: hidden;
+                opacity: 1;
+                display: block;
+                width: 100%;
+                height: 100%;
+                position: relative;
+                ${isMobile ? 'will-change: opacity;' : ''}
             `;
 
             const img = document.createElement('img');
@@ -862,22 +845,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Simplified styling for mobile
             if (isMobile) {
                 img.style.cssText = `
-                    width: 100% !important;
-                    height: 100% !important;
-                    object-fit: cover !important;
-                    object-position: center !important;
-                    display: block !important;
-                    transform: scale(1) !important;
-                    will-change: opacity !important;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    object-position: center;
+                    display: block;
+                    transform: scale(1);
+                    will-change: opacity;
                 `;
             } else {
                 img.style.cssText = `
-                    width: 100% !important;
-                    height: 100% !important;
-                    object-fit: cover !important;
-                    object-position: center !important;
-                    display: block !important;
-                    transform: scale(1.05) !important;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    object-position: center;
+                    display: block;
+                    transform: scale(1.05);
                 `;
             }
 
@@ -918,90 +901,61 @@ document.addEventListener('DOMContentLoaded', async () => {
             const newTop = layout.gridTop + window.wallartShiftOffset;
             wallartGrid.style.transform = `translate(${layout.gridLeft}px, ${newTop}px)`;
 
+            // If any previous layers remain due to interrupted anim, remove them
+            element.querySelectorAll('.layer-r, .layer-g, .layer-b').forEach(n => n.remove());
             // console.log removed for cleaner browser console
         }
 
         function getUniqueRandomPoster(excludePosterId = null) {
             if (mediaQueue.length === 0) return null;
 
-            // Get all poster IDs currently visible in the grid
-            const currentlyVisibleIds = new Set();
-            currentPosters.forEach(poster => {
-                if (poster) {
-                    const posterId = poster.id || poster.title || poster.posterUrl;
-                    currentlyVisibleIds.add(posterId);
-                }
+            // Collect currently visible ids to avoid immediate repeats in grid
+            const visibleIds = new Set();
+            currentPosters.forEach(p => {
+                if (!p) return;
+                const id = p.id || p.title || p.posterUrl;
+                if (id) visibleIds.add(id);
             });
 
-            // If we've used all available posters, we're done - no more unique options
-            if (usedPosters.size >= mediaQueue.length) {
-                return null;
-            }
-
-            // Find posters that haven't been used yet AND are not the excluded poster AND are not currently visible
-            const availablePosters = mediaQueue.filter(item => {
-                const posterId = item.id || item.title || item.posterUrl;
-                const isUsed = usedPosters.has(posterId);
-                const isExcluded = excludePosterId && posterId === excludePosterId;
-                const isCurrentlyVisible = currentlyVisibleIds.has(posterId);
-                return !isUsed && !isExcluded && !isCurrentlyVisible;
+            // Primary pool: exclude current, visible, and recently used
+            let pool = mediaQueue.filter(item => {
+                const id = item.id || item.title || item.posterUrl;
+                if (!id) return false;
+                if (excludePosterId && id === excludePosterId) return false;
+                if (visibleIds.has(id)) return false;
+                if (usedPosters.has(id)) return false;
+                return true;
             });
 
-            if (availablePosters.length === 0) {
-                // If no available posters, find posters that are not the excluded one and not currently visible
-                const nonExcludedNonVisiblePosters = mediaQueue.filter(item => {
-                    const posterId = item.id || item.title || item.posterUrl;
-                    const isExcluded = excludePosterId && posterId === excludePosterId;
-                    const isCurrentlyVisible = currentlyVisibleIds.has(posterId);
-                    return !isExcluded && !isCurrentlyVisible;
+            // Secondary: allow used but still avoid current and visible
+            if (pool.length === 0) {
+                pool = mediaQueue.filter(item => {
+                    const id = item.id || item.title || item.posterUrl;
+                    if (!id) return false;
+                    if (excludePosterId && id === excludePosterId) return false;
+                    if (visibleIds.has(id)) return false;
+                    return true;
                 });
-
-                if (nonExcludedNonVisiblePosters.length === 0) {
-                    // If still no options and we have more than one poster, find non-excluded ones
-                    const nonExcludedPosters = mediaQueue.filter(item => {
-                        const posterId = item.id || item.title || item.posterUrl;
-                        return !excludePosterId || posterId !== excludePosterId;
-                    });
-
-                    if (nonExcludedPosters.length === 0) {
-                        // Last resort: any poster
-                        const randomIndex = Math.floor(Math.random() * mediaQueue.length);
-                        return mediaQueue[randomIndex];
-                    }
-
-                    // Get random from non-excluded posters
-                    const randomIndex = Math.floor(Math.random() * nonExcludedPosters.length);
-                    const selectedPoster = nonExcludedPosters[randomIndex];
-
-                    // Mark as used
-                    const posterId =
-                        selectedPoster.id || selectedPoster.title || selectedPoster.posterUrl;
-                    usedPosters.add(posterId);
-
-                    return selectedPoster;
-                }
-
-                // Get random from non-excluded, non-visible posters
-                const randomIndex = Math.floor(Math.random() * nonExcludedNonVisiblePosters.length);
-                const selectedPoster = nonExcludedNonVisiblePosters[randomIndex];
-
-                // Mark as used
-                const posterId =
-                    selectedPoster.id || selectedPoster.title || selectedPoster.posterUrl;
-                usedPosters.add(posterId);
-
-                return selectedPoster;
             }
 
-            // Get a random poster from available ones
-            const randomIndex = Math.floor(Math.random() * availablePosters.length);
-            const selectedPoster = availablePosters[randomIndex];
+            // Tertiary: only exclude current
+            if (pool.length === 0) {
+                pool = mediaQueue.filter(item => {
+                    const id = item.id || item.title || item.posterUrl;
+                    if (!id) return false;
+                    if (excludePosterId && id === excludePosterId) return false;
+                    return true;
+                });
+            }
 
-            // Mark as used
-            const posterId = selectedPoster.id || selectedPoster.title || selectedPoster.posterUrl;
-            usedPosters.add(posterId);
+            // Last resort: everything
+            if (pool.length === 0) pool = mediaQueue.slice();
 
-            return selectedPoster;
+            const idx = Math.floor(Math.random() * pool.length);
+            const selected = pool[idx];
+            const selId = selected?.id || selected?.title || selected?.posterUrl;
+            if (selId) usedPosters.add(selId);
+            return selected || null;
         }
 
         function initializeWallartGrid(posterCount) {
@@ -1073,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 position: fixed !important;
                 top: ${layoutInfo.gridTop}px !important;
                 left: ${layoutInfo.gridLeft}px !important;
-                z-index: 1000 !important;
+                z-index: 10000 !important;
                 overflow: visible !important;
             `;
 
@@ -1090,9 +1044,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             wallartGrid.style.cssText = gridCSS;
 
+            // Persist current grid dimensions for later use in refresh bursts
+            wallartGrid.dataset.columns = String(layoutInfo.columns);
+            wallartGrid.dataset.rows = String(layoutInfo.rows);
+
             // Check if we have enough media
             if (mediaQueue.length === 0) {
-                // Show loading message
+                // Show in-grid spinner (no text)
                 const loadingItem = document.createElement('div');
                 loadingItem.style.cssText = `
                     grid-column: 1 / -1 !important;
@@ -1100,11 +1058,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    color: white !important;
-                    font-size: 24px !important;
-                    font-family: Arial, sans-serif !important;
                 `;
-                loadingItem.textContent = 'Loading posters...';
+                const spinner = document.createElement('div');
+                spinner.className = 'poster-loader';
+                loadingItem.appendChild(spinner);
                 wallartGrid.appendChild(loadingItem);
 
                 // Try to fetch media if not available
@@ -1132,8 +1089,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     currentPosters.push(poster);
                     const posterItem = createPosterElement(poster, i);
 
-                    // Animatie: staggered reveal (Phase 1)
-                    const pack = (wallartConfig.animationPack || 'staggered').toLowerCase();
+                    // Animatie: staggered/ripple/scanline reveal (initial grid)
+                    // Prefer explicit animationType from admin if it's a pack-style option
+                    const pack = (
+                        wallartConfig.animationPack ||
+                        (['staggered', 'ripple', 'scanline'].includes(
+                            (wallartConfig.animationType || '').toLowerCase()
+                        )
+                            ? wallartConfig.animationType
+                            : null) ||
+                        'staggered'
+                    ).toLowerCase();
                     if (pack === 'staggered') {
                         posterItem.style.opacity = '0';
                         posterItem.style.transform = 'scale(0.96)';
@@ -1159,6 +1125,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                             posterItem.style.opacity = '1';
                             posterItem.style.transform = 'scale(1)';
                         }, delay);
+                    } else if (pack === 'scanline') {
+                        // Reveal row-by-row with a gentle left->right cascade
+                        const col = i % layoutInfo.columns;
+                        const row = Math.floor(i / layoutInfo.columns);
+                        posterItem.style.opacity = '0';
+                        posterItem.style.transform = 'translateY(8px)';
+                        posterItem.style.transition =
+                            'opacity 420ms ease-out, transform 460ms ease-out';
+                        const delay = row * 90 + col * 35 + Math.floor(Math.random() * 30);
+                        setTimeout(() => {
+                            posterItem.style.opacity = '1';
+                            posterItem.style.transform = 'translateY(0)';
+                        }, delay);
                     } else {
                         // fallback: simple fade-in
                         posterItem.style.animationDelay = `${i * 0.02}s`;
@@ -1179,18 +1158,288 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // noop: ambient overlay update can fail if images not ready
                 }
             }
-            if (wallartConfig.spotlight) {
-                try {
-                    rotateWallartSpotlight(true);
-                } catch (e) {
-                    // noop: spotlight is optional
-                }
-            }
+            // Spotlight removed
         }
 
         window.refreshSinglePoster = function refreshSinglePoster() {
             if (currentPosters.length === 0 || mediaQueue.length === 0) {
                 return;
+            }
+
+            // If the selected animation is a pack-style (staggered/ripple/scanline), run a short burst each cycle
+            const packType = (animationType || '').toLowerCase();
+            if (packType === 'staggered' || packType === 'ripple' || packType === 'scanline') {
+                // Helper to safely parse grid info
+                const wallartGrid = document.getElementById('wallart-grid');
+                let cols = parseInt(wallartGrid?.dataset?.columns || '0', 10);
+                let rows = parseInt(wallartGrid?.dataset?.rows || '0', 10);
+                if (!cols || !rows) {
+                    // Fallback to calculated layout
+                    const layout = calculateWallartLayout(wallartConfig.density);
+                    cols = layout.columns;
+                    rows = layout.rows;
+                }
+
+                const total = currentPosters.length;
+                const posterElements = wallartGrid?.querySelectorAll('.wallart-poster-item') || [];
+                if (!wallartGrid || posterElements.length === 0) return;
+
+                // Decide burst size based on grid size and refresh rate
+                const rr = wallartConfig.refreshRate || wallartConfig.randomness || 5;
+                const base = 4 + Math.round(rr / 3); // 4..7
+                let burstSize = Math.min(Math.max(base, Math.ceil(total * 0.06)), 12); // clamp 6%..12 items
+                burstSize = Math.max(3, Math.min(burstSize, total));
+
+                // Build list of candidate indices
+                const indices = Array.from({ length: total }, (_, i) => i);
+
+                // Compute ordering and delays
+                let ordered = [];
+                const delays = new Map();
+                // Cooldown: avoid hitting the same indices repeatedly across bursts
+                const cooldownSets = Array.isArray(window._wallartRecentUpdates)
+                    ? window._wallartRecentUpdates
+                    : [];
+                const cooldown = new Set();
+                for (const s of cooldownSets) {
+                    for (const v of s) cooldown.add(v);
+                }
+
+                if (packType === 'staggered') {
+                    // Group tiles by diagonal (row + col)
+                    const withDiag = indices.map(i => ({
+                        i,
+                        row: Math.floor(i / cols),
+                        col: i % cols,
+                        diag: Math.floor(i / cols) + (i % cols),
+                    }));
+
+                    const byDiag = new Map();
+                    for (const item of withDiag) {
+                        if (!byDiag.has(item.diag)) byDiag.set(item.diag, []);
+                        byDiag.get(item.diag).push(item);
+                    }
+
+                    // Diagonal order: alternate direction per burst for variety
+                    window._wallartDiagFlip = !window._wallartDiagFlip;
+                    let diags = Array.from(byDiag.keys()).sort((a, b) => a - b);
+                    if (window._wallartDiagFlip) diags.reverse();
+                    // Random start offset to avoid favoring top-left
+                    const startOffset = Math.floor(Math.random() * diags.length);
+                    diags = diags.slice(startOffset).concat(diags.slice(0, startOffset));
+
+                    // Quota per diagonal to avoid many updates in a single row/diag
+                    const diagQuota = total >= 60 ? 2 : 1;
+                    const picked = [];
+                    for (const d of diags) {
+                        const group = byDiag.get(d) || [];
+                        // Shuffle within diagonal for variety
+                        group.sort(() => Math.random() - 0.5);
+                        for (let k = 0; k < Math.min(diagQuota, group.length); k++) {
+                            picked.push(group[k]);
+                            if (picked.length >= burstSize) break;
+                        }
+                        if (picked.length >= burstSize) break;
+                    }
+
+                    const chosen = picked.map(p => p.i);
+                    // Apply cooldown filter; if too few remain, fill back from the original picked order
+                    const filtered = chosen.filter(i => !cooldown.has(i));
+                    if (filtered.length >= Math.max(3, Math.floor(burstSize * 0.7))) {
+                        ordered = filtered.slice(0, burstSize);
+                    } else {
+                        ordered = filtered
+                            .concat(chosen.filter(i => !filtered.includes(i)))
+                            .slice(0, burstSize);
+                    }
+
+                    // Assign delays based on diagonal with jitter and checkerboard offset
+                    for (const i of ordered) {
+                        const r = Math.floor(i / cols);
+                        const c = i % cols;
+                        const diag = r + c;
+                        const jitter = Math.floor(Math.random() * 90);
+                        const checker = ((r + c) % 2) * 25;
+                        delays.set(i, diag * 80 + jitter + checker);
+                    }
+                } else if (packType === 'ripple') {
+                    // Ripple: choose a random origin inside the grid
+                    const originIndex = Math.floor(Math.random() * total);
+                    const oc = originIndex % cols;
+                    const orow = Math.floor(originIndex / cols);
+
+                    // Compute distance and ring for all tiles
+                    const withDistance = indices.map(i => {
+                        const row = Math.floor(i / cols);
+                        const col = i % cols;
+                        const dist = Math.hypot(col - oc, row - orow);
+                        const ring = Math.max(0, Math.floor(dist)); // integer rings from origin
+                        return { i, row, col, dist, ring };
+                    });
+
+                    // Determine larger burst size for ripple while keeping good staggering
+                    const rr = wallartConfig.refreshRate || wallartConfig.randomness || 5;
+                    let targetBurst = Math.ceil(total * 0.1) + Math.floor(rr / 2); // base ~10% + a bit from refresh rate
+                    // Clamp to avoid overwhelming the device
+                    targetBurst = Math.max(6, Math.min(targetBurst, Math.ceil(total * 0.22), 24));
+
+                    // Group by rings and pick at most quota per ring to avoid many firing together
+                    const byRing = new Map();
+                    for (const item of withDistance) {
+                        if (!byRing.has(item.ring)) byRing.set(item.ring, []);
+                        byRing.get(item.ring).push(item);
+                    }
+                    const rings = Array.from(byRing.keys()).sort((a, b) => a - b);
+
+                    // Ring quota: larger grids can take more per ring
+                    const ringQuota = total >= 60 ? 3 : 2;
+
+                    const picked = [];
+                    for (const ring of rings) {
+                        const group = byRing.get(ring) || [];
+                        // Shuffle lightly for variety
+                        group.sort(() => Math.random() - 0.5);
+                        for (let k = 0; k < Math.min(ringQuota, group.length); k++) {
+                            picked.push(group[k]);
+                            if (picked.length >= targetBurst) break;
+                        }
+                        if (picked.length >= targetBurst) break;
+                    }
+
+                    // If not enough picked (very small grids), fallback to nearest-first until filled
+                    if (picked.length < targetBurst) {
+                        const remaining = withDistance
+                            .filter(x => !picked.some(p => p.i === x.i))
+                            .sort((a, b) => a.dist - b.dist)
+                            .slice(0, targetBurst - picked.length);
+                        picked.push(...remaining);
+                    }
+
+                    // Apply cooldown filtering similar to staggered
+                    const chosen = picked.map(p => p.i);
+                    const filtered = chosen.filter(i => !cooldown.has(i));
+                    if (filtered.length >= Math.max(3, Math.floor(targetBurst * 0.7))) {
+                        ordered = filtered.slice(0, targetBurst);
+                    } else {
+                        ordered = filtered
+                            .concat(chosen.filter(i => !filtered.includes(i)))
+                            .slice(0, targetBurst);
+                    }
+                    for (const p of picked) {
+                        // Delay by ring with extra jitter and minor checkerboard offset to de-sync neighbors
+                        const jitter = Math.floor(Math.random() * 120);
+                        const checker = ((p.row + p.col) % 2) * 30;
+                        delays.set(p.i, p.ring * 140 + jitter + checker);
+                    }
+                } else if (packType === 'scanline') {
+                    // Scanline: sweep across rows as a band
+                    // Maintain sweep state on window
+                    if (typeof window._wallartScanline === 'undefined') {
+                        window._wallartScanline = {
+                            row: 0,
+                            dir: 1, // 1 down, -1 up
+                        };
+                    }
+                    const s = window._wallartScanline;
+
+                    // Thickness: 1–2 rows depending on grid size
+                    const thickness = rows >= 6 ? 2 : 1;
+                    const rowsToUpdate = [];
+                    for (let t = 0; t < thickness; t++) {
+                        const r = s.row + t * s.dir;
+                        if (r >= 0 && r < rows) rowsToUpdate.push(r);
+                    }
+
+                    // Advance sweep position for next cycle
+                    s.row += s.dir;
+                    if (s.row >= rows - 1 || s.row <= 0) {
+                        s.dir *= -1; // bounce at edges
+                        s.row = Math.max(0, Math.min(rows - 1, s.row));
+                    }
+
+                    // Build ordered indices for all cells in chosen rows
+                    const chosen = [];
+                    for (const r of rowsToUpdate) {
+                        for (let c = 0; c < cols; c++) {
+                            chosen.push(r * cols + c);
+                        }
+                    }
+
+                    // Apply cooldown filtering but allow full band if needed
+                    let chosenFiltered = chosen.filter(i => !cooldown.has(i));
+                    if (chosenFiltered.length < Math.max(3, Math.floor(chosen.length * 0.6))) {
+                        chosenFiltered = chosen; // ensure we still update a band
+                    }
+                    ordered = chosenFiltered;
+
+                    // Delays: left→right cascade per row with light jitter; alternate direction for variety
+                    window._wallartScanlineFlip = !window._wallartScanlineFlip;
+                    for (const i of ordered) {
+                        const r = Math.floor(i / cols);
+                        const c = i % cols;
+                        const base = window._wallartScanlineFlip ? c : cols - 1 - c;
+                        const jitter = Math.floor(Math.random() * 40);
+                        delays.set(i, base * 45 + (r % rows) * 10 + jitter);
+                    }
+                }
+
+                // Execute the burst: schedule each tile update with its delay
+                let maxDelay = 0;
+                for (const idx of ordered) {
+                    const delay = delays.get(idx) || 0;
+                    if (delay > maxDelay) maxDelay = delay;
+
+                    setTimeout(() => {
+                        const targetElement = posterElements[idx];
+                        if (!targetElement) return;
+
+                        // Choose a new poster for this position
+                        const currentPosterAtPosition = currentPosters[idx];
+                        const currentPosterId = currentPosterAtPosition
+                            ? currentPosterAtPosition.id ||
+                              currentPosterAtPosition.title ||
+                              currentPosterAtPosition.posterUrl
+                            : null;
+                        const newPoster = getUniqueRandomPoster(currentPosterId);
+                        if (!newPoster) return;
+
+                        // Free the old poster id and update tracking
+                        if (currentPosterAtPosition && currentPosterId) {
+                            usedPosters.delete(currentPosterId);
+                        }
+                        currentPosters[idx] = newPoster;
+                        targetElement.dataset.posterId =
+                            newPoster.id || newPoster.title || String(idx);
+
+                        // For per-tile change use a simple effect; the pack provides the burst timing
+                        animatePosterChange(targetElement, newPoster, 'fade');
+                    }, delay);
+                }
+
+                // Record indices for cooldown to spread updates across bursts
+                try {
+                    window._wallartRecentUpdates = Array.isArray(window._wallartRecentUpdates)
+                        ? window._wallartRecentUpdates
+                        : [];
+                    window._wallartRecentUpdates.push(new Set(ordered));
+                    if (window._wallartRecentUpdates.length > 3) {
+                        window._wallartRecentUpdates.shift();
+                    }
+                } catch (_) {
+                    /* noop */
+                }
+
+                // Schedule next cycle after the burst completes (always on)
+                const randomFactor = Math.random() * Math.random();
+                const isNegative = Math.random() < 0.5;
+                const randomVariation = (isNegative ? -1 : 1) * randomFactor * maxRandomVariation;
+                const nextInterval = Math.max(200, refreshInterval + randomVariation);
+                const padding = 250; // small padding after last animation
+                wallartRefreshTimeout = setTimeout(
+                    refreshSinglePoster,
+                    nextInterval + maxDelay + padding
+                );
+                return; // handled burst this cycle
             }
 
             // Prevent the same position from being updated twice in a row
@@ -1239,16 +1488,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 animatePosterChange(targetElement, newPoster, animationType);
             }
 
-            // Schedule next refresh only if auto-refresh is enabled
-            if (wallartConfig.autoRefresh !== false) {
-                // Use exponential random distribution for more natural, unpredictable timing
-                const randomFactor = Math.random() * Math.random(); // Double random for exponential curve
-                const isNegative = Math.random() < 0.5; // 50% chance negative variation
-                const randomVariation = (isNegative ? -1 : 1) * randomFactor * maxRandomVariation;
-                const nextInterval = Math.max(200, refreshInterval + randomVariation);
+            // Schedule next refresh (always on)
+            // Use exponential random distribution for more natural, unpredictable timing
+            const randomFactor = Math.random() * Math.random(); // Double random for exponential curve
+            const isNegative = Math.random() < 0.5; // 50% chance negative variation
+            const randomVariation = (isNegative ? -1 : 1) * randomFactor * maxRandomVariation;
+            const nextInterval = Math.max(200, refreshInterval + randomVariation);
 
-                wallartRefreshTimeout = setTimeout(refreshSinglePoster, nextInterval);
-            }
+            wallartRefreshTimeout = setTimeout(refreshSinglePoster, nextInterval);
         };
 
         // Function to automatically detect all available animation types from the animatePosterChange function
@@ -1265,6 +1512,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 'shiftDown',
                 'staggered',
                 'ripple',
+                'scanline',
+                'parallax',
+                'neonPulse',
+                'chromaticShift',
+                'mosaicShatter',
             ];
 
             return knownTypes;
@@ -1297,6 +1549,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             // If animation type is 'random', select a random type from all available types
             if (animationType === 'random') {
                 animationType = getRandomAnimationType();
+            }
+
+            // Map pack-style names to a tile-supported effect for per-item updates
+            if (animationType === 'staggered' || animationType === 'ripple') {
+                animationType = 'fade';
             }
 
             // Start with just a simple, reliable fade animation
@@ -1476,6 +1733,380 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (animationType === 'shiftUp' || animationType === 'shiftDown') {
                 // Shift animations - move entire grid and update multiple posters
                 performShiftAnimation(animationType, newItem, element);
+            } else if (animationType === 'scanline') {
+                // Horizontal sweep: blur + slideY slight, then in
+                img.style.transition = 'none';
+                img.style.filter = 'blur(6px) brightness(0.9)';
+                img.style.transform = 'translateY(8px)';
+                img.offsetHeight;
+                // swap
+                img.src =
+                    newItem.posterUrl ||
+                    '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                img.alt = newItem.title || 'Movie Poster';
+                img.offsetHeight;
+                img.style.transition =
+                    'transform 420ms ease-out, filter 380ms ease-out, opacity 360ms ease-out';
+                img.style.opacity = '1';
+                setTimeout(() => {
+                    img.style.filter = 'blur(0px) brightness(1)';
+                    img.style.transform = 'translateY(0)';
+                }, 30);
+            } else if (animationType === 'parallax') {
+                // Smooth single-poster parallax with preload, longer drift and gentle settle
+                const url =
+                    newItem.posterUrl ||
+                    '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                const doAnim = () => {
+                    img.style.transition = 'none';
+                    // Derive offset from element's position in grid for directional drift
+                    const parent = element.parentElement;
+                    let dx = 6,
+                        dy = -6;
+                    try {
+                        const cols = parseInt(parent?.dataset?.columns || '0', 10);
+                        const rows = parseInt(parent?.dataset?.rows || '0', 10);
+                        if (cols && rows) {
+                            const idx = Array.from(
+                                parent.querySelectorAll('.wallart-poster-item')
+                            ).indexOf(element);
+                            const c = idx % cols;
+                            const r = Math.floor(idx / cols);
+                            const cx = (cols - 1) / 2;
+                            const cy = (rows - 1) / 2;
+                            // Vector pointing from tile to center (so tile moves inward)
+                            const vx = cx - c;
+                            const vy = cy - r;
+                            const len = Math.hypot(vx, vy) || 1;
+                            const mag = Math.min(9, 5 + len * 0.6); // gentler offset
+                            dx = (vx / len) * mag;
+                            dy = (vy / len) * mag;
+                        }
+                    } catch (_) {}
+
+                    // Start slightly offset and a touch larger; subtle opacity ramp
+                    img.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(1.045)`;
+                    img.style.opacity = '0.96';
+                    img.offsetHeight; // reflow
+                    img.style.transition =
+                        'transform 820ms cubic-bezier(0.22, 0.9, 0.2, 1), opacity 820ms ease-out';
+                    img.style.transform = 'translate3d(0, 0, 0) scale(1.0)';
+                    img.style.opacity = '1';
+
+                    // settle slowly to 1.0 to avoid abrupt stop
+                    // No extra settle; keep final at 1.0 to avoid end snaps across effects
+                    setTimeout(() => {
+                        img.style.transition = 'transform 680ms ease-out';
+                        img.style.transform = 'translate3d(0, 0, 0) scale(1.0)';
+                    }, 840);
+                };
+
+                // Preload image to avoid flicker before animating
+                const preload = new Image();
+                let fired = false;
+                const start = () => {
+                    if (fired) return;
+                    fired = true;
+                    img.src = url;
+                    img.alt = newItem.title || 'Movie Poster';
+                    // A tiny delay ensures layout/decoding is applied before animating
+                    setTimeout(doAnim, 20);
+                };
+                preload.onload = start;
+                preload.onerror = start;
+                preload.src = url;
+            } else if (animationType === 'neonPulse') {
+                // Neon glow pulse using container glow + gentle scale bump on image
+                const url =
+                    newItem.posterUrl ||
+                    '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                const neonPalette = [
+                    'rgba(255, 0, 122, 0.85)', // pink
+                    'rgba(0, 225, 255, 0.88)', // cyan
+                    'rgba(170, 80, 255, 0.82)', // purple
+                    'rgba(57, 255, 20, 0.78)', // lime
+                    'rgba(255, 209, 0, 0.82)', // amber
+                ];
+                // Prefer white glow if ambient overlay exists (blends nicer), else pick neon
+                const ambient = document.getElementById('wallart-ambient-overlay');
+                // If ambient is on, prefer bright cyan which pops on dark backgrounds
+                const color = ambient
+                    ? 'rgba(0, 225, 255, 0.75)'
+                    : neonPalette[Math.floor(Math.random() * neonPalette.length)];
+
+                const startAnim = () => {
+                    element.classList.add('animating', 'neon-pulse');
+                    try {
+                        element.style.setProperty('--neon-color', color);
+                    } catch (_) {}
+
+                    // Subtle glow only; avoid scale changes to prevent cross-effect snapping
+                    img.style.transition = 'transform 0ms linear';
+                    img.style.transform = 'scale(1.0)';
+
+                    // Cleanup the glow class after animation ends
+                    setTimeout(() => {
+                        element.classList.remove('neon-pulse');
+                        element.classList.remove('animating');
+                    }, 2300);
+                };
+
+                // Preload to avoid any pop-in
+                const preload = new Image();
+                let fired = false;
+                const begin = () => {
+                    if (fired) return;
+                    fired = true;
+                    img.src = url;
+                    img.alt = newItem.title || 'Movie Poster';
+                    // small timeout ensures the src swap is committed before anim starts
+                    setTimeout(startAnim, 20);
+                };
+                preload.onload = begin;
+                preload.onerror = begin;
+                preload.src = url;
+            } else if (animationType === 'chromaticShift') {
+                // RGB split layers that briefly offset then converge, then blur-fade smoothly out
+                const url =
+                    newItem.posterUrl ||
+                    '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                const start = () => {
+                    // Hard reset any previous transform/transition to avoid end-of-effect snap
+                    img.style.transition = 'none';
+                    img.style.transform = 'translate3d(0, 0, 0) scale(1.0)';
+                    img.offsetHeight; // commit reset
+
+                    // Swap base image first (no transform)
+                    img.src = url;
+                    img.alt = newItem.title || 'Movie Poster';
+
+                    // Remove any lingering layers
+                    element
+                        .querySelectorAll('.layer-r, .layer-g, .layer-b')
+                        .forEach(n => n.remove());
+
+                    // Create overlay RGB layers above it
+                    element.classList.add('animating', 'chromatic-shift');
+                    const r = document.createElement('div');
+                    const g = document.createElement('div');
+                    const b = document.createElement('div');
+                    r.className = 'layer-r';
+                    g.className = 'layer-g';
+                    b.className = 'layer-b';
+                    r.style.backgroundImage = `url("${url}")`;
+                    g.style.backgroundImage = `url("${url}")`;
+                    b.style.backgroundImage = `url("${url}")`;
+                    element.appendChild(r);
+                    element.appendChild(g);
+                    element.appendChild(b);
+
+                    // Animate: offset -> converge -> blur-fade
+                    const tDur = 1100; // transform duration
+                    const fadeDur = 900; // opacity/blur duration
+                    const kick = 12; // px
+                    const easing = 'cubic-bezier(0.22, 0.9, 0.2, 1)';
+                    const trans = `transform ${tDur}ms ${easing}, opacity ${fadeDur}ms ease-out, filter ${fadeDur}ms ease-out`;
+                    r.style.transition = g.style.transition = b.style.transition = trans;
+                    r.style.opacity = g.style.opacity = b.style.opacity = '1';
+                    r.style.filter = g.style.filter = b.style.filter = 'blur(0px)';
+                    r.style.transform = `translate3d(${kick}px, 0, 0)`;
+                    g.style.transform = `translate3d(0, ${-kick}px, 0)`;
+                    b.style.transform = `translate3d(${-kick}px, 0, 0)`;
+                    // Converge a bit later for more glide
+                    const convergeAt = Math.round(tDur * 0.3);
+                    setTimeout(() => {
+                        r.style.transform = 'translate3d(0, 0, 0)';
+                        g.style.transform = 'translate3d(0, 0, 0)';
+                        b.style.transform = 'translate3d(0, 0, 0)';
+                    }, convergeAt);
+                    // Fade + slight blur for a soft exit
+                    const fadeStart = Math.round(tDur * 0.55);
+                    setTimeout(() => {
+                        r.style.opacity = g.style.opacity = b.style.opacity = '0';
+                        r.style.filter = g.style.filter = b.style.filter = 'blur(2px)';
+                    }, fadeStart);
+                    setTimeout(
+                        () => {
+                            r.remove();
+                            g.remove();
+                            b.remove();
+                            element.classList.remove('chromatic-shift');
+                            element.classList.remove('animating');
+                        },
+                        fadeStart + fadeDur + 200
+                    );
+                };
+                const preload = new Image();
+                preload.onload = start;
+                preload.onerror = start;
+                preload.src = url;
+            } else if (animationType === 'holoShimmer') {
+                // Effect removed. Fallback to 'fade' for compatibility.
+                animatePosterChange(element, newItem, 'fade');
+            } else if (animationType === 'mosaicShatter') {
+                // Two-phase effect: explode old poster shards outward, then assemble new poster shards inward
+                const newUrl =
+                    newItem.posterUrl ||
+                    '/api/image?url=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxMTEiLz48L3N2Zz4=';
+                const oldUrl = img.currentSrc || img.src;
+                const run = () => {
+                    element.classList.add('animating', 'mosaic-shatter');
+                    // Lock current rendered size to avoid end snap due to fractional layout rounding
+                    try {
+                        const r = img.getBoundingClientRect();
+                        const w = Math.round(r.width);
+                        const h = Math.round(r.height);
+                        element.style.setProperty('--lock-w', w + 'px');
+                        element.style.setProperty('--lock-h', h + 'px');
+                        element.classList.add('pixel-lock');
+                    } catch (_) {}
+                    // Hard reset base image to avoid any leftover scale causing end-snap
+                    img.style.transition = 'none';
+                    img.style.transform = 'translate3d(0, 0, 0) scale(1.0)';
+                    img.style.filter = '';
+                    img.style.opacity = '1';
+                    const rect = element.getBoundingClientRect();
+                    // Slightly denser grid for more randomness while keeping perf OK
+                    const cols = 5,
+                        rows = 7; // 35 shards
+                    const w = rect.width / cols;
+                    const h = rect.height / rows;
+
+                    // Helper to create shards for a given image URL
+                    const makeShards = (url, zIndex = 3) => {
+                        const arr = [];
+                        for (let r = 0; r < rows; r++) {
+                            for (let c = 0; c < cols; c++) {
+                                const s = document.createElement('div');
+                                s.className = 'shard';
+                                s.style.width = `${w}px`;
+                                s.style.height = `${h}px`;
+                                s.style.left = `${c * w}px`;
+                                s.style.top = `${r * h}px`;
+                                s.style.backgroundImage = `url("${url}")`;
+                                s.style.backgroundSize = `${rect.width}px ${rect.height}px`;
+                                s.style.backgroundPosition = `${-c * w}px ${-r * h}px`;
+                                s.style.zIndex = String(zIndex);
+                                element.appendChild(s);
+                                arr.push(s);
+                            }
+                        }
+                        return arr;
+                    };
+
+                    // Phase 1: explode old shards outward and fade
+                    const oldShards = makeShards(oldUrl, 4);
+                    // Start at rest, then explode out
+                    for (const s of oldShards) {
+                        s.style.transition = 'none';
+                        s.style.opacity = '1';
+                        s.style.transform = 'translate3d(0, 0, 0) rotate(0deg)';
+                    }
+                    // Flush
+                    element.offsetHeight;
+                    // Compute explosion vectors relative to center
+                    const cx = rect.width / 2;
+                    const cy = rect.height / 2;
+                    const explodeDur = 780;
+                    for (const s of oldShards) {
+                        const left = parseFloat(s.style.left) + w / 2;
+                        const top = parseFloat(s.style.top) + h / 2;
+                        const vx = left - cx;
+                        const vy = top - cy;
+                        const len = Math.hypot(vx, vy) || 1;
+                        const nX = vx / len;
+                        const nY = vy / len;
+                        const spread = Math.max(80, Math.min(260, Math.round(rect.width * 0.18)));
+                        const dx = nX * spread + (Math.random() * 36 - 18);
+                        const dy = nY * spread + (Math.random() * 36 - 18);
+                        const rz = Math.random() * 38 - 19;
+                        const delay =
+                            Math.round((len / Math.max(cx, cy)) * 220) +
+                            Math.floor(Math.random() * 180);
+                        const dur = explodeDur + Math.floor(Math.random() * 180) - 90; // slight per-shard variance
+                        s.style.transition = `transform ${dur}ms cubic-bezier(0.22, 0.9, 0.2, 1), opacity ${dur}ms ease-out`;
+                        setTimeout(() => {
+                            s.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rz}deg)`;
+                            s.style.opacity = '0';
+                        }, delay);
+                    }
+
+                    // Phase 2: assemble new shards inward while new image prepares underneath
+                    // Prepare new image but keep transparent beneath shards
+                    setTimeout(() => {
+                        img.style.transition = 'none';
+                        img.style.opacity = '0';
+                        img.src = newUrl;
+                        img.alt = newItem.title || 'Movie Poster';
+                    }, explodeDur * 0.6);
+
+                    setTimeout(() => {
+                        // Remove old shards now that they're gone
+                        oldShards.forEach(s => s.remove());
+
+                        // Create incoming shards for the new image
+                        const newShards = makeShards(newUrl, 4);
+                        const assembleDur = 1480;
+                        const spreadIn = Math.max(90, Math.min(320, Math.round(rect.width * 0.22)));
+                        for (const s of newShards) {
+                            // Start from scattered outside
+                            const centerBias =
+                                1 - Math.abs(0.5 - (parseFloat(s.style.left) + w / 2) / rect.width);
+                            const dx = (Math.random() * 2 - 1) * spreadIn;
+                            const dy = (Math.random() * 2 - 1) * spreadIn;
+                            const rz = Math.random() * 24 - 12;
+                            s.style.transition = 'none';
+                            s.style.opacity = '0.0';
+                            s.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rz}deg)`;
+                            // Stagger so central shards finish first
+                            const delay =
+                                Math.round((1 - centerBias) * 420) +
+                                Math.floor(Math.random() * 240);
+                            setTimeout(() => {
+                                const dur = assembleDur + Math.floor(Math.random() * 240) - 120;
+                                s.style.transition = `transform ${dur}ms cubic-bezier(0.22, 0.9, 0.2, 1), opacity ${dur}ms ease-out`;
+                                s.style.transform = 'translate3d(0, 0, 0) rotate(0deg)';
+                                s.style.opacity = '1.0';
+                            }, delay);
+                        }
+                        // Reveal the new base image gently under the shards (midway) for smoother finish
+                        setTimeout(
+                            () => {
+                                img.style.transition = 'opacity 520ms ease-out';
+                                img.style.opacity = '1';
+                            },
+                            Math.round(assembleDur * 0.48)
+                        );
+
+                        // Cleanup and ensure final neutral transform
+                        setTimeout(() => {
+                            newShards.forEach(s => s.remove());
+                            // Snap base image to exact tile bounds before releasing lock
+                            img.style.transition = 'none';
+                            img.style.transform = 'translate3d(0, 0, 0) scale(1.0)';
+                            img.style.opacity = '1';
+                            img.style.objectFit = 'cover';
+                            img.style.objectPosition = 'center';
+                            // remove classes after image is in final state
+                            element.classList.remove('mosaic-shatter');
+                            element.classList.remove('animating');
+                            // release pixel lock after one frame to allow layout to settle
+                            requestAnimationFrame(() => {
+                                element.classList.remove('pixel-lock');
+                                element.style.removeProperty('--lock-w');
+                                element.style.removeProperty('--lock-h');
+                                // clear any inline styles to return to CSS defaults
+                                img.style.transition = '';
+                                img.style.objectFit = '';
+                                img.style.objectPosition = '';
+                            });
+                        }, assembleDur + 480);
+                    }, explodeDur + 60);
+                };
+                const preload = new Image();
+                preload.onload = run;
+                preload.onerror = run;
+                preload.src = newUrl;
             } else {
                 // For now, fallback to instant change for other animation types
                 img.src =
@@ -1505,10 +2136,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.wallartResizeListener = handleWallartResize;
         window.addEventListener('resize', window.wallartResizeListener);
 
-        // Start the initial refresh timer to begin the poster cycling
-        if (wallartConfig.autoRefresh !== false) {
-            wallartRefreshTimeout = setTimeout(window.refreshSinglePoster, refreshInterval);
-        }
+        // Start the initial refresh timer to begin the poster cycling (always on)
+        wallartRefreshTimeout = setTimeout(window.refreshSinglePoster, refreshInterval);
     }
 
     // --- Wallart ambient overlay helpers ---
@@ -1561,42 +2190,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Compute a complementary color for gradient end
         const comp = [255 - r, 255 - g, 255 - b].map(v => Math.max(24, Math.min(220, v)));
 
-        const start = `rgba(${r}, ${g}, ${b}, 0.85)`;
-        const end = `rgba(${comp[0]}, ${comp[1]}, ${comp[2]}, 0.85)`;
+        const start = `rgba(${r}, ${g}, ${b}, 0.9)`;
+        const end = `rgba(${comp[0]}, ${comp[1]}, ${comp[2]}, 0.9)`;
         const nextBg = `linear-gradient(135deg, ${start} 0%, ${end} 100%)`;
 
         // Smooth tween by cross-fading via opacity if background changes
         ambient.style.background = nextBg;
-        ambient.style.opacity = '0.35';
+        ambient.style.opacity = '0.5';
     }
 
-    // --- Wallart spotlight helpers ---
-    function rotateWallartSpotlight(initial = false) {
-        const grid = document.getElementById('wallart-grid');
-        if (!grid) return;
-        const items = grid.querySelectorAll('.wallart-poster-item');
-        if (items.length === 0) return;
-
-        grid.classList.add('spotlight-active');
-
-        // Clear existing spotlight
-        const current = grid.querySelector('.wallart-poster-item.is-spotlight');
-        if (current) current.classList.remove('is-spotlight');
-
-        // Pick a new index (avoid repeating the same)
-        let idx = Math.floor(Math.random() * items.length);
-        if (!initial && typeof window.__lastSpotlightIdx === 'number' && items.length > 1) {
-            let tries = 0;
-            while (idx === window.__lastSpotlightIdx && tries < 5) {
-                idx = Math.floor(Math.random() * items.length);
-                tries++;
-            }
-        }
-        window.__lastSpotlightIdx = idx;
-
-        const target = items[idx];
-        if (target) target.classList.add('is-spotlight');
-    }
+    // Spotlight helpers removed
 
     async function refreshConfig() {
         try {

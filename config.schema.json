@@ -61,7 +61,7 @@
                 },
                 "density": {
                     "type": "string",
-                    "enum": ["low", "medium", "high"],
+                    "enum": ["low", "medium", "high", "ludicrous"],
                     "default": "medium",
                     "description": "Grid density preset that influences number of rows/columns"
                 },
@@ -89,7 +89,12 @@
                         "zoom",
                         "flip",
                         "staggered",
-                        "ripple"
+                        "ripple",
+                        "scanline",
+                        "parallax",
+                        "neonPulse",
+                        "chromaticShift",
+                        "mosaicShatter"
                     ],
                     "default": "fade",
                     "description": "Animation style used for grid updates"
@@ -99,16 +104,7 @@
                     "default": false,
                     "description": "Enable subtle ambient gradient background overlay"
                 },
-                "spotlight": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Enable rotating spotlight highlight over the grid"
-                },
-                "autoRefresh": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Automatically rotate posters in the grid"
-                },
+
                 "itemsPerScreen": {
                     "type": "number",
                     "minimum": 4,

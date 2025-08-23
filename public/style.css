@@ -1733,6 +1733,7 @@ body.wallart-mode #wallart-grid {
     /* Dynamic grid layout is set via JavaScript for perfect screen filling */
     background: #000 !important;
     transition: transform 0.6s ease-in-out !important;
+    z-index: 10 !important; /* Above ambient overlay */
 }
 
 /* Ambient gradient overlay for Wallart mode */
@@ -1742,10 +1743,13 @@ body.wallart-mode #wallart-grid {
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    z-index: 9000 !important; /* Below wallart grid (which uses ~9999) */
+    z-index: 1 !important; /* Behind wallart grid */
     pointer-events: none !important;
-    opacity: 0.35 !important; /* Subtle by default */
-    transition: opacity 0.6s ease !important;
+    opacity: 0.48 !important; /* Stronger for clearer visibility */
+    transition:
+        opacity 0.6s ease,
+        background 0.6s ease !important;
+    mix-blend-mode: overlay; /* Gentle highlight/shadow tint instead of flat darkening */
     background: linear-gradient(135deg, #0f172a 0%, #111827 100%) !important; /* fallback */
 }
 
@@ -1779,6 +1783,7 @@ body.wallart-mode #wallart-grid {
 
 .wallart-poster-item {
     perspective: 1000px; /* For 3D flip animations */
+    position: relative; /* Anchor pseudo-element overlays to the tile */
 }
 
 .wallart-poster-item img {
@@ -1787,13 +1792,158 @@ body.wallart-mode #wallart-grid {
     object-fit: cover !important;
     object-position: center !important;
     display: block !important;
-    transform: scale(1.05);
+    position: relative; /* ensure ::after can layer above */
+    z-index: 1;
+    transform: scale(1);
     will-change: transform, opacity !important;
     transition: none; /* Let JS control transitions */
     transform-style: preserve-3d; /* For 3D transformations */
 }
 
 /* Fade in animation for wallart items */
+
+/* Neon Pulse helper */
+.wallart-poster-item.neon-pulse::after {
+    content: '';
+    position: absolute;
+    inset: -6px; /* expand a bit for outer glow */
+    border-radius: 10px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    will-change: box-shadow, filter, opacity;
+    animation: neonPulseOuter 2.2s ease-out forwards;
+}
+
+/* Inner edge glow to make it visible right at the poster borders */
+.wallart-poster-item.neon-pulse::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    will-change: box-shadow, opacity;
+    animation: neonPulseInner 2.2s ease-out forwards;
+}
+
+.wallart-poster-item.neon-pulse {
+    --neon-color: rgba(255, 0, 122, 0.5);
+}
+
+@keyframes neonPulseOuter {
+    0% {
+        opacity: 0;
+        filter: blur(0px);
+        box-shadow: 0 0 0px var(--neon-color);
+    }
+    18% {
+        opacity: 1;
+        filter: blur(1.5px);
+        box-shadow:
+            0 0 16px var(--neon-color),
+            0 0 32px var(--neon-color),
+            0 0 56px var(--neon-color);
+    }
+    50% {
+        opacity: 1;
+        filter: blur(2px);
+        box-shadow:
+            0 0 22px var(--neon-color),
+            0 0 44px var(--neon-color),
+            0 0 78px var(--neon-color);
+    }
+    85% {
+        opacity: 0.85;
+        filter: blur(1.4px);
+        box-shadow:
+            0 0 16px var(--neon-color),
+            0 0 32px var(--neon-color),
+            0 0 56px var(--neon-color);
+    }
+    100% {
+        opacity: 0;
+        filter: blur(0px);
+        box-shadow: 0 0 0px var(--neon-color);
+    }
+}
+
+@keyframes neonPulseInner {
+    0% {
+        opacity: 0;
+        box-shadow: inset 0 0 0px var(--neon-color);
+    }
+    25% {
+        opacity: 0.9;
+        box-shadow:
+            inset 0 0 12px var(--neon-color),
+            inset 0 0 20px var(--neon-color);
+    }
+    60% {
+        opacity: 0.8;
+        box-shadow:
+            inset 0 0 18px var(--neon-color),
+            inset 0 0 30px var(--neon-color);
+    }
+    90% {
+        opacity: 0.5;
+        box-shadow:
+            inset 0 0 10px var(--neon-color),
+            inset 0 0 14px var(--neon-color);
+    }
+    100% {
+        opacity: 0;
+        box-shadow: inset 0 0 0px var(--neon-color);
+    }
+}
+
+/* Chromatic Shift: RGB channel layers */
+.wallart-poster-item.chromatic-shift {
+    overflow: visible !important;
+}
+.wallart-poster-item.chromatic-shift .layer-r,
+.wallart-poster-item.chromatic-shift .layer-g,
+.wallart-poster-item.chromatic-shift .layer-b {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    mix-blend-mode: screen;
+    opacity: 0;
+    will-change: transform, opacity, filter;
+    pointer-events: none;
+    z-index: 2;
+}
+.wallart-poster-item.chromatic-shift .layer-r {
+    filter: hue-rotate(320deg) saturate(1.6) brightness(1.05);
+}
+.wallart-poster-item.chromatic-shift .layer-g {
+    filter: hue-rotate(100deg) saturate(1.6) brightness(1.05);
+}
+.wallart-poster-item.chromatic-shift .layer-b {
+    filter: hue-rotate(200deg) saturate(1.6) brightness(1.05);
+}
+
+/* Mosaic Shatter container */
+.wallart-poster-item.mosaic-shatter {
+    overflow: visible !important;
+}
+.wallart-poster-item.mosaic-shatter.animating {
+    /* Override global .animating overflow to keep base image clipped inside the tile */
+    overflow: hidden !important;
+}
+.wallart-poster-item.pixel-lock img {
+    width: var(--lock-w) !important;
+    height: var(--lock-h) !important;
+}
+.wallart-poster-item .shard {
+    position: absolute;
+    background-size: cover;
+    background-position: center;
+    will-change: transform, opacity;
+    pointer-events: none;
+}
 @keyframes wallartFadeIn {
     from {
         opacity: 0;
@@ -1805,27 +1955,7 @@ body.wallart-mode #wallart-grid {
     }
 }
 
-/* Spotlight highlight for rotating focus poster */
-.wallart-poster-item.is-spotlight img {
-    filter: none !important;
-    transform: scale(1.06) !important;
-}
-.wallart-poster-item.is-spotlight::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 6px;
-    box-shadow:
-        0 0 0 2px rgba(255, 255, 255, 0.06),
-        0 12px 40px rgba(255, 255, 255, 0.16);
-    pointer-events: none;
-}
-
-/* Dim non-spotlight items slightly when a spotlight is active */
-#wallart-grid.spotlight-active .wallart-poster-item:not(.is-spotlight) img {
-    filter: brightness(0.86) contrast(0.98) saturate(0.98) !important;
-    transition: filter 0.3s ease !important;
-}
+/* Spotlight removed */
 
 /* Hide all UI elements in wallart mode */
 body.wallart-mode #info-panel,

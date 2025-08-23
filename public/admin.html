@@ -224,6 +224,7 @@
                                                 <option value="low">Few - 60% of screen-optimal (larger posters)</option>
                                                 <option value="medium" selected>Medium - 100% screen-optimal (balanced)</option>
                                                 <option value="high">Many - 150% of screen-optimal (smaller posters)</option>
+                                                <option value="ludicrous">Ludicrous - 200% of screen-optimal (tiny posters)</option>
                                             </select>
                                         </div>
                                         <div class="form-group">
@@ -255,19 +256,22 @@
                                                 <option value="flip">Flip - 3D flip effect</option>
                                                 <option value="staggered">Staggered Reveal - Rows/columns staggered in</option>
                                                 <option value="ripple">Ripple - Wave reveal from center</option>
+                                                <option value="scanline">Scanline Sweep - Horizontal sweep with soft blur-in</option>
+                                                <option value="parallax">Parallax Drift - Subtle 3D offset depth</option>
+                                                <option value="neonPulse">Neon Pulse - Soft outer glow on change</option>
+                                                <option value="chromaticShift">Chromatic Shift - RGB split that converges</option>
+                                                <option value="mosaicShatter">Mosaic Shatter - Tiles assemble into the new poster</option>
                                             </select>
                                         </div>
                                         <div class="form-group checkbox-group">
                                             <input type="checkbox" id="wallartAmbientGradient" name="wallartMode.ambientGradient">
-                                            <label for="wallartAmbientGradient">Ambient gradient background (subtle)</label>
+                                            <label for="wallartAmbientGradient">Ambient gradient background</label>
                                         </div>
                                         <div class="form-group checkbox-group">
-                                            <input type="checkbox" id="wallartSpotlight" name="wallartMode.spotlight">
-                                            <label for="wallartSpotlight">Rotating spotlight highlight</label>
+                                            <!-- Spotlight option removed -->
                                         </div>
                                         <div class="form-group checkbox-group">
-                                            <input type="checkbox" id="wallartAutoRefresh" name="wallartMode.autoRefresh" checked>
-                                            <label for="wallartAutoRefresh">Auto-refresh posters (uncheck for static display)</label>
+                                            <!-- Auto-refresh removed: always enabled -->
                                         </div>
                                     </div>
                                 </div>

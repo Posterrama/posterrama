@@ -391,7 +391,7 @@ function updateRefreshRateLabel(value) {
             7: 'Quick (7 seconds)',
             8: 'Fast (5 seconds)',
             9: 'Very fast (3 seconds)',
-            10: 'Extremely fast (2 seconds)',
+            10: 'Chaos mode',
         };
         label.textContent = descriptions[value] || descriptions[5];
     }
@@ -411,7 +411,7 @@ function updateRandomnessLabel(value) {
             7: 'Very random',
             8: 'Highly unpredictable',
             9: 'Maximum variation',
-            10: 'Chaos mode',
+            10: 'Extremely fast (2 seconds)',
         };
         label.textContent = descriptions[value] || descriptions[3];
     }
@@ -1666,7 +1666,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 randomness: 3,
                 animationType: 'fade',
                 ambientGradient: false,
-                spotlight: false,
             };
         document.getElementById('wallartModeEnabled').checked = wallartMode.enabled;
         document.getElementById('wallartDensity').value = wallartMode.density ?? 'medium';
@@ -1676,9 +1675,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('wallartAnimationType').value = wallartMode.animationType ?? 'fade';
         const ambientEl = document.getElementById('wallartAmbientGradient');
         if (ambientEl) ambientEl.checked = wallartMode.ambientGradient === true;
-        const spotlightEl = document.getElementById('wallartSpotlight');
-        if (spotlightEl) spotlightEl.checked = wallartMode.spotlight === true;
-        document.getElementById('wallartAutoRefresh').checked = wallartMode.autoRefresh !== false;
+        // Spotlight option removed
+        // autoRefresh removed (always on)
 
         // Update slider labels
         updateRefreshRateLabel(wallartMode.refreshRate ?? wallartMode.randomness ?? 5);
@@ -4469,8 +4467,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         randomness: getValue('wallartRandomness', 'number'),
                         animationType: getValue('wallartAnimationType'),
                         ambientGradient: getValue('wallartAmbientGradient'),
-                        spotlight: getValue('wallartSpotlight'),
-                        autoRefresh: getValue('wallartAutoRefresh'),
+                        // spotlight removed
+                        // autoRefresh removed (always on)
                     },
                     cinemaMode: getValue('cinemaMode'),
                     cinemaOrientation: getValue('cinemaOrientation'),
