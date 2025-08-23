@@ -1181,7 +1181,11 @@ app.post('/api/v1/admin/metrics/config', express.json(), (req, res) => {
  *         description: Redirect to /admin/setup
  */
 app.get('/setup.html', (req, res) => {
-    res.redirect('/admin/setup');
+    // Preserve any query string (e.g., ?complete=1) so the setup completion logic can run
+    const originalUrl = req.originalUrl || req.url || '/setup.html';
+    const queryIndex = originalUrl.indexOf('?');
+    const query = queryIndex !== -1 ? originalUrl.substring(queryIndex) : '';
+    res.redirect(`/admin/setup${query}`);
 });
 
 // Redirect /login.html to /admin/login for consistency (must be before static middleware)
@@ -3185,7 +3189,10 @@ app.get(
  *         description: Redirects to admin panel if setup is already complete
  */
 app.get('/admin/setup', (req, res) => {
-    if (isAdminSetup()) {
+    // If setup is already done, normally redirect to /admin
+    // But if the completion flag is present, serve the setup page so it can show the completion message
+    const hasCompleteFlag = typeof req.query?.complete !== 'undefined';
+    if (isAdminSetup() && !hasCompleteFlag) {
         return res.redirect('/admin');
     }
 
@@ -3306,12 +3313,18 @@ app.post(
             );
 
         // If 2FA was enabled and we're expecting JSON response (like from setup wizard)
+        const wantsJson = String(req.headers.accept || '').includes('application/json');
         if (enable2fa === 'true' && qrCodeDataUrl) {
             return res.json({
                 success: true,
                 message: 'Admin user created successfully with 2FA enabled.',
                 qrCodeDataUrl: qrCodeDataUrl,
             });
+        }
+
+        // If the client prefers JSON (fetch from setup wizard), avoid redirects to prevent fetch confusion
+        if (wantsJson) {
+            return res.json({ success: true, message: 'Admin user created successfully.' });
         }
 
         // Otherwise redirect to completion page
