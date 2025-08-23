@@ -3601,6 +3601,8 @@ app.post(
         });
 
         if (verified) {
+            // Snapshot user before regenerating session; regeneration creates a new session object
+            const { username } = req.session.tfa_user || {};
             // Rotate session on successful 2FA to prevent fixation
             await new Promise((resolve, reject) => {
                 req.session.regenerate(err => {
@@ -3608,12 +3610,13 @@ app.post(
                     return resolve();
                 });
             });
-            req.session.user = { username: req.session.tfa_user.username };
+            req.session.user = { username };
+            // Clean up any 2FA flags on the fresh session
             delete req.session.tfa_required;
             delete req.session.tfa_user;
             if (isDebug)
                 logger.debug(
-                    `[Admin 2FA Verify] 2FA verification successful for user "${req.session.user.username}".`
+                    `[Admin 2FA Verify] 2FA verification successful for user "${username}".`
                 );
             res.redirect('/admin');
         } else {
