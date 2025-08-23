@@ -39,6 +39,7 @@
         "deps:security-daily": "./scripts/security-audit-filtered.sh",
         "deps:security-full": "npm audit --audit-level=high",
         "deps:health": "node scripts/dependency-health.js",
+        "deps:advice": "bash scripts/deps-advice.sh",
         "review:self-check": "node scripts/review-self-check.js",
         "review:pre-check": "./scripts/simple-review-check.sh",
         "health": "./scripts/health-check.sh",
