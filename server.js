@@ -6040,8 +6040,37 @@ app.get(
                             startTime: parsed.startTime || null,
                             backupPath: parsed.backupPath || null,
                         };
-                        isUpdating =
-                            parsed.phase && !['idle', 'completed', 'error'].includes(parsed.phase);
+
+                        // Special case: if status is stuck at 'restarting' but the app is clearly up,
+                        // normalize it to completed so the UI doesn’t hang.
+                        if (parsed.phase === 'restarting') {
+                            const uptimeSec = Math.floor(process.uptime());
+                            if (uptimeSec >= 5) {
+                                status.phase = 'completed';
+                                status.progress = 100;
+                                status.message = parsed.message || 'Restart complete';
+                                isUpdating = false;
+                                // Best-effort: persist the normalized state
+                                try {
+                                    const normalized = {
+                                        ...parsed,
+                                        phase: 'completed',
+                                        progress: 100,
+                                        message: status.message,
+                                        ts: new Date().toISOString(),
+                                    };
+                                    fs.writeFileSync(statusFile, JSON.stringify(normalized));
+                                } catch (_e) {
+                                    // ignore
+                                }
+                            } else {
+                                isUpdating = true;
+                            }
+                        } else {
+                            isUpdating =
+                                parsed.phase &&
+                                !['idle', 'completed', 'error'].includes(parsed.phase);
+                        }
                     }
                 } catch (_e) {
                     // ignore
