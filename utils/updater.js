@@ -701,7 +701,12 @@ class AutoUpdater {
                 .then(() => true)
                 .catch(() => false);
             if (tempExists) {
-                await fs.rmdir(this.tempDir, { recursive: true });
+                if (fs.rm) {
+                    await fs.rm(this.tempDir, { recursive: true, force: true });
+                } else {
+                    // Fallback for very old Node versions
+                    await fs.rmdir(this.tempDir, { recursive: true });
+                }
             }
 
             logger.info('Cleanup completed');
