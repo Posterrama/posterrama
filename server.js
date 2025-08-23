@@ -565,10 +565,12 @@ app.get(['/admin', '/admin.html'], (req, res, next) => {
         // Replace asset version placeholders with individual file versions
         const stamped = contents
             .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
+            // Normalize any admin.js existing query string to just v=<version>
             .replace(
                 /admin\.js\?v=[^"&\s]+/g,
                 `admin.js?v=${versions['admin.js'] || ASSET_VERSION}`
             )
+            // Normalize any admin.css existing query string to just v=<version>
             .replace(
                 /admin\.css\?v=[^"&\s]+/g,
                 `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
@@ -2495,8 +2497,10 @@ app.get('/admin', (req, res) => {
 
                 // Replace version parameters with file-based cache busters
                 const updatedHtml = data
-                    .replace(/admin\.css\?v=[\d.]+/g, `admin.css?v=${cssCacheBuster}`)
-                    .replace(/admin\.js\?v=[\d.]+/g, `admin.js?v=${jsCacheBuster}`);
+                    // Replace any existing query string after admin.css?v=... (including extra params)
+                    .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${cssCacheBuster}`)
+                    // Replace any existing query string after admin.js?v=... (including extra params)
+                    .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${jsCacheBuster}`);
 
                 res.setHeader('Content-Type', 'text/html');
                 res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -2519,8 +2523,8 @@ app.get('/admin', (req, res) => {
                 }
 
                 const updatedHtml = data
-                    .replace(/admin\.css\?v=[\d.]+/g, `admin.css?v=${fallbackCacheBuster}`)
-                    .replace(/admin\.js\?v=[\d.]+/g, `admin.js?v=${fallbackCacheBuster}`);
+                    .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${fallbackCacheBuster}`)
+                    .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${fallbackCacheBuster}`);
 
                 res.setHeader('Content-Type', 'text/html');
                 res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
