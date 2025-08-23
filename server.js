@@ -78,7 +78,15 @@ function generateAssetVersion(filePath) {
 function getAssetVersions() {
     const now = Date.now();
     if (now - lastVersionCheck > VERSION_CACHE_TTL) {
-        const criticalAssets = ['script.js', 'admin.js', 'style.css', 'admin.css', 'sw.js'];
+        const criticalAssets = [
+            'script.js',
+            'admin.js',
+            'style.css',
+            'admin.css',
+            'sw.js',
+            'client-logger.js',
+            'manifest.json',
+        ];
 
         criticalAssets.forEach(asset => {
             cachedVersions[asset] = generateAssetVersion(asset);
@@ -618,8 +626,10 @@ app.get(['/', '/index.html'], (req, res, next) => {
 
         // Get current asset versions
         const versions = getAssetVersions();
-        // Optional manual cache-buster: add &cb=<timestamp> to asset URLs if ?cb is present
-        const cbParam = typeof req.query.cb !== 'undefined' ? `&cb=${Date.now()}` : '';
+        // Automatic iOS cache-buster (and manual via ?cb): append &cb=<ts> for iOS Safari or when ?cb is present
+        const ua = (req.headers['user-agent'] || '').toString();
+        const isIOS = /iPhone|iPad|iPod/i.test(ua);
+        const cbParam = typeof req.query.cb !== 'undefined' || isIOS ? `&cb=${Date.now()}` : '';
 
         // Replace asset version placeholders with individual file versions
         const stamped = contents
@@ -631,6 +641,16 @@ app.get(['/', '/index.html'], (req, res, next) => {
                 /style\.css\?v=[^"&\s]+/g,
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}${cbParam}`
             )
+            // Stamp client-side logger
+            .replace(
+                /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
+                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}${cbParam}`
+            )
+            // Stamp manifest
+            .replace(
+                /\/manifest\.json(\?v=[^"'\s>]+)?/g,
+                `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}${cbParam}`
+            )
             // Ensure service worker registration always fetches latest sw.js
             .replace(
                 /\/sw\.js(\?v=[^"'\s>]+)?/g,
@@ -638,6 +658,44 @@ app.get(['/', '/index.html'], (req, res, next) => {
             );
 
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
+        res.send(stamped);
+    });
+});
+
+// Serve promo.html with the same asset stamping and iOS cache-busting
+app.get('/promo.html', (req, res, next) => {
+    const filePath = path.join(__dirname, 'public', 'promo.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) return next(err);
+
+        const versions = getAssetVersions();
+        const ua = (req.headers['user-agent'] || '').toString();
+        const isIOS = /iPhone|iPad|iPod/i.test(ua);
+        const cbParam = typeof req.query.cb !== 'undefined' || isIOS ? `&cb=${Date.now()}` : '';
+
+        const stamped = contents
+            .replace(
+                /script\.js\?v=[^"&\s]+/g,
+                `script.js?v=${versions['script.js'] || ASSET_VERSION}${cbParam}`
+            )
+            .replace(
+                /style\.css\?v=[^"&\s]+/g,
+                `style.css?v=${versions['style.css'] || ASSET_VERSION}${cbParam}`
+            )
+            .replace(
+                /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
+                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}${cbParam}`
+            )
+            .replace(
+                /\/manifest\.json(\?v=[^"'\s>]+)?/g,
+                `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}${cbParam}`
+            )
+            .replace(
+                /\/sw\.js(\?v=[^"'\s>]+)?/g,
+                `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}${cbParam}`
+            );
+
+        res.setHeader('Cache-Control', 'no-cache');
         res.send(stamped);
     });
 });
@@ -1299,6 +1357,16 @@ const {
 } = require('./middleware/validation');
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Ensure cache-busted assets are not cached by proxies and mark as must-revalidate
+app.use((req, res, next) => {
+    if (/[?&]v=|[?&]cb=/.test(req.url)) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+    next();
+});
 app.use(express.urlencoded({ extended: true })); // For parsing form data
 app.use(express.json({ limit: '10mb' })); // For parsing JSON payloads
 
