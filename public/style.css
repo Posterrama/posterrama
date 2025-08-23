@@ -134,6 +134,7 @@ body {
     font-weight: 500;
     letter-spacing: 0.5px;
     animation: textPulse 2.5s ease-in-out infinite;
+    display: none; /* Hide textual loading indicator; spinner only */
 }
 
 @keyframes spinClockwise {
