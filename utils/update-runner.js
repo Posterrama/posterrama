@@ -31,18 +31,21 @@ async function main() {
         // Parse args: support --version X or -v X
         const args = process.argv.slice(2);
         let targetVersion = null;
+        let dryRun = false;
         for (let i = 0; i < args.length; i++) {
             const a = args[i];
             if ((a === '--version' || a === '-v') && args[i + 1]) {
                 targetVersion = String(args[i + 1]);
                 i++;
+            } else if (a === '--dry-run' || a === '-n') {
+                dryRun = true;
             }
         }
 
-        log('info', 'update-runner starting', { targetVersion });
+        log('info', 'update-runner starting', { targetVersion, dryRun });
         const autoUpdater = require('./updater');
 
-        await autoUpdater.startUpdate(targetVersion);
+        await autoUpdater.startUpdate(targetVersion, { dryRun });
         log('info', 'update-runner completed successfully');
         process.exit(0);
     } catch (err) {

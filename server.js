@@ -331,18 +331,19 @@ app.use((req, res, next) => {
 
     // Security logging for admin endpoints - only log truly suspicious activity
     if (req.path.startsWith('/api/admin/')) {
-        if (!req.session?.user) {
-            // Only warn for POST/PUT/DELETE requests without auth (these are more serious)
-            if (req.method !== 'GET') {
-                logger.warn('Unauthorized admin API modification attempt', {
-                    method: req.method,
-                    path: req.path,
-                    ip: req.ip,
-                    userAgent: (req.get('user-agent') || '').substring(0, 100),
-                });
-            }
-            // GET requests without auth are normal (frontend loading data before login)
+        const hasSessionUser = Boolean(req.session?.user);
+        const authHeader = req.headers.authorization || '';
+        const hasBearer = authHeader.startsWith('Bearer ');
+        // Only warn for modifying requests with neither a session nor a bearer token
+        if (!hasSessionUser && !hasBearer && req.method !== 'GET') {
+            logger.warn('Unauthorized admin API modification attempt', {
+                method: req.method,
+                path: req.path,
+                ip: req.ip,
+                userAgent: (req.get('user-agent') || '').substring(0, 100),
+            });
         }
+        // GET requests without auth are normal (frontend loading data before login)
         // Don't log successful authenticated requests to reduce noise
     }
 
@@ -5883,6 +5884,10 @@ app.post(
  *                 type: boolean
  *                 description: Force update even if already on latest version
  *                 default: false
+ *               dryRun:
+ *                 type: boolean
+ *                 description: Simulate update phases without changing files or services
+ *                 default: false
  *     responses:
  *       200:
  *         description: Update process started successfully
@@ -5908,36 +5913,72 @@ app.post(
     express.json(),
     asyncHandler(async (req, res) => {
         try {
-            const { version, force } = req.body;
+            // Accept both `version` and legacy `targetVersion` from the frontend
+            const requestedVersion = req.body?.version || req.body?.targetVersion || null;
+            const { force, dryRun = false } = req.body || {};
 
             if (autoUpdater.isUpdating()) {
                 return res.status(400).json({ error: 'Update already in progress' });
             }
 
             logger.info('Update process initiated by admin', {
-                version,
+                version: requestedVersion,
                 force,
                 user: req.user?.username,
             });
 
-            // Spawn a detached updater worker so it survives PM2 stop
-            const { spawn } = require('child_process');
-            const nodeBin = process.execPath;
-            const runner = require('path').resolve(__dirname, 'utils', 'update-runner.js');
-            const args = [runner];
-            if (version) args.push('--version', String(version));
+            // Prefer spawning the updater via PM2 so it survives stopping the main app
+            const path = require('path');
+            const runner = path.resolve(__dirname, 'utils', 'update-runner.js');
+            const pm2Args = [
+                'start',
+                runner,
+                '--name',
+                'posterrama-updater',
+                '--time',
+                '--interpreter',
+                process.execPath,
+                '--',
+            ];
+            if (requestedVersion) {
+                pm2Args.push('--version', String(requestedVersion));
+            }
+            if (dryRun) {
+                pm2Args.push('--dry-run');
+            }
 
-            const child = spawn(nodeBin, args, {
-                cwd: require('path').resolve(__dirname),
-                detached: true,
-                stdio: 'ignore',
-            });
-            child.unref();
+            try {
+                const { exec } = require('child_process');
+                const cmd = `pm2 ${pm2Args.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ')}`;
+                await require('util').promisify(exec)(cmd);
+                logger.info('Updater process started via PM2', { runner, requestedVersion });
+            } catch (pm2Error) {
+                // Fallback to detached spawn if PM2 is not available
+                const { spawn } = require('child_process');
+                const child = spawn(
+                    process.execPath,
+                    [
+                        runner,
+                        requestedVersion ? '--version' : '',
+                        requestedVersion ? String(requestedVersion) : '',
+                        dryRun ? '--dry-run' : '',
+                    ].filter(Boolean),
+                    {
+                        cwd: path.resolve(__dirname),
+                        detached: true,
+                        stdio: 'ignore',
+                    }
+                );
+                child.unref();
+                logger.warn('PM2 start failed, fell back to detached spawn', {
+                    error: pm2Error.message,
+                });
+            }
 
             // Return immediately
             res.json({
                 success: true,
-                message: 'Update process started',
+                message: dryRun ? 'Dry-run update started' : 'Update process started',
                 updateId: Date.now().toString(),
             });
         } catch (error) {
@@ -5991,13 +6032,34 @@ app.get(
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
-            const status = autoUpdater.getStatus();
-            const isUpdating = autoUpdater.isUpdating();
+            let status = autoUpdater.getStatus();
+            let isUpdating = autoUpdater.isUpdating();
 
-            res.json({
-                ...status,
-                isUpdating,
-            });
+            // If not actively updating in this process, try to read the last known status
+            if (!isUpdating) {
+                const path = require('path');
+                const fs = require('fs');
+                const statusFile = path.resolve(__dirname, 'logs', 'updater-status.json');
+                try {
+                    if (fs.existsSync(statusFile)) {
+                        const parsed = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
+                        status = {
+                            phase: parsed.phase || status.phase,
+                            progress: parsed.progress ?? status.progress,
+                            message: parsed.message || status.message,
+                            error: parsed.error || null,
+                            startTime: parsed.startTime || null,
+                            backupPath: parsed.backupPath || null,
+                        };
+                        isUpdating =
+                            parsed.phase && !['idle', 'completed', 'error'].includes(parsed.phase);
+                    }
+                } catch (_e) {
+                    // ignore
+                }
+            }
+
+            res.json({ ...status, isUpdating });
         } catch (error) {
             logger.error('Failed to get update status', { error: error.message });
             res.status(500).json({ error: 'Failed to get update status' });

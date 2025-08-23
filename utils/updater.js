@@ -21,8 +21,33 @@ class AutoUpdater {
             backupPath: null,
         };
         this.appRoot = path.resolve(__dirname, '..');
+        // Store backups next to the app directory by default (../backups)
         this.backupDir = path.resolve(this.appRoot, '..', 'backups');
         this.tempDir = path.resolve(this.appRoot, 'temp');
+        this.statusFile = path.resolve(this.appRoot, 'logs', 'updater-status.json');
+    }
+
+    async writeStatus() {
+        try {
+            const fsSync = require('fs');
+            const dir = path.dirname(this.statusFile);
+            fsSync.mkdirSync(dir, { recursive: true });
+            const payload = {
+                ...this.updateStatus,
+                startTime: this.updateStatus.startTime
+                    ? this.updateStatus.startTime.toISOString()
+                    : null,
+                ts: new Date().toISOString(),
+                pid: process.pid,
+                version: await fs
+                    .readFile(path.join(this.appRoot, 'package.json'), 'utf8')
+                    .then(s => JSON.parse(s).version)
+                    .catch(() => null),
+            };
+            await fs.writeFile(this.statusFile, JSON.stringify(payload));
+        } catch (e) {
+            // best effort; ignore
+        }
     }
 
     /**
@@ -42,7 +67,8 @@ class AutoUpdater {
     /**
      * Start automatic update process
      */
-    async startUpdate(targetVersion = null) {
+    async startUpdate(targetVersion = null, options = {}) {
+        const { dryRun = false } = options || {};
         if (this.updateInProgress) {
             throw new Error('Update already in progress');
         }
@@ -56,6 +82,7 @@ class AutoUpdater {
             startTime: new Date(),
             backupPath: null,
         };
+        await this.writeStatus();
 
         try {
             logger.info('Starting automatic update process', { targetVersion });
@@ -74,67 +101,119 @@ class AutoUpdater {
             this.updateStatus.phase = 'backup';
             this.updateStatus.progress = 15;
             this.updateStatus.message = 'Creating backup...';
-            const backupPath = await this.createBackup();
+            await this.writeStatus();
+            let backupPath = null;
+            if (dryRun) {
+                this.updateStatus.message = 'Creating backup (dry-run, no files copied)';
+                await this.writeStatus();
+                backupPath = path.join(this.backupDir, 'DRYRUN-NO-BACKUP-CREATED');
+            } else {
+                const realBackupPath = await this.createBackup();
+                backupPath = realBackupPath;
+            }
             this.updateStatus.backupPath = backupPath;
+            await this.writeStatus();
 
             // Step 3: Download update
             this.updateStatus.phase = 'download';
             this.updateStatus.progress = 30;
             this.updateStatus.message = `Downloading version ${updateInfo.latestVersion}...`;
-            const downloadPath = await this.downloadUpdate(updateInfo);
+            await this.writeStatus();
+            const downloadPath = dryRun
+                ? path.join(this.tempDir, `dryrun-download-${Date.now()}.zip`)
+                : await this.downloadUpdate(updateInfo);
 
             // Step 4: Validate download
             this.updateStatus.phase = 'validation';
             this.updateStatus.progress = 50;
-            this.updateStatus.message = 'Validating download...';
-            await this.validateDownload(downloadPath);
+            this.updateStatus.message = dryRun
+                ? 'Validating download (dry-run)'
+                : 'Validating download...';
+            await this.writeStatus();
+            if (!dryRun) {
+                await this.validateDownload(downloadPath);
+            }
 
             // Step 5: Stop services
             this.updateStatus.phase = 'stopping';
             this.updateStatus.progress = 60;
-            this.updateStatus.message = 'Stopping services...';
-            await this.stopServices();
+            this.updateStatus.message = dryRun
+                ? 'Skipping stop services (dry-run)'
+                : 'Stopping services...';
+            await this.writeStatus();
+            if (!dryRun) {
+                await this.stopServices();
+            }
 
             // Step 6: Apply update
             this.updateStatus.phase = 'applying';
             this.updateStatus.progress = 75;
-            this.updateStatus.message = 'Applying update...';
-            await this.applyUpdate(downloadPath);
+            this.updateStatus.message = dryRun
+                ? 'Skipping apply update (dry-run)'
+                : 'Applying update...';
+            await this.writeStatus();
+            if (!dryRun) {
+                await this.applyUpdate(downloadPath);
+            }
 
             // Step 7: Update dependencies
             this.updateStatus.phase = 'dependencies';
             this.updateStatus.progress = 85;
-            this.updateStatus.message = 'Updating dependencies...';
-            await this.updateDependencies();
+            this.updateStatus.message = dryRun
+                ? 'Skipping dependency update (dry-run)'
+                : 'Updating dependencies...';
+            await this.writeStatus();
+            if (!dryRun) {
+                await this.updateDependencies();
+            }
 
             // Step 8: Start services
             this.updateStatus.phase = 'starting';
             this.updateStatus.progress = 95;
-            this.updateStatus.message = 'Starting services...';
-            await this.startServices();
+            this.updateStatus.message = dryRun
+                ? 'Skipping start services (dry-run)'
+                : 'Starting services...';
+            await this.writeStatus();
+            if (!dryRun) {
+                await this.startServices();
+            }
 
             // Step 9: Verify update
             this.updateStatus.phase = 'verification';
             this.updateStatus.progress = 98;
-            this.updateStatus.message = 'Verifying update...';
-            await this.verifyUpdate(updateInfo.latestVersion);
+            this.updateStatus.message = dryRun
+                ? 'Simulating verification (dry-run)'
+                : 'Verifying update...';
+            await this.writeStatus();
+            if (!dryRun) {
+                await this.verifyUpdate(updateInfo.latestVersion);
+            }
 
             // Cleanup
-            await this.cleanup(downloadPath);
+            if (!dryRun) {
+                await this.cleanup(downloadPath);
+            }
 
             this.updateStatus.phase = 'completed';
             this.updateStatus.progress = 100;
             this.updateStatus.message = `Successfully updated to version ${updateInfo.latestVersion}`;
             this.updateInProgress = false;
+            await this.writeStatus();
 
-            logger.info('Update completed successfully', {
-                version: updateInfo.latestVersion,
-                duration: Date.now() - this.updateStatus.startTime.getTime(),
-            });
+            logger.info(
+                dryRun ? 'Dry-run update completed successfully' : 'Update completed successfully',
+                {
+                    version: updateInfo.latestVersion,
+                    duration: Date.now() - this.updateStatus.startTime.getTime(),
+                    dryRun,
+                }
+            );
 
             return {
                 success: true,
-                message: `Successfully updated to version ${updateInfo.latestVersion}`,
+                message: dryRun
+                    ? `Dry-run: simulated update to version ${updateInfo.latestVersion}`
+                    : `Successfully updated to version ${updateInfo.latestVersion}`,
                 version: updateInfo.latestVersion,
                 backupPath,
             };
@@ -145,9 +224,10 @@ class AutoUpdater {
             this.updateStatus.error = error.message;
             this.updateStatus.message = `Update failed: ${error.message}`;
             this.updateInProgress = false;
+            await this.writeStatus();
 
-            // Attempt rollback if backup exists
-            if (this.updateStatus.backupPath) {
+            // Attempt rollback if backup exists (not in dry-run)
+            if (!dryRun && this.updateStatus.backupPath) {
                 try {
                     await this.rollback();
                     this.updateStatus.message += ' (Rolled back to previous version)';
@@ -507,6 +587,7 @@ class AutoUpdater {
         this.updateStatus.phase = 'rollback';
         this.updateStatus.progress = 50;
         this.updateStatus.message = 'Rolling back to previous version...';
+        await this.writeStatus();
 
         try {
             // Stop services
