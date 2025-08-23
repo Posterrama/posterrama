@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 
-    function createLoadingGrid(message = 'Loading posters...') {
+    function createLoadingGrid(_message = 'Loading posters...') {
         // Show the global centered spinner instead of textual loading message
         try {
             const loaderEl = document.getElementById('loader');
@@ -675,7 +675,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loaderEl.style.opacity = '1';
             }
         } catch (e) {
-            // no-op; loader element not found
+            /* ignore: loader element not found */
         }
 
         // Ensure no stray loading grid with text remains
@@ -901,8 +901,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const newTop = layout.gridTop + window.wallartShiftOffset;
             wallartGrid.style.transform = `translate(${layout.gridLeft}px, ${newTop}px)`;
 
-            // If any previous layers remain due to interrupted anim, remove them
-            element.querySelectorAll('.layer-r, .layer-g, .layer-b').forEach(n => n.remove());
+            // Cleanup of residual layers handled in per-tile animations
             // console.log removed for cleaner browser console
         }
 
@@ -1782,7 +1781,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             dx = (vx / len) * mag;
                             dy = (vy / len) * mag;
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* ignore: derive parallax offsets best-effort */
+                    }
 
                     // Start slightly offset and a touch larger; subtle opacity ramp
                     img.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(1.045)`;
@@ -1838,7 +1839,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     element.classList.add('animating', 'neon-pulse');
                     try {
                         element.style.setProperty('--neon-color', color);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* ignore: CSS var not critical */
+                    }
 
                     // Subtle glow only; avoid scale changes to prevent cross-effect snapping
                     img.style.transition = 'transform 0ms linear';
@@ -1959,7 +1962,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         element.style.setProperty('--lock-w', w + 'px');
                         element.style.setProperty('--lock-h', h + 'px');
                         element.classList.add('pixel-lock');
-                    } catch (_) {}
+                    } catch (_) {
+                        /* ignore: pixel-lock failures are non-fatal */
+                    }
                     // Hard reset base image to avoid any leftover scale causing end-snap
                     img.style.transition = 'none';
                     img.style.transform = 'translate3d(0, 0, 0) scale(1.0)';
