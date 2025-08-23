@@ -651,7 +651,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             top: 0 !important;
             left: 0 !important;
             width: 100vw !important;
-            height: 100vh !important;
+            height: 100lvh !important;
             z-index: 999999 !important;
             background: #000 !important;
             display: flex !important;

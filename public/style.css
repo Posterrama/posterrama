@@ -27,7 +27,10 @@
 
 html,
 body {
+    /* Prefer large viewport height so backgrounds extend behind Safari's bottom bar */
     height: 100dvh;
+    height: 100svh;
+    height: 100lvh;
     /* Use dynamic viewport height to correctly handle mobile browser UI */
     width: 100%;
     margin: 0;
@@ -56,6 +59,14 @@ body {
     /* Prevent layout shifts */
     transform: translateZ(0);
     backface-visibility: hidden;
+}
+
+/* iOS specific full-height fixes */
+@supports (-webkit-touch-callout: none) {
+    html,
+    body {
+        height: 100lvh;
+    }
 }
 
 /* --- Utility Classes --- */
