@@ -655,6 +655,23 @@ app.get(['/', '/index.html'], (req, res, next) => {
     });
 });
 
+/**
+ * @swagger
+ * /promo.html:
+ *   get:
+ *     summary: Serve promotional page
+ *     description: Serves the promotional page with automatic asset versioning and cache-busting for iOS devices
+ *     tags: ['Frontend']
+ *     responses:
+ *       200:
+ *         description: Promotional page HTML content
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ *       500:
+ *         description: Internal server error
+ */
 // Serve promo.html with the same asset stamping and iOS cache-busting
 app.get('/promo.html', (req, res, next) => {
     const filePath = path.join(__dirname, 'public', 'promo.html');
@@ -1159,7 +1176,7 @@ app.get('/api/v1/metrics/export', (req, res) => {
  *   post:
  *     summary: Update metrics configuration
  *     description: Updates the metrics collection configuration
- *     tags: ['Metrics', 'Admin']
+ *     tags: ['Metrics', 'Admin API']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -1377,6 +1394,33 @@ const cspReportJson = express.json({
     },
 });
 
+/**
+ * @swagger
+ * /csp-report:
+ *   post:
+ *     summary: Receive CSP violation reports
+ *     description: Accepts Content Security Policy violation reports from browsers to monitor security issues
+ *     tags: ['Security']
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/csp-report:
+ *           schema:
+ *             type: object
+ *         application/reports+json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       204:
+ *         description: Report received and logged
+ *       400:
+ *         description: Invalid report format
+ */
 app.post('/csp-report', cspReportJson, (req, res) => {
     try {
         let report = req.body;
@@ -3940,7 +3984,7 @@ app.post(
  *   get:
  *     summary: Get application version
  *     description: Returns the current version of the Posterrama application
- *     tags: ['Public']
+ *     tags: ['Public API']
  *     responses:
  *       200:
  *         description: Application version information
@@ -5646,7 +5690,7 @@ app.get(
  *   get:
  *     summary: Get current application version
  *     description: Returns the current version of the application from package.json
- *     tags: [Admin]
+ *     tags: ['Admin API']
  *     security:
  *       - ApiKeyAuth: []
  *     responses:
@@ -5690,7 +5734,7 @@ app.get(
  *       Checks the current version against the latest GitHub release
  *       and determines if an update is available. Returns detailed
  *       version information and release notes.
- *     tags: [Auto-Update]
+ *     tags: ['Auto-Update']
  *     responses:
  *       200:
  *         description: Update check completed successfully
@@ -5794,7 +5838,7 @@ app.get(
  *     description: >
  *       Fetches recent releases from the GitHub repository.
  *       Useful for displaying a changelog or release history.
- *     tags: [GitHub Integration]
+ *     tags: ['GitHub Integration']
  *     parameters:
  *       - in: query
  *         name: limit
@@ -5860,7 +5904,7 @@ app.get(
  *     description: >
  *       Fetches general information about the GitHub repository,
  *       including stars, forks, and other metadata.
- *     tags: [GitHub Integration]
+ *     tags: ['GitHub Integration']
  *     responses:
  *       200:
  *         description: Repository information
@@ -5910,7 +5954,7 @@ app.get(
  *     description: >
  *       Clears the internal cache for GitHub API responses.
  *       This forces fresh data to be fetched on the next request.
- *     tags: [GitHub Integration]
+ *     tags: ['GitHub Integration']
  *     responses:
  *       200:
  *         description: Cache cleared successfully
@@ -5947,7 +5991,7 @@ app.post(
  *       Initiates the automatic update process. This will download the latest
  *       version, create a backup, and update the application. The process
  *       includes rollback capability in case of failure.
- *     tags: [Auto-Update]
+ *     tags: ['Auto-Update']
  *     requestBody:
  *       required: false
  *       content:
@@ -6064,7 +6108,7 @@ app.post(
  *     description: >
  *       Returns the current status of any ongoing update process,
  *       including progress, current phase, and any errors.
- *     tags: [Auto-Update]
+ *     tags: ['Auto-Update']
  *     responses:
  *       200:
  *         description: Update status information
@@ -6172,7 +6216,7 @@ app.get(
  *     description: >
  *       Rollback to the most recent backup created during an update.
  *       This is useful if an update causes issues.
- *     tags: [Auto-Update]
+ *     tags: ['Auto-Update']
  *     responses:
  *       200:
  *         description: Rollback completed successfully
@@ -6224,7 +6268,7 @@ app.post(
  *     description: >
  *       Returns a list of all available backups that can be used
  *       for rollback or manual restoration.
- *     tags: [Auto-Update]
+ *     tags: ['Auto-Update']
  *     responses:
  *       200:
  *         description: List of available backups
@@ -6270,7 +6314,7 @@ app.get(
  *     description: >
  *       Remove old backups to free up disk space, keeping only
  *       the most recent backups as specified.
- *     tags: [Auto-Update]
+ *     tags: ['Auto-Update']
  *     requestBody:
  *       required: false
  *       content:
@@ -6504,7 +6548,7 @@ app.post(
  * /api/admin/debug-cache:
  *   get:
  *     summary: Debug cache status and configuration
- *     tags: [Admin]
+ *     tags: ['Admin API']
  *     security:
  *       - isAuthenticated: []
  *     responses:
@@ -7217,6 +7261,21 @@ if (require.main === module) {
         // A catch-all route to serve the index.html with promo box enabled for the public site.
         // This shows the marketing/promo content instead of the app interface.
         // IMPORTANT: This must come BEFORE express.static to override index.html
+        /**
+         * @swagger
+         * /[site]:
+         *   get:
+         *     summary: Site server homepage
+         *     description: Serves the promotional homepage for the public-facing site server
+         *     tags: ['Site Server']
+         *     responses:
+         *       200:
+         *         description: Promotional homepage HTML
+         *         content:
+         *           text/html:
+         *             schema:
+         *               type: string
+         */
         siteApp.get('/', (req, res) => {
             res.sendFile(path.join(__dirname, 'public', 'promo.html'));
         });
@@ -7225,6 +7284,21 @@ if (require.main === module) {
         siteApp.use(express.static(path.join(__dirname, 'public')));
 
         // Fallback for other routes
+        /**
+         * @swagger
+         * /[site]/*:
+         *   get:
+         *     summary: Site server fallback route
+         *     description: Fallback route that serves the promotional page for any unmatched paths on the site server
+         *     tags: ['Site Server']
+         *     responses:
+         *       200:
+         *         description: Promotional page HTML
+         *         content:
+         *           text/html:
+         *             schema:
+         *               type: string
+         */
         siteApp.get('*', (req, res) => {
             res.sendFile(path.join(__dirname, 'public', 'promo.html'));
         });

@@ -596,6 +596,44 @@ function getHelpContentForSection(sectionId) {
                     ],
                 },
                 {
+                    title: 'Troubleshooting & Error Recovery',
+                    description: 'Common issues and solutions for smooth operation.',
+                    details: [
+                        '<strong>Connection Issues</strong>: Check network connectivity, firewall settings, and API key validity',
+                        '<strong>Media Not Loading</strong>: Verify source configurations and run "Refresh Media" in Management section',
+                        '<strong>Performance Problems</strong>: Use Performance Monitor to identify bottlenecks, clear cache if needed',
+                        '<strong>Login Problems</strong>: Check 2FA status, verify password, or use backup codes if available',
+                        '<strong>Update Failures</strong>: Use backup system to restore previous working version',
+                        '<strong>Cache Issues</strong>: Clear cache and run cleanup in Management section',
+                        '<strong>Debug Information</strong>: Enable debug mode and check live logs for detailed error information',
+                        'Always create backups before making major configuration changes',
+                    ],
+                },
+                {
+                    title: 'Keyboard Shortcuts',
+                    description: 'Quick keyboard shortcuts to improve your workflow.',
+                    details: [
+                        '<strong>H</strong> - Open/close help panel (works in any section)',
+                        '<strong>Ctrl+S</strong> / <strong>Cmd+S</strong> - Save all settings quickly',
+                        '<strong>Escape</strong> - Close any open modal dialogs',
+                        'Shortcuts work when not typing in input fields',
+                        'Perfect for faster navigation and saving time',
+                    ],
+                },
+                {
+                    title: 'Mobile Interface & Touch Controls',
+                    description: 'Optimized interface features for tablets and mobile devices.',
+                    details: [
+                        '<strong>Mobile Navigation</strong>: Tap navigation menu for easy section switching on mobile',
+                        '<strong>Touch Gestures</strong>: Optimized touch targets and swipe-friendly interface',
+                        '<strong>Responsive Design</strong>: Interface automatically adapts to screen size and orientation',
+                        '<strong>Mobile Help</strong>: Help panel optimized for smaller screens with touch-friendly controls',
+                        '<strong>Quick Actions</strong>: Easily accessible buttons for common tasks on mobile devices',
+                        '<strong>Text Scaling</strong>: Automatic text scaling for better readability on various devices',
+                        'Full admin functionality available on tablets and smartphones',
+                    ],
+                },
+                {
                     title: 'Development & Debug',
                     description: 'Development tools and debugging features for troubleshooting.',
                     details: [
@@ -637,6 +675,33 @@ function getHelpContentForSection(sectionId) {
                         'Auto Refresh: Automatically cycles through your entire poster collection',
                         'Responsive Design: Automatically recalculates grid layout when window is resized',
                         'Perfect for: Art galleries, waiting rooms, digital wallpaper, or ambient displays',
+                    ],
+                },
+                {
+                    title: 'Wallart Mode - Hero Grid Layout',
+                    description:
+                        'Advanced layout combining a large hero poster with a grid of smaller posters.',
+                    details: [
+                        '<strong>Hero + Grid Layout</strong>: Features one large "hero" poster alongside a grid of smaller posters',
+                        '<strong>Hero Side</strong>: Position the hero poster on Left, Right, Top, or Bottom of the screen',
+                        '<strong>Hero Rotation</strong>: Set how often the hero poster changes (1-60 minutes)',
+                        '<strong>Perfect Balance</strong>: Combines the impact of a large poster with variety of a grid',
+                        'Hero poster draws attention while grid provides content diversity',
+                        'Ideal for: Feature displays, promotional setups, or mixed content showcases',
+                        'Grid automatically adjusts size and layout to complement the hero poster',
+                    ],
+                },
+                {
+                    title: 'Wallart Mode - Ambient Features',
+                    description:
+                        'Enhanced visual effects and atmospheric improvements for Wallart displays.',
+                    details: [
+                        '<strong>Ambient Gradient</strong>: Subtle background gradient effect that enhances poster visibility',
+                        'Intelligent color extraction from posters to create harmonious background effects',
+                        'Reduces eye strain during extended viewing sessions',
+                        'Provides visual depth and professional appearance',
+                        'Automatically adjusts based on poster colors and content',
+                        'Can be enabled/disabled independently of other Wallart features',
                     ],
                 },
                 {
@@ -776,6 +841,21 @@ function getHelpContentForSection(sectionId) {
                         'TVDB has no API key limitations but respects reasonable request limits',
                     ],
                 },
+                {
+                    title: 'Content Source Integration Tips',
+                    description:
+                        'Best practices for optimal content source configuration and management.',
+                    details: [
+                        '<strong>Multiple Sources</strong>: Combine Plex (personal library) + TMDB (discovery) + TVDB (metadata) for best results',
+                        '<strong>API Rate Limits</strong>: TMDB has daily API limits - moderate your refresh intervals',
+                        '<strong>Content Quality</strong>: Use genre filtering and rating thresholds to curate high-quality content',
+                        '<strong>Performance Balance</strong>: More sources = more content variety but longer refresh times',
+                        '<strong>Regional Settings</strong>: Match TMDB region settings to your location for relevant streaming content',
+                        '<strong>Testing</strong>: Always test connections after configuration changes',
+                        '<strong>Backup Strategy</strong>: Keep API keys secure and backed up separately',
+                        'Regular content refresh ensures fresh, up-to-date poster displays',
+                    ],
+                },
             ],
         },
         'authentication-section': {
@@ -792,23 +872,32 @@ function getHelpContentForSection(sectionId) {
                     ],
                 },
                 {
-                    title: 'Two-Factor Authentication (2FA)',
-                    description: 'Extra security layer with an authentication app on your phone.',
+                    title: 'Two-Factor Authentication (2FA) - Complete Guide',
+                    description:
+                        'Comprehensive setup and management of 2FA security for your admin account.',
                     details: [
-                        'Requires an authentication app like Google Authenticator or Authy',
-                        'Scan the QR code with your authentication app during setup',
-                        'Enter the 6-digit code from your app at each login',
-                        'Save the backup codes in a safe place',
-                        'Recommended for all admin accounts',
+                        '<strong>Supported Apps</strong>: Google Authenticator, Authy, Microsoft Authenticator, 1Password, LastPass Authenticator',
+                        '<strong>Setup Process</strong>: Enable 2FA → Scan QR code with your app → Enter verification code → Save backup codes',
+                        '<strong>Backup Codes</strong>: Write down and store backup codes safely - they can restore access if you lose your phone',
+                        "<strong>Daily Use</strong>: After entering password, you'll need the 6-digit code from your authenticator app",
+                        '<strong>Disabling 2FA</strong>: Requires current password verification for security',
+                        '<strong>Lost Device</strong>: Use backup codes to regain access, then set up 2FA again with new device',
+                        'Strongly recommended for all admin accounts to prevent unauthorized access',
                     ],
                 },
                 {
-                    title: 'API Keys',
-                    description: 'Manage access for external applications and integrations.',
+                    title: 'API Keys - Developer Integration',
+                    description:
+                        'Advanced API access for external applications and custom integrations.',
                     details: [
-                        'Generate API keys to allow external applications to access Posterrama',
-                        'Each API key provides programmatic access to the service',
-                        'Revoke unused API keys for security',
+                        '<strong>Generate API Keys</strong>: Create secure keys for external applications to access Posterrama',
+                        '<strong>Bearer Token Authentication</strong>: Use API keys as Bearer tokens in Authorization header',
+                        '<strong>Example Usage</strong>: <code>Authorization: Bearer your-api-key-here</code>',
+                        '<strong>Available Endpoints</strong>: Access configuration, media data, and admin functions programmatically',
+                        '<strong>Security</strong>: API keys provide same access level as admin login - treat them as passwords',
+                        '<strong>Management</strong>: Revoke unused or compromised API keys immediately',
+                        '<strong>Documentation</strong>: Full API reference available via "API Docs" button in top navigation',
+                        'Perfect for custom integrations, mobile apps, or automated systems',
                     ],
                 },
             ],
@@ -871,13 +960,46 @@ function getHelpContentForSection(sectionId) {
                     ],
                 },
                 {
-                    title: 'Debug & Logging',
-                    description:
-                        'Enable detailed logging and access live logs for troubleshooting.',
+                    title: 'Performance Monitor - Advanced Diagnostics',
+                    description: 'Real-time system monitoring and performance analysis tools.',
                     details: [
-                        'Debug Mode: Shows verbose logs; disable when not troubleshooting',
-                        'Live Logs: View real-time application logs in a separate window',
-                        'Can impact performance while enabled; use temporarily',
+                        '<strong>CPU Usage</strong>: Monitor processor utilization in real-time',
+                        '<strong>Memory Usage</strong>: Track RAM consumption and identify memory leaks',
+                        '<strong>Performance Metrics</strong>: Response times, API call durations, and system load',
+                        '<strong>Resource Monitoring</strong>: Disk usage, network activity, and cache performance',
+                        '<strong>Performance Impact</strong>: Monitor how different settings affect system performance',
+                        '<strong>Troubleshooting</strong>: Identify bottlenecks and performance issues',
+                        'Updates in real-time to provide immediate feedback on system health',
+                    ],
+                },
+                {
+                    title: 'Backup Management - Complete Guide',
+                    description:
+                        'Comprehensive backup system for safe updates and disaster recovery.',
+                    details: [
+                        '<strong>Automatic Backups</strong>: Created automatically before each update process',
+                        '<strong>Backup Contents</strong>: Complete application state, configuration, and database',
+                        '<strong>Timestamp Format</strong>: Backups labeled with date/time for easy identification',
+                        '<strong>Restore Process</strong>: Select specific backup and restore to that exact state',
+                        '<strong>Storage Location</strong>: Backups stored securely in application backup directory',
+                        '<strong>Backup Validation</strong>: Each backup verified for integrity before storage',
+                        '<strong>Cleanup</strong>: Older backups automatically removed to manage disk space',
+                        'Essential for safe updates and recovering from configuration issues',
+                    ],
+                },
+                {
+                    title: 'Debug & Logging - Live Monitoring',
+                    description:
+                        'Advanced logging system with real-time monitoring and troubleshooting capabilities.',
+                    details: [
+                        '<strong>Debug Mode</strong>: Enable verbose logging for detailed troubleshooting information',
+                        '<strong>Live Logs Viewer</strong>: Access real-time logs via "View live logs" button or <a href="/admin/logs" target="_blank">/admin/logs</a>',
+                        '<strong>Performance Impact</strong>: Debug mode may affect performance - use temporarily for troubleshooting',
+                        '<strong>Log Categories</strong>: Authentication, media processing, API calls, and system events',
+                        '<strong>Error Tracking</strong>: Detailed error messages with stack traces for developers',
+                        '<strong>Connection Diagnostics</strong>: Specific logs for Plex, TMDB, and TVDB connection issues',
+                        '<strong>Auto-Refresh</strong>: Live logs update automatically without page refresh',
+                        'Essential tool for diagnosing configuration problems and system issues',
                     ],
                 },
                 {
@@ -1256,8 +1378,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 port: 32400,
                 movieLibraryNames: ['Movies'],
                 showLibraryNames: ['TV Shows'],
-                movieCount: 30,
-                showCount: 15,
                 ratingFilter: '',
                 genreFilter: '',
                 recentlyAddedOnly: false,
@@ -1269,8 +1389,6 @@ document.addEventListener('DOMContentLoaded', () => {
             enabled: false,
             apiKey: '',
             category: 'popular',
-            movieCount: 50,
-            showCount: 25,
             minRating: 0,
             yearFilter: null,
             genreFilter: '',
@@ -1705,15 +1823,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Ctrl+T or Cmd+T to test Plex connection
-            if ((e.ctrlKey || e.metaKey) && e.key === 't') {
-                e.preventDefault();
-                const testButton = document.getElementById('test-plex-button');
-                if (testButton && !testButton.disabled) {
-                    testButton.click();
-                }
-            }
-
             // Escape to close modals
             if (e.key === 'Escape') {
                 const modals = document.querySelectorAll('.modal:not(.is-hidden)');
@@ -1727,11 +1836,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveButton = document.getElementById('save-config-button');
         if (saveButton) {
             saveButton.title = 'Save all settings (Ctrl+S)';
-        }
-
-        const testButton = document.getElementById('test-plex-button');
-        if (testButton) {
-            testButton.title = 'Test Plex connection (Ctrl+T)';
         }
     }
 

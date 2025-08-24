@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const layerA = document.getElementById('layer-a');
     const layerB = document.getElementById('layer-b');
     const infoContainer = document.getElementById('info-container');
-    const posterWrapper = document.getElementById('poster-wrapper');
     const textWrapper = document.getElementById('text-wrapper');
     const posterEl = document.getElementById('poster');
     const posterLink = document.getElementById('poster-link');
@@ -1115,17 +1114,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const cols = gridMeta.columns;
                 const heroSide = heroCfg.heroSide === 'right' ? 'right' : 'left';
                 const heroRotationMinutes = Math.max(0, Number(heroCfg.heroRotationMinutes) || 10);
-                // No dedicated micro-rail: keep layout purely random without rails
-                const microEnabled = false;
-                // Set opinionated defaults for a beautiful look
-                const microScale = 0.5; // 50% of base tiles
-                const microSwapPercent = 12; // ~12% per cycle for gentle motion
-                const microSwapInterval = 20; // every 20s
+
                 wallartGrid.dataset.layoutVariant = 'heroGrid';
                 wallartGrid.dataset.heroGrid = 'true';
 
-                // Compute how many total items to create (one hero replaces many cells)
-                const totalCells = cols * rows;
                 // Determine hero width to preserve 2:3 aspect fully visible
                 // Base poster ratio is 2:3 (w:h). Our grid rows have fixed height.
                 const baseCellW = layoutInfo.actualPosterWidth;
@@ -1150,8 +1142,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Ensure hero has a reasonable minimum width
                 heroSpan = Math.max(2, heroSpan);
                 // We'll make the hero tile span grid rows fully, and keep image object-fit: contain to ensure full poster visible inside
-                const otherCells = Math.max(0, totalCells - heroSpan * rows);
-                const totalItems = Math.min(otherCells + 1, mediaQueue.length);
 
                 // Clear any previous hero timer
                 if (window.wallartHeroTimer) {
@@ -2536,6 +2526,52 @@ document.addEventListener('DOMContentLoaded', async () => {
                 /* cross-origin or not ready */
             }
         }
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
+
+        // Compute a complementary color for gradient end
+        const comp = [255 - r, 255 - g, 255 - b].map(v => Math.max(24, Math.min(220, v)));
+
+        const start = `rgba(${r}, ${g}, ${b}, 0.9)`;
+        const end = `rgba(${comp[0]}, ${comp[1]}, ${comp[2]}, 0.9)`;
+        const nextBg = `linear-gradient(135deg, ${start} 0%, ${end} 100%)`;
+
+        // Smooth tween by cross-fading via opacity if background changes
+        ambient.style.background = nextBg;
+        ambient.style.opacity = '0.5';
+    }
+
+    // Compute ambient color from a single hero image
+    function updateAmbientFromImage(img) {
+        const ambient = ensureAmbientOverlay();
+        if (!img) return;
+
+        // Simple average of mid-sample pixels to avoid heavy processing
+        let r = 18,
+            g = 23,
+            b = 34; // dark baseline
+        let count = 1;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        canvas.width = 8;
+        canvas.height = 8; // tiny sample
+
+        try {
+            ctx.clearRect(0, 0, 8, 8);
+            ctx.drawImage(img, 0, 0, 8, 8);
+            const data = ctx.getImageData(2, 2, 4, 4).data; // sample center 4x4
+            for (let i = 0; i < data.length; i += 4) {
+                r += data[i];
+                g += data[i + 1];
+                b += data[i + 2];
+                count++;
+            }
+        } catch (_) {
+            /* cross-origin or not ready */
+        }
+
         r = Math.round(r / count);
         g = Math.round(g / count);
         b = Math.round(b / count);

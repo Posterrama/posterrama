@@ -75,7 +75,7 @@ function generateSwaggerSpec() {
                 },
                 {
                     name: 'Frontend',
-                    description: 'Frontend asset serving and template endpoints.',
+                    description: 'Frontend asset serving, templates and static pages.',
                 },
                 {
                     name: 'Cache',
@@ -92,6 +92,14 @@ function generateSwaggerSpec() {
                 {
                     name: 'Documentation',
                     description: 'API documentation and specification endpoints.',
+                },
+                {
+                    name: 'Security',
+                    description: 'Security monitoring and violation reporting endpoints.',
+                },
+                {
+                    name: 'Site Server',
+                    description: 'Public-facing site server endpoints and routes.',
                 },
             ],
             servers: [

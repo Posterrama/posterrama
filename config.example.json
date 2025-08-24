@@ -1,6 +1,6 @@
 {
-    "transitionIntervalSeconds": 10,
-    "backgroundRefreshMinutes": 30,
+    "transitionIntervalSeconds": 15,
+    "backgroundRefreshMinutes": 60,
     "showClearLogo": true,
     "showRottenTomatoes": true,
     "rottenTomatoesMinimumScore": 0,
@@ -12,9 +12,17 @@
     "wallartMode": {
         "enabled": false,
         "density": "medium",
-        "refreshRate": 7,
-        "randomness": 2,
+        "refreshRate": 6,
+        "randomness": 3,
         "animationType": "fade",
+        "layoutVariant": "heroGrid",
+        "layoutSettings": {
+            "heroGrid": {
+                "heroSide": "left",
+                "heroRotationMinutes": 10
+            }
+        },
+        "ambientGradient": false,
         "autoRefresh": true
     },
     "cinemaMode": false,
@@ -37,8 +45,6 @@
             "tokenEnvVar": "PLEX_TOKEN",
             "movieLibraryNames": [],
             "showLibraryNames": [],
-            "movieCount": 30,
-            "showCount": 15,
             "recentlyAddedOnly": false,
             "recentlyAddedDays": 30
         }
@@ -46,8 +52,6 @@
     "tmdbSource": {
         "enabled": false,
         "category": "popular",
-        "movieCount": 50,
-        "showCount": 25,
         "minRating": 0,
         "apiKey": "",
         "yearFilter": null,
@@ -56,8 +60,6 @@
     "tvdbSource": {
         "enabled": false,
         "category": "popular",
-        "movieCount": 10,
-        "showCount": 20,
         "minRating": 0,
         "yearFilter": null,
         "genreFilter": ""

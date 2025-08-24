@@ -102,8 +102,8 @@
                 "layoutVariant": {
                     "type": "string",
                     "enum": ["classic", "heroGrid"],
-                    "default": "classic",
-                    "description": "Wallart layout variant"
+                    "default": "heroGrid",
+                    "description": "Wallart layout variant - heroGrid recommended for modern look"
                 },
                 "ambientGradient": {
                     "type": "boolean",
@@ -265,14 +265,6 @@
                         "items": {
                             "type": "string"
                         }
-                    },
-                    "movieCount": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "showCount": {
-                        "type": "integer",
-                        "minimum": 0
                     }
                 },
                 "required": [
