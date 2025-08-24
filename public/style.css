@@ -774,17 +774,15 @@ body.promo-site #promo-box.is-hidden {
 }
 
 #poster {
-    width: 180px; /* Poster made smaller */
-    height: 270px; /* Poster made smaller */
+    width: 180px;
+    height: 270px;
     background-size: cover;
+    background-position: center center;
+    background-color: #2a2a2a; /* Fallback background color */
     border-radius: 8px;
-    transition:
-        transform 0.3s ease,
-        box-shadow 0.3s ease;
     position: relative;
-    --mouse-x: 50%;
-    --mouse-y: 50%;
-    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45); /* Shadow less high and a bit more subtle */
+    z-index: 1;
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45);
     transform: scale(var(--content-scale));
     transform-origin: bottom left;
 }
@@ -802,35 +800,14 @@ body.screensaver-mode #poster-wrapper {
 
 /* Poster layers for smooth transitions in cinema mode */
 .poster-layer {
-    width: 180px;
-    height: 270px;
-    background-size: cover;
-    background-position: center center;
-    background-repeat: no-repeat;
-    border-radius: 8px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    opacity: 0;
-    z-index: 1;
-    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45);
-    transform: scale(var(--content-scale));
-    transform-origin: bottom left;
-    /* Anti-aliasing and smooth rendering */
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
-    -webkit-font-smoothing: antialiased;
-    image-rendering: optimizeQuality;
-    /* Prevent sub-pixel jumping */
-    will-change: transform, opacity;
+    display: none; /* Hide poster layers, use simple poster only */
 }
 
 #rt-badge {
-    position: absolute; /* Position icon slightly outside the poster */
-    bottom: -5px; /* Position icon slightly outside the poster, to the right */
-    right: -8px; /* Background, blur, padding and border removed to only show the pure icon */
-    /* Prevents extra space around the image */
-    line-height: 0; /* Ensures the badge is always on top of the poster and its effects */
+    position: absolute;
+    bottom: -5px;
+    right: -8px;
+    line-height: 0;
     z-index: 10;
     opacity: 0;
     transform: translateY(10px);
@@ -838,6 +815,7 @@ body.screensaver-mode #poster-wrapper {
         opacity 0.4s ease-out,
         transform 0.4s ease-out;
     transition-delay: 0.2s;
+    pointer-events: none;
 }
 
 #rt-badge.visible {
@@ -1017,8 +995,59 @@ body.screensaver-mode #poster-wrapper {
         bottom: 70px !important; /* ensure controls do not cross the background edge */
     }
 }
+/* Desktop-specific poster positioning (override mobile changes) */
+@media (min-width: 769px) {
+    #poster-wrapper {
+        padding-left: 15px !important;
+        margin-left: 0 !important;
+        width: calc(180px * var(--content-scale)) !important;
+        height: calc(270px * var(--content-scale)) !important;
+        min-width: 180px !important;
+        min-height: 270px !important;
+        position: relative !important;
+        display: flex !important;
+        align-items: flex-end !important;
+        justify-content: flex-start !important;
+    }
+
+    body.screensaver-mode #poster-wrapper {
+        padding-left: 20px !important;
+        margin-left: -10px !important;
+    }
+
+    #poster {
+        width: 180px !important;
+        height: 270px !important;
+        transform: scale(var(--content-scale));
+        transform-origin: bottom left !important;
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        margin: 0 !important;
+    }
+
+    .poster-layer {
+        display: none !important; /* Hide poster layers on desktop too */
+    }
+    /* Poster layers are hidden, no screensaver specific rules needed */
+
+    #text-wrapper {
+        padding-left: calc(20px * var(--content-scale)) !important;
+    }
+}
+
 /* --- Media Queries for Mobile Devices --- */
 @media (max-width: 768px) {
+    /* Override content scaling for mobile */
+    :root {
+        --content-scale: 1 !important;
+    }
+
+    /* Fix poster layers for mobile */
+    .poster-layer {
+        display: none; /* Hide poster layers on mobile too */
+    }
+
     /* Adjust promo box for smaller screens */
     .promo-logo {
         width: 40px;
@@ -1064,21 +1093,23 @@ body.screensaver-mode #poster-wrapper {
     #poster-wrapper {
         filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.4));
         /* Reset wrapper size to exactly fit the poster on mobile */
-        width: 25vw !important; /* Match poster width exactly */
-        height: 37.5vw !important; /* Match poster height exactly */
-        max-width: 90px !important; /* Match poster max-width */
-        max-height: 135px !important; /* Match poster max-height */
-        min-width: unset !important; /* Remove minimum width */
-        min-height: unset !important; /* Remove minimum height */
+        width: 25vw !important; /* Larger viewport width for mobile */
+        height: 37.5vw !important; /* Maintain 2:3 aspect ratio */
+        max-width: 100px !important; /* Larger max size for mobile */
+        max-height: 150px !important; /* Maintain aspect ratio */
+        min-width: 70px !important; /* Set minimum size to prevent too small */
+        min-height: 105px !important; /* Maintain aspect ratio */
         padding-left: 0 !important; /* Remove left padding that adds extra space */
     }
 
     #poster {
-        /* Smaller poster to leave room for metadata on mobile */
-        width: 25vw; /* Smaller to fit better with text */
+        /* Larger poster for better visibility on mobile */
+        width: 25vw; /* Larger viewport width */
         height: 37.5vw; /* Maintain 2:3 aspect ratio */
-        max-width: 90px; /* Smaller max size for mobile */
-        max-height: 135px; /* Maintain aspect ratio */
+        max-width: 100px; /* Larger max size for mobile */
+        max-height: 150px; /* Maintain aspect ratio */
+        min-width: 70px; /* Set minimum size to prevent too small */
+        min-height: 105px; /* Maintain aspect ratio */
         flex-shrink: 0; /* Don't let poster shrink */
     }
 
@@ -1097,7 +1128,7 @@ body.screensaver-mode #poster-wrapper {
         width: auto; /* Let it take remaining space */
         flex: 1; /* Take up remaining space after poster */
         min-width: 0; /* Allow text to wrap/shrink */
-        padding-left: 0 !important; /* Remove the desktop padding that pushes text right */
+        padding-left: 20px !important; /* More padding for better spacing from poster */
         transform: none !important; /* Remove scaling transform on mobile */
         transform-origin: unset !important; /* Reset transform origin */
     }
@@ -1769,7 +1800,7 @@ body.wallart-mode #wallart-grid {
 .wallart-poster-item img {
     width: 100% !important;
     height: 100% !important;
-    object-fit: cover !important;
+    object-fit: contain !important;
     object-position: center !important;
     /* Ensure 2:3 aspect ratio is always maintained */
     aspect-ratio: 2/3 !important;
@@ -1789,7 +1820,7 @@ body.wallart-mode #wallart-grid {
 .wallart-poster-item img {
     width: 100% !important;
     height: 100% !important;
-    object-fit: cover !important;
+    object-fit: contain !important;
     object-position: center !important;
     display: block !important;
     position: relative; /* ensure ::after can layer above */
@@ -1987,17 +2018,134 @@ body.wallart-mode:not(.promo-site) #promo-box {
 @media (max-width: 768px) {
     body.wallart-mode #wallart-grid {
         grid-template-columns: repeat(3, 1fr);
-        gap: 15px;
-        padding: 15px;
         --wallart-columns: 3;
+    }
+
+    /* Mobile wallart posters should fill entire cell */
+    .wallart-poster-item img {
+        object-fit: contain !important;
+        aspect-ratio: 2/3 !important;
     }
 }
 
 @media (max-width: 480px) {
+    /* Fix poster layers for very small screens */
+    .poster-layer {
+        width: 20vw !important;
+        height: 30vw !important;
+        max-width: 85px !important;
+        max-height: 127px !important;
+        min-width: 65px !important;
+        min-height: 97px !important;
+        transform: none !important;
+        transform-origin: initial !important;
+    }
+
+    /* Further reduce poster size on very small screens */
+    #poster-wrapper {
+        width: 20vw !important;
+        height: 30vw !important;
+        max-width: 85px !important;
+        max-height: 127px !important;
+        min-width: 65px !important;
+        min-height: 97px !important;
+    }
+
+    #poster {
+        width: 20vw;
+        height: 30vw;
+        max-width: 85px;
+        max-height: 127px;
+        min-width: 65px;
+        min-height: 97px;
+        position: relative;
+    }
+
     body.wallart-mode #wallart-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-        padding: 10px;
+        gap: 0px; /* Remove gap to fill entire screen */
+        padding: 0px; /* Remove padding to fill entire screen */
         --wallart-columns: 2;
+    }
+
+    /* Very small screens - posters should fill entire cell */
+    .wallart-poster-item img {
+        object-fit: contain !important;
+        aspect-ratio: 2/3 !important;
+    }
+}
+
+/* All mobile devices - general fix */
+@media (max-width: 430px) {
+    /* Fix for all small mobile devices */
+    .poster-layer {
+        width: 70px !important;
+        height: 105px !important;
+        max-width: 70px !important;
+        max-height: 105px !important;
+        min-width: 70px !important;
+        min-height: 105px !important;
+        transform: none !important;
+        transform-origin: initial !important;
+    }
+
+    #poster-wrapper {
+        width: 80px !important;
+        height: 120px !important;
+        max-width: 80px !important;
+        max-height: 120px !important;
+        min-width: 80px !important;
+        min-height: 120px !important;
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+    }
+
+    #poster {
+        width: 80px !important;
+        height: 120px !important;
+        max-width: 80px !important;
+        max-height: 120px !important;
+        min-width: 80px !important;
+        min-height: 120px !important;
+        position: relative;
+    }
+
+    /* More padding for text on small screens */
+    #text-wrapper {
+        padding-left: 24px !important;
+    }
+
+    /* Ensure info container positioning is correct on all mobile */
+    #info-container {
+        left: 15px !important;
+        right: 15px !important;
+        padding-bottom: 30px !important;
+        gap: 16px !important; /* Slightly larger gap for bigger poster */
+        bottom: 0px !important;
+        position: fixed !important;
+    }
+
+    .poster-layer {
+        width: 80px !important;
+        height: 120px !important;
+        max-width: 80px !important;
+        max-height: 120px !important;
+        min-width: 80px !important;
+        min-height: 120px !important;
+        transform: none !important;
+        transform-origin: initial !important;
+    }
+
+    /* Override content-scale calculations for mobile */
+    #info-container {
+        gap: 12px !important; /* Fixed gap, no scaling */
+    }
+
+    #poster-wrapper {
+        /* Disable all dynamic calculations */
+        width: 70px !important;
+        height: 105px !important;
+        min-height: 105px !important;
+        min-width: 70px !important;
     }
 }

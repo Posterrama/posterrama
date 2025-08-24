@@ -254,10 +254,18 @@ window.scrollToSubsection = function (id) {
             return;
         }
 
-        // Compute target Y with a small offset to avoid sticking under any top UI
-        const offset = 16;
-        const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
-        window.scrollTo({ top: y, behavior: 'smooth' });
+        const container = document.querySelector('.main-content');
+        const offset = 16; // small top padding
+
+        if (container) {
+            const elRect = el.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            const targetY = elRect.top - containerRect.top + container.scrollTop - offset;
+            container.scrollTo({ top: targetY, behavior: 'smooth' });
+        } else {
+            const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
 
         // Briefly highlight the target header for orientation
         el.classList.add('pulse-highlight');
@@ -1232,6 +1240,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // Scroll to top of main content so section title is immediately visible
+        const main = document.querySelector('.main-content');
+        if (main) {
+            // Prefer direct property for maximum compatibility
+            main.scrollTop = 0;
+            main.scrollLeft = 0;
+        } else {
+            window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        }
+
         // Always update help content when section changes
         updateHelpContent(targetSection);
 
@@ -1669,6 +1687,17 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         document.getElementById('wallartModeEnabled').checked = wallartMode.enabled;
         document.getElementById('wallartDensity').value = wallartMode.density ?? 'medium';
+        const layoutVariantEl = document.getElementById('wallartLayoutVariant');
+        if (layoutVariantEl) layoutVariantEl.value = wallartMode.layoutVariant ?? 'classic';
+        // Populate layout settings (safe defaults)
+        const ls = wallartMode.layoutSettings || {};
+        const hero = ls.heroGrid || {};
+        const heroSide = document.getElementById('heroSide');
+        const heroRot = document.getElementById('heroRotationMinutes');
+        if (heroSide) heroSide.value = hero.heroSide || 'left';
+        if (heroRot) heroRot.value = hero.heroRotationMinutes || 10;
+        // Micro-tiles removed from UI and config; no-op
+        // Masonry Light removed
         document.getElementById('wallartRefreshRate').value =
             wallartMode.refreshRate ?? wallartMode.randomness ?? 5; // Backward compatibility
         document.getElementById('wallartRandomness').value = wallartMode.randomness ?? 3;
@@ -1708,12 +1737,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Show/hide wallart settings based on wallart mode
         const wallartSettingsGroup = document.getElementById('wallartSettingsGroup');
+        const wallartControlsGroup = document.getElementById('wallartControlsGroup');
         if (wallartSettingsGroup) {
             wallartSettingsGroup.style.display = isWallartMode ? 'block' : 'none';
             if (isWallartMode) {
                 wallartSettingsGroup.classList.remove('hidden');
             } else {
                 wallartSettingsGroup.classList.add('hidden');
+            }
+        }
+        if (wallartControlsGroup) {
+            wallartControlsGroup.style.display = isWallartMode ? 'block' : 'none';
+            if (isWallartMode) {
+                wallartControlsGroup.classList.remove('hidden');
+            } else {
+                wallartControlsGroup.classList.add('hidden');
+            }
+        }
+        if (wallartSettingsGroup) {
+            // Toggle layout settings subsections
+            const layoutVariant =
+                document.getElementById('wallartLayoutVariant')?.value || 'classic';
+            const heroGrp = document.getElementById('layoutSettings-heroGrid');
+            if (heroGrp) heroGrp.style.display = layoutVariant === 'heroGrid' ? 'block' : 'none';
+            // Masonry Light group removed
+
+            // React to layout variant change to toggle groups live
+            const layoutVariantElLive = document.getElementById('wallartLayoutVariant');
+            if (layoutVariantElLive && !layoutVariantElLive._hasToggleHandler) {
+                layoutVariantElLive.addEventListener('change', () => {
+                    const v = layoutVariantElLive.value || 'classic';
+                    const hero = document.getElementById('layoutSettings-heroGrid');
+                    if (hero) hero.style.display = v === 'heroGrid' ? 'block' : 'none';
+                    // no masonry light
+                });
+                layoutVariantElLive._hasToggleHandler = true;
             }
         }
 
@@ -1787,6 +1845,62 @@ document.addEventListener('DOMContentLoaded', () => {
             const display = isWallartMode ? 'none' : 'block';
             effectsHeader.style.display = display;
             effectsContent.style.display = display;
+        }
+
+        // Hide UI Element Scaling when Wallart mode is enabled
+        const scalingHeaders = document.querySelectorAll('.subsection-header');
+        scalingHeaders.forEach(header => {
+            if (header.textContent.includes('UI Element Scaling')) {
+                const display = isWallartMode ? 'none' : 'block';
+                header.style.display = display;
+                const scalingContent = header.nextElementSibling;
+                if (scalingContent && scalingContent.classList.contains('subsection-content')) {
+                    scalingContent.style.display = display;
+                }
+            }
+        });
+
+        // Hide Playback Timing when Wallart mode is enabled
+        const timingHeaders = document.querySelectorAll('.subsection-header');
+        timingHeaders.forEach(header => {
+            if (header.textContent.includes('Playback Timing')) {
+                const display = isWallartMode ? 'none' : 'block';
+                header.style.display = display;
+                const timingContent = header.nextElementSibling;
+                if (timingContent && timingContent.classList.contains('subsection-content')) {
+                    timingContent.style.display = display;
+                }
+            }
+        });
+
+        // Hide sections that don't apply to Cinema Mode when initially enabled
+        if (isCinemaMode) {
+            const sectionsToHide = [
+                'Visual Elements',
+                'UI Element Scaling',
+                'Effects & Transitions',
+                'Playback Timing',
+            ];
+            sectionsToHide.forEach(sectionName => {
+                const headers = document.querySelectorAll('.subsection-header');
+                headers.forEach(header => {
+                    if (header.textContent.includes(sectionName)) {
+                        header.style.display = 'none';
+                        const content = header.nextElementSibling;
+                        if (content && content.classList.contains('subsection-content')) {
+                            content.style.display = 'none';
+                        }
+                    }
+                });
+            });
+
+            // Also handle Effects & Transitions by ID (fallback)
+            const effectsHeader = document.getElementById('effectsHeader');
+            const effectsContent = document.getElementById('effectsContent');
+            if (effectsHeader && effectsContent) {
+                effectsHeader.style.display = 'none';
+                effectsContent.style.display = 'none';
+            }
         }
 
         // Update spacing for first visible subsection
@@ -4466,6 +4580,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         refreshRate: getValue('wallartRefreshRate', 'number'),
                         randomness: getValue('wallartRandomness', 'number'),
                         animationType: getValue('wallartAnimationType'),
+                        layoutVariant: getValue('wallartLayoutVariant'),
+                        layoutSettings: {
+                            heroGrid: {
+                                heroSide: getValue('heroSide'),
+                                heroRotationMinutes: getValue('heroRotationMinutes', 'number'),
+                            },
+                            // masonryLight removed
+                        },
                         ambientGradient: getValue('wallartAmbientGradient'),
                         // spotlight removed
                         // autoRefresh removed (always on)
@@ -5171,6 +5293,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Don't automatically show wallart settings - let the checkbox state control it
                 }
 
+                // Hide/Show sections that don't apply to Cinema Mode
+                const sectionsToHide = [
+                    'Visual Elements',
+                    'UI Element Scaling',
+                    'Effects & Transitions',
+                    'Playback Timing',
+                ];
+                sectionsToHide.forEach(sectionName => {
+                    const headers = document.querySelectorAll('.subsection-header');
+                    headers.forEach(header => {
+                        if (header.textContent.includes(sectionName)) {
+                            const display = isCinemaMode ? 'none' : 'block';
+                            header.style.display = display;
+                            const content = header.nextElementSibling;
+                            if (content && content.classList.contains('subsection-content')) {
+                                content.style.display = display;
+                            }
+                        }
+                    });
+                });
+
+                // Also handle Effects & Transitions by ID (fallback)
+                const effectsHeader = document.getElementById('effectsHeader');
+                const effectsContent = document.getElementById('effectsContent');
+                if (effectsHeader && effectsContent) {
+                    const display = isCinemaMode ? 'none' : 'block';
+                    effectsHeader.style.display = display;
+                    effectsContent.style.display = display;
+                }
+
                 // Update spacing for first visible subsection
                 updateFirstVisibleSubsectionSpacing();
 
@@ -5253,6 +5405,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
+                // Hide/Show UI Element Scaling when Wallart mode is toggled
+                const scalingHeaders = document.querySelectorAll('.subsection-header');
+                scalingHeaders.forEach(header => {
+                    if (header.textContent.includes('UI Element Scaling')) {
+                        const display = isWallartMode ? 'none' : 'block';
+                        header.style.display = display;
+                        const scalingContent = header.nextElementSibling;
+                        if (
+                            scalingContent &&
+                            scalingContent.classList.contains('subsection-content')
+                        ) {
+                            scalingContent.style.display = display;
+                        }
+                    }
+                });
+
+                // Hide/Show Playback Timing when Wallart mode is toggled
+                const timingHeaders = document.querySelectorAll('.subsection-header');
+                timingHeaders.forEach(header => {
+                    if (header.textContent.includes('Playback Timing')) {
+                        const display = isWallartMode ? 'none' : 'block';
+                        header.style.display = display;
+                        const timingContent = header.nextElementSibling;
+                        if (
+                            timingContent &&
+                            timingContent.classList.contains('subsection-content')
+                        ) {
+                            timingContent.style.display = display;
+                        }
+                    }
+                });
+
                 // Update spacing for first visible subsection
                 updateFirstVisibleSubsectionSpacing();
 
@@ -5279,12 +5463,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isWallartMode = wallartModeCheckbox.checked;
 
                 // Show/hide wallart settings
+                const wallartControlsGroup = document.getElementById('wallartControlsGroup');
                 if (wallartSettingsGroup) {
                     wallartSettingsGroup.style.display = isWallartMode ? 'block' : 'none';
                     if (isWallartMode) {
                         wallartSettingsGroup.classList.remove('hidden');
                     } else {
                         wallartSettingsGroup.classList.add('hidden');
+                    }
+                }
+                if (wallartControlsGroup) {
+                    wallartControlsGroup.style.display = isWallartMode ? 'block' : 'none';
+                    if (isWallartMode) {
+                        wallartControlsGroup.classList.remove('hidden');
+                    } else {
+                        wallartControlsGroup.classList.add('hidden');
                     }
                 }
 

@@ -35,12 +35,49 @@ require('dotenv').config();
 
 // --- Schema Validation ---
 const ajv = new Ajv({ allErrors: true }); // Show all errors, not just the first
-const configSchema = require('./config.schema.json');
+const schemaPath = path.join(__dirname, 'config.schema.json');
+
+// Create a local safe reader that doesn't globally monkey-patch fs, to avoid
+// interfering with Jest/Babel internals. We prefer the Jest mock for config.json
+// (so tests can inject content), and bypass the mock for other files like the schema.
+function realReadFileSync(p, encoding = 'utf-8') {
+    const fd = fs.openSync(p, 'r');
+    try {
+        const stat = fs.fstatSync(fd);
+        const buf = Buffer.allocUnsafe(stat.size);
+        fs.readSync(fd, buf, 0, stat.size, 0);
+        return encoding ? buf.toString(encoding) : buf;
+    } finally {
+        try {
+            fs.closeSync(fd);
+        } catch (_) {
+            // ignore
+        }
+    }
+}
+
+function safeReadFile(pathStr, { preferMockForConfig = false } = {}) {
+    const isFsMocked = typeof fs.readFileSync === 'function' && fs.readFileSync._isMockFunction;
+    if (preferMockForConfig && isFsMocked && pathStr === configPath) {
+        // Let the test-provided mock supply config.json content
+        return fs.readFileSync(pathStr, 'utf-8');
+    }
+    // For all other cases (schema and non-config), bypass the mock
+    return realReadFileSync(pathStr, 'utf-8');
+}
+
+let configSchema;
+try {
+    configSchema = JSON.parse(safeReadFile(schemaPath));
+} catch (e) {
+    console.error('[Config] Failed to read config.schema.json:', e.message);
+    process.exit(1);
+}
 const validate = ajv.compile(configSchema);
 
 let config;
 try {
-    config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    config = JSON.parse(safeReadFile(configPath, { preferMockForConfig: true }));
 } catch (error) {
     console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: Could not read or parse config.json.');
     console.error(error.message);

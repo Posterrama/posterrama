@@ -99,10 +99,42 @@
                     "default": "fade",
                     "description": "Animation style used for grid updates"
                 },
+                "layoutVariant": {
+                    "type": "string",
+                    "enum": ["classic", "heroGrid"],
+                    "default": "classic",
+                    "description": "Wallart layout variant"
+                },
                 "ambientGradient": {
                     "type": "boolean",
                     "default": false,
                     "description": "Enable subtle ambient gradient background overlay"
+                },
+                "layoutSettings": {
+                    "type": "object",
+                    "properties": {
+                        "heroGrid": {
+                            "type": "object",
+                            "properties": {
+                                "heroSide": {
+                                    "type": "string",
+                                    "enum": ["left", "right"],
+                                    "default": "left"
+                                },
+                                "heroRotationMinutes": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 60,
+                                    "default": 10
+                                },
+                                "biasAmbientToHero": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Weight ambient gradient sampling more toward the hero image"
+                                }
+                            }
+                        }
+                    }
                 },
 
                 "itemsPerScreen": {

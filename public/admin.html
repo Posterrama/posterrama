@@ -215,9 +215,34 @@
                                 <div class="subsection-content">
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="wallartModeEnabled" name="wallartMode.enabled">
-                                        <label for="wallartModeEnabled">Enable Wallart Mode (Multi-poster grid display)</label>
+                                        <label for="wallartModeEnabled">Enable Wallart Mode</label>
                                     </div>
                                     <div class="wallart-settings-group hidden" id="wallartSettingsGroup">
+                                        <div class="form-group">
+                                            <label for="wallartLayoutVariant">Layout variant</label>
+                                            <select id="wallartLayoutVariant" name="wallartMode.layoutVariant">
+                                                <option value="classic" selected>Classic Grid</option>
+                                                <option value="heroGrid">Hero + Grid</option>
+                                                
+                                            </select>
+                                        </div>
+                                        <div class="form-group" id="layoutSettings-heroGrid" style="display:none">
+                                            <label>Hero settings</label>
+                                            <div class="form-grid-2">
+                                                <div>
+                                                    <label for="heroSide">Hero side</label>
+                                                    <select id="heroSide" name="wallartMode.layoutSettings.heroGrid.heroSide">
+                                                        <option value="left" selected>Left</option>
+                                                        <option value="right">Right</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="heroRotationMinutes">Hero rotation (minutes)</label>
+                                                    <input type="number" id="heroRotationMinutes" name="wallartMode.layoutSettings.heroGrid.heroRotationMinutes" min="1" max="60" value="10">
+                                                </div>
+                                            </div>
+                                            
+                                        </div>
                                         <div class="form-group">
                                             <label for="wallartDensity">Poster Density</label>
                                             <select id="wallartDensity" name="wallartMode.density">
@@ -227,46 +252,47 @@
                                                 <option value="ludicrous">Ludicrous - 200% of screen-optimal (tiny posters)</option>
                                             </select>
                                         </div>
-                                        <div class="form-group">
-                                            <label for="wallartRefreshRate">Poster Refresh Rate</label>
-                                            <div class="slider-wrapper">
-                                                <input type="range" id="wallartRefreshRate" name="wallartMode.refreshRate" min="1" max="10" value="5" step="1">
-                                                <div class="slider-value-display">
-                                                    <span id="wallartRefreshRate-value">Medium refresh rate</span>
+                                        
+                                        <!-- Wallart-specific controls that should only show when enabled -->
+                                        <div class="wallart-controls-group" id="wallartControlsGroup">
+                                            <div class="form-group">
+                                                <label for="wallartRefreshRate">Poster Refresh Rate</label>
+                                                <div class="slider-wrapper">
+                                                    <input type="range" id="wallartRefreshRate" name="wallartMode.refreshRate" min="1" max="10" value="5" step="1">
+                                                    <span id="wallartRefreshRate-value" class="slider-value">Medium refresh rate</span>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="wallartRandomness">Timing Randomness</label>
-                                            <div class="slider-wrapper">
-                                                <input type="range" id="wallartRandomness" name="wallartMode.randomness" min="0" max="10" value="3" step="1">
-                                                <div class="slider-value-display">
-                                                    <span id="wallartRandomness-value">Low randomness</span>
+                                            <div class="form-group">
+                                                <label for="wallartRandomness">Timing Randomness</label>
+                                                <div class="slider-wrapper">
+                                                    <input type="range" id="wallartRandomness" name="wallartMode.randomness" min="0" max="10" value="3" step="1">
+                                                    <span id="wallartRandomness-value" class="slider-value">Low randomness</span>
                                                 </div>
                                             </div>
+                                            <div class="form-group">
+                                                <label for="wallartAnimationType">Animation Type</label>
+                                                <select id="wallartAnimationType" name="wallartMode.animationType">
+                                                    <option value="random">Random - Uses all animation types</option>
+                                                    <option value="fade" selected>Fade - Smooth opacity transition</option>
+                                                    <option value="slideLeft">Slide Left - Poster slides from right</option>
+                                                    <option value="slideUp">Slide Up - Poster slides from bottom</option>
+                                                    <option value="zoom">Zoom - Scale in effect</option>
+                                                    <option value="flip">Flip - 3D flip effect</option>
+                                                    <option value="staggered">Staggered Reveal - Rows/columns staggered in</option>
+                                                    <option value="ripple">Ripple - Wave reveal from center</option>
+                                                    <option value="scanline">Scanline Sweep - Horizontal sweep with soft blur-in</option>
+                                                    <option value="parallax">Parallax Drift - Subtle 3D offset depth</option>
+                                                    <option value="neonPulse">Neon Pulse - Soft outer glow on change</option>
+                                                    <option value="chromaticShift">Chromatic Shift - RGB split that converges</option>
+                                                    <option value="mosaicShatter">Mosaic Shatter - Tiles assemble into the new poster</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group checkbox-group">
+                                                <input type="checkbox" id="wallartAmbientGradient" name="wallartMode.ambientGradient">
+                                                <label for="wallartAmbientGradient">Ambient gradient background</label>
+                                            </div>
                                         </div>
-                                        <div class="form-group">
-                                            <label for="wallartAnimationType">Animation Type</label>
-                                            <select id="wallartAnimationType" name="wallartMode.animationType">
-                                                <option value="random">Random - Uses all animation types</option>
-                                                <option value="fade" selected>Fade - Smooth opacity transition</option>
-                                                <option value="slideLeft">Slide Left - Poster slides from right</option>
-                                                <option value="slideUp">Slide Up - Poster slides from bottom</option>
-                                                <option value="zoom">Zoom - Scale in effect</option>
-                                                <option value="flip">Flip - 3D flip effect</option>
-                                                <option value="staggered">Staggered Reveal - Rows/columns staggered in</option>
-                                                <option value="ripple">Ripple - Wave reveal from center</option>
-                                                <option value="scanline">Scanline Sweep - Horizontal sweep with soft blur-in</option>
-                                                <option value="parallax">Parallax Drift - Subtle 3D offset depth</option>
-                                                <option value="neonPulse">Neon Pulse - Soft outer glow on change</option>
-                                                <option value="chromaticShift">Chromatic Shift - RGB split that converges</option>
-                                                <option value="mosaicShatter">Mosaic Shatter - Tiles assemble into the new poster</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group checkbox-group">
-                                            <input type="checkbox" id="wallartAmbientGradient" name="wallartMode.ambientGradient">
-                                            <label for="wallartAmbientGradient">Ambient gradient background</label>
-                                        </div>
+                                        
                                         <div class="form-group checkbox-group">
                                             <!-- Spotlight option removed -->
                                         </div>
@@ -284,7 +310,7 @@
                                 <div class="subsection-content" id="cinemaModeContent">
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="cinemaMode" name="cinemaMode">
-                                        <label for="cinemaMode">Enable Cinema Mode (Digital Movie Poster)</label>
+                                        <label for="cinemaMode">Enable Cinema Mode</label>
                                     </div>
                                     <div class="form-group cinema-orientation-group hidden" id="cinemaOrientationGroup">
                                         <label for="cinemaOrientation">Cinema Display Orientation</label>
@@ -386,49 +412,41 @@
                                         </select>
                                     </div>
                                 </div>
-                        
-                        <!-- UI Element Scaling Subsection -->
-                        <div class="subsection-header">
-                            <i class="fas fa-expand-arrows-alt"></i>
-                            UI Element Scaling
-                        </div>
-                        <div class="subsection-content">
-                            <!-- Compact Scaling Grid -->
-                            <div class="scaling-grid">
+                                
+                                <!-- UI Element Scaling Subsection -->
+                                <div class="subsection-header">
+                                    <i class="fas fa-expand-arrows-alt"></i>
+                                    UI Element Scaling
+                                </div>
+                                <div class="subsection-content">
+                                    <!-- Compact Scaling Grid -->
+                                    <div class="scaling-grid">
                                 <div class="scaling-item">
                                     <label for="uiScaling.content">Content</label>
                                     <div class="slider-wrapper">
                                         <input type="range" id="uiScaling.content" name="uiScaling.content" min="50" max="200" value="100" step="5">
-                                        <div class="slider-value-display">
-                                            <span id="uiScaling.content-value">100%</span>
-                                        </div>
+                                        <span id="uiScaling.content-value" class="slider-value">100%</span>
                                     </div>
                                 </div>
                                 <div class="scaling-item">
                                     <label for="uiScaling.clearlogo">Clearlogo</label>
                                     <div class="slider-wrapper">
                                         <input type="range" id="uiScaling.clearlogo" name="uiScaling.clearlogo" min="50" max="200" value="100" step="5">
-                                        <div class="slider-value-display">
-                                            <span id="uiScaling.clearlogo-value">100%</span>
-                                        </div>
+                                        <span id="uiScaling.clearlogo-value" class="slider-value">100%</span>
                                     </div>
                                 </div>
                                 <div class="scaling-item">
                                     <label for="uiScaling.clock">Clock</label>
                                     <div class="slider-wrapper">
                                         <input type="range" id="uiScaling.clock" name="uiScaling.clock" min="50" max="200" value="100" step="5">
-                                        <div class="slider-value-display">
-                                            <span id="uiScaling.clock-value">100%</span>
-                                        </div>
+                                        <span id="uiScaling.clock-value" class="slider-value">100%</span>
                                     </div>
                                 </div>
                                 <div class="scaling-item">
                                     <label for="uiScaling.global">Global</label>
                                     <div class="slider-wrapper">
                                         <input type="range" id="uiScaling.global" name="uiScaling.global" min="50" max="200" value="100" step="5">
-                                        <div class="slider-value-display">
-                                            <span id="uiScaling.global-value">100%</span>
-                                        </div>
+                                        <span id="uiScaling.global-value" class="slider-value">100%</span>
                                     </div>
                                 </div>
                                 
@@ -449,15 +467,14 @@
                                         </button>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                            
-                            <!-- Effects & Transitions Subsection -->
-                            <div class="subsection-header" id="effectsHeader">
-                                <i class="fas fa-magic"></i>
-                                Effects & Transitions
-                            </div>
-                            <div class="subsection-content" id="effectsContent">
+                                </div>
+                                
+                                <!-- Effects & Transitions Subsection -->
+                                <div class="subsection-header" id="effectsHeader">
+                                    <i class="fas fa-magic"></i>
+                                    Effects & Transitions
+                                </div>
+                                <div class="subsection-content" id="effectsContent">
                                 <div class="form-group">
                                     <label for="transitionEffect">Transition Effect</label>
                                     <select id="transitionEffect" name="transitionEffect">
@@ -470,13 +487,14 @@
                                     <label for="effectPauseTime">Effect Pause Time (seconds)</label>
                                     <input type="number" id="effectPauseTime" name="effectPauseTime" min="0" max="10" step="0.5" value="2">
                                 </div>
-                            </div>
-                            <!-- Playback Timing Subsection (moved from General) -->
-                            <div class="subsection-header">
-                                <i class="fas fa-cogs"></i>
-                                Playback Timing
-                            </div>
-                            <div class="subsection-content">
+                                </div>
+                                
+                                <!-- Playback Timing Subsection (moved from General) -->
+                                <div class="subsection-header">
+                                    <i class="fas fa-cogs"></i>
+                                    Playback Timing
+                                </div>
+                                <div class="subsection-content">
                                 <div class="form-group">
                                     <label for="transitionIntervalSeconds" title="How many seconds each poster is visible.">Transition Interval (seconds)</label>
                                     <div class="number-input-wrapper">
@@ -493,8 +511,8 @@
                                     <div id="transitionIntervalSeconds-help" class="form-help">Time in seconds between poster transitions (1-300). <strong>Note:</strong> Does not apply to Wallart Mode - use Wallart Mode refresh settings instead.</div>
                                 </div>
                             </div>
-                        </div>
-                        </div>
+                        </div> <!-- End of form-section unified-section -->
+                        </div> <!-- End of section-main-content -->
                     </section>
                     
 
@@ -716,8 +734,11 @@
                                 </div>
                                 
                                 <!-- Streaming Releases Subsection -->
-                                <div class="external-source-subsection" data-source="streaming">
-                                    <h4><i class="fas fa-stream"></i> Streaming Releases</h4>
+                                <div class="subsection-header">
+                                    <i class="fas fa-stream"></i>
+                                    Streaming Releases (Needs TMDB Enabled)
+                                </div>
+                                <div class="subsection-content">
                                     <p class="external-source-description">Add latest releases from popular streaming platforms using TMDB's streaming provider data.</p>
                                     
                                     <div class="form-group">

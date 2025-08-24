@@ -44,6 +44,16 @@ body {
     overflow-x: hidden;
 }
 
+/* Unified content sizing tokens */
+:root {
+    --content-max-width: 1000px;
+    --content-padding-x: 1.5rem;
+    --content-padding-y: 1.5rem;
+    --content-border: 1px solid rgba(255, 255, 255, 0.1);
+    --content-radius: 12px;
+    --content-backdrop-blur: 12px;
+}
+
 /* Emergency fallback visibility class */
 .force-visible {
     display: block !important;
@@ -539,15 +549,18 @@ a:hover {
 }
 
 .sidebar-header {
-    padding: 0 1rem; /* Reduced padding to match header */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    height: 70px; /* Exact height match with header */
-    min-height: 70px; /* Fallback */
-    box-sizing: border-box;
-    flex-shrink: 0; /* Prevent header from shrinking */
+    padding: 0 1rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    height: 70px !important;
+    min-height: 70px !important;
+    max-height: 70px !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
 }
 
 .sidebar-logo {
@@ -617,56 +630,74 @@ a:hover {
 }
 
 .sidebar-nav {
-    padding: 1rem 0;
+    padding: 0.5rem 0 !important;
 }
 
 .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem 1.1rem; /* Slightly more right padding to avoid edge touch */
-    color: #b3b3b3;
-    background: none;
-    border: none;
-    width: 100%;
-    text-align: left;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-left: 3px solid transparent;
-    white-space: nowrap;
-    position: relative;
-}
-
-.nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #ffffff;
-}
-
-.nav-item.active {
-    background: rgba(102, 126, 234, 0.1);
-    color: #ffffff;
-    border-left-color: #667eea;
-}
-
-.nav-item.active .nav-icon {
-    color: #667eea;
-}
-
-.nav-item.active .nav-text {
-    font-weight: 600;
-}
-
-.nav-icon {
-    width: 20px;
-    text-align: center;
-    font-size: 1.1rem;
-    transition: color 0.2s ease;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    padding: 0.875rem 1.1rem !important;
+    color: #b3b3b3 !important;
+    background: none !important;
+    border: none !important;
+    width: 100% !important;
+    text-align: left !important;
+    font-size: 0.95rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    border-left: 3px solid transparent !important;
+    white-space: nowrap !important;
+    position: relative !important;
 }
 
 .nav-text {
-    font-weight: 500;
-    transition: color 0.2s ease;
+    font-weight: 500 !important;
+    transition: color 0.2s ease !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+}
+
+.nav-item.active {
+    background: rgba(102, 126, 234, 0.1) !important;
+    color: #ffffff !important;
+    border-left-color: #667eea !important;
+}
+
+.nav-item.active .nav-icon {
+    color: #667eea !important;
+}
+
+.nav-item.active .nav-text {
+    font-weight: 600 !important;
+}
+
+.nav-icon {
+    width: 20px !important;
+    text-align: center !important;
+    font-size: 1.1rem !important;
+    transition: color 0.2s ease !important;
+}
+
+/* Force text visibility even when collapsed (override desktop styles) */
+@media (min-width: 769px) {
+    .sidebar.collapsed .nav-text {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .sidebar .nav-text {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
 }
 
 /* Main Content - positioned to the right of fixed sidebar */
@@ -684,7 +715,7 @@ a:hover {
 }
 
 .admin-main {
-    padding: 2rem 1rem 8rem 1rem; /* Remove top padding since main-content already has margin-top */
+    padding: 0.5rem 1rem 6rem 1rem; /* Unified, tighter top/bottom spacing */
     height: 100%;
     width: 100%;
     max-width: 1400px;
@@ -752,7 +783,7 @@ a:hover {
     margin-bottom: 2rem !important;
 }
 
-/* Simple subsection headers - no padding, just margin */
+/* Simple subsection headers - match section-title width and work with dynamic visibility */
 .subsection-header {
     display: flex;
     align-items: center;
@@ -762,12 +793,59 @@ a:hover {
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin: 3rem 0 1rem 0;
+    margin: 2rem 0 1rem 0; /* Remove horizontal margins - use form-section padding instead */
     padding: 0 0 1rem 0;
     position: relative;
     background: transparent;
     backdrop-filter: none;
     border-radius: 0;
+    width: auto; /* Let it fit within container */
+    max-width: none; /* Remove max-width constraint */
+}
+
+/* First subsection header has less top margin */
+.subsection-header:first-of-type {
+    margin-top: var(--content-padding-y) !important;
+}
+
+/* Hidden subsections should not affect layout */
+.subsection-header[style*='display: none'],
+.subsection-content[style*='display: none'] {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* SPECIFIC FIX: Display Settings section dynamic layout */
+#display-section .form-section.unified-section {
+    min-height: 200px !important;
+    padding: var(--content-padding-y) var(--content-padding-x) 0 var(--content-padding-x) !important; /* Add horizontal padding back */
+}
+
+/* All subsection headers in Display Settings get standard spacing */
+#display-section .subsection-header {
+    margin-top: 2rem !important;
+}
+
+/* CRITICAL FIX: First subsection header (regardless of which one is visible) gets reduced top margin */
+#display-section .subsection-header:first-of-type {
+    margin-top: 0 !important; /* Remove margin since container has top padding */
+}
+
+/* Specific fixes for each subsection when it becomes the first visible one */
+#display-section .subsection-header[id='cinemaModeHeader'] {
+    margin-top: 2rem !important;
+}
+
+/* Override: When cinema mode header is actually first visible (wallart hidden) */
+#display-section
+    .form-section.unified-section
+    > .subsection-header[id='cinemaModeHeader']:nth-child(1) {
+    margin-top: 0 !important;
+}
+
+#display-section .subsection-content:last-child {
+    margin-bottom: var(--content-padding-y) !important;
 }
 
 /* Simple gradient lines - full width within container */
@@ -891,6 +969,27 @@ div:nth-of-type(2).subsection-header {
     background: linear-gradient(90deg, #059669, #0d9488, #0891b2) !important;
     -webkit-background-clip: text !important;
     background-clip: text !important;
+}
+
+/* Streaming Releases - Purple/Pink/Orange gradient for header text and icon */
+.subsection-header:has(i.fa-stream)::after {
+    background: linear-gradient(90deg, #8b5cf6, #ec4899, #f97316) !important;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3) !important;
+}
+
+.subsection-header:has(i.fa-stream) {
+    color: transparent !important;
+    background: linear-gradient(90deg, #8b5cf6, #ec4899, #f97316) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.subsection-header:has(i.fa-stream) i {
+    color: transparent !important;
+    background: linear-gradient(90deg, #8b5cf6, #ec4899, #f97316) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 2px 4px rgba(139, 92, 246, 0.2)) !important;
 }
 
 /* Fallback icon styling */
@@ -1334,14 +1433,83 @@ div:nth-of-type(2).subsection-header i {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
-/* Simple subsection content - no padding */
+/* Simple subsection content - work with dynamic visibility */
 .subsection-content {
-    margin-top: 1rem;
+    margin: 0 0 1rem 0; /* Remove horizontal margins - use form-section padding instead */
     padding: 0;
     background: transparent;
     border: none;
     border-radius: 0;
     box-shadow: none;
+    width: auto; /* Let it fit within container */
+    max-width: none; /* Remove max-width constraint */
+}
+
+/* Last subsection content has more bottom margin */
+.subsection-content:last-of-type {
+    margin-bottom: var(--content-padding-y) !important;
+}
+
+/* SPECIFIC FIX: Ensure proper bottom padding for Display Settings last subsection */
+#display-section .subsection-content:last-child,
+#display-section .form-section.unified-section > .subsection-content:last-child {
+    margin-bottom: var(--content-padding-y) !important;
+    padding-bottom: 0.5rem !important; /* Extra padding for visual breathing room */
+}
+
+/* Additional fix: Ensure any form groups in the last subsection have proper spacing */
+#display-section .subsection-content:last-child .form-group:last-child {
+    margin-bottom: 0.5rem !important;
+}
+
+/* WALLART MODE SPECIFIC STYLING */
+/* Remove specific width overrides to use flexbox layout */
+
+#wallartRefreshRate::-webkit-slider-thumb,
+#wallartRandomness::-webkit-slider-thumb {
+    appearance: none !important;
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 50% !important;
+    background: #667eea !important;
+    cursor: pointer !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+#wallartRefreshRate::-moz-range-thumb,
+#wallartRandomness::-moz-range-thumb {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 50% !important;
+    background: #667eea !important;
+    cursor: pointer !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Animation Type dropdown - width based on longest option */
+#wallartAnimationType {
+    width: 400px !important; /* Wide enough for longest option */
+    max-width: 100% !important;
+}
+
+/* Poster Density dropdown - consistent styling */
+#wallartDensity {
+    width: 400px !important; /* Same width as Animation Type */
+    max-width: 100% !important;
+}
+
+/* Subsections use the form-section width; no extra constraints here */
+
+/* Keep the main section title a bit narrower for emphasis */
+.section-title {
+    width: 100%;
+    max-width: var(--content-max-width); /* Match form-section width */
+    padding-left: var(--content-padding-x); /* Match inner padding of form-section */
+    padding-right: var(--content-padding-x);
+    padding-top: calc(var(--content-padding-y) - 0.5rem); /* slightly tighter title Y padding */
+    padding-bottom: calc(var(--content-padding-y) - 0.5rem);
 }
 
 .subsection-header + .form-group,
@@ -1438,25 +1606,7 @@ div:nth-of-type(2).subsection-header i {
         display: none !important; /* Hidden by default */
     }
 
-    /* Display settings: back to single column */
-    #display-section {
-        display: none; /* Hidden by default like other sections */
-    }
-
-    div#display-section.section-content.active {
-        display: block !important; /* Single column like other sections */
-        width: 100% !important;
-    }
-
-    div#display-section.section-content.active .section-main-content {
-        width: 100% !important;
-    }
-
-    div#display-section.section-content.active .section-sidebar {
-        display: block !important; /* Show the sidebar in Display Settings */
-        width: 100%;
-        margin-top: 2rem;
-    }
+    /* Display settings use same block model; no special-casing */
 }
 
 /* Single column layout for smaller screens */
@@ -1519,6 +1669,37 @@ div:nth-of-type(2).subsection-header i {
     transition: none !important;
     transition-delay: 0s !important;
     transition-duration: 0s !important;
+}
+
+/* CRITICAL FIX: Ensure consistent content width */
+.main-content {
+    width: calc(100% - 180px) !important;
+    margin-left: 180px !important;
+    padding: 0 !important;
+    position: relative !important;
+    margin-top: 70px !important;
+    min-height: calc(100vh - 70px) !important;
+    overflow-y: auto !important;
+    background: transparent !important;
+    transition:
+        margin-left 0.3s ease,
+        width 0.3s ease !important;
+}
+
+.admin-main {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 1rem !important;
+    height: 100% !important;
+    min-height: calc(100vh - 70px) !important;
+    display: block !important;
+    margin: 0 !important;
+}
+
+/* CRITICAL FIX: Remove large empty spaces above menu items */
+.sidebar-nav {
+    padding: 0.5rem 0 !important;
+    margin-top: 0 !important;
 }
 
 /* Notification System */
@@ -1676,60 +1857,68 @@ div:nth-of-type(2).subsection-header i {
     color: #667eea;
 }
 
-/* Form Elements - Ultra clean */
+/* Form section - FIXED for dynamic content */
 .form-section {
-    max-width: 600px; /* Match section-title width */
-    margin: 0 auto; /* Center the form sections */
-    padding: 0; /* No padding - align with header */
-    min-height: auto; /* Remove minimum height */
-    margin-bottom: 2rem; /* Add margin between sections */
+    width: 100% !important;
+    max-width: var(--content-max-width) !important;
+    margin: 0 auto 2rem auto !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    margin-bottom: 2rem !important;
 
-    /* Remove all backgrounds and effects */
-    background: none;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-    backdrop-filter: none;
+    /* Glass effect styling */
+    background: transparent !important; /* Remove dark overlay, use only blur */
+    border-radius: var(--content-radius) !important;
+    border: var(--content-border) !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(20px) !important; /* Match section title blur */
+
+    /* Ensure container adapts to visible content */
+    overflow: visible !important;
+    position: relative !important;
+    display: block !important;
 }
 
-/* Section Styling */
+/* Section Styling - FIXED */
 .section-content {
-    display: none;
+    display: none !important;
 }
 
 .section-content.active {
     display: block !important;
     height: auto !important;
     overflow: visible !important;
-    width: 100% !important; /* Force full width */
-    opacity: 1 !important; /* Ensure visible if animations left it at 0 */
+    width: 100% !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    position: relative !important;
+    z-index: 1 !important;
 }
-
-/* Visual debug badge */
-/* (Removed debug / emergency override styles) */
 
 .section-content.active .section-main-content {
     min-height: 400px !important;
-    padding: 2rem 0 !important;
-    background: transparent !important; /* Completely transparent */
-    width: 100% !important; /* Force full width */
-    display: block !important; /* Force block display */
+    padding: 0 !important;
+    background: transparent !important;
+    width: 100% !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
-/* Reset all padding for clean alignment */
+/* Reset all padding for clean alignment - FIXED */
 .section-content.active .form-section {
     min-height: 200px !important;
-    padding: 1.5rem !important; /* Consistent padding all around */
-    margin-bottom: 2rem !important;
-
-    /* Exact same styling as section-title */
-    /*    background: rgba(0, 0, 0, 0.2) !important; */
-    backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 12px !important;
+    padding: var(--content-padding-y) var(--content-padding-x) !important;
+    margin: 0 auto 2rem auto !important;
+    backdrop-filter: blur(20px) !important; /* Match section title blur */
+    border: var(--content-border) !important;
+    border-radius: var(--content-radius) !important;
     box-shadow: none !important;
-
     color: var(--text-primary) !important;
+    max-width: var(--content-max-width) !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Save button section styling */
@@ -1795,6 +1984,17 @@ div:nth-of-type(2).subsection-header i {
     white-space: nowrap; /* Keep text on one line */
 }
 
+/* Normalize control widths inside constrained subsection content */
+/* Let controls use full available width inside the constrained form-section */
+.subsection-content .number-input-wrapper,
+.subsection-content .slider-wrapper,
+.subsection-content > .form-group > select,
+.subsection-content > .form-group > input[type='number'],
+.subsection-content > .form-group > input[type='text'],
+.subsection-content > .form-group > input[type='password'] {
+    max-width: 100%;
+}
+
 /* Specific fix for save button sizing issues */
 #save-config-button {
     padding: 0.75rem 1.5rem;
@@ -1838,49 +2038,67 @@ div#logs-section.section-content.active .section-main-content {
 }
 
 .section-title {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 1rem 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    max-width: 600px;
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    /* Beautiful gradient text */
-    color: transparent;
-    background-image: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    position: relative;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    margin: 0 auto 1rem auto !important;
+    padding: var(--content-padding-y) var(--content-padding-x) !important;
+    max-width: var(--content-max-width) !important;
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    color: transparent !important;
+    background-image: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+    background-color: rgba(0, 0, 0, 0.12) !important; /* Separate container background */
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    position: relative !important;
+    border: none !important; /* Remove border */
+    border-radius: var(--content-radius) !important;
+    backdrop-filter: blur(20px) !important; /* Match header blur */
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 10 !important;
+}
+
+/* Fallback for browsers that don't support background-clip: text */
+@supports not (-webkit-background-clip: text) {
+    .section-title {
+        color: #667eea !important;
+        background-image: none !important;
+    }
 }
 
 /* Reset background for container */
 .section-title::before {
     content: '';
     position: absolute;
-    top: 0;
     left: 0;
     right: 0;
+    top: 0;
     bottom: 0;
-    /*    background: rgba(0, 0, 0, 0.25); */
-    backdrop-filter: blur(20px) !important;
+    backdrop-filter: blur(10px) !important;
     border-radius: 12px;
     z-index: -1;
 }
 
 .section-title i {
-    font-size: 1.5rem;
-    flex-shrink: 0;
-    /* Same beautiful gradient for icon */
-    color: transparent;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
+    font-size: 1.5rem !important;
+    flex-shrink: 0 !important;
+    color: transparent !important;
+    background-image: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+
+/* Fallback for browsers that don't support background-clip: text */
+@supports not (-webkit-background-clip: text) {
+    .section-title i {
+        color: #667eea !important;
+        background-image: none !important;
+    }
 }
 
 /* Quick Navigation Links */
@@ -2080,10 +2298,10 @@ div#logs-section.section-content.active .section-main-content {
     display: block;
     width: 100%;
     position: relative;
-    min-height: 300px; /* Increase minimum height significantly */
-    padding: 1.5rem; /* Add consistent padding that aligns with section title */
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
+    min-height: 300px;
+    padding: 0; /* Let inner form-sections handle padding */
+    background: transparent; /* No backdrop on the entire section */
+    border-radius: 0;
 }
 
 /* Subsection Styling */
@@ -2226,6 +2444,25 @@ input[type='range']::-webkit-slider-thumb:hover {
     backdrop-filter: blur(10px);
 }
 
+/* Fix slider-wrapper positioning inside scaling-grid */
+.scaling-grid .slider-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+
+.scaling-grid .slider-wrapper input[type='range'] {
+    max-width: none;
+    width: 100%;
+}
+
+.scaling-grid .slider-value {
+    max-width: none;
+    width: auto;
+    text-align: center;
+}
+
 /* Force preset buttons outside of grid layout */
 .scaling-grid .scaling-presets {
     grid-column: 1 / -1; /* Span all columns */
@@ -2295,15 +2532,29 @@ input[type='range']::-webkit-slider-thumb:hover {
 /* Beautiful, consistent slider styling */
 .slider-wrapper {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
     margin: 0.5rem 0;
+    width: 100%;
+}
+
+/* Override for wallart sliders - horizontal layout */
+.wallart-controls-group .slider-wrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1.5rem;
+    margin: 0.5rem 0;
+    width: 100%;
 }
 
 .slider-wrapper input[type='range'] {
     -webkit-appearance: none;
     appearance: none;
-    flex: 1;
+    width: 100%;
+    max-width: 300px;
     height: 8px;
     background: linear-gradient(
         to right,
@@ -2316,6 +2567,12 @@ input[type='range']::-webkit-slider-thumb:hover {
     outline: none;
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+/* Override for wallart sliders - horizontal layout */
+.wallart-controls-group .slider-wrapper input[type='range'] {
+    flex: 1;
+    max-width: 200px;
 }
 
 .slider-wrapper input[type='range']:hover {
@@ -2372,20 +2629,54 @@ input[type='range']::-webkit-slider-thumb:hover {
 }
 
 /* Value display */
-.slider-value-display {
-    min-width: 60px;
-    background: rgba(102, 126, 234, 0.2);
-    border: 1px solid rgba(102, 126, 234, 0.4);
-    border-radius: 6px;
-    padding: 0.3rem 0.6rem;
-    text-align: center;
+.slider-value {
+    width: 300px;
+    max-width: 300px;
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block !important;
+    visibility: visible !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    cursor: default;
+    user-select: none;
 }
 
-.slider-value-display span {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #bb86fc;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+/* Override for wallart slider values - horizontal layout */
+.wallart-controls-group .slider-value {
+    width: 200px;
+    max-width: 200px;
+    min-width: 200px;
+    flex-shrink: 0;
+    text-align: center;
+    align-self: center;
+    margin-left: 2rem;
+}
+
+/* Ensure wallart slider values are visible */
+#wallartRefreshRate-value,
+#wallartRandomness-value {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: static !important;
+    float: none !important;
+    clear: none !important;
+    transform: none !important;
+    /* Match input field styling */
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+    font-weight: 400 !important;
 }
 
 /* Mobile responsive */
@@ -2410,12 +2701,9 @@ input[type='range']::-webkit-slider-thumb:hover {
         height: 24px;
     }
 
-    .slider-value-display {
+    .slider-value {
         min-width: 70px;
-        padding: 0.4rem 0.7rem;
-    }
-
-    .slider-value-display span {
+        padding: 0.3rem 0.6rem;
         font-size: 0.9rem;
     }
 }
@@ -4947,7 +5235,6 @@ section[tabindex]:focus-visible {
 /* --- Additional removal of solid border line: strip borders from inner containers --- */
 .section-content.active .form-section,
 .section-content.active .section-main-content,
-.section-content.active .section-title,
 .section-content.active .subsection-title,
 .section-content.active .settings-card {
     border: none !important;
@@ -6771,4 +7058,33 @@ input[type='range']::-moz-range-thumb {
         font-size: 16px !important; /* Prevent zoom */
         transform: scale(1); /* Reset any scaling */
     }
+}
+
+/* Wallart settings group styling */
+.wallart-settings-group,
+.wallart-controls-group {
+    transition: opacity 0.3s ease;
+}
+
+.wallart-settings-group.hidden,
+.wallart-controls-group.hidden {
+    display: none;
+}
+
+/* Optimize layout for wallart controls */
+.wallart-controls-group .form-group {
+    margin-bottom: 1rem;
+}
+
+.wallart-controls-group .form-group:last-child {
+    margin-bottom: 0;
+}
+
+/* Ensure wallart slider values are always visible within controls group */
+.wallart-controls-group .slider-value,
+.wallart-controls-group #wallartRefreshRate-value,
+.wallart-controls-group #wallartRandomness-value {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }

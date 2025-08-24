@@ -1,5 +1,6 @@
 // Renamed from validate-env.test.js to env.validation.integration.test.js
 const fs = require('fs');
+const path = require('path');
 
 describe('Environment Validator integration', () => {
     let originalProcessExit, originalConsoleError, originalConsoleWarn, originalFsReadFileSync;
@@ -52,7 +53,15 @@ describe('Environment Validator integration', () => {
         ],
     };
     test('valid config', () => {
-        fs.readFileSync = jest.fn().mockReturnValue(JSON.stringify(validConfig));
+        const realRead = originalFsReadFileSync;
+        fs.readFileSync = jest.fn((p, options) => {
+            const target = typeof p === 'string' ? p : String(p);
+            // Only intercept application config.json; let everything else read normally
+            if (target.endsWith(path.sep + 'config.json')) {
+                return JSON.stringify(validConfig);
+            }
+            return realRead.call(fs, p, options);
+        });
         process.env.PLEX_HOSTNAME = 'localhost';
         process.env.PLEX_PORT = '32400';
         process.env.PLEX_TOKEN = 'tok';
@@ -65,8 +74,13 @@ describe('Environment Validator integration', () => {
         }
     });
     test('file read error', () => {
-        fs.readFileSync = jest.fn(() => {
-            throw new Error('File not found');
+        const realRead = originalFsReadFileSync;
+        fs.readFileSync = jest.fn((p, options) => {
+            const target = typeof p === 'string' ? p : String(p);
+            if (target.endsWith(path.sep + 'config.json')) {
+                throw new Error('File not found');
+            }
+            return realRead.call(fs, p, options);
         });
         try {
             delete require.cache[require.resolve('../../validate-env')];

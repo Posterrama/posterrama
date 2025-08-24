@@ -233,22 +233,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         await fetchMedia(true);
 
-        // Check poster visibility
-        if (appConfig.showPoster === false) {
-            infoContainer.classList.add('is-hidden');
-        } else {
-            infoContainer.classList.remove('is-hidden');
-        }
+        // Only apply visual element settings in screensaver mode (not cinema or wallart mode)
+        const isScreensaverMode = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
 
-        // Check metadata visibility (independent of poster)
-        if (appConfig.showMetadata === false) {
-            textWrapper.classList.add('is-hidden');
-        } else {
-            textWrapper.classList.remove('is-hidden');
+        if (isScreensaverMode) {
+            // Check poster visibility
+            if (appConfig.showPoster === false) {
+                infoContainer.classList.add('is-hidden');
+            } else {
+                infoContainer.classList.remove('is-hidden');
+            }
+
+            // Check metadata visibility (independent of poster)
+            if (appConfig.showMetadata === false) {
+                textWrapper.classList.add('is-hidden');
+            } else {
+                textWrapper.classList.remove('is-hidden');
+            }
         }
 
         // Clock widget logic - only show in screensaver mode
-        const isScreensaverMode = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
         const shouldShowClock = appConfig.clockWidget && isScreensaverMode;
 
         if (shouldShowClock) {
@@ -284,8 +288,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(refreshConfig, 1000); // Small delay to ensure any pending saves are complete
         });
 
-        // Apply initial UI scaling
-        applyUIScaling(appConfig);
+        // Apply initial UI scaling (only for screensaver mode)
+        if (!appConfig.cinemaMode && !appConfig.wallartMode?.enabled) {
+            applyUIScaling(appConfig);
+        }
 
         // Apply cinema mode
         applyCinemaMode(appConfig);
@@ -472,6 +478,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wallartRefreshTimeout = null;
             }
 
+            // Clear hero rotation timer if active
+            if (window.wallartHeroTimer) {
+                clearInterval(window.wallartHeroTimer);
+                window.wallartHeroTimer = null;
+            }
+
             // Clear ambient timers only (spotlight removed)
             if (wallartAmbientTweenTimer) {
                 clearInterval(wallartAmbientTweenTimer);
@@ -637,8 +649,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const gridHeight = finalRows * finalPosterHeight;
 
         // Center the grid with minimal black bars
-        const gridLeft = Math.round((screenWidth - gridWidth) / 2);
-        const gridTop = Math.round((screenHeight - gridHeight) / 2);
+        // For portrait mode, try to fill full width if possible
+        let gridLeft = Math.round((screenWidth - gridWidth) / 2);
+        let gridTop = Math.round((screenHeight - gridHeight) / 2);
+
+        // If in portrait mode and there's significant unused width, recalculate
+        if (isPortrait && gridLeft > finalPosterWidth * 0.5) {
+            // Recalculate to use full width
+            const newPosterWidth = Math.floor(screenWidth / cols);
+            const newPosterHeight = Math.round(newPosterWidth / posterAspectRatio);
+
+            // Check if new height fits
+            if (newPosterHeight * finalRows <= screenHeight) {
+                finalPosterWidth = newPosterWidth;
+                finalPosterHeight = newPosterHeight;
+                gridLeft = 0; // Use full width
+                gridTop = Math.round((screenHeight - newPosterHeight * finalRows) / 2);
+            }
+        }
 
         const posterCount = cols * finalRows;
         const bufferedCount = Math.ceil(posterCount * 1.5);
@@ -749,6 +777,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Calculate dynamic grid based on screen size and density
         const layoutInfo = calculateWallartLayout(wallartConfig.density);
+        const layoutVariant = wallartConfig.layoutVariant || 'classic';
+        const layoutSettings = wallartConfig.layoutSettings || {};
 
         // Apply dynamic grid styles with proper centering
         wallartGrid.style.cssText = `
@@ -826,7 +856,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Use grid cell dimensions but preserve poster proportions with object-fit
             posterItem.style.cssText = `
-                background: #111;
+                background: #000;
                 overflow: hidden;
                 opacity: 1;
                 display: block;
@@ -841,28 +871,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             img.alt = item.title || 'Movie Poster';
             img.loading = 'lazy';
 
-            // Fill the grid cell while maintaining poster aspect ratio
-            // Simplified styling for mobile
-            if (isMobile) {
-                img.style.cssText = `
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    object-position: center;
-                    display: block;
-                    transform: scale(1);
-                    will-change: opacity;
-                `;
-            } else {
-                img.style.cssText = `
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    object-position: center;
-                    display: block;
-                    transform: scale(1.05);
-                `;
-            }
+            // Always show full poster at 2:3 with letterboxing (no crop)
+            img.style.cssText = `
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                object-position: center;
+                display: block;
+                transform: none;
+                background: #000;
+                ${isMobile ? 'will-change: opacity;' : ''}
+            `;
 
             posterItem.appendChild(img);
             return posterItem;
@@ -1012,23 +1031,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isMobile =
                 window.innerWidth <= 768 || /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-            // Update CSS grid with proper centering and fixed poster sizes
-            let gridCSS = `
-                display: grid !important;
-                grid-template-columns: repeat(${layoutInfo.columns}, ${layoutInfo.actualPosterWidth}px) !important;
-                grid-template-rows: repeat(${layoutInfo.rows}, ${layoutInfo.actualPosterHeight}px) !important;
-                gap: 0 !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                background: transparent !important;
-                width: ${layoutInfo.columns * layoutInfo.actualPosterWidth}px !important;
-                height: ${layoutInfo.rows * layoutInfo.actualPosterHeight}px !important;
-                position: fixed !important;
-                top: ${layoutInfo.gridTop}px !important;
-                left: ${layoutInfo.gridLeft}px !important;
-                z-index: 10000 !important;
-                overflow: visible !important;
-            `;
+            // Update CSS grid with proper centering and layout-variant aware sizing
+            let gridCSS = '';
+            let gridMeta = { columns: layoutInfo.columns, rows: layoutInfo.rows };
+            {
+                // Classic and HeroGrid share the same base grid cell sizing
+                gridCSS = `
+                    display: grid !important;
+                    grid-template-columns: repeat(${layoutInfo.columns}, ${layoutInfo.actualPosterWidth}px) !important;
+                    grid-template-rows: repeat(${layoutInfo.rows}, ${layoutInfo.actualPosterHeight}px) !important;
+                    gap: 0 !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    background: transparent !important;
+                    width: ${layoutInfo.columns * layoutInfo.actualPosterWidth}px !important;
+                    height: ${layoutInfo.rows * layoutInfo.actualPosterHeight}px !important;
+                    position: fixed !important;
+                    top: ${layoutInfo.gridTop}px !important;
+                    left: ${layoutInfo.gridLeft}px !important;
+                    z-index: 10000 !important;
+                    overflow: visible !important;
+                `;
+                wallartGrid.dataset.columns = String(layoutInfo.columns);
+                wallartGrid.dataset.rows = String(layoutInfo.rows);
+                gridMeta = { columns: layoutInfo.columns, rows: layoutInfo.rows };
+            }
 
             // Add mobile-specific optimizations
             if (isMobile) {
@@ -1044,8 +1071,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             wallartGrid.style.cssText = gridCSS;
 
             // Persist current grid dimensions for later use in refresh bursts
-            wallartGrid.dataset.columns = String(layoutInfo.columns);
-            wallartGrid.dataset.rows = String(layoutInfo.rows);
+            // already set above per-variant
 
             // Check if we have enough media
             if (mediaQueue.length === 0) {
@@ -1081,78 +1107,379 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Fill grid with unique posters
-            for (let i = 0; i < posterCount; i++) {
-                const poster = getUniqueRandomPoster();
-                if (poster) {
-                    currentPosters.push(poster);
-                    const posterItem = createPosterElement(poster, i);
+            // Fill grid with unique posters based on layout variant
+            if (layoutVariant === 'heroGrid') {
+                // Determine hero settings with sane clamps
+                const heroCfg = layoutSettings.heroGrid || {};
+                const rows = gridMeta.rows;
+                const cols = gridMeta.columns;
+                const heroSide = heroCfg.heroSide === 'right' ? 'right' : 'left';
+                const heroRotationMinutes = Math.max(0, Number(heroCfg.heroRotationMinutes) || 10);
+                // No dedicated micro-rail: keep layout purely random without rails
+                const microEnabled = false;
+                // Set opinionated defaults for a beautiful look
+                const microScale = 0.5; // 50% of base tiles
+                const microSwapPercent = 12; // ~12% per cycle for gentle motion
+                const microSwapInterval = 20; // every 20s
+                wallartGrid.dataset.layoutVariant = 'heroGrid';
+                wallartGrid.dataset.heroGrid = 'true';
 
-                    // Animatie: staggered/ripple/scanline reveal (initial grid)
-                    // Prefer explicit animationType from admin if it's a pack-style option
-                    const pack = (
-                        wallartConfig.animationPack ||
-                        (['staggered', 'ripple', 'scanline'].includes(
-                            (wallartConfig.animationType || '').toLowerCase()
-                        )
-                            ? wallartConfig.animationType
-                            : null) ||
-                        'staggered'
-                    ).toLowerCase();
-                    if (pack === 'staggered') {
-                        posterItem.style.opacity = '0';
-                        posterItem.style.transform = 'scale(0.96)';
-                        posterItem.style.transition = 'opacity 500ms ease, transform 600ms ease';
-                        const delay =
-                            (i % layoutInfo.columns) * 60 + Math.floor(i / layoutInfo.columns) * 40;
-                        setTimeout(() => {
-                            posterItem.style.opacity = '1';
-                            posterItem.style.transform = 'scale(1)';
-                        }, delay);
-                    } else if (pack === 'ripple') {
-                        // Compute distance from center for ripple delay
-                        const col = i % layoutInfo.columns;
-                        const row = Math.floor(i / layoutInfo.columns);
-                        const cx = (layoutInfo.columns - 1) / 2;
-                        const cy = (layoutInfo.rows - 1) / 2;
-                        const dist = Math.hypot(col - cx, row - cy);
-                        const delay = Math.round(dist * 90);
-                        posterItem.style.opacity = '0';
-                        posterItem.style.transform = 'scale(0.94)';
-                        posterItem.style.transition = 'opacity 520ms ease, transform 620ms ease';
-                        setTimeout(() => {
-                            posterItem.style.opacity = '1';
-                            posterItem.style.transform = 'scale(1)';
-                        }, delay);
-                    } else if (pack === 'scanline') {
-                        // Reveal row-by-row with a gentle left->right cascade
-                        const col = i % layoutInfo.columns;
-                        const row = Math.floor(i / layoutInfo.columns);
-                        posterItem.style.opacity = '0';
-                        posterItem.style.transform = 'translateY(8px)';
-                        posterItem.style.transition =
-                            'opacity 420ms ease-out, transform 460ms ease-out';
-                        const delay = row * 90 + col * 35 + Math.floor(Math.random() * 30);
-                        setTimeout(() => {
-                            posterItem.style.opacity = '1';
-                            posterItem.style.transform = 'translateY(0)';
-                        }, delay);
+                // Compute how many total items to create (one hero replaces many cells)
+                const totalCells = cols * rows;
+                // Determine hero width to preserve 2:3 aspect fully visible
+                // Base poster ratio is 2:3 (w:h). Our grid rows have fixed height.
+                const baseCellW = layoutInfo.actualPosterWidth;
+                const baseCellH = layoutInfo.actualPosterHeight;
+
+                // Make hero poster exactly 16 small tiles (4x4)
+                const portraitMode = window.innerHeight > window.innerWidth;
+                let heroSpan;
+                if (portraitMode) {
+                    // In portrait mode: hero should be 4 tiles wide (16 tiles total = 4x4)
+                    heroSpan = 4;
+                    // Make sure we don't exceed available columns
+                    heroSpan = Math.min(heroSpan, cols - 1);
+                } else {
+                    // Original landscape logic
+                    const heroTargetW = Math.round((2 / 3) * (rows * baseCellH));
+                    heroSpan = Math.max(1, Math.round(heroTargetW / baseCellW));
+                    const minRemainingCols = Math.max(2, Math.ceil(cols * 0.25));
+                    heroSpan = Math.min(heroSpan, cols - minRemainingCols);
+                }
+
+                // Ensure hero has a reasonable minimum width
+                heroSpan = Math.max(2, heroSpan);
+                // We'll make the hero tile span grid rows fully, and keep image object-fit: contain to ensure full poster visible inside
+                const otherCells = Math.max(0, totalCells - heroSpan * rows);
+                const totalItems = Math.min(otherCells + 1, mediaQueue.length);
+
+                // Clear any previous hero timer
+                if (window.wallartHeroTimer) {
+                    clearInterval(window.wallartHeroTimer);
+                    window.wallartHeroTimer = null;
+                }
+
+                // OCCUPANCY GRID for playful quilt placement
+                // Track occupied cells
+                const occupied = Array.from({ length: rows }, () => Array(cols).fill(false));
+
+                // Create hero poster first
+                const firstHero = getUniqueRandomPoster();
+                if (firstHero) {
+                    currentPosters.push(firstHero);
+                    const heroEl = createPosterElement(firstHero, 0);
+                    // Position hero based on mode and orientation
+                    const portraitMode = window.innerHeight > window.innerWidth;
+                    const startCol = heroSide === 'left' ? 1 : cols - heroSpan + 1;
+
+                    if (portraitMode) {
+                        // In portrait mode: make hero exactly 4x4 tiles (16 total)
+                        if (heroSide === 'left') {
+                            // Hero spans 4 columns wide and 4 rows high
+                            const heroHeight = 4; // 4 rows high
+                            if (rows >= heroHeight + 2) {
+                                // Enough rows: center the 4x4 hero with space above and below
+                                const heroStartRow = Math.floor((rows - heroHeight) / 2) + 1; // Center it
+                                const heroEndRow = heroStartRow + heroHeight;
+                                heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
+                                heroEl.style.gridRow = `${heroStartRow} / ${heroEndRow}`;
+                            } else if (rows >= heroHeight) {
+                                // Just enough rows: hero takes exactly 4 rows
+                                heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
+                                heroEl.style.gridRow = `1 / ${heroHeight + 1}`;
+                            } else {
+                                // Not enough rows: hero takes available height
+                                heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
+                                heroEl.style.gridRow = `1 / -1`;
+                            }
+                        } else {
+                            // Hero right: similar 4x4 approach
+                            const heroHeight = 4;
+                            heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
+                            if (rows >= heroHeight + 1) {
+                                heroEl.style.gridRow = `1 / ${heroHeight + 1}`;
+                            } else {
+                                heroEl.style.gridRow = `1 / -1`;
+                            }
+                        }
                     } else {
-                        // fallback: simple fade-in
-                        posterItem.style.animationDelay = `${i * 0.02}s`;
-                        posterItem.style.animation = 'wallartFadeIn 0.6s ease-out forwards';
+                        // In landscape mode: hero spans full height as before
+                        heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
+                        heroEl.style.gridRow = `1 / -1`;
                     }
 
-                    wallartGrid.appendChild(posterItem);
-                } else {
-                    break; // Stop if no unique posters are available
+                    heroEl.dataset.hero = 'true';
+
+                    // Ensure full-poster visibility: object-fit contain, center, no crop.
+                    const heroImg = heroEl.querySelector('img');
+                    if (heroImg) {
+                        heroImg.style.objectFit = 'contain';
+                        heroImg.style.objectPosition = 'center';
+                        heroImg.style.background = 'black';
+                        // Remove the tiny scale used for grid tiles to avoid clipping
+                        heroImg.style.transform = 'none';
+                    }
+
+                    // Initial subtle fade-in
+                    heroEl.style.opacity = '0';
+                    heroEl.style.transition = 'opacity 600ms ease';
+                    setTimeout(() => (heroEl.style.opacity = '1'), 60);
+
+                    wallartGrid.appendChild(heroEl);
+
+                    // Mark hero area occupied - exactly 4x4 tiles (16 total)
+                    const isPortraitOccupancy = window.innerHeight > window.innerWidth;
+
+                    if (isPortraitOccupancy) {
+                        // In portrait mode, mark exactly 4x4 hero area
+                        if (heroSide === 'left') {
+                            const heroHeight = 4;
+                            let heroStartRow, heroEndRow;
+
+                            if (rows >= heroHeight + 2) {
+                                // Center the 4x4 hero
+                                heroStartRow = Math.floor((rows - heroHeight) / 2);
+                                heroEndRow = heroStartRow + heroHeight;
+                            } else if (rows >= heroHeight) {
+                                // Hero takes exactly 4 rows from top
+                                heroStartRow = 0;
+                                heroEndRow = heroHeight;
+                            } else {
+                                // Not enough rows: mark all available
+                                heroStartRow = 0;
+                                heroEndRow = rows;
+                            }
+
+                            for (let r = heroStartRow; r < heroEndRow; r++) {
+                                for (let c = 0; c < heroSpan; c++) {
+                                    const colIdx = (heroSide === 'left' ? 0 : cols - heroSpan) + c;
+                                    occupied[r][colIdx] = true;
+                                }
+                            }
+                        } else {
+                            // Hero right: mark 4x4 area from top
+                            const heroHeight = Math.min(4, rows);
+                            for (let r = 0; r < heroHeight; r++) {
+                                for (let c = 0; c < heroSpan; c++) {
+                                    const colIdx = (heroSide === 'left' ? 0 : cols - heroSpan) + c;
+                                    occupied[r][colIdx] = true;
+                                }
+                            }
+                        }
+                    } else {
+                        // In landscape mode, mark entire hero area as before
+                        for (let r = 0; r < rows; r++) {
+                            for (let c = 0; c < heroSpan; c++) {
+                                const colIdx = (heroSide === 'left' ? 0 : cols - heroSpan) + c;
+                                occupied[r][colIdx] = true;
+                            }
+                        }
+                    }
+
+                    // Setup periodic hero rotation (optional)
+                    if (heroRotationMinutes > 0) {
+                        const ms = heroRotationMinutes * 60 * 1000;
+                        window.wallartHeroTimer = setInterval(() => {
+                            const currentHero = currentPosters[0];
+                            const excludeId = currentHero
+                                ? currentHero.id || currentHero.title || currentHero.posterUrl
+                                : null;
+                            const next = getUniqueRandomPoster(excludeId);
+                            if (!next) return;
+                            currentPosters[0] = next;
+                            animatePosterChange(heroEl, next, 'fade');
+                        }, ms);
+                    }
+                }
+
+                // Playful quilt: fill remaining grid with a mix of 1x1 and 2x2 tiles
+                const placeTile = (r, c, hSpan, wSpan, poster, orderIndex) => {
+                    const el = createPosterElement(poster, orderIndex);
+                    el.style.gridRow = `${r + 1} / span ${hSpan}`;
+                    el.style.gridColumn = `${c + 1} / span ${wSpan}`;
+
+                    // Entry animation: light stagger based on position
+                    el.style.opacity = '0';
+                    el.style.transform = 'scale(0.96)';
+                    el.style.transition = 'opacity 520ms ease, transform 600ms ease';
+                    const delay = r * 70 + c * 55 + Math.floor(Math.random() * 50);
+                    setTimeout(() => {
+                        el.style.opacity = '1';
+                        el.style.transform = 'scale(1)';
+                    }, delay);
+                    wallartGrid.appendChild(el);
+                };
+
+                // Strategy: tiers using only 2x2 and 1x1 cells (both maintain 2/3 ratio inside each cell)
+                // - a few 2x2 tiles (medium)
+                // - fill the rest with 1x1 (tiny)
+                let counter = 0;
+
+                // Helper: shuffle array
+                const shuffle = arr => arr.sort(() => Math.random() - 0.5);
+                const canPlace = (r, c, h, w) => {
+                    if (r + h > rows || c + w > cols) return false;
+                    for (let rr = 0; rr < h; rr++) {
+                        for (let cc = 0; cc < w; cc++) {
+                            if (occupied[r + rr][c + cc]) return false;
+                        }
+                    }
+                    return true;
+                };
+                const mark = (r, c, h, w) => {
+                    for (let rr = 0; rr < h; rr++) {
+                        for (let cc = 0; cc < w; cc++) {
+                            occupied[r + rr][c + cc] = true;
+                        }
+                    }
+                };
+
+                // Ensure 4 large tiles total visible (1 hero + 3 medium 2x2). If grid too small, use 2 medium.
+                const heroArea = heroSpan * rows;
+                const areaCells = Math.max(0, cols * rows - heroArea);
+                // Default aim: 3 mediums; if area is very constrained, fall back to 2
+                let targetMedium = 3;
+                // If the remaining area can't reasonably fit 3 mediums plus a few singles, drop to 2
+                const minCellsForThree = 3 * 4 + Math.max(2, Math.floor(areaCells * 0.1));
+                if (areaCells < minCellsForThree) targetMedium = 2;
+
+                // Place 2x2 mediums
+                const mediumCandidates = [];
+                for (let r = 0; r < rows - 1; r++) {
+                    for (let c = 0; c < cols - 1; c++) mediumCandidates.push({ r, c });
+                }
+                shuffle(mediumCandidates);
+                let placedMedium = 0;
+                for (const { r, c } of mediumCandidates) {
+                    if (placedMedium >= targetMedium) break;
+                    if (!canPlace(r, c, 2, 2)) continue;
+                    const poster = getUniqueRandomPoster();
+                    if (!poster) continue;
+                    currentPosters.push(poster);
+                    placeTile(r, c, 2, 2, poster, ++counter);
+                    mark(r, c, 2, 2);
+                    placedMedium++;
+                }
+
+                // If we couldn't place enough mediums due to occupancy constraints, try scanning again
+                if (placedMedium < targetMedium) {
+                    const additionalCandidates = [];
+                    for (let r = 0; r < rows - 1; r++) {
+                        for (let c = 0; c < cols - 1; c++) additionalCandidates.push({ r, c });
+                    }
+                    shuffle(additionalCandidates);
+                    for (const { r, c } of additionalCandidates) {
+                        if (placedMedium >= targetMedium) break;
+                        if (!canPlace(r, c, 2, 2)) continue;
+                        const poster = getUniqueRandomPoster();
+                        if (!poster) continue;
+                        currentPosters.push(poster);
+                        placeTile(r, c, 2, 2, poster, ++counter);
+                        mark(r, c, 2, 2);
+                        placedMedium++;
+                    }
+                }
+
+                // Fill remainder with 1x1
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (occupied[r][c]) continue;
+                        const poster = getUniqueRandomPoster();
+                        if (!poster) continue;
+                        currentPosters.push(poster);
+                        placeTile(r, c, 1, 1, poster, ++counter);
+                        occupied[r][c] = true;
+                    }
+                }
+            } else {
+                wallartGrid.dataset.layoutVariant = 'classic';
+                // classic
+                for (let i = 0; i < posterCount; i++) {
+                    const poster = getUniqueRandomPoster();
+                    if (poster) {
+                        currentPosters.push(poster);
+                        const posterItem = createPosterElement(poster, i);
+
+                        // Animatie: staggered/ripple/scanline reveal (initial grid)
+                        // Prefer explicit animationType from admin if it's a pack-style option
+                        const pack = (
+                            wallartConfig.animationPack ||
+                            (['staggered', 'ripple', 'scanline'].includes(
+                                (wallartConfig.animationType || '').toLowerCase()
+                            )
+                                ? wallartConfig.animationType
+                                : null) ||
+                            'staggered'
+                        ).toLowerCase();
+                        if (pack === 'staggered') {
+                            posterItem.style.opacity = '0';
+                            posterItem.style.transform = 'scale(0.96)';
+                            posterItem.style.transition =
+                                'opacity 500ms ease, transform 600ms ease';
+                            const delay =
+                                (i % layoutInfo.columns) * 60 +
+                                Math.floor(i / layoutInfo.columns) * 40;
+                            setTimeout(() => {
+                                posterItem.style.opacity = '1';
+                                posterItem.style.transform = 'scale(1)';
+                            }, delay);
+                        } else if (pack === 'ripple') {
+                            // Compute distance from center for ripple delay
+                            const col = i % layoutInfo.columns;
+                            const row = Math.floor(i / layoutInfo.columns);
+                            const cx = (layoutInfo.columns - 1) / 2;
+                            const cy = (layoutInfo.rows - 1) / 2;
+                            const dist = Math.hypot(col - cx, row - cy);
+                            const delay = Math.round(dist * 90);
+                            posterItem.style.opacity = '0';
+                            posterItem.style.transform = 'scale(0.94)';
+                            posterItem.style.transition =
+                                'opacity 520ms ease, transform 620ms ease';
+                            setTimeout(() => {
+                                posterItem.style.opacity = '1';
+                                posterItem.style.transform = 'scale(1)';
+                            }, delay);
+                        } else if (pack === 'scanline') {
+                            // Reveal row-by-row with a gentle left->right cascade
+                            const col = i % layoutInfo.columns;
+                            const row = Math.floor(i / layoutInfo.columns);
+                            posterItem.style.opacity = '0';
+                            posterItem.style.transform = 'translateY(8px)';
+                            posterItem.style.transition =
+                                'opacity 420ms ease-out, transform 460ms ease-out';
+                            const delay = row * 90 + col * 35 + Math.floor(Math.random() * 30);
+                            setTimeout(() => {
+                                posterItem.style.opacity = '1';
+                                posterItem.style.transform = 'translateY(0)';
+                            }, delay);
+                        } else {
+                            // fallback: simple fade-in
+                            posterItem.style.animationDelay = `${i * 0.02}s`;
+                            posterItem.style.animation = 'wallartFadeIn 0.6s ease-out forwards';
+                        }
+
+                        wallartGrid.appendChild(posterItem);
+                    } else {
+                        break; // Stop if no unique posters are available
+                    }
                 }
             }
 
             // After initial render, apply ambient colors and optionally spotlight
             if (wallartConfig.ambientGradient) {
                 try {
-                    updateAmbientFromGrid(wallartGrid);
+                    // If heroGrid is active, prefer sampling from the hero area subtly
+                    const isHero = wallartGrid?.dataset?.heroGrid === 'true';
+                    if (isHero) {
+                        const heroEl = wallartGrid.querySelector('[data-hero="true"] img');
+                        if (heroEl) {
+                            updateAmbientFromImage(heroEl);
+                        } else {
+                            updateAmbientFromGrid(wallartGrid);
+                        }
+                    } else {
+                        updateAmbientFromGrid(wallartGrid);
+                    }
                 } catch (e) {
                     // noop: ambient overlay update can fail if images not ready
                 }
@@ -1190,7 +1517,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 burstSize = Math.max(3, Math.min(burstSize, total));
 
                 // Build list of candidate indices
-                const indices = Array.from({ length: total }, (_, i) => i);
+                let indices = Array.from({ length: total }, (_, i) => i);
+                // Exclude hero tile in heroGrid layout
+                if (wallartGrid?.dataset?.heroGrid === 'true') {
+                    indices = indices.filter(i => {
+                        const el = posterElements[i];
+                        return !(el && el.dataset && el.dataset.hero === 'true');
+                    });
+                }
 
                 // Compute ordering and delays
                 let ordered = [];
@@ -1453,6 +1787,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 attempts < 20
             );
 
+            // In heroGrid, avoid selecting the hero tile for single updates
+            if (wallartGrid?.dataset?.heroGrid === 'true') {
+                const posterElements = wallartGrid.querySelectorAll('.wallart-poster-item');
+                if (posterElements[randomPosition]?.dataset?.hero === 'true') {
+                    // pick a different non-hero index
+                    const candidates = Array.from(posterElements)
+                        .map((_, i) => i)
+                        .filter(i => posterElements[i]?.dataset?.hero !== 'true');
+                    if (candidates.length > 0) {
+                        randomPosition = candidates[Math.floor(Math.random() * candidates.length)];
+                    }
+                }
+            }
+
             // Store last position to prevent immediate repeat
             window.lastWallartPosition = randomPosition;
 
@@ -1537,8 +1885,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return selectedType;
         }
 
-        function animatePosterChange(element, newItem, animationType) {
-            const img = element.querySelector('img');
+        function animatePosterChange(element, newItem, animationType, existingImgEl) {
+            const img = existingImgEl || element.querySelector('img');
             if (!img) return;
 
             // Mobile detection for optimized animations
@@ -2240,8 +2588,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Apply configuration changes
                 applyConfigurationChanges(oldConfig, newConfig);
 
-                // Apply UI scaling changes
-                applyUIScaling(newConfig);
+                // Apply UI scaling changes (only for screensaver mode)
+                if (!newConfig.cinemaMode && !newConfig.wallartMode?.enabled) {
+                    applyUIScaling(newConfig);
+                }
 
                 // Apply cinema mode changes
                 applyCinemaMode(newConfig);
@@ -2258,8 +2608,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function applyConfigurationChanges(oldConfig, newConfig) {
+        // Only apply visual element changes in screensaver mode
+        const isScreensaverMode = !newConfig.cinemaMode && !newConfig.wallartMode?.enabled;
+
         // Handle display changes
-        if (oldConfig.showPoster !== newConfig.showPoster) {
+        if (oldConfig.showPoster !== newConfig.showPoster && isScreensaverMode) {
             if (newConfig.showPoster === false) {
                 infoContainer.classList.add('is-hidden');
             } else {
@@ -2294,12 +2647,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Handle metadata display changes
-        if (oldConfig.showMetadata !== newConfig.showMetadata) {
+        if (oldConfig.showMetadata !== newConfig.showMetadata && isScreensaverMode) {
             updateCurrentMediaDisplay();
         }
 
         // Handle clear logo display changes
-        if (oldConfig.showClearLogo !== newConfig.showClearLogo) {
+        if (oldConfig.showClearLogo !== newConfig.showClearLogo && isScreensaverMode) {
             updateCurrentMediaDisplay();
         }
 
@@ -2503,20 +2856,36 @@ document.addEventListener('DOMContentLoaded', async () => {
      * @param {object} mediaItem The media item object to render.
      */
     function renderMediaItem(mediaItem) {
+        console.log(`🎭 renderMediaItem called for: "${mediaItem.title}"`);
+
         if (!mediaItem) {
-            console.error('renderMediaItem called with invalid mediaItem');
+            console.error('❌ renderMediaItem called with invalid mediaItem');
             return;
         }
 
         // Skip rendering individual media items in wallart mode
         // Wallart mode handles its own poster display
         if (document.body.classList.contains('wallart-mode')) {
+            console.log(`🖼️ Skipping renderMediaItem in wallart mode`);
             return;
         }
 
-        // Apply transition effects to poster in cinema mode
-        if (appConfig.cinemaMode) {
+        // Apply transition effects only in screensaver mode (not cinema or wallart mode)
+        if (!appConfig.cinemaMode && !appConfig.wallartMode?.enabled) {
+            console.log(`🎭 Screensaver mode: calling applyPosterTransitionEffect`);
             applyPosterTransitionEffect(mediaItem.posterUrl);
+        } else if (appConfig.cinemaMode) {
+            console.log(`🎬 Cinema mode: setting poster directly`);
+            // In cinema mode, just show the poster directly without transitions
+            posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+            posterEl.innerHTML = '';
+
+            // Also set on poster-a for backward compatibility (if it exists and is visible)
+            const posterA = document.getElementById('poster-a');
+            if (posterA) {
+                posterA.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+                posterA.style.opacity = '1';
+            }
         } else {
             // Handle offline mode gracefully for posters
             if (!navigator.onLine && mediaItem.posterUrl) {
@@ -2556,11 +2925,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // Check if poster should be shown
-        if (appConfig.showPoster === false) {
-            infoContainer.classList.add('is-hidden');
-        } else {
-            infoContainer.classList.remove('is-hidden');
+        // Check if poster should be shown (only in screensaver mode)
+        if (!appConfig.cinemaMode && !appConfig.wallartMode?.enabled) {
+            if (appConfig.showPoster === false) {
+                infoContainer.classList.add('is-hidden');
+            } else {
+                infoContainer.classList.remove('is-hidden');
+            }
         }
 
         // In cinema mode, disable all poster links
@@ -2666,10 +3037,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update document title using the dedicated function
         updateDocumentTitle(mediaItem);
 
-        // Check if metadata should be shown
-        if (appConfig.showMetadata === false) {
-            textWrapper.classList.add('is-hidden');
+        // Check if metadata should be shown (only in screensaver mode)
+        if (!appConfig.cinemaMode && !appConfig.wallartMode?.enabled) {
+            if (appConfig.showMetadata === false) {
+                textWrapper.classList.add('is-hidden');
+            } else {
+                textWrapper.classList.remove('is-hidden');
+                taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
+                yearEl.style.display = mediaItem.year ? 'inline' : 'none';
+                ratingEl.style.display = ratingText || streamingProvider ? 'inline' : 'none';
+            }
         } else {
+            // In cinema/wallart mode, always show metadata elements
             textWrapper.classList.remove('is-hidden');
             taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
             yearEl.style.display = mediaItem.year ? 'inline' : 'none';
@@ -2712,6 +3091,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function updateInfo(direction, isFirstLoad = false) {
+        console.log(
+            `📝 updateInfo called: direction=${direction}, isFirstLoad=${isFirstLoad}, currentIndex=${currentIndex}`
+        );
+
         if (direction === 'next') {
             currentIndex = (currentIndex + 1) % mediaQueue.length;
         } else {
@@ -2719,15 +3102,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentIndex = (currentIndex - 1 + mediaQueue.length) % mediaQueue.length;
         }
 
+        console.log(`📋 New currentIndex: ${currentIndex}`);
+
         const currentMedia = mediaQueue[currentIndex];
         if (!currentMedia) {
-            console.error('Invalid media item at index, skipping.', currentIndex);
+            console.error(`❌ Invalid media item at index ${currentIndex}, skipping.`);
             changeMedia('next', false, true);
             return;
         }
 
+        console.log(`🎬 Loading media: "${currentMedia.title}" (${currentMedia.year})`);
+        console.log(`🖼️ Background URL: ${currentMedia.backgroundUrl}`);
+        console.log(`🎭 Poster URL: ${currentMedia.posterUrl}`);
+
         // Check if background URL is valid before loading
         if (!currentMedia.backgroundUrl) {
+            console.warn('❌ No background image available, skipping to next item');
             // No background image available, skip to next item
             changeMedia('next', false, true);
             return;
@@ -2739,16 +3129,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentMedia.backgroundUrl === 'null' ||
             currentMedia.backgroundUrl === 'undefined'
         ) {
+            console.warn('❌ Invalid background URL, skipping to next item');
             changeMedia('next', false, true);
             return;
         }
 
         const img = new Image();
+        console.log(`⏰ Starting image load for: ${currentMedia.backgroundUrl}`);
+
+        // Add timeout to prevent hanging on slow/failed image loads
+        const imageTimeout = setTimeout(() => {
+            console.error(`⏰ Image load TIMEOUT for: ${currentMedia.title}. Skipping to next.`);
+            changeMedia('next', false, true);
+        }, 10000); // 10 second timeout
+
         img.onerror = () => {
+            clearTimeout(imageTimeout); // Clear timeout on error
+            console.error(`❌ Image load ERROR for: ${currentMedia.title}`);
+
             // In offline mode, don't skip items - keep showing current content
             if (!navigator.onLine) {
                 console.warn(
-                    `Background unavailable offline for: ${currentMedia.title}. Keeping current display.`
+                    `📶 Background unavailable offline for: ${currentMedia.title}. Keeping current display.`
                 );
 
                 // Don't change anything - keep current content visible
@@ -2759,34 +3161,51 @@ document.addEventListener('DOMContentLoaded', async () => {
                     yearEl.textContent = currentMedia.year || '';
                 }
 
-                // Don't call applyTransitionEffect or change background
-                // This keeps the last working background and poster visible
+                // IMPORTANT: Restart timer even in offline mode to prevent hanging
+                if (!isPaused) {
+                    console.log('🔄 Restarting timer in offline mode');
+                    restartTimer();
+                }
                 return;
             }
 
-            console.error(`Could not load background for: ${currentMedia.title}. Skipping item.`);
+            console.error(
+                `🚫 Could not load background for: ${currentMedia.title}. Skipping item.`
+            );
             changeMedia('next', false, true);
         };
         img.src = currentMedia.backgroundUrl;
         img.onload = () => {
+            clearTimeout(imageTimeout); // Clear timeout on successful load
+            console.log(`✅ Image loaded successfully for: ${currentMedia.title}`);
+            console.log(`✅ Image loaded successfully for: ${currentMedia.title}`);
+
+            console.log(`🎨 Setting background image on inactive layer`);
             // Set the background image first
             inactiveLayer.style.backgroundImage = `url('${currentMedia.backgroundUrl}')`;
 
-            // Apply transition effects with proper layering
-            applyTransitionEffect(inactiveLayer, activeLayer, false);
-
+            console.log(`📝 Calling renderMediaItem to update poster/metadata`);
+            // Update poster and metadata BEFORE starting background transition
             renderMediaItem(currentMedia);
 
+            console.log(`🔄 Starting background transition effect`);
+            // Apply transition effects with proper layering AFTER content is ready
+            applyTransitionEffect(inactiveLayer, activeLayer, false);
+
             if (loader.style.opacity !== '0') {
+                console.log(`🔄 Hiding loader`);
                 loader.style.opacity = '0';
             }
             preloadNextImage();
 
             if (isFirstLoad) {
+                console.log(`👁️ First load: showing info container immediately`);
                 infoContainer.classList.add('visible');
             } else {
+                console.log(`👁️ Scheduling info container to become visible in 500ms`);
                 setTimeout(() => {
                     infoContainer.classList.add('visible');
+                    console.log(`✅ Info container made visible`);
 
                     // Additional check for cinema mode
                     if (appConfig.cinemaMode) {
@@ -2794,7 +3213,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }, 500);
             }
-            if (!isPaused) startTimer();
+            if (!isPaused) {
+                console.log(`⏰ Image loaded successfully - timer should already be running`);
+                // Don't restart timer here - it should already be running from changeMedia
+                // startTimer(); // REMOVED - this was causing the race condition
+            } else {
+                console.log(`⏸️ Not starting timer because slideshow is paused`);
+            }
         };
     }
 
@@ -2807,15 +3232,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const posterA = document.getElementById('poster-a');
         const posterB = document.getElementById('poster-b');
 
-        if (!posterA || !posterB) {
+        // Check if layers exist and are visible (not hidden via CSS)
+        const layersVisible =
+            posterA &&
+            posterB &&
+            getComputedStyle(posterA).display !== 'none' &&
+            getComputedStyle(posterB).display !== 'none';
+
+        if (!layersVisible) {
             const originalPoster = document.getElementById('poster');
 
             if (originalPoster) {
+                // Simplified: just set the poster immediately without complex transitions
+                // This prevents timing issues with background transitions
                 if (isPreloaded) {
                     // Image is preloaded, safe to set immediately
                     originalPoster.style.backgroundImage = `url('${newPosterUrl}')`;
                 } else {
-                    // Load image first to avoid black flash
+                    // Load image first but don't delay the update
                     const img = new Image();
                     img.onload = () => {
                         originalPoster.style.backgroundImage = `url('${newPosterUrl}')`;
@@ -2824,6 +3258,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // Keep existing poster on error
                     };
                     img.src = newPosterUrl;
+
+                    // Set immediately anyway to prevent hanging
+                    originalPoster.style.backgroundImage = `url('${newPosterUrl}')`;
                 }
             }
             return;
@@ -3284,24 +3721,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function changeMedia(direction = 'next', isFirstLoad = false, isErrorSkip = false) {
-        if (mediaQueue.length === 0) return;
+        console.log(
+            `🔄 changeMedia called: direction=${direction}, isFirstLoad=${isFirstLoad}, isErrorSkip=${isErrorSkip}`
+        );
+
+        if (mediaQueue.length === 0) {
+            console.warn('❌ mediaQueue is empty');
+            return;
+        }
 
         // In offline mode, don't cycle through media unless it's the first load
         if (!navigator.onLine && !isFirstLoad) {
-            console.warn('Offline mode: Keeping current media displayed');
+            console.warn('📶 Offline mode: Keeping current media displayed');
             return;
         }
 
         // Don't change media in wallart mode (wallart has its own system)
         if (document.body.classList.contains('wallart-mode') && !isFirstLoad) {
-            // console.log removed for cleaner browser console
+            console.log('🖼️ Wallart mode: ignoring changeMedia');
             return;
         }
 
-        if (timerId) clearInterval(timerId);
+        // Always clear timer when changing media to prevent timing conflicts
+        if (timerId) {
+            clearInterval(timerId);
+            timerId = null;
+            console.log('⏰ Timer cleared in changeMedia');
+        }
 
         // Hide info immediately to prepare for the new content
         if (!isErrorSkip) {
+            console.log('👁️ Hiding info container and badges');
             // In cinema mode, don't hide the info container
             if (!appConfig.cinemaMode) {
                 infoContainer.classList.remove('visible');
@@ -3310,17 +3760,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             rtBadge.classList.remove('visible'); // Hide RT badge
         }
         if (isFirstLoad) {
+            console.log('🚀 First load: calling updateInfo immediately');
             updateInfo(direction, true);
         } else {
-            setTimeout(() => updateInfo(direction), isErrorSkip ? 0 : 800);
+            console.log('⏳ Scheduling updateInfo with 300ms delay');
+            setTimeout(
+                () => {
+                    updateInfo(direction);
+                    // Ensure timer is running after update
+                    if (!isPaused && !timerId) {
+                        console.log('⏰ No timer after updateInfo, starting one');
+                        startTimer();
+                    }
+                },
+                isErrorSkip ? 0 : 300
+            );
         }
     }
 
-    function startTimer() {
-        if (timerId) clearInterval(timerId);
+    function restartTimer() {
+        console.log(`🔄 Explicitly restarting timer`);
+        // Always clear existing timer first
+        if (timerId) {
+            clearInterval(timerId);
+            timerId = null;
+            console.log(`⏰ Cleared existing timer for restart`);
+        }
+        startTimer();
+    }
 
+    function startTimer() {
         // Don't start slideshow timer in wallart mode
         if (document.body.classList.contains('wallart-mode')) {
+            console.log(`🖼️ Not starting timer in wallart mode`);
+            return;
+        }
+
+        // If a timer is already running and we're not explicitly restarting, don't interfere
+        if (timerId) {
+            console.log(`⏰ Timer already running (ID: ${timerId}), skipping startTimer call`);
             return;
         }
 
@@ -3332,7 +3810,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         const totalInterval = transitionInterval; // User sets total time
         const interval = totalInterval * 1000;
 
-        timerId = setInterval(() => changeMedia('next'), interval);
+        timerId = setInterval(() => {
+            try {
+                console.log(`⏰ Timer triggered! Calling changeMedia('next')`);
+                changeMedia('next');
+            } catch (error) {
+                console.error(`❌ Error in timer callback:`, error);
+                // Try to restart the timer
+                timerId = null; // Clear the broken timer first
+                startTimer();
+            }
+        }, interval);
+        console.log(
+            `✅ Timer started with interval: ${interval}ms (${transitionInterval}s), timerId: ${timerId}`
+        );
+
+        // Debug: Test if timer is actually working
+        setTimeout(() => {
+            console.log(`🔍 Timer check after 5s: timerId still exists? ${timerId !== null}`);
+        }, 5000); // Check after 5 seconds
+
+        setTimeout(() => {
+            console.log(`🔍 Timer check after 10s: timerId still exists? ${timerId !== null}`);
+        }, 10000); // Check after 10 seconds
     }
 
     function updateClock() {
@@ -3450,32 +3950,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.body.addEventListener('mousemove', showControls);
     document.body.addEventListener('touchstart', showControls, { passive: true });
-
-    posterWrapper.addEventListener('mousemove', e => {
-        const rect = posterWrapper.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const rotateX = ((y - centerY) / centerY) * -8;
-        const rotateY = ((x - centerX) / centerX) * 8;
-
-        // Get current content scale from CSS variable
-        const contentScale =
-            getComputedStyle(document.documentElement).getPropertyValue('--content-scale').trim() ||
-            '1';
-        posterEl.style.transform = `scale(${contentScale}) perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.08, 1.08, 1.08)`;
-        posterEl.style.setProperty('--mouse-x', `${x}px`);
-        posterEl.style.setProperty('--mouse-y', `${y}px`);
-    });
-
-    posterWrapper.addEventListener('mouseleave', () => {
-        // Get current content scale from CSS variable
-        const contentScale =
-            getComputedStyle(document.documentElement).getPropertyValue('--content-scale').trim() ||
-            '1';
-        posterEl.style.transform = `scale(${contentScale}) perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)`;
-    });
 
     // Initialize network monitoring
     function initNetworkMonitoring() {
