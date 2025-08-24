@@ -254,15 +254,90 @@ window.scrollToSubsection = function (id) {
             return;
         }
 
-        const container = document.querySelector('.main-content');
-        const offset = 16; // small top padding
+        // Try to find the actual scrollable container
+        const possibleContainers = [
+            document.querySelector('.main-content'),
+            document.querySelector('.admin-main'),
+            document.getElementById('main-content'),
+            document.querySelector('.admin-layout'),
+            document.body,
+            document.documentElement,
+        ];
 
-        if (container) {
+        let scrollContainer = null;
+
+        // Find which container actually has scroll capability
+        for (const container of possibleContainers) {
+            if (container && container.scrollHeight > container.clientHeight) {
+                scrollContainer = container;
+                console.log(
+                    'Found scrollable container:',
+                    container.className || container.tagName,
+                    {
+                        scrollHeight: container.scrollHeight,
+                        clientHeight: container.clientHeight,
+                        scrollTop: container.scrollTop,
+                    }
+                );
+                break;
+            }
+        }
+
+        const offset = 80;
+
+        if (scrollContainer) {
+            // Calculate position relative to the scrollable container
             const elRect = el.getBoundingClientRect();
-            const containerRect = container.getBoundingClientRect();
-            const targetY = elRect.top - containerRect.top + container.scrollTop - offset;
-            container.scrollTo({ top: targetY, behavior: 'smooth' });
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const currentScrollTop = scrollContainer.scrollTop;
+
+            let targetY;
+            if (scrollContainer === document.body || scrollContainer === document.documentElement) {
+                // For body/html, use simpler calculation
+                targetY = elRect.top + window.pageYOffset - offset;
+            } else {
+                // For other containers, use container-relative calculation
+                targetY = elRect.top - containerRect.top + currentScrollTop - offset;
+            }
+
+            console.log(
+                `Scrolling to ${id} in ${scrollContainer.className || scrollContainer.tagName}:`,
+                {
+                    currentScrollTop,
+                    elRect: elRect.top,
+                    containerRect: containerRect.top,
+                    targetY,
+                    containerScrollHeight: scrollContainer.scrollHeight,
+                    containerClientHeight: scrollContainer.clientHeight,
+                }
+            );
+
+            const finalY = Math.max(
+                0,
+                Math.min(targetY, scrollContainer.scrollHeight - scrollContainer.clientHeight)
+            );
+
+            // Try scrollTo method
+            if (scrollContainer.scrollTo) {
+                scrollContainer.scrollTo({
+                    top: finalY,
+                    behavior: 'smooth',
+                });
+            } else {
+                // Fallback to direct scrollTop
+                scrollContainer.scrollTop = finalY;
+            }
+
+            // Check if scroll worked after a short delay
+            setTimeout(() => {
+                if (Math.abs(scrollContainer.scrollTop - finalY) > 10) {
+                    console.log('Smooth scroll failed, trying direct scrollTop');
+                    scrollContainer.scrollTop = finalY;
+                }
+            }, 100);
         } else {
+            console.log('No scrollable container found, using window scroll');
+            // Ultimate fallback to window scroll
             const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
             window.scrollTo({ top: y, behavior: 'smooth' });
         }
@@ -387,7 +462,7 @@ function updateHelpContent(sectionId) {
 }
 
 function updateRefreshRateLabel(value) {
-    const label = document.getElementById('wallartRefreshRate-value');
+    const label = document.querySelector('.slider-percentage[data-target="wallartRefreshRate"]');
     if (label) {
         const descriptions = {
             1: 'Very slow (25 seconds)',
@@ -406,7 +481,7 @@ function updateRefreshRateLabel(value) {
 }
 
 function updateRandomnessLabel(value) {
-    const label = document.getElementById('wallartRandomness-value');
+    const label = document.querySelector('.slider-percentage[data-target="wallartRandomness"]');
     if (label) {
         const descriptions = {
             0: 'No randomness (exact timing)',
@@ -1937,26 +2012,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const scalingConfig = config.uiScaling || defaults.uiScaling;
 
         // Populate range sliders and their value displays
-        const scalingFields = ['poster', 'text', 'clearlogo', 'clock', 'global'];
+        const scalingFields = ['content', 'clearlogo', 'clock', 'global'];
         scalingFields.forEach(field => {
             const slider = document.getElementById(`uiScaling.${field}`);
-            const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
+            const percentageDisplay = document.querySelector(
+                `.slider-percentage[data-target="uiScaling.${field}"]`
+            );
 
-            if (slider && valueDisplay) {
+            if (slider && percentageDisplay) {
                 let raw = scalingConfig[field];
                 if (raw === undefined || raw === null || raw === '') {
                     raw = defaults.uiScaling[field];
                 }
                 const value = Number(raw);
                 slider.value = value;
-                valueDisplay.textContent = `${value}%`;
+                percentageDisplay.textContent = `${value}%`;
 
                 // Update slider background to show progress
                 updateSliderBackground(slider);
 
                 // Add event listener to update display in real-time
                 slider.addEventListener('input', () => {
-                    valueDisplay.textContent = `${slider.value}%`;
+                    percentageDisplay.textContent = `${slider.value}%`;
                     updateSliderBackground(slider);
                 });
 
@@ -1967,26 +2044,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     try {
                         const value = parseInt(slider.value);
 
-                        // Map frontend fields to backend fields for saving
-                        const savePromises = [];
-                        if (field === 'poster' || field === 'text') {
-                            savePromises.push(
-                                fetch('/api/config', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ 'uiScaling.content': value }),
-                                })
-                            );
-                        }
-                        savePromises.push(
-                            fetch('/api/config', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ [configKey]: value }),
-                            })
-                        );
+                        await fetch('/api/config', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ [configKey]: value }),
+                        });
 
-                        await Promise.all(savePromises);
                         logger.debug(`Saved ${configKey}: ${value}`);
                     } catch (error) {
                         console.error(`Failed to save ${configKey}:`, error);
@@ -2027,7 +2090,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (newValue !== currentValue) {
                         e.preventDefault();
                         slider.value = newValue;
-                        valueDisplay.textContent = `${newValue}%`;
+                        percentageDisplay.textContent = `${newValue}%`;
                         updateSliderBackground(slider);
                         // preview update removed
                     }
@@ -2052,15 +2115,17 @@ document.addEventListener('DOMContentLoaded', () => {
             resetButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
 
             // Reset all sliders to default values (100%)
-            const scalingFields = ['poster', 'text', 'clearlogo', 'clock', 'global'];
+            const scalingFields = ['content', 'clearlogo', 'clock', 'global'];
 
             scalingFields.forEach(field => {
                 const slider = document.getElementById(`uiScaling.${field}`);
-                const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
+                const percentageDisplay = document.querySelector(
+                    `.slider-percentage[data-target="uiScaling.${field}"]`
+                );
 
-                if (slider && valueDisplay) {
+                if (slider && percentageDisplay) {
                     slider.value = 100;
-                    valueDisplay.textContent = '100%';
+                    percentageDisplay.textContent = '100%';
                     updateSliderBackground(slider);
                 }
             });
@@ -5499,16 +5564,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Setup randomness slider
         if (randomnessSlider) {
+            // Initialize background
+            updateSliderBackground(randomnessSlider);
+            updateRandomnessLabel(randomnessSlider.value);
+
             randomnessSlider.addEventListener('input', () => {
                 updateRandomnessLabel(randomnessSlider.value);
+                updateSliderBackground(randomnessSlider);
             });
         }
 
         // Setup refresh rate slider
         const refreshRateSlider = document.getElementById('wallartRefreshRate');
         if (refreshRateSlider) {
+            // Initialize background
+            updateSliderBackground(refreshRateSlider);
+            updateRefreshRateLabel(refreshRateSlider.value);
+
             refreshRateSlider.addEventListener('input', () => {
                 updateRefreshRateLabel(refreshRateSlider.value);
+                updateSliderBackground(refreshRateSlider);
             });
         }
     }
@@ -5902,11 +5977,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (field === 'name') return;
 
                         const slider = document.getElementById(`uiScaling.${field}`);
-                        const valueDisplay = document.getElementById(`uiScaling.${field}-value`);
+                        const percentageDisplay = document.querySelector(
+                            `.slider-percentage[data-target="uiScaling.${field}"]`
+                        );
 
-                        if (slider && valueDisplay) {
+                        if (slider && percentageDisplay) {
                             slider.value = preset[field];
-                            valueDisplay.textContent = `${preset[field]}%`;
+                            percentageDisplay.textContent = `${preset[field]}%`;
                             updateSliderBackground(slider);
                         }
                     });

@@ -100,9 +100,9 @@ a:hover {
     height: 100%;
     background: radial-gradient(
         circle at center,
-        rgba(0, 0, 0, 0.4) 0%,
-        rgba(0, 0, 0, 0.6) 50%,
-        rgba(0, 0, 0, 0.8) 100%
+        rgba(0, 0, 0, 0.3) 0%,
+        rgba(0, 0, 0, 0.45) 50%,
+        rgba(0, 0, 0, 0.6) 100%
     );
     z-index: -1;
     pointer-events: none;
@@ -2452,15 +2452,53 @@ input[type='range']::-webkit-slider-thumb:hover {
     gap: 0.5rem;
 }
 
+/* Modern slider with integrated percentage display */
+.scaling-grid .modern-slider {
+    position: relative;
+    display: block !important;
+    flex-direction: unset !important;
+    gap: unset !important;
+}
+
 .scaling-grid .slider-wrapper input[type='range'] {
     max-width: none;
     width: 100%;
 }
 
+/* Hide old slider values for scaling sliders */
 .scaling-grid .slider-value {
-    max-width: none;
-    width: auto;
+    display: none;
+}
+
+/* Modern percentage overlay styling for scaling sliders */
+.slider-percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: #ffffff;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    min-width: 40px;
     text-align: center;
+    opacity: 0.9;
+    transition: all 0.2s ease;
+}
+
+/* Show percentage more prominently on hover */
+.modern-slider:hover .slider-percentage {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* Force preset buttons outside of grid layout */
@@ -2539,17 +2577,6 @@ input[type='range']::-webkit-slider-thumb:hover {
     width: 100%;
 }
 
-/* Override for wallart sliders - horizontal layout */
-.wallart-controls-group .slider-wrapper {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 1.5rem;
-    margin: 0.5rem 0;
-    width: 100%;
-}
-
 .slider-wrapper input[type='range'] {
     -webkit-appearance: none;
     appearance: none;
@@ -2567,12 +2594,6 @@ input[type='range']::-webkit-slider-thumb:hover {
     outline: none;
     cursor: pointer;
     transition: all 0.2s ease;
-}
-
-/* Override for wallart sliders - horizontal layout */
-.wallart-controls-group .slider-wrapper input[type='range'] {
-    flex: 1;
-    max-width: 200px;
 }
 
 .slider-wrapper input[type='range']:hover {
@@ -2649,17 +2670,6 @@ input[type='range']::-webkit-slider-thumb:hover {
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
     cursor: default;
     user-select: none;
-}
-
-/* Override for wallart slider values - horizontal layout */
-.wallart-controls-group .slider-value {
-    width: 200px;
-    max-width: 200px;
-    min-width: 200px;
-    flex-shrink: 0;
-    text-align: center;
-    align-self: center;
-    margin-left: 2rem;
 }
 
 /* Ensure wallart slider values are visible */
@@ -7080,11 +7090,135 @@ input[type='range']::-moz-range-thumb {
     margin-bottom: 0;
 }
 
-/* Ensure wallart slider values are always visible within controls group */
-.wallart-controls-group .slider-value,
-.wallart-controls-group #wallartRefreshRate-value,
-.wallart-controls-group #wallartRandomness-value {
-    display: inline-block !important;
-    visibility: visible !important;
+/* Modern wallart sliders use overlay labels, not separate value boxes */
+
+/* =================================================================
+   CLEAN WALLART SLIDER STYLING - IDENTICAL TO UI SCALING SLIDERS
+   ================================================================= */
+
+/* Reset all previous wallart slider styling */
+.wallart-controls-group .slider-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+    margin: 0.5rem 0 !important;
+    width: 100% !important;
+}
+
+/* Modern slider container with overlay */
+.wallart-controls-group .modern-slider {
+    position: relative !important;
+    display: block !important;
+}
+
+/* Slider input styling - identical to scaling sliders */
+.wallart-controls-group .slider-wrapper input[type='range'] {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 8px !important;
+    background: linear-gradient(
+        to right,
+        #667eea 0%,
+        #667eea 50%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 100%
+    ) !important;
+    border-radius: 4px !important;
+    outline: none !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Slider thumb styling */
+.wallart-controls-group .slider-wrapper input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 20px !important;
+    height: 20px !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    border: 3px solid #fff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+
+.wallart-controls-group .slider-wrapper input[type='range']::-webkit-slider-thumb:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Firefox slider thumb */
+.wallart-controls-group .slider-wrapper input[type='range']::-moz-range-thumb {
+    width: 20px !important;
+    height: 20px !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    border: 3px solid #fff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Percentage overlay - identical to scaling sliders */
+.wallart-controls-group .slider-percentage {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: #ffffff !important;
+    padding: 4px 8px !important;
+    border-radius: 12px !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    pointer-events: none !important;
+    z-index: 10 !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    min-width: 40px !important;
+    text-align: center !important;
+    opacity: 0.9 !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+}
+
+/* Hover effect for percentage overlay */
+.wallart-controls-group .modern-slider:hover .slider-percentage {
     opacity: 1 !important;
+    transform: translate(-50%, -50%) scale(1.05) !important;
+    background: rgba(0, 0, 0, 0.9) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Hide old slider values completely */
+.wallart-controls-group .slider-value,
+.wallart-controls-group span[id*='-value'] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Pulse highlight animation for scrollToSubsection */
+.pulse-highlight {
+    animation: pulseHighlight 0.8s ease-out;
+}
+
+@keyframes pulseHighlight {
+    0% {
+        background-color: rgba(102, 126, 234, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        background-color: rgba(102, 126, 234, 0.5);
+        transform: scale(1.02);
+    }
+    100% {
+        background-color: transparent;
+        transform: scale(1);
+    }
 }

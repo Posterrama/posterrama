@@ -19,12 +19,14 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 
 ## Highlights
 
-- Screensaver Mode and Wallart Mode with smooth, cinema‑quality visuals
-- Works with Plex, TMDB, TVDB, and popular streaming providers
-- Clean admin dashboard for setup, sources, and display tuning
-- Smart caching and image optimization for fast performance
-- Responsive design for phones, tablets, TVs, and 4K displays
-- Cinema‑grade artwork, clear logos/ratings, dynamic transitions
+- **Screensaver Mode** and **Wallart Mode** with smooth, cinema‑quality visuals
+- **Hero Poster Mode** — spotlight featured content with intelligent 4x4 grid layout
+- Works with **Plex**, **TMDB**, **TVDB**, and popular streaming providers
+- **Clean admin dashboard** with modern sliders and intuitive quick navigation
+- **Smart caching** and image optimization for lightning-fast performance
+- **Responsive design** for phones, tablets, TVs, and 4K displays
+- **Cinema‑grade artwork**, clear logos/ratings, dynamic transitions
+- **Advanced UI scaling** and customizable display settings
 
 ---
 
@@ -60,19 +62,26 @@ Setup steps:
 
 <div align="center">
 
-<img src="./screenshots/screensaver.png" alt="Screensaver Mode" width="45%">
+<img src="./screenshots/screensaver.png" alt="Screensaver Mode" width="30%">
 &nbsp;&nbsp;&nbsp;&nbsp;
-<img src="./screenshots/wallart.png" alt="Wallart Mode" width="45%">
+<img src="./screenshots/wallart.png" alt="Wallart Mode" width="30%">
+&nbsp;&nbsp;&nbsp;&nbsp;
+<img src="./screenshots/wallart_hero.png" alt="Wallart Hero Mode" width="30%">
 
 <br>
 <strong>Screensaver Mode</strong>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <strong>Wallart Mode</strong>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<strong>Wallart Hero Mode</strong>
 
 </div>
 
-- Screensaver Mode — single-poster, elegant presentation
-- Wallart Mode — intelligent multi-poster grid that fills your screen
+- **Screensaver Mode** — single-poster, elegant presentation with cinematic Ken Burns effects
+- **Wallart Mode** — intelligent multi-poster grid that dynamically fills your screen
+- **Wallart Hero Mode** — spotlight a featured poster at 4x4 size with surrounding grid
+    - Smart responsive layout adapts to any screen size and orientation
+    - Perfect balance between featured content and discovery
 
 ---
 
@@ -104,10 +113,12 @@ Setup steps:
 
 ### Visual experience
 
-- Cinema‑quality backgrounds with smooth Ken Burns effects
-- Clean movie logos and ratings overlays
-- Dynamic transitions and subtle animations
-- Custom themes and layouts that look great everywhere
+- **Cinema‑quality backgrounds** with smooth Ken Burns effects
+- **Hero poster spotlight** — 4x4 featured poster with intelligent grid surrounds
+- **Clean movie logos** and ratings overlays with perfect positioning
+- **Dynamic transitions** and subtle animations that feel natural
+- **Advanced layout engine** — responsive grids that eliminate black bars
+- **Custom themes** and layouts that look stunning on any screen size
 
 ### Content & discovery
 
@@ -118,14 +129,19 @@ Setup steps:
 
 ### Performance & reliability
 
-- Smart caching for instant image loads
-- Optimized for Raspberry Pi 4+ and low‑power devices
-- Mobile, tablet, desktop, and TV responsive layouts
+- **Smart caching** for instant image loads and offline resilience
+- **Optimized for Raspberry Pi 4+** and low‑power devices
+- **Multi-device responsive** — mobile, tablet, desktop, and TV layouts
+- **Advanced error handling** with graceful fallbacks and recovery
+- **Background processing** for seamless poster transitions
 
 ### Control
 
-- Clean web admin for sources, appearance, and system health
-- One‑line installer and PM2 process management
+- **Clean web admin** with modern overlay sliders and intuitive navigation
+- **Quick jump navigation** — click source icons to instantly scroll to sections
+- **Real-time UI scaling** from 50% to 150% for perfect display tuning
+- **Advanced wallart controls** — hero mode, refresh rates, and timing randomness
+- **One‑line installer** and PM2 process management for easy deployment
 
 ---
 
@@ -166,21 +182,22 @@ Benefits
 
 ### Cinema upgrades
 
-- Motion posters and trailer snippets
-- Real‑time preview in the admin
-- Advanced transition packs and animations
+- **Motion posters** and trailer snippets for dynamic backgrounds
+- **Real‑time preview** in the admin for instant visual feedback
+- **Advanced transition packs** and custom animation libraries
+- **Wallart themes** — curated poster arrangements and layouts
 
 ### Universal sources
 
-- Emby and Jellyfin support
-- Kodi integration
-- Radarr/Sonarr/Lidarr pipelines
+- **Emby and Jellyfin** support for broader media server compatibility
+- **Kodi integration** for seamless home theater setups
+- **Radarr/Sonarr/Lidarr** pipelines for automated collection management
 
 ### Multi‑display magic
 
-- Multiple screens with smart sync
-- Music visualizations and ambient modes
-- Gaming libraries and collections
+- **Multiple screens** with smart sync and coordinated displays
+- **Music visualizations** and ambient modes for audio libraries
+- **Gaming libraries** and collections from Steam, Epic, etc.
 
 ## Updates
 
