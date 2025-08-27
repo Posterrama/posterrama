@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const layerB = document.getElementById('layer-b');
     const infoContainer = document.getElementById('info-container');
     const textWrapper = document.getElementById('text-wrapper');
+    const posterWrapper = document.getElementById('poster-wrapper');
     const posterEl = document.getElementById('poster');
     const posterLink = document.getElementById('poster-link');
     const titleEl = document.getElementById('title');
@@ -157,7 +158,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Add fallback background to body
         document.body.classList.add('no-media-background');
 
-        const errorMessageEl = document.getElementById('error-message');
+        let errorMessageEl = document.getElementById('error-message');
+        if (!errorMessageEl) {
+            errorMessageEl = document.createElement('div');
+            errorMessageEl.id = 'error-message';
+            // Minimal safe defaults so it doesn't break layouts without CSS
+            errorMessageEl.style.position = 'absolute';
+            errorMessageEl.style.top = '50%';
+            errorMessageEl.style.left = '50%';
+            errorMessageEl.style.transform = 'translate(-50%, -50%)';
+            errorMessageEl.style.color = '#fff';
+            errorMessageEl.style.textAlign = 'center';
+            errorMessageEl.style.maxWidth = '90vw';
+            errorMessageEl.classList?.add?.('is-hidden');
+            document.body.appendChild(errorMessageEl);
+        }
+
         errorMessageEl.innerHTML = `
             <div class="error-icon">📺</div>
             <div class="error-brand">Posterrama</div>
@@ -236,19 +252,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isScreensaverMode = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
 
         if (isScreensaverMode) {
-            // Check poster visibility
+            // Poster visibility toggles only the poster area, not the entire container
             if (appConfig.showPoster === false) {
-                infoContainer.classList.add('is-hidden');
+                posterWrapper?.classList.add('is-hidden');
             } else {
-                infoContainer.classList.remove('is-hidden');
+                posterWrapper?.classList.remove('is-hidden');
             }
 
-            // Check metadata visibility (independent of poster)
+            // Metadata visibility is independent
             if (appConfig.showMetadata === false) {
                 textWrapper.classList.add('is-hidden');
             } else {
                 textWrapper.classList.remove('is-hidden');
             }
+
+            // Safety: ensure the main container itself isn't force-hidden
+            infoContainer.classList.remove('is-hidden');
         }
 
         // Clock widget logic - only show in screensaver mode
@@ -306,16 +325,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!partial || typeof partial !== 'object') return;
             // Merge into current appConfig (shallow for top-level, deep for known groups)
             const next = { ...appConfig };
+            let rerenderNeeded = false; // whether we should refresh current media display after commit
+            let wallartNeedsApply = false; // track if wallart should be (re)applied
             if (partial.uiScaling) {
                 next.uiScaling = { ...next.uiScaling, ...partial.uiScaling };
                 applyUIScaling(next);
+                // Re-render current item to reflect scale changes immediately
+                updateCurrentMediaDisplay();
             }
             if (typeof partial.showPoster === 'boolean') {
                 next.showPoster = partial.showPoster;
                 const isScreensaver = !next.cinemaMode && !next.wallartMode?.enabled;
                 if (isScreensaver) {
-                    const container = document.getElementById('info-container');
-                    if (container) container.classList.toggle('is-hidden', !partial.showPoster);
+                    const pw = document.getElementById('poster-wrapper');
+                    if (pw) pw.classList.toggle('is-hidden', !partial.showPoster);
                 }
             }
             if (typeof partial.showMetadata === 'boolean') {
@@ -325,6 +348,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const tw = document.getElementById('text-wrapper');
                     if (tw) tw.classList.toggle('is-hidden', !partial.showMetadata);
                 }
+            }
+            // ClearLogo and Rotten Tomatoes toggles affect the media display
+            if (typeof partial.showClearLogo === 'boolean') {
+                next.showClearLogo = partial.showClearLogo;
+                rerenderNeeded = true;
+            }
+            if (typeof partial.showRottenTomatoes === 'boolean') {
+                next.showRottenTomatoes = partial.showRottenTomatoes;
+                rerenderNeeded = true;
+            }
+            if (typeof partial.rottenTomatoesMinimumScore === 'number') {
+                next.rottenTomatoesMinimumScore = partial.rottenTomatoesMinimumScore;
+                rerenderNeeded = true;
             }
             if (
                 typeof partial.clockWidget === 'boolean' ||
@@ -352,7 +388,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             if (partial.wallartMode) {
                 next.wallartMode = { ...next.wallartMode, ...partial.wallartMode };
-                applyWallartMode(next);
+                wallartNeedsApply = true;
+            }
+            // Map top-level hero controls into wallart layout settings when present
+            if (
+                typeof partial.heroSide === 'string' ||
+                typeof partial.heroRotationMinutes !== 'undefined'
+            ) {
+                next.wallartMode = next.wallartMode || { enabled: false };
+                next.wallartMode.layoutSettings = next.wallartMode.layoutSettings || {};
+                next.wallartMode.layoutSettings.heroGrid =
+                    next.wallartMode.layoutSettings.heroGrid || {};
+                if (typeof partial.heroSide === 'string') {
+                    next.wallartMode.layoutSettings.heroGrid.heroSide = partial.heroSide;
+                }
+                if (typeof partial.heroRotationMinutes !== 'undefined') {
+                    const v = Number(partial.heroRotationMinutes);
+                    if (Number.isFinite(v)) {
+                        next.wallartMode.layoutSettings.heroGrid.heroRotationMinutes = v;
+                    }
+                }
+                wallartNeedsApply = true;
             }
             if (
                 typeof partial.transitionIntervalSeconds === 'number' ||
@@ -374,8 +430,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Trigger immediate update of current media to reflect effect if possible
                 updateCurrentMediaDisplay();
             }
-            // Commit the new config last
+            // Commit the new config
             appConfig = next;
+            // Apply wallart changes if needed (handles classic/hero, side, density, etc.)
+            if (wallartNeedsApply) {
+                applyWallartMode(appConfig);
+            }
+            // Rerender current media if necessary (e.g., clearlogo/RT changes)
+            if (rerenderNeeded) {
+                updateCurrentMediaDisplay();
+            }
         } catch (e) {
             logger.warn('[Preview] Failed to apply settings', e);
         }
@@ -463,9 +527,60 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (config.wallartMode?.enabled) {
             // Check if wallart mode is already active BEFORE removing the class
             const isAlreadyActive = body.classList.contains('wallart-mode');
+            // Detect changes that require a restart of the wallart grid
+            const prev = window._lastWallartConfig || {};
+            const curr = config.wallartMode || {};
+            const variantChanged = prev.layoutVariant !== curr.layoutVariant;
+            const densityChanged = prev.density !== curr.density;
+            const animChanged =
+                (prev.animationType || prev.animationPack) !==
+                (curr.animationType || curr.animationPack);
+            const ambientChanged = !!prev.ambientGradient !== !!curr.ambientGradient;
+            const layoutSettingsChanged =
+                JSON.stringify(prev.layoutSettings || {}) !==
+                JSON.stringify(curr.layoutSettings || {});
+            const refreshChanged =
+                (prev.refreshRate || prev.randomness) !== (curr.refreshRate || curr.randomness);
+            const needsRestart =
+                isAlreadyActive &&
+                (variantChanged ||
+                    densityChanged ||
+                    animChanged ||
+                    ambientChanged ||
+                    layoutSettingsChanged ||
+                    refreshChanged);
 
-            if (isAlreadyActive) {
-                return; // Don't restart if already running
+            if (needsRestart) {
+                // Clear timers
+                if (wallartTransitionTimer) {
+                    clearInterval(wallartTransitionTimer);
+                    wallartTransitionTimer = null;
+                }
+                if (window.wallartIndividualTimer) {
+                    clearInterval(window.wallartIndividualTimer);
+                    window.wallartIndividualTimer = null;
+                }
+                if (wallartRefreshTimeout) {
+                    clearTimeout(wallartRefreshTimeout);
+                    wallartRefreshTimeout = null;
+                }
+                if (window.wallartHeroTimer) {
+                    clearInterval(window.wallartHeroTimer);
+                    window.wallartHeroTimer = null;
+                }
+                if (wallartAmbientTweenTimer) {
+                    clearInterval(wallartAmbientTweenTimer);
+                    wallartAmbientTweenTimer = null;
+                }
+                // Remove existing grid and ambient overlay
+                const wallartGrid = document.getElementById('wallart-grid');
+                if (wallartGrid) wallartGrid.remove();
+                const ambient = document.getElementById('wallart-ambient-overlay');
+                if (ambient) ambient.remove();
+                // Restart cycle with new settings without toggling body classes
+                startWallartCycle(curr);
+                window._lastWallartConfig = { ...curr };
+                return;
             }
 
             // Add wallart mode class to body
@@ -534,6 +649,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Start the new wallart cycle system
             startWallartCycle(config.wallartMode);
+            window._lastWallartConfig = { ...config.wallartMode };
 
             // Spotlight removed
 
@@ -843,6 +959,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function startWallartCycle(wallartConfig) {
+        // Persist current config globally for helpers that read it
+        try {
+            window.wallartConfig = { ...(wallartConfig || {}) };
+        } catch (_) {
+            // ignore
+        }
         // Remove existing wallart grid if it exists
         const existingGrid = document.getElementById('wallart-grid');
         if (existingGrid) {
@@ -1257,11 +1379,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const heroCfg = layoutSettings.heroGrid || {};
                 const rows = gridMeta.rows;
                 const cols = gridMeta.columns;
-                const heroSide = heroCfg.heroSide === 'right' ? 'right' : 'left';
-                const heroRotationMinutes = Math.max(0, Number(heroCfg.heroRotationMinutes) || 10);
+                // Accept explicit 'left' or 'right'; default to left
+                const rawHeroSideValue =
+                    (heroCfg.heroSide || wallartConfig.heroSide || appConfig?.heroSide) ?? '';
+                const rawHeroSide = rawHeroSideValue.toString().toLowerCase();
+                const heroSide = rawHeroSide === 'right' ? 'right' : 'left';
+                const heroRotValue =
+                    heroCfg.heroRotationMinutes ??
+                    wallartConfig.heroRotationMinutes ??
+                    appConfig?.heroRotationMinutes;
+                const heroRotationMinutes = Math.max(0, Number(heroRotValue) || 10);
 
                 wallartGrid.dataset.layoutVariant = 'heroGrid';
                 wallartGrid.dataset.heroGrid = 'true';
+                wallartGrid.dataset.heroSide = heroSide;
 
                 // Determine hero width to preserve 2:3 aspect fully visible
                 // Base poster ratio is 2:3 (w:h). Our grid rows have fixed height.
@@ -1642,8 +1773,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 const total = currentPosters.length;
-                const posterElements = wallartGrid?.querySelectorAll('.wallart-poster-item') || [];
-                if (!wallartGrid || posterElements.length === 0) return;
+                const tileEls = wallartGrid?.querySelectorAll('.wallart-poster-item') || [];
+                if (!wallartGrid || tileEls.length === 0) return;
 
                 // Decide burst size based on grid size and refresh rate
                 const rr = wallartConfig.refreshRate || wallartConfig.randomness || 5;
@@ -1656,7 +1787,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Exclude hero tile in heroGrid layout
                 if (wallartGrid?.dataset?.heroGrid === 'true') {
                     indices = indices.filter(i => {
-                        const el = posterElements[i];
+                        const el = tileEls[i];
                         return !(el && el.dataset && el.dataset.hero === 'true');
                     });
                 }
@@ -1669,8 +1800,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ? window._wallartRecentUpdates
                     : [];
                 const cooldown = new Set();
-                for (const s of cooldownSets) {
-                    for (const v of s) cooldown.add(v);
+                try {
+                    for (const s of cooldownSets) {
+                        if (s && typeof s.forEach === 'function') s.forEach(i => cooldown.add(i));
+                    }
+                } catch (_) {
+                    /* noop */
                 }
 
                 if (packType === 'staggered') {
@@ -1858,7 +1993,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (delay > maxDelay) maxDelay = delay;
 
                     setTimeout(() => {
-                        const targetElement = posterElements[idx];
+                        const targetElement = tileEls[idx];
                         if (!targetElement) return;
 
                         // Choose a new poster for this position
@@ -1924,12 +2059,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // In heroGrid, avoid selecting the hero tile for single updates
             if (wallartGrid?.dataset?.heroGrid === 'true') {
-                const posterElements = wallartGrid.querySelectorAll('.wallart-poster-item');
-                if (posterElements[randomPosition]?.dataset?.hero === 'true') {
+                const singleEls = wallartGrid.querySelectorAll('.wallart-poster-item');
+                if (singleEls[randomPosition]?.dataset?.hero === 'true') {
                     // pick a different non-hero index
-                    const candidates = Array.from(posterElements)
+                    const candidates = Array.from(singleEls)
                         .map((_, i) => i)
-                        .filter(i => posterElements[i]?.dataset?.hero !== 'true');
+                        .filter(i => singleEls[i]?.dataset?.hero !== 'true');
                     if (candidates.length > 0) {
                         randomPosition = candidates[Math.floor(Math.random() * candidates.length)];
                     }
@@ -1962,8 +2097,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentPosters[randomPosition] = newPoster;
 
             // Find the DOM element and animate the change
-            const posterElements = wallartGrid.querySelectorAll('.wallart-poster-item');
-            const targetElement = posterElements[randomPosition];
+            const posterElements2 = wallartGrid.querySelectorAll('.wallart-poster-item');
+            const targetElement = posterElements2[randomPosition];
 
             if (targetElement) {
                 targetElement.dataset.posterId = newPoster.id || newPoster.title || randomPosition;
@@ -2779,6 +2914,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Apply wallart mode changes
                 applyWallartMode(newConfig);
+
+                // If transition/effect timing changed, restart timer to take effect immediately
+                if (
+                    oldConfig.transitionIntervalSeconds !== newConfig.transitionIntervalSeconds ||
+                    oldConfig.effectPauseTime !== newConfig.effectPauseTime ||
+                    oldConfig.transitionEffect !== newConfig.transitionEffect
+                ) {
+                    if (!newConfig.cinemaMode && !newConfig.wallartMode?.enabled) {
+                        restartTimer();
+                    }
+                }
             }
         } catch (error) {
             // Silent fail in offline mode - don't spam console
@@ -2794,10 +2940,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Handle display changes
         if (oldConfig.showPoster !== newConfig.showPoster && isScreensaverMode) {
+            const pw = document.getElementById('poster-wrapper');
             if (newConfig.showPoster === false) {
-                infoContainer.classList.add('is-hidden');
+                pw && pw.classList.add('is-hidden');
             } else {
-                infoContainer.classList.remove('is-hidden');
+                pw && pw.classList.remove('is-hidden');
             }
         }
 
@@ -2896,7 +3043,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Server is still building the playlist, let's wait and retry.
                 const data = await mediaResponse.json();
                 // Keep the loader visible if it's the initial load.
-                if (isInitialLoad && loader.style.opacity !== '1') {
+                if (isInitialLoad && loader && loader.style.opacity !== '1') {
                     loader.style.opacity = '1';
                 }
                 setTimeout(() => fetchMedia(isInitialLoad), data.retryIn || 2000);
@@ -2910,14 +3057,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error(errorData.error || `Server error: ${mediaResponse.status}`);
             }
 
-            const newMediaQueue = await mediaResponse.json();
+            let newMediaQueue = await mediaResponse.json();
             if (!Array.isArray(newMediaQueue) || newMediaQueue.length === 0) {
                 console.warn('[Media] Received invalid or empty media queue:', newMediaQueue);
                 showError('No media found. Check the library configuration.');
-                if (loader.style.opacity !== '0') loader.style.opacity = '0';
+                if (loader && loader.style.opacity !== '0') loader.style.opacity = '0';
                 // Ensure mediaQueue remains a valid empty array
                 mediaQueue = [];
                 return;
+            }
+            // In preview mode, keep full list for Wallart (needs many posters for the grid).
+            // Retain a small cap for non-Wallart preview to keep it responsive.
+            if (window.IS_PREVIEW) {
+                const isWallart = appConfig?.wallartMode?.enabled;
+                if (!isWallart) {
+                    newMediaQueue = newMediaQueue.slice(0, 12);
+                }
             }
             mediaQueue = newMediaQueue;
 
@@ -2939,7 +3094,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) {
             console.error('Failed to fetch media', e);
             showError(e.message || 'Could not load media. Check the server connection.');
-            if (loader.style.opacity !== '0') loader.style.opacity = '0';
+            if (loader && loader.style.opacity !== '0') loader.style.opacity = '0';
             // Ensure mediaQueue remains a valid empty array on error
             mediaQueue = [];
         }
@@ -3122,10 +3277,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Check if poster should be shown (only in screensaver mode)
         if (!appConfig.cinemaMode && !appConfig.wallartMode?.enabled) {
+            const pw = document.getElementById('poster-wrapper');
             if (appConfig.showPoster === false) {
-                infoContainer.classList.add('is-hidden');
+                pw && pw.classList.add('is-hidden');
             } else {
-                infoContainer.classList.remove('is-hidden');
+                pw && pw.classList.remove('is-hidden');
             }
         }
 
@@ -3401,11 +3557,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (isFirstLoad) {
                 console.log(`👁️ First load: showing info container immediately`);
-                infoContainer.classList.add('visible');
+                const isScreensaver = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
+                if (isScreensaver) {
+                    const posterVisible = appConfig.showPoster !== false;
+                    const metaVisible = appConfig.showMetadata !== false;
+                    if (posterVisible || metaVisible) {
+                        infoContainer.classList.add('visible');
+                    }
+                } else {
+                    infoContainer.classList.add('visible');
+                }
             } else {
                 console.log(`👁️ Scheduling info container to become visible in 500ms`);
                 setTimeout(() => {
-                    infoContainer.classList.add('visible');
+                    // In screensaver mode, only show the container if at least one of poster or metadata is visible
+                    const isScreensaver = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
+                    if (isScreensaver) {
+                        const posterVisible = appConfig.showPoster !== false;
+                        const metaVisible = appConfig.showMetadata !== false;
+                        if (posterVisible || metaVisible) {
+                            infoContainer.classList.add('visible');
+                        }
+                    } else {
+                        infoContainer.classList.add('visible');
+                    }
                     console.log(`✅ Info container made visible`);
 
                     // Additional check for cinema mode
@@ -4111,20 +4286,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    pauseButton.addEventListener('click', () => {
-        isPaused = !isPaused;
-        pauseButton.classList.toggle('is-paused', isPaused);
-        if (isPaused) {
-            clearInterval(timerId);
-            if (activeLayer) activeLayer.style.animationPlayState = 'paused';
-        } else {
-            startTimer();
-            if (activeLayer) activeLayer.style.animationPlayState = 'running';
-        }
-    });
+    if (pauseButton) {
+        pauseButton.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseButton.classList.toggle('is-paused', isPaused);
+            if (isPaused) {
+                clearInterval(timerId);
+                if (activeLayer) activeLayer.style.animationPlayState = 'paused';
+            } else {
+                startTimer();
+                if (activeLayer) activeLayer.style.animationPlayState = 'running';
+            }
+        });
+    }
 
-    nextButton.addEventListener('click', () => changeMedia('next'));
-    prevButton.addEventListener('click', () => changeMedia('prev'));
+    if (nextButton) nextButton.addEventListener('click', () => changeMedia('next'));
+    if (prevButton) prevButton.addEventListener('click', () => changeMedia('prev'));
 
     document.addEventListener('keydown', e => {
         showControls();
@@ -4134,17 +4311,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             changeMedia('prev');
         } else if (e.key === ' ') {
             e.preventDefault();
-            pauseButton.click();
+            if (pauseButton) pauseButton.click();
         }
     });
 
     // Show controls on mouse movement or touch, and hide them after a few seconds.
     function showControls() {
-        controlsContainer.classList.add('visible');
+        if (controlsContainer) {
+            controlsContainer.classList.add('visible');
+        }
         document.body.style.cursor = 'default';
         clearTimeout(controlsTimer);
         controlsTimer = setTimeout(() => {
-            controlsContainer.classList.remove('visible');
+            if (controlsContainer) {
+                controlsContainer.classList.remove('visible');
+            }
             document.body.style.cursor = 'none';
         }, 3000);
     }

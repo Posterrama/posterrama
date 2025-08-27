@@ -5307,10 +5307,10 @@ fieldset:focus-within {
     width: 100%;
     height: 200px; /* Much smaller default height */
     background: #000;
-    border-radius: 8px;
+    border-radius: 0;
     overflow: hidden;
-    margin-top: 1rem;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    margin-top: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: none; /* Hidden by default */
 }
 
@@ -5322,11 +5322,12 @@ fieldset:focus-within {
     --preview-width: 320px; /* Default width (16:9 screensaver) */
     --preview-height: 180px; /* Default height (16:9 screensaver) */
 
-    /* Aspect ratio presets */
-    --screensaver-width: 320px; /* 16:9 ratio (1920x1080 scaled down) */
-    --screensaver-height: 180px; /* 16:9 ratio */
-    --cinema-width: 180px; /* 9:16 ratio (1080x1920 scaled down) */
-    --cinema-height: 320px; /* 9:16 ratio */
+    /* Aspect ratio presets (padding-aware: 8px each side => inner area subtracts 16px) */
+    /* Keep inner area exact aspect to avoid perceived thicker side paddings */
+    --screensaver-width: 320px; /* inner 304px -> 16:9 with k=19 */
+    --screensaver-height: 187px; /* inner 171px -> 9*19 */
+    --cinema-width: 187px; /* inner 171px -> 9*19 */
+    --cinema-height: 320px; /* inner 304px -> 16*19 */
 }
 
 /* When sidebar is collapsed */
@@ -5339,30 +5340,54 @@ fieldset:focus-within {
 .preview-container.pip-mode {
     display: block !important; /* Show when in PiP mode */
     position: fixed !important;
-    /* top position will be set dynamically via JavaScript */
-    left: var(--preview-left-offset); /* Dynamic positioning based on sidebar state */
+    /* top/left/right will be set dynamically via JavaScript */
+    left: auto; /* Allow right anchoring */
     width: var(--preview-width) !important; /* Dynamic width based on mode */
     height: var(--preview-height) !important; /* Dynamic height based on mode */
     z-index: 10000 !important; /* Above everything */
-    border: 2px solid rgba(102, 126, 234, 0.3) !important; /* Subtle border back */
-    box-shadow:
-        0 0 15px rgba(102, 126, 234, 0.3),
-        0 4px 20px rgba(0, 0, 0, 0.3) !important; /* Much more subtle ambilight + depth */
-    backdrop-filter: blur(4px);
+    padding: 8px;
+    border-radius: 14px !important;
+    /* Lighter, more transparent glass */
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+    border: none !important; /* Remove border */
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important; /* Softer shadow, no inner highlight */
+    backdrop-filter: blur(8px) saturate(110%);
     margin: 0 !important;
-    border-radius: 12px !important; /* Rounded corners back */
     transition:
-        box-shadow 0.3s ease,
-        left 0.3s ease,
-        width 0.3s ease,
-        height 0.3s ease !important; /* Smooth transitions */
+        box-shadow 0.15s ease,
+        width 0.2s ease,
+        height 0.2s ease,
+        top 0.2s ease,
+        left 0.2s ease,
+        right 0.2s ease !important;
     overflow: hidden !important;
     min-width: 180px !important; /* Minimum size for cinema mode */
     min-height: 120px !important;
     max-width: 800px !important; /* Larger maximum size */
     max-height: 600px !important;
     cursor: grab !important; /* Indicate it's draggable */
+    pointer-events: auto;
+    user-select: none;
 }
+
+/* 2x zoom state: double the preview width/height variables */
+.preview-container.pip-mode.zoom-2x {
+    width: calc(var(--preview-width) * 1.5) !important;
+    height: calc(var(--preview-height) * 1.5) !important;
+}
+
+.preview-container.pip-mode.dragging {
+    transition: none !important; /* Disable transitions while dragging */
+}
+
+/* Also allow programmatic transition disabling */
+.preview-container.pip-mode.no-transition {
+    transition: none !important;
+}
+/* Keep frame transitions active; only container transitions are disabled */
+
+/* Explicit resize handle element for better event targeting */
+/* Resize disabled: handle removed */
 
 /* Preview Controls */
 .preview-controls {
@@ -5372,17 +5397,46 @@ fieldset:focus-within {
     z-index: 10001;
     opacity: 0;
     transition: opacity 0.2s ease;
+    pointer-events: auto;
 }
 
-.preview-container:hover .preview-controls {
+/* Only change when hovering the controls themselves, not the whole preview */
+.preview-controls:hover,
+.preview-controls:focus-within {
     opacity: 1;
 }
 
 .preview-container.pip-mode .preview-controls {
-    opacity: 0.7;
+    opacity: 0.5; /* more transparent than before */
 }
 
-.preview-container.pip-mode:hover .preview-controls {
+/* PiP: same rule, scoped to controls hover/focus */
+.preview-container.pip-mode .preview-controls:hover,
+.preview-container.pip-mode .preview-controls:focus-within {
+    opacity: 1;
+}
+
+/* Desktop-only left-top zoom button */
+.preview-zoom-btn {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 10002; /* Above iframe (z=1) and controls (z=10001) */
+    pointer-events: auto;
+    opacity: 0.5; /* match right controls base transparency */
+    transition: opacity 0.2s ease;
+}
+
+@media (max-width: 1023px) {
+    .preview-zoom-btn {
+        display: none !important;
+    }
+}
+
+/* Hover: both sides fully visible */
+/* Left icon: only brighten on direct hover/focus */
+.preview-zoom-btn:hover,
+.preview-zoom-btn:focus-visible {
     opacity: 1;
 }
 
@@ -5405,7 +5459,7 @@ fieldset:focus-within {
 }
 
 .pip-button:hover {
-    background: rgba(102, 126, 234, 0.8);
+    background: rgba(255, 255, 255, 0.2);
     transform: scale(1.05);
 }
 
@@ -5430,49 +5484,20 @@ fieldset:focus-within {
 }
 
 /* Override CSS variables during resize to allow manual sizing */
-.preview-container.pip-mode.resizing {
-    width: unset !important; /* Allow inline styles during resize */
-    height: unset !important; /* Allow inline styles during resize */
-}
+/* Disable resizing-dependent states */
 
-/* Disable transitions during resizing for smooth movement */
-.preview-container.pip-mode.resizing {
-    transition: none !important;
-}
-
-.preview-container.pip-mode:active {
-    cursor: grabbing !important; /* Show grabbing cursor when dragging */
-}
-
-/* Resize handle for PiP */
-.preview-container.pip-mode::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 20px;
-    height: 20px;
-    background: linear-gradient(
-        -45deg,
-        transparent 30%,
-        rgba(102, 126, 234, 0.8) 30%,
-        rgba(102, 126, 234, 0.8) 70%,
-        transparent 70%
-    );
-    cursor: nw-resize;
-    border-bottom-right-radius: 12px;
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
-}
-
-.preview-container.pip-mode:hover::after {
-    opacity: 1;
-}
+/* Remove legacy pseudo-element handle (replaced by .resize-handle element) */
 
 .preview-container.pip-mode:hover {
-    box-shadow:
-        0 0 20px rgba(102, 126, 234, 0.4),
-        0 4px 25px rgba(0, 0, 0, 0.4); /* Slightly enhanced but still subtle on hover */
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.32) !important;
+}
+
+/* Force-hide preview regardless of pip-mode when not on Display section */
+.preview-container.preview-hidden,
+.preview-container.preview-hidden.pip-mode {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
 /* Sidebar preview adjustments */
@@ -5494,16 +5519,21 @@ fieldset:focus-within {
 }
 
 .preview-frame {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    top: 8px; /* match container padding */
+    left: 8px;
+    width: calc(100% - 16px);
+    height: calc(100% - 16px);
     border: none;
     background: #000;
     display: block; /* Always visible when container is shown */
-    border-radius: 8px; /* Rounded corners back */
-}
-
-.preview-container.pip-mode .preview-frame {
-    border-radius: 10px; /* Slightly more rounded in PiP mode */
+    border-radius: 12px; /* Slightly rounder inner preview window */
+    transform-origin: top left;
+    pointer-events: none; /* Allow dragging/resizing anywhere */
+    z-index: 1;
+    transition:
+        transform 0.2s ease,
+        opacity 0.12s ease;
 }
 
 .preview-content {
@@ -5543,10 +5573,14 @@ fieldset:focus-within {
     z-index: 1 !important;
 }
 
-/* Force container to clip overflow properly and contain scaled content */
+/* Ensure container clips overflow; don't override its fixed positioning */
 .preview-container.pip-mode {
     overflow: hidden !important;
-    position: relative !important; /* Ensure proper containing block */
+}
+
+/* Fade content during mode switching for smoother visual transition */
+.preview-container.pip-mode.mode-switching .preview-frame {
+    opacity: 0;
 }
 
 /* Preview elements styling for full screensaver simulation - based on real index.html */

@@ -209,6 +209,10 @@
                             <div class="form-section unified-section">
                                 <!-- Live Preview Panel -->
                                 <div id="display-preview-container" class="preview-container pip-mode screensaver-mode" style="display:none">
+                                    <!-- Desktop-only 2x toggle (top-left) -->
+                                    <button type="button" id="toggle-preview-zoom" class="pip-button preview-zoom-btn" title="Toggle Preview Size (1.5x)">
+                                        <i class="fas fa-expand"></i>
+                                    </button>
                                     <div class="preview-controls">
                                         <button type="button" id="toggle-preview-mode" class="pip-button" title="Toggle Preview Mode">
                                             <i class="fas fa-desktop"></i>
@@ -364,7 +368,7 @@
                                     <!-- Clock Widget Options -->
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="clockWidget" name="clockWidget">
-                                        <label for="clockWidget">Show Clock (screensaver mode only)</label>
+                                        <label for="clockWidget">Show Clock</label>
                                     </div>
                                     <div class="form-group clock-timezone-group hidden" id="clockTimezoneGroup">
                                         <label for="clockTimezone">Clock Timezone</label>

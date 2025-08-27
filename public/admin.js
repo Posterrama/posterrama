@@ -355,17 +355,292 @@ window.scrollToSubsection = function (id) {
     const container = document.getElementById('display-preview-container');
     const frame = document.getElementById('display-preview-frame');
     const toggleBtn = document.getElementById('toggle-preview-mode');
+    const zoomBtn = document.getElementById('toggle-preview-zoom');
+    let lastSettings = null;
+    let resetInFlight = false;
 
     if (!container || !frame) return; // No-op if HTML not present
 
-    // Show preview by default when Display tab is active
-    container.style.display = 'block';
+    // Move container to body so it never affects section layout
+    if (container.parentElement && container.parentElement !== document.body) {
+        document.body.appendChild(container);
+    }
+
+    // Preview should be visible only on the Display section
+    function isDisplayActive() {
+        const activeNav = document.querySelector('.sidebar .nav-item.active');
+        if (activeNav && activeNav.dataset && activeNav.dataset.section) {
+            return activeNav.dataset.section === 'display';
+        }
+        const displaySection = document.getElementById('display-section');
+        if (displaySection) {
+            const style = window.getComputedStyle(displaySection);
+            return style.display !== 'none';
+        }
+        return false;
+    }
+    function setPreviewVisibility(visible) {
+        container.classList.toggle('preview-hidden', !visible);
+        container.style.display = visible ? 'block' : 'none';
+        if (visible) {
+            try {
+                placePreviewAtAnchor();
+                updateFrameScale();
+            } catch (_) {
+                /* noop */
+            }
+        }
+    }
+    // Start in PiP mode but only show when Display is active
+    container.classList.add('pip-mode');
+    setPreviewVisibility(isDisplayActive());
+
+    // Restore position/size
+    // Default size
+    const startW = 320; // default 16:9 preview
+    // Note: dynamic height is derived from DOM; no fixed start height constant needed here
+    const headerHeightVar = getComputedStyle(document.documentElement).getPropertyValue(
+        '--header-height'
+    );
+    const headerHeight = parseInt(headerHeightVar, 10) || 70;
+    const margin = 12;
+    container.style.left = 'auto';
+
+    function updateFrameScale() {
+        const isCinema = container.classList.contains('cinema-mode');
+        const baseW = isCinema ? 1080 : 1920;
+        const baseH = isCinema ? 1920 : 1080;
+        // Use computed styles to get precise inner box including padding
+        const style = getComputedStyle(container);
+        const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+        const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+        const cw = Math.max(0, container.clientWidth - paddingX);
+        const ch = Math.max(0, container.clientHeight - paddingY);
+        const scale = Math.max(0.01, Math.min(cw / baseW, ch / baseH));
+        frame.style.width = baseW + 'px';
+        frame.style.height = baseH + 'px';
+        frame.style.transform = `scale(${scale})`;
+        // Center the scaled content within the padded inner area; padding itself stays uniform (8px)
+        const offsetX = parseFloat(style.paddingLeft) + (cw - baseW * scale) / 2;
+        const offsetY = parseFloat(style.paddingTop) + (ch - baseH * scale) / 2;
+        frame.style.left = `${offsetX}px`;
+        frame.style.top = `${offsetY}px`;
+    }
+
+    function placePreviewAtAnchor() {
+        // Align the preview to the top-right of the Display section content, within the content width
+        const displaySection = document.getElementById('display-section');
+        const titleEl = displaySection ? displaySection.querySelector('.section-title') : null;
+        const sectionMain =
+            document.querySelector('#display-section .section-main-content') || displaySection;
+        const sectionRect = sectionMain
+            ? sectionMain.getBoundingClientRect()
+            : { left: 0, right: window.innerWidth, top: 0 };
+        const titleRect = titleEl ? titleEl.getBoundingClientRect() : sectionRect;
+
+        // Use current container size
+        const cRect = container.getBoundingClientRect();
+        const cw = Math.max(1, cRect.width || startW);
+
+        // Top aligns with the section title top (viewport coordinates, since container is fixed)
+        const marginInside = 8; // small padding from edges
+        const topStartPadding = 12; // extra initial top padding requested
+        const yBase = Math.max(headerHeight + marginInside, Math.round(titleRect.top));
+        const y = yBase + topStartPadding;
+
+        // Right-align inside the section content, but no further right than the section title width
+        const minX = Math.round(sectionRect.left + marginInside);
+        const titleRight = Math.round(titleRect.right);
+        const sectionRight = Math.round(sectionRect.right);
+        const maxInsideRight = Math.min(sectionRight, titleRight);
+        const maxX = Math.round(maxInsideRight - cw - marginInside);
+        const x = Math.max(minX, Math.min(window.innerWidth - cw, maxX));
+
+        container.style.top = `${y}px`;
+        // Compute right directly from target x + width to avoid reflow inconsistencies
+        const intendedRight = Math.max(0, window.innerWidth - (x + cw));
+        container.style.right = intendedRight + 'px';
+        container.style.left = 'auto';
+    }
+
+    // Preserve current top-right anchor of the floating preview while mutating classes/sizes
+    function preserveTopRightAnchor(mutator) {
+        // Use computed styles to avoid subpixel drift across transitions
+        const cs = getComputedStyle(container);
+        let prevTop = parseFloat(cs.top);
+        let prevRight = parseFloat(cs.right);
+        if (!Number.isFinite(prevTop) || isNaN(prevTop)) {
+            const rect = container.getBoundingClientRect();
+            prevTop = Math.max(0, rect.top);
+        }
+        if (!Number.isFinite(prevRight) || isNaN(prevRight)) {
+            const rect = container.getBoundingClientRect();
+            prevRight = Math.max(0, window.innerWidth - rect.right);
+        }
+        if (typeof mutator === 'function') {
+            mutator();
+        }
+        // Re-apply top/right to keep the same anchor position; disable left
+        container.style.top = prevTop + 'px';
+        // Clamp right within viewport
+        const cw = container.getBoundingClientRect().width;
+        const maxRight = Math.max(0, window.innerWidth - cw);
+        container.style.right = Math.max(0, Math.min(maxRight, prevRight)) + 'px';
+        container.style.left = 'auto';
+    }
+
+    // Initial placement (only if visible)
+    if (container.style.display !== 'none') {
+        placePreviewAtAnchor();
+    }
+
+    // No persistence: always reset on refresh per request
+
+    // Make draggable
+    (function enableDrag() {
+        let dragging = false;
+        let offsetFromRight = 0;
+        let offsetFromTop = 0;
+        let rafId = null;
+        let nextPos = null;
+        function onDown(e) {
+            dragging = true;
+            container.classList.add('dragging');
+            container.style.cursor = 'grabbing';
+            const rect = container.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            // Store offset relative to the right and top edges to maintain right-top anchoring
+            offsetFromRight = rect.right - clientX;
+            offsetFromTop = clientY - rect.top;
+            e.preventDefault();
+        }
+        function onMove(e) {
+            if (!dragging) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const rect = container.getBoundingClientRect();
+            // Compute right and top maintaining the original grab offsets
+            let right = vw - (clientX + offsetFromRight);
+            let top = clientY - offsetFromTop;
+            // Clamp within viewport
+            right = Math.max(0, Math.min(vw - rect.width, right));
+            const minY = headerHeight + margin;
+            top = Math.max(minY, Math.min(vh - rect.height, top));
+            nextPos = { right, top };
+            if (!rafId) {
+                rafId = requestAnimationFrame(() => {
+                    if (nextPos) {
+                        container.style.right = nextPos.right + 'px';
+                        container.style.left = 'auto';
+                        container.style.top = nextPos.top + 'px';
+                        nextPos = null;
+                    }
+                    rafId = null;
+                });
+            }
+        }
+        function onUp() {
+            if (!dragging) return;
+            dragging = false;
+            container.style.cursor = 'grab';
+            container.classList.remove('dragging');
+            // Prevent click-through after drag
+            container.style.pointerEvents = 'none';
+            setTimeout(() => (container.style.pointerEvents = 'auto'), 0);
+        }
+        container.addEventListener('mousedown', onDown);
+        container.addEventListener('touchstart', onDown, { passive: false });
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('mouseup', onUp);
+        window.addEventListener('touchend', onUp);
+    })();
+
+    // Initial scale and on-resize updates
+    if (container.style.display !== 'none') updateFrameScale();
+    window.addEventListener('resize', () => {
+        if (container.style.display !== 'none') updateFrameScale();
+    });
+    // React to container size changes (mode/zoom transitions) and rescale content to fully fill space
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+            if (container.style.display !== 'none') updateFrameScale();
+        });
+        ro.observe(container);
+    } else {
+        // Fallback: listen for transition end on width/height
+        container.addEventListener('transitionend', e => {
+            if (
+                e.propertyName === 'width' ||
+                e.propertyName === 'height' ||
+                e.propertyName === 'right' ||
+                e.propertyName === 'left' ||
+                e.propertyName === 'top'
+            ) {
+                if (container.style.display !== 'none') updateFrameScale();
+            }
+        });
+    }
+    window.addEventListener('resize', () => {
+        // Keep current top-right anchor when viewport changes; then clamp within viewport
+        if (container.style.display !== 'none') preserveTopRightAnchor();
+        const rect = container.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const minY = headerHeight + margin;
+        const newTop = Math.max(minY, Math.min(vh - rect.height, rect.top));
+        container.style.top = newTop + 'px';
+    });
 
     // Toggle between screensaver/cinema preview classes
     if (toggleBtn) {
         toggleBtn.addEventListener('click', () => {
-            const isCinema = container.classList.toggle('cinema-mode');
-            container.classList.toggle('screensaver-mode', !isCinema);
+            preserveTopRightAnchor(() => {
+                const isCinema = container.classList.toggle('cinema-mode');
+                container.classList.toggle('screensaver-mode', !isCinema);
+                // Light fade for smoother visual switch; keep transitions enabled for smooth scale/size animations
+                container.classList.add('mode-switching');
+                if (frame) {
+                    const prev = frame.style.transform;
+                    frame.style.transform = 'none';
+                    void frame.offsetHeight; // force reflow
+                    frame.style.transform = prev;
+                }
+                if (typeof updateFrameScale === 'function') updateFrameScale();
+                // After the transition completes, ensure final scale and re-apply anchor precisely
+                const onEnd = ev => {
+                    if (ev.target !== container) return;
+                    container.removeEventListener('transitionend', onEnd);
+                    preserveTopRightAnchor(() => {
+                        if (typeof updateFrameScale === 'function') updateFrameScale();
+                    });
+                };
+                container.addEventListener('transitionend', onEnd);
+            });
+            setTimeout(() => {
+                container.classList.remove('mode-switching');
+            }, 160);
+        });
+    }
+
+    // Toggle 2x zoom (desktop-only via CSS visibility)
+    if (zoomBtn) {
+        zoomBtn.addEventListener('click', () => {
+            preserveTopRightAnchor(() => {
+                container.classList.toggle('zoom-2x');
+                if (typeof updateFrameScale === 'function') updateFrameScale();
+                // Re-check after transition ends
+                const onEnd = ev => {
+                    if (ev.target !== container) return;
+                    container.removeEventListener('transitionend', onEnd);
+                    preserveTopRightAnchor(() => {
+                        if (typeof updateFrameScale === 'function') updateFrameScale();
+                    });
+                };
+                container.addEventListener('transitionend', onEnd);
+            });
         });
     }
 
@@ -397,6 +672,9 @@ window.scrollToSubsection = function (id) {
             clockWidget: getBool('clockWidget'),
             clockTimezone: getSelect('clockTimezone'),
             clockFormat: getSelect('clockFormat'),
+            // Wallart hero controls at top-level for preview mapping
+            heroSide: getSelect('heroSide'),
+            heroRotationMinutes: getNumber('heroRotationMinutes'),
             uiScaling: {
                 content: getNumber('uiScaling.content'),
                 clearlogo: getNumber('uiScaling.clearlogo'),
@@ -414,6 +692,12 @@ window.scrollToSubsection = function (id) {
                 randomness: getNumber('wallartRandomness'),
                 animationType: getSelect('wallartAnimationType'),
                 ambientGradient: getBool('wallartAmbientGradient'),
+                layoutSettings: {
+                    heroGrid: {
+                        heroSide: getSelect('heroSide'),
+                        heroRotationMinutes: getNumber('heroRotationMinutes'),
+                    },
+                },
             },
         };
         return payload;
@@ -422,13 +706,33 @@ window.scrollToSubsection = function (id) {
     let previewWindow = null;
     frame.addEventListener('load', () => {
         previewWindow = frame.contentWindow;
-        // Initial sync after load
-        sendPreviewUpdate();
+        // Initial sync after load or after a hard reset
+        if (isDisplayActive()) sendPreviewUpdate();
+        // After load, ensure visual classes are restored and placement/scaling are correct
+        if (resetInFlight) {
+            setTimeout(() => {
+                container.classList.remove('no-transition');
+                container.classList.remove('mode-switching');
+                if (typeof updateFrameScale === 'function') updateFrameScale();
+                // Keep current top-right anchor instead of re-placing relative to section
+                if (typeof preserveTopRightAnchor === 'function') preserveTopRightAnchor();
+                resetInFlight = false;
+            }, 80);
+        }
     });
 
     function sendPreviewUpdate() {
         if (!previewWindow) return;
         const payload = collectDisplaySettings();
+        lastSettings = payload;
+        // Reflect mode on container for correct aspect while preserving current anchor
+        preserveTopRightAnchor(() => {
+            const isCinema = !!payload.cinemaMode;
+            container.classList.toggle('cinema-mode', isCinema);
+            container.classList.toggle('screensaver-mode', !isCinema);
+            if (container.style.display !== 'none' && typeof updateFrameScale === 'function')
+                updateFrameScale();
+        });
         previewWindow.postMessage(
             { type: 'posterrama.preview.update', payload },
             window.location.origin
@@ -440,6 +744,37 @@ window.scrollToSubsection = function (id) {
     function debouncedSend() {
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(sendPreviewUpdate, 120);
+    }
+
+    function shouldHardReset(prev, next) {
+        if (!prev) return false;
+        const prevWall = !!(prev.wallartMode && prev.wallartMode.enabled);
+        const nextWall = !!(next.wallartMode && next.wallartMode.enabled);
+        if (prev.cinemaMode !== next.cinemaMode) return true;
+        if (prevWall !== nextWall) return true;
+        // Orientation flips can significantly change layout
+        if (prev.cinemaOrientation !== next.cinemaOrientation) return true;
+        return false;
+    }
+
+    function hardResetPreview() {
+        // Fade out and reload the iframe to reset all state cleanly
+        container.classList.add('no-transition');
+        container.classList.add('mode-switching');
+        resetInFlight = true;
+        try {
+            // Reload iframe; load handler will resync and clear classes
+            if (frame && frame.contentWindow) {
+                frame.contentWindow.location.reload();
+            } else if (frame) {
+                const original = frame.src;
+                frame.src = 'about:blank';
+                setTimeout(() => (frame.src = original), 0);
+            }
+        } catch (_) {
+            // Fallback: if reload fails, at least try an immediate update
+            sendPreviewUpdate();
+        }
     }
 
     // Wire change listeners for display-related inputs
@@ -475,8 +810,77 @@ window.scrollToSubsection = function (id) {
     inputIds.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-        const evt = el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input';
-        el.addEventListener(evt, debouncedSend);
+        const handler = () => {
+            const next = collectDisplaySettings();
+            if (shouldHardReset(lastSettings, next)) {
+                lastSettings = next;
+                hardResetPreview(next);
+            } else {
+                debouncedSend();
+            }
+        };
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
+    });
+
+    // Event delegation as a safety net: any control inside the Display section triggers an update
+    const displaySectionEl = document.getElementById('display-section');
+    if (displaySectionEl) {
+        const delegated = e => {
+            // Ignore events from outside form controls
+            const target = e.target;
+            if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement))
+                return;
+            const next = collectDisplaySettings();
+            if (shouldHardReset(lastSettings, next)) {
+                lastSettings = next;
+                hardResetPreview(next);
+            } else {
+                debouncedSend();
+            }
+        };
+        displaySectionEl.addEventListener('input', delegated, true);
+        displaySectionEl.addEventListener('change', delegated, true);
+    }
+
+    // Keep preview visibility in sync with section changes (desktop, mobile, programmatic)
+    (function syncPreviewWithSections() {
+        // Desktop sidebar buttons
+        const navButtons = document.querySelectorAll('.nav-item[data-section]');
+        navButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const section = btn.dataset.section;
+                setTimeout(() => setPreviewVisibility(section === 'display'), 0);
+            });
+        });
+
+        // Wrap global activateSection after it's defined (handles mobile and any programmatic calls)
+        const tryWrap = () => {
+            if (typeof window.activateSection === 'function' && !window._previewWrappedActivate) {
+                const orig = window.activateSection;
+                window.activateSection = function (section) {
+                    const result = orig.apply(this, arguments);
+                    setPreviewVisibility(section === 'display');
+                    return result;
+                };
+                window._previewWrappedActivate = true;
+            }
+        };
+        tryWrap();
+        const id = setInterval(() => {
+            if (window._previewWrappedActivate) return clearInterval(id);
+            tryWrap();
+        }, 100);
+    })();
+
+    // Keep visibility in sync when switching sidebar tabs
+    const navButtons = document.querySelectorAll('.sidebar .nav-item[data-section]');
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.section;
+            // Defer until classes are updated by core nav code
+            setTimeout(() => setPreviewVisibility(target === 'display'), 0);
+        });
     });
 })();
 
