@@ -826,7 +826,6 @@ function getHelpContentForSection(sectionId) {
                         '📅 By Date: Recently Updated, Newest Releases, Classic Content',
                         '📊 By Activity: Trending Now, Recently Added to TVDB',
                         '🔤 Alphabetical: A-Z sorted content for easy browsing',
-                        'Genre filtering with multi-select support and clear selection button',
                     ],
                 },
                 {
