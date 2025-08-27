@@ -1358,6 +1358,10 @@ const {
     requestLoggingMiddleware,
 } = require('./middleware/index');
 const { cacheMiddleware: apiCacheMiddleware, apiCache } = require('./middleware/cache');
+
+// Register apiCache globally for cleanup
+global.apiCacheInstance = apiCache;
+
 const {
     validationRules,
     createValidationMiddleware: newValidationMiddleware,
@@ -7936,9 +7940,10 @@ if (require.main === module) {
             logger.debug(`Playlist will be refreshed in the background every 30 minutes.`);
         }
 
-        // Set up automatic cache cleanup every 30 minutes
+        // Set up automatic cache cleanup - use configurable interval
         if (config.cache?.autoCleanup !== false) {
-            const cacheCleanupInterval = 30 * 60 * 1000; // 30 minutes
+            const cleanupIntervalMinutes = config.cache?.cleanupIntervalMinutes || 15;
+            const cacheCleanupInterval = cleanupIntervalMinutes * 60 * 1000;
             global.cacheCleanupInterval = setInterval(async () => {
                 try {
                     const cleanupResult = await cacheDiskManager.cleanupCache();
@@ -8143,6 +8148,17 @@ function cleanup() {
 
     if (cacheDiskManager && typeof cacheDiskManager.cleanup === 'function') {
         cacheDiskManager.cleanup();
+    }
+
+    // Cleanup API cache middleware
+    if (global.apiCacheInstance && typeof global.apiCacheInstance.destroy === 'function') {
+        global.apiCacheInstance.destroy();
+        global.apiCacheInstance = null;
+    }
+
+    // Cleanup metrics manager
+    if (metricsManager && typeof metricsManager.shutdown === 'function') {
+        metricsManager.shutdown();
     }
 
     logger.info('Server cleanup completed');
