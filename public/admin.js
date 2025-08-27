@@ -745,6 +745,8 @@ window.scrollToSubsection = function (id) {
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(sendPreviewUpdate, 120);
     }
+    // Expose a safe global alias for out-of-scope callers (e.g., slider inputs wired elsewhere)
+    window._debouncedPreviewSend = debouncedSend;
 
     function shouldHardReset(prev, next) {
         if (!prev) return false;
@@ -2671,8 +2673,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     percentageDisplay.textContent = `${slider.value}%`;
                     updateSliderBackground(slider);
                     // Push a debounced preview update so scaling reflects immediately
-                    if (typeof debouncedSend === 'function') {
-                        debouncedSend();
+                    if (typeof window._debouncedPreviewSend === 'function') {
+                        window._debouncedPreviewSend();
                     }
                 });
 
