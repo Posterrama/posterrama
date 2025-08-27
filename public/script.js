@@ -668,7 +668,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             try {
                                 startWallartCycle(config.wallartMode);
                                 window._lastWallartConfig = { ...config.wallartMode };
-                            } catch (_) {}
+                            } catch (_) {
+                                // Failed to start wallart cycle after prefetch; ignore
+                            }
                         });
                 } catch (_) {
                     // Fallback to immediate start if fetch throws synchronously
