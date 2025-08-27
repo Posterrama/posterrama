@@ -2733,7 +2733,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         slider.value = newValue;
                         percentageDisplay.textContent = `${newValue}%`;
                         updateSliderBackground(slider);
-                        // preview update removed
+                        // Live preview update for keyboard-driven changes
+                        if (typeof window._debouncedPreviewSend === 'function') {
+                            window._debouncedPreviewSend();
+                        }
                     }
                 });
             }
@@ -2770,6 +2773,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateSliderBackground(slider);
                 }
             });
+
+            // Live preview update for reset action
+            if (typeof window._debouncedPreviewSend === 'function') {
+                window._debouncedPreviewSend();
+            }
 
             try {
                 // Save all values as 100 using the standard config save
@@ -6973,6 +6981,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             updateSliderBackground(slider);
                         }
                     });
+
+                    // Live preview update for preset application
+                    if (typeof window._debouncedPreviewSend === 'function') {
+                        window._debouncedPreviewSend();
+                    }
 
                     // Save all preset values using single config call
                     await fetch('/api/config', {
