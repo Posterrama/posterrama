@@ -363,12 +363,12 @@ class JellyfinHttpClient {
                         parentId: libraryId,
                         includeItemTypes: ['Movie', 'Series'], // Fixed: was ['Movie', 'Episode']
                         fields: ['MediaStreams', 'MediaSources'], // Get both for maximum compatibility
-                        limit: 1000, // Back to 1000 as requested
+                        limit: 50, // Reduced to 50 for testing - was 1000
                         recursive: true,
                     });
 
                     console.log(
-                        `[DEBUG] Library ${libraryId}: Found ${response.Items ? response.Items.length : 0} items (includeItemTypes: ['Movie', 'Series'])`
+                        `[DEBUG] Library ${libraryId}: Found ${response.Items ? response.Items.length : 0} items (includeItemTypes: ['Movie', 'Series']) - LIMIT: 50`
                     );
 
                     if (response.Items) {
@@ -428,6 +428,11 @@ class JellyfinHttpClient {
                     );
                 }
             }
+
+            console.log(
+                `[DEBUG] Final quality counts across all libraries:`,
+                Array.from(qualityCounts.entries())
+            );
 
             // Convert to array of objects and sort by quality preference
             const qualityOrder = ['SD', '720p', '1080p', '4K'];

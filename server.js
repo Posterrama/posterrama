@@ -4774,14 +4774,21 @@ async function getJellyfinQualitiesWithCounts(serverConfig) {
     try {
         const jellyfinClient = await getJellyfinClient(serverConfig);
 
-        // Get all libraries and filter for movie and show libraries
-        const allLibraries = await jellyfinClient.getLibraries();
-        const selectedLibraries = allLibraries.filter(library => {
-            return library.CollectionType === 'movies' || library.CollectionType === 'tvshows';
+        // Use the existing getJellyfinLibraries function that properly handles ItemId
+        const allLibrariesMap = await getJellyfinLibraries(serverConfig);
+
+        // Filter for movie and show libraries and extract IDs
+        const selectedLibraries = Array.from(allLibrariesMap.values()).filter(library => {
+            return library.type === 'movies' || library.type === 'tvshows';
         });
 
-        // Get library IDs
-        const libraryIds = selectedLibraries.map(library => library.Id);
+        const libraryIds = selectedLibraries.map(library => library.id);
+
+        console.log(
+            '[DEBUG] Selected libraries:',
+            selectedLibraries.map(lib => ({ name: lib.name, id: lib.id, type: lib.type }))
+        );
+        console.log('[DEBUG] Library IDs:', libraryIds);
 
         if (libraryIds.length === 0) {
             console.warn('[getJellyfinQualitiesWithCounts] No movie or TV show libraries found');
