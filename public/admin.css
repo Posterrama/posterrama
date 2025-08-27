@@ -104,6 +104,7 @@ a:hover {
         rgba(0, 0, 0, 0.45) 50%,
         rgba(0, 0, 0, 0.6) 100%
     );
+    backdrop-filter: grayscale(100%);
     z-index: -1;
     pointer-events: none;
 }
