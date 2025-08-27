@@ -40,8 +40,8 @@ module.exports = {
         'sources/plex.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
         // FASE 1 improvements - Complete or high coverage
         'utils.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
-        'logger.js': { branches: 38, functions: 64, lines: 52, statements: 55 },
-        'errors.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
+        'utils/logger.js': { branches: 38, functions: 64, lines: 52, statements: 55 },
+        'utils/errors.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
         // FASE 2 improvements - Middleware optimization
         'middleware/cache.js': { branches: 74, functions: 89, lines: 93, statements: 92 },
         'middleware/errorHandler.js': { branches: 100, functions: 88, lines: 98, statements: 98 },
