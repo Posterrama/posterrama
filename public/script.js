@@ -299,6 +299,105 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyWallartMode(appConfig);
     }
 
+    // --- Live Preview support ---
+    // Apply a subset of settings at runtime without reload. No persistence here.
+    function applySettings(partial) {
+        try {
+            if (!partial || typeof partial !== 'object') return;
+            // Merge into current appConfig (shallow for top-level, deep for known groups)
+            const next = { ...appConfig };
+            if (partial.uiScaling) {
+                next.uiScaling = { ...next.uiScaling, ...partial.uiScaling };
+                applyUIScaling(next);
+            }
+            if (typeof partial.showPoster === 'boolean') {
+                next.showPoster = partial.showPoster;
+                const isScreensaver = !next.cinemaMode && !next.wallartMode?.enabled;
+                if (isScreensaver) {
+                    const container = document.getElementById('info-container');
+                    if (container) container.classList.toggle('is-hidden', !partial.showPoster);
+                }
+            }
+            if (typeof partial.showMetadata === 'boolean') {
+                next.showMetadata = partial.showMetadata;
+                const isScreensaver = !next.cinemaMode && !next.wallartMode?.enabled;
+                if (isScreensaver) {
+                    const tw = document.getElementById('text-wrapper');
+                    if (tw) tw.classList.toggle('is-hidden', !partial.showMetadata);
+                }
+            }
+            if (
+                typeof partial.clockWidget === 'boolean' ||
+                partial.clockFormat ||
+                partial.clockTimezone
+            ) {
+                next.clockWidget =
+                    typeof partial.clockWidget === 'boolean'
+                        ? partial.clockWidget
+                        : next.clockWidget;
+                next.clockFormat = partial.clockFormat || next.clockFormat;
+                next.clockTimezone = partial.clockTimezone || next.clockTimezone;
+                // Re-render clock visibility
+                const shouldShowClock =
+                    next.clockWidget && !next.cinemaMode && !next.wallartMode?.enabled;
+                const widgetContainer = document.getElementById('clock-widget-container');
+                if (widgetContainer)
+                    widgetContainer.style.display = shouldShowClock ? 'block' : 'none';
+            }
+            if (typeof partial.cinemaMode === 'boolean' || partial.cinemaOrientation) {
+                next.cinemaMode =
+                    typeof partial.cinemaMode === 'boolean' ? partial.cinemaMode : next.cinemaMode;
+                if (partial.cinemaOrientation) next.cinemaOrientation = partial.cinemaOrientation;
+                applyCinemaMode(next);
+            }
+            if (partial.wallartMode) {
+                next.wallartMode = { ...next.wallartMode, ...partial.wallartMode };
+                applyWallartMode(next);
+            }
+            if (
+                typeof partial.transitionIntervalSeconds === 'number' ||
+                partial.transitionEffect ||
+                typeof partial.effectPauseTime === 'number'
+            ) {
+                next.transitionIntervalSeconds =
+                    typeof partial.transitionIntervalSeconds === 'number'
+                        ? partial.transitionIntervalSeconds
+                        : next.transitionIntervalSeconds;
+                next.transitionEffect = partial.transitionEffect || next.transitionEffect;
+                next.effectPauseTime =
+                    typeof partial.effectPauseTime === 'number'
+                        ? partial.effectPauseTime
+                        : next.effectPauseTime;
+                // Restart slideshow to apply timing/effect changes smoothly
+                if (timerId) clearInterval(timerId);
+                timerId = null;
+                // Trigger immediate update of current media to reflect effect if possible
+                updateCurrentMediaDisplay();
+            }
+            // Commit the new config last
+            appConfig = next;
+        } catch (e) {
+            logger.warn('[Preview] Failed to apply settings', e);
+        }
+    }
+
+    // Expose for previews
+    window.applySettings = applySettings;
+
+    // Listen for preview messages from admin iframe
+    window.addEventListener('message', event => {
+        try {
+            // Only accept same-origin messages
+            if (event.origin !== window.location.origin) return;
+            const data = event.data || {};
+            if (data && data.type === 'posterrama.preview.update' && data.payload) {
+                applySettings(data.payload);
+            }
+        } catch (_) {
+            // ignore
+        }
+    });
+
     // Export initialize function for external use (promo site)
     window.initializeApp = initialize;
 

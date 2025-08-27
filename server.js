@@ -500,6 +500,23 @@ app.use((req, res, next) => {
     next();
 });
 
+// Lightweight route to serve the preview page (friendly URL)
+app.get('/preview', (_req, res) => {
+    try {
+        const filePath = path.join(__dirname, 'public', 'preview.html');
+        if (fs.existsSync(filePath)) {
+            return res.sendFile(filePath);
+        }
+    } catch (_) {
+        // fall through to simple HTML if file missing
+    }
+    // Fallback minimal HTML (should not be used in normal installs)
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Posterrama Preview</title><link rel="stylesheet" href="/style.css"><style>body{background:#000;color:#fff}</style></head><body><div id="layer-a" class="screensaver-layer"></div><div id="layer-b" class="screensaver-layer"></div><div id="clock-widget-container"><div id="time-widget"><span id="time-hours">00</span><span id="time-separator">:</span><span id="time-minutes">00</span></div></div><div id="clearlogo-container"><img id="clearlogo" alt="ClearLogo"/></div><div id="info-container"><div id="poster-wrapper"><a id="poster-link" href="#" target="_blank" rel="noopener noreferrer"><div id="poster-a" class="poster-layer"></div><div id="poster-b" class="poster-layer"></div><div id="poster"></div></a></div><div id="text-wrapper"><h1 id="title"></h1><p id="tagline"></p><div id="meta-info"><span id="year"></span><span id="rating"></span></div></div></div><div id="controls-container" style="display:none"></div><div id="branding-container" style="display:none"></div><script>window.IS_PREVIEW=true;</script><script src="/script.js"></script></body></html>`
+    );
+});
+
 // Rate Limiting
 const { createRateLimiter } = require('./middleware/rateLimiter');
 

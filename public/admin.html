@@ -207,6 +207,15 @@
                             
                             <!-- Unified Display Settings Container -->
                             <div class="form-section unified-section">
+                                <!-- Live Preview Panel -->
+                                <div id="display-preview-container" class="preview-container pip-mode screensaver-mode" style="display:none">
+                                    <div class="preview-controls">
+                                        <button type="button" id="toggle-preview-mode" class="pip-button" title="Toggle Preview Mode">
+                                            <i class="fas fa-desktop"></i>
+                                        </button>
+                                    </div>
+                                    <iframe id="display-preview-frame" class="preview-frame" title="Display Settings Live Preview" src="/preview"></iframe>
+                                </div>
                                 
                                 <!-- Wallart Mode Subsection -->
                                 <div class="subsection-header">

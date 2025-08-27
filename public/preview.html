@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Posterrama – Live Preview</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="preload" href="/script.js" as="script" />
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      html, body { height: 100%; }
+      body { margin:0; background:#000; color:#fff; overflow:hidden; }
+      /* Hide on-screen controls/branding in preview to keep it clean */
+      #controls-container, #branding-container, #promo-box { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <!-- Minimal DOM identical to main display so script.js can run normally -->
+    <div id="layer-a" class="screensaver-layer"></div>
+    <div id="layer-b" class="screensaver-layer"></div>
+
+    <div id="clock-widget-container">
+      <div id="time-widget">
+        <span id="time-hours">00</span>
+        <span id="time-separator">:</span>
+        <span id="time-minutes">00</span>
+      </div>
+    </div>
+
+    <div id="clearlogo-container">
+      <img id="clearlogo" src="" alt="ClearLogo" />
+    </div>
+
+    <div id="info-container">
+      <div id="poster-wrapper">
+        <a id="poster-link" href="#" target="_blank" rel="noopener noreferrer">
+          <div id="poster-a" class="poster-layer"></div>
+          <div id="poster-b" class="poster-layer"></div>
+          <div id="poster"></div>
+        </a>
+      </div>
+      <div id="text-wrapper">
+        <h1 id="title"></h1>
+        <p id="tagline"></p>
+        <div id="meta-info">
+          <span id="year"></span>
+          <span id="rating"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="controls-container"></div>
+    <div id="branding-container"></div>
+
+    <script>
+      // Signal to script.js that we're in preview mode
+      window.IS_PREVIEW = true;
+    </script>
+    <script src="/script.js"></script>
+  </body>
+</html>

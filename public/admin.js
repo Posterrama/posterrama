@@ -350,6 +350,136 @@ window.scrollToSubsection = function (id) {
     }
 };
 
+// --- Display Settings Live Preview ---
+(function setupDisplayPreview() {
+    const container = document.getElementById('display-preview-container');
+    const frame = document.getElementById('display-preview-frame');
+    const toggleBtn = document.getElementById('toggle-preview-mode');
+
+    if (!container || !frame) return; // No-op if HTML not present
+
+    // Show preview by default when Display tab is active
+    container.style.display = 'block';
+
+    // Toggle between screensaver/cinema preview classes
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            const isCinema = container.classList.toggle('cinema-mode');
+            container.classList.toggle('screensaver-mode', !isCinema);
+        });
+    }
+
+    // Build a settings payload from the current form values
+    function collectDisplaySettings() {
+        const getBool = id => {
+            const el = document.getElementById(id);
+            return el ? !!el.checked : undefined;
+        };
+        const getNumber = id => {
+            const el = document.getElementById(id);
+            if (!el) return undefined;
+            const v = Number(el.value);
+            return Number.isFinite(v) ? v : undefined;
+        };
+        const getSelect = id => {
+            const el = document.getElementById(id);
+            return el ? el.value : undefined;
+        };
+
+        const payload = {
+            cinemaMode: getBool('cinemaMode'),
+            cinemaOrientation: getSelect('cinemaOrientation'),
+            showClearLogo: getBool('showClearLogo'),
+            showRottenTomatoes: getBool('showRottenTomatoes'),
+            showPoster: getBool('showPoster'),
+            showMetadata: getBool('showMetadata'),
+            rottenTomatoesMinimumScore: getNumber('rottenTomatoesMinimumScore'),
+            clockWidget: getBool('clockWidget'),
+            clockTimezone: getSelect('clockTimezone'),
+            clockFormat: getSelect('clockFormat'),
+            uiScaling: {
+                content: getNumber('uiScaling.content'),
+                clearlogo: getNumber('uiScaling.clearlogo'),
+                clock: getNumber('uiScaling.clock'),
+                global: getNumber('uiScaling.global'),
+            },
+            transitionEffect: getSelect('transitionEffect'),
+            effectPauseTime: getNumber('effectPauseTime'),
+            transitionIntervalSeconds: getNumber('transitionIntervalSeconds'),
+            wallartMode: {
+                enabled: getBool('wallartModeEnabled'),
+                layoutVariant: getSelect('wallartLayoutVariant'),
+                density: getSelect('wallartDensity'),
+                refreshRate: getNumber('wallartRefreshRate'),
+                randomness: getNumber('wallartRandomness'),
+                animationType: getSelect('wallartAnimationType'),
+                ambientGradient: getBool('wallartAmbientGradient'),
+            },
+        };
+        return payload;
+    }
+
+    let previewWindow = null;
+    frame.addEventListener('load', () => {
+        previewWindow = frame.contentWindow;
+        // Initial sync after load
+        sendPreviewUpdate();
+    });
+
+    function sendPreviewUpdate() {
+        if (!previewWindow) return;
+        const payload = collectDisplaySettings();
+        previewWindow.postMessage(
+            { type: 'posterrama.preview.update', payload },
+            window.location.origin
+        );
+    }
+
+    // Debounce helper
+    let debounceTimer = null;
+    function debouncedSend() {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(sendPreviewUpdate, 120);
+    }
+
+    // Wire change listeners for display-related inputs
+    const inputIds = [
+        'cinemaMode',
+        'cinemaOrientation',
+        'showClearLogo',
+        'showRottenTomatoes',
+        'showPoster',
+        'showMetadata',
+        'rottenTomatoesMinimumScore',
+        'clockWidget',
+        'clockTimezone',
+        'clockFormat',
+        'uiScaling.content',
+        'uiScaling.clearlogo',
+        'uiScaling.clock',
+        'uiScaling.global',
+        'transitionEffect',
+        'effectPauseTime',
+        'transitionIntervalSeconds',
+        'wallartModeEnabled',
+        'wallartLayoutVariant',
+        'heroSide',
+        'heroRotationMinutes',
+        'wallartDensity',
+        'wallartRefreshRate',
+        'wallartRandomness',
+        'wallartAnimationType',
+        'wallartAmbientGradient',
+    ];
+
+    inputIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const evt = el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input';
+        el.addEventListener(evt, debouncedSend);
+    });
+})();
+
 // Debug function to test config save with different methods
 window.testConfigSave = async function () {
     const testConfig = {
