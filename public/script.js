@@ -647,9 +647,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }, 1000); // Check every second
 
-            // Start the new wallart cycle system
-            startWallartCycle(config.wallartMode);
-            window._lastWallartConfig = { ...config.wallartMode };
+            // Start the new wallart cycle system. In preview, if wallart was just enabled
+            // and the current media list was capped at 12 (from screensaver preview),
+            // fetch the full list first so the grid can populate properly.
+            const shouldPrefetchFullList =
+                typeof window !== 'undefined' &&
+                window.IS_PREVIEW &&
+                !isAlreadyActive &&
+                Array.isArray(mediaQueue) &&
+                mediaQueue.length > 0 &&
+                mediaQueue.length <= 12;
+
+            if (shouldPrefetchFullList) {
+                try {
+                    fetchMedia(false)
+                        .catch(() => {})
+                        .finally(() => {
+                            try {
+                                startWallartCycle(config.wallartMode);
+                                window._lastWallartConfig = { ...config.wallartMode };
+                            } catch (_) {}
+                        });
+                } catch (_) {
+                    // Fallback to immediate start if fetch throws synchronously
+                    startWallartCycle(config.wallartMode);
+                    window._lastWallartConfig = { ...config.wallartMode };
+                }
+            } else {
+                startWallartCycle(config.wallartMode);
+                window._lastWallartConfig = { ...config.wallartMode };
+            }
 
             // Spotlight removed
 
@@ -2872,6 +2899,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function refreshConfig() {
         try {
+            // In admin live preview, do not override local preview settings
+            // with periodic server config refreshes.
+            if (window.IS_PREVIEW) {
+                return;
+            }
             // Skip config refresh when offline
             if (!navigator.onLine) {
                 return;
