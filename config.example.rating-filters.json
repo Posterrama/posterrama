@@ -1,0 +1,26 @@
+{
+    "// Example configuration with rating filters for Jellyfin": "comment",
+    "transitionIntervalSeconds": 15,
+    "showClearLogo": true,
+    "showRottenTomatoes": true,
+    "rottenTomatoesMinimumScore": 50,
+    "mediaServers": [
+        {
+            "name": "Jellyfin Server",
+            "type": "jellyfin",
+            "enabled": true,
+            "hostnameEnvVar": "JELLYFIN_HOSTNAME",
+            "portEnvVar": "JELLYFIN_PORT",
+            "tokenEnvVar": "JELLYFIN_API_KEY",
+            "movieLibraryNames": ["Movies 4K", "Movies HD"],
+            "showLibraryNames": ["TV Shows"],
+            "recentlyAddedOnly": false,
+            "recentlyAddedDays": 30,
+            "ratingFilters": {
+                "minCommunityRating": 7.0,
+                "allowedOfficialRatings": ["G", "PG", "PG-13", "R"],
+                "minUserRating": 8.0
+            }
+        }
+    ]
+}

@@ -2336,6 +2336,13 @@ function processJellyfinItem(item, serverConfig, client) {
             tagline: item.Taglines?.[0] || null, // Use first tagline from array
             genres: item.Genres || [],
             rating: item.CommunityRating || null,
+            // Extended ratings information from Jellyfin
+            ratings: {
+                community: item.CommunityRating || null, // 0-10 scale
+                official: item.OfficialRating || null, // MPAA rating (PG, R, etc.)
+                user: item.UserData?.Rating || null, // User's personal rating
+            },
+            officialRating: item.OfficialRating || null, // Keep for backward compatibility
             source: 'jellyfin',
             serverName: serverConfig.name,
             originalData: item,

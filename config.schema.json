@@ -265,6 +265,42 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "recentlyAddedOnly": {
+                        "type": "boolean",
+                        "description": "Only fetch recently added items.",
+                        "default": false
+                    },
+                    "recentlyAddedDays": {
+                        "type": "integer",
+                        "description": "Number of days to consider as 'recently added'.",
+                        "minimum": 1,
+                        "default": 30
+                    },
+                    "ratingFilters": {
+                        "type": "object",
+                        "description": "Rating-based filtering options (Jellyfin only).",
+                        "properties": {
+                            "minCommunityRating": {
+                                "type": "number",
+                                "description": "Minimum community rating (0-10 scale).",
+                                "minimum": 0,
+                                "maximum": 10
+                            },
+                            "allowedOfficialRatings": {
+                                "type": "array",
+                                "description": "List of allowed MPAA ratings (e.g., ['G', 'PG', 'PG-13']).",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "minUserRating": {
+                                "type": "number",
+                                "description": "Minimum user rating (personal rating 0-10 scale).",
+                                "minimum": 0,
+                                "maximum": 10
+                            }
+                        }
                     }
                 },
                 "required": [

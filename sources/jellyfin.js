@@ -22,6 +22,14 @@ class JellyfinSource {
         this.rtMinScore = rtMinScore;
         this.isDebug = isDebug;
 
+        // Debug: log rating filters configuration
+        if (this.isDebug) {
+            logger.info(`[JellyfinSource:${this.server.name}] Initialized with rating filters:`, {
+                ratingFilters: this.server.ratingFilters || 'none',
+                rtMinScore: this.rtMinScore,
+            });
+        }
+
         // Performance metrics
         this.metrics = {
             requestCount: 0,
@@ -110,6 +118,8 @@ class JellyfinSource {
                             'Genres',
                             'Overview',
                             'CommunityRating',
+                            'OfficialRating',
+                            'UserData',
                             'ProductionYear',
                             'RunTimeTicks',
                             'Taglines',
@@ -146,9 +156,73 @@ class JellyfinSource {
                 );
             }
 
-            // Filter items based on Rotten Tomatoes score if applicable
-            const filteredItems = allItems.filter(_item => {
-                // For now, skip RT filtering for Jellyfin (could be added later)
+            // Filter items based on ratings (CommunityRating, OfficialRating, UserData.Rating)
+            const filteredItems = allItems.filter(item => {
+                // Apply Rotten Tomatoes minimum score filter using CommunityRating
+                if (this.rtMinScore > 0 && item.CommunityRating) {
+                    // CommunityRating is typically 0-10, convert RT percentage to 0-10 scale for comparison
+                    const rtScoreAsRating = this.rtMinScore / 10; // Convert percentage to 0-10 scale
+                    if (item.CommunityRating < rtScoreAsRating) {
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - CommunityRating ${item.CommunityRating} below threshold ${rtScoreAsRating}`
+                            );
+                        }
+                        return false;
+                    }
+                }
+
+                // Apply server-specific rating filters if configured
+                if (this.server.ratingFilters) {
+                    const filters = this.server.ratingFilters;
+
+                    if (this.isDebug) {
+                        logger.debug(
+                            `[JellyfinSource:${this.server.name}] Applying rating filters for "${item.Name}": ${JSON.stringify(filters)}`
+                        );
+                    }
+
+                    // Community rating filter (0-10 scale)
+                    if (filters.minCommunityRating && item.CommunityRating) {
+                        if (item.CommunityRating < filters.minCommunityRating) {
+                            if (this.isDebug) {
+                                logger.debug(
+                                    `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - CommunityRating ${item.CommunityRating} below ${filters.minCommunityRating}`
+                                );
+                            }
+                            return false;
+                        }
+                    }
+
+                    // Official rating filter (MPAA ratings)
+                    if (filters.allowedOfficialRatings && item.OfficialRating) {
+                        if (!filters.allowedOfficialRatings.includes(item.OfficialRating)) {
+                            if (this.isDebug) {
+                                logger.debug(
+                                    `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - OfficialRating "${item.OfficialRating}" not in allowed list: ${filters.allowedOfficialRatings.join(', ')}`
+                                );
+                            }
+                            return false;
+                        }
+                    }
+
+                    // User rating filter (personal rating)
+                    if (filters.minUserRating && item.UserData?.Rating) {
+                        if (item.UserData.Rating < filters.minUserRating) {
+                            if (this.isDebug) {
+                                logger.debug(
+                                    `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - UserRating ${item.UserData.Rating} below ${filters.minUserRating}`
+                                );
+                            }
+                            return false;
+                        }
+                    }
+                } else if (this.isDebug) {
+                    logger.debug(
+                        `[JellyfinSource:${this.server.name}] No rating filters configured for server`
+                    );
+                }
+
                 return true;
             });
 
