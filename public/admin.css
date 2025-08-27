@@ -5391,15 +5391,13 @@ fieldset:focus-within {
     user-select: none;
 }
 
-/* Ensure the inner iframe matches the container rounding and fills it */
+/* Ensure the inner iframe has consistent rounding; sizing is controlled by JS scaler */
 #display-preview-frame.preview-frame,
 .preview-container .preview-frame {
-    width: 100% !important;
-    height: 100% !important;
-    display: block !important;
-    border: 0 !important;
+    display: block;
+    border: 0;
     border-radius: var(--pip-radius) !important; /* Match PiP controls/icon rounding */
-    overflow: hidden !important;
+    overflow: hidden;
 }
 
 /* 2x zoom state: double the preview width/height variables */
