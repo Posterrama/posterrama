@@ -6,7 +6,7 @@
 const compression = require('compression');
 const helmet = require('helmet');
 const cors = require('cors');
-const logger = require('../logger');
+const logger = require('../utils/logger');
 
 /**
  * Security middleware configuration

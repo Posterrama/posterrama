@@ -1,6 +1,6 @@
 const https = require('https');
 const semver = require('semver');
-const logger = require('../logger');
+const logger = require('./logger');
 
 class GitHubService {
     constructor() {

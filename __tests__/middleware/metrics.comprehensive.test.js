@@ -1,6 +1,6 @@
 const { metricsMiddleware, connectionTracker } = require('../../middleware/metrics');
 const metricsManager = require('../../utils/metrics');
-const logger = require('../../logger');
+const logger = require('../../utils/logger');
 
 // Mock dependencies
 jest.mock('../../utils/metrics');

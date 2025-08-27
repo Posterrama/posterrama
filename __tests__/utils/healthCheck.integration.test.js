@@ -42,7 +42,7 @@ describe('HealthCheck - Plex and Integration', () => {
 
         // Clear require cache and setup mocks
         delete require.cache[require.resolve('../../utils/healthCheck')];
-        delete require.cache[require.resolve('../../logger')];
+        delete require.cache[require.resolve('../../utils/logger')];
         delete require.cache[require.resolve('../../package.json')];
 
         jest.doMock('../../logger', () => mockLogger);

@@ -9,7 +9,7 @@ const {
 jest.mock('../../logger', () => ({
     info: jest.fn(),
 }));
-const logger = require('../../logger');
+const logger = require('../../utils/logger');
 
 describe('Middleware Cache Tests', () => {
     let testCache;

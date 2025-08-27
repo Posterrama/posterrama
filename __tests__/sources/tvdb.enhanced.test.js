@@ -303,7 +303,7 @@ describe('TVDBSource Enhanced Coverage', () => {
             const movies = await src.getMovies();
 
             expect(movies).toEqual([]);
-            expect(require('../../logger').error).toHaveBeenCalledWith(
+            expect(require('../../utils/logger').error).toHaveBeenCalledWith(
                 'Failed to fetch TVDB movies:',
                 'API request failed'
             );

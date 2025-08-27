@@ -66,8 +66,8 @@ describe('Environment Validator integration', () => {
         process.env.PLEX_PORT = '32400';
         process.env.PLEX_TOKEN = 'tok';
         try {
-            delete require.cache[require.resolve('../../validate-env')];
-            require('../../validate-env');
+            delete require.cache[require.resolve('../../config/validate-env')];
+            require('../../config/validate-env');
             expect(mockExit).not.toHaveBeenCalledWith(1);
         } catch (e) {
             if (e.message !== 'Process exit with code 1') throw e;
@@ -83,8 +83,8 @@ describe('Environment Validator integration', () => {
             return realRead.call(fs, p, options);
         });
         try {
-            delete require.cache[require.resolve('../../validate-env')];
-            require('../../validate-env.js');
+            delete require.cache[require.resolve('../../config/validate-env')];
+            require('../../config/validate-env.js');
         } catch (_) {
             // Expected error when validation fails
         }

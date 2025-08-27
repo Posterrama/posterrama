@@ -1,7 +1,7 @@
 const fsModule = require('fs');
 const fs = fsModule.promises;
 const path = require('path');
-const logger = require('../logger');
+const logger = require('./logger');
 const pkg = require('../package.json');
 
 // Health check cache to avoid expensive checks on every request

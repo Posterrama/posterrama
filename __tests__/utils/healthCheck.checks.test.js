@@ -41,7 +41,7 @@ describe('HealthCheck - Configuration and Filesystem', () => {
 
         // Clear require cache and mock modules
         delete require.cache[require.resolve('../../utils/healthCheck')];
-        delete require.cache[require.resolve('../../logger')];
+        delete require.cache[require.resolve('../../utils/logger')];
         delete require.cache[require.resolve('../../package.json')];
 
         jest.doMock('../../logger', () => mockLogger);

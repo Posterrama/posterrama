@@ -1,5 +1,5 @@
 // Simple integration test for logger.js without deep mocking
-const logger = require('../../logger.js');
+const logger = require('../../utils/logger.js');
 
 describe('Logger Module - Integration Test', () => {
     describe('Logger instance properties', () => {

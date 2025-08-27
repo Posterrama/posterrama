@@ -275,7 +275,7 @@ const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const rateLimit = require('express-rate-limit');
 const app = express();
-const { ApiError, NotFoundError } = require('./errors.js');
+const { ApiError, NotFoundError } = require('./utils/errors.js');
 
 // Use process.env with a fallback to config.json
 const port = process.env.SERVER_PORT || config.serverPort || 4000;
@@ -5332,7 +5332,12 @@ app.post(
             logger.debug('[TMDB Debug] API key == null:', newConfig.tmdbSource.apiKey == null);
         }
 
-        // Handle TMDB API key preservation
+        // Handle TMDB API key preservation and merge with existing config
+        const existingConfig = await readConfig();
+
+        // Merge existing config with new config to preserve properties not in admin UI
+        const mergedConfig = { ...existingConfig, ...newConfig };
+
         if (
             newConfig.tmdbSource &&
             (newConfig.tmdbSource.apiKey === null || newConfig.tmdbSource.apiKey === undefined)
@@ -5341,41 +5346,40 @@ app.post(
                 '[TMDB API Key Debug] Received null/undefined API key, preserving existing'
             );
             // Preserve existing API key if null/undefined is passed (meaning "don't change")
-            const existingConfig = await readConfig();
             if (existingConfig.tmdbSource && existingConfig.tmdbSource.apiKey) {
-                newConfig.tmdbSource.apiKey = existingConfig.tmdbSource.apiKey;
+                mergedConfig.tmdbSource.apiKey = existingConfig.tmdbSource.apiKey;
                 logger.debug(
                     '[TMDB API Key Debug] Preserved existing key:',
                     existingConfig.tmdbSource.apiKey.substring(0, 8) + '...'
                 );
             } else {
                 // No existing key, use empty string
-                newConfig.tmdbSource.apiKey = '';
+                mergedConfig.tmdbSource.apiKey = '';
                 logger.debug('[TMDB API Key Debug] No existing key found, using empty string');
             }
         } else if (newConfig.tmdbSource) {
             logger.debug(
                 '[TMDB API Key Debug] Received API key:',
-                newConfig.tmdbSource.apiKey
-                    ? newConfig.tmdbSource.apiKey.substring(0, 8) + '...'
+                mergedConfig.tmdbSource.apiKey
+                    ? mergedConfig.tmdbSource.apiKey.substring(0, 8) + '...'
                     : 'empty'
             );
         }
 
         // Process streaming sources configuration
         if (
-            newConfig.streamingSources &&
-            typeof newConfig.streamingSources === 'object' &&
-            !Array.isArray(newConfig.streamingSources)
+            mergedConfig.streamingSources &&
+            typeof mergedConfig.streamingSources === 'object' &&
+            !Array.isArray(mergedConfig.streamingSources)
         ) {
             logger.debug('[Streaming Debug] Converting streamingSources object to array format');
-            const streamingConfig = newConfig.streamingSources;
+            const streamingConfig = mergedConfig.streamingSources;
             const streamingArray = [];
 
             // Get TMDB API key for streaming sources
             let apiKey = '';
-            if (newConfig.tmdbSource && newConfig.tmdbSource.apiKey) {
-                apiKey = newConfig.tmdbSource.apiKey;
+            if (mergedConfig.tmdbSource && mergedConfig.tmdbSource.apiKey) {
+                apiKey = mergedConfig.tmdbSource.apiKey;
             }
 
             if (streamingConfig.enabled && apiKey) {
@@ -5427,7 +5431,7 @@ app.post(
             }
 
             // Replace the object with the array
-            newConfig.streamingSources = streamingArray;
+            mergedConfig.streamingSources = streamingArray;
             logger.debug(
                 '[Streaming Debug] Created streaming sources array:',
                 JSON.stringify(streamingArray, null, 2)
@@ -5435,7 +5439,7 @@ app.post(
         }
 
         // Write to config.json and .env
-        await writeConfig(newConfig);
+        await writeConfig(mergedConfig);
         if (isDebug) logger.debug('[Admin API] Successfully wrote to config.json.');
         await writeEnvFile(newEnv);
         if (isDebug) logger.debug('[Admin API] Successfully wrote to .env file.');

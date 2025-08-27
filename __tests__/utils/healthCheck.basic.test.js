@@ -19,7 +19,7 @@ describe('HealthCheck - Basic Tests', () => {
 
         // Clear require cache
         delete require.cache[require.resolve('../../utils/healthCheck')];
-        delete require.cache[require.resolve('../../logger')];
+        delete require.cache[require.resolve('../../utils/logger')];
         delete require.cache[require.resolve('../../package.json')];
 
         // Mock modules

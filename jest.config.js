@@ -23,7 +23,7 @@ module.exports = {
         '!server.js', // Exclude server.js as it's hard to test fully
         '!ecosystem.config.js',
         '!jest.config.js',
-        '!validate-env.js', // Already has dedicated tests
+        '!config/validate-env.js', // Already has dedicated tests
     ],
 
     // Coverage thresholds - realistic targets based on current coverage

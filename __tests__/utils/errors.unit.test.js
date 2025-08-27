@@ -1,5 +1,5 @@
 // Consolidated error class tests (merged from root-level duplicates)
-const { ApiError, NotFoundError } = require('../../errors');
+const { ApiError, NotFoundError } = require('../../utils/errors');
 
 describe('Error Classes (consolidated)', () => {
     test('ApiError stores status code', () => {

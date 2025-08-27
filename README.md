@@ -17,28 +17,27 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 
 ---
 
-## Highlights
+## ✨ Features
 
-- **Screensaver Mode** and **Wallart Mode** with smooth, cinema‑quality visuals
-- **Hero Poster Mode** — spotlight featured content with intelligent 4x4 grid layout
-- Works with **Plex**, **TMDB**, **TVDB**, and popular streaming providers
-- **Clean admin dashboard** with modern sliders and intuitive quick navigation
-- **Smart caching** and image optimization for lightning-fast performance
-- **Responsive design** for phones, tablets, TVs, and 4K displays
-- **Cinema‑grade artwork**, clear logos/ratings, dynamic transitions
-- **Advanced UI scaling** and customizable display settings
+- **🎬 Screensaver Mode** - Smooth, cinema-quality poster transitions
+- **🖼️ Wallart Mode** - Multi-poster grid with advanced animations
+- **🎯 Hero+Grid Layout** - Featured content with intelligent 4x4 grid
+- **📱 Responsive Design** - Works on phones, tablets, TVs, and 4K displays
+- **🔗 Multiple Sources** - Plex, Jellyfin, TMDB, TVDB support
+- **⚡ Smart Caching** - Lightning-fast image optimization
+- **🎨 Advanced UI** - Scaling controls and customizable display settings
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-One-line install:
+**One-line install:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Posterrama/posterrama/main/install.sh | bash
 ```
 
-Manual install:
+**Manual install:**
 
 ```bash
 git clone https://github.com/Posterrama/posterrama.git
@@ -48,179 +47,79 @@ npm install -g pm2
 pm2 start ecosystem.config.js
 ```
 
-Setup steps:
-
-1. Open `http://your-server-ip:4000/admin/setup`
-2. Create your admin account
-3. Connect your media sources (Plex, Jellyfin, TMDB, TVDB)
-4. Tweak the display settings to taste
-5. Visit `http://your-server-ip:4000` and enjoy
+**Access:** Open `http://localhost:4000` in your browser
 
 ---
 
-## Display Modes
+## 📖 Content & Discovery
 
-<div align="center">
+### Media Servers
 
-<img src="./screenshots/screensaver.png" alt="Screensaver Mode" width="30%">
-&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="./screenshots/wallart.png" alt="Wallart Mode" width="30%">
-&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="./screenshots/wallart_hero.png" alt="Wallart Hero Mode" width="30%">
+- **Plex Media Server** - Full integration with library discovery
+- **Jellyfin** - Open-source media server support
+- **TMDB (The Movie Database)** - Trending movies and TV shows
+- **TVDB** - Comprehensive TV series database
 
-<br>
-<strong>Screensaver Mode</strong>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<strong>Wallart Mode</strong>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<strong>Wallart Hero Mode</strong>
+### Display Modes
 
-</div>
-
-- **Screensaver Mode** — single-poster, elegant presentation with cinematic Ken Burns effects
-- **Wallart Mode** — intelligent multi-poster grid that dynamically fills your screen
-- **Wallart Hero Mode** — spotlight a featured poster at 4x4 size with surrounding grid
-    - Smart responsive layout adapts to any screen size and orientation
-    - Perfect balance between featured content and discovery
+- **Screensaver** - Single poster with smooth transitions
+- **Wallart** - Multi-poster grid with 13 animation types
+- **Cinema** - Portrait orientation for digital movie posters
 
 ---
 
-## Multi-Device
+## ⚙️ Configuration
 
-<div align="center">
+Access the admin dashboard at `http://localhost:4000/admin` to configure:
 
-<img src="./screenshots/mobile.png" alt="Mobile" width="150">
-&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="./screenshots/admin.png" alt="Admin" width="200">
-&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="./screenshots/screensaver.png" alt="TV" width="200">
-
-<br>
-<strong>Mobile</strong>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<strong>Admin</strong>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<strong>TV</strong>
-
-</div>
-
-- Optimized layouts for mobile, tablet, desktop, and TV
-- Great performance on Raspberry Pi 4+ and similar devices
+- **Media Sources** - Connect your Plex/Jellyfin servers
+- **Display Settings** - Customize transitions and animations
+- **Visual Elements** - Toggle logos, ratings, metadata
+- **UI Scaling** - Adjust interface size for different screens
 
 ---
 
-## Features — what makes it awesome
-
-### Visual experience
-
-- **Cinema‑quality backgrounds** with smooth Ken Burns effects
-- **Hero poster spotlight** — 4x4 featured poster with intelligent grid surrounds
-- **Clean movie logos** and ratings overlays with perfect positioning
-- **Dynamic transitions** and subtle animations that feel natural
-- **Advanced layout engine** — responsive grids that eliminate black bars
-- **Custom themes** and layouts that look stunning on any screen size
-
-### Content & discovery
-
-- Your media: Plex and Jellyfin integration with rich metadata and artwork
-- External sources: TMDB and TVDB enrichment
-- Streaming discovery: Netflix, Disney+, Prime Video, Apple TV+, HBO Max, Hulu, Paramount+, Crunchyroll
-- Smart filtering by rating, genre, release date, plus curated collections
-
-### Performance & reliability
-
-- **Smart caching** for instant image loads and offline resilience
-- **Optimized for Raspberry Pi 4+** and low‑power devices
-- **Multi-device responsive** — mobile, tablet, desktop, and TV layouts
-- **Advanced error handling** with graceful fallbacks and recovery
-- **Background processing** for seamless poster transitions
-
-### Control
-
-- **Clean web admin** with modern overlay sliders and intuitive navigation
-- **Quick jump navigation** — click source icons to instantly scroll to sections
-- **Real-time UI scaling** from 50% to 150% for perfect display tuning
-- **Advanced wallart controls** — hero mode, refresh rates, and timing randomness
-- **One‑line installer** and PM2 process management for easy deployment
-
----
-
-## Platform Integration
-
-### Android TV
-
-1. Install "Dashboard" screensaver from Google Play
-2. Set as screensaver in Android TV settings
-3. Configure: `http://your-posterrama-ip:4000`
-
-### Apple TV
-
-- AirPlay from Safari (iPhone/iPad) and enable "Guided Access" if needed
-- Or install a TV browser app and open your Posterrama URL
-
-### Windows and macOS (PWA + Autostart)
-
-Windows
-
-- Open Posterrama in Edge or Chrome
-- Menu → "Install app" / "Install this site as an app"
-- Autostart: Win+R → shell:startup → drag the app shortcut into that folder
-
-macOS
-
-- Open Posterrama in Chrome or Edge
-- Menu → "Install this site as an app" / "Install"
-- System Settings → General → Login Items → add the app
-
-Benefits
-
-- Fullscreen without tabs, 2–3 steps, auto‑updates via the web
-
----
-
-## Coming Soon — turn it up to eleven
-
-### Cinema upgrades
-
-- **Motion posters** and trailer snippets for dynamic backgrounds
-- **Real‑time preview** in the admin for instant visual feedback
-- **Advanced transition packs** and custom animation libraries
-- **Wallart themes** — curated poster arrangements and layouts
-
-### Universal sources
-
-- **Emby** support for broader media server compatibility
-- **Kodi integration** for seamless home theater setups
-- **Radarr/Sonarr/Lidarr** pipelines for automated collection management
-
-### Multi‑display magic
-
-- **Multiple screens** with smart sync and coordinated displays
-- **Music visualizations** and ambient modes for audio libraries
-- **Gaming libraries** and collections from Steam, Epic, etc.
-
-## Updates
-
-Update safely and keep file ownership correct:
+## 🧪 Testing
 
 ```bash
-# Recommended: update as the posterrama user
-sudo -u posterrama git pull
-
-# If you pulled as root, fix ownership then restart
-chown -R posterrama:posterrama /var/www/posterrama
-pm2 restart posterrama
+npm test                    # Run all tests (681 tests)
+npm test -- --watch        # Watch mode
+npm test sources           # Test media source integrations
 ```
+
+**Coverage:** 87.53% across 47 test suites
 
 ---
 
-## Requirements
+## 📚 Documentation
 
-- Node.js 18+
-- Plex (recommended) or other configured sources
+- [**Contributing Guide**](docs/CONTRIBUTING.md) - Development setup and code review
+- [**Development Guide**](docs/DEVELOPMENT.md) - Technical documentation and API
+- [**Installation Guide**](docs/INSTALLATION.md) - Detailed setup instructions
 
-## License
+---
 
-GPL-3.0-or-later
+## 🤝 Contributing
 
-[Issues](https://github.com/Posterrama/posterrama/issues) · [Discussions](https://github.com/Posterrama/posterrama/discussions)
+We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for:
+
+- Development setup
+- Code review guidelines
+- Testing requirements
+- Best practices
+
+---
+
+## 📄 License
+
+GPL-3.0-or-later - See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**Made with ❤️ for movie lovers everywhere**
+
+[⭐ Star us on GitHub](https://github.com/Posterrama/posterrama) | [📝 Report Issues](https://github.com/Posterrama/posterrama/issues) | [💬 Discussions](https://github.com/Posterrama/posterrama/discussions)
+
+</div>

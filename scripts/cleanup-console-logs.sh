@@ -12,7 +12,7 @@ FILES=(
     "sources/plex.js"
     "sources/tmdb.js"
     "sources/tvdb.js"
-    "validate-env.js"
+    "config/validate-env.js"
     "public/sw.js"
 )
 

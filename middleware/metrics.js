@@ -1,5 +1,5 @@
 const metricsManager = require('../utils/metrics');
-const logger = require('../logger');
+const logger = require('../utils/logger');
 
 // Middleware to collect request metrics
 const metricsMiddleware = (req, res, next) => {

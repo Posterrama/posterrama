@@ -157,7 +157,7 @@ function validateQueryParams(req, res, next) {
 
 // Legacy validation function kept for backwards compatibility with older code/tests
 function validateRequest(schemaKey) {
-    const { validate } = require('../validators');
+    const { validate } = require('../config/validators');
     return (req, _res, next) => {
         try {
             const payload = req.method === 'GET' ? req.query : req.body;
@@ -165,7 +165,7 @@ function validateRequest(schemaKey) {
             return next();
         } catch (err) {
             const message = err.message.replace(/^Validation error:\s*/i, '');
-            return next(new (require('../errors').ApiError)(400, message));
+            return next(new (require('../utils/errors').ApiError)(400, message));
         }
     };
 }

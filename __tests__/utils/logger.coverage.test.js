@@ -11,7 +11,7 @@ describe('Logger Coverage Enhancement', () => {
 
     beforeEach(() => {
         // Get fresh logger instance
-        logger = require('../../logger');
+        logger = require('../../utils/logger');
 
         // Clear memory logs
         if (logger.memoryLogs) {

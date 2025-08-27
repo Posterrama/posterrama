@@ -1,5 +1,5 @@
 const GitHubService = require('../../utils/github');
-const logger = require('../../logger');
+const logger = require('../../utils/logger');
 
 // Mock logger
 jest.mock('../../logger');

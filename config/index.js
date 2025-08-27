@@ -1,4 +1,4 @@
-const { validate } = require('../validate-env');
+const { validate } = require('./validate-env');
 
 class Config {
     constructor() {

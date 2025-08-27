@@ -368,7 +368,7 @@ describe('Plex Source - Enhanced Coverage', () => {
                 true
             );
 
-            const logger = require('../../logger');
+            const logger = require('../../utils/logger');
             const loggerSpy = jest.spyOn(logger, 'debug').mockImplementation();
 
             const now = Math.floor(Date.now() / 1000);

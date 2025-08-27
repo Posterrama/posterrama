@@ -21,7 +21,7 @@ jest.mock('../../logger', () => ({
     error: jest.fn(),
 }));
 
-const logger = require('../../logger');
+const logger = require('../../utils/logger');
 
 describe('Middleware Index - Comprehensive Tests', () => {
     let app;

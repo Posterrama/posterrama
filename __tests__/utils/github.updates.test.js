@@ -1,6 +1,6 @@
 const GitHubService = require('../../utils/github');
 const semver = require('semver');
-const logger = require('../../logger');
+const logger = require('../../utils/logger');
 
 // Mock dependencies
 jest.mock('semver');
