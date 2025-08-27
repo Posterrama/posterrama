@@ -112,15 +112,30 @@ class LazyLoader {
             img.classList.remove('lazy-loading');
             img.classList.add('lazy-error');
 
-            // Set a fallback image - simple SVG placeholder
+            // Set a fallback image - simple SVG placeholder with Font Awesome film icon
             const fallbackSvg = `data:image/svg+xml;base64,${btoa(`
                 <svg width="300" height="450" xmlns="http://www.w3.org/2000/svg">
                     <rect width="100%" height="100%" fill="#2a2a2a"/>
                     <rect x="10" y="10" width="280" height="430" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5,5"/>
-                    <text x="150" y="210" text-anchor="middle" fill="#888" font-family="Arial, sans-serif" font-size="16">Image</text>
-                    <text x="150" y="235" text-anchor="middle" fill="#888" font-family="Arial, sans-serif" font-size="16">Not Available</text>
-                    <circle cx="150" cy="180" r="20" fill="none" stroke="#666" stroke-width="2"/>
-                    <path d="M140 175 L145 185 L160 170" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+                    <g transform="translate(150, 200)">
+                        <!-- Film strip with perforations -->
+                        <rect x="-50" y="-30" width="100" height="60" fill="#888" rx="5"/>
+                        <!-- Left perforations -->
+                        <circle cx="-42" cy="-20" r="3" fill="#2a2a2a"/>
+                        <circle cx="-42" cy="-10" r="3" fill="#2a2a2a"/>
+                        <circle cx="-42" cy="0" r="3" fill="#2a2a2a"/>
+                        <circle cx="-42" cy="10" r="3" fill="#2a2a2a"/>
+                        <circle cx="-42" cy="20" r="3" fill="#2a2a2a"/>
+                        <!-- Right perforations -->
+                        <circle cx="42" cy="-20" r="3" fill="#2a2a2a"/>
+                        <circle cx="42" cy="-10" r="3" fill="#2a2a2a"/>
+                        <circle cx="42" cy="0" r="3" fill="#2a2a2a"/>
+                        <circle cx="42" cy="10" r="3" fill="#2a2a2a"/>
+                        <circle cx="42" cy="20" r="3" fill="#2a2a2a"/>
+                        <!-- Central frame -->
+                        <rect x="-25" y="-20" width="50" height="40" fill="#2a2a2a" rx="2"/>
+                    </g>
+                    <text x="150" y="270" text-anchor="middle" fill="#888" font-family="Arial, sans-serif" font-size="16">Image Not Available</text>
                 </svg>
             `)}`;
 
