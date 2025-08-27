@@ -3,6 +3,41 @@
  * This file defines how the application should be run and managed by PM2.
  */
 const pkg = require('./package.json');
+const fs = require('fs');
+const path = require('path');
+
+// Load environment variables from .env file
+function loadEnvFile() {
+    const envPath = path.join(__dirname, '.env');
+    const envVars = {};
+
+    if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        const lines = envContent.split('\n');
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine && !trimmedLine.startsWith('#') && trimmedLine.includes('=')) {
+                const [key, ...valueParts] = trimmedLine.split('=');
+                let value = valueParts.join('=');
+
+                // Remove quotes if present
+                if (
+                    (value.startsWith('"') && value.endsWith('"')) ||
+                    (value.startsWith("'") && value.endsWith("'"))
+                ) {
+                    value = value.slice(1, -1);
+                }
+
+                envVars[key.trim()] = value;
+            }
+        }
+    }
+
+    return envVars;
+}
+
+const envVars = loadEnvFile();
 
 module.exports = {
     apps: [
@@ -16,6 +51,7 @@ module.exports = {
             env: {
                 NODE_ENV: 'production',
                 APP_VERSION: pkg.version,
+                ...envVars, // Load all environment variables from .env file
             },
         },
     ],

@@ -90,13 +90,30 @@ class PlexSource {
             for (const name of libraryNames) {
                 const library = allLibraries.get(name);
                 if (!library) {
-                    console.warn(`[PlexSource:${this.server.name}] Library "${name}" not found.`);
+                    logger.warn(`[PlexSource:${this.server.name}] Library "${name}" not found.`);
                     continue;
                 }
 
-                const content = await this.plex.query(`/library/sections/${library.key}/all`);
-                if (content?.MediaContainer?.Metadata) {
-                    allItems = allItems.concat(content.MediaContainer.Metadata);
+                try {
+                    const content = await this.plex.query(`/library/sections/${library.key}/all`);
+                    if (content?.MediaContainer?.Metadata) {
+                        allItems = allItems.concat(content.MediaContainer.Metadata);
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[PlexSource:${this.server.name}] Library "${name}" provided ${content.MediaContainer.Metadata.length} items`
+                            );
+                        }
+                    }
+                } catch (libraryError) {
+                    logger.error(
+                        `[PlexSource:${this.server.name}] Failed to fetch from library "${name}":`,
+                        {
+                            error: libraryError.message,
+                            type,
+                            libraryKey: library.key,
+                        }
+                    );
+                    // Continue with other libraries
                 }
             }
 

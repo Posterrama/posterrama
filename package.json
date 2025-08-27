@@ -51,7 +51,6 @@
         "release:major": "bash private/release-push.sh --major --yes"
     },
     "dependencies": {
-        "@jellyfin/sdk": "^0.11.0",
         "adm-zip": "^0.5.16",
         "ajv": "^8.17.1",
         "axios": "^1.7.7",

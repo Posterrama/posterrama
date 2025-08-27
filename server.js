@@ -256,6 +256,8 @@ const ASSET_VERSION = pkg.version || '1.0.0';
 const FIXED_LIMITS = Object.freeze({
     PLEX_MOVIES: 150,
     PLEX_SHOWS: 75,
+    JELLYFIN_MOVIES: 150,
+    JELLYFIN_SHOWS: 75,
     TMDB_MOVIES: 100,
     TMDB_TV: 50,
     STREAMING_MOVIES_PER_PROVIDER: 10,
@@ -266,6 +268,7 @@ const FIXED_LIMITS = Object.freeze({
 });
 
 const PlexSource = require('./sources/plex');
+const JellyfinSource = require('./sources/jellyfin');
 const TMDBSource = require('./sources/tmdb');
 const TVDBSource = require('./sources/tvdb');
 const speakeasy = require('speakeasy');
@@ -1932,6 +1935,95 @@ async function testServerConnection(serverConfig) {
             }
             return { status: 'error', message: `Plex connection failed: ${errorMessage}` };
         }
+    } else if (serverConfig.type === 'jellyfin') {
+        const startTime = process.hrtime();
+
+        logger.debug('Testing Jellyfin server connection', {
+            action: 'jellyfin_connection_test',
+            server: {
+                name: serverConfig.name,
+                hostnameVar: serverConfig.hostnameEnvVar,
+                portVar: serverConfig.portEnvVar,
+            },
+        });
+
+        try {
+            const hostname = process.env[serverConfig.hostnameEnvVar];
+            const port = process.env[serverConfig.portEnvVar];
+            const apiKey = process.env[serverConfig.tokenEnvVar];
+
+            if (!hostname || !port || !apiKey) {
+                throw new Error(
+                    'Missing required environment variables (hostname, port, or API key) for this server.'
+                );
+            }
+
+            const testClient = await createJellyfinClient({
+                hostname,
+                port,
+                apiKey,
+                timeout: 5000, // 5-second timeout for health checks
+            });
+
+            // A lightweight query to check reachability and authentication
+            await testClient.systemApi.getPublicSystemInfo();
+
+            // Calculate response time
+            const [seconds, nanoseconds] = process.hrtime(startTime);
+            const responseTime = seconds * 1000 + nanoseconds / 1000000;
+
+            // Log success with metrics
+            logger.info('Jellyfin server connection test successful', {
+                action: 'jellyfin_connection_success',
+                server: {
+                    name: serverConfig.name,
+                    hostname: hostname,
+                    port: port,
+                },
+                metrics: {
+                    responseTime: `${responseTime.toFixed(2)}ms`,
+                },
+            });
+
+            // Log warning if connection was slow
+            if (responseTime > 1000) {
+                //  1 second threshold
+                logger.warn('Slow Jellyfin server response detected', {
+                    action: 'jellyfin_connection_slow',
+                    server: {
+                        name: serverConfig.name,
+                        hostname: hostname,
+                        port: port,
+                    },
+                    responseTime: `${responseTime.toFixed(2)}ms`,
+                });
+            }
+
+            return { status: 'ok', message: 'Connection successful.' };
+        } catch (error) {
+            let errorMessage = error.message;
+            if (error.code === 'ECONNREFUSED') {
+                errorMessage = 'Connection refused. Check hostname and port.';
+
+                logger.error('Jellyfin server connection refused', {
+                    action: 'jellyfin_connection_refused',
+                    server: {
+                        name: serverConfig.name,
+                        hostname: process.env[serverConfig.hostnameEnvVar],
+                        port: process.env[serverConfig.portEnvVar],
+                    },
+                    error: {
+                        code: error.code,
+                        message: error.message,
+                    },
+                });
+            } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                errorMessage = 'Unauthorized. Check API key.';
+            } else if (error.code === 'ETIMEDOUT') {
+                errorMessage = 'Connection timed out.';
+            }
+            return { status: 'error', message: `Jellyfin connection failed: ${errorMessage}` };
+        }
     }
     // Future server types can be added here
     return {
@@ -2040,45 +2132,319 @@ async function getPlexGenres(serverConfig) {
     }
 }
 
+// --- JELLYFIN UTILITY FUNCTIONS ---
+
+/**
+ * Caches Jellyfin API clients to avoid re-instantiating for every request.
+ * @type {Object.<string, Object>}
+ */
+const jellyfinClients = {};
+
+/**
+ * Creates and caches a Jellyfin API client instance.
+ * @param {object} serverConfig - The server configuration from config.json
+ * @returns {object} Jellyfin API client with authentication methods
+ */
+async function getJellyfinClient(serverConfig) {
+    // If a direct client is provided (for testing), use that
+    if (serverConfig._directClient) {
+        return serverConfig._directClient;
+    }
+
+    if (!jellyfinClients[serverConfig.name]) {
+        // Support both environment variables and direct values (for testing)
+        const hostname = serverConfig.hostname || process.env[serverConfig.hostnameEnvVar];
+        const port = serverConfig.port || process.env[serverConfig.portEnvVar];
+        const apiKey = serverConfig.apiKey || process.env[serverConfig.tokenEnvVar];
+
+        // Create Jellyfin client
+        jellyfinClients[serverConfig.name] = await createJellyfinClient({ hostname, port, apiKey });
+    }
+    return jellyfinClients[serverConfig.name];
+}
+
+/**
+ * Fetches libraries from a Jellyfin client
+ * @param {JellyfinHttpClient} client - Jellyfin HTTP client instance
+ * @returns {Promise<Array>} Array of library objects
+ */
+async function fetchJellyfinLibraries(client) {
+    try {
+        const libraries = await client.getLibraries();
+
+        if (isDebug) {
+            logger.debug(
+                `[fetchJellyfinLibraries] Found ${libraries.length} libraries:`,
+                libraries.map(lib => `${lib.Name} (${lib.CollectionType})`)
+            );
+        }
+
+        return libraries;
+    } catch (error) {
+        logger.error(`[fetchJellyfinLibraries] Error: ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * Creates a new Jellyfin HTTP client instance with the given options.
+ * @param {object} options - Client configuration options
+ * @param {string} options.hostname - Jellyfin server hostname/IP
+ * @param {number} options.port - Jellyfin server port
+ * @param {string} options.apiKey - Jellyfin API key for authentication
+ * @param {number} [options.timeout] - Request timeout in milliseconds
+ * @returns {Promise<object>} A new Jellyfin HTTP client instance
+ */
+async function createJellyfinClient({ hostname, port, apiKey, timeout = 15000 }) {
+    if (!hostname || !port || !apiKey) {
+        throw new ApiError(
+            500,
+            'Jellyfin client creation failed: missing hostname, port, or API key.'
+        );
+    }
+
+    const { JellyfinHttpClient } = require('./utils/jellyfin-http-client');
+
+    // Sanitize hostname to prevent crashes if the user includes the protocol
+    let sanitizedHostname = hostname.trim();
+    try {
+        const fullUrl = sanitizedHostname.includes('://')
+            ? sanitizedHostname
+            : `http://${sanitizedHostname}`;
+        const url = new URL(fullUrl);
+        sanitizedHostname = url.hostname;
+        if (isDebug)
+            logger.debug(`[Jellyfin Client] Sanitized hostname to: "${sanitizedHostname}"`);
+    } catch (e) {
+        sanitizedHostname = sanitizedHostname.replace(/^https?:\/\//, '');
+        if (isDebug)
+            logger.debug(
+                `[Jellyfin Client] Could not parse hostname as URL, falling back to simple sanitization: "${sanitizedHostname}"`
+            );
+    }
+
+    const client = new JellyfinHttpClient({
+        hostname: sanitizedHostname,
+        port,
+        apiKey,
+        timeout,
+    });
+
+    // Test connection to ensure it works
+    await client.testConnection();
+
+    return client;
+}
+
+/**
+ * Fetches all library sections from a Jellyfin server and returns them as a Map.
+ * @param {object} serverConfig - The configuration for the Jellyfin server
+ * @returns {Promise<Map<string, object>>} A map of library names to library objects
+ */
+async function getJellyfinLibraries(serverConfig) {
+    try {
+        const client = await getJellyfinClient(serverConfig);
+
+        // Use our new HTTP client method
+        const libraries = await client.getLibraries();
+        const librariesMap = new Map();
+
+        libraries.forEach(library => {
+            if (library.Name && library.Id) {
+                librariesMap.set(library.Name, {
+                    id: library.Id,
+                    name: library.Name,
+                    type: library.CollectionType || 'mixed',
+                });
+            }
+        });
+
+        if (isDebug) {
+            logger.debug(`[getJellyfinLibraries] Found ${librariesMap.size} libraries`);
+        }
+
+        return librariesMap;
+    } catch (error) {
+        logger.error(`[getJellyfinLibraries] Error: ${error.message}`);
+        throw new ApiError(500, `Failed to fetch Jellyfin libraries: ${error.message}`);
+    }
+}
+
+/**
+ * Processes a Jellyfin media item and converts it to Posterrama format.
+ * @param {object} item - Raw Jellyfin item object
+ * @param {object} serverConfig - Server configuration
+ * @param {object} client - Jellyfin client instance
+ * @returns {object|null} Processed media item or null if invalid
+ */
+function processJellyfinItem(item, serverConfig, client) {
+    try {
+        if (!item || !item.Id || !item.Name) {
+            return null;
+        }
+
+        // Determine media type
+        const mediaType =
+            item.Type === 'Movie' ? 'movie' : item.Type === 'Series' ? 'show' : 'unknown';
+
+        if (mediaType === 'unknown') {
+            return null;
+        }
+
+        // Build poster and backdrop URLs using the image proxy
+        let posterUrl = null;
+        let backdropUrl = null;
+        let clearLogoUrl = null;
+
+        // Use the dedicated Primary endpoint for posters
+        // Jellyfin provides posters via /Items/{Id}/Images/Primary
+        const primaryImageUrl = client.getImageUrl(item.Id, 'Primary');
+        posterUrl = `/image?url=${encodeURIComponent(primaryImageUrl)}`;
+
+        // Use the dedicated Backdrop endpoint for backgrounds
+        // Jellyfin provides fanart backgrounds via /Items/{Id}/Images/Backdrop
+        const backdropImageUrl = client.getImageUrl(item.Id, 'Backdrop');
+        backdropUrl = `/image?url=${encodeURIComponent(backdropImageUrl)}`;
+
+        // Use the dedicated Logo endpoint for clear logos
+        // Jellyfin provides clear logos via /Items/{Id}/Images/Logo
+        const logoImageUrl = client.getImageUrl(item.Id, 'Logo');
+        clearLogoUrl = `/image?url=${encodeURIComponent(logoImageUrl)}`;
+
+        // Extract metadata
+        const processedItem = {
+            id: `jellyfin_${item.Id}`,
+            key: `jellyfin_${item.Id}`, // Add key property for consistency with Plex
+            title: item.OriginalTitle || item.Name, // Prefer original title if available
+            type: mediaType,
+            year: item.ProductionYear || null,
+            posterUrl: posterUrl,
+            backgroundUrl: backdropUrl, // Use backgroundUrl for consistency with Plex
+            clearLogoUrl: clearLogoUrl, // Add clear logo support
+            poster: posterUrl, // Keep legacy property for backward compatibility
+            overview: item.Overview || '',
+            tagline: item.Taglines?.[0] || null, // Use first tagline from array
+            genres: item.Genres || [],
+            rating: item.CommunityRating || null,
+            source: 'jellyfin',
+            serverName: serverConfig.name,
+            originalData: item,
+        };
+
+        // Add type-specific metadata
+        if (mediaType === 'movie') {
+            processedItem.runtime = item.RunTimeTicks
+                ? Math.round(item.RunTimeTicks / 600000000)
+                : null; // Convert ticks to minutes
+        } else if (mediaType === 'show') {
+            processedItem.seasons = item.ChildCount || null;
+        }
+
+        return processedItem;
+    } catch (error) {
+        logger.warn(`[processJellyfinItem] Error processing item ${item?.Name}: ${error.message}`);
+        return null;
+    }
+}
+
 // --- Main Data Aggregation ---
 
 async function getPlaylistMedia() {
     let allMedia = [];
     const enabledServers = config.mediaServers.filter(s => s.enabled);
 
-    // Process Plex/Media Servers
+    // Process Plex/Media Servers with error resilience
     for (const server of enabledServers) {
         if (isDebug) logger.debug(`[Debug] Fetching from server: ${server.name} (${server.type})`);
 
-        let source;
-        if (server.type === 'plex') {
-            source = new PlexSource(
-                server,
-                getPlexClient,
-                processPlexItem,
-                getPlexLibraries,
-                shuffleArray,
-                config.rottenTomatoesMinimumScore,
-                isDebug
-            );
-        } else {
-            if (isDebug)
-                logger.debug(
-                    `[Debug] Skipping server ${server.name} due to unsupported type ${server.type}`
+        try {
+            let source;
+            if (server.type === 'plex') {
+                source = new PlexSource(
+                    server,
+                    getPlexClient,
+                    processPlexItem,
+                    getPlexLibraries,
+                    shuffleArray,
+                    config.rottenTomatoesMinimumScore,
+                    isDebug
                 );
-            continue;
+            } else if (server.type === 'jellyfin') {
+                source = new JellyfinSource(
+                    server,
+                    getJellyfinClient,
+                    processJellyfinItem,
+                    getJellyfinLibraries,
+                    shuffleArray,
+                    config.rottenTomatoesMinimumScore,
+                    isDebug
+                );
+            } else {
+                if (isDebug)
+                    logger.debug(
+                        `[Debug] Skipping server ${server.name} due to unsupported type ${server.type}`
+                    );
+                continue;
+            }
+
+            const movieLimit =
+                server.type === 'plex' ? FIXED_LIMITS.PLEX_MOVIES : FIXED_LIMITS.JELLYFIN_MOVIES;
+            const showLimit =
+                server.type === 'plex' ? FIXED_LIMITS.PLEX_SHOWS : FIXED_LIMITS.JELLYFIN_SHOWS;
+
+            // Fetch movies and shows separately with individual error handling
+            let movies = [];
+            let shows = [];
+
+            // Try to fetch movies
+            if (server.movieLibraryNames && server.movieLibraryNames.length > 0) {
+                try {
+                    movies = await source.fetchMedia(server.movieLibraryNames, 'movie', movieLimit);
+                    if (isDebug)
+                        logger.debug(`[Debug] Fetched ${movies.length} movies from ${server.name}`);
+                } catch (error) {
+                    logger.error(`[${server.name}] Failed to fetch movies:`, {
+                        error: error.message,
+                        libraries: server.movieLibraryNames,
+                    });
+                    // Continue with shows even if movies failed
+                }
+            }
+
+            // Try to fetch shows
+            if (server.showLibraryNames && server.showLibraryNames.length > 0) {
+                try {
+                    shows = await source.fetchMedia(server.showLibraryNames, 'show', showLimit);
+                    if (isDebug)
+                        logger.debug(`[Debug] Fetched ${shows.length} shows from ${server.name}`);
+                } catch (error) {
+                    logger.error(`[${server.name}] Failed to fetch shows:`, {
+                        error: error.message,
+                        libraries: server.showLibraryNames,
+                    });
+                    // Continue even if shows failed
+                }
+            }
+
+            const mediaFromServer = movies.concat(shows);
+            if (mediaFromServer.length > 0) {
+                logger.info(
+                    `[${server.name}] Successfully fetched ${mediaFromServer.length} items (${movies.length} movies, ${shows.length} shows)`
+                );
+                allMedia = allMedia.concat(mediaFromServer);
+            } else {
+                logger.warn(
+                    `[${server.name}] No media fetched - check server configuration and connectivity`
+                );
+            }
+        } catch (error) {
+            // Server completely failed - log but continue with other servers
+            logger.error(`[${server.name}] Server completely failed:`, {
+                error: error.message,
+                type: server.type,
+            });
+            // Continue with next server
         }
-
-        const [movies, shows] = await Promise.all([
-            // Wallart mode: use fixed hardcoded limits
-            source.fetchMedia(server.movieLibraryNames || [], 'movie', FIXED_LIMITS.PLEX_MOVIES),
-            source.fetchMedia(server.showLibraryNames || [], 'show', FIXED_LIMITS.PLEX_SHOWS),
-        ]);
-        const mediaFromServer = movies.concat(shows);
-
-        if (isDebug)
-            logger.info(`[Debug] Fetched ${mediaFromServer.length} items from ${server.name}.`);
-        allMedia = allMedia.concat(mediaFromServer);
     }
 
     // Process TMDB Source
@@ -3089,21 +3455,24 @@ app.get(
  * /image:
  *   get:
  *     summary: Image proxy
- *     description: Proxies image requests to the media server (Plex/Jellyfin) to avoid exposing server details and tokens to the client.
+ *     description: Proxies image requests to the media server (Plex/Jellyfin) or external URLs to avoid exposing server details and tokens to the client.
  *     tags: ['Public API']
  *     parameters:
  *       - in: query
  *         name: server
- *         required: true
  *         schema:
  *           type: string
- *         description: The name of the server config from config.json.
+ *         description: The name of the server config from config.json (for Plex-style paths).
  *       - in: query
  *         name: path
- *         required: true
  *         schema:
  *           type: string
  *         description: The image path from the media item object (e.g., /library/metadata/12345/art/...).
+ *       - in: query
+ *         name: url
+ *         schema:
+ *           type: string
+ *         description: Direct URL to proxy (for Jellyfin and external images).
  *     responses:
  *       200:
  *         description: The requested image.
@@ -3120,28 +3489,36 @@ app.get(
         ttl: 86400000, // 24 hours
         cacheControl: 'public, max-age=86400',
         varyHeaders: ['Accept-Encoding'],
-        keyGenerator: req => `image:${req.query.server}-${req.query.path}`,
+        keyGenerator: req =>
+            `image:${req.query.server || 'url'}-${req.query.path || req.query.url}`,
     }),
     asyncHandler(async (req, res) => {
         const imageCacheDir = path.join(__dirname, 'image_cache');
-        const { server: serverName, path: imagePath } = req.query;
+        const { server: serverName, path: imagePath, url: directUrl } = req.query;
 
         if (isDebug) {
             logger.debug(
-                `[Image Proxy] Request for image received. Server: "${serverName}", Path: "${imagePath}"`
+                `[Image Proxy] Request for image received. Server: "${serverName}", Path: "${imagePath}", URL: "${directUrl}"`
             );
         }
 
-        if (!serverName || !imagePath) {
+        // Check if we have either server+path or direct URL
+        if ((!serverName || !imagePath) && !directUrl) {
             if (isDebug)
-                logger.debug('[Image Proxy] Bad request: server name or image path is missing.');
-            return res.status(400).send('Server name or image path is missing');
+                logger.debug(
+                    '[Image Proxy] Bad request: either (server name and image path) or direct URL is required.'
+                );
+            return res
+                .status(400)
+                .send('Either (server name and image path) or direct URL is required');
         }
 
         // Create a unique and safe filename for the cache
-        const cacheKey = `${serverName}-${imagePath}`;
+        const cacheKey = directUrl || `${serverName}-${imagePath}`;
         const cacheHash = crypto.createHash('sha256').update(cacheKey).digest('hex');
-        const fileExtension = path.extname(imagePath) || '.jpg'; // Fallback extension
+        const fileExtension = directUrl
+            ? path.extname(new URL(directUrl).pathname) || '.jpg'
+            : path.extname(imagePath) || '.jpg';
         const cachedFilePath = path.join(imageCacheDir, `${cacheHash}${fileExtension}`);
 
         // 1. Check if file exists in cache
@@ -3149,44 +3526,65 @@ app.get(
             await fsp.access(cachedFilePath);
             if (isDebug)
                 logger.debug(
-                    `[Image Cache] HIT: Serving "${imagePath}" from cache file: ${cachedFilePath}`
+                    `[Image Cache] HIT: Serving "${directUrl || imagePath}" from cache file: ${cachedFilePath}`
                 );
             res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
             return res.sendFile(cachedFilePath);
         } catch (e) {
             // File does not exist, proceed to fetch
-            if (isDebug) logger.debug(`[Image Cache] MISS: "${imagePath}". Fetching from origin.`);
-        }
-
-        // 2. Fetch from origin if not in cache
-        const serverConfig = config.mediaServers.find(s => s.name === serverName);
-        if (!serverConfig) {
-            console.error(
-                `[Image Proxy] Server configuration for "${serverName}" not found. Cannot process image request.`
-            );
-            return res.redirect('/fallback-poster.png');
+            if (isDebug)
+                logger.debug(
+                    `[Image Cache] MISS: "${directUrl || imagePath}". Fetching from origin.`
+                );
         }
 
         let imageUrl;
         const fetchOptions = { method: 'GET', headers: {} };
 
-        if (serverConfig.type === 'plex') {
-            const token = process.env[serverConfig.tokenEnvVar];
-            if (!token) {
+        // 2. Handle direct URL proxying (for Jellyfin and external images)
+        if (directUrl) {
+            imageUrl = directUrl;
+            if (isDebug) logger.debug(`[Image Proxy] Using direct URL: ${imageUrl}`);
+        } else {
+            // 3. Handle server-based proxying (for Plex)
+            const serverConfig = config.mediaServers.find(s => s.name === serverName);
+            if (!serverConfig) {
                 console.error(
-                    `[Image Proxy] Plex token not configured for server "${serverName}" (env var: ${serverConfig.tokenEnvVar}).`
+                    `[Image Proxy] Server configuration for "${serverName}" not found. Cannot process image request.`
                 );
                 return res.redirect('/fallback-poster.png');
             }
-            const hostname = process.env[serverConfig.hostnameEnvVar];
-            const port = process.env[serverConfig.portEnvVar];
-            imageUrl = `http://${hostname}:${port}${imagePath}`;
-            fetchOptions.headers['X-Plex-Token'] = token;
-        } else {
-            console.error(
-                `[Image Proxy] Unsupported server type "${serverConfig.type}" for server "${serverName}".`
-            );
-            return res.redirect('/fallback-poster.png');
+
+            if (serverConfig.type === 'plex') {
+                const token = process.env[serverConfig.tokenEnvVar];
+                if (!token) {
+                    console.error(
+                        `[Image Proxy] Plex token not configured for server "${serverName}" (env var: ${serverConfig.tokenEnvVar}).`
+                    );
+                    return res.redirect('/fallback-poster.png');
+                }
+                const hostname = process.env[serverConfig.hostnameEnvVar];
+                const port = process.env[serverConfig.portEnvVar];
+                imageUrl = `http://${hostname}:${port}${imagePath}`;
+                fetchOptions.headers['X-Plex-Token'] = token;
+            } else if (serverConfig.type === 'jellyfin') {
+                const token = process.env[serverConfig.tokenEnvVar];
+                if (!token) {
+                    console.error(
+                        `[Image Proxy] Jellyfin token not configured for server "${serverName}" (env var: ${serverConfig.tokenEnvVar}).`
+                    );
+                    return res.redirect('/fallback-poster.png');
+                }
+                const hostname = process.env[serverConfig.hostnameEnvVar];
+                const port = process.env[serverConfig.portEnvVar];
+                imageUrl = `http://${hostname}:${port}${imagePath}`;
+                fetchOptions.headers['X-Emby-Token'] = token;
+            } else {
+                console.error(
+                    `[Image Proxy] Unsupported server type "${serverConfig.type}" for server "${serverName}".`
+                );
+                return res.redirect('/fallback-poster.png');
+            }
         }
 
         if (isDebug) logger.debug(`[Image Proxy] Fetching from origin URL: ${imageUrl}`);
@@ -4507,6 +4905,255 @@ app.post(
 
 /**
  * @swagger
+ * /api/admin/test-jellyfin:
+ *   post:
+ *     summary: Test connection to a Jellyfin server
+ *     description: >
+ *       Checks if the application can connect to a Jellyfin server with the provided
+ *       hostname, port, and API key. This is a lightweight check that queries the system info.
+ *     tags: ['Admin API']
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               hostname:
+ *                 type: string
+ *                 description: Jellyfin server hostname or IP address
+ *               port:
+ *                 type: number
+ *                 description: Jellyfin server port (typically 8096)
+ *               apiKey:
+ *                 type: string
+ *                 description: Jellyfin API key
+ *     responses:
+ *       200:
+ *         description: Connection successful.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminApiResponse'
+ *       400:
+ *         description: Connection error (e.g., incorrect credentials, timeout).
+ */
+app.post(
+    '/api/admin/test-jellyfin',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) logger.debug('[Admin API] Received request to test Jellyfin connection.');
+        let { hostname, apiKey } = req.body; // apiKey is now optional
+        const { port: portValue } = req.body;
+
+        if (!hostname || !portValue) {
+            throw new ApiError(400, 'Hostname and port are required for the test.');
+        }
+
+        // Sanitize hostname to remove http(s):// prefix
+        if (hostname) {
+            hostname = hostname.trim().replace(/^https?:\/\//, '');
+        }
+
+        // If no API key is provided in the request, use the one from the server's config.
+        if (!apiKey) {
+            if (isDebug)
+                logger.debug(
+                    '[Jellyfin Test] No API key provided in request, attempting to use existing server API key.'
+                );
+            // Find the first enabled Jellyfin server config. This assumes a single Jellyfin server setup for now.
+            const jellyfinServerConfig = config.mediaServers.find(
+                s => s.type === 'jellyfin' && s.enabled
+            );
+
+            if (jellyfinServerConfig && jellyfinServerConfig.tokenEnvVar) {
+                apiKey = process.env[jellyfinServerConfig.tokenEnvVar];
+                if (!apiKey) {
+                    throw new ApiError(
+                        400,
+                        'Connection test failed: No new API key was provided, and no API key is configured on the server.'
+                    );
+                }
+            } else {
+                throw new ApiError(
+                    500,
+                    'Connection test failed: Could not find Jellyfin server configuration on the server.'
+                );
+            }
+        }
+
+        const port = parseInt(portValue, 10);
+        if (isNaN(port) || port < 1 || port > 65535) {
+            throw new ApiError(400, 'Port must be a valid number between 1 and 65535.');
+        }
+
+        try {
+            const client = await createJellyfinClient({
+                hostname,
+                port,
+                apiKey,
+                timeout: 10000,
+            });
+
+            // Test connection with our HTTP client
+            const info = await client.testConnection();
+
+            res.json({
+                success: true,
+                message: 'Jellyfin connection successful.',
+                serverInfo: {
+                    name: info.serverName,
+                    version: info.version,
+                },
+            });
+        } catch (error) {
+            if (isDebug) console.error('[Jellyfin Test] Failed:', error.message);
+            let userMessage = 'Could not connect to Jellyfin. Please check the connection details.';
+            if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                userMessage = 'Unauthorized. Is the API key correct?';
+            } else if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+                userMessage = 'Connection refused. Is the hostname and port correct?';
+            } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+                userMessage = 'Connection timeout. Is the server reachable?';
+            } else if (error.message.includes('The string did not match the expected pattern')) {
+                userMessage =
+                    'Invalid hostname format. Use an IP address or hostname without http:// or https://.';
+            }
+            throw new ApiError(400, userMessage);
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/jellyfin-libraries:
+ *   post:
+ *     summary: Fetch Jellyfin media libraries
+ *     description: >
+ *       Retrieves the list of media libraries from a Jellyfin server.
+ *       Returns libraries with their types (movie, show, etc.).
+ *     tags: ['Admin API']
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               hostname:
+ *                 type: string
+ *                 description: Jellyfin server hostname or IP address
+ *               port:
+ *                 type: number
+ *                 description: Jellyfin server port
+ *               apiKey:
+ *                 type: string
+ *                 description: Jellyfin API key
+ *     responses:
+ *       200:
+ *         description: Libraries fetched successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 libraries:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       key:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       type:
+ *                         type: string
+ *       400:
+ *         description: Could not fetch libraries (e.g., incorrect credentials).
+ */
+app.post(
+    '/api/admin/jellyfin-libraries',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) logger.debug('[Admin API] Received request to fetch Jellyfin libraries.');
+        let { hostname, port, apiKey } = req.body;
+
+        // Sanitize hostname
+        if (hostname) {
+            hostname = hostname.trim().replace(/^https?:\/\//, '');
+        }
+
+        // Fallback to configured values if not provided in the request
+        const jellyfinServerConfig = config.mediaServers.find(s => s.type === 'jellyfin');
+        if (!jellyfinServerConfig) {
+            throw new ApiError(500, 'Jellyfin server is not configured in config.json.');
+        }
+
+        if (!hostname) {
+            const envHostname = process.env[jellyfinServerConfig.hostnameEnvVar];
+            if (envHostname) hostname = envHostname.trim().replace(/^https?:\/\//, '');
+        }
+        port = port || process.env[jellyfinServerConfig.portEnvVar];
+        apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
+
+        if (!hostname || !port || !apiKey) {
+            throw new ApiError(
+                400,
+                'Jellyfin connection details (hostname, port, API key) are missing.'
+            );
+        }
+
+        try {
+            const client = await createJellyfinClient({
+                hostname,
+                port,
+                apiKey,
+                timeout: 10000,
+            });
+
+            const libraries = await fetchJellyfinLibraries(client);
+
+            // Transform libraries to match expected format
+            const formattedLibraries = libraries.map(lib => ({
+                key: lib.Id,
+                name: lib.Name,
+                type:
+                    lib.CollectionType === 'movies'
+                        ? 'movie'
+                        : lib.CollectionType === 'tvshows'
+                          ? 'show'
+                          : lib.CollectionType || 'other',
+            }));
+
+            res.json({ success: true, libraries: formattedLibraries });
+        } catch (error) {
+            if (isDebug) console.error('[Jellyfin Lib Fetch] Failed:', error.message);
+            let userMessage = 'Could not fetch libraries. Please check the connection details.';
+            if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                userMessage = 'Unauthorized. Is the API key correct?';
+            } else if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+                userMessage = 'Connection refused. Is the hostname and port correct?';
+            } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+                userMessage = 'Connection timeout. Is the server reachable?';
+            } else if (error.message.includes('The string did not match the expected pattern')) {
+                userMessage =
+                    'Invalid hostname format. Use an IP address or hostname without http:// or https://.';
+            }
+            throw new ApiError(400, userMessage);
+        }
+    })
+);
+
+/**
+ * @swagger
  * /api/test-tvdb-connection:
  *   post:
  *     summary: Test TVDB connection and fetch sample data
@@ -4977,6 +5624,138 @@ app.post(
             if (isDebug)
                 console.error('[Admin API] Error getting genres from test server:', error.message);
             throw new ApiError(400, `Failed to get genres: ${error.message}`);
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/jellyfin-genres:
+ *   post:
+ *     summary: Get genres from Jellyfin libraries
+ *     description: >
+ *       Retrieves all unique genres from the specified Jellyfin libraries.
+ *     tags: ['Admin API']
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               hostname:
+ *                 type: string
+ *               port:
+ *                 type: number
+ *               apiKey:
+ *                 type: string
+ *               movieLibraries:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               showLibraries:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Genres retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 genres:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       400:
+ *         description: Invalid request parameters
+ *       401:
+ *         description: Unauthorized
+ */
+app.post(
+    '/api/admin/jellyfin-genres',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug) logger.debug('[Admin API] Request received for /api/admin/jellyfin-genres.');
+
+        let { hostname, port, apiKey, movieLibraries = [], showLibraries = [] } = req.body;
+
+        // Sanitize hostname
+        if (hostname) {
+            hostname = hostname.trim().replace(/^https?:\/\//, '');
+        }
+
+        // Fallback to configured values if not provided
+        const jellyfinServerConfig = config.mediaServers.find(s => s.type === 'jellyfin');
+        if (jellyfinServerConfig) {
+            hostname = hostname || process.env[jellyfinServerConfig.hostnameEnvVar];
+            port = port || process.env[jellyfinServerConfig.portEnvVar];
+            apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
+        }
+
+        if (!hostname || !port || !apiKey) {
+            throw new ApiError(400, 'Jellyfin connection details are missing.');
+        }
+
+        if (movieLibraries.length === 0 && showLibraries.length === 0) {
+            throw new ApiError(400, 'At least one library must be specified.');
+        }
+
+        try {
+            const client = await createJellyfinClient({
+                hostname,
+                port: parseInt(port),
+                apiKey,
+                timeout: 15000,
+            });
+
+            const allLibraries = await fetchJellyfinLibraries(client);
+            const selectedLibraries = allLibraries.filter(
+                lib => movieLibraries.includes(lib.Name) || showLibraries.includes(lib.Name)
+            );
+
+            if (isDebug) {
+                logger.debug(
+                    `[Jellyfin Genres] All libraries:`,
+                    allLibraries.map(l => `${l.Name} (${l.Id})`)
+                );
+                logger.debug(
+                    `[Jellyfin Genres] Selected libraries:`,
+                    selectedLibraries.map(l => `${l.Name} (${l.Id})`)
+                );
+                logger.debug(`[Jellyfin Genres] Movie libraries requested:`, movieLibraries);
+                logger.debug(`[Jellyfin Genres] Show libraries requested:`, showLibraries);
+            }
+
+            // Get selected library IDs
+            const selectedLibraryIds = selectedLibraries.map(lib => lib.Id);
+
+            if (selectedLibraryIds.length === 0) {
+                throw new ApiError(
+                    400,
+                    'No matching libraries found. Available libraries: ' +
+                        allLibraries.map(l => l.Name).join(', ')
+                );
+            }
+
+            // Use our HTTP client to get genres
+            const genres = await client.getGenres(selectedLibraryIds);
+
+            logger.info(
+                `[Admin API] Extracted ${genres.length} unique Jellyfin genres from ${selectedLibraries.length} libraries.`
+            );
+
+            res.json({ success: true, genres });
+        } catch (error) {
+            if (isDebug) console.error('[Admin API] Error getting Jellyfin genres:', error.message);
+            throw new ApiError(400, `Failed to get Jellyfin genres: ${error.message}`);
         }
     })
 );

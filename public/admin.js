@@ -2297,6 +2297,17 @@ document.addEventListener('DOMContentLoaded', () => {
             recentlyAddedCheckbox.addEventListener('change', toggleRecentlyAddedDays);
         }
 
+        // Setup Jellyfin recently added toggle
+        const jellyfinRecentlyAddedCheckbox = document.getElementById(
+            'mediaServers[1].recentlyAddedOnly'
+        );
+        if (jellyfinRecentlyAddedCheckbox) {
+            jellyfinRecentlyAddedCheckbox.addEventListener(
+                'change',
+                toggleJellyfinRecentlyAddedDays
+            );
+        }
+
         // Setup transition effect change to toggle effect pause time visibility
         const transitionEffectSelect = document.getElementById('transitionEffect');
         if (transitionEffectSelect) {
@@ -2306,6 +2317,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initial state
         syncMetadataState();
         toggleClockSettings();
+        toggleRecentlyAddedDays();
+        toggleJellyfinRecentlyAddedDays();
     }
 
     function toggleClockSettings() {
@@ -2325,6 +2338,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleRecentlyAddedDays() {
         const recentlyAddedCheckbox = document.getElementById('mediaServers[0].recentlyAddedOnly');
         const daysContainer = document.getElementById('recentlyAddedDaysContainer');
+
+        if (daysContainer) {
+            daysContainer.style.display = recentlyAddedCheckbox.checked ? 'block' : 'none';
+        }
+    }
+
+    function toggleJellyfinRecentlyAddedDays() {
+        const recentlyAddedCheckbox = document.getElementById('mediaServers[1].recentlyAddedOnly');
+        const daysContainer = document.getElementById('jellyfinRecentlyAddedDaysContainer');
 
         if (daysContainer) {
             daysContainer.style.display = recentlyAddedCheckbox.checked ? 'block' : 'none';
@@ -2378,6 +2400,104 @@ document.addEventListener('DOMContentLoaded', () => {
             plexServerConfig.qualityFilter ?? plexDefaults.qualityFilter;
 
         return { savedMovieLibs, savedShowLibs };
+    }
+
+    async function populateJellyfinSettings(config, defaults, env) {
+        // Prefer normalized env if available
+        const nEnv = window.__normalizedEnv || {};
+        const jellyfinServerConfig =
+            config.mediaServers && config.mediaServers[1] ? config.mediaServers[1] : {};
+        const jellyfinDefaults = defaults.mediaServers[1] || {
+            enabled: false,
+            hostname: '',
+            port: 8096,
+            movieLibraryNames: [],
+            showLibraryNames: [],
+            ratingFilter: '',
+            genreFilter: '',
+            recentlyAddedOnly: false,
+            recentlyAddedDays: 30,
+            qualityFilter: '',
+        };
+
+        document.getElementById('mediaServers[1].enabled').checked =
+            jellyfinServerConfig.enabled ?? jellyfinDefaults.enabled;
+        document.getElementById('mediaServers[1].hostname').value =
+            nEnv.JELLYFIN_HOSTNAME ?? env.JELLYFIN_HOSTNAME ?? jellyfinDefaults.hostname;
+        document.getElementById('mediaServers[1].port').value =
+            nEnv.JELLYFIN_PORT ?? env.JELLYFIN_PORT ?? jellyfinDefaults.port;
+
+        // For security, don't display the API key. Show a placeholder if it's set.
+        const apiKeyInput = document.getElementById('mediaServers[1].apiKey');
+        apiKeyInput.value = ''; // Always clear the value on load
+        // env.JELLYFIN_API_KEY is now a boolean indicating if the API key is set on the server
+        const apiKeyIsSet = nEnv.JELLYFIN_API_KEY || env.JELLYFIN_API_KEY === true;
+        apiKeyInput.dataset.tokenSet = apiKeyIsSet ? 'true' : 'false';
+        apiKeyInput.placeholder = apiKeyIsSet
+            ? '******** (API key stored)'
+            : 'Enter new API key...';
+
+        const savedMovieLibs =
+            jellyfinServerConfig.movieLibraryNames || jellyfinDefaults.movieLibraryNames;
+        const savedShowLibs =
+            jellyfinServerConfig.showLibraryNames || jellyfinDefaults.showLibraryNames;
+
+        // Content Filtering settings
+        document.getElementById('mediaServers[1].ratingFilter').value =
+            jellyfinServerConfig.ratingFilter ?? jellyfinDefaults.ratingFilter;
+
+        // Load genres only if we have basic connection details configured
+        const hostname =
+            nEnv.JELLYFIN_HOSTNAME ?? env.JELLYFIN_HOSTNAME ?? jellyfinDefaults.hostname;
+        const port = nEnv.JELLYFIN_PORT ?? env.JELLYFIN_PORT ?? jellyfinDefaults.port;
+        const hasBasicConfig = hostname && port;
+
+        try {
+            if (hasBasicConfig) {
+                // Load libraries first with saved selections
+                await fetchAndDisplayJellyfinLibraries(savedMovieLibs, savedShowLibs);
+
+                // Then load genres
+                await loadJellyfinGenres();
+                setJellyfinGenreFilterValues(
+                    jellyfinServerConfig.genreFilter ?? jellyfinDefaults.genreFilter
+                );
+            } else {
+                // Just set up the default option without loading
+                const genreSelect = document.getElementById('mediaServers[1].genreFilter');
+                if (genreSelect) {
+                    genreSelect.innerHTML =
+                        '<option value="">Configure Jellyfin connection to load genres</option>';
+                }
+            }
+        } catch (error) {
+            logger.warn('Failed to load Jellyfin libraries/genres during setup:', error);
+        }
+
+        document.getElementById('mediaServers[1].recentlyAddedOnly').checked =
+            jellyfinServerConfig.recentlyAddedOnly ?? jellyfinDefaults.recentlyAddedOnly;
+        document.getElementById('mediaServers[1].recentlyAddedDays').value =
+            jellyfinServerConfig.recentlyAddedDays ?? jellyfinDefaults.recentlyAddedDays;
+        document.getElementById('mediaServers[1].qualityFilter').value =
+            jellyfinServerConfig.qualityFilter ?? jellyfinDefaults.qualityFilter;
+
+        return { savedMovieLibs, savedShowLibs };
+    }
+
+    function setJellyfinGenreFilterValues(genreFilterString) {
+        const genreSelect = document.getElementById('mediaServers[1].genreFilter');
+        if (!genreSelect || !genreFilterString) return;
+
+        const selectedGenres = genreFilterString
+            .split(',')
+            .map(g => g.trim())
+            .filter(g => g);
+        Array.from(genreSelect.options).forEach(option => {
+            option.selected = selectedGenres.includes(option.value);
+        });
+
+        // Trigger a change event to ensure any listeners are notified
+        genreSelect.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     async function loadPlexGenres() {
@@ -2438,6 +2558,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Setup listeners after genres are loaded
             setupGenreFilterListeners();
+            setupJellyfinGenreFilterListeners();
         } catch (error) {
             console.error('Error loading Plex genres:', error);
             genreSelect.innerHTML = '<option value="">Error loading genres</option>';
@@ -2468,6 +2589,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return selectedValues.join(', ');
     }
 
+    function getJellyfinGenreFilterValues() {
+        const genreSelect = document.getElementById('mediaServers[1].genreFilter');
+        if (!genreSelect) return '';
+
+        const selectedValues = Array.from(genreSelect.selectedOptions).map(option => option.value);
+        return selectedValues.join(', ');
+    }
+
     function clearGenreSelection() {
         const genreSelect = document.getElementById('mediaServers[0].genreFilter');
         if (!genreSelect) return;
@@ -2490,6 +2619,120 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Make loadPlexGenres globally accessible
     window.loadPlexGenres = loadPlexGenres;
+
+    /**
+     * Loads and populates Jellyfin genres in the genre filter dropdown
+     */
+    async function loadJellyfinGenres() {
+        const genreSelect = document.getElementById('mediaServers[1].genreFilter');
+        if (!genreSelect) {
+            logger.warn('[Admin] loadJellyfinGenres: genre select element not found');
+            return;
+        }
+
+        // Save currently selected genres before clearing
+        const currentlySelected = Array.from(genreSelect.selectedOptions).map(
+            option => option.value
+        );
+
+        try {
+            const hostname = document.getElementById('mediaServers[1].hostname').value;
+            const port = document.getElementById('mediaServers[1].port').value;
+            const apiKeyInput = document.getElementById('mediaServers[1].apiKey');
+            const apiKey = apiKeyInput.value;
+            const apiKeyIsSet = apiKeyInput.dataset.tokenSet === 'true';
+            const movieLibraries = getSelectedJellyfinLibraries('movie');
+            const showLibraries = getSelectedJellyfinLibraries('show');
+
+            // If no connection details, show default message without error
+            // For API key, check if it's set in dataset OR if a new value is provided
+            if (!hostname || !port || (!apiKey && !apiKeyIsSet)) {
+                genreSelect.innerHTML =
+                    '<option value="">Configure Jellyfin connection to load genres</option>';
+                genreSelect.disabled = false;
+                return;
+            }
+
+            // Show loading state only when we have connection details
+            genreSelect.innerHTML = '<option value="">Loading genres...</option>';
+            genreSelect.disabled = true;
+
+            if (movieLibraries.length === 0 && showLibraries.length === 0) {
+                genreSelect.innerHTML = '<option value="">No libraries selected</option>';
+                genreSelect.disabled = false;
+                return;
+            }
+
+            const response = await fetch('/api/admin/jellyfin-genres', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    hostname,
+                    port,
+                    apiKey: apiKey || null, // Send null if no new key provided
+                    movieLibraries,
+                    showLibraries,
+                }),
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to load genres');
+            }
+
+            const genres = result.genres || [];
+            genreSelect.innerHTML = '';
+
+            // Add default "All Genres" option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'All Genres';
+            genreSelect.appendChild(defaultOption);
+
+            // Add genre options
+            genres.forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre;
+                // Restore previous selection if this genre was selected
+                option.selected = currentlySelected.includes(genre);
+                genreSelect.appendChild(option);
+            });
+
+            logger.info(`[Admin] Loaded ${genres.length} Jellyfin genres successfully`);
+        } catch (error) {
+            logger.error('[Admin] Failed to load Jellyfin genres:', error);
+            genreSelect.innerHTML = '<option value="">Error loading genres</option>';
+            // Only show notification if user actually has connection details configured
+            const hostname = document.getElementById('mediaServers[1].hostname').value;
+            const port = document.getElementById('mediaServers[1].port').value;
+            const apiKey = document.getElementById('mediaServers[1].apiKey').value;
+
+            if (hostname && port && apiKey) {
+                showNotification(`Failed to load Jellyfin genres: ${error.message}`, 'error');
+            }
+        } finally {
+            genreSelect.disabled = false;
+        }
+    }
+
+    function setupJellyfinGenreFilterListeners() {
+        const clearBtn = document.getElementById('clearJellyfinGenresBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                const genreSelect = document.getElementById('mediaServers[1].genreFilter');
+                if (genreSelect) {
+                    Array.from(genreSelect.options).forEach(option => {
+                        option.selected = option.value === '';
+                    });
+                    genreSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        }
+    }
+
+    // Make loadJellyfinGenres globally accessible
+    window.loadJellyfinGenres = loadJellyfinGenres;
 
     function populateTMDBSettings(config) {
         const tmdbConfig = config.tmdbSource || {};
@@ -3020,6 +3263,16 @@ document.addEventListener('DOMContentLoaded', () => {
             window.__savedMovieLibs = savedMovieLibs;
             window.__savedShowLibs = savedShowLibs;
 
+            // Populate Jellyfin settings
+            try {
+                const { savedMovieLibs: jellyfinMovieLibs, savedShowLibs: jellyfinShowLibs } =
+                    await populateJellyfinSettings(config, defaults, env);
+                window.__savedJellyfinMovieLibs = jellyfinMovieLibs;
+                window.__savedJellyfinShowLibs = jellyfinShowLibs;
+            } catch (error) {
+                logger.warn('Failed to populate Jellyfin settings:', error);
+            }
+
             // Populate TMDB settings
             populateTMDBSettings(config, env, defaults);
 
@@ -3392,6 +3645,77 @@ document.addEventListener('DOMContentLoaded', () => {
     addPlexTestButton();
 
     /**
+     * Adds a "Test Connection" button for the Jellyfin server settings.
+     */
+    function addJellyfinTestButton() {
+        const testButton = document.getElementById('test-jellyfin-button');
+        if (!testButton) return;
+
+        testButton.addEventListener('click', async () => {
+            const hostname = document.getElementById('mediaServers[1].hostname').value;
+            const port = document.getElementById('mediaServers[1].port').value;
+            const apiKeyInput = document.getElementById('mediaServers[1].apiKey');
+            const apiKey = apiKeyInput.value;
+            const isApiKeySetOnServer = apiKeyInput.dataset.tokenSet === 'true';
+
+            setButtonState(testButton, 'loading', { text: 'Testing...' });
+
+            try {
+                if (!hostname || !port) {
+                    throw new Error('Hostname and port are required to run a test.');
+                }
+                if (!apiKey && !isApiKeySetOnServer) {
+                    throw new Error(
+                        'A new API key is required to test the connection, as none is set yet.'
+                    );
+                }
+
+                const response = await fetch('/api/admin/test-jellyfin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hostname, port, apiKey: apiKey || undefined }), // Send API key only if it has a value
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Unknown error');
+                }
+
+                setButtonState(testButton, 'success', { text: 'Connection successful' });
+
+                // On success, fetch and display libraries, preserving current selections
+                const currentMovieLibs = getSelectedJellyfinLibraries('movie');
+                const currentShowLibs = getSelectedJellyfinLibraries('show');
+                await fetchAndDisplayJellyfinLibraries(currentMovieLibs, currentShowLibs);
+
+                // Load genres after successful connection test and library population
+                try {
+                    await window.loadJellyfinGenres();
+                    showNotification('Jellyfin connection successful and genres loaded', 'success');
+                } catch (genreError) {
+                    logger.warn('Failed to load genres after connection test:', genreError);
+                    showNotification(
+                        'Jellyfin connection successful, but genres could not be loaded',
+                        'warning'
+                    );
+                }
+
+                adminBgQueue = []; // Force a re-fetch of the media queue
+                initializeAdminBackground();
+            } catch (error) {
+                setButtonState(testButton, 'error', { text: 'Connection failed' });
+                showNotification(`Jellyfin connection failed: ${error.message}`, 'error');
+            }
+            // Revert to original state after a delay
+            setTimeout(() => {
+                setButtonState(testButton, 'revert');
+            }, 2500);
+        });
+    }
+
+    addJellyfinTestButton();
+
+    /**
      * Fetches Plex libraries from the server and populates checkbox lists.
      * @param {string[]} preSelectedMovieLibs - Array of movie library names to pre-check.
      * @param {string[]} preSelectedShowLibs - Array of show library names to pre-check.
@@ -3507,6 +3831,132 @@ document.addEventListener('DOMContentLoaded', () => {
             return Array.from(checkedBoxes).map(cb => cb.value);
         } catch (err) {
             console.error('[Admin] getSelectedLibraries failed:', err);
+            return [];
+        }
+    }
+
+    /**
+     * Fetches Jellyfin libraries from the server and populates checkbox lists.
+     * @param {string[]} preSelectedMovieLibs - Array of movie library names to pre-check.
+     * @param {string[]} preSelectedShowLibs - Array of show library names to pre-check.
+     */
+    async function fetchAndDisplayJellyfinLibraries(
+        preSelectedMovieLibs = [],
+        preSelectedShowLibs = []
+    ) {
+        const movieContainer = document.getElementById('jellyfin-movie-libraries-container');
+        const showContainer = document.getElementById('jellyfin-show-libraries-container');
+
+        movieContainer.innerHTML = '<small>Fetching libraries...</small>';
+        showContainer.innerHTML = '<small>Fetching libraries...</small>';
+
+        try {
+            const hostname = document.getElementById('mediaServers[1].hostname').value;
+            const port = document.getElementById('mediaServers[1].port').value;
+            const apiKey = document.getElementById('mediaServers[1].apiKey').value;
+
+            const response = await fetch('/api/admin/jellyfin-libraries', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    hostname: hostname || undefined,
+                    port: port || undefined,
+                    apiKey: apiKey || undefined,
+                }),
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to fetch libraries.');
+
+            const libraries = result.libraries || [];
+            const movieLibraries = libraries.filter(lib => lib.type === 'movie');
+            const showLibraries = libraries.filter(lib => lib.type === 'show');
+
+            movieContainer.innerHTML = '';
+            showContainer.innerHTML = '';
+
+            if (movieLibraries.length === 0) {
+                movieContainer.innerHTML = '<small>No movie libraries found.</small>';
+            } else {
+                movieLibraries.forEach(lib => {
+                    const isChecked = preSelectedMovieLibs.includes(lib.name);
+                    movieContainer.appendChild(
+                        createJellyfinLibraryCheckbox(lib.name, 'movie', isChecked)
+                    );
+                });
+            }
+
+            if (showLibraries.length === 0) {
+                showContainer.innerHTML = '<small>No show libraries found.</small>';
+            } else {
+                showLibraries.forEach(lib => {
+                    const isChecked = preSelectedShowLibs.includes(lib.name);
+                    showContainer.appendChild(
+                        createJellyfinLibraryCheckbox(lib.name, 'show', isChecked)
+                    );
+                });
+            }
+        } catch (error) {
+            console.error('Failed to fetch Jellyfin libraries:', error);
+            const errorMessage = `<small class="error-text">Error: ${error.message}</small>`;
+            movieContainer.innerHTML = errorMessage;
+            showContainer.innerHTML = errorMessage;
+        }
+    }
+
+    function createJellyfinLibraryCheckbox(name, type, isChecked) {
+        const container = document.createElement('div');
+        container.className = 'checkbox-group';
+        const id = `jellyfin-lib-${type}-${name.replace(/\s+/g, '-')}`;
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.id = id;
+        input.name = `jellyfin${type.charAt(0).toUpperCase() + type.slice(1)}Library`;
+        input.value = name;
+        input.checked = isChecked;
+
+        // Add change listener to automatically load genres when a library is selected
+        input.addEventListener('change', async () => {
+            const hasAnyLibrarySelected =
+                getSelectedJellyfinLibraries('movie').length > 0 ||
+                getSelectedJellyfinLibraries('show').length > 0;
+            if (hasAnyLibrarySelected) {
+                // Load genres immediately when a library is selected
+                try {
+                    await loadJellyfinGenres();
+                    showNotification(
+                        'Jellyfin genres updated based on selected libraries',
+                        'success'
+                    );
+                } catch (error) {
+                    logger.warn('Failed to load Jellyfin genres after library selection:', error);
+                }
+            }
+        });
+
+        const label = document.createElement('label');
+        label.htmlFor = id;
+        label.textContent = name;
+        container.appendChild(input);
+        container.appendChild(label);
+        return container;
+    }
+
+    function getSelectedJellyfinLibraries(type) {
+        const container = document.getElementById(`jellyfin-${type}-libraries-container`);
+        if (!container) {
+            logger.warn(
+                `[Admin] getSelectedJellyfinLibraries: container not found for type='${type}'`
+            );
+            return [];
+        }
+        try {
+            const checkedBoxes = container.querySelectorAll(
+                `input[name="jellyfin${type.charAt(0).toUpperCase() + type.slice(1)}Library"]:checked`
+            );
+            return Array.from(checkedBoxes).map(cb => cb.value);
+        } catch (err) {
+            console.error('[Admin] getSelectedJellyfinLibraries failed:', err);
             return [];
         }
     }
@@ -4802,6 +5252,24 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'number'
                             ),
                             qualityFilter: getValue('mediaServers[0].qualityFilter'),
+                        },
+                        {
+                            name: 'Jellyfin Server', // This is not editable in the UI
+                            type: 'jellyfin', // This is not editable in the UI
+                            enabled: getValue('mediaServers[1].enabled'),
+                            hostnameEnvVar: 'JELLYFIN_HOSTNAME',
+                            portEnvVar: 'JELLYFIN_PORT',
+                            tokenEnvVar: 'JELLYFIN_API_KEY',
+                            movieLibraryNames: getSelectedJellyfinLibraries('movie'),
+                            showLibraryNames: getSelectedJellyfinLibraries('show'),
+                            ratingFilter: getValue('mediaServers[1].ratingFilter'),
+                            genreFilter: getJellyfinGenreFilterValues(),
+                            recentlyAddedOnly: getValue('mediaServers[1].recentlyAddedOnly'),
+                            recentlyAddedDays: getValue(
+                                'mediaServers[1].recentlyAddedDays',
+                                'number'
+                            ),
+                            qualityFilter: getValue('mediaServers[1].qualityFilter'),
                         },
                     ],
                     tmdbSource: {

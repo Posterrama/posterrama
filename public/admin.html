@@ -533,6 +533,12 @@
                     <span class="quick-nav-label">Plex</span>
                 </div>
                 <div class="quick-nav-item">
+                    <a href="#" class="quick-nav-link" onclick="scrollToSubsection('jellyfin-subsection'); return false;" title="Jellyfin Configuration">
+                        <i class="fas fa-cube"></i>
+                    </a>
+                    <span class="quick-nav-label">Jellyfin</span>
+                </div>
+                <div class="quick-nav-item">
                     <a href="#" class="quick-nav-link" onclick="scrollToSubsection('tmdb-subsection'); return false;" title="TMDB Configuration">
                         <i class="fas fa-film"></i>
                     </a>
@@ -653,6 +659,114 @@
                                             <span>Test Plex Connection</span>
                                         </button>
                                         <small id="plex-connection-status"></small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Jellyfin Media Server Subsection -->
+                                <div class="subsection-header" id="jellyfin-subsection">
+                                    <i class="fas fa-cube"></i>
+                                    Jellyfin Media Server
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="mediaServers[1].enabled" name="mediaServers[1].enabled">
+                                        <label for="mediaServers[1].enabled">Enable Jellyfin Server as Content Source</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mediaServers[1].hostname">Jellyfin Hostname/IP</label>
+                                        <input type="text" id="mediaServers[1].hostname" name="mediaServers[1].hostname" placeholder="192.168.1.101 or jellyfin.local" pattern="^[a-zA-Z0-9\.\-]+$">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mediaServers[1].port">Jellyfin Port</label>
+                                        <input type="number" id="mediaServers[1].port" name="mediaServers[1].port" min="1" max="65535" placeholder="8096">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mediaServers[1].apiKey">Jellyfin API Key</label>
+                                        <input type="password" id="mediaServers[1].apiKey" name="mediaServers[1].apiKey">
+                                    </div>
+                                </div>
+                                
+                                <!-- Jellyfin Library Configuration Subsection -->
+                                <div class="subsection-header">
+                                    <i class="fas fa-folder-open"></i>
+                                    Jellyfin Library Configuration
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group">
+                                        <label>Movie Library Names</label>
+                                        <div id="jellyfin-movie-libraries-container" class="library-container">
+                                            <small>Test the connection to fetch the libraries.</small>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Show Library Names</label>
+                                        <div id="jellyfin-show-libraries-container" class="library-container">
+                                            <small>Test the connection to fetch the libraries.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Jellyfin Content Filtering Subsection -->
+                                <div class="subsection-header">
+                                    <i class="fas fa-filter"></i>
+                                    Jellyfin Content Filtering
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group">
+                                        <label for="mediaServers[1].ratingFilter">Rating Filter</label>
+                                        <select id="mediaServers[1].ratingFilter" name="mediaServers[1].ratingFilter">
+                                            <option value="">All Ratings</option>
+                                            <option value="G">G - General Audiences</option>
+                                            <option value="PG">PG - Parental Guidance</option>
+                                            <option value="PG-13">PG-13 - Parents Strongly Cautioned</option>
+                                            <option value="R">R - Restricted</option>
+                                            <option value="NC-17">NC-17 - Adults Only</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mediaServers[1].genreFilter">Genre Filter</label>
+                                        <div class="genre-filter-container">
+                                            <select id="mediaServers[1].genreFilter" name="mediaServers[1].genreFilter" multiple class="genre-filter-select">
+                                                <option value="">Loading genres...</option>
+                                            </select>
+                                            <button type="button" class="btn-clear-genres" id="clearJellyfinGenresBtn" title="Clear all selected genres">
+                                                <i class="fas fa-times"></i> Clear Selection
+                                            </button>
+                                        </div>
+                                        <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
+                                    </div>
+                                    <div class="form-group checkbox-group">
+                                        <input type="checkbox" id="mediaServers[1].recentlyAddedOnly" name="mediaServers[1].recentlyAddedOnly">
+                                        <label for="mediaServers[1].recentlyAddedOnly">Show Only Recently Added Content</label>
+                                    </div>
+                                    <div class="form-group recently-added-days-group hidden" id="jellyfinRecentlyAddedDaysContainer">
+                                        <label for="mediaServers[1].recentlyAddedDays">Recently Added (days)</label>
+                                        <input type="number" id="mediaServers[1].recentlyAddedDays" name="mediaServers[1].recentlyAddedDays" min="1" max="365" placeholder="30" value="30">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mediaServers[1].qualityFilter">Quality Filter</label>
+                                        <select id="mediaServers[1].qualityFilter" name="mediaServers[1].qualityFilter">
+                                            <option value="">All Qualities</option>
+                                            <option value="SD">SD - Standard Definition</option>
+                                            <option value="720p">720p - HD Ready</option>
+                                            <option value="1080p">1080p - Full HD</option>
+                                            <option value="4K">4K - Ultra HD</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <!-- Jellyfin Connection Testing Subsection -->
+                                <div class="subsection-header">
+                                    <i class="fas fa-plug"></i>
+                                    Jellyfin Connection Testing
+                                </div>
+                                <div class="subsection-content">
+                                    <div class="form-group">
+                                        <button type="button" id="test-jellyfin-button" class="btn btn-primary">
+                                            <i class="fas fa-plug icon"></i>
+                                            <span>Test Jellyfin Connection</span>
+                                        </button>
+                                        <small id="jellyfin-connection-status"></small>
                                     </div>
                                 </div>
                                 

@@ -52,7 +52,7 @@ Setup steps:
 
 1. Open `http://your-server-ip:4000/admin/setup`
 2. Create your admin account
-3. Connect your media sources (Plex, TMDB, TVDB)
+3. Connect your media sources (Plex, Jellyfin, TMDB, TVDB)
 4. Tweak the display settings to taste
 5. Visit `http://your-server-ip:4000` and enjoy
 
@@ -122,7 +122,7 @@ Setup steps:
 
 ### Content & discovery
 
-- Your media: Plex integration with rich metadata and artwork
+- Your media: Plex and Jellyfin integration with rich metadata and artwork
 - External sources: TMDB and TVDB enrichment
 - Streaming discovery: Netflix, Disney+, Prime Video, Apple TV+, HBO Max, Hulu, Paramount+, Crunchyroll
 - Smart filtering by rating, genre, release date, plus curated collections
@@ -189,7 +189,7 @@ Benefits
 
 ### Universal sources
 
-- **Emby and Jellyfin** support for broader media server compatibility
+- **Emby** support for broader media server compatibility
 - **Kodi integration** for seamless home theater setups
 - **Radarr/Sonarr/Lidarr** pipelines for automated collection management
 
