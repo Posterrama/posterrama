@@ -562,7 +562,7 @@
                                 <div class="subsection-content">
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="mediaServers[0].enabled" name="mediaServers[0].enabled">
-                                        <label for="mediaServers[0].enabled">Enable Plex Server as Content Source</label>
+                                        <label for="mediaServers[0].enabled">Enable Plex Server</label>
                                     </div>
                                     
                                     <!-- Plex Configuration Container (hidden when disabled) -->
@@ -607,7 +607,7 @@
                                         </div>
                                         <div class="subsection-content">
                                             <div class="form-group">
-                                                <label for="mediaServers[0].ratingFilter">Rating Filter</label>
+                                                <label>Rating Filter</label>
                                                 <div class="rating-filter-container">
                                                     <div id="mediaServers[0].ratingFilter" class="dynamic-rating-filter multi-select-checkboxes" data-source="plex">
                                                         <div class="loading-indicator">Loading ratings...</div>
@@ -616,7 +616,7 @@
                                                 </div>
                                             </div>
                                             <div class="form-group">
-                                                <label for="mediaServers[0].genreFilter">Genre Filter</label>
+                                                <label>Genre Filter</label>
                                                 <div class="genre-filter-container">
                                                     <div id="mediaServers[0].genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="plex">
                                                         <div class="loading-indicator">Loading genres...</div>
@@ -625,7 +625,7 @@
                                                 </div>
                                             </div>
                                             <div class="form-group">
-                                                <label for="mediaServers[0].qualityFilter">Quality Filter</label>
+                                                <label>Quality Filter</label>
                                                 <div id="mediaServers[0].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="plex">
                                                     <div class="loading-indicator">Loading qualities...</div>
                                                 </div>
@@ -666,7 +666,7 @@
                                 <div class="subsection-content">
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="mediaServers[1].enabled" name="mediaServers[1].enabled">
-                                        <label for="mediaServers[1].enabled">Enable Jellyfin Server as Content Source</label>
+                                        <label for="mediaServers[1].enabled">Enable Jellyfin Server</label>
                                     </div>
                                     
                                     <!-- Jellyfin Configuration Container (hidden when disabled) -->
@@ -711,7 +711,7 @@
                                         </div>
                                         <div class="subsection-content">
                                             <div class="form-group">
-                                                <label for="mediaServers[1].ratingFilter">Rating Filter</label>
+                                                <label>Rating Filter</label>
                                                 <div class="rating-filter-container">
                                                     <div id="mediaServers[1].ratingFilter" class="dynamic-rating-filter multi-select-checkboxes" data-source="jellyfin">
                                                         <div class="loading-indicator">Loading ratings...</div>
@@ -720,7 +720,7 @@
                                                 </div>
                                             </div>
                                             <div class="form-group">
-                                                <label for="mediaServers[1].genreFilter">Genre Filter</label>
+                                                <label>Genre Filter</label>
                                                 <div class="genre-filter-container">
                                                     <div id="mediaServers[1].genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="jellyfin">
                                                         <div class="loading-indicator">Loading genres...</div>
@@ -729,7 +729,7 @@
                                                 </div>
                                             </div>
                                             <div class="form-group">
-                                                <label for="mediaServers[1].qualityFilter">Quality Filter</label>
+                                                <label>Quality Filter</label>
                                                 <div id="mediaServers[1].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="jellyfin">
                                                     <div class="loading-indicator">Loading qualities...</div>
                                                 </div>
@@ -770,7 +770,7 @@
                                 <div class="subsection-content">
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="tmdbSource.enabled" name="tmdbSource.enabled">
-                                        <label for="tmdbSource.enabled">Enable TMDB as Content Source</label>
+                                        <label for="tmdbSource.enabled">Enable TMDB</label>
                                     </div>
                                     
                                     <!-- TMDB Configuration Container (hidden when disabled) -->
@@ -822,16 +822,13 @@
                                             <input type="number" id="tmdbSource.yearFilter" name="tmdbSource.yearFilter" min="1900" max="2030" placeholder="2000">
                                         </div>
                                         <div class="form-group">
-                                            <label for="tmdbSource.genreFilter">Genre Filter</label>
+                                            <label>Genre Filter</label>
                                             <div class="genre-filter-container">
-                                                <select id="tmdbSource.genreFilter" name="tmdbSource.genreFilter" multiple class="genre-filter-select">
-                                                    <option value="">Loading genres...</option>
-                                                </select>
-                                                <button type="button" class="btn-clear-genres" id="clearTmdbGenresBtn" title="Clear all selected genres">
-                                                    <i class="fas fa-times"></i> Clear Selection
-                                                </button>
+                                                <div id="tmdbSource.genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="tmdb">
+                                                    <div class="loading-indicator">Loading genres...</div>
+                                                </div>
+                                                <input type="hidden" name="tmdbSource.genreFilter" id="tmdbSource.genreFilter-hidden" value="">
                                             </div>
-                                            <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
                                         </div>
                                         <div class="form-group">
                                             <button type="button" id="test-tmdb-button" class="btn btn-primary">
@@ -989,7 +986,7 @@
                                 <div class="subsection-content">
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="tvdbSource.enabled" name="tvdbSource.enabled">
-                                        <label for="tvdbSource.enabled">Enable TVDB as Content Source</label>
+                                        <label for="tvdbSource.enabled">Enable TVDB</label>
                                     </div>
                                     
                                     <!-- TVDB Configuration Container (hidden when disabled) -->
@@ -1026,18 +1023,6 @@
                                                 <label for="tvdbSource.yearFilter">Year Filter</label>
                                                 <input type="number" id="tvdbSource.yearFilter" name="tvdbSource.yearFilter" min="1900" max="2030" placeholder="e.g. 2023">
                                             </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="tvdbSource.genreFilter">Genre Filter</label>
-                                            <div class="genre-filter-container">
-                                                <select id="tvdbSource.genreFilter" name="tvdbSource.genreFilter" multiple class="genre-filter-select">
-                                                    <option value="">Loading genres...</option>
-                                                </select>
-                                                <button type="button" class="btn-clear-genres" id="clearTvdbGenresBtn" title="Clear all selected genres">
-                                                    <i class="fas fa-times"></i> Clear Selection
-                                                </button>
-                                            </div>
-                                            <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
                                         </div>
                                         
                                         <!-- TVDB Connection Test -->

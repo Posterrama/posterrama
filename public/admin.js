@@ -2738,6 +2738,40 @@ document.addEventListener('DOMContentLoaded', () => {
     // Make loadJellyfinGenres globally accessible
     window.loadJellyfinGenres = loadJellyfinGenres;
 
+    // TMDB Genre Loading Function
+    async function loadTmdbGenres() {
+        const genreContainer = document.getElementById('tmdbSource.genreFilter');
+        if (!genreContainer) {
+            logger.warn('[Admin] loadTmdbGenres: genre container element not found');
+            return;
+        }
+
+        try {
+            genreContainer.innerHTML = '<div class="loading-indicator">Loading genres...</div>';
+
+            const response = await fetch('/api/admin/tmdb-genres');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch TMDB genres: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const genres = data.genres || [];
+
+            // Get current value from hidden field
+            const hiddenField = document.getElementById('tmdbSource.genreFilter-hidden');
+            const currentValue = hiddenField ? hiddenField.value : '';
+
+            // Use the checkbox population function
+            populateGenreFilterCheckboxes(genres, genreContainer, currentValue);
+        } catch (error) {
+            console.error('Error loading TMDB genres:', error);
+            genreContainer.innerHTML = '<div class="loading-indicator">Error loading genres</div>';
+        }
+    }
+
+    // Make loadTmdbGenres globally accessible
+    window.loadTmdbGenres = loadTmdbGenres;
+
     function populateTMDBSettings(config) {
         const tmdbConfig = config.tmdbSource || {};
         const tmdbDefaults = {
@@ -2799,221 +2833,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (tvdbMinRatingField) tvdbMinRatingField.value = tvdbConfig.minRating || 0;
         if (tvdbYearFilterField) tvdbYearFilterField.value = tvdbConfig.yearFilter || '';
-
-        // Load TVDB genres and set selected values
-        if (tvdbConfig.enabled) {
-            loadTVDBGenres().then(() => {
-                setTVDBGenreFilterValues(tvdbConfig.genreFilter || '');
-            });
-        }
     }
 
+    // Updated TMDB Genre Functions (use new checkbox system)
     async function loadTMDBGenres() {
-        const genreSelect = document.getElementById('tmdbSource.genreFilter');
-        if (!genreSelect) return;
-
-        // Save currently selected genres before clearing
-        const currentlySelected = Array.from(genreSelect.selectedOptions).map(
-            option => option.value
-        );
-
-        try {
-            // Get API key and category for testing (same as test connection)
-            const apiKey = document.getElementById('tmdbSource.apiKey').value;
-            const category = document.getElementById('tmdbSource.category').value;
-
-            // If we have test parameters, use the test endpoint, otherwise use the regular endpoint
-            let response;
-            if (apiKey) {
-                response = await fetch('/api/admin/tmdb-genres-test', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        apiKey: apiKey || undefined,
-                        category: category || 'popular',
-                    }),
-                });
-            } else {
-                response = await fetch('/api/admin/tmdb-genres');
-            }
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch TMDB genres: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const genres = data.genres || [];
-
-            // Clear existing options
-            genreSelect.innerHTML = '';
-
-            if (genres.length === 0) {
-                genreSelect.innerHTML = '<option value="">No genres found</option>';
-                return;
-            }
-
-            // Add genres as options
-            genres.forEach(genre => {
-                const option = document.createElement('option');
-                option.value = genre;
-                option.textContent = genre;
-                // Restore previous selection if this genre was selected
-                option.selected = currentlySelected.includes(genre);
-                genreSelect.appendChild(option);
-            });
-
-            // Setup listeners after genres are loaded
-            setupTMDBGenreFilterListeners();
-        } catch (error) {
-            console.error('Error loading TMDB genres:', error);
-            genreSelect.innerHTML = '<option value="">Error loading genres</option>';
-        }
+        return await loadTmdbGenres();
     }
 
     // Make loadTMDBGenres globally accessible
     window.loadTMDBGenres = loadTMDBGenres;
 
     function setTMDBGenreFilterValues(genreFilterString) {
-        const genreSelect = document.getElementById('tmdbSource.genreFilter');
-        if (!genreSelect || !genreFilterString) return;
+        const hiddenField = document.getElementById('tmdbSource.genreFilter-hidden');
+        if (!hiddenField) return;
 
-        // Split comma-separated genres and trim whitespace
-        const selectedGenres = genreFilterString
-            .split(',')
-            .map(g => g.trim())
-            .filter(g => g);
+        hiddenField.value = genreFilterString || '';
 
-        // Select matching options
-        Array.from(genreSelect.options).forEach(option => {
-            option.selected = selectedGenres.includes(option.value);
-        });
+        const genreContainer = document.getElementById('tmdbSource.genreFilter');
+        if (genreContainer) {
+            const selectedGenres = genreFilterString
+                ? genreFilterString
+                      .split(',')
+                      .map(g => g.trim())
+                      .filter(g => g)
+                : [];
+
+            const checkboxes = genreContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectedGenres.includes(checkbox.value);
+            });
+        }
     }
 
+    // Genre Filter Value Functions for Form Submission
     function getTMDBGenreFilterValues() {
-        const genreSelect = document.getElementById('tmdbSource.genreFilter');
-        if (!genreSelect) return '';
-
-        const selectedValues = Array.from(genreSelect.selectedOptions).map(option => option.value);
-        return selectedValues.join(', ');
-    }
-
-    function clearTMDBGenreSelection() {
-        const genreSelect = document.getElementById('tmdbSource.genreFilter');
-        if (!genreSelect) return;
-
-        // Deselect all options
-        Array.from(genreSelect.options).forEach(option => {
-            option.selected = false;
-        });
-
-        // Trigger a change event to ensure any listeners are notified
-        genreSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    function setupTMDBGenreFilterListeners() {
-        const clearBtn = document.getElementById('clearTmdbGenresBtn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', clearTMDBGenreSelection);
-        }
-    }
-
-    async function loadTVDBGenres() {
-        const genreSelect = document.getElementById('tvdbSource.genreFilter');
-        if (!genreSelect) return;
-
-        // Save currently selected genres before clearing
-        const currentlySelected = Array.from(genreSelect.selectedOptions).map(
-            option => option.value
-        );
-
-        try {
-            // Since TVDB has a hardcoded API key, we can always call the test endpoint
-            const response = await fetch('/api/admin/tvdb-genres-test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}), // Empty body since API key is hardcoded
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch TVDB genres: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const genres = data.genres || [];
-
-            // Clear existing options
-            genreSelect.innerHTML = '';
-
-            if (genres.length === 0) {
-                genreSelect.innerHTML = '<option value="">No genres found</option>';
-                return;
-            }
-
-            // Add genres as options
-            genres.forEach(genre => {
-                const option = document.createElement('option');
-                const genreName = genre.name || genre;
-                option.value = genreName;
-                option.textContent = genreName;
-                if (genre.id) option.dataset.genreId = genre.id;
-                // Restore previous selection if this genre was selected
-                option.selected = currentlySelected.includes(genreName);
-                genreSelect.appendChild(option);
-            });
-
-            // Setup listeners after genres are loaded
-            setupTVDBGenreFilterListeners();
-        } catch (error) {
-            console.error('Error loading TVDB genres:', error);
-            genreSelect.innerHTML = '<option value="">Error loading genres</option>';
-        }
-    }
-
-    // Make loadTVDBGenres globally accessible
-    window.loadTVDBGenres = loadTVDBGenres;
-
-    function setTVDBGenreFilterValues(genreFilterString) {
-        const genreSelect = document.getElementById('tvdbSource.genreFilter');
-        if (!genreSelect || !genreFilterString) return;
-
-        // Split comma-separated genres and trim whitespace
-        const selectedGenres = genreFilterString
-            .split(',')
-            .map(g => g.trim())
-            .filter(g => g);
-
-        // Select matching options
-        Array.from(genreSelect.options).forEach(option => {
-            option.selected = selectedGenres.includes(option.value);
-        });
-    }
-
-    function getTVDBGenreFilterValues() {
-        const genreSelect = document.getElementById('tvdbSource.genreFilter');
-        if (!genreSelect) return '';
-
-        const selectedValues = Array.from(genreSelect.selectedOptions).map(option => option.value);
-        return selectedValues.join(', ');
-    }
-
-    function clearTVDBGenreSelection() {
-        const genreSelect = document.getElementById('tvdbSource.genreFilter');
-        if (!genreSelect) return;
-
-        // Deselect all options
-        Array.from(genreSelect.options).forEach(option => {
-            option.selected = false;
-        });
-
-        // Trigger a change event to ensure any listeners are notified
-        genreSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    function setupTVDBGenreFilterListeners() {
-        const clearBtn = document.getElementById('clearTvdbGenresBtn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', clearTVDBGenreSelection);
-        }
+        const hiddenField = document.getElementById('tmdbSource.genreFilter-hidden');
+        return hiddenField ? hiddenField.value : '';
     }
 
     function setupTMDBTestButton() {
@@ -3784,7 +3639,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 movieLibraries.forEach(lib => {
                     const isChecked = preSelectedMovieLibs.includes(lib.name);
-                    movieContainer.appendChild(createLibraryCheckbox(lib.name, 'movie', isChecked));
+                    movieContainer.appendChild(
+                        createLibraryCheckbox(lib.name, 'movie', isChecked, lib.itemCount)
+                    );
                 });
             }
 
@@ -3793,7 +3650,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 showLibraries.forEach(lib => {
                     const isChecked = preSelectedShowLibs.includes(lib.name);
-                    showContainer.appendChild(createLibraryCheckbox(lib.name, 'show', isChecked));
+                    showContainer.appendChild(
+                        createLibraryCheckbox(lib.name, 'show', isChecked, lib.itemCount)
+                    );
                 });
             }
 
@@ -3809,7 +3668,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function createLibraryCheckbox(name, type, isChecked) {
+    function createLibraryCheckbox(name, type, isChecked, itemCount = 0) {
         const container = document.createElement('div');
         container.className = 'checkbox-group';
         const id = `lib-${type}-${name.replace(/\s+/g, '-')}`;
@@ -3837,7 +3696,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const label = document.createElement('label');
         label.htmlFor = id;
-        label.textContent = name;
+
+        // Create a span for the name and count
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+
+        const countSpan = document.createElement('span');
+        countSpan.className = 'count';
+        countSpan.textContent = itemCount > 0 ? ` (${itemCount})` : '';
+
+        label.appendChild(nameSpan);
+        label.appendChild(countSpan);
         container.appendChild(input);
         container.appendChild(label);
         return container;
@@ -3904,7 +3773,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 movieLibraries.forEach(lib => {
                     const isChecked = preSelectedMovieLibs.includes(lib.name);
                     movieContainer.appendChild(
-                        createJellyfinLibraryCheckbox(lib.name, 'movie', isChecked)
+                        createJellyfinLibraryCheckbox(lib.name, 'movie', isChecked, lib.itemCount)
                     );
                 });
             }
@@ -3915,7 +3784,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showLibraries.forEach(lib => {
                     const isChecked = preSelectedShowLibs.includes(lib.name);
                     showContainer.appendChild(
-                        createJellyfinLibraryCheckbox(lib.name, 'show', isChecked)
+                        createJellyfinLibraryCheckbox(lib.name, 'show', isChecked, lib.itemCount)
                     );
                 });
             }
@@ -3927,7 +3796,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function createJellyfinLibraryCheckbox(name, type, isChecked) {
+    function createJellyfinLibraryCheckbox(name, type, isChecked, itemCount = 0) {
         const container = document.createElement('div');
         container.className = 'checkbox-group';
         const id = `jellyfin-lib-${type}-${name.replace(/\s+/g, '-')}`;
@@ -3959,7 +3828,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const label = document.createElement('label');
         label.htmlFor = id;
-        label.textContent = name;
+
+        // Create a span for the name and count
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+
+        const countSpan = document.createElement('span');
+        countSpan.className = 'count';
+        countSpan.textContent = itemCount > 0 ? ` (${itemCount})` : '';
+
+        label.appendChild(nameSpan);
+        label.appendChild(countSpan);
         container.appendChild(input);
         container.appendChild(label);
         return container;
@@ -5347,7 +5226,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Fixed limits; omit from payload
                         minRating: getValue('tvdbSource.minRating', 'number'),
                         yearFilter: getValue('tvdbSource.yearFilter', 'number'),
-                        genreFilter: getTVDBGenreFilterValues(),
                     },
                     streamingSources: {
                         enabled: getValue('streamingSources.enabled'),
@@ -6797,18 +6675,7 @@ async function testTVDBConnection() {
         if (response.ok && result.success) {
             statusElement.textContent = `✅ Connection successful! Found ${result.sampleData?.length || 0} sample items.`;
             statusElement.style.color = '#51cf66';
-
-            // Automatically load TVDB genres after successful connection
-            try {
-                await window.loadTVDBGenres();
-                showNotification('TVDB connection successful and genres loaded', 'success');
-            } catch (genreError) {
-                logger.warn('Failed to load TVDB genres:', genreError);
-                showNotification(
-                    'TVDB connection successful, but genres could not be loaded',
-                    'error'
-                );
-            }
+            showNotification('TVDB connection successful', 'success');
         } else {
             showNotification(
                 `TVDB connection failed: ${result.error || 'Connection test failed'}`,
@@ -8968,7 +8835,8 @@ function populateGenreFilterCheckboxes(genres, container, currentValue = '') {
         // Create checkbox for each genre
         genres.forEach(genreItem => {
             // Handle both string genres and genre objects with counts
-            const genre = typeof genreItem === 'string' ? genreItem : genreItem.genre;
+            const genre =
+                typeof genreItem === 'string' ? genreItem : genreItem.genre || genreItem.name;
             const count = typeof genreItem === 'object' && genreItem.count ? genreItem.count : null;
 
             // Create container for this checkbox item
@@ -9196,13 +9064,29 @@ function initDynamicRatingFilters() {
 function checkIfServerEnabled(sourceType) {
     // Get the current config from the page (assuming it's available globally)
     const configData = window.currentConfig;
-    if (!configData || !configData.mediaServers) {
+    if (!configData) {
         return false;
     }
 
-    // Find the server of the given type
-    const server = configData.mediaServers.find(s => s.type === sourceType);
-    return server && server.enabled === true;
+    // Check media servers (Plex, Jellyfin)
+    if (sourceType === 'plex' || sourceType === 'jellyfin') {
+        if (!configData.mediaServers) {
+            return false;
+        }
+        const server = configData.mediaServers.find(s => s.type === sourceType);
+        return server && server.enabled === true;
+    }
+
+    // Check external sources (TMDB, TVDB)
+    if (sourceType === 'tmdb') {
+        return configData.tmdbSource && configData.tmdbSource.enabled === true;
+    }
+
+    if (sourceType === 'tvdb') {
+        return configData.tvdbSource && configData.tvdbSource.enabled === true;
+    }
+
+    return false;
 }
 
 /**
@@ -9350,6 +9234,8 @@ function initDynamicGenreFilters() {
                 await loadPlexGenres();
             } else if (sourceType === 'jellyfin') {
                 await loadJellyfinGenres();
+            } else if (sourceType === 'tmdb') {
+                await loadTmdbGenres();
             }
         } catch (error) {
             console.warn(`Failed to load ${sourceType} genres:`, error);

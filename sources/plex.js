@@ -181,35 +181,45 @@ class PlexSource {
         let filteredItems = [...items];
 
         // Rating filter (support both string and array formats)
-        if (this.server.ratingFilter && this.server.ratingFilter.trim() !== '') {
-            // Convert string to array for consistent handling
-            const allowedRatings = Array.isArray(this.server.ratingFilter)
-                ? this.server.ratingFilter
-                : [this.server.ratingFilter];
+        if (this.server.ratingFilter) {
+            let hasValidRatingFilter = false;
 
-            filteredItems = filteredItems.filter(item => {
-                if (!item.contentRating) {
-                    // If a rating filter is set, exclude items without content rating
-                    if (this.isDebug) {
-                        logger.debug(
-                            `[PlexSource:${this.server.name}] Filtered out "${item.title}" - No contentRating when filter "${allowedRatings.join(', ')}" is required`
-                        );
+            if (Array.isArray(this.server.ratingFilter)) {
+                hasValidRatingFilter = this.server.ratingFilter.length > 0;
+            } else if (typeof this.server.ratingFilter === 'string') {
+                hasValidRatingFilter = this.server.ratingFilter.trim() !== '';
+            }
+
+            if (hasValidRatingFilter) {
+                // Convert string to array for consistent handling
+                const allowedRatings = Array.isArray(this.server.ratingFilter)
+                    ? this.server.ratingFilter
+                    : [this.server.ratingFilter];
+
+                filteredItems = filteredItems.filter(item => {
+                    if (!item.contentRating) {
+                        // If a rating filter is set, exclude items without content rating
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[PlexSource:${this.server.name}] Filtered out "${item.title}" - No contentRating when filter "${allowedRatings.join(', ')}" is required`
+                            );
+                        }
+                        return false;
+                    } else if (!allowedRatings.includes(item.contentRating)) {
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[PlexSource:${this.server.name}] Filtered out "${item.title}" - contentRating "${item.contentRating}" not in allowed list: ${allowedRatings.join(', ')}`
+                            );
+                        }
+                        return false;
                     }
-                    return false;
-                } else if (!allowedRatings.includes(item.contentRating)) {
-                    if (this.isDebug) {
-                        logger.debug(
-                            `[PlexSource:${this.server.name}] Filtered out "${item.title}" - contentRating "${item.contentRating}" not in allowed list: ${allowedRatings.join(', ')}`
-                        );
-                    }
-                    return false;
-                }
-                return true;
-            });
-            if (this.isDebug)
-                logger.debug(
-                    `[PlexSource:${this.server.name}] Rating filter (${allowedRatings.join(', ')}): ${filteredItems.length} items.`
-                );
+                    return true;
+                });
+                if (this.isDebug)
+                    logger.debug(
+                        `[PlexSource:${this.server.name}] Rating filter (${allowedRatings.join(', ')}): ${filteredItems.length} items.`
+                    );
+            }
         }
 
         // Genre filter

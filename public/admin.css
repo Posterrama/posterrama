@@ -920,6 +920,196 @@ a:hover {
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
 }
 
+/* Content Source Specific Gradients - Override icon-based selectors */
+/* Plex Media Server - Orange/Red gradient - Override fa-server selector */
+.subsection-header#plex-subsection.subsection-header:has(i.fas.fa-server)::after {
+    background: linear-gradient(90deg, #ff6b35, #f7931e, #ffcc02) !important;
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3) !important;
+}
+
+.subsection-header#plex-subsection.subsection-header:has(i.fas.fa-server) {
+    color: transparent !important;
+    background: linear-gradient(90deg, #ff6b35, #f7931e, #ffcc02) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.subsection-header#plex-subsection.subsection-header:has(i.fas.fa-server) i {
+    color: transparent !important;
+    background: linear-gradient(90deg, #ff6b35, #f7931e, #ffcc02) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 2px 4px rgba(255, 107, 53, 0.2)) !important;
+}
+
+/* Jellyfin Media Server - Purple/Blue gradient - Override fa-cube selector */
+.subsection-header#jellyfin-subsection.subsection-header:has(i.fa-cube)::after {
+    background: linear-gradient(90deg, #aa5cc3, #00a4dc, #52d3aa) !important;
+    box-shadow: 0 2px 8px rgba(170, 92, 195, 0.3) !important;
+}
+
+.subsection-header#jellyfin-subsection.subsection-header:has(i.fa-cube) {
+    color: transparent !important;
+    background: linear-gradient(90deg, #aa5cc3, #00a4dc, #52d3aa) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.subsection-header#jellyfin-subsection.subsection-header:has(i.fa-cube) i {
+    color: transparent !important;
+    background: linear-gradient(90deg, #aa5cc3, #00a4dc, #52d3aa) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 2px 4px rgba(170, 92, 195, 0.2)) !important;
+}
+
+/* TMDB External Source - Blue/Green gradient - Override fa-film selector */
+.subsection-header#tmdb-subsection.subsection-header:has(i.fa-film)::after {
+    background: linear-gradient(90deg, #01b4e4, #90cea1, #0fbeaa) !important;
+    box-shadow: 0 2px 8px rgba(1, 180, 228, 0.3) !important;
+}
+
+.subsection-header#tmdb-subsection.subsection-header:has(i.fa-film) {
+    color: transparent !important;
+    background: linear-gradient(90deg, #01b4e4, #90cea1, #0fbeaa) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.subsection-header#tmdb-subsection.subsection-header:has(i.fa-film) i {
+    color: transparent !important;
+    background: linear-gradient(90deg, #01b4e4, #90cea1, #0fbeaa) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 2px 4px rgba(1, 180, 228, 0.2)) !important;
+}
+
+/* TVDB External Source - Bright Green/Teal gradient - Override fa-tv selector */
+.subsection-header#tvdb-subsection.subsection-header:has(i.fa-tv)::after {
+    background: linear-gradient(90deg, #10b981, #06b6d4, #3b82f6) !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+}
+
+.subsection-header#tvdb-subsection.subsection-header:has(i.fa-tv) {
+    color: transparent !important;
+    background: linear-gradient(90deg, #10b981, #06b6d4, #3b82f6) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.subsection-header#tvdb-subsection.subsection-header:has(i.fa-tv) i {
+    color: transparent !important;
+    background: linear-gradient(90deg, #10b981, #06b6d4, #3b82f6) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.2)) !important;
+}
+
+/* Quick Navigation Links - Match section colors with proper backgrounds and readable text */
+/* Plex Quick Nav - Orange/Yellow gradient background */
+.quick-nav-item:nth-child(1) .quick-nav-link {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ffcc02 100%) !important;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4) !important;
+}
+
+.quick-nav-item:nth-child(1) .quick-nav-link::before {
+    background: linear-gradient(135deg, #e55b2b 0%, #e8841a 50%, #eab308 100%) !important;
+}
+
+.quick-nav-link[onclick*='plex-subsection'] i {
+    color: white !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    filter: none !important;
+}
+
+.quick-nav-item:has(.quick-nav-link[onclick*='plex-subsection']) .quick-nav-label {
+    color: #ff6b35 !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    font-weight: 600 !important;
+}
+
+/* Jellyfin Quick Nav - Purple/Blue gradient background */
+.quick-nav-item:nth-child(2) .quick-nav-link {
+    background: linear-gradient(135deg, #aa5cc3 0%, #00a4dc 50%, #52d3aa 100%) !important;
+    box-shadow: 0 4px 15px rgba(170, 92, 195, 0.4) !important;
+}
+
+.quick-nav-item:nth-child(2) .quick-nav-link::before {
+    background: linear-gradient(135deg, #9a4fb3 0%, #0094cc 50%, #42c39a 100%) !important;
+}
+
+.quick-nav-link[onclick*='jellyfin-subsection'] i {
+    color: white !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    filter: none !important;
+}
+
+.quick-nav-item:has(.quick-nav-link[onclick*='jellyfin-subsection']) .quick-nav-label {
+    color: #aa5cc3 !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    font-weight: 600 !important;
+}
+
+/* TMDB Quick Nav - Blue/Green gradient background */
+.quick-nav-item:nth-child(3) .quick-nav-link {
+    background: linear-gradient(135deg, #01b4e4 0%, #90cea1 50%, #0fbeaa 100%) !important;
+    box-shadow: 0 4px 15px rgba(1, 180, 228, 0.4) !important;
+}
+
+.quick-nav-item:nth-child(3) .quick-nav-link::before {
+    background: linear-gradient(135deg, #0194d4 0%, #80be91 50%, #0eae9a 100%) !important;
+}
+
+.quick-nav-link[onclick*='tmdb-subsection'] i {
+    color: white !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    filter: none !important;
+}
+
+.quick-nav-item:has(.quick-nav-link[onclick*='tmdb-subsection']) .quick-nav-label {
+    color: #01b4e4 !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    font-weight: 600 !important;
+}
+
+/* TVDB Quick Nav - Green/Teal gradient background */
+.quick-nav-item:nth-child(4) .quick-nav-link {
+    background: linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%) !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+}
+
+.quick-nav-item:nth-child(4) .quick-nav-link::before {
+    background: linear-gradient(135deg, #0ea971 0%, #05a6c4 50%, #2572e6 100%) !important;
+}
+
+.quick-nav-link[onclick*='tvdb-subsection'] i {
+    color: white !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    filter: none !important;
+}
+
+.quick-nav-item:has(.quick-nav-link[onclick*='tvdb-subsection']) .quick-nav-label {
+    color: #10b981 !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    font-weight: 600 !important;
+}
+
 .subsection-header:has(i.fa-tv) {
     color: transparent !important;
     background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4) !important;
@@ -3580,6 +3770,14 @@ fieldset:focus-within {
     flex-shrink: 0; /* Prevents count from shrinking */
     display: flex;
     align-items: center; /* Centers count vertically */
+}
+
+/* Library counts for Plex and Jellyfin */
+.checkbox-group label .count {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 .form-group select[name*='genreFilter'] option:hover {

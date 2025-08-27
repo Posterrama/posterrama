@@ -15,7 +15,6 @@ class TVDBSource {
         this.category = config.category || 'popular';
         this.minRating = config.minRating || 0;
         this.yearFilter = config.yearFilter || null;
-        this.genreFilter = config.genreFilter || '';
 
         // Cache for API responses
         this.cache = new Map();
@@ -234,10 +233,12 @@ class TVDBSource {
 
     async getGenres() {
         await this.loadGenres();
-        return Array.from(this.genreMap.entries()).map(([id, name]) => ({
-            id: id.toString(),
-            name,
-        }));
+        return Array.from(this.genreMap.entries())
+            .map(([id, name]) => ({
+                id: id.toString(),
+                name,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
     }
 
     getCachedData(key) {
@@ -261,7 +262,7 @@ class TVDBSource {
         }
 
         try {
-            const cacheKey = `tvdb_shows_${this.category}_${this.showCount}_${this.minRating}_${this.yearFilter}_${this.genreFilter}`;
+            const cacheKey = `tvdb_shows_${this.category}_${this.showCount}_${this.minRating}_${this.yearFilter}`;
             const cached = this.getCachedData(cacheKey);
             if (cached) {
                 return cached;
@@ -307,10 +308,6 @@ class TVDBSource {
                 params.year = this.yearFilter;
             }
 
-            if (this.genreFilter) {
-                params.genre = this.genreFilter;
-            }
-
             const response = await this.makeAuthenticatedRequest(endpoint, params);
 
             if (!response.data || !Array.isArray(response.data)) {
@@ -334,7 +331,7 @@ class TVDBSource {
         }
 
         try {
-            const cacheKey = `tvdb_movies_${this.category}_${this.movieCount}_${this.minRating}_${this.yearFilter}_${this.genreFilter}`;
+            const cacheKey = `tvdb_movies_${this.category}_${this.movieCount}_${this.minRating}_${this.yearFilter}`;
             const cached = this.getCachedData(cacheKey);
             if (cached) {
                 return cached;
@@ -378,10 +375,6 @@ class TVDBSource {
             // Add filters
             if (this.yearFilter) {
                 params.year = this.yearFilter;
-            }
-
-            if (this.genreFilter) {
-                params.genre = this.genreFilter;
             }
 
             const response = await this.makeAuthenticatedRequest(endpoint, params);
@@ -438,7 +431,7 @@ class TVDBSource {
                     title: show.name || 'Unknown Title',
                     year: this.extractYear(show.firstAired),
                     rating: show.averageRating || 0,
-                    genres: await this.mapGenres(show.genres || []),
+                    genres: [], // TODO: TVDB /series endpoint doesn't include genres - needs separate API calls
                     tagline: show.overview || '',
                     posterUrl: posterUrl,
                     backgroundUrl: backgroundUrl,
@@ -500,7 +493,7 @@ class TVDBSource {
                     title: movie.name || 'Unknown Title',
                     year: this.extractYear(movie.releaseDate),
                     rating: movie.averageRating || 0,
-                    genres: await this.mapGenres(movie.genres || []),
+                    genres: [], // TODO: TVDB /movies endpoint doesn't include genres - needs separate API calls
                     tagline: movie.overview || '',
                     posterUrl: posterUrl,
                     backgroundUrl: backgroundUrl,

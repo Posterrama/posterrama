@@ -5338,8 +5338,8 @@ app.post(
                 logger.debug(
                     '[Plex Test] No token provided in request, attempting to use existing server token.'
                 );
-            // Find the first enabled Plex server config. This assumes a single Plex server setup for now.
-            const plexServerConfig = config.mediaServers.find(s => s.type === 'plex' && s.enabled);
+            // Find the Plex server config (enabled or disabled)
+            const plexServerConfig = config.mediaServers.find(s => s.type === 'plex');
 
             if (plexServerConfig && plexServerConfig.tokenEnvVar) {
                 token = process.env[plexServerConfig.tokenEnvVar];
@@ -5465,11 +5465,35 @@ app.post(
             const sectionsResponse = await client.query('/library/sections');
             const allSections = sectionsResponse?.MediaContainer?.Directory || [];
 
-            const libraries = allSections.map(dir => ({
-                key: dir.key,
-                name: dir.title,
-                type: dir.type, // 'movie', 'show', etc.
-            }));
+            // Fetch item counts for each library
+            const libraries = await Promise.all(
+                allSections.map(async dir => {
+                    let itemCount = 0;
+                    try {
+                        // Only fetch count for movie and show libraries
+                        if (dir.type === 'movie' || dir.type === 'show') {
+                            const sectionResponse = await client.query(
+                                `/library/sections/${dir.key}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=1`
+                            );
+                            itemCount = parseInt(sectionResponse?.MediaContainer?.totalSize || 0);
+                        }
+                    } catch (countError) {
+                        if (isDebug)
+                            logger.debug(
+                                `[Plex Lib Count] Failed to get count for ${dir.title}:`,
+                                countError.message
+                            );
+                        // Continue without count
+                    }
+
+                    return {
+                        key: dir.key,
+                        name: dir.title,
+                        type: dir.type, // 'movie', 'show', etc.
+                        itemCount: itemCount,
+                    };
+                })
+            );
 
             res.json({ success: true, libraries });
         } catch (error) {
@@ -5706,17 +5730,52 @@ app.post(
 
             const libraries = await fetchJellyfinLibraries(client);
 
-            // Transform libraries to match expected format
-            const formattedLibraries = libraries.map(lib => ({
-                key: lib.Id,
-                name: lib.Name,
-                type:
-                    lib.CollectionType === 'movies'
-                        ? 'movie'
-                        : lib.CollectionType === 'tvshows'
-                          ? 'show'
-                          : lib.CollectionType || 'other',
-            }));
+            // Fetch item counts for each library
+            const formattedLibraries = await Promise.all(
+                libraries.map(async lib => {
+                    let itemCount = 0;
+                    try {
+                        // Only fetch count for movie and show libraries
+                        const libType =
+                            lib.CollectionType === 'movies'
+                                ? 'movie'
+                                : lib.CollectionType === 'tvshows'
+                                  ? 'show'
+                                  : lib.CollectionType || 'other';
+
+                        if (libType === 'movie' || libType === 'show') {
+                            const itemTypes = libType === 'movie' ? ['Movie'] : ['Series'];
+                            const response = await client.getItems({
+                                parentId: lib.Id,
+                                includeItemTypes: itemTypes,
+                                recursive: true,
+                                limit: 1,
+                                startIndex: 0,
+                            });
+                            itemCount = parseInt(response?.TotalRecordCount || 0);
+                        }
+                    } catch (countError) {
+                        if (isDebug)
+                            logger.debug(
+                                `[Jellyfin Lib Count] Failed to get count for ${lib.Name}:`,
+                                countError.message
+                            );
+                        // Continue without count
+                    }
+
+                    return {
+                        key: lib.Id,
+                        name: lib.Name,
+                        type:
+                            lib.CollectionType === 'movies'
+                                ? 'movie'
+                                : lib.CollectionType === 'tvshows'
+                                  ? 'show'
+                                  : lib.CollectionType || 'other',
+                        itemCount: itemCount,
+                    };
+                })
+            );
 
             res.json({ success: true, libraries: formattedLibraries });
         } catch (error) {
