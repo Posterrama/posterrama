@@ -991,60 +991,64 @@
                                         <input type="checkbox" id="tvdbSource.enabled" name="tvdbSource.enabled">
                                         <label for="tvdbSource.enabled">Enable TVDB as Content Source</label>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="tvdbSource.category">Content Category</label>
-                                        <select id="tvdbSource.category" name="tvdbSource.category">
-                                            <optgroup label="🏆 By Rating & Popularity">
-                                                <option value="top_rated">⭐ Top Rated</option>
-                                                <option value="popular">🔥 Most Popular</option>
-                                            </optgroup>
-                                            <optgroup label="📅 By Date">
-                                                <option value="recently_updated">🆕 Recently Updated</option>
-                                                <option value="newest">📺 Newest Releases</option>
-                                                <option value="oldest">📼 Classic Content</option>
-                                            </optgroup>
-                                            <optgroup label="📊 By Activity">
-                                                <option value="trending">📈 Trending Now</option>
-                                                <option value="recently_added">➕ Recently Added to TVDB</option>
-                                            </optgroup>
-                                            <optgroup label="🔤 Alphabetical">
-                                                <option value="alphabetical">🔤 A-Z Order</option>
-                                            </optgroup>
-                                        </select>
-                                        <small class="help-text">🎯 Choose how to sort and discover content from TVDB's extensive database!</small>
-                                    </div>
                                     
-                                    <div class="form-group number-input-group">
+                                    <!-- TVDB Configuration Container (hidden when disabled) -->
+                                    <div id="tvdb-config-container" class="source-config-container">
                                         <div class="form-group">
-                                            <label for="tvdbSource.minRating">Minimum Rating</label>
-                                            <input type="number" id="tvdbSource.minRating" name="tvdbSource.minRating" min="0" max="10" step="0.1" value="0">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="tvdbSource.yearFilter">Year Filter</label>
-                                            <input type="number" id="tvdbSource.yearFilter" name="tvdbSource.yearFilter" min="1900" max="2030" placeholder="e.g. 2023">
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="tvdbSource.genreFilter">Genre Filter</label>
-                                        <div class="genre-filter-container">
-                                            <select id="tvdbSource.genreFilter" name="tvdbSource.genreFilter" multiple class="genre-filter-select">
-                                                <option value="">Loading genres...</option>
+                                            <label for="tvdbSource.category">Content Category</label>
+                                            <select id="tvdbSource.category" name="tvdbSource.category">
+                                                <optgroup label="🏆 By Rating & Popularity">
+                                                    <option value="top_rated">⭐ Top Rated</option>
+                                                    <option value="popular">🔥 Most Popular</option>
+                                                </optgroup>
+                                                <optgroup label="📅 By Date">
+                                                    <option value="recently_updated">🆕 Recently Updated</option>
+                                                    <option value="newest">📺 Newest Releases</option>
+                                                    <option value="oldest">📼 Classic Content</option>
+                                                </optgroup>
+                                                <optgroup label="📊 By Activity">
+                                                    <option value="trending">📈 Trending Now</option>
+                                                    <option value="recently_added">➕ Recently Added to TVDB</option>
+                                                </optgroup>
+                                                <optgroup label="🔤 Alphabetical">
+                                                    <option value="alphabetical">🔤 A-Z Order</option>
+                                                </optgroup>
                                             </select>
-                                            <button type="button" class="btn-clear-genres" id="clearTvdbGenresBtn" title="Clear all selected genres">
-                                                <i class="fas fa-times"></i> Clear Selection
-                                            </button>
+                                            <small class="help-text">🎯 Choose how to sort and discover content from TVDB's extensive database!</small>
                                         </div>
-                                        <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
-                                    </div>
-                                    
-                                    <!-- TVDB Connection Test -->
-                                    <div class="form-group">
-                                        <button type="button" id="test-tvdb-connection" class="btn btn-primary">
-                                            <i class="fas fa-plug icon"></i>
-                                            <span>Test TVDB Connection</span>
-                                        </button>
-                                        <small id="tvdb-connection-status"></small>
-                                    </div>
+                                        
+                                        <div class="form-group number-input-group">
+                                            <div class="form-group">
+                                                <label for="tvdbSource.minRating">Minimum Rating</label>
+                                                <input type="number" id="tvdbSource.minRating" name="tvdbSource.minRating" min="0" max="10" step="0.1" value="0">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="tvdbSource.yearFilter">Year Filter</label>
+                                                <input type="number" id="tvdbSource.yearFilter" name="tvdbSource.yearFilter" min="1900" max="2030" placeholder="e.g. 2023">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="tvdbSource.genreFilter">Genre Filter</label>
+                                            <div class="genre-filter-container">
+                                                <select id="tvdbSource.genreFilter" name="tvdbSource.genreFilter" multiple class="genre-filter-select">
+                                                    <option value="">Loading genres...</option>
+                                                </select>
+                                                <button type="button" class="btn-clear-genres" id="clearTvdbGenresBtn" title="Clear all selected genres">
+                                                    <i class="fas fa-times"></i> Clear Selection
+                                                </button>
+                                            </div>
+                                            <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
+                                        </div>
+                                        
+                                        <!-- TVDB Connection Test -->
+                                        <div class="form-group">
+                                            <button type="button" id="test-tvdb-connection" class="btn btn-primary">
+                                                <i class="fas fa-plug icon"></i>
+                                                <span>Test TVDB Connection</span>
+                                            </button>
+                                            <small id="tvdb-connection-status"></small>
+                                        </div>
+                                    </div> <!-- End TVDB Configuration Container -->
                                 </div>
                             </div>
                         </div>

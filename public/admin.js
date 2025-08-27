@@ -9543,6 +9543,42 @@ function initSourceConditionalVisibility() {
             container: !!tmdbConfigContainer,
         });
     }
+
+    // TVDB enable checkbox handler
+    const tvdbEnabledCheckbox = document.getElementById('tvdbSource.enabled');
+    const tvdbConfigContainer = document.getElementById('tvdb-config-container');
+
+    if (tvdbEnabledCheckbox && tvdbConfigContainer) {
+        // Function to toggle visibility
+        function toggleTvdbConfig() {
+            if (tvdbEnabledCheckbox.checked) {
+                tvdbConfigContainer.classList.remove('hidden');
+                console.log('TVDB config shown (checkbox is checked)');
+            } else {
+                tvdbConfigContainer.classList.add('hidden');
+                console.log('TVDB config hidden (checkbox is unchecked)');
+            }
+        }
+
+        // Set initial state immediately
+        toggleTvdbConfig();
+
+        // Also set state after a short delay to handle config loading timing
+        setTimeout(() => {
+            toggleTvdbConfig();
+            console.log('TVDB conditional visibility re-initialized after delay');
+        }, 100);
+
+        // Listen for changes
+        tvdbEnabledCheckbox.addEventListener('change', toggleTvdbConfig);
+
+        console.log('TVDB conditional visibility initialized');
+    } else {
+        console.warn('TVDB checkbox or container not found', {
+            checkbox: !!tvdbEnabledCheckbox,
+            container: !!tvdbConfigContainer,
+        });
+    }
 }
 
 // Initialize on DOM ready
