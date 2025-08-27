@@ -221,7 +221,7 @@ function validateQueryParams(req, res, next) {
 // Specific validation middleware for public API endpoints
 function validateGetConfigQuery(req, res, next) {
     const sanitized = sanitizeInput(req.query || {});
-    const { error, value } = getConfigQuerySchema.validate(sanitized, {
+    const { error } = getConfigQuerySchema.validate(sanitized, {
         ...baseValidationOptions,
         stripUnknown: true,
     });

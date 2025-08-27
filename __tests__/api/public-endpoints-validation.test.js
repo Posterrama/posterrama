@@ -175,7 +175,7 @@ describe('Public API Endpoints Validation', () => {
         });
 
         test('should handle empty key', async () => {
-            const res = await request(app).get('/get-media-by-key/').expect(404); // Should match route properly
+            await request(app).get('/get-media-by-key/').expect(404); // Should match route properly
         });
 
         test('should handle very long key', async () => {
