@@ -2609,38 +2609,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return hiddenField ? hiddenField.value : '';
     }
 
-    function clearGenreSelection() {
-        // Clear Plex genre selection
-        const plexHiddenField = document.getElementById('mediaServers[0].genreFilter-hidden');
-        if (plexHiddenField) {
-            plexHiddenField.value = '';
-        }
-
-        const plexGenreContainer = document.getElementById('mediaServers[0].genreFilter');
-        if (plexGenreContainer) {
-            const checkboxes = plexGenreContainer.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-        }
-    }
-
-    function clearJellyfinGenreSelection() {
-        // Clear Jellyfin genre selection
-        const jellyfinHiddenField = document.getElementById('mediaServers[1].genreFilter-hidden');
-        if (jellyfinHiddenField) {
-            jellyfinHiddenField.value = '';
-        }
-
-        const jellyfinGenreContainer = document.getElementById('mediaServers[1].genreFilter');
-        if (jellyfinGenreContainer) {
-            const checkboxes = jellyfinGenreContainer.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-        }
-    }
-
     function setupGenreFilterListeners() {
         const clearBtn = document.getElementById('clearGenresBtn');
         if (clearBtn) {
@@ -8771,6 +8739,9 @@ async function populateRatingFilterCheckboxes(container, sourceType, currentValu
         // Update the hidden field with current selection
         updateHiddenRatingField(container, sourceType);
 
+        // Update initial clear button visibility
+        updateClearButtonVisibilityByContainer(container);
+
         console.log(
             `Populated rating filter checkboxes for ${sourceType} with ${ratingsWithCounts.length} ratings:`,
             ratingsWithCounts
@@ -8801,6 +8772,9 @@ function updateHiddenRatingField(container, sourceType) {
     } else {
         console.warn(`Could not find hidden field with ID: ${hiddenFieldId}`);
     }
+
+    // Update clear button visibility
+    updateClearButtonVisibilityByContainer(container);
 }
 
 /**
@@ -8878,6 +8852,9 @@ function populateGenreFilterCheckboxes(genres, container, currentValue = '') {
         // Update the hidden field with current selection
         updateHiddenGenreField(container);
 
+        // Update initial clear button visibility
+        updateClearButtonVisibilityByContainer(container);
+
         console.log(`Populated genre filter checkboxes with ${genres.length} genres:`, genres);
     } catch (error) {
         console.error('Error populating genre filter checkboxes:', error);
@@ -8903,6 +8880,131 @@ function updateHiddenGenreField(container) {
         console.log(`Updated hidden field ${hiddenFieldId} with:`, selectedValues);
     } else {
         console.warn(`Could not find hidden field with ID: ${hiddenFieldId}`);
+    }
+
+    // Update clear button visibility based on the container
+    updateClearButtonVisibilityByContainer(container);
+}
+
+// Generic function to clear any filter
+function clearFilterSelection(containerId, buttonId) {
+    const hiddenField = document.getElementById(containerId + '-hidden');
+    if (hiddenField) {
+        hiddenField.value = '';
+    }
+
+    const container = document.getElementById(containerId);
+    if (container) {
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+
+    // Hide the clear button
+    updateClearButtonVisibility(buttonId, container);
+}
+
+function clearGenreSelection() {
+    // Clear Plex genre selection
+    const plexHiddenField = document.getElementById('mediaServers[0].genreFilter-hidden');
+    if (plexHiddenField) {
+        plexHiddenField.value = '';
+    }
+
+    const plexGenreContainer = document.getElementById('mediaServers[0].genreFilter');
+    if (plexGenreContainer) {
+        const checkboxes = plexGenreContainer.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+
+    // Hide the clear button
+    updateClearButtonVisibility('clearGenresBtn', plexGenreContainer);
+}
+
+function clearJellyfinGenreSelection() {
+    // Clear Jellyfin genre selection
+    const jellyfinHiddenField = document.getElementById('mediaServers[1].genreFilter-hidden');
+    if (jellyfinHiddenField) {
+        jellyfinHiddenField.value = '';
+    }
+
+    const jellyfinGenreContainer = document.getElementById('mediaServers[1].genreFilter');
+    if (jellyfinGenreContainer) {
+        const checkboxes = jellyfinGenreContainer.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+
+    // Hide the clear button
+    updateClearButtonVisibility('clearJellyfinGenresBtn', jellyfinGenreContainer);
+}
+
+// Generic clear functions for rating and quality filters
+function clearPlexRatingSelection() {
+    clearFilterSelection('mediaServers[0].ratingFilter', 'clearPlexRatingsBtn');
+}
+
+function clearJellyfinRatingSelection() {
+    clearFilterSelection('mediaServers[1].ratingFilter', 'clearJellyfinRatingsBtn');
+}
+
+function clearPlexQualitySelection() {
+    clearFilterSelection('mediaServers[0].qualityFilter', 'clearPlexQualitiesBtn');
+}
+
+function clearJellyfinQualitySelection() {
+    clearFilterSelection('mediaServers[1].qualityFilter', 'clearJellyfinQualitiesBtn');
+}
+
+function clearTMDBGenreSelection() {
+    clearFilterSelection('tmdbSource.genreFilter', 'clearTMDBGenresBtn');
+}
+
+/**
+ * Function to show/hide clear button based on selection
+ * @param {string} buttonId - The ID of the clear button
+ * @param {HTMLDivElement} container - The checkbox container
+ */
+function updateClearButtonVisibility(buttonId, container) {
+    const button = document.getElementById(buttonId);
+    if (!button || !container) return;
+
+    const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
+    if (checkedBoxes.length > 0) {
+        button.classList.add('visible');
+    } else {
+        button.classList.remove('visible');
+    }
+}
+
+/**
+ * Update clear button visibility based on container ID
+ * @param {HTMLDivElement} container - The checkbox container
+ */
+function updateClearButtonVisibilityByContainer(container) {
+    if (!container) return;
+
+    const containerId = container.id;
+    let buttonId;
+
+    // Map container IDs to their corresponding clear button IDs
+    const buttonMapping = {
+        'mediaServers[0].genreFilter': 'clearGenresBtn',
+        'mediaServers[1].genreFilter': 'clearJellyfinGenresBtn',
+        'mediaServers[0].ratingFilter': 'clearPlexRatingsBtn',
+        'mediaServers[1].ratingFilter': 'clearJellyfinRatingsBtn',
+        'mediaServers[0].qualityFilter': 'clearPlexQualitiesBtn',
+        'mediaServers[1].qualityFilter': 'clearJellyfinQualitiesBtn',
+        'tmdbSource.genreFilter': 'clearTMDBGenresBtn',
+    };
+
+    buttonId = buttonMapping[containerId];
+    if (buttonId) {
+        updateClearButtonVisibility(buttonId, container);
     }
 }
 
@@ -8985,6 +9087,9 @@ function populateQualityFilterCheckboxes(qualities, container, currentValue = ''
         // Update the hidden field with current selection
         updateHiddenQualityField(container);
 
+        // Update initial clear button visibility
+        updateClearButtonVisibilityByContainer(container);
+
         console.log(
             `Populated quality filter checkboxes with ${qualities.length} qualities:`,
             qualities
@@ -9014,6 +9119,9 @@ function updateHiddenQualityField(container) {
     } else {
         console.warn(`Could not find hidden field with ID: ${hiddenFieldId}`);
     }
+
+    // Update clear button visibility
+    updateClearButtonVisibilityByContainer(container);
 }
 
 /**
@@ -9144,53 +9252,57 @@ async function refreshRatingFilters() {
 // instead of on DOMContentLoaded to ensure window.currentConfig is available
 
 /**
+ * Initialize all clear button listeners
+ */
+function initClearButtonListeners() {
+    // Setup all clear button listeners
+    const clearButtons = [
+        { id: 'clearGenresBtn', handler: clearGenreSelection },
+        { id: 'clearJellyfinGenresBtn', handler: clearJellyfinGenreSelection },
+        { id: 'clearPlexRatingsBtn', handler: clearPlexRatingSelection },
+        { id: 'clearJellyfinRatingsBtn', handler: clearJellyfinRatingSelection },
+        { id: 'clearPlexQualitiesBtn', handler: clearPlexQualitySelection },
+        { id: 'clearJellyfinQualitiesBtn', handler: clearJellyfinQualitySelection },
+        { id: 'clearTMDBGenresBtn', handler: clearTMDBGenreSelection },
+    ];
+
+    clearButtons.forEach(({ id, handler }) => {
+        const button = document.getElementById(id);
+        if (button) {
+            button.addEventListener('click', handler);
+        }
+    });
+
+    // Also update visibility for all containers on initial load
+    updateAllClearButtonVisibility();
+}
+
+/**
+ * Update visibility for all clear buttons based on current selections
+ */
+function updateAllClearButtonVisibility() {
+    const containers = [
+        'mediaServers[0].genreFilter',
+        'mediaServers[1].genreFilter',
+        'mediaServers[0].ratingFilter',
+        'mediaServers[1].ratingFilter',
+        'mediaServers[0].qualityFilter',
+        'mediaServers[1].qualityFilter',
+        'tmdbSource.genreFilter',
+    ];
+
+    containers.forEach(containerId => {
+        const container = document.getElementById(containerId);
+        if (container) {
+            updateClearButtonVisibilityByContainer(container);
+        }
+    });
+}
+
+/**
  * Initialize dynamic genre filters for all server configurations
  */
 function initDynamicGenreFilters() {
-    // Define clear functions locally to avoid scope issues
-    function clearGenreSelection() {
-        // Clear Plex genre selection
-        const plexHiddenField = document.getElementById('mediaServers[0].genreFilter-hidden');
-        if (plexHiddenField) {
-            plexHiddenField.value = '';
-        }
-
-        const plexGenreContainer = document.getElementById('mediaServers[0].genreFilter');
-        if (plexGenreContainer) {
-            const checkboxes = plexGenreContainer.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-        }
-    }
-
-    function clearJellyfinGenreSelection() {
-        // Clear Jellyfin genre selection
-        const jellyfinHiddenField = document.getElementById('mediaServers[1].genreFilter-hidden');
-        if (jellyfinHiddenField) {
-            jellyfinHiddenField.value = '';
-        }
-
-        const jellyfinGenreContainer = document.getElementById('mediaServers[1].genreFilter');
-        if (jellyfinGenreContainer) {
-            const checkboxes = jellyfinGenreContainer.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-        }
-    }
-
-    // Setup genre filter listeners - inline implementation to avoid scope issues
-    const clearPlexBtn = document.getElementById('clearGenresBtn');
-    if (clearPlexBtn) {
-        clearPlexBtn.addEventListener('click', clearGenreSelection);
-    }
-
-    const clearJellyfinBtn = document.getElementById('clearJellyfinGenresBtn');
-    if (clearJellyfinBtn) {
-        clearJellyfinBtn.addEventListener('click', clearJellyfinGenreSelection);
-    }
-
     // Find all genre filter elements with dynamic-genre-filter class
     const genreElements = document.querySelectorAll('.dynamic-genre-filter');
 
@@ -9470,6 +9582,7 @@ function initSourceConditionalVisibility() {
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     initSourceConditionalVisibility();
+    initClearButtonListeners();
 });
 
 // Make functions globally available
@@ -9479,3 +9592,18 @@ window.refreshRatingFilters = refreshRatingFilters;
 window.initDynamicGenreFilters = initDynamicGenreFilters;
 window.initDynamicQualityFilters = initDynamicQualityFilters;
 window.initSourceConditionalVisibility = initSourceConditionalVisibility;
+window.initClearButtonListeners = initClearButtonListeners;
+
+// Clear button functions
+window.clearGenreSelection = clearGenreSelection;
+window.clearJellyfinGenreSelection = clearJellyfinGenreSelection;
+window.clearPlexRatingSelection = clearPlexRatingSelection;
+window.clearJellyfinRatingSelection = clearJellyfinRatingSelection;
+window.clearPlexQualitySelection = clearPlexQualitySelection;
+window.clearJellyfinQualitySelection = clearJellyfinQualitySelection;
+window.clearTMDBGenreSelection = clearTMDBGenreSelection;
+window.clearFilterSelection = clearFilterSelection;
+
+// Visibility functions
+window.updateClearButtonVisibility = updateClearButtonVisibility;
+window.updateClearButtonVisibilityByContainer = updateClearButtonVisibilityByContainer;

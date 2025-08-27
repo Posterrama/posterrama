@@ -612,6 +612,9 @@
                                                     <div id="mediaServers[0].ratingFilter" class="dynamic-rating-filter multi-select-checkboxes" data-source="plex">
                                                         <div class="loading-indicator">Loading ratings...</div>
                                                     </div>
+                                                    <button type="button" class="btn-clear-genres" id="clearPlexRatingsBtn">
+                                                        <i class="fas fa-times"></i> Clear
+                                                    </button>
                                                     <input type="hidden" name="mediaServers[0].ratingFilter" id="mediaServers[0].ratingFilter-hidden" value="">
                                                 </div>
                                             </div>
@@ -621,15 +624,23 @@
                                                     <div id="mediaServers[0].genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="plex">
                                                         <div class="loading-indicator">Loading genres...</div>
                                                     </div>
+                                                    <button type="button" class="btn-clear-genres" id="clearGenresBtn">
+                                                        <i class="fas fa-times"></i> Clear
+                                                    </button>
                                                     <input type="hidden" name="mediaServers[0].genreFilter" id="mediaServers[0].genreFilter-hidden" value="">
                                                 </div>
                                             </div>
                                             <div class="form-group">
                                                 <label>Quality Filter</label>
-                                                <div id="mediaServers[0].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="plex">
-                                                    <div class="loading-indicator">Loading qualities...</div>
+                                                <div class="quality-filter-container">
+                                                    <div id="mediaServers[0].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="plex">
+                                                        <div class="loading-indicator">Loading qualities...</div>
+                                                    </div>
+                                                    <button type="button" class="btn-clear-genres" id="clearPlexQualitiesBtn">
+                                                        <i class="fas fa-times"></i> Clear
+                                                    </button>
+                                                    <input type="hidden" name="mediaServers[0].qualityFilter" id="mediaServers[0].qualityFilter-hidden" value="">
                                                 </div>
-                                                <input type="hidden" name="mediaServers[0].qualityFilter" id="mediaServers[0].qualityFilter-hidden" value="">
                                             </div>
                                             <div class="form-group checkbox-group">
                                                 <input type="checkbox" id="mediaServers[0].recentlyAddedOnly" name="mediaServers[0].recentlyAddedOnly">
@@ -716,6 +727,9 @@
                                                     <div id="mediaServers[1].ratingFilter" class="dynamic-rating-filter multi-select-checkboxes" data-source="jellyfin">
                                                         <div class="loading-indicator">Loading ratings...</div>
                                                     </div>
+                                                    <button type="button" class="btn-clear-genres" id="clearJellyfinRatingsBtn">
+                                                        <i class="fas fa-times"></i> Clear
+                                                    </button>
                                                     <input type="hidden" name="mediaServers[1].ratingFilter" id="mediaServers[1].ratingFilter-hidden" value="">
                                                 </div>
                                             </div>
@@ -725,15 +739,23 @@
                                                     <div id="mediaServers[1].genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="jellyfin">
                                                         <div class="loading-indicator">Loading genres...</div>
                                                     </div>
+                                                    <button type="button" class="btn-clear-genres" id="clearJellyfinGenresBtn">
+                                                        <i class="fas fa-times"></i> Clear
+                                                    </button>
                                                     <input type="hidden" name="mediaServers[1].genreFilter" id="mediaServers[1].genreFilter-hidden" value="">
                                                 </div>
                                             </div>
                                             <div class="form-group">
                                                 <label>Quality Filter</label>
-                                                <div id="mediaServers[1].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="jellyfin">
-                                                    <div class="loading-indicator">Loading qualities...</div>
+                                                <div class="quality-filter-container">
+                                                    <div id="mediaServers[1].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="jellyfin">
+                                                        <div class="loading-indicator">Loading qualities...</div>
+                                                    </div>
+                                                    <button type="button" class="btn-clear-genres" id="clearJellyfinQualitiesBtn">
+                                                        <i class="fas fa-times"></i> Clear
+                                                    </button>
+                                                    <input type="hidden" name="mediaServers[1].qualityFilter" id="mediaServers[1].qualityFilter-hidden" value="">
                                                 </div>
-                                                <input type="hidden" name="mediaServers[1].qualityFilter" id="mediaServers[1].qualityFilter-hidden" value="">
                                             </div>
                                             <div class="form-group checkbox-group">
                                                 <input type="checkbox" id="mediaServers[1].recentlyAddedOnly" name="mediaServers[1].recentlyAddedOnly">
@@ -827,6 +849,9 @@
                                                 <div id="tmdbSource.genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="tmdb">
                                                     <div class="loading-indicator">Loading genres...</div>
                                                 </div>
+                                                <button type="button" class="btn-clear-genres" id="clearTMDBGenresBtn">
+                                                    <i class="fas fa-times"></i> Clear
+                                                </button>
                                                 <input type="hidden" name="tmdbSource.genreFilter" id="tmdbSource.genreFilter-hidden" value="">
                                             </div>
                                         </div>

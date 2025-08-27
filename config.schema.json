@@ -277,6 +277,18 @@
                         "minimum": 1,
                         "default": 30
                     },
+                    "ratingFilter": {
+                        "type": "array",
+                        "description": "List of allowed content ratings (e.g., ['G', 'PG', 'PG-13']).",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "genreFilter": {
+                        "type": "string",
+                        "description": "Comma-separated list of allowed genres for filtering content.",
+                        "default": ""
+                    },
                     "ratingFilters": {
                         "type": "object",
                         "description": "Rating-based filtering options (Jellyfin only).",

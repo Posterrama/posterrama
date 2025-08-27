@@ -1757,7 +1757,7 @@ div:nth-of-type(2).subsection-header i {
     border-left: 2px solid var(--accent-primary);
     padding: 0.25rem 0 0.25rem 0; /* Compact padding */
     border-radius: 0;
-    margin-bottom: 0.25rem; /* Compact margin */
+    margin-bottom: 0.75rem; /* Use consistent margin like other form-groups */
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -3445,9 +3445,12 @@ fieldset:focus-within {
 }
 
 /* Multi-select genre filter styling */
-.genre-filter-container {
+.genre-filter-container,
+.rating-filter-container,
+.quality-filter-container {
     display: flex;
-    gap: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
     align-items: flex-start;
 }
 
@@ -3471,9 +3474,9 @@ fieldset:focus-within {
 }
 
 .btn-clear-genres {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #ef4444;
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    color: #94a3b8;
     padding: 0.5rem 0.75rem;
     border-radius: 6px;
     font-size: 0.8rem;
@@ -3482,11 +3485,20 @@ fieldset:focus-within {
     white-space: nowrap;
     height: fit-content;
     margin-top: 2px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-10px);
+}
+
+.btn-clear-genres.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
 }
 
 .btn-clear-genres:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(148, 163, 184, 0.2);
+    border-color: rgba(148, 163, 184, 0.5);
     color: #ffffff;
 }
 
