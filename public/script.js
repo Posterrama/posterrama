@@ -661,7 +661,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (shouldPrefetchFullList) {
                 try {
                     fetchMedia(false)
-                        .catch(() => {})
+                        .catch(() => {
+                            // Preview prefetch failed; grid will start with current list
+                        })
                         .finally(() => {
                             try {
                                 startWallartCycle(config.wallartMode);
