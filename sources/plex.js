@@ -39,11 +39,17 @@ class PlexSource {
      * @returns {object} Current performance metrics
      */
     getMetrics() {
+        const filterEfficiency =
+            this.metrics.itemsProcessed > 0
+                ? this.metrics.itemsFiltered / this.metrics.itemsProcessed
+                : 0;
+
         return {
             totalItems: this.cachedMedia ? this.cachedMedia.length : 0,
             lastFetch: this.lastFetch,
             cacheDuration: 3600000, // Default cache duration
             ...this.metrics,
+            filterEfficiency,
         };
     }
 

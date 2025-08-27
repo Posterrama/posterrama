@@ -144,8 +144,15 @@ async function checkMediaCache() {
  */
 async function checkPlexConnectivity() {
     try {
-        // Import the testServerConnection function from server utilities
-        const testServerConnection = require('../server').testServerConnection;
+        // Try to import the testServerConnection function from server utilities
+        let testServerConnection;
+        try {
+            testServerConnection = require('../server').testServerConnection;
+        } catch (error) {
+            // If import fails, use fallback
+            return await checkPlexConnectivityFallback();
+        }
+
         if (!testServerConnection) {
             // Fallback: create a simple connection test
             return await checkPlexConnectivityFallback();
@@ -189,12 +196,17 @@ async function checkPlexConnectivity() {
             details: { servers: checks },
         };
     } catch (error) {
-        return {
-            name: 'plex_connectivity',
-            status: 'error',
-            message: `Plex connectivity check failed: ${error.message}`,
-            details: { error: error.message },
-        };
+        // If all else fails, try fallback
+        try {
+            return await checkPlexConnectivityFallback();
+        } catch (fallbackError) {
+            return {
+                name: 'plex_connectivity',
+                status: 'error',
+                message: `Plex connectivity check failed: ${error.message}`,
+                details: { error: error.message },
+            };
+        }
     }
 }
 

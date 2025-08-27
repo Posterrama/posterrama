@@ -50,6 +50,11 @@ class JellyfinSource {
      * @returns {object} Current performance metrics
      */
     getMetrics() {
+        const filterEfficiency =
+            this.metrics.itemsProcessed > 0
+                ? this.metrics.itemsFiltered / this.metrics.itemsProcessed
+                : 0;
+
         return {
             totalItems: this.cachedMedia ? this.cachedMedia.length : 0,
             lastFetch: this.lastFetch,
@@ -60,6 +65,7 @@ class JellyfinSource {
             averageProcessingTime: this.metrics.averageProcessingTime,
             lastRequestTime: this.metrics.lastRequestTime,
             errorCount: this.metrics.errorCount,
+            filterEfficiency,
         };
     }
 
@@ -183,7 +189,7 @@ class JellyfinSource {
             }
 
             // Filter items based on ratings (CommunityRating, OfficialRating, UserData.Rating)
-            const filteredItems = allItems.filter(item => {
+            let filteredItems = allItems.filter(item => {
                 // Apply Rotten Tomatoes minimum score filter using CommunityRating
                 if (this.rtMinScore > 0 && item.CommunityRating) {
                     // CommunityRating is typically 0-10, convert RT percentage to 0-10 scale for comparison

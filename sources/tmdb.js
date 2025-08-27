@@ -41,10 +41,19 @@ class TMDBSource {
      * @returns {object} Current performance metrics
      */
     getMetrics() {
+        const cacheHitRate =
+            this.metrics.requestCount > 0 ? this.metrics.cacheHits / this.metrics.requestCount : 0;
+
         return {
             totalItems: this.cachedMedia ? this.cachedMedia.length : 0,
             lastFetch: this.lastFetch,
-            cacheDuration: this.config.cacheDuration || 3600000,
+            cacheDuration: (this.source && this.source.cacheDuration) || 3600000,
+            ...this.metrics,
+            cacheHitRate,
+            cacheSizes: {
+                genre: this.genreCache ? this.genreCache.size : 0,
+                response: this.responseCache ? this.responseCache.size : 0,
+            },
         };
     }
 

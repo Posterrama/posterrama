@@ -41,10 +41,16 @@ class TVDBSource {
      * @returns {object} Current performance metrics
      */
     getMetrics() {
+        const cacheHitRate =
+            this.metrics.requestCount > 0 ? this.metrics.cacheHits / this.metrics.requestCount : 0;
+
         return {
             totalItems: this.cachedMedia ? this.cachedMedia.length : 0,
             lastFetch: this.lastFetch,
-            cacheDuration: this.config.cacheDuration || 3600000,
+            cacheDuration: this.cacheTimeout || 3600000,
+            ...this.metrics,
+            cacheHitRate,
+            cacheSize: this.cache ? this.cache.size : 0,
         };
     }
 
