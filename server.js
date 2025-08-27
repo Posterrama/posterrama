@@ -5790,25 +5790,19 @@ app.post(
 
                     try {
                         if (libType === 'movie' || libType === 'show') {
-                            // Use Jellyfin's dedicated counts endpoint
-                            const countsResponse = await client.http.get(
-                                `/Items/Counts?parentId=${view.Id}`
-                            );
-                            const counts = countsResponse?.data;
+                            // The /Items/Counts endpoint doesn't properly filter by parentId
+                            // So we use the /Items endpoint with a small limit to get TotalRecordCount
+                            const itemTypes = libType === 'movie' ? ['Movie'] : ['Series'];
+                            const response = await client.getItems({
+                                parentId: view.Id,
+                                includeItemTypes: itemTypes,
+                                recursive: true,
+                                limit: 1,
+                                startIndex: 0,
+                            });
 
-                            if (isDebug) {
-                                logger.debug(
-                                    `[Jellyfin Lib Count] Counts for ${view.Name} (${view.CollectionType}):`,
-                                    counts
-                                );
-                            }
-
-                            // Get the appropriate count based on library type
-                            if (libType === 'movie') {
-                                itemCount = counts?.MovieCount || 0;
-                            } else if (libType === 'show') {
-                                itemCount = counts?.SeriesCount || 0;
-                            }
+                            // Use TotalRecordCount from the Items endpoint
+                            itemCount = parseInt(response?.TotalRecordCount || 0);
                         }
                     } catch (countError) {
                         if (isDebug) {
