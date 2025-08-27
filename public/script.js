@@ -98,6 +98,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Helper: ensure at least one background layer is visible to avoid black screen
+    function ensureBackgroundVisible() {
+        try {
+            const la = document.getElementById('layer-a');
+            const lb = document.getElementById('layer-b');
+            if (!la || !lb) return;
+            const aOp = parseFloat(getComputedStyle(la).opacity || '1');
+            const bOp = parseFloat(getComputedStyle(lb).opacity || '1');
+            if (aOp <= 0.01 && bOp <= 0.01) {
+                const target = activeLayer || la;
+                target.style.opacity = '1';
+            }
+        } catch (_) {
+            // ignore
+        }
+    }
+
     // --- State ---
     let mediaQueue = [];
     let currentIndex = -1;
@@ -873,6 +890,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                     element.style.display = '';
                 }
             });
+
+            // Re-apply clock visibility immediately after wallart is disabled
+            try {
+                const widgetContainer = document.getElementById('clock-widget-container');
+                const shouldShowClock = appConfig.clockWidget && !appConfig.cinemaMode;
+                if (widgetContainer) {
+                    widgetContainer.style.display = shouldShowClock ? 'block' : 'none';
+                    if (shouldShowClock) {
+                        updateClock();
+                        if (!document.clockUpdateInterval) {
+                            document.clockUpdateInterval = setInterval(updateClock, 1000);
+                        }
+                    }
+                }
+            } catch (_) {
+                // ignore
+            }
 
             // Restore document title to current media when exiting wallart mode
             if (
@@ -3673,6 +3707,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log(`🔄 Starting background transition effect`);
             // Apply transition effects with proper layering AFTER content is ready
             applyTransitionEffect(inactiveLayer, activeLayer, false);
+            // Ensure a background is visible after scheduling transition
+            ensureBackgroundVisible();
 
             if (loader.style.opacity !== '0') {
                 console.log(`🔄 Hiding loader`);
@@ -4102,6 +4138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Swap layers after short fade
                     setTimeout(() => {
                         swapLayers(newLayer, oldLayer);
+                        ensureBackgroundVisible();
                     }, fadeDuration * 1000);
                 });
                 break;
@@ -4162,6 +4199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const tempLayer = activeLayer;
                     activeLayer = inactiveLayer;
                     inactiveLayer = tempLayer;
+                    ensureBackgroundVisible();
                 }, actualDuration * 1000);
 
                 return; // Exit early to avoid the swapLayers call at the end
@@ -4182,6 +4220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     setTimeout(
                         () => {
                             swapLayers(newLayer, oldLayer);
+                            ensureBackgroundVisible();
                         },
                         (1 + actualPauseTime) * 1000
                     );
