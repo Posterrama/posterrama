@@ -358,13 +358,18 @@ class JellyfinHttpClient {
             for (const libraryId of libraryIds) {
                 try {
                     // Get items with media stream information
+                    // Use 'Movie' and 'Series' instead of 'Episode' to avoid counting all episodes individually
                     const response = await this.getItems({
                         parentId: libraryId,
-                        includeItemTypes: ['Movie', 'Episode'],
+                        includeItemTypes: ['Movie', 'Series'], // Fixed: was ['Movie', 'Episode']
                         fields: ['MediaStreams', 'MediaSources'], // Get both for maximum compatibility
                         limit: 1000, // Back to 1000 as requested
                         recursive: true,
                     });
+
+                    console.log(
+                        `[DEBUG] Library ${libraryId}: Found ${response.Items ? response.Items.length : 0} items (includeItemTypes: ['Movie', 'Series'])`
+                    );
 
                     if (response.Items) {
                         response.Items.forEach(item => {
