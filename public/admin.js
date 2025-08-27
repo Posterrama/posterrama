@@ -446,7 +446,9 @@ window.scrollToSubsection = function (id) {
         });
         try {
             localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
-        } catch (_) {}
+        } catch (err) {
+            void err; // ignore storage errors (private browsing, quotas, etc.)
+        }
         // After transition, ensure scale still correct
         setTimeout(() => {
             if (container.style.display !== 'none' && typeof updateFrameScale === 'function')
