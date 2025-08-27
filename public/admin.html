@@ -567,97 +567,96 @@
                                     
                                     <!-- Plex Configuration Container (hidden when disabled) -->
                                     <div id="plex-config-container" class="source-config-container">
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
-                                        <input type="text" id="mediaServers[0].hostname" name="mediaServers[0].hostname" placeholder="192.168.1.10 or plex.local" pattern="^[a-zA-Z0-9\.\-]+$">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].port">Plex Port</label>
-                                        <input type="number" id="mediaServers[0].port" name="mediaServers[0].port" min="1" max="65535" placeholder="32400">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].token">Plex Token</label>
-                                        <input type="password" id="mediaServers[0].token" name="mediaServers[0].token">
-                                    </div>
-                                </div>
-                                
-                                <!-- Library Configuration Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-folder-open"></i>
-                                    Library Configuration
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <label>Movie Library Names</label>
-                                        <div id="movie-libraries-container" class="library-container">
-                                            <small>Test the connection to fetch the libraries.</small>
+                                        <div class="form-group">
+                                            <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
+                                            <input type="text" id="mediaServers[0].hostname" name="mediaServers[0].hostname" placeholder="192.168.1.10 or plex.local" pattern="^[a-zA-Z0-9\.\-]+$">
                                         </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Show Library Names</label>
-                                        <div id="show-libraries-container" class="library-container">
-                                            <small>Test the connection to fetch the libraries.</small>
+                                        <div class="form-group">
+                                            <label for="mediaServers[0].port">Plex Port</label>
+                                            <input type="number" id="mediaServers[0].port" name="mediaServers[0].port" min="1" max="65535" placeholder="32400">
                                         </div>
-                                    </div>
-                                    
-                                </div>
-                                
-                                <!-- Content Filtering Subsection -->
-                                <div class="subsection-header" id="content-filtering-subsection">
-                                    <i class="fas fa-filter"></i>
-                                    Content Filtering
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].ratingFilter">Rating Filter</label>
-                                        <div class="rating-filter-container">
-                                            <div id="mediaServers[0].ratingFilter" class="dynamic-rating-filter multi-select-checkboxes" data-source="plex">
-                                                <div class="loading-indicator">Loading ratings...</div>
+                                        <div class="form-group">
+                                            <label for="mediaServers[0].token">Plex Token</label>
+                                            <input type="password" id="mediaServers[0].token" name="mediaServers[0].token">
+                                        </div>
+                                        
+                                        <!-- Library Configuration Subsection -->
+                                        <div class="subsection-header">
+                                            <i class="fas fa-folder-open"></i>
+                                            Library Configuration
+                                        </div>
+                                        <div class="subsection-content">
+                                            <div class="form-group">
+                                                <label>Movie Library Names</label>
+                                                <div id="movie-libraries-container" class="library-container">
+                                                    <small>Test the connection to fetch the libraries.</small>
+                                                </div>
                                             </div>
-                                            <input type="hidden" name="mediaServers[0].ratingFilter" id="mediaServers[0].ratingFilter-hidden" value="">
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].genreFilter">Genre Filter</label>
-                                        <div class="genre-filter-container">
-                                            <div id="mediaServers[0].genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="plex">
-                                                <div class="loading-indicator">Loading genres...</div>
+                                            <div class="form-group">
+                                                <label>Show Library Names</label>
+                                                <div id="show-libraries-container" class="library-container">
+                                                    <small>Test the connection to fetch the libraries.</small>
+                                                </div>
                                             </div>
-                                            <input type="hidden" name="mediaServers[0].genreFilter" id="mediaServers[0].genreFilter-hidden" value="">
                                         </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].qualityFilter">Quality Filter</label>
-                                        <div id="mediaServers[0].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="plex">
-                                            <div class="loading-indicator">Loading qualities...</div>
+                                        
+                                        <!-- Content Filtering Subsection -->
+                                        <div class="subsection-header" id="content-filtering-subsection">
+                                            <i class="fas fa-filter"></i>
+                                            Content Filtering
                                         </div>
-                                        <input type="hidden" name="mediaServers[0].qualityFilter" id="mediaServers[0].qualityFilter-hidden" value="">
-                                    </div>
-                                    <div class="form-group checkbox-group">
-                                        <input type="checkbox" id="mediaServers[0].recentlyAddedOnly" name="mediaServers[0].recentlyAddedOnly">
-                                        <label for="mediaServers[0].recentlyAddedOnly">Show Only Recently Added Content</label>
-                                    </div>
-                                    <div class="form-group recently-added-days-group hidden" id="recentlyAddedDaysContainer">
-                                        <label for="mediaServers[0].recentlyAddedDays">Recently Added (days)</label>
-                                        <input type="number" id="mediaServers[0].recentlyAddedDays" name="mediaServers[0].recentlyAddedDays" min="1" max="365" placeholder="30" value="30">
-                                    </div>
-                                </div>
-                                
-                                <!-- Connection Testing Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-plug"></i>
-                                    Connection Testing
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <button type="button" id="test-plex-button" class="btn btn-primary">
-                                            <i class="fas fa-plug icon"></i>
-                                            <span>Test Plex Connection</span>
-                                        </button>
-                                        <small id="plex-connection-status"></small>
-                                    </div>
-                                </div>
+                                        <div class="subsection-content">
+                                            <div class="form-group">
+                                                <label for="mediaServers[0].ratingFilter">Rating Filter</label>
+                                                <div class="rating-filter-container">
+                                                    <div id="mediaServers[0].ratingFilter" class="dynamic-rating-filter multi-select-checkboxes" data-source="plex">
+                                                        <div class="loading-indicator">Loading ratings...</div>
+                                                    </div>
+                                                    <input type="hidden" name="mediaServers[0].ratingFilter" id="mediaServers[0].ratingFilter-hidden" value="">
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="mediaServers[0].genreFilter">Genre Filter</label>
+                                                <div class="genre-filter-container">
+                                                    <div id="mediaServers[0].genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="plex">
+                                                        <div class="loading-indicator">Loading genres...</div>
+                                                    </div>
+                                                    <input type="hidden" name="mediaServers[0].genreFilter" id="mediaServers[0].genreFilter-hidden" value="">
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="mediaServers[0].qualityFilter">Quality Filter</label>
+                                                <div id="mediaServers[0].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="plex">
+                                                    <div class="loading-indicator">Loading qualities...</div>
+                                                </div>
+                                                <input type="hidden" name="mediaServers[0].qualityFilter" id="mediaServers[0].qualityFilter-hidden" value="">
+                                            </div>
+                                            <div class="form-group checkbox-group">
+                                                <input type="checkbox" id="mediaServers[0].recentlyAddedOnly" name="mediaServers[0].recentlyAddedOnly">
+                                                <label for="mediaServers[0].recentlyAddedOnly">Show Only Recently Added Content</label>
+                                            </div>
+                                            <div class="form-group recently-added-days-group hidden" id="recentlyAddedDaysContainer">
+                                                <label for="mediaServers[0].recentlyAddedDays">Recently Added (days)</label>
+                                                <input type="number" id="mediaServers[0].recentlyAddedDays" name="mediaServers[0].recentlyAddedDays" min="1" max="365" placeholder="30" value="30">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Connection Testing Subsection -->
+                                        <div class="subsection-header">
+                                            <i class="fas fa-plug"></i>
+                                            Connection Testing
+                                        </div>
+                                        <div class="subsection-content">
+                                            <div class="form-group">
+                                                <button type="button" id="test-plex-button" class="btn btn-primary">
+                                                    <i class="fas fa-plug icon"></i>
+                                                    <span>Test Plex Connection</span>
+                                                </button>
+                                                <small id="plex-connection-status"></small>
+                                            </div>
+                                        </div>
                                     </div> <!-- End Plex Configuration Container -->
+                                </div>
                                 
                                 <!-- Jellyfin Media Server Subsection -->
                                 <div class="subsection-header" id="jellyfin-subsection">

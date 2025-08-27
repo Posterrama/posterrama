@@ -3370,6 +3370,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof initDynamicQualityFilters === 'function') {
                 initDynamicQualityFilters();
             }
+
+            // Initialize conditional visibility after config is loaded
+            if (typeof initSourceConditionalVisibility === 'function') {
+                initSourceConditionalVisibility();
+            }
         } catch (error) {
             console.error('Failed to load config:', error);
             showNotification('Failed to load settings. Please try refreshing the page.', 'error');
@@ -9440,18 +9445,31 @@ function initSourceConditionalVisibility() {
         function togglePlexConfig() {
             if (plexEnabledCheckbox.checked) {
                 plexConfigContainer.classList.remove('hidden');
+                console.log('Plex config shown (checkbox is checked)');
             } else {
                 plexConfigContainer.classList.add('hidden');
+                console.log('Plex config hidden (checkbox is unchecked)');
             }
         }
 
-        // Set initial state
+        // Set initial state immediately
         togglePlexConfig();
+
+        // Also set state after a short delay to handle config loading timing
+        setTimeout(() => {
+            togglePlexConfig();
+            console.log('Plex conditional visibility re-initialized after delay');
+        }, 100);
 
         // Listen for changes
         plexEnabledCheckbox.addEventListener('change', togglePlexConfig);
 
         console.log('Plex conditional visibility initialized');
+    } else {
+        console.warn('Plex checkbox or container not found', {
+            checkbox: !!plexEnabledCheckbox,
+            container: !!plexConfigContainer,
+        });
     }
 }
 
