@@ -77,7 +77,13 @@ class LazyLoader {
 
             // Set up load handlers
             await new Promise((resolve, reject) => {
+                // Add timeout to prevent hanging
+                const timeout = setTimeout(() => {
+                    reject(new Error(`Timeout loading image: ${lazySrc}`));
+                }, 10000); // 10 second timeout
+
                 newImg.onload = () => {
+                    clearTimeout(timeout);
                     // Successfully loaded, update src
                     img.src = lazySrc;
                     img.removeAttribute('data-lazy-src');
@@ -87,23 +93,39 @@ class LazyLoader {
                     // Remove from failed images if it was there
                     this.failedImages.delete(img);
 
+                    console.log(`[LazyLoader] Successfully loaded: ${lazySrc}`);
                     resolve();
                 };
 
-                newImg.onerror = () => {
+                newImg.onerror = event => {
+                    clearTimeout(timeout);
+                    console.error(`[LazyLoader] Image error event:`, event);
                     reject(new Error(`Failed to load image: ${lazySrc}`));
                 };
 
                 // Start loading
                 newImg.src = lazySrc;
             });
-
-            console.log(`[LazyLoader] Successfully loaded: ${lazySrc}`);
         } catch (error) {
             console.warn(`[LazyLoader] Failed to load image: ${lazySrc}`, error);
 
             img.classList.remove('lazy-loading');
             img.classList.add('lazy-error');
+
+            // Set a fallback image - simple SVG placeholder
+            const fallbackSvg = `data:image/svg+xml;base64,${btoa(`
+                <svg width="300" height="450" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="100%" height="100%" fill="#2a2a2a"/>
+                    <rect x="10" y="10" width="280" height="430" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5,5"/>
+                    <text x="150" y="210" text-anchor="middle" fill="#888" font-family="Arial, sans-serif" font-size="16">Image</text>
+                    <text x="150" y="235" text-anchor="middle" fill="#888" font-family="Arial, sans-serif" font-size="16">Not Available</text>
+                    <circle cx="150" cy="180" r="20" fill="none" stroke="#666" stroke-width="2"/>
+                    <path d="M140 175 L145 185 L160 170" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            `)}`;
+
+            img.src = fallbackSvg;
+            img.alt = 'Image not available';
 
             // Handle retry logic
             if (this.options.enableRetry) {

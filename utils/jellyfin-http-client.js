@@ -187,6 +187,149 @@ class JellyfinHttpClient {
     }
 
     /**
+     * Get all unique genres with counts from specified libraries
+     */
+    async getGenresWithCounts(libraryIds) {
+        try {
+            const genreCounts = new Map();
+
+            // Get all movies and series from the selected libraries
+            for (const libraryId of libraryIds) {
+                try {
+                    // Use a broader approach to get all items from the library
+                    const response = await this.http.get('/Items', {
+                        params: {
+                            ParentId: libraryId,
+                            IncludeItemTypes: 'Movie,Series',
+                            Fields: 'Genres',
+                            Recursive: true,
+                            Limit: 1000, // Increase limit to get more items
+                        },
+                    });
+
+                    if (response.data.Items) {
+                        response.data.Items.forEach(item => {
+                            if (item.Genres && Array.isArray(item.Genres)) {
+                                item.Genres.forEach(genre => {
+                                    if (genre && genre.trim()) {
+                                        const cleanGenre = genre.trim();
+                                        genreCounts.set(
+                                            cleanGenre,
+                                            (genreCounts.get(cleanGenre) || 0) + 1
+                                        );
+                                    }
+                                });
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.warn(
+                        `Failed to fetch genres from library ${libraryId}:`,
+                        error.message
+                    );
+                }
+            }
+
+            // Convert to array of objects and sort by genre name
+            const result = Array.from(genreCounts.entries())
+                .map(([genre, count]) => ({ genre, count }))
+                .sort((a, b) => a.genre.localeCompare(b.genre));
+
+            return result;
+        } catch (error) {
+            throw new Error(`Failed to fetch genres with counts: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get all unique official ratings from specified libraries
+     */
+    async getRatings(libraryIds) {
+        try {
+            const ratingsSet = new Set();
+
+            // Get all movies and series from the selected libraries
+            for (const libraryId of libraryIds) {
+                try {
+                    // Get all items from the library with OfficialRating field
+                    const response = await this.http.get('/Items', {
+                        params: {
+                            ParentId: libraryId,
+                            IncludeItemTypes: 'Movie,Series',
+                            Fields: 'OfficialRating',
+                            Recursive: true,
+                            Limit: 10000, // High limit to get all items
+                        },
+                    });
+
+                    if (response.data.Items) {
+                        response.data.Items.forEach(item => {
+                            if (item.OfficialRating && item.OfficialRating.trim()) {
+                                ratingsSet.add(item.OfficialRating.trim());
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.warn(
+                        `Failed to fetch ratings from library ${libraryId}:`,
+                        error.message
+                    );
+                }
+            }
+
+            return Array.from(ratingsSet).sort();
+        } catch (error) {
+            throw new Error(`Failed to fetch ratings: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get all unique official ratings with their counts from specified libraries
+     */
+    async getRatingsWithCounts(libraryIds) {
+        try {
+            const ratingsMap = new Map();
+
+            // Get all movies and series from the selected libraries
+            for (const libraryId of libraryIds) {
+                try {
+                    // Get all items from the library with OfficialRating field
+                    const response = await this.http.get('/Items', {
+                        params: {
+                            ParentId: libraryId,
+                            IncludeItemTypes: 'Movie,Series',
+                            Fields: 'OfficialRating',
+                            Recursive: true,
+                            Limit: 10000, // High limit to get all items
+                        },
+                    });
+
+                    if (response.data.Items) {
+                        response.data.Items.forEach(item => {
+                            if (item.OfficialRating && item.OfficialRating.trim()) {
+                                const rating = item.OfficialRating.trim();
+                                ratingsMap.set(rating, (ratingsMap.get(rating) || 0) + 1);
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.warn(
+                        `Failed to fetch ratings from library ${libraryId}:`,
+                        error.message
+                    );
+                }
+            }
+
+            // Convert to array of objects and sort by rating
+            return Array.from(ratingsMap.entries())
+                .map(([rating, count]) => ({ rating, count }))
+                .sort((a, b) => a.rating.localeCompare(b.rating));
+        } catch (error) {
+            throw new Error(`Failed to fetch ratings with counts: ${error.message}`);
+        }
+    }
+
+    /**
      * Search for items by title (useful for future search functionality)
      */
     async searchItems(searchTerm, includeItemTypes = ['Movie', 'Series']) {
@@ -202,6 +345,107 @@ class JellyfinHttpClient {
             return response.data.Items || [];
         } catch (error) {
             throw new Error(`Search failed: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get all unique quality/resolution values with counts from specified libraries
+     */
+    async getQualitiesWithCounts(libraryIds) {
+        try {
+            const qualityCounts = new Map();
+
+            for (const libraryId of libraryIds) {
+                try {
+                    // Get items with media stream information
+                    const response = await this.getItems({
+                        parentId: libraryId,
+                        includeItemTypes: ['Movie', 'Episode'],
+                        fields: ['MediaStreams', 'MediaSources'], // Get both for maximum compatibility
+                        limit: 1000, // Back to 1000 as requested
+                        recursive: true,
+                    });
+
+                    if (response.Items) {
+                        response.Items.forEach(item => {
+                            let videoStream = null;
+
+                            // First try direct MediaStreams on item level
+                            if (item.MediaStreams && Array.isArray(item.MediaStreams)) {
+                                videoStream = item.MediaStreams.find(
+                                    stream => stream.Type === 'Video'
+                                );
+                            }
+
+                            // If not found, try MediaSources > MediaStreams (nested)
+                            if (
+                                !videoStream &&
+                                item.MediaSources &&
+                                Array.isArray(item.MediaSources)
+                            ) {
+                                for (const source of item.MediaSources) {
+                                    if (source.MediaStreams && Array.isArray(source.MediaStreams)) {
+                                        videoStream = source.MediaStreams.find(
+                                            stream => stream.Type === 'Video'
+                                        );
+                                        if (videoStream) break; // Use first video stream found
+                                    }
+                                }
+                            }
+
+                            // Process the video stream if found
+                            if (videoStream && videoStream.Height) {
+                                let quality;
+                                const height = videoStream.Height;
+
+                                // Map video height to standardized quality labels
+                                if (height <= 576) {
+                                    quality = 'SD';
+                                } else if (height <= 720) {
+                                    quality = '720p';
+                                } else if (height <= 1080) {
+                                    quality = '1080p';
+                                } else if (height >= 2160) {
+                                    quality = '4K';
+                                } else {
+                                    // For other resolutions, create a label based on height
+                                    quality = `${height}p`;
+                                }
+
+                                qualityCounts.set(quality, (qualityCounts.get(quality) || 0) + 1);
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.warn(
+                        `Failed to fetch qualities from library ${libraryId}:`,
+                        error.message
+                    );
+                }
+            }
+
+            // Convert to array of objects and sort by quality preference
+            const qualityOrder = ['SD', '720p', '1080p', '4K'];
+            const result = Array.from(qualityCounts.entries())
+                .map(([quality, count]) => ({ quality, count }))
+                .sort((a, b) => {
+                    const aIndex = qualityOrder.indexOf(a.quality);
+                    const bIndex = qualityOrder.indexOf(b.quality);
+
+                    // If both are in the predefined order, sort by order
+                    if (aIndex !== -1 && bIndex !== -1) {
+                        return aIndex - bIndex;
+                    }
+                    // If only one is in predefined order, prioritize it
+                    if (aIndex !== -1) return -1;
+                    if (bIndex !== -1) return 1;
+                    // If neither is in predefined order, sort alphabetically
+                    return a.quality.localeCompare(b.quality);
+                });
+
+            return result;
+        } catch (error) {
+            throw new Error(`Failed to fetch qualities with counts: ${error.message}`);
         }
     }
 }

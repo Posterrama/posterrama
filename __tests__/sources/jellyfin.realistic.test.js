@@ -356,4 +356,157 @@ describe('Jellyfin Source', () => {
             await expect(jellyfinSource.getServerInfo()).rejects.toThrow('Test connection failed');
         });
     });
+
+    describe('Genre Filtering', () => {
+        beforeEach(() => {
+            const mockLibraries = new Map([['Movies', { id: 'library-1', name: 'Movies' }]]);
+            mockGetJellyfinLibraries.mockResolvedValue(mockLibraries);
+        });
+
+        test('should filter items by genre when genreFilter is set', async () => {
+            // Configure server with genre filter
+            const serverConfigWithGenre = {
+                ...mockServerConfig,
+                genreFilter: 'Action, Comedy',
+                movieLibraryNames: ['Movies'],
+            };
+
+            const jellyfinSourceWithGenre = new JellyfinSource(
+                serverConfigWithGenre,
+                mockGetJellyfinClient,
+                mockProcessJellyfinItem,
+                mockGetJellyfinLibraries,
+                mockShuffleArray,
+                0,
+                true // enable debug
+            );
+
+            const mockItems = [
+                {
+                    Id: '1',
+                    Name: 'Action Movie',
+                    Type: 'Movie',
+                    Genres: ['Action', 'Thriller'],
+                    CommunityRating: 8.0,
+                },
+                {
+                    Id: '2',
+                    Name: 'Comedy Movie',
+                    Type: 'Movie',
+                    Genres: ['Comedy', 'Romance'],
+                    CommunityRating: 7.5,
+                },
+                {
+                    Id: '3',
+                    Name: 'Drama Movie',
+                    Type: 'Movie',
+                    Genres: ['Drama'],
+                    CommunityRating: 9.0,
+                },
+            ];
+
+            mockJellyfinClient.getItems.mockResolvedValue({
+                Items: mockItems,
+                TotalRecordCount: mockItems.length,
+            });
+
+            const result = await jellyfinSourceWithGenre.fetchMedia(['Movies'], 'movie', 10);
+
+            // Should only return Action and Comedy movies
+            expect(result).toHaveLength(2);
+            expect(result.map(item => item.Name)).toEqual(['Comedy Movie', 'Action Movie']);
+        });
+
+        test('should handle empty genre filter', async () => {
+            const serverConfigEmptyGenre = {
+                ...mockServerConfig,
+                genreFilter: '',
+                movieLibraryNames: ['Movies'],
+            };
+
+            const jellyfinSourceEmptyGenre = new JellyfinSource(
+                serverConfigEmptyGenre,
+                mockGetJellyfinClient,
+                mockProcessJellyfinItem,
+                mockGetJellyfinLibraries,
+                mockShuffleArray,
+                0,
+                false
+            );
+
+            const mockItems = [
+                {
+                    Id: '1',
+                    Name: 'Any Movie',
+                    Type: 'Movie',
+                    Genres: ['Drama'],
+                    CommunityRating: 8.0,
+                },
+            ];
+
+            mockJellyfinClient.getItems.mockResolvedValue({
+                Items: mockItems,
+                TotalRecordCount: mockItems.length,
+            });
+
+            const result = await jellyfinSourceEmptyGenre.fetchMedia(['Movies'], 'movie', 10);
+
+            // Should return all items when no genre filter
+            expect(result).toHaveLength(1);
+            expect(result[0].Name).toBe('Any Movie');
+        });
+
+        test('should exclude items without genres when genre filter is set', async () => {
+            const serverConfigWithGenre = {
+                ...mockServerConfig,
+                genreFilter: 'Action',
+                movieLibraryNames: ['Movies'],
+            };
+
+            const jellyfinSourceWithGenre = new JellyfinSource(
+                serverConfigWithGenre,
+                mockGetJellyfinClient,
+                mockProcessJellyfinItem,
+                mockGetJellyfinLibraries,
+                mockShuffleArray,
+                0,
+                true
+            );
+
+            const mockItems = [
+                {
+                    Id: '1',
+                    Name: 'Movie with Genres',
+                    Type: 'Movie',
+                    Genres: ['Action'],
+                    CommunityRating: 8.0,
+                },
+                {
+                    Id: '2',
+                    Name: 'Movie without Genres',
+                    Type: 'Movie',
+                    Genres: [],
+                    CommunityRating: 7.0,
+                },
+                {
+                    Id: '3',
+                    Name: 'Movie with null Genres',
+                    Type: 'Movie',
+                    Genres: null,
+                    CommunityRating: 6.0,
+                },
+            ];
+
+            mockJellyfinClient.getItems.mockResolvedValue({
+                Items: mockItems,
+                TotalRecordCount: mockItems.length,
+            });
+
+            const result = await jellyfinSourceWithGenre.fetchMedia(['Movies'], 'movie', 10);
+
+            // Should only return the movie with matching genres
+            expect(result).toHaveLength(1);
+            expect(result[0].Name).toBe('Movie with Genres');
+        });
+    });
 });

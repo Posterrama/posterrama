@@ -276,6 +276,7 @@ const qrcode = require('qrcode');
 const rateLimit = require('express-rate-limit');
 const app = express();
 const { ApiError, NotFoundError } = require('./utils/errors.js');
+const ratingCache = require('./utils/rating-cache.js');
 
 // Use process.env with a fallback to config.json
 const port = process.env.SERVER_PORT || config.serverPort || 4000;
@@ -1773,6 +1774,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
                 : null,
             tagline: sourceItem.tagline,
             rating: sourceItem.rating,
+            contentRating: sourceItem.contentRating,
             year: sourceItem.year,
             imdbUrl: imdbUrl,
             rottenTomatoes: rottenTomatoesData,
@@ -2140,6 +2142,175 @@ async function getPlexGenres(serverConfig) {
     }
 }
 
+/**
+ * Get Plex genres with counts
+ * @param {Object} serverConfig - Plex server configuration
+ * @returns {Promise<Array>} Array of genre objects with {genre, count}
+ */
+async function getPlexGenresWithCounts(serverConfig) {
+    try {
+        const plex = getPlexClient(serverConfig);
+        const allLibraries = await getPlexLibraries(serverConfig);
+        const genreCounts = new Map();
+
+        for (const [libraryName, library] of allLibraries) {
+            // Only get genres from movie and show libraries
+            if (library.type === 'movie' || library.type === 'show') {
+                try {
+                    // Get all unique genres with counts from this library
+                    // First try the genre endpoint for available genres
+                    const genreFilter = await plex.query(`/library/sections/${library.key}/genre`);
+                    const availableGenres = new Set();
+
+                    if (genreFilter?.MediaContainer?.Directory) {
+                        genreFilter.MediaContainer.Directory.forEach(genreDir => {
+                            if (genreDir.title) {
+                                availableGenres.add(genreDir.title);
+                            }
+                        });
+                    }
+
+                    // Get actual content to count genres
+                    const content = await plex.query(
+                        `/library/sections/${library.key}/all?limit=1000&includeGuids=1`
+                    );
+
+                    if (content?.MediaContainer?.Metadata) {
+                        content.MediaContainer.Metadata.forEach(item => {
+                            if (item.Genre && Array.isArray(item.Genre)) {
+                                item.Genre.forEach(genre => {
+                                    if (genre.tag) {
+                                        const genreName = genre.tag;
+                                        genreCounts.set(
+                                            genreName,
+                                            (genreCounts.get(genreName) || 0) + 1
+                                        );
+                                    }
+                                });
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.warn(
+                        `[getPlexGenresWithCounts] Error fetching from library ${libraryName}: ${error.message}`
+                    );
+                }
+            }
+        }
+
+        // Convert to array of objects and sort by genre name
+        const result = Array.from(genreCounts.entries())
+            .map(([genre, count]) => ({ genre, count }))
+            .sort((a, b) => a.genre.localeCompare(b.genre));
+
+        if (isDebug)
+            logger.debug(
+                `[getPlexGenresWithCounts] Found ${result.length} unique genres with counts from ${allLibraries.size} libraries`
+            );
+
+        return result;
+    } catch (error) {
+        console.error(`[getPlexGenresWithCounts] Error: ${error.message}`);
+        return [];
+    }
+}
+
+/**
+ * Get all unique quality/resolution values with counts from a Plex server
+ * @param {Object} serverConfig - Plex server configuration
+ * @returns {Promise<Array>} Array of quality objects with count
+ */
+async function getPlexQualitiesWithCounts(serverConfig) {
+    try {
+        const plex = getPlexClient(serverConfig);
+        const allLibraries = await getPlexLibraries(serverConfig);
+        const qualityCounts = new Map();
+
+        for (const [libraryName, library] of allLibraries) {
+            // Only get qualities from movie and show libraries
+            if (library.type === 'movie' || library.type === 'show') {
+                try {
+                    // Get actual content to extract quality information
+                    const content = await plex.query(
+                        `/library/sections/${library.key}/all?limit=1000&includeGuids=1`
+                    );
+
+                    if (content?.MediaContainer?.Metadata) {
+                        content.MediaContainer.Metadata.forEach(item => {
+                            if (item.Media && Array.isArray(item.Media)) {
+                                item.Media.forEach(media => {
+                                    if (media.videoResolution) {
+                                        let quality;
+                                        const resolution = media.videoResolution;
+
+                                        // Map Plex resolution values to standardized quality labels
+                                        switch (resolution) {
+                                            case 'sd':
+                                                quality = 'SD';
+                                                break;
+                                            case '720':
+                                            case 'hd':
+                                                quality = '720p';
+                                                break;
+                                            case '1080':
+                                                quality = '1080p';
+                                                break;
+                                            case '4k':
+                                                quality = '4K';
+                                                break;
+                                            default:
+                                                // For unknown resolutions, use the raw value
+                                                quality = resolution.toUpperCase();
+                                        }
+
+                                        qualityCounts.set(
+                                            quality,
+                                            (qualityCounts.get(quality) || 0) + 1
+                                        );
+                                    }
+                                });
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.warn(
+                        `[getPlexQualitiesWithCounts] Error fetching from library ${libraryName}: ${error.message}`
+                    );
+                }
+            }
+        }
+
+        // Convert to array of objects and sort by quality preference (SD, 720p, 1080p, 4K, others)
+        const qualityOrder = ['SD', '720p', '1080p', '4K'];
+        const result = Array.from(qualityCounts.entries())
+            .map(([quality, count]) => ({ quality, count }))
+            .sort((a, b) => {
+                const aIndex = qualityOrder.indexOf(a.quality);
+                const bIndex = qualityOrder.indexOf(b.quality);
+
+                // If both are in the predefined order, sort by order
+                if (aIndex !== -1 && bIndex !== -1) {
+                    return aIndex - bIndex;
+                }
+                // If only one is in predefined order, prioritize it
+                if (aIndex !== -1) return -1;
+                if (bIndex !== -1) return 1;
+                // If neither is in predefined order, sort alphabetically
+                return a.quality.localeCompare(b.quality);
+            });
+
+        if (isDebug)
+            logger.debug(
+                `[getPlexQualitiesWithCounts] Found ${result.length} unique qualities with counts from ${allLibraries.size} libraries`
+            );
+
+        return result;
+    } catch (error) {
+        console.error(`[getPlexQualitiesWithCounts] Error: ${error.message}`);
+        return [];
+    }
+}
+
 // --- JELLYFIN UTILITY FUNCTIONS ---
 
 /**
@@ -2306,20 +2477,26 @@ function processJellyfinItem(item, serverConfig, client) {
         let backdropUrl = null;
         let clearLogoUrl = null;
 
-        // Use the dedicated Primary endpoint for posters
-        // Jellyfin provides posters via /Items/{Id}/Images/Primary
-        const primaryImageUrl = client.getImageUrl(item.Id, 'Primary');
-        posterUrl = `/image?url=${encodeURIComponent(primaryImageUrl)}`;
+        // Use the dedicated Primary endpoint for posters only if image exists
+        if (item.ImageTags && item.ImageTags.Primary) {
+            const primaryImageUrl = client.getImageUrl(item.Id, 'Primary');
+            posterUrl = `/image?url=${encodeURIComponent(primaryImageUrl)}`;
+        }
 
-        // Use the dedicated Backdrop endpoint for backgrounds
-        // Jellyfin provides fanart backgrounds via /Items/{Id}/Images/Backdrop
-        const backdropImageUrl = client.getImageUrl(item.Id, 'Backdrop');
-        backdropUrl = `/image?url=${encodeURIComponent(backdropImageUrl)}`;
+        // Use the dedicated Backdrop endpoint for backgrounds only if image exists
+        if (
+            (item.ImageTags && item.ImageTags.Backdrop) ||
+            (item.BackdropImageTags && item.BackdropImageTags.length > 0)
+        ) {
+            const backdropImageUrl = client.getImageUrl(item.Id, 'Backdrop');
+            backdropUrl = `/image?url=${encodeURIComponent(backdropImageUrl)}`;
+        }
 
-        // Use the dedicated Logo endpoint for clear logos
-        // Jellyfin provides clear logos via /Items/{Id}/Images/Logo
-        const logoImageUrl = client.getImageUrl(item.Id, 'Logo');
-        clearLogoUrl = `/image?url=${encodeURIComponent(logoImageUrl)}`;
+        // Use the dedicated Logo endpoint for clear logos only if image exists
+        if (item.ImageTags && item.ImageTags.Logo) {
+            const logoImageUrl = client.getImageUrl(item.Id, 'Logo');
+            clearLogoUrl = `/image?url=${encodeURIComponent(logoImageUrl)}`;
+        }
 
         // Extract metadata
         const processedItem = {
@@ -4371,6 +4548,395 @@ app.post(
 // PUBLIC API ENDPOINTS
 // ============================================================================
 
+// ============================================================================
+// RATING UTILITIES
+// ============================================================================
+
+/**
+ * Fetch all available ratings from a Jellyfin server
+ * @param {Object} serverConfig - Jellyfin server configuration
+ * @returns {Promise<Array<string>>} Array of unique ratings
+ */
+async function fetchAllJellyfinRatings(serverConfig) {
+    try {
+        const client = await getJellyfinClient(serverConfig);
+        const allLibraries = await getJellyfinLibraries(serverConfig);
+
+        // Get library IDs that are configured for this server
+        const configuredLibraries = [
+            ...(serverConfig.movieLibraryNames || []),
+            ...(serverConfig.showLibraryNames || []),
+        ];
+        const libraryIds = [];
+
+        for (const libraryName of configuredLibraries) {
+            const library = allLibraries.get(libraryName);
+            if (library) {
+                libraryIds.push(library.id);
+            }
+        }
+
+        if (libraryIds.length === 0) {
+            logger.warn(
+                `[fetchAllJellyfinRatings] No configured libraries found for ${serverConfig.name}`
+            );
+            return [];
+        }
+
+        logger.info(
+            `[fetchAllJellyfinRatings] Fetching ratings from ${libraryIds.length} libraries for ${serverConfig.name}`
+        );
+        const ratings = await client.getRatings(libraryIds);
+
+        logger.info(
+            `[fetchAllJellyfinRatings] Found ${ratings.length} unique ratings in ${serverConfig.name}:`,
+            ratings
+        );
+        return ratings;
+    } catch (error) {
+        logger.error(
+            `[fetchAllJellyfinRatings] Failed to fetch ratings for ${serverConfig.name}:`,
+            error.message
+        );
+        return [];
+    }
+}
+
+/**
+ * Fetch all available content ratings from a Plex server
+ * @param {object} serverConfig - The Plex server configuration
+ * @returns {Promise<Array<string>>} Array of unique content ratings
+ */
+async function fetchAllPlexRatings(serverConfig) {
+    try {
+        const PlexHttpClient = require('./utils/plex-http-client');
+        const plexClient = getPlexClient(serverConfig);
+        const client = new PlexHttpClient(plexClient, serverConfig, isDebug);
+
+        logger.info(`[fetchAllPlexRatings] Fetching ratings from ${serverConfig.name}`);
+        const ratings = await client.getRatings();
+
+        logger.info(
+            `[fetchAllPlexRatings] Found ${ratings.length} unique ratings in ${serverConfig.name}:`,
+            ratings
+        );
+        return ratings;
+    } catch (error) {
+        logger.error(
+            `[fetchAllPlexRatings] Failed to fetch ratings for ${serverConfig.name}:`,
+            error.message
+        );
+        return [];
+    }
+}
+
+/**
+ * Get all available ratings for a source type with intelligent caching
+ * @param {string} sourceType - The source type (jellyfin, plex, etc.)
+ * @returns {Promise<Array<string>>} Array of unique ratings
+ */
+async function getAllSourceRatings(sourceType) {
+    // Check cache first
+    const cachedRatings = ratingCache.getRatings(sourceType);
+    if (cachedRatings.length > 0) {
+        logger.debug(
+            `[getAllSourceRatings] Using cached ratings for ${sourceType}: ${cachedRatings.length} ratings`
+        );
+        return cachedRatings;
+    }
+
+    logger.info(`[getAllSourceRatings] Cache miss for ${sourceType}, fetching from source...`);
+
+    // Find enabled servers of this type
+    const enabledServers =
+        config.mediaServers?.filter(
+            server => server.enabled && server.type?.toLowerCase() === sourceType.toLowerCase()
+        ) || [];
+
+    if (enabledServers.length === 0) {
+        logger.warn(`[getAllSourceRatings] No enabled servers found for ${sourceType}`);
+        return [];
+    }
+
+    const allRatings = new Set();
+
+    // Fetch ratings from all enabled servers of this type
+    for (const server of enabledServers) {
+        try {
+            let serverRatings = [];
+
+            switch (sourceType.toLowerCase()) {
+                case 'jellyfin':
+                    serverRatings = await fetchAllJellyfinRatings(server);
+                    break;
+                case 'plex':
+                    serverRatings = await fetchAllPlexRatings(server);
+                    break;
+                default:
+                    logger.warn(`[getAllSourceRatings] Unsupported source type: ${sourceType}`);
+                    continue;
+            }
+
+            // Add all ratings to the set
+            serverRatings.forEach(rating => allRatings.add(rating));
+        } catch (error) {
+            logger.error(
+                `[getAllSourceRatings] Failed to fetch ratings from server ${server.name}:`,
+                error.message
+            );
+        }
+    }
+
+    const finalRatings = Array.from(allRatings).sort();
+
+    // Cache the results
+    await ratingCache.setRatings(sourceType, finalRatings);
+
+    return finalRatings;
+}
+
+/**
+ * Get ratings with counts for each rating
+ * @param {string} sourceType - The source type (e.g., 'jellyfin', 'plex')
+ * @returns {Promise<Array<{rating: string, count: number}>>} Array of ratings with counts
+ */
+async function getRatingsWithCounts(sourceType) {
+    if (!['jellyfin', 'plex'].includes(sourceType.toLowerCase())) {
+        throw new Error(`Rating counts not supported for source type: ${sourceType}`);
+    }
+
+    // Find the enabled server of the specified type
+    const server = config.mediaServers.find(
+        server => server.type?.toLowerCase() === sourceType.toLowerCase() && server.enabled
+    );
+
+    if (!server) {
+        throw new Error(`No enabled ${sourceType} server found`);
+    }
+
+    try {
+        let ratingsWithCounts = [];
+
+        switch (sourceType.toLowerCase()) {
+            case 'jellyfin':
+                const jellyfinClient = await getJellyfinClient(server);
+                const allLibraries = await getJellyfinLibraries(server);
+
+                // Get library IDs
+                const configuredLibraries = [
+                    ...(server.movieLibraryNames || []),
+                    ...(server.showLibraryNames || []),
+                ];
+                const libraryIds = [];
+
+                for (const libraryName of configuredLibraries) {
+                    const library = allLibraries.get(libraryName);
+                    if (library) {
+                        libraryIds.push(library.id);
+                    }
+                }
+
+                if (libraryIds.length === 0) {
+                    logger.warn(
+                        `[getRatingsWithCounts] No configured libraries found for ${server.name}`
+                    );
+                    return [];
+                }
+
+                ratingsWithCounts = await jellyfinClient.getRatingsWithCounts(libraryIds);
+                break;
+
+            case 'plex':
+                const PlexHttpClient = require('./utils/plex-http-client');
+                const plexClient = getPlexClient(server);
+                const plexHttpClient = new PlexHttpClient(plexClient, server, isDebug);
+
+                ratingsWithCounts = await plexHttpClient.getRatingsWithCounts();
+                break;
+        }
+
+        return ratingsWithCounts;
+    } catch (error) {
+        logger.error(
+            `[getRatingsWithCounts] Failed to get ratings with counts for ${sourceType}:`,
+            error.message
+        );
+        throw error;
+    }
+}
+
+/**
+ * Get all unique quality/resolution values with counts from a Jellyfin server
+ * @param {Object} serverConfig - Jellyfin server configuration
+ * @returns {Promise<Array>} Array of quality objects with count
+ */
+async function getJellyfinQualitiesWithCounts(serverConfig) {
+    try {
+        const jellyfinClient = await getJellyfinClient(serverConfig);
+
+        // Get all libraries and filter for movie and show libraries
+        const allLibraries = await jellyfinClient.getLibraries();
+        const selectedLibraries = allLibraries.filter(library => {
+            return library.CollectionType === 'movies' || library.CollectionType === 'tvshows';
+        });
+
+        // Get library IDs
+        const libraryIds = selectedLibraries.map(library => library.Id);
+
+        if (libraryIds.length === 0) {
+            console.warn('[getJellyfinQualitiesWithCounts] No movie or TV show libraries found');
+            return [];
+        }
+
+        // Use the HTTP client method to get qualities with counts
+        const result = await jellyfinClient.getQualitiesWithCounts(libraryIds);
+
+        if (isDebug)
+            logger.debug(
+                `[getJellyfinQualitiesWithCounts] Found ${result.length} unique qualities with counts from ${selectedLibraries.length} libraries`
+            );
+
+        return result;
+    } catch (error) {
+        console.error(`[getJellyfinQualitiesWithCounts] Error: ${error.message}`);
+        return [];
+    }
+}
+
+/**
+ * Check if a source type is enabled in the current configuration
+ * @param {string} sourceType - The source type to check (e.g., 'jellyfin', 'plex')
+ * @returns {boolean} True if the source type is enabled
+ */
+function isSourceTypeEnabled(sourceType) {
+    if (!config.mediaServers) {
+        return false;
+    }
+
+    const server = config.mediaServers.find(s => s.type === sourceType);
+    return server && server.enabled === true;
+}
+
+// Get available ratings for dropdown filters
+app.get(
+    '/api/sources/:sourceType/ratings',
+    asyncHandler(async (req, res) => {
+        const { sourceType } = req.params;
+
+        try {
+            // Check if the source type is enabled
+            const isEnabled = isSourceTypeEnabled(sourceType);
+            if (!isEnabled) {
+                return res.json({
+                    success: true,
+                    data: [],
+                    cached: false,
+                    count: 0,
+                    message: `${sourceType} server is disabled`,
+                });
+            }
+
+            // Use the new intelligent rating fetching system
+            const ratings = await getAllSourceRatings(sourceType);
+
+            return res.json({
+                success: true,
+                data: ratings,
+                cached: ratingCache.isCacheValid(sourceType),
+                count: ratings.length,
+            });
+        } catch (error) {
+            logger.error(`[API] Failed to get ratings for ${sourceType}:`, error.message);
+
+            return res.status(500).json({
+                success: false,
+                error: `Failed to fetch ratings: ${error.message}`,
+                data: [],
+            });
+        }
+    })
+);
+
+// Get available ratings with counts for dropdown filters
+app.get(
+    '/api/sources/:sourceType/ratings-with-counts',
+    asyncHandler(async (req, res) => {
+        const { sourceType } = req.params;
+
+        try {
+            // Check if the source type is enabled
+            const isEnabled = isSourceTypeEnabled(sourceType);
+            if (!isEnabled) {
+                return res.json({
+                    success: true,
+                    data: [],
+                    count: 0,
+                    message: `${sourceType} server is disabled`,
+                });
+            }
+
+            const ratingsWithCounts = await getRatingsWithCounts(sourceType);
+
+            return res.json({
+                success: true,
+                data: ratingsWithCounts,
+                count: ratingsWithCounts.length,
+            });
+        } catch (error) {
+            logger.error(
+                `[API] Failed to get ratings with counts for ${sourceType}:`,
+                error.message
+            );
+
+            return res.status(500).json({
+                success: false,
+                error: `Failed to fetch ratings with counts: ${error.message}`,
+                data: [],
+            });
+        }
+    })
+);
+
+// Rating cache management endpoints
+app.get(
+    '/api/admin/rating-cache/stats',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const stats = ratingCache.getStats();
+        res.json({
+            success: true,
+            data: stats,
+        });
+    })
+);
+
+app.post(
+    '/api/admin/rating-cache/:sourceType/refresh',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const { sourceType } = req.params;
+
+        try {
+            // Invalidate cache and force refresh
+            await ratingCache.invalidateCache(sourceType);
+            const ratings = await getAllSourceRatings(sourceType);
+
+            res.json({
+                success: true,
+                message: `Rating cache refreshed for ${sourceType}`,
+                data: ratings,
+                count: ratings.length,
+            });
+        } catch (error) {
+            logger.error(`[API] Failed to refresh rating cache for ${sourceType}:`, error.message);
+            res.status(500).json({
+                success: false,
+                error: error.message,
+            });
+        }
+    })
+);
+
 /**
  * @swagger
  * /api/config:
@@ -4985,10 +5551,8 @@ app.post(
                 logger.debug(
                     '[Jellyfin Test] No API key provided in request, attempting to use existing server API key.'
                 );
-            // Find the first enabled Jellyfin server config. This assumes a single Jellyfin server setup for now.
-            const jellyfinServerConfig = config.mediaServers.find(
-                s => s.type === 'jellyfin' && s.enabled
-            );
+            // Find any Jellyfin server config (enabled or disabled) to get the API key
+            const jellyfinServerConfig = config.mediaServers.find(s => s.type === 'jellyfin');
 
             if (jellyfinServerConfig && jellyfinServerConfig.tokenEnvVar) {
                 apiKey = process.env[jellyfinServerConfig.tokenEnvVar];
@@ -5000,8 +5564,8 @@ app.post(
                 }
             } else {
                 throw new ApiError(
-                    500,
-                    'Connection test failed: Could not find Jellyfin server configuration on the server.'
+                    400,
+                    'Connection test failed: No API key provided and no Jellyfin server configuration found.'
                 );
             }
         }
@@ -5553,6 +6117,82 @@ app.get(
 
 /**
  * @swagger
+ * /api/admin/plex-genres-with-counts:
+ *   get:
+ *     summary: Retourneert alle Plex genres met aantallen
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - BearerAuth: []
+ *       - SessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Succesvol
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 genres:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       genre:
+ *                         type: string
+ *                       count:
+ *                         type: number
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
+app.get(
+    '/api/admin/plex-genres-with-counts',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug)
+            logger.debug('[Admin API] Request received for /api/admin/plex-genres-with-counts.');
+
+        const currentConfig = await readConfig();
+        const enabledServers = currentConfig.mediaServers.filter(
+            s => s.enabled && s.type === 'plex'
+        );
+
+        if (enabledServers.length === 0) {
+            return res.json({ genres: [] });
+        }
+
+        const allGenreCounts = new Map();
+
+        for (const server of enabledServers) {
+            try {
+                const genresWithCounts = await getPlexGenresWithCounts(server);
+                // Accumulate counts across servers
+                genresWithCounts.forEach(({ genre, count }) => {
+                    allGenreCounts.set(genre, (allGenreCounts.get(genre) || 0) + count);
+                });
+            } catch (error) {
+                console.warn(
+                    `[Admin API] Failed to get genres with counts from ${server.name}: ${error.message}`
+                );
+            }
+        }
+
+        // Convert to array and sort
+        const sortedGenresWithCounts = Array.from(allGenreCounts.entries())
+            .map(([genre, count]) => ({ genre, count }))
+            .sort((a, b) => a.genre.localeCompare(b.genre));
+
+        if (isDebug)
+            logger.debug(
+                `[Admin API] Found ${sortedGenresWithCounts.length} unique genres with counts.`
+            );
+
+        res.json({ genres: sortedGenresWithCounts });
+    })
+);
+
+/**
+ * @swagger
  * /api/admin/plex-genres-test:
  *   post:
  *     summary: Get Plex genres for testing (with connection parameters)
@@ -5652,6 +6292,100 @@ app.post(
             if (isDebug)
                 console.error('[Admin API] Error getting genres from test server:', error.message);
             throw new ApiError(400, `Failed to get genres: ${error.message}`);
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/plex-genres-with-counts-test:
+ *   post:
+ *     summary: Get Plex genres with counts for testing (with connection parameters)
+ *     tags: ['Admin API']
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               hostname:
+ *                 type: string
+ *               port:
+ *                 type: string
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: List of genres with counts successfully retrieved
+ */
+app.post(
+    '/api/admin/plex-genres-with-counts-test',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug)
+            logger.debug(
+                '[Admin API] Request received for /api/admin/plex-genres-with-counts-test.'
+            );
+
+        let { hostname, port, token } = req.body;
+
+        if (!hostname || !port) {
+            throw new ApiError(400, 'Hostname and port are required.');
+        }
+
+        // Sanitize hostname
+        hostname = hostname.trim().replace(/^https?:\/\//, '');
+
+        // Fallback to configured token if not provided
+        if (!token) {
+            const plexServerConfig = config.mediaServers.find(s => s.type === 'plex');
+            if (plexServerConfig) {
+                token = process.env[plexServerConfig.tokenEnvVar];
+            }
+            if (!token) {
+                throw new ApiError(400, 'No token provided and no token configured on the server.');
+            }
+        }
+
+        try {
+            // Create a direct client for testing without caching
+            const testClient = createPlexClient({
+                hostname,
+                port: parseInt(port),
+                token,
+            });
+
+            // Create a temporary server config for testing
+            const testServerConfig = {
+                name: `Test Server ${hostname}:${port}`,
+                type: 'plex',
+                enabled: true,
+                hostnameEnvVar: null,
+                portEnvVar: null,
+                tokenEnvVar: null,
+                hostname,
+                port: parseInt(port),
+                token,
+                _directClient: testClient,
+            };
+
+            const genresWithCounts = await getPlexGenresWithCounts(testServerConfig);
+            logger.info(
+                `[Admin API] Test: Found ${genresWithCounts.length} unique genres with counts from ${hostname}:${port}.`
+            );
+
+            res.json({ success: true, genres: genresWithCounts });
+        } catch (error) {
+            if (isDebug)
+                console.error(
+                    '[Admin API] Error getting genres with counts from test server:',
+                    error.message
+                );
+            throw new ApiError(400, `Failed to get genres with counts: ${error.message}`);
         }
     })
 );
@@ -5786,6 +6520,303 @@ app.post(
             if (isDebug) console.error('[Admin API] Error getting Jellyfin genres:', error.message);
             throw new ApiError(400, `Failed to get Jellyfin genres: ${error.message}`);
         }
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/jellyfin-genres-with-counts:
+ *   post:
+ *     summary: Get genres with counts from Jellyfin libraries
+ *     description: >
+ *       Retrieves all unique genres with their counts from the specified Jellyfin libraries.
+ *     tags: ['Admin API']
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               hostname:
+ *                 type: string
+ *               port:
+ *                 type: number
+ *               apiKey:
+ *                 type: string
+ *               movieLibraries:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               showLibraries:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 genres:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       genre:
+ *                         type: string
+ *                       count:
+ *                         type: number
+ *       400:
+ *         description: Invalid request parameters
+ *       401:
+ *         description: Unauthorized
+ */
+app.post(
+    '/api/admin/jellyfin-genres-with-counts',
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (isDebug)
+            logger.debug(
+                '[Admin API] Request received for /api/admin/jellyfin-genres-with-counts.'
+            );
+
+        let { hostname, port, apiKey } = req.body;
+        const { movieLibraries = [], showLibraries = [] } = req.body;
+
+        // Sanitize hostname
+        if (hostname) {
+            hostname = hostname.trim().replace(/^https?:\/\//, '');
+        }
+
+        // Fallback to configured values if not provided
+        const jellyfinServerConfig = config.mediaServers.find(s => s.type === 'jellyfin');
+        if (jellyfinServerConfig) {
+            hostname = hostname || process.env[jellyfinServerConfig.hostnameEnvVar];
+            port = port || process.env[jellyfinServerConfig.portEnvVar];
+            apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
+        }
+
+        if (!hostname || !port || !apiKey) {
+            throw new ApiError(400, 'Jellyfin connection details are missing.');
+        }
+
+        if (movieLibraries.length === 0 && showLibraries.length === 0) {
+            throw new ApiError(400, 'At least one library must be specified.');
+        }
+
+        try {
+            const client = await createJellyfinClient({
+                hostname,
+                port: parseInt(port),
+                apiKey,
+                timeout: 15000,
+            });
+
+            const allLibraries = await fetchJellyfinLibraries(client);
+            const selectedLibraries = allLibraries.filter(
+                lib => movieLibraries.includes(lib.Name) || showLibraries.includes(lib.Name)
+            );
+
+            if (isDebug) {
+                logger.debug(
+                    `[Jellyfin Genres with Counts] All libraries:`,
+                    allLibraries.map(l => `${l.Name} (${l.Id})`)
+                );
+                logger.debug(
+                    `[Jellyfin Genres with Counts] Selected libraries:`,
+                    selectedLibraries.map(l => `${l.Name} (${l.Id})`)
+                );
+                logger.debug(
+                    `[Jellyfin Genres with Counts] Movie libraries requested:`,
+                    movieLibraries
+                );
+                logger.debug(
+                    `[Jellyfin Genres with Counts] Show libraries requested:`,
+                    showLibraries
+                );
+            }
+
+            // Get selected library IDs
+            const selectedLibraryIds = selectedLibraries.map(lib => lib.Id);
+
+            if (selectedLibraryIds.length === 0) {
+                throw new ApiError(
+                    400,
+                    'No matching libraries found. Available libraries: ' +
+                        allLibraries.map(l => l.Name).join(', ')
+                );
+            }
+
+            // Use our HTTP client to get genres with counts
+            const genresWithCounts = await client.getGenresWithCounts(selectedLibraryIds);
+
+            logger.info(
+                `[Admin API] Extracted ${genresWithCounts.length} unique Jellyfin genres with counts from ${selectedLibraries.length} libraries.`
+            );
+
+            res.json({ success: true, genres: genresWithCounts });
+        } catch (error) {
+            if (isDebug)
+                console.error(
+                    '[Admin API] Error getting Jellyfin genres with counts:',
+                    error.message
+                );
+            throw new ApiError(400, `Failed to get Jellyfin genres with counts: ${error.message}`);
+        }
+    })
+);
+
+// ============================================
+// QUALITY ENDPOINTS
+// ============================================
+
+/**
+ * @swagger
+ * /api/admin/plex-qualities-with-counts:
+ *   get:
+ *     summary: Get Plex qualities with content counts
+ *     description: Retrieves available video qualities from Plex servers with item counts
+ *     tags: ['Admin API']
+ *     responses:
+ *       200:
+ *         description: Quality data with counts
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
+app.get(
+    '/api/admin/plex-qualities-with-counts',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug)
+            logger.debug('[Admin API] Request received for /api/admin/plex-qualities-with-counts.');
+
+        const currentConfig = await readConfig();
+        const enabledServers = currentConfig.mediaServers.filter(
+            s => s.enabled && s.type === 'plex'
+        );
+
+        if (enabledServers.length === 0) {
+            return res.json({ qualities: [] });
+        }
+
+        const allQualityCounts = new Map();
+
+        for (const server of enabledServers) {
+            try {
+                const qualitiesWithCounts = await getPlexQualitiesWithCounts(server);
+                // Accumulate counts across servers
+                qualitiesWithCounts.forEach(({ quality, count }) => {
+                    allQualityCounts.set(quality, (allQualityCounts.get(quality) || 0) + count);
+                });
+            } catch (error) {
+                console.warn(
+                    `[Admin API] Failed to get qualities with counts from ${server.name}: ${error.message}`
+                );
+            }
+        }
+
+        // Convert to array and sort by quality preference
+        const qualityOrder = ['SD', '720p', '1080p', '4K'];
+        const sortedQualitiesWithCounts = Array.from(allQualityCounts.entries())
+            .map(([quality, count]) => ({ quality, count }))
+            .sort((a, b) => {
+                const aIndex = qualityOrder.indexOf(a.quality);
+                const bIndex = qualityOrder.indexOf(b.quality);
+
+                if (aIndex !== -1 && bIndex !== -1) {
+                    return aIndex - bIndex;
+                }
+                if (aIndex !== -1) return -1;
+                if (bIndex !== -1) return 1;
+                return a.quality.localeCompare(b.quality);
+            });
+
+        if (isDebug)
+            logger.debug(
+                `[Admin API] Found ${sortedQualitiesWithCounts.length} unique qualities with counts.`
+            );
+
+        res.json({ qualities: sortedQualitiesWithCounts });
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/jellyfin-qualities-with-counts:
+ *   get:
+ *     summary: Get Jellyfin qualities with content counts
+ *     description: Retrieves available video qualities from Jellyfin servers with item counts
+ *     tags: ['Admin API']
+ *     responses:
+ *       200:
+ *         description: Quality data with counts
+ *       401:
+ *         description: Niet geautoriseerd.
+ */
+app.get(
+    '/api/admin/jellyfin-qualities-with-counts',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug)
+            logger.debug(
+                '[Admin API] Request received for /api/admin/jellyfin-qualities-with-counts.'
+            );
+
+        const currentConfig = await readConfig();
+        const enabledServers = currentConfig.mediaServers.filter(
+            s => s.enabled && s.type === 'jellyfin'
+        );
+
+        if (enabledServers.length === 0) {
+            return res.json({ qualities: [] });
+        }
+
+        const allQualityCounts = new Map();
+
+        for (const server of enabledServers) {
+            try {
+                const qualitiesWithCounts = await getJellyfinQualitiesWithCounts(server);
+                // Accumulate counts across servers
+                qualitiesWithCounts.forEach(({ quality, count }) => {
+                    allQualityCounts.set(quality, (allQualityCounts.get(quality) || 0) + count);
+                });
+            } catch (error) {
+                console.warn(
+                    `[Admin API] Failed to get qualities with counts from ${server.name}: ${error.message}`
+                );
+            }
+        }
+
+        // Convert to array and sort by quality preference
+        const qualityOrder = ['SD', '720p', '1080p', '4K'];
+        const sortedQualitiesWithCounts = Array.from(allQualityCounts.entries())
+            .map(([quality, count]) => ({ quality, count }))
+            .sort((a, b) => {
+                const aIndex = qualityOrder.indexOf(a.quality);
+                const bIndex = qualityOrder.indexOf(b.quality);
+
+                if (aIndex !== -1 && bIndex !== -1) {
+                    return aIndex - bIndex;
+                }
+                if (aIndex !== -1) return -1;
+                if (bIndex !== -1) return 1;
+                return a.quality.localeCompare(b.quality);
+            });
+
+        if (isDebug)
+            logger.debug(
+                `[Admin API] Found ${sortedQualitiesWithCounts.length} unique qualities with counts.`
+            );
+
+        res.json({ qualities: sortedQualitiesWithCounts });
     })
 );
 
@@ -8019,62 +9050,132 @@ app.get(
 // Start the server only if this script is run directly (e.g., `node server.js`)
 // and not when it's imported by another script (like our tests).
 if (require.main === module) {
-    app.listen(port, async () => {
-        logger.info(`posterrama.app is listening on http://localhost:${port}`);
-        if (isDebug)
-            logger.debug(`Debug endpoint is available at http://localhost:${port}/admin/debug`);
+    // Pre-populate cache before starting the server to prevent race conditions
+    logger.info('Performing initial playlist fetch before server startup...');
 
-        // Start the server immediately and perform the first media fetch in the background.
-        // This prevents the server start from being blocked if the media server is slow.
-        logger.info('Performing initial playlist fetch...');
-        refreshPlaylistCache()
-            .then(() => {
-                if (playlistCache && playlistCache.length > 0) {
+    refreshPlaylistCache()
+        .then(() => {
+            if (playlistCache && playlistCache.length > 0) {
+                logger.info(
+                    `Initial playlist fetch complete. ${playlistCache.length} items loaded.`
+                );
+            } else {
+                logger.warn(
+                    'Initial playlist fetch did not populate any media. The application will run but will not display any media until a refresh succeeds. Check server configurations and logs for errors during fetch.'
+                );
+            }
+
+            // Now start the server with cache ready
+            app.listen(port, async () => {
+                logger.info(`posterrama.app is listening on http://localhost:${port}`);
+                if (isDebug)
                     logger.debug(
-                        `Initial playlist fetch complete. ${playlistCache.length} items loaded.`
+                        `Debug endpoint is available at http://localhost:${port}/admin/debug`
                     );
-                } else {
-                    // Use console.warn here, as this is not a fatal error for the server itself.
-                    console.warn(
-                        'Initial playlist fetch did not populate any media. The application will run but will not display any media until a refresh succeeds. Check server configurations and logs for errors during fetch.'
+
+                logger.info('Server startup complete - media cache is ready');
+
+                // Fixed background refresh interval (30 minutes)
+                const refreshInterval = 30 * 60 * 1000;
+                if (refreshInterval > 0) {
+                    global.playlistRefreshInterval = setInterval(
+                        refreshPlaylistCache,
+                        refreshInterval
                     );
+                    logger.debug(`Playlist will be refreshed in the background every 30 minutes.`);
                 }
-            })
-            .catch(err =>
-                console.error('An error occurred during the initial background fetch:', err)
-            );
 
-        // Fixed background refresh interval (30 minutes)
-        const refreshInterval = 30 * 60 * 1000;
-        if (refreshInterval > 0) {
-            global.playlistRefreshInterval = setInterval(refreshPlaylistCache, refreshInterval);
-            logger.debug(`Playlist will be refreshed in the background every 30 minutes.`);
-        }
+                // Set up automatic cache cleanup - use configurable interval
+                if (config.cache?.autoCleanup !== false) {
+                    const cleanupIntervalMinutes = config.cache?.cleanupIntervalMinutes || 15;
+                    const cacheCleanupInterval = cleanupIntervalMinutes * 60 * 1000;
+                    global.cacheCleanupInterval = setInterval(async () => {
+                        try {
+                            const cleanupResult = await cacheDiskManager.cleanupCache();
+                            if (cleanupResult.cleaned && cleanupResult.deletedFiles > 0) {
+                                logger.info('Scheduled cache cleanup performed', {
+                                    trigger: 'scheduled',
+                                    deletedFiles: cleanupResult.deletedFiles,
+                                    freedSpaceMB: cleanupResult.freedSpaceMB,
+                                });
+                            }
+                        } catch (cleanupError) {
+                            logger.warn('Scheduled cache cleanup failed', {
+                                error: cleanupError.message,
+                                trigger: 'scheduled',
+                            });
+                        }
+                    }, cacheCleanupInterval);
+                    logger.debug('Automatic cache cleanup scheduled every 30 minutes.');
+                }
+            });
+        })
+        .catch(err => {
+            logger.error('Initial playlist fetch failed during startup:', err);
 
-        // Set up automatic cache cleanup - use configurable interval
-        if (config.cache?.autoCleanup !== false) {
-            const cleanupIntervalMinutes = config.cache?.cleanupIntervalMinutes || 15;
-            const cacheCleanupInterval = cleanupIntervalMinutes * 60 * 1000;
-            global.cacheCleanupInterval = setInterval(async () => {
-                try {
-                    const cleanupResult = await cacheDiskManager.cleanupCache();
-                    if (cleanupResult.cleaned && cleanupResult.deletedFiles > 0) {
-                        logger.info('Scheduled cache cleanup performed', {
-                            trigger: 'scheduled',
-                            deletedFiles: cleanupResult.deletedFiles,
-                            freedSpaceMB: cleanupResult.freedSpaceMB,
+            // Start server anyway but with empty cache
+            app.listen(port, async () => {
+                logger.info(
+                    `posterrama.app is listening on http://localhost:${port} (with empty cache due to startup error)`
+                );
+                if (isDebug)
+                    logger.debug(
+                        `Debug endpoint is available at http://localhost:${port}/admin/debug`
+                    );
+
+                // Fixed background refresh interval (30 minutes)
+                const refreshInterval = 30 * 60 * 1000;
+                if (refreshInterval > 0) {
+                    global.playlistRefreshInterval = setInterval(
+                        refreshPlaylistCache,
+                        refreshInterval
+                    );
+                    logger.debug(`Playlist will be refreshed in the background every 30 minutes.`);
+                }
+
+                // Set up automatic cache cleanup - use configurable interval
+                if (config.cache?.autoCleanup !== false) {
+                    const cleanupIntervalMinutes = config.cache?.cleanupIntervalMinutes || 15;
+                    const cacheCleanupInterval = cleanupIntervalMinutes * 60 * 1000;
+                    global.cacheCleanupInterval = setInterval(async () => {
+                        try {
+                            const cleanupResult = await cacheDiskManager.cleanupCache();
+                            if (cleanupResult.cleaned && cleanupResult.deletedFiles > 0) {
+                                logger.info('Scheduled cache cleanup performed', {
+                                    trigger: 'scheduled',
+                                    deletedFiles: cleanupResult.deletedFiles,
+                                    freedSpaceMB: cleanupResult.freedSpaceMB,
+                                });
+                            }
+                        } catch (cleanupError) {
+                            logger.warn('Scheduled cache cleanup failed', {
+                                error: cleanupError.message,
+                                trigger: 'scheduled',
+                            });
+                        }
+                    }, cacheCleanupInterval);
+                    logger.debug('Automatic cache cleanup scheduled every 30 minutes.');
+                }
+
+                // Retry cache population in the background
+                setTimeout(() => {
+                    logger.info('Retrying playlist fetch after startup error...');
+                    refreshPlaylistCache()
+                        .then(() => {
+                            if (playlistCache && playlistCache.length > 0) {
+                                logger.info(
+                                    `Retry successful: ${playlistCache.length} items loaded.`
+                                );
+                            }
+                        })
+                        .catch(retryErr => {
+                            logger.error('Retry also failed:', retryErr);
                         });
-                    }
-                } catch (cleanupError) {
-                    logger.warn('Scheduled cache cleanup failed', {
-                        error: cleanupError.message,
-                        trigger: 'scheduled',
-                    });
-                }
-            }, cacheCleanupInterval);
-            logger.debug('Automatic cache cleanup scheduled every 30 minutes.');
-        }
-    });
+                }, 5000); // Retry after 5 seconds
+            });
+        });
+
+    // Note: The rest of the startup logic (intervals, cleanup) will be moved inside the app.listen callback
 
     // --- Conditional Site Server ---
     // This server runs on a separate port and is controlled by config.json.

@@ -28,8 +28,10 @@ img.lazy-loaded {
 }
 
 img.lazy-error {
-    background: #4a4a4a;
-    opacity: 0.5;
+    background: #2a2a2a;
+    opacity: 0.8;
+    border: 1px solid #555;
+    transition: opacity 0.3s ease;
 }
 
 @keyframes shimmer {

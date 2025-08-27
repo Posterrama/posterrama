@@ -607,26 +607,28 @@
                                 <div class="subsection-content">
                                     <div class="form-group">
                                         <label for="mediaServers[0].ratingFilter">Rating Filter</label>
-                                        <select id="mediaServers[0].ratingFilter" name="mediaServers[0].ratingFilter">
-                                            <option value="">All Ratings</option>
-                                            <option value="G">G - General Audiences</option>
-                                            <option value="PG">PG - Parental Guidance</option>
-                                            <option value="PG-13">PG-13 - Parents Strongly Cautioned</option>
-                                            <option value="R">R - Restricted</option>
-                                            <option value="NC-17">NC-17 - Adults Only</option>
-                                        </select>
+                                        <div class="rating-filter-container">
+                                            <div id="mediaServers[0].ratingFilter" class="dynamic-rating-filter multi-select-checkboxes" data-source="plex">
+                                                <div class="loading-indicator">Loading ratings...</div>
+                                            </div>
+                                            <input type="hidden" name="mediaServers[0].ratingFilter" id="mediaServers[0].ratingFilter-hidden" value="">
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label for="mediaServers[0].genreFilter">Genre Filter</label>
                                         <div class="genre-filter-container">
-                                            <select id="mediaServers[0].genreFilter" name="mediaServers[0].genreFilter" multiple class="genre-filter-select">
-                                                <option value="">Loading genres...</option>
-                                            </select>
-                                            <button type="button" class="btn-clear-genres" id="clearGenresBtn" title="Clear all selected genres">
-                                                <i class="fas fa-times"></i> Clear Selection
-                                            </button>
+                                            <div id="mediaServers[0].genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="plex">
+                                                <div class="loading-indicator">Loading genres...</div>
+                                            </div>
+                                            <input type="hidden" name="mediaServers[0].genreFilter" id="mediaServers[0].genreFilter-hidden" value="">
                                         </div>
-                                        <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mediaServers[0].qualityFilter">Quality Filter</label>
+                                        <div id="mediaServers[0].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="plex">
+                                            <div class="loading-indicator">Loading qualities...</div>
+                                        </div>
+                                        <input type="hidden" name="mediaServers[0].qualityFilter" id="mediaServers[0].qualityFilter-hidden" value="">
                                     </div>
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="mediaServers[0].recentlyAddedOnly" name="mediaServers[0].recentlyAddedOnly">
@@ -635,16 +637,6 @@
                                     <div class="form-group recently-added-days-group hidden" id="recentlyAddedDaysContainer">
                                         <label for="mediaServers[0].recentlyAddedDays">Recently Added (days)</label>
                                         <input type="number" id="mediaServers[0].recentlyAddedDays" name="mediaServers[0].recentlyAddedDays" min="1" max="365" placeholder="30" value="30">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[0].qualityFilter">Quality Filter</label>
-                                        <select id="mediaServers[0].qualityFilter" name="mediaServers[0].qualityFilter">
-                                            <option value="">All Qualities</option>
-                                            <option value="SD">SD - Standard Definition</option>
-                                            <option value="720p">720p - HD Ready</option>
-                                            <option value="1080p">1080p - Full HD</option>
-                                            <option value="4K">4K - Ultra HD</option>
-                                        </select>
                                     </div>
                                 </div>
                                 
@@ -715,26 +707,28 @@
                                 <div class="subsection-content">
                                     <div class="form-group">
                                         <label for="mediaServers[1].ratingFilter">Rating Filter</label>
-                                        <select id="mediaServers[1].ratingFilter" name="mediaServers[1].ratingFilter">
-                                            <option value="">All Ratings</option>
-                                            <option value="G">G - General Audiences</option>
-                                            <option value="PG">PG - Parental Guidance</option>
-                                            <option value="PG-13">PG-13 - Parents Strongly Cautioned</option>
-                                            <option value="R">R - Restricted</option>
-                                            <option value="NC-17">NC-17 - Adults Only</option>
-                                        </select>
+                                        <div class="rating-filter-container">
+                                            <div id="mediaServers[1].ratingFilter" class="dynamic-rating-filter multi-select-checkboxes" data-source="jellyfin">
+                                                <div class="loading-indicator">Loading ratings...</div>
+                                            </div>
+                                            <input type="hidden" name="mediaServers[1].ratingFilter" id="mediaServers[1].ratingFilter-hidden" value="">
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label for="mediaServers[1].genreFilter">Genre Filter</label>
                                         <div class="genre-filter-container">
-                                            <select id="mediaServers[1].genreFilter" name="mediaServers[1].genreFilter" multiple class="genre-filter-select">
-                                                <option value="">Loading genres...</option>
-                                            </select>
-                                            <button type="button" class="btn-clear-genres" id="clearJellyfinGenresBtn" title="Clear all selected genres">
-                                                <i class="fas fa-times"></i> Clear Selection
-                                            </button>
+                                            <div id="mediaServers[1].genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="jellyfin">
+                                                <div class="loading-indicator">Loading genres...</div>
+                                            </div>
+                                            <input type="hidden" name="mediaServers[1].genreFilter" id="mediaServers[1].genreFilter-hidden" value="">
                                         </div>
-                                        <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mediaServers[1].qualityFilter">Quality Filter</label>
+                                        <div id="mediaServers[1].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="jellyfin">
+                                            <div class="loading-indicator">Loading qualities...</div>
+                                        </div>
+                                        <input type="hidden" name="mediaServers[1].qualityFilter" id="mediaServers[1].qualityFilter-hidden" value="">
                                     </div>
                                     <div class="form-group checkbox-group">
                                         <input type="checkbox" id="mediaServers[1].recentlyAddedOnly" name="mediaServers[1].recentlyAddedOnly">
@@ -743,16 +737,6 @@
                                     <div class="form-group recently-added-days-group hidden" id="jellyfinRecentlyAddedDaysContainer">
                                         <label for="mediaServers[1].recentlyAddedDays">Recently Added (days)</label>
                                         <input type="number" id="mediaServers[1].recentlyAddedDays" name="mediaServers[1].recentlyAddedDays" min="1" max="365" placeholder="30" value="30">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[1].qualityFilter">Quality Filter</label>
-                                        <select id="mediaServers[1].qualityFilter" name="mediaServers[1].qualityFilter">
-                                            <option value="">All Qualities</option>
-                                            <option value="SD">SD - Standard Definition</option>
-                                            <option value="720p">720p - HD Ready</option>
-                                            <option value="1080p">1080p - Full HD</option>
-                                            <option value="4K">4K - Ultra HD</option>
-                                        </select>
                                     </div>
                                 </div>
                                 

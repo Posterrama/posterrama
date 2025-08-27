@@ -2442,9 +2442,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedShowLibs =
             jellyfinServerConfig.showLibraryNames || jellyfinDefaults.showLibraryNames;
 
-        // Content Filtering settings
-        document.getElementById('mediaServers[1].ratingFilter').value =
+        // Content Filtering settings - handle both string and array values
+        const ratingFilterValue =
             jellyfinServerConfig.ratingFilter ?? jellyfinDefaults.ratingFilter;
+        const ratingFilterElement = document.getElementById('mediaServers[1].ratingFilter');
+        const ratingFilterHidden = document.getElementById('mediaServers[1].ratingFilter-hidden');
+
+        if (ratingFilterElement) {
+            if (ratingFilterElement.tagName === 'SELECT') {
+                // Traditional select dropdown
+                ratingFilterElement.value = ratingFilterValue;
+            } else if (
+                ratingFilterElement.classList.contains('multi-select-checkboxes') &&
+                ratingFilterHidden
+            ) {
+                // Multi-select checkboxes - set hidden field value
+                if (Array.isArray(ratingFilterValue)) {
+                    ratingFilterHidden.value = ratingFilterValue.join(',');
+                } else {
+                    ratingFilterHidden.value = ratingFilterValue || '';
+                }
+            }
+        }
 
         // Load genres only if we have basic connection details configured
         const hostname =
@@ -2485,40 +2504,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setJellyfinGenreFilterValues(genreFilterString) {
-        const genreSelect = document.getElementById('mediaServers[1].genreFilter');
-        if (!genreSelect || !genreFilterString) return;
+        const hiddenField = document.getElementById('mediaServers[1].genreFilter-hidden');
+        if (!hiddenField) return;
 
-        const selectedGenres = genreFilterString
-            .split(',')
-            .map(g => g.trim())
-            .filter(g => g);
-        Array.from(genreSelect.options).forEach(option => {
-            option.selected = selectedGenres.includes(option.value);
-        });
+        // Set the hidden field value
+        hiddenField.value = genreFilterString || '';
 
-        // Trigger a change event to ensure any listeners are notified
-        genreSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        // Update checkboxes if they exist
+        const genreContainer = document.getElementById('mediaServers[1].genreFilter');
+        if (genreContainer) {
+            const selectedGenres = genreFilterString
+                ? genreFilterString
+                      .split(',')
+                      .map(g => g.trim())
+                      .filter(g => g)
+                : [];
+
+            const checkboxes = genreContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectedGenres.includes(checkbox.value);
+            });
+        }
     }
 
     async function loadPlexGenres() {
-        const genreSelect = document.getElementById('mediaServers[0].genreFilter');
-        if (!genreSelect) return;
+        const genreContainer = document.getElementById('mediaServers[0].genreFilter');
+        if (!genreContainer) return;
 
-        // Save currently selected genres before clearing
-        const currentlySelected = Array.from(genreSelect.selectedOptions).map(
-            option => option.value
-        );
+        // Get current value from hidden field
+        const hiddenField = document.getElementById('mediaServers[0].genreFilter-hidden');
+        const currentValue = hiddenField ? hiddenField.value : '';
 
         try {
+            // Show loading state
+            genreContainer.innerHTML = '<div class="loading-indicator">Loading genres...</div>';
+
             // Get connection parameters for testing (same as libraries)
             const hostname = document.getElementById('mediaServers[0].hostname').value;
             const port = document.getElementById('mediaServers[0].port').value;
             const token = document.getElementById('mediaServers[0].token').value;
 
-            // If we have test parameters, use the test endpoint, otherwise use the regular endpoint
+            // If we have test parameters, use the test endpoint with counts, otherwise use the regular endpoint with counts
             let response;
             if (hostname && port) {
-                response = await fetch('/api/admin/plex-genres-test', {
+                response = await fetch('/api/admin/plex-genres-with-counts-test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2528,7 +2557,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }),
                 });
             } else {
-                response = await fetch('/api/admin/plex-genres');
+                response = await fetch('/api/admin/plex-genres-with-counts');
             }
 
             if (!response.ok) {
@@ -2538,76 +2567,78 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const genres = data.genres || [];
 
-            // Clear existing options
-            genreSelect.innerHTML = '';
-
-            if (genres.length === 0) {
-                genreSelect.innerHTML = '<option value="">No genres found</option>';
-                return;
-            }
-
-            // Add genres as options
-            genres.forEach(genre => {
-                const option = document.createElement('option');
-                option.value = genre;
-                option.textContent = genre;
-                // Restore previous selection if this genre was selected
-                option.selected = currentlySelected.includes(genre);
-                genreSelect.appendChild(option);
-            });
-
-            // Setup listeners after genres are loaded
-            setupGenreFilterListeners();
-            setupJellyfinGenreFilterListeners();
+            // Use the new checkbox population function with counts
+            populateGenreFilterCheckboxes(genres, genreContainer, currentValue);
         } catch (error) {
             console.error('Error loading Plex genres:', error);
-            genreSelect.innerHTML = '<option value="">Error loading genres</option>';
+            genreContainer.innerHTML = '<div class="loading-indicator">Error loading genres</div>';
         }
     }
 
     function setGenreFilterValues(genreFilterString) {
-        const genreSelect = document.getElementById('mediaServers[0].genreFilter');
-        if (!genreSelect || !genreFilterString) return;
+        const hiddenField = document.getElementById('mediaServers[0].genreFilter-hidden');
+        if (!hiddenField) return;
 
-        // Split comma-separated genres and trim whitespace
-        const selectedGenres = genreFilterString
-            .split(',')
-            .map(g => g.trim())
-            .filter(g => g);
+        // Set the hidden field value
+        hiddenField.value = genreFilterString || '';
 
-        // Select matching options
-        Array.from(genreSelect.options).forEach(option => {
-            option.selected = selectedGenres.includes(option.value);
-        });
+        // Update checkboxes if they exist
+        const genreContainer = document.getElementById('mediaServers[0].genreFilter');
+        if (genreContainer) {
+            const selectedGenres = genreFilterString
+                ? genreFilterString
+                      .split(',')
+                      .map(g => g.trim())
+                      .filter(g => g)
+                : [];
+
+            const checkboxes = genreContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectedGenres.includes(checkbox.value);
+            });
+        }
     }
 
     function getGenreFilterValues() {
-        const genreSelect = document.getElementById('mediaServers[0].genreFilter');
-        if (!genreSelect) return '';
-
-        const selectedValues = Array.from(genreSelect.selectedOptions).map(option => option.value);
-        return selectedValues.join(', ');
+        const hiddenField = document.getElementById('mediaServers[0].genreFilter-hidden');
+        return hiddenField ? hiddenField.value : '';
     }
 
     function getJellyfinGenreFilterValues() {
-        const genreSelect = document.getElementById('mediaServers[1].genreFilter');
-        if (!genreSelect) return '';
-
-        const selectedValues = Array.from(genreSelect.selectedOptions).map(option => option.value);
-        return selectedValues.join(', ');
+        const hiddenField = document.getElementById('mediaServers[1].genreFilter-hidden');
+        return hiddenField ? hiddenField.value : '';
     }
 
     function clearGenreSelection() {
-        const genreSelect = document.getElementById('mediaServers[0].genreFilter');
-        if (!genreSelect) return;
+        // Clear Plex genre selection
+        const plexHiddenField = document.getElementById('mediaServers[0].genreFilter-hidden');
+        if (plexHiddenField) {
+            plexHiddenField.value = '';
+        }
 
-        // Deselect all options
-        Array.from(genreSelect.options).forEach(option => {
-            option.selected = false;
-        });
+        const plexGenreContainer = document.getElementById('mediaServers[0].genreFilter');
+        if (plexGenreContainer) {
+            const checkboxes = plexGenreContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    }
 
-        // Trigger a change event to ensure any listeners are notified
-        genreSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    function clearJellyfinGenreSelection() {
+        // Clear Jellyfin genre selection
+        const jellyfinHiddenField = document.getElementById('mediaServers[1].genreFilter-hidden');
+        if (jellyfinHiddenField) {
+            jellyfinHiddenField.value = '';
+        }
+
+        const jellyfinGenreContainer = document.getElementById('mediaServers[1].genreFilter');
+        if (jellyfinGenreContainer) {
+            const checkboxes = jellyfinGenreContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
     }
 
     function setupGenreFilterListeners() {
@@ -2624,16 +2655,15 @@ document.addEventListener('DOMContentLoaded', () => {
      * Loads and populates Jellyfin genres in the genre filter dropdown
      */
     async function loadJellyfinGenres() {
-        const genreSelect = document.getElementById('mediaServers[1].genreFilter');
-        if (!genreSelect) {
-            logger.warn('[Admin] loadJellyfinGenres: genre select element not found');
+        const genreContainer = document.getElementById('mediaServers[1].genreFilter');
+        if (!genreContainer) {
+            logger.warn('[Admin] loadJellyfinGenres: genre container element not found');
             return;
         }
 
-        // Save currently selected genres before clearing
-        const currentlySelected = Array.from(genreSelect.selectedOptions).map(
-            option => option.value
-        );
+        // Get current value from hidden field
+        const hiddenField = document.getElementById('mediaServers[1].genreFilter-hidden');
+        const currentValue = hiddenField ? hiddenField.value : '';
 
         try {
             const hostname = document.getElementById('mediaServers[1].hostname').value;
@@ -2647,23 +2677,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // If no connection details, show default message without error
             // For API key, check if it's set in dataset OR if a new value is provided
             if (!hostname || !port || (!apiKey && !apiKeyIsSet)) {
-                genreSelect.innerHTML =
-                    '<option value="">Configure Jellyfin connection to load genres</option>';
-                genreSelect.disabled = false;
+                genreContainer.innerHTML =
+                    '<div class="loading-indicator">Configure Jellyfin connection to load genres</div>';
                 return;
             }
 
             // Show loading state only when we have connection details
-            genreSelect.innerHTML = '<option value="">Loading genres...</option>';
-            genreSelect.disabled = true;
+            genreContainer.innerHTML = '<div class="loading-indicator">Loading genres...</div>';
 
             if (movieLibraries.length === 0 && showLibraries.length === 0) {
-                genreSelect.innerHTML = '<option value="">No libraries selected</option>';
-                genreSelect.disabled = false;
+                genreContainer.innerHTML =
+                    '<div class="loading-indicator">No libraries selected</div>';
                 return;
             }
 
-            const response = await fetch('/api/admin/jellyfin-genres', {
+            const response = await fetch('/api/admin/jellyfin-genres-with-counts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -2681,28 +2709,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const genres = result.genres || [];
-            genreSelect.innerHTML = '';
 
-            // Add default "All Genres" option
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = 'All Genres';
-            genreSelect.appendChild(defaultOption);
-
-            // Add genre options
-            genres.forEach(genre => {
-                const option = document.createElement('option');
-                option.value = genre;
-                option.textContent = genre;
-                // Restore previous selection if this genre was selected
-                option.selected = currentlySelected.includes(genre);
-                genreSelect.appendChild(option);
-            });
+            // Use the new checkbox population function with counts
+            populateGenreFilterCheckboxes(genres, genreContainer, currentValue);
 
             logger.info(`[Admin] Loaded ${genres.length} Jellyfin genres successfully`);
         } catch (error) {
             logger.error('[Admin] Failed to load Jellyfin genres:', error);
-            genreSelect.innerHTML = '<option value="">Error loading genres</option>';
+            genreContainer.innerHTML = '<div class="loading-indicator">Error loading genres</div>';
             // Only show notification if user actually has connection details configured
             const hostname = document.getElementById('mediaServers[1].hostname').value;
             const port = document.getElementById('mediaServers[1].port').value;
@@ -2711,23 +2725,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hostname && port && apiKey) {
                 showNotification(`Failed to load Jellyfin genres: ${error.message}`, 'error');
             }
-        } finally {
-            genreSelect.disabled = false;
         }
     }
 
     function setupJellyfinGenreFilterListeners() {
         const clearBtn = document.getElementById('clearJellyfinGenresBtn');
         if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                const genreSelect = document.getElementById('mediaServers[1].genreFilter');
-                if (genreSelect) {
-                    Array.from(genreSelect.options).forEach(option => {
-                        option.selected = option.value === '';
-                    });
-                    genreSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            });
+            clearBtn.addEventListener('click', clearJellyfinGenreSelection);
         }
     }
 
@@ -3248,6 +3252,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const { config = {}, env = {}, security = {}, server = {} } = await response.json();
 
+            // Make config globally available for rating filter checks
+            window.currentConfig = config;
+
             populateGeneralSettings(config, env, defaults);
             populateDisplaySettings(config, defaults);
             setupDisplaySettingListeners();
@@ -3352,6 +3359,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Always initialize fanart background regardless of active section
             initializeAdminBackground();
+
+            // Initialize dynamic rating filters now that config is loaded
+            if (typeof initDynamicRatingFilters === 'function') {
+                initDynamicRatingFilters();
+            }
+            if (typeof initDynamicGenreFilters === 'function') {
+                initDynamicGenreFilters();
+            }
+            if (typeof initDynamicQualityFilters === 'function') {
+                initDynamicQualityFilters();
+            }
         } catch (error) {
             console.error('Failed to load config:', error);
             showNotification('Failed to load settings. Please try refreshing the page.', 'error');
@@ -5181,6 +5199,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     return value;
                 };
 
+                // Helper to get rating filter value (can be from hidden field for multi-select)
+                const getRatingFilterValue = baseId => {
+                    // First try to get from hidden field (multi-select checkboxes)
+                    const hiddenField = document.getElementById(baseId + '-hidden');
+                    if (hiddenField && hiddenField.value) {
+                        // Convert comma-separated string to array if multiple values
+                        const values = hiddenField.value
+                            .split(',')
+                            .map(v => v.trim())
+                            .filter(v => v);
+                        return values.length > 1 ? values : values[0] || '';
+                    }
+
+                    // Fall back to regular element (traditional select)
+                    return getValue(baseId);
+                };
+
                 const newConfig = {
                     transitionIntervalSeconds: getValue('transitionIntervalSeconds', 'number'),
 
@@ -5244,7 +5279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             movieLibraryNames: getSelectedLibraries('movie'),
                             showLibraryNames: getSelectedLibraries('show'),
                             // Fixed limits now; don't submit counts from UI
-                            ratingFilter: getValue('mediaServers[0].ratingFilter'),
+                            ratingFilter: getRatingFilterValue('mediaServers[0].ratingFilter'),
                             genreFilter: getGenreFilterValues(),
                             recentlyAddedOnly: getValue('mediaServers[0].recentlyAddedOnly'),
                             recentlyAddedDays: getValue(
@@ -5262,7 +5297,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             tokenEnvVar: 'JELLYFIN_API_KEY',
                             movieLibraryNames: getSelectedJellyfinLibraries('movie'),
                             showLibraryNames: getSelectedJellyfinLibraries('show'),
-                            ratingFilter: getValue('mediaServers[1].ratingFilter'),
+                            ratingFilter: getRatingFilterValue('mediaServers[1].ratingFilter'),
                             genreFilter: getJellyfinGenreFilterValues(),
                             recentlyAddedOnly: getValue('mediaServers[1].recentlyAddedOnly'),
                             recentlyAddedDays: getValue(
@@ -5422,6 +5457,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         // Config saved successfully - check if restart is needed
                         showNotification('Settings saved successfully!', 'success');
+
+                        // Refresh rating filters in case server enabled/disabled status changed
+                        if (typeof refreshRatingFilters === 'function') {
+                            await refreshRatingFilters();
+                        }
 
                         // Only show restart button if form actually changed
                         if (hasFormChanged()) {
@@ -8671,3 +8711,727 @@ if (document.readyState === 'loading') {
 } else {
     initMobileNavPanel();
 }
+
+// ============================================================================
+// DYNAMIC RATING FILTER FUNCTIONALITY
+// ============================================================================
+
+/**
+ * Load available ratings from a specific source
+ * @param {string} sourceType - The source type (jellyfin, plex, etc.)
+ * @returns {Promise<Array>} Array of available ratings
+ */
+async function loadAvailableRatings(sourceType) {
+    try {
+        const response = await authenticatedFetch(`/api/sources/${sourceType}/ratings`);
+        const data = await response.json();
+
+        if (data.success) {
+            return data.data || [];
+        } else {
+            console.warn(`Failed to load ratings for ${sourceType}:`, data.error);
+            return [];
+        }
+    } catch (error) {
+        console.error(`Error loading ratings for ${sourceType}:`, error);
+        return [];
+    }
+}
+
+/**
+ * Populate a rating filter dropdown with dynamic values
+ * @param {HTMLSelectElement|HTMLDivElement} element - The element to populate (select or div for checkboxes)
+ * @param {string} sourceType - The source type to get ratings for
+ * @param {string|Array} currentValue - The currently selected value(s)
+ */
+async function populateRatingFilter(element, sourceType, currentValue = '') {
+    try {
+        // Check if this is a multi-select checkbox container
+        const isMultiSelect = element.classList.contains('multi-select-checkboxes');
+
+        if (isMultiSelect) {
+            return await populateRatingFilterCheckboxes(element, sourceType, currentValue);
+        }
+
+        // Traditional select dropdown logic
+        element.innerHTML = '<option value="">Loading...</option>';
+        element.disabled = true;
+
+        // Load available ratings
+        const ratings = await loadAvailableRatings(sourceType);
+
+        // Clear the select
+        element.innerHTML = '';
+
+        // Add default "All Ratings" option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'All Ratings';
+        element.appendChild(defaultOption);
+
+        // Add rating options
+        ratings.forEach(rating => {
+            const option = document.createElement('option');
+            option.value = rating;
+            option.textContent = rating;
+            if (rating === currentValue) {
+                option.selected = true;
+            }
+            element.appendChild(option);
+        });
+
+        // Re-enable the select
+        element.disabled = false;
+
+        // If no ratings found, show a message
+        if (ratings.length === 0) {
+            const noRatingsOption = document.createElement('option');
+            noRatingsOption.value = '';
+            noRatingsOption.textContent = 'No ratings available';
+            noRatingsOption.disabled = true;
+            element.appendChild(noRatingsOption);
+        }
+
+        console.log(
+            `Populated rating filter for ${sourceType} with ${ratings.length} ratings:`,
+            ratings
+        );
+    } catch (error) {
+        console.error(`Error populating rating filter for ${sourceType}:`, error);
+
+        // Show error state
+        if (element.tagName === 'SELECT') {
+            element.innerHTML = '<option value="">Error loading ratings</option>';
+            element.disabled = false;
+        } else {
+            element.innerHTML = '<div class="loading-indicator">Error loading ratings</div>';
+        }
+    }
+}
+
+/**
+ * Populate a rating filter with multi-select checkboxes
+ * @param {HTMLDivElement} container - The container div element
+ * @param {string} sourceType - The source type to get ratings for
+ * @param {string|Array} currentValue - The currently selected value(s)
+ */
+async function populateRatingFilterCheckboxes(container, sourceType, currentValue = '') {
+    try {
+        // Show loading state
+        container.innerHTML = '<div class="loading-indicator">Loading ratings...</div>';
+
+        // Load available ratings with counts
+        const response = await fetch(`/api/sources/${sourceType}/ratings-with-counts`);
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to load ratings');
+        }
+
+        // Check if server is disabled
+        if (data.message && data.message.includes('disabled')) {
+            container.innerHTML =
+                '<div class="loading-indicator">Server disabled - no ratings available</div>';
+
+            // Clear hidden field
+            const hiddenFieldId = container.id + '-hidden';
+            const hiddenField = document.getElementById(hiddenFieldId);
+            if (hiddenField) {
+                hiddenField.value = '';
+            }
+            return;
+        }
+
+        const ratingsWithCounts = data.data;
+
+        // Clear the container
+        container.innerHTML = '';
+
+        // If no ratings available, show message
+        if (ratingsWithCounts.length === 0) {
+            container.innerHTML = '<div class="loading-indicator">No ratings available</div>';
+            return;
+        }
+
+        // Parse current values (could be string or array)
+        let selectedRatings = [];
+        if (currentValue) {
+            if (Array.isArray(currentValue)) {
+                selectedRatings = currentValue;
+            } else if (typeof currentValue === 'string') {
+                selectedRatings = currentValue
+                    .split(',')
+                    .map(r => r.trim())
+                    .filter(r => r);
+            }
+        }
+
+        // Create checkboxes for each rating
+        ratingsWithCounts.forEach(({ rating, count }) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'rating-checkbox-item';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `rating-${sourceType}-${rating}`;
+            checkbox.value = rating;
+            checkbox.checked = selectedRatings.includes(rating);
+
+            const label = document.createElement('label');
+            label.setAttribute('for', checkbox.id);
+            label.textContent = rating;
+
+            const countSpan = document.createElement('span');
+            countSpan.className = 'rating-count';
+            countSpan.textContent = `(${count})`;
+
+            // Add event listener to update hidden field
+            checkbox.addEventListener('change', () => {
+                updateHiddenRatingField(container, sourceType);
+            });
+
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(label);
+            itemDiv.appendChild(countSpan);
+            container.appendChild(itemDiv);
+        });
+
+        // Update the hidden field with current selection
+        updateHiddenRatingField(container, sourceType);
+
+        console.log(
+            `Populated rating filter checkboxes for ${sourceType} with ${ratingsWithCounts.length} ratings:`,
+            ratingsWithCounts
+        );
+    } catch (error) {
+        console.error(`Error populating rating filter checkboxes for ${sourceType}:`, error);
+        container.innerHTML = '<div class="loading-indicator">Error loading ratings</div>';
+    }
+}
+
+/**
+ * Update the hidden field with selected rating values
+ * @param {HTMLDivElement} container - The checkbox container
+ * @param {string} sourceType - The source type
+ */
+function updateHiddenRatingField(container, sourceType) {
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+    const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+
+    // Find the corresponding hidden field by looking for the one that matches the container's ID pattern
+    const containerId = container.id;
+    const hiddenFieldId = containerId + '-hidden';
+    const hiddenField = document.getElementById(hiddenFieldId);
+
+    if (hiddenField) {
+        hiddenField.value = selectedValues.length > 0 ? selectedValues.join(',') : '';
+        console.log(`Updated hidden field ${hiddenFieldId} with:`, selectedValues);
+    } else {
+        console.warn(`Could not find hidden field with ID: ${hiddenFieldId}`);
+    }
+}
+
+/**
+ * Populates genre filter checkboxes for a source
+ * @param {Array} genres - Array of genre strings
+ * @param {HTMLDivElement} container - The checkbox container element
+ * @param {string} currentValue - Currently selected genres as comma-separated string
+ */
+function populateGenreFilterCheckboxes(genres, container, currentValue = '') {
+    if (!container) {
+        console.warn('populateGenreFilterCheckboxes: Container element not found');
+        return;
+    }
+
+    try {
+        // Clear the container
+        container.innerHTML = '';
+
+        if (!genres || genres.length === 0) {
+            container.innerHTML = '<div class="loading-indicator">No genres found</div>';
+            return;
+        }
+
+        // Parse currently selected genres
+        const selectedGenres = currentValue
+            ? currentValue
+                  .split(',')
+                  .map(g => g.trim())
+                  .filter(g => g)
+            : [];
+
+        // Create checkbox for each genre
+        genres.forEach(genreItem => {
+            // Handle both string genres and genre objects with counts
+            const genre = typeof genreItem === 'string' ? genreItem : genreItem.genre;
+            const count = typeof genreItem === 'object' && genreItem.count ? genreItem.count : null;
+
+            // Create container for this checkbox item
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'genre-checkbox-item';
+
+            // Create checkbox input
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `genre_${Math.random().toString(36).substr(2, 9)}`;
+            checkbox.value = genre;
+            checkbox.checked = selectedGenres.includes(genre);
+
+            // Create label with genre name
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.className = 'genre-text';
+            label.textContent = genre;
+
+            // Add event listener to update hidden field
+            checkbox.addEventListener('change', () => {
+                updateHiddenGenreField(container);
+            });
+
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(label);
+
+            // Add count span if available (as separate element like ratings)
+            if (count !== null) {
+                const countSpan = document.createElement('span');
+                countSpan.className = 'genre-count';
+                countSpan.textContent = `(${count})`;
+                itemDiv.appendChild(countSpan);
+            }
+
+            container.appendChild(itemDiv);
+        });
+
+        // Update the hidden field with current selection
+        updateHiddenGenreField(container);
+
+        console.log(`Populated genre filter checkboxes with ${genres.length} genres:`, genres);
+    } catch (error) {
+        console.error('Error populating genre filter checkboxes:', error);
+        container.innerHTML = '<div class="loading-indicator">Error loading genres</div>';
+    }
+}
+
+/**
+ * Update the hidden field with selected genre values
+ * @param {HTMLDivElement} container - The checkbox container
+ */
+function updateHiddenGenreField(container) {
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+    const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+
+    // Find the corresponding hidden field by looking for the one that matches the container's ID pattern
+    const containerId = container.id;
+    const hiddenFieldId = containerId + '-hidden';
+    const hiddenField = document.getElementById(hiddenFieldId);
+
+    if (hiddenField) {
+        hiddenField.value = selectedValues.length > 0 ? selectedValues.join(',') : '';
+        console.log(`Updated hidden field ${hiddenFieldId} with:`, selectedValues);
+    } else {
+        console.warn(`Could not find hidden field with ID: ${hiddenFieldId}`);
+    }
+}
+
+/**
+ * Populate quality filter checkboxes
+ * @param {Array} qualities - Array of quality strings or objects with counts
+ * @param {HTMLDivElement} container - The checkbox container element
+ * @param {string} currentValue - Currently selected qualities as comma-separated string
+ */
+function populateQualityFilterCheckboxes(qualities, container, currentValue = '') {
+    if (!container) {
+        console.warn('populateQualityFilterCheckboxes: Container element not found');
+        return;
+    }
+
+    try {
+        // Clear the container
+        container.innerHTML = '';
+
+        if (!qualities || qualities.length === 0) {
+            container.innerHTML = '<div class="loading-indicator">No qualities found</div>';
+            return;
+        }
+
+        // Parse currently selected qualities
+        const selectedQualities = currentValue
+            ? currentValue
+                  .split(',')
+                  .map(q => q.trim())
+                  .filter(q => q)
+            : [];
+
+        // Create checkbox for each quality
+        qualities.forEach(qualityItem => {
+            // Handle both string qualities and quality objects with counts
+            const quality = typeof qualityItem === 'string' ? qualityItem : qualityItem.quality;
+            const count =
+                typeof qualityItem === 'object' && qualityItem.count ? qualityItem.count : null;
+
+            // Create container for this checkbox item
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'quality-checkbox-item';
+
+            // Create checkbox
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${container.id}-${quality}`;
+            checkbox.value = quality;
+            checkbox.checked = selectedQualities.includes(quality);
+
+            // Create label
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+
+            if (count !== null) {
+                // Create label text and count span for right alignment
+                const labelText = document.createElement('span');
+                labelText.textContent = quality;
+
+                const countSpan = document.createElement('span');
+                countSpan.textContent = `(${count})`;
+                countSpan.style.opacity = '0.7';
+
+                label.appendChild(labelText);
+                label.appendChild(countSpan);
+            } else {
+                label.textContent = quality;
+            }
+
+            // Add change listener to update hidden field
+            checkbox.addEventListener('change', () => {
+                updateHiddenQualityField(container);
+            });
+
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(label);
+            container.appendChild(itemDiv);
+        });
+
+        // Update the hidden field with current selection
+        updateHiddenQualityField(container);
+
+        console.log(
+            `Populated quality filter checkboxes with ${qualities.length} qualities:`,
+            qualities
+        );
+    } catch (error) {
+        console.error('Error populating quality filter checkboxes:', error);
+        container.innerHTML = '<div class="loading-indicator">Error loading qualities</div>';
+    }
+}
+
+/**
+ * Update the hidden field with selected quality values
+ * @param {HTMLDivElement} container - The checkbox container
+ */
+function updateHiddenQualityField(container) {
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+    const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+
+    // Find the corresponding hidden field by looking for the one that matches the container's ID pattern
+    const containerId = container.id;
+    const hiddenFieldId = containerId + '-hidden';
+    const hiddenField = document.getElementById(hiddenFieldId);
+
+    if (hiddenField) {
+        hiddenField.value = selectedValues.length > 0 ? selectedValues.join(',') : '';
+        console.log(`Updated hidden field ${hiddenFieldId} with:`, selectedValues);
+    } else {
+        console.warn(`Could not find hidden field with ID: ${hiddenFieldId}`);
+    }
+}
+
+/**
+ * Initialize dynamic rating filters for all server configurations
+ */
+function initDynamicRatingFilters() {
+    // Find all rating filter elements with dynamic-rating-filter class (both selects and divs)
+    const ratingElements = document.querySelectorAll('.dynamic-rating-filter');
+
+    ratingElements.forEach(async element => {
+        const sourceType = element.dataset.source;
+        let currentValue = '';
+
+        // Check if the corresponding server is enabled
+        const isServerEnabled = checkIfServerEnabled(sourceType);
+
+        if (!isServerEnabled) {
+            // Show disabled state instead of loading ratings
+            showDisabledRatingFilter(element, sourceType);
+            return;
+        }
+
+        // Get current value differently based on element type
+        if (element.tagName === 'SELECT') {
+            currentValue = element.value;
+        } else if (element.classList.contains('multi-select-checkboxes')) {
+            // For multi-select, get value from hidden field
+            const hiddenFieldId = element.id + '-hidden';
+            const hiddenField = document.getElementById(hiddenFieldId);
+            if (hiddenField) {
+                currentValue = hiddenField.value;
+            }
+        }
+
+        if (sourceType) {
+            await populateRatingFilter(element, sourceType, currentValue);
+        } else {
+            console.warn('Rating filter element missing data-source attribute:', element);
+        }
+    });
+}
+
+/**
+ * Check if a server type is enabled in the current configuration
+ * @param {string} sourceType - The source type to check
+ * @returns {boolean} True if server is enabled
+ */
+function checkIfServerEnabled(sourceType) {
+    // Get the current config from the page (assuming it's available globally)
+    const configData = window.currentConfig;
+    if (!configData || !configData.mediaServers) {
+        return false;
+    }
+
+    // Find the server of the given type
+    const server = configData.mediaServers.find(s => s.type === sourceType);
+    return server && server.enabled === true;
+}
+
+/**
+ * Show disabled state for rating filter
+ * @param {HTMLElement} element - The rating filter element
+ * @param {string} sourceType - The source type
+ */
+function showDisabledRatingFilter(element, sourceType) {
+    if (element.tagName === 'SELECT') {
+        element.innerHTML = '<option value="">Server disabled</option>';
+        element.disabled = true;
+    } else if (element.classList.contains('multi-select-checkboxes')) {
+        element.innerHTML =
+            '<div class="loading-indicator">Server disabled - no ratings available</div>';
+
+        // Clear hidden field
+        const hiddenFieldId = element.id + '-hidden';
+        const hiddenField = document.getElementById(hiddenFieldId);
+        if (hiddenField) {
+            hiddenField.value = '';
+        }
+    }
+}
+
+/**
+ * Refresh rating filters (useful after server configuration changes)
+ */
+async function refreshRatingFilters() {
+    // Refresh the current config first
+    try {
+        const response = await authenticatedFetch(apiUrlWithCacheBust('/api/admin/config'));
+        if (response.ok) {
+            const { config = {} } = await response.json();
+            window.currentConfig = config;
+        }
+    } catch (error) {
+        console.warn('Failed to refresh config for rating filters:', error);
+    }
+
+    // Re-initialize rating filters with fresh config
+    initDynamicRatingFilters();
+
+    // Re-initialize genre filters with fresh config
+    if (typeof initDynamicGenreFilters === 'function') {
+        initDynamicGenreFilters();
+    }
+
+    // Re-initialize quality filters with fresh config
+    if (typeof initDynamicQualityFilters === 'function') {
+        initDynamicQualityFilters();
+    }
+}
+
+// Note: Rating filters are now initialized after config is loaded in loadConfig()
+// instead of on DOMContentLoaded to ensure window.currentConfig is available
+
+/**
+ * Initialize dynamic genre filters for all server configurations
+ */
+function initDynamicGenreFilters() {
+    // Define clear functions locally to avoid scope issues
+    function clearGenreSelection() {
+        // Clear Plex genre selection
+        const plexHiddenField = document.getElementById('mediaServers[0].genreFilter-hidden');
+        if (plexHiddenField) {
+            plexHiddenField.value = '';
+        }
+
+        const plexGenreContainer = document.getElementById('mediaServers[0].genreFilter');
+        if (plexGenreContainer) {
+            const checkboxes = plexGenreContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    }
+
+    function clearJellyfinGenreSelection() {
+        // Clear Jellyfin genre selection
+        const jellyfinHiddenField = document.getElementById('mediaServers[1].genreFilter-hidden');
+        if (jellyfinHiddenField) {
+            jellyfinHiddenField.value = '';
+        }
+
+        const jellyfinGenreContainer = document.getElementById('mediaServers[1].genreFilter');
+        if (jellyfinGenreContainer) {
+            const checkboxes = jellyfinGenreContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    }
+
+    // Setup genre filter listeners - inline implementation to avoid scope issues
+    const clearPlexBtn = document.getElementById('clearGenresBtn');
+    if (clearPlexBtn) {
+        clearPlexBtn.addEventListener('click', clearGenreSelection);
+    }
+
+    const clearJellyfinBtn = document.getElementById('clearJellyfinGenresBtn');
+    if (clearJellyfinBtn) {
+        clearJellyfinBtn.addEventListener('click', clearJellyfinGenreSelection);
+    }
+
+    // Find all genre filter elements with dynamic-genre-filter class
+    const genreElements = document.querySelectorAll('.dynamic-genre-filter');
+
+    genreElements.forEach(async element => {
+        // Determine source type from element ID or data attribute
+        let sourceType = element.dataset.source;
+        if (!sourceType) {
+            // Extract from ID pattern mediaServers[0].genreFilter -> plex, mediaServers[1].genreFilter -> jellyfin
+            const idMatch = element.id.match(/mediaServers\[(\d+)\]\.genreFilter/);
+            if (idMatch) {
+                const serverIndex = parseInt(idMatch[1]);
+                sourceType = serverIndex === 0 ? 'plex' : 'jellyfin';
+            }
+        }
+
+        if (!sourceType) {
+            console.warn('Genre filter element missing source identification:', element);
+            return;
+        }
+
+        // Check if the corresponding server is enabled
+        const isServerEnabled = checkIfServerEnabled(sourceType);
+
+        if (!isServerEnabled) {
+            // Show disabled state
+            element.innerHTML =
+                '<div class="loading-indicator">Server disabled - no genres available</div>';
+
+            // Clear hidden field
+            const hiddenFieldId = element.id + '-hidden';
+            const hiddenField = document.getElementById(hiddenFieldId);
+            if (hiddenField) {
+                hiddenField.value = '';
+            }
+            return;
+        }
+
+        // Load genres based on source type
+        try {
+            if (sourceType === 'plex') {
+                await loadPlexGenres();
+            } else if (sourceType === 'jellyfin') {
+                await loadJellyfinGenres();
+            }
+        } catch (error) {
+            console.warn(`Failed to load ${sourceType} genres:`, error);
+            element.innerHTML = '<div class="loading-indicator">Error loading genres</div>';
+        }
+    });
+}
+
+/**
+ * Initialize dynamic quality filters for all server configurations
+ */
+function initDynamicQualityFilters() {
+    // Find all quality filter elements with dynamic-quality-filter class
+    const qualityElements = document.querySelectorAll('.dynamic-quality-filter');
+
+    qualityElements.forEach(async element => {
+        // Determine source type from element ID or data attribute
+        let sourceType = element.dataset.source;
+        if (!sourceType) {
+            // Extract from ID pattern mediaServers[0].qualityFilter -> plex, mediaServers[1].qualityFilter -> jellyfin
+            const idMatch = element.id.match(/mediaServers\[(\d+)\]\.qualityFilter/);
+            if (idMatch) {
+                const serverIndex = parseInt(idMatch[1]);
+                sourceType = serverIndex === 0 ? 'plex' : 'jellyfin';
+            }
+        }
+
+        if (!sourceType) {
+            console.warn('Quality filter element missing source identification:', element);
+            return;
+        }
+
+        // Check if the corresponding server is enabled
+        const isServerEnabled = checkIfServerEnabled(sourceType);
+
+        if (!isServerEnabled) {
+            // Show disabled state
+            element.innerHTML =
+                '<div class="loading-indicator">Server disabled - no qualities available</div>';
+
+            // Clear hidden field
+            const hiddenFieldId = element.id + '-hidden';
+            const hiddenField = document.getElementById(hiddenFieldId);
+            if (hiddenField) {
+                hiddenField.value = '';
+            }
+            return;
+        }
+
+        // Get current value from hidden field
+        const hiddenFieldId = element.id + '-hidden';
+        const hiddenField = document.getElementById(hiddenFieldId);
+        const currentValue = hiddenField ? hiddenField.value : '';
+
+        try {
+            // Set loading state
+            element.innerHTML = '<div class="loading-indicator">Loading qualities...</div>';
+
+            // Fetch qualities from the appropriate API endpoint
+            let apiUrl;
+            if (sourceType === 'plex') {
+                apiUrl = '/api/admin/plex-qualities-with-counts';
+            } else if (sourceType === 'jellyfin') {
+                apiUrl = '/api/admin/jellyfin-qualities-with-counts';
+            } else {
+                throw new Error(`Unknown source type: ${sourceType}`);
+            }
+
+            const response = await authenticatedFetch(apiUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const qualities = data.qualities || [];
+
+            populateQualityFilterCheckboxes(qualities, element, currentValue);
+        } catch (error) {
+            console.warn(`Failed to load ${sourceType} qualities:`, error);
+            element.innerHTML = '<div class="loading-indicator">Error loading qualities</div>';
+        }
+    });
+}
+
+// Make functions globally available
+window.loadAvailableRatings = loadAvailableRatings;
+window.populateRatingFilter = populateRatingFilter;
+window.refreshRatingFilters = refreshRatingFilters;
+window.initDynamicGenreFilters = initDynamicGenreFilters;
+window.initDynamicQualityFilters = initDynamicQualityFilters;

@@ -3339,6 +3339,235 @@ fieldset:focus-within {
     font-weight: 500;
 }
 
+/* Multi-select rating filter styling */
+.rating-filter-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.multi-select-checkboxes {
+    min-width: 280px; /* Fixed minimum width for consistency */
+    width: 100%;
+    max-width: 350px; /* Maximum width to prevent too wide boxes */
+    max-height: 200px;
+    overflow-y: auto;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.75rem;
+}
+
+.multi-select-checkboxes .loading-indicator {
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    padding: 1rem;
+    font-style: italic;
+}
+
+.rating-checkbox-item {
+    display: flex;
+    align-items: center; /* Centers items vertically */
+    gap: 1rem; /* Use gap instead of margin for spacing */
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    padding: 0.4rem 0.25rem; /* Increased vertical padding */
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    min-height: 28px; /* Increased minimum height */
+}
+
+.rating-checkbox-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.rating-checkbox-item:last-child {
+    margin-bottom: 0;
+}
+
+.rating-checkbox-item input[type='checkbox'] {
+    appearance: none;
+    width: 18px; /* Slightly larger checkbox */
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0; /* Prevents checkbox from shrinking */
+    margin: 0; /* Remove any default margin */
+}
+
+.rating-checkbox-item input[type='checkbox']:checked {
+    background: #7c3aed;
+    border-color: #7c3aed;
+}
+
+.rating-checkbox-item input[type='checkbox']:checked::after {
+    content: '✓';
+    position: absolute;
+    top: -1px; /* Adjusted for larger checkbox */
+    left: 2px;
+    color: white;
+    font-size: 14px; /* Slightly larger checkmark */
+    font-weight: bold;
+}
+
+.rating-checkbox-item label {
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 0.875rem;
+    flex: 1;
+    user-select: none;
+    display: flex;
+    align-items: center; /* Centers label text vertically */
+    line-height: 1.3; /* Better line height for vertical centering */
+    margin: 0; /* Remove any default margin */
+}
+
+/* Genre checkbox styling - same as rating checkboxes */
+.genre-checkbox-item {
+    display: flex;
+    align-items: center; /* Centers items vertically */
+    gap: 1rem; /* Use gap instead of margin for spacing */
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    padding: 0.4rem 0.25rem; /* Increased vertical padding */
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    min-height: 28px; /* Increased minimum height */
+}
+
+.genre-checkbox-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.genre-checkbox-item:last-child {
+    margin-bottom: 0;
+}
+
+.genre-checkbox-item input[type='checkbox'] {
+    appearance: none;
+    width: 18px; /* Slightly larger checkbox */
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0; /* Prevents checkbox from shrinking */
+    margin: 0; /* Remove any default margin */
+}
+
+.genre-checkbox-item input[type='checkbox']:checked {
+    background: #7c3aed;
+    border-color: #7c3aed;
+}
+
+.genre-checkbox-item input[type='checkbox']:checked::after {
+    content: '✓';
+    position: absolute;
+    top: -1px; /* Adjusted for larger checkbox */
+    left: 2px;
+    color: white;
+    font-size: 14px; /* Slightly larger checkmark */
+    font-weight: bold;
+}
+
+.genre-checkbox-item label {
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 0.875rem;
+    flex: 1;
+    user-select: none;
+    display: flex;
+    align-items: center; /* Centers label text vertically */
+    line-height: 1.3; /* Better line height for vertical centering */
+    margin: 0; /* Remove any default margin */
+}
+
+/* Quality Checkbox Items */
+.quality-checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    gap: 8px; /* Space between checkbox and label */
+}
+
+.quality-checkbox-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.quality-checkbox-item:last-child {
+    margin-bottom: 0;
+}
+
+.quality-checkbox-item input[type='checkbox'] {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #666;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0; /* Prevent checkbox from shrinking */
+    margin: 0; /* Remove default margin */
+    transition: all 0.2s ease;
+}
+
+.quality-checkbox-item input[type='checkbox']:checked {
+    background-color: #007acc;
+    border-color: #007acc;
+}
+
+.quality-checkbox-item input[type='checkbox']:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px; /* Slightly larger checkmark */
+    font-weight: bold;
+}
+
+.quality-checkbox-item label {
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 0.875rem;
+    flex: 1;
+    user-select: none;
+    display: flex;
+    align-items: center; /* Centers label text vertically */
+    justify-content: space-between; /* Pushes count to the right */
+    line-height: 1.3; /* Better line height for vertical centering */
+    margin: 0; /* Remove any default margin */
+}
+
+.rating-count {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    margin-left: auto;
+    flex-shrink: 0; /* Prevents count from shrinking */
+    display: flex;
+    align-items: center; /* Centers count vertically */
+}
+
+.genre-count {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    margin-left: auto;
+    flex-shrink: 0; /* Prevents count from shrinking */
+    display: flex;
+    align-items: center; /* Centers count vertically */
+}
+
 .form-group select[name*='genreFilter'] option:hover {
     background: rgba(124, 58, 237, 0.3);
 }

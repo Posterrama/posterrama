@@ -40,12 +40,27 @@ class PlexSource {
      */
     getMetrics() {
         return {
+            totalItems: this.cachedMedia ? this.cachedMedia.length : 0,
+            lastFetch: this.lastFetch,
+            cacheDuration: 3600000, // Default cache duration
             ...this.metrics,
-            filterEfficiency:
-                this.metrics.itemsProcessed > 0
-                    ? this.metrics.itemsFiltered / this.metrics.itemsProcessed
-                    : 0,
         };
+    }
+
+    // Get all unique content ratings from the media collection
+    getAvailableRatings() {
+        if (!this.cachedMedia) {
+            return [];
+        }
+
+        const ratings = new Set();
+        this.cachedMedia.forEach(item => {
+            if (item.contentRating && item.contentRating.trim()) {
+                ratings.add(item.contentRating.trim());
+            }
+        });
+
+        return Array.from(ratings).sort();
     }
 
     /**
@@ -165,14 +180,35 @@ class PlexSource {
     applyContentFiltering(items) {
         let filteredItems = [...items];
 
-        // Rating filter
+        // Rating filter (support both string and array formats)
         if (this.server.ratingFilter && this.server.ratingFilter.trim() !== '') {
+            // Convert string to array for consistent handling
+            const allowedRatings = Array.isArray(this.server.ratingFilter)
+                ? this.server.ratingFilter
+                : [this.server.ratingFilter];
+
             filteredItems = filteredItems.filter(item => {
-                return item.contentRating === this.server.ratingFilter;
+                if (!item.contentRating) {
+                    // If a rating filter is set, exclude items without content rating
+                    if (this.isDebug) {
+                        logger.debug(
+                            `[PlexSource:${this.server.name}] Filtered out "${item.title}" - No contentRating when filter "${allowedRatings.join(', ')}" is required`
+                        );
+                    }
+                    return false;
+                } else if (!allowedRatings.includes(item.contentRating)) {
+                    if (this.isDebug) {
+                        logger.debug(
+                            `[PlexSource:${this.server.name}] Filtered out "${item.title}" - contentRating "${item.contentRating}" not in allowed list: ${allowedRatings.join(', ')}`
+                        );
+                    }
+                    return false;
+                }
+                return true;
             });
             if (this.isDebug)
                 logger.debug(
-                    `[PlexSource:${this.server.name}] Rating filter (${this.server.ratingFilter}): ${filteredItems.length} items.`
+                    `[PlexSource:${this.server.name}] Rating filter (${allowedRatings.join(', ')}): ${filteredItems.length} items.`
                 );
         }
 

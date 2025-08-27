@@ -24,10 +24,14 @@ class JellyfinSource {
 
         // Debug: log rating filters configuration
         if (this.isDebug) {
-            logger.info(`[JellyfinSource:${this.server.name}] Initialized with rating filters:`, {
-                ratingFilters: this.server.ratingFilters || 'none',
-                rtMinScore: this.rtMinScore,
-            });
+            logger.info(
+                `[JellyfinSource:${this.server.name}] Initialized with rating configuration:`,
+                {
+                    ratingFilter: this.server.ratingFilter || 'none',
+                    legacyRatingFilters: this.server.ratingFilters || 'none',
+                    rtMinScore: this.rtMinScore,
+                }
+            );
         }
 
         // Performance metrics
@@ -47,12 +51,32 @@ class JellyfinSource {
      */
     getMetrics() {
         return {
-            ...this.metrics,
-            filterEfficiency:
-                this.metrics.itemsProcessed > 0
-                    ? this.metrics.itemsFiltered / this.metrics.itemsProcessed
-                    : 0,
+            totalItems: this.cachedMedia ? this.cachedMedia.length : 0,
+            lastFetch: this.lastFetch,
+            cacheDuration: 3600000, // Default cache duration in milliseconds (1 hour)
+            requestCount: this.metrics.requestCount,
+            itemsProcessed: this.metrics.itemsProcessed,
+            itemsFiltered: this.metrics.itemsFiltered,
+            averageProcessingTime: this.metrics.averageProcessingTime,
+            lastRequestTime: this.metrics.lastRequestTime,
+            errorCount: this.metrics.errorCount,
         };
+    }
+
+    // Get all unique ratings from the media collection
+    getAvailableRatings() {
+        if (!this.cachedMedia) {
+            return [];
+        }
+
+        const ratings = new Set();
+        this.cachedMedia.forEach(item => {
+            if (item.rating && item.rating.trim()) {
+                ratings.add(item.rating.trim());
+            }
+        });
+
+        return Array.from(ratings).sort();
     }
 
     /**
@@ -124,6 +148,8 @@ class JellyfinSource {
                             'RunTimeTicks',
                             'Taglines',
                             'OriginalTitle',
+                            'ImageTags',
+                            'BackdropImageTags',
                         ],
                         sortBy: ['Random'],
                         limit: count * 2,
@@ -172,13 +198,115 @@ class JellyfinSource {
                     }
                 }
 
+                // Apply genre filter if configured
+                if (this.server.genreFilter && this.server.genreFilter.trim() !== '') {
+                    const genreList = this.server.genreFilter
+                        .split(',')
+                        .map(g => g.trim().toLowerCase());
+
+                    if (!item.Genres || !Array.isArray(item.Genres) || item.Genres.length === 0) {
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - No genres available when genre filter "${this.server.genreFilter}" is set`
+                            );
+                        }
+                        return false;
+                    }
+
+                    const hasMatchingGenre = item.Genres.some(genre =>
+                        genreList.some(filterGenre => genre.toLowerCase().includes(filterGenre))
+                    );
+
+                    if (!hasMatchingGenre) {
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - Genres [${item.Genres.join(', ')}] don't match filter "${this.server.genreFilter}"`
+                            );
+                        }
+                        return false;
+                    }
+                }
+
+                // Apply quality filter if configured
+                if (this.server.qualityFilter && this.server.qualityFilter.trim() !== '') {
+                    const qualityList = this.server.qualityFilter.split(',').map(q => q.trim());
+
+                    // Get quality information from media sources
+                    let itemQuality = null;
+                    if (item.MediaSources && Array.isArray(item.MediaSources)) {
+                        for (const source of item.MediaSources) {
+                            if (source.MediaStreams && Array.isArray(source.MediaStreams)) {
+                                const videoStream = source.MediaStreams.find(
+                                    stream => stream.Type === 'Video'
+                                );
+                                if (videoStream && videoStream.Height) {
+                                    const height = videoStream.Height;
+
+                                    // Map video height to standardized quality labels
+                                    if (height <= 576) {
+                                        itemQuality = 'SD';
+                                    } else if (height <= 720) {
+                                        itemQuality = '720p';
+                                    } else if (height <= 1080) {
+                                        itemQuality = '1080p';
+                                    } else if (height >= 2160) {
+                                        itemQuality = '4K';
+                                    } else {
+                                        itemQuality = `${height}p`;
+                                    }
+                                    break; // Use first video stream found
+                                }
+                            }
+                        }
+                    }
+
+                    if (!itemQuality || !qualityList.includes(itemQuality)) {
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - Quality "${itemQuality || 'unknown'}" not in filter list: ${qualityList.join(', ')}`
+                            );
+                        }
+                        return false;
+                    }
+                }
+
                 // Apply server-specific rating filters if configured
-                if (this.server.ratingFilters) {
-                    const filters = this.server.ratingFilters;
+                // Support both new simple ratingFilter (string) and legacy ratingFilters (object)
+                const ratingFilter = this.server.ratingFilter;
+                const legacyFilters = this.server.ratingFilters;
+
+                // Handle simple string rating filter (new approach)
+                if (ratingFilter) {
+                    // Convert string to array for consistent handling
+                    const allowedRatings = Array.isArray(ratingFilter)
+                        ? ratingFilter
+                        : [ratingFilter];
+
+                    if (!item.OfficialRating) {
+                        // If a rating filter is set, exclude items without official rating
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - No OfficialRating when filter "${allowedRatings.join(', ')}" is required`
+                            );
+                        }
+                        return false;
+                    } else if (!allowedRatings.includes(item.OfficialRating)) {
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - OfficialRating "${item.OfficialRating}" not in allowed list: ${allowedRatings.join(', ')}`
+                            );
+                        }
+                        return false;
+                    }
+                }
+
+                // Handle legacy rating filters object (backward compatibility)
+                if (legacyFilters) {
+                    const filters = legacyFilters;
 
                     if (this.isDebug) {
                         logger.debug(
-                            `[JellyfinSource:${this.server.name}] Applying rating filters for "${item.Name}": ${JSON.stringify(filters)}`
+                            `[JellyfinSource:${this.server.name}] Applying legacy rating filters for "${item.Name}": ${JSON.stringify(filters)}`
                         );
                     }
 
@@ -225,6 +353,39 @@ class JellyfinSource {
 
                 return true;
             });
+
+            // Log genre filter results if applied
+            if (this.server.genreFilter && this.server.genreFilter.trim() !== '') {
+                if (this.isDebug) {
+                    logger.debug(
+                        `[JellyfinSource:${this.server.name}] Genre filter (${this.server.genreFilter}): ${filteredItems.length} items.`
+                    );
+                }
+            }
+
+            // Log quality filter results if applied
+            if (this.server.qualityFilter && this.server.qualityFilter.trim() !== '') {
+                if (this.isDebug) {
+                    logger.debug(
+                        `[JellyfinSource:${this.server.name}] Quality filter (${this.server.qualityFilter}): ${filteredItems.length} items.`
+                    );
+                }
+            }
+
+            // Recently added filter
+            if (this.server.recentlyAddedOnly && this.server.recentlyAddedDays) {
+                const daysAgo = Date.now() - this.server.recentlyAddedDays * 24 * 60 * 60 * 1000;
+                filteredItems = filteredItems.filter(item => {
+                    if (!item.DateCreated) return false;
+                    const addedDate = new Date(item.DateCreated);
+                    return addedDate.getTime() >= daysAgo;
+                });
+                if (this.isDebug) {
+                    logger.debug(
+                        `[JellyfinSource:${this.server.name}] Recently added filter (${this.server.recentlyAddedDays} days): ${filteredItems.length} items.`
+                    );
+                }
+            }
 
             if (this.isDebug) {
                 console.log(

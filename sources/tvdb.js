@@ -43,14 +43,26 @@ class TVDBSource {
      */
     getMetrics() {
         return {
-            ...this.metrics,
-            cacheHitRate:
-                this.metrics.requestCount > 0
-                    ? this.metrics.cacheHits / this.metrics.requestCount
-                    : 0,
-            cacheSize: this.cache.size,
-            genreMapSize: this.genreMap.size,
+            totalItems: this.cachedMedia ? this.cachedMedia.length : 0,
+            lastFetch: this.lastFetch,
+            cacheDuration: this.config.cacheDuration || 3600000,
         };
+    }
+
+    // Get all unique ratings from the media collection
+    getAvailableRatings() {
+        if (!this.cachedMedia) {
+            return [];
+        }
+
+        const ratings = new Set();
+        this.cachedMedia.forEach(item => {
+            if (item.rating && item.rating.trim()) {
+                ratings.add(item.rating.trim());
+            }
+        });
+
+        return Array.from(ratings).sort();
     }
 
     /**
