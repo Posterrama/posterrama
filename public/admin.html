@@ -772,211 +772,213 @@
                                         <input type="checkbox" id="tmdbSource.enabled" name="tmdbSource.enabled">
                                         <label for="tmdbSource.enabled">Enable TMDB as Content Source</label>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="tmdbSource.apiKey">TMDB API Key</label>
-                                        <input type="password" id="tmdbSource.apiKey" name="tmdbSource.apiKey" placeholder="Your TMDB API v3 key">
-                                        <small>Get a free API key from <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">TMDB API Settings</a></small>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="tmdbSource.category">Content Category</label>
-                                        <select id="tmdbSource.category" name="tmdbSource.category">
-                                            <optgroup label="🎬 Movies">
-                                                <option value="popular">🔥 Popular Movies</option>
-                                                <option value="top_rated">⭐ Top Rated Movies</option>
-                                                <option value="now_playing">🎭 Now Playing</option>
-                                                <option value="upcoming">📅 Upcoming Movies</option>
-                                                <option value="latest">🆕 Latest Movies</option>
-                                            </optgroup>
-                                            <optgroup label="📺 TV Shows">
-                                                <option value="tv_popular">🔥 Popular TV Shows</option>
-                                                <option value="tv_top_rated">⭐ Top Rated TV Shows</option>
-                                                <option value="tv_on_the_air">📡 Currently Airing</option>
-                                                <option value="tv_airing_today">📺 Airing Today</option>
-                                                <option value="tv_latest">🆕 Latest TV Shows</option>
-                                            </optgroup>
-                                            <optgroup label="🎯 Trending">
-                                                <option value="trending_all_day">📈 Trending Today (All)</option>
-                                                <option value="trending_movie_day">🎬 Trending Movies (Day)</option>
-                                                <option value="trending_tv_day">📺 Trending TV (Day)</option>
-                                                <option value="trending_all_week">📊 Trending Week (All)</option>
-                                                <option value="trending_movie_week">🎬 Trending Movies (Week)</option>
-                                                <option value="trending_tv_week">📺 Trending TV (Week)</option>
-                                            </optgroup>
-                                            <optgroup label="🏆 Collections">
-                                                <option value="discover_movie">🔍 Discover Movies</option>
-                                                <option value="discover_tv">🔍 Discover TV Shows</option>
-                                            </optgroup>
-                                        </select>
-                                        <small class="help-text">🎯 Choose the type of content to fetch from TMDB. Trending shows what's hot right now!</small>
-                                    </div>
                                     
-                                    <div class="form-group">
-                                        <label for="tmdbSource.minRating">Minimum Rating (0-10)</label>
-                                        <input type="number" id="tmdbSource.minRating" name="tmdbSource.minRating" min="0" max="10" step="0.1" placeholder="6.0">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="tmdbSource.yearFilter">From Year</label>
-                                        <input type="number" id="tmdbSource.yearFilter" name="tmdbSource.yearFilter" min="1900" max="2030" placeholder="2000">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="tmdbSource.genreFilter">Genre Filter</label>
-                                        <div class="genre-filter-container">
-                                            <select id="tmdbSource.genreFilter" name="tmdbSource.genreFilter" multiple class="genre-filter-select">
-                                                <option value="">Loading genres...</option>
+                                    <!-- TMDB Configuration Container (hidden when disabled) -->
+                                    <div id="tmdb-config-container" class="source-config-container">
+                                        <div class="form-group">
+                                            <label for="tmdbSource.apiKey">TMDB API Key</label>
+                                            <input type="password" id="tmdbSource.apiKey" name="tmdbSource.apiKey" placeholder="Your TMDB API v3 key">
+                                            <small>Get a free API key from <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">TMDB API Settings</a></small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="tmdbSource.category">Content Category</label>
+                                            <select id="tmdbSource.category" name="tmdbSource.category">
+                                                <optgroup label="🎬 Movies">
+                                                    <option value="popular">🔥 Popular Movies</option>
+                                                    <option value="top_rated">⭐ Top Rated Movies</option>
+                                                    <option value="now_playing">🎭 Now Playing</option>
+                                                    <option value="upcoming">📅 Upcoming Movies</option>
+                                                    <option value="latest">🆕 Latest Movies</option>
+                                                </optgroup>
+                                                <optgroup label="📺 TV Shows">
+                                                    <option value="tv_popular">🔥 Popular TV Shows</option>
+                                                    <option value="tv_top_rated">⭐ Top Rated TV Shows</option>
+                                                    <option value="tv_on_the_air">📡 Currently Airing</option>
+                                                    <option value="tv_airing_today">📺 Airing Today</option>
+                                                    <option value="tv_latest">🆕 Latest TV Shows</option>
+                                                </optgroup>
+                                                <optgroup label="🎯 Trending">
+                                                    <option value="trending_all_day">📈 Trending Today (All)</option>
+                                                    <option value="trending_movie_day">🎬 Trending Movies (Day)</option>
+                                                    <option value="trending_tv_day">📺 Trending TV (Day)</option>
+                                                    <option value="trending_all_week">📊 Trending Week (All)</option>
+                                                    <option value="trending_movie_week">🎬 Trending Movies (Week)</option>
+                                                    <option value="trending_tv_week">📺 Trending TV (Week)</option>
+                                                </optgroup>
+                                                <optgroup label="🏆 Collections">
+                                                    <option value="discover_movie">🔍 Discover Movies</option>
+                                                    <option value="discover_tv">🔍 Discover TV Shows</option>
+                                                </optgroup>
                                             </select>
-                                            <button type="button" class="btn-clear-genres" id="clearTmdbGenresBtn" title="Clear all selected genres">
-                                                <i class="fas fa-times"></i> Clear Selection
+                                            <small class="help-text">🎯 Choose the type of content to fetch from TMDB. Trending shows what's hot right now!</small>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="tmdbSource.minRating">Minimum Rating (0-10)</label>
+                                            <input type="number" id="tmdbSource.minRating" name="tmdbSource.minRating" min="0" max="10" step="0.1" placeholder="6.0">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="tmdbSource.yearFilter">From Year</label>
+                                            <input type="number" id="tmdbSource.yearFilter" name="tmdbSource.yearFilter" min="1900" max="2030" placeholder="2000">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="tmdbSource.genreFilter">Genre Filter</label>
+                                            <div class="genre-filter-container">
+                                                <select id="tmdbSource.genreFilter" name="tmdbSource.genreFilter" multiple class="genre-filter-select">
+                                                    <option value="">Loading genres...</option>
+                                                </select>
+                                                <button type="button" class="btn-clear-genres" id="clearTmdbGenresBtn" title="Clear all selected genres">
+                                                    <i class="fas fa-times"></i> Clear Selection
+                                                </button>
+                                            </div>
+                                            <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <button type="button" id="test-tmdb-button" class="btn btn-primary">
+                                                <i class="fas fa-plug icon"></i>
+                                                <span>Test TMDB Connection</span>
                                             </button>
+                                            <small id="tmdb-connection-status"></small>
                                         </div>
-                                        <small class="genre-filter-help">💡 Tip: Hold Ctrl (Windows) or Cmd (Mac) while clicking to select multiple genres. Click "Clear Selection" to show all content.</small>
-                                    </div>
-                                    <div class="form-group">
-                                        <button type="button" id="test-tmdb-button" class="btn btn-primary">
-                                            <i class="fas fa-plug icon"></i>
-                                            <span>Test TMDB Connection</span>
-                                        </button>
-                                        <small id="tmdb-connection-status"></small>
-                                    </div>
-                                </div>
-                                
-                                <!-- Streaming Releases Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-stream"></i>
-                                    Streaming Releases (Needs TMDB Enabled)
-                                </div>
-                                <div class="subsection-content">
-                                    <p class="external-source-description">Add latest releases from popular streaming platforms using TMDB's streaming provider data.</p>
-                                    
-                                    <div class="form-group">
-                                        <label class="checkbox-label">
-                                            <input type="checkbox" id="streamingSources.enabled" name="streamingSources.enabled">
-                                            Enable Streaming Releases
-                                        </label>
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label for="streamingSources.region">Region</label>
-                                        <select id="streamingSources.region" name="streamingSources.region">
-                                            <option value="US">🇺🇸 United States</option>
-                                            <option value="NL">🇳🇱 Netherlands</option>
-                                            <option value="GB">🇬🇧 United Kingdom</option>
-                                            <option value="DE">🇩🇪 Germany</option>
-                                            <option value="FR">🇫🇷 France</option>
-                                            <option value="CA">🇨🇦 Canada</option>
-                                            <option value="AU">🇦🇺 Australia</option>
-                                            <option value="ES">🇪🇸 Spain</option>
-                                            <option value="IT">🇮🇹 Italy</option>
-                                            <option value="BR">🇧🇷 Brazil</option>
-                                            <option value="MX">🇲🇽 Mexico</option>
-                                            <option value="AR">🇦🇷 Argentina</option>
-                                            <option value="JP">🇯🇵 Japan</option>
-                                            <option value="KR">🇰🇷 South Korea</option>
-                                            <option value="IN">🇮🇳 India</option>
-                                            <option value="CN">🇨🇳 China</option>
-                                            <option value="RU">🇷🇺 Russia</option>
-                                            <option value="BE">🇧🇪 Belgium</option>
-                                            <option value="AT">🇦🇹 Austria</option>
-                                            <option value="CH">🇨🇭 Switzerland</option>
-                                            <option value="SE">🇸🇪 Sweden</option>
-                                            <option value="NO">🇳🇴 Norway</option>
-                                            <option value="DK">🇩🇰 Denmark</option>
-                                            <option value="FI">🇫🇮 Finland</option>
-                                            <option value="PL">🇵🇱 Poland</option>
-                                            <option value="CZ">🇨🇿 Czech Republic</option>
-                                            <option value="HU">🇭🇺 Hungary</option>
-                                            <option value="PT">🇵🇹 Portugal</option>
-                                            <option value="GR">🇬🇷 Greece</option>
-                                            <option value="TR">🇹🇷 Turkey</option>
-                                            <option value="IL">🇮🇱 Israel</option>
-                                            <option value="ZA">🇿🇦 South Africa</option>
-                                            <option value="EG">🇪🇬 Egypt</option>
-                                            <option value="SA">🇸🇦 Saudi Arabia</option>
-                                            <option value="AE">🇦🇪 United Arab Emirates</option>
-                                            <option value="TH">🇹🇭 Thailand</option>
-                                            <option value="SG">🇸🇬 Singapore</option>
-                                            <option value="MY">🇲🇾 Malaysia</option>
-                                            <option value="ID">🇮🇩 Indonesia</option>
-                                            <option value="PH">🇵🇭 Philippines</option>
-                                            <option value="VN">🇻🇳 Vietnam</option>
-                                            <option value="TW">🇹🇼 Taiwan</option>
-                                            <option value="HK">🇭🇰 Hong Kong</option>
-                                            <option value="NZ">🇳🇿 New Zealand</option>
-                                            <option value="CL">🇨🇱 Chile</option>
-                                            <option value="CO">🇨🇴 Colombia</option>
-                                            <option value="PE">🇵🇪 Peru</option>
-                                            <option value="VE">🇻🇪 Venezuela</option>
-                                            <option value="UY">🇺🇾 Uruguay</option>
-                                            <option value="EC">🇪🇨 Ecuador</option>
-                                            <option value="BO">🇧🇴 Bolivia</option>
-                                            <option value="PY">🇵🇾 Paraguay</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label>Streaming Providers</label>
-                                        <div class="streaming-providers-grid">
-                                            <label class="checkbox-label streaming-provider">
-                                                <input type="checkbox" id="streamingSources.netflix" name="streamingSources.netflix" value="8">
-                                                <i class="fas fa-film"></i>
-                                                <span>Netflix</span>
-                                            </label>
-                                            <label class="checkbox-label streaming-provider">
-                                                <input type="checkbox" id="streamingSources.disney" name="streamingSources.disney" value="337">
-                                                <i class="fas fa-magic"></i>
-                                                <span>Disney+</span>
-                                            </label>
-                                            <label class="checkbox-label streaming-provider">
-                                                <input type="checkbox" id="streamingSources.prime" name="streamingSources.prime" value="119">
-                                                <i class="fab fa-amazon"></i>
-                                                <span>Prime Video</span>
-                                            </label>
-                                            <label class="checkbox-label streaming-provider">
-                                                <input type="checkbox" id="streamingSources.hbo" name="streamingSources.hbo" value="1899">
-                                                <i class="fas fa-play-circle"></i>
-                                                <span>Max (HBO)</span>
-                                            </label>
-                                            <label class="checkbox-label streaming-provider">
-                                                <input type="checkbox" id="streamingSources.hulu" name="streamingSources.hulu" value="15">
-                                                <i class="fas fa-tv"></i>
-                                                <span>Hulu</span>
-                                            </label>
-                                            <label class="checkbox-label streaming-provider">
-                                                <input type="checkbox" id="streamingSources.apple" name="streamingSources.apple" value="350">
-                                                <i class="fab fa-apple"></i>
-                                                <span>Apple TV+</span>
-                                            </label>
-                                            <label class="checkbox-label streaming-provider">
-                                                <input type="checkbox" id="streamingSources.paramount" name="streamingSources.paramount" value="531">
-                                                <i class="fas fa-mountain"></i>
-                                                <span>Paramount+</span>
-                                            </label>
-                                            <label class="checkbox-label streaming-provider">
-                                                <input type="checkbox" id="streamingSources.crunchyroll" name="streamingSources.crunchyroll" value="283">
-                                                <i class="fas fa-dragon"></i>
-                                                <span>Crunchyroll</span>
-                                            </label>
-                                            <label class="checkbox-label streaming-provider">
-                                                <input type="checkbox" id="streamingSources.newReleases" name="streamingSources.newReleases" value="new">
-                                                <i class="fas fa-star"></i>
-                                                <span>New Releases (All)</span>
-                                            </label>
+                                        
+                                        <!-- Streaming Releases Subsection -->
+                                        <div class="subsection-header">
+                                            <i class="fas fa-stream"></i>
+                                            Streaming Releases (Needs TMDB Enabled)
                                         </div>
-                                    </div>
-                                    
-                                    
-                                    
-                                    <div class="form-group">
-                                        <label for="streamingSources.minRating">Minimum Rating (0-10)</label>
-                                        <input type="number" id="streamingSources.minRating" name="streamingSources.minRating" min="0" max="10" step="0.1" placeholder="6.0">
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <button type="button" id="test-streaming-button" class="btn btn-primary">
-                                            <i class="fas fa-stream icon"></i>
-                                            <span>Test Streaming Connection</span>
-                                        </button>
-                                        <small id="streaming-connection-status"></small>
-                                    </div>
+                                        <div class="subsection-content">
+                                            <p class="external-source-description">Add latest releases from popular streaming platforms using TMDB's streaming provider data.</p>
+                                            
+                                            <div class="form-group">
+                                                <label class="checkbox-label">
+                                                    <input type="checkbox" id="streamingSources.enabled" name="streamingSources.enabled">
+                                                    Enable Streaming Releases
+                                                </label>
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="streamingSources.region">Region</label>
+                                                <select id="streamingSources.region" name="streamingSources.region">
+                                                    <option value="US">🇺🇸 United States</option>
+                                                    <option value="NL">🇳🇱 Netherlands</option>
+                                                    <option value="GB">🇬🇧 United Kingdom</option>
+                                                    <option value="DE">🇩🇪 Germany</option>
+                                                    <option value="FR">🇫🇷 France</option>
+                                                    <option value="CA">🇨🇦 Canada</option>
+                                                    <option value="AU">🇦🇺 Australia</option>
+                                                    <option value="ES">🇪🇸 Spain</option>
+                                                    <option value="IT">🇮🇹 Italy</option>
+                                                    <option value="BR">🇧🇷 Brazil</option>
+                                                    <option value="MX">🇲🇽 Mexico</option>
+                                                    <option value="AR">🇦🇷 Argentina</option>
+                                                    <option value="JP">🇯🇵 Japan</option>
+                                                    <option value="KR">🇰🇷 South Korea</option>
+                                                    <option value="IN">🇮🇳 India</option>
+                                                    <option value="CN">🇨🇳 China</option>
+                                                    <option value="RU">🇷🇺 Russia</option>
+                                                    <option value="BE">🇧🇪 Belgium</option>
+                                                    <option value="AT">🇦🇹 Austria</option>
+                                                    <option value="CH">🇨🇭 Switzerland</option>
+                                                    <option value="SE">🇸🇪 Sweden</option>
+                                                    <option value="NO">🇳🇴 Norway</option>
+                                                    <option value="DK">🇩🇰 Denmark</option>
+                                                    <option value="FI">🇫🇮 Finland</option>
+                                                    <option value="PL">🇵🇱 Poland</option>
+                                                    <option value="CZ">🇨🇿 Czech Republic</option>
+                                                    <option value="HU">🇭🇺 Hungary</option>
+                                                    <option value="PT">🇵🇹 Portugal</option>
+                                                    <option value="GR">🇬🇷 Greece</option>
+                                                    <option value="TR">🇹🇷 Turkey</option>
+                                                    <option value="IL">🇮🇱 Israel</option>
+                                                    <option value="ZA">🇿🇦 South Africa</option>
+                                                    <option value="EG">🇪🇬 Egypt</option>
+                                                    <option value="SA">🇸🇦 Saudi Arabia</option>
+                                                    <option value="AE">🇦🇪 United Arab Emirates</option>
+                                                    <option value="TH">🇹🇭 Thailand</option>
+                                                    <option value="SG">🇸🇬 Singapore</option>
+                                                    <option value="MY">🇲🇾 Malaysia</option>
+                                                    <option value="ID">🇮🇩 Indonesia</option>
+                                                    <option value="PH">🇵🇭 Philippines</option>
+                                                    <option value="VN">🇻🇳 Vietnam</option>
+                                                    <option value="TW">🇹🇼 Taiwan</option>
+                                                    <option value="HK">🇭🇰 Hong Kong</option>
+                                                    <option value="NZ">🇳🇿 New Zealand</option>
+                                                    <option value="CL">🇨🇱 Chile</option>
+                                                    <option value="CO">🇨🇴 Colombia</option>
+                                                    <option value="PE">🇵🇪 Peru</option>
+                                                    <option value="VE">🇻🇪 Venezuela</option>
+                                                    <option value="UY">🇺🇾 Uruguay</option>
+                                                    <option value="EC">🇪🇨 Ecuador</option>
+                                                    <option value="BO">🇧🇴 Bolivia</option>
+                                                    <option value="PY">🇵🇾 Paraguay</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label>Streaming Providers</label>
+                                                <div class="streaming-providers-grid">
+                                                    <label class="checkbox-label streaming-provider">
+                                                        <input type="checkbox" id="streamingSources.netflix" name="streamingSources.netflix" value="8">
+                                                        <i class="fas fa-film"></i>
+                                                        <span>Netflix</span>
+                                                    </label>
+                                                    <label class="checkbox-label streaming-provider">
+                                                        <input type="checkbox" id="streamingSources.disney" name="streamingSources.disney" value="337">
+                                                        <i class="fas fa-magic"></i>
+                                                        <span>Disney+</span>
+                                                    </label>
+                                                    <label class="checkbox-label streaming-provider">
+                                                        <input type="checkbox" id="streamingSources.prime" name="streamingSources.prime" value="119">
+                                                        <i class="fab fa-amazon"></i>
+                                                        <span>Prime Video</span>
+                                                    </label>
+                                                    <label class="checkbox-label streaming-provider">
+                                                        <input type="checkbox" id="streamingSources.hbo" name="streamingSources.hbo" value="1899">
+                                                        <i class="fas fa-play-circle"></i>
+                                                        <span>Max (HBO)</span>
+                                                    </label>
+                                                    <label class="checkbox-label streaming-provider">
+                                                        <input type="checkbox" id="streamingSources.hulu" name="streamingSources.hulu" value="15">
+                                                        <i class="fas fa-tv"></i>
+                                                        <span>Hulu</span>
+                                                    </label>
+                                                    <label class="checkbox-label streaming-provider">
+                                                        <input type="checkbox" id="streamingSources.apple" name="streamingSources.apple" value="350">
+                                                        <i class="fab fa-apple"></i>
+                                                        <span>Apple TV+</span>
+                                                    </label>
+                                                    <label class="checkbox-label streaming-provider">
+                                                        <input type="checkbox" id="streamingSources.paramount" name="streamingSources.paramount" value="531">
+                                                        <i class="fas fa-mountain"></i>
+                                                        <span>Paramount+</span>
+                                                    </label>
+                                                    <label class="checkbox-label streaming-provider">
+                                                        <input type="checkbox" id="streamingSources.crunchyroll" name="streamingSources.crunchyroll" value="283">
+                                                        <i class="fas fa-dragon"></i>
+                                                        <span>Crunchyroll</span>
+                                                    </label>
+                                                    <label class="checkbox-label streaming-provider">
+                                                        <input type="checkbox" id="streamingSources.newReleases" name="streamingSources.newReleases" value="new">
+                                                        <i class="fas fa-star"></i>
+                                                        <span>New Releases (All)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="streamingSources.minRating">Minimum Rating (0-10)</label>
+                                                <input type="number" id="streamingSources.minRating" name="streamingSources.minRating" min="0" max="10" step="0.1" placeholder="6.0">
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <button type="button" id="test-streaming-button" class="btn btn-primary">
+                                                    <i class="fas fa-stream icon"></i>
+                                                    <span>Test Streaming Connection</span>
+                                                </button>
+                                                <small id="streaming-connection-status"></small>
+                                            </div>
+                                        </div>
+                                    </div> <!-- End TMDB Configuration Container -->
                                 </div>
                                 
                                 <!-- TVDB External Source Subsection -->

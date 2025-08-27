@@ -9507,6 +9507,42 @@ function initSourceConditionalVisibility() {
             container: !!jellyfinConfigContainer,
         });
     }
+
+    // TMDB enable checkbox handler
+    const tmdbEnabledCheckbox = document.getElementById('tmdbSource.enabled');
+    const tmdbConfigContainer = document.getElementById('tmdb-config-container');
+
+    if (tmdbEnabledCheckbox && tmdbConfigContainer) {
+        // Function to toggle visibility
+        function toggleTmdbConfig() {
+            if (tmdbEnabledCheckbox.checked) {
+                tmdbConfigContainer.classList.remove('hidden');
+                console.log('TMDB config shown (checkbox is checked)');
+            } else {
+                tmdbConfigContainer.classList.add('hidden');
+                console.log('TMDB config hidden (checkbox is unchecked)');
+            }
+        }
+
+        // Set initial state immediately
+        toggleTmdbConfig();
+
+        // Also set state after a short delay to handle config loading timing
+        setTimeout(() => {
+            toggleTmdbConfig();
+            console.log('TMDB conditional visibility re-initialized after delay');
+        }, 100);
+
+        // Listen for changes
+        tmdbEnabledCheckbox.addEventListener('change', toggleTmdbConfig);
+
+        console.log('TMDB conditional visibility initialized');
+    } else {
+        console.warn('TMDB checkbox or container not found', {
+            checkbox: !!tmdbEnabledCheckbox,
+            container: !!tmdbConfigContainer,
+        });
+    }
 }
 
 // Initialize on DOM ready
