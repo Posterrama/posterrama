@@ -79,37 +79,6 @@ Access the admin dashboard at `http://localhost:4000/admin` to configure:
 
 ---
 
-## 🧪 Testing
-
-```bash
-npm test                    # Run all tests (681 tests)
-npm test -- --watch        # Watch mode
-npm test sources           # Test media source integrations
-```
-
-**Coverage:** 87.53% across 47 test suites
-
----
-
-## 📚 Documentation
-
-- [**Contributing Guide**](docs/CONTRIBUTING.md) - Development setup and code review
-- [**Development Guide**](docs/DEVELOPMENT.md) - Technical documentation and API
-- [**Installation Guide**](docs/INSTALLATION.md) - Detailed setup instructions
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for:
-
-- Development setup
-- Code review guidelines
-- Testing requirements
-- Best practices
-
----
-
 ## 📄 License
 
 GPL-3.0-or-later - See [LICENSE](LICENSE) for details.

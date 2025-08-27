@@ -9,6 +9,38 @@
  * (at your option) any later version.
  */
 
+/* --- Lazy Loading Styles --- */
+
+img[data-lazy-src] {
+    background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite ease-in-out;
+}
+
+img.lazy-loading {
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+img.lazy-loaded {
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+img.lazy-error {
+    background: #4a4a4a;
+    opacity: 0.5;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
 /* --- Global Styles & Fonts & Variables --- */
 
 :root {
@@ -1800,7 +1832,7 @@ body.wallart-mode #wallart-grid {
 .wallart-poster-item img {
     width: 100% !important;
     height: 100% !important;
-    object-fit: contain !important;
+    object-fit: cover !important;
     object-position: center !important;
     /* Ensure 2:3 aspect ratio is always maintained */
     aspect-ratio: 2/3 !important;
@@ -1820,7 +1852,7 @@ body.wallart-mode #wallart-grid {
 .wallart-poster-item img {
     width: 100% !important;
     height: 100% !important;
-    object-fit: contain !important;
+    object-fit: cover !important;
     object-position: center !important;
     display: block !important;
     position: relative; /* ensure ::after can layer above */
@@ -1998,13 +2030,39 @@ body.wallart-mode #clock-widget,
 body.wallart-mode #clock-widget-container,
 body.wallart-mode #controls-container,
 body.wallart-mode #rt-badge,
-body.wallart-mode .metadata-overlay {
+body.wallart-mode .metadata-overlay,
+body.wallart-mode .button-promo:not(.promo-site .button-promo),
+body.wallart-mode button:not(.promo-site button),
+body.wallart-mode .control-button,
+body.wallart-mode .ui-controls,
+body.wallart-mode .admin-link {
     display: none !important;
+}
+
+/* Exception: Keep specific elements visible on promo sites */
+body.promo-site.wallart-mode .button-promo,
+body.promo-site.wallart-mode #promo-box button {
+    display: inline-block !important;
 }
 
 /* Hide promo box in wallart mode ONLY when NOT on promo site */
 body.wallart-mode:not(.promo-site) #promo-box {
     display: none !important;
+}
+
+/* On promo sites, ensure wallart grid doesn't overlap with promo box */
+body.promo-site.wallart-mode #wallart-grid {
+    top: 60px !important; /* Give space for promo box */
+}
+
+/* Ensure promo box stays visible and on top even in wallart mode on promo sites */
+body.promo-site.wallart-mode #promo-box {
+    display: block !important;
+    z-index: 99999 !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
 }
 
 /* Responsive wallart grid */
@@ -2025,6 +2083,28 @@ body.wallart-mode:not(.promo-site) #promo-box {
     .wallart-poster-item img {
         object-fit: contain !important;
         aspect-ratio: 2/3 !important;
+    }
+
+    /* Ensure ALL controls and UI elements are hidden on mobile in wallart mode */
+    body.wallart-mode #controls-container,
+    body.wallart-mode .controls,
+    body.wallart-mode .control-button,
+    body.wallart-mode .mobile-controls,
+    body.wallart-mode .touch-controls,
+    body.wallart-mode .ui-overlay,
+    body.wallart-mode .admin-button,
+    body.wallart-mode .nav-controls,
+    body.wallart-mode .button-promo {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+
+    /* But keep promo button visible on promo sites */
+    body.promo-site.wallart-mode .button-promo {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 }
 

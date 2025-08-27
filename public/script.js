@@ -566,9 +566,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const screenHeight = window.innerHeight;
         const isPortrait = screenHeight > screenWidth;
         const isMobile = screenWidth <= 768; // Mobile breakpoint
+        const isPromoSite = document.body.classList.contains('promo-site');
 
         // Standard movie poster aspect ratio - NEVER change this!
         const posterAspectRatio = 2 / 3; // width/height
+
+        // Adjust available screen height for promo site when promo box is visible
+        let availableHeight = screenHeight;
+        if (isPromoSite) {
+            const promoBox = document.getElementById('promo-box');
+            if (promoBox && !document.body.classList.contains('wallart-mode')) {
+                // Account for promo box height when calculating layout
+                const promoBoxHeight = promoBox.offsetHeight || 120; // fallback height
+                availableHeight = screenHeight - promoBoxHeight * 0.8; // Give some margin
+            }
+        }
 
         // Optimize for both desktop and mobile with different density factors
         let densityFactors;
@@ -599,7 +611,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Calculate how many posters fit
         const cols = Math.floor(screenWidth / optimalPosterWidth);
-        const rows = Math.floor(screenHeight / optimalPosterHeight);
+        const rows = Math.floor(availableHeight / optimalPosterHeight);
 
         // Now optimize: stretch posters slightly to minimize black space
         // while maintaining aspect ratio
@@ -612,13 +624,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         let finalPosterWidth = actualPosterWidth;
 
         const calculatedGridHeight = rows * actualPosterHeight;
-        const remainingHeight = screenHeight - calculatedGridHeight;
+        const remainingHeight = availableHeight - calculatedGridHeight;
 
         // If remaining height is significant, try different approaches
         if (remainingHeight > actualPosterHeight * 0.4) {
             // Try adding one more row
             const newRows = rows + 1;
-            const heightPerRow = Math.floor(screenHeight / newRows);
+            const heightPerRow = Math.floor(availableHeight / newRows);
             const widthForHeight = Math.round(heightPerRow * posterAspectRatio);
 
             if (widthForHeight * cols <= screenWidth) {
@@ -628,7 +640,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 finalPosterWidth = widthForHeight;
             } else {
                 // Width-constrained layout with stretched height
-                finalPosterHeight = Math.floor(screenHeight / rows);
+                finalPosterHeight = Math.floor(availableHeight / rows);
                 finalPosterWidth = Math.round(finalPosterHeight * posterAspectRatio);
 
                 // Ensure we don't exceed screen width
@@ -639,7 +651,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } else if (remainingHeight < 0) {
             // Grid is too tall, reduce height
-            finalPosterHeight = Math.floor(screenHeight / rows);
+            finalPosterHeight = Math.floor(availableHeight / rows);
             finalPosterWidth = Math.round(finalPosterHeight * posterAspectRatio);
         }
 
@@ -650,7 +662,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Center the grid with minimal black bars
         // For portrait mode, try to fill full width if possible
         let gridLeft = Math.round((screenWidth - gridWidth) / 2);
-        let gridTop = Math.round((screenHeight - gridHeight) / 2);
+        let gridTop = Math.round((availableHeight - gridHeight) / 2);
+
+        // On promo sites, adjust top position to account for any space taken by promo elements
+        if (isPromoSite) {
+            const topOffset = (screenHeight - availableHeight) / 2;
+            gridTop = Math.round(topOffset + (availableHeight - gridHeight) / 2);
+        }
 
         // If in portrait mode and there's significant unused width, recalculate
         if (isPortrait && gridLeft > finalPosterWidth * 0.5) {
@@ -659,11 +677,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const newPosterHeight = Math.round(newPosterWidth / posterAspectRatio);
 
             // Check if new height fits
-            if (newPosterHeight * finalRows <= screenHeight) {
+            if (newPosterHeight * finalRows <= availableHeight) {
                 finalPosterWidth = newPosterWidth;
                 finalPosterHeight = newPosterHeight;
                 gridLeft = 0; // Use full width
-                gridTop = Math.round((screenHeight - newPosterHeight * finalRows) / 2);
+                gridTop = Math.round((availableHeight - newPosterHeight * finalRows) / 2);
+
+                // Adjust for promo site again if needed
+                if (isPromoSite) {
+                    const topOffset = (screenHeight - availableHeight) / 2;
+                    gridTop = Math.round(
+                        topOffset + (availableHeight - newPosterHeight * finalRows) / 2
+                    );
+                }
             }
         }
 
@@ -671,7 +697,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const bufferedCount = Math.ceil(posterCount * 1.5);
 
         // Calculate coverage percentage
-        const coverage = ((gridWidth * gridHeight) / (screenWidth * screenHeight)) * 100;
+        const coverage = ((gridWidth * gridHeight) / (screenWidth * availableHeight)) * 100;
 
         logger.debug(
             `Wallart Layout: ${cols}x${finalRows} = ${posterCount} posters, ${Math.round(coverage)}% coverage, ${finalPosterWidth}x${finalPosterHeight}px each`
@@ -866,9 +892,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
 
             const img = document.createElement('img');
-            img.src = item.posterUrl || transparentPixel;
+            // Use custom lazy loading for better control
+            if (item.posterUrl && window.makeLazy) {
+                makeLazy(img, item.posterUrl);
+            } else {
+                img.src = item.posterUrl || transparentPixel;
+            }
             img.alt = item.title || 'Movie Poster';
-            img.loading = 'lazy';
 
             // Always show full poster at 2:3 with letterboxing (no crop)
             img.style.cssText = `
