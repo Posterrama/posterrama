@@ -14,7 +14,7 @@ async function debugJellyfinGenres() {
             hostname: process.env.JELLYFIN_HOSTNAME,
             port: process.env.JELLYFIN_PORT,
             apiKey: process.env.JELLYFIN_API_KEY,
-            timeout: 10000
+            timeout: 10000,
         });
 
         // Test connection
@@ -33,9 +33,7 @@ async function debugJellyfinGenres() {
         // Filter libraries
         console.log('\n3️⃣ Filtering libraries...');
         const requestedLibraries = ['Movies', '4K'];
-        const selectedLibraries = allLibraries.filter(lib => 
-            requestedLibraries.includes(lib.Name)
-        );
+        const selectedLibraries = allLibraries.filter(lib => requestedLibraries.includes(lib.Name));
         console.log(`✅ Selected ${selectedLibraries.length} libraries:`);
         selectedLibraries.forEach(lib => {
             console.log(`   - ${lib.Name} (ID: ${lib.Id})`);
@@ -50,7 +48,7 @@ async function debugJellyfinGenres() {
         console.log('\n4️⃣ Getting genres...');
         const selectedLibraryIds = selectedLibraries.map(lib => lib.Id);
         console.log(`   - Using library IDs: ${selectedLibraryIds.join(', ')}`);
-        
+
         const genres = await client.getGenres(selectedLibraryIds);
         console.log(`✅ Found ${genres.length} unique genres:`);
         genres.slice(0, 10).forEach(genre => {
@@ -60,7 +58,6 @@ async function debugJellyfinGenres() {
         if (genres.length > 10) {
             console.log(`   ... and ${genres.length - 10} more`);
         }
-
     } catch (error) {
         console.error('❌ Debug failed:', error.message);
         console.error('Stack:', error.stack);

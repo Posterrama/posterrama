@@ -24,7 +24,7 @@ const requiredElements = [
     'jellyfin-movie-libraries-container',
     'jellyfin-show-libraries-container',
     'test-jellyfin-button',
-    'clearJellyfinGenresBtn'
+    'clearJellyfinGenresBtn',
 ];
 
 const missingElements = requiredElements.filter(id => !adminHtml.includes(id));
@@ -48,7 +48,7 @@ const requiredFunctions = [
     'populateJellyfinSettings',
     'setJellyfinGenreFilterValues',
     'getJellyfinGenreFilterValues',
-    'toggleJellyfinRecentlyAddedDays'
+    'toggleJellyfinRecentlyAddedDays',
 ];
 
 const missingFunctions = requiredFunctions.filter(func => !adminJs.includes(func));
@@ -65,7 +65,7 @@ const serverJs = fs.readFileSync('./server.js', 'utf8');
 const requiredEndpoints = [
     '/api/admin/test-jellyfin',
     '/api/admin/jellyfin-libraries',
-    '/api/admin/jellyfin-genres'
+    '/api/admin/jellyfin-genres',
 ];
 
 const missingEndpoints = requiredEndpoints.filter(endpoint => !serverJs.includes(endpoint));
@@ -82,11 +82,11 @@ const requiredUtilityFunctions = [
     'createJellyfinClient',
     'fetchJellyfinLibraries',
     'processJellyfinItems',
-    'testServerConnection.*jellyfin'
+    'testServerConnection.*jellyfin',
 ];
 
-const missingUtilityFunctions = requiredUtilityFunctions.filter(func => 
-    !new RegExp(func).test(serverJs)
+const missingUtilityFunctions = requiredUtilityFunctions.filter(
+    func => !new RegExp(func).test(serverJs)
 );
 
 if (missingUtilityFunctions.length === 0) {
@@ -105,18 +105,20 @@ const configExample = fs.readFileSync('./config.example.env', 'utf8');
 const checks = [
     {
         name: 'Schema supports jellyfin type',
-        test: () => configSchema.properties.mediaServers.items.properties.type.enum.includes('jellyfin')
+        test: () =>
+            configSchema.properties.mediaServers.items.properties.type.enum.includes('jellyfin'),
     },
     {
         name: 'Config has Jellyfin server example',
-        test: () => configJson.mediaServers.some(server => server.type === 'jellyfin')
+        test: () => configJson.mediaServers.some(server => server.type === 'jellyfin'),
     },
     {
         name: 'Environment example has Jellyfin variables',
-        test: () => configExample.includes('JELLYFIN_HOSTNAME') && 
-                   configExample.includes('JELLYFIN_PORT') && 
-                   configExample.includes('JELLYFIN_API_KEY')
-    }
+        test: () =>
+            configExample.includes('JELLYFIN_HOSTNAME') &&
+            configExample.includes('JELLYFIN_PORT') &&
+            configExample.includes('JELLYFIN_API_KEY'),
+    },
 ];
 
 checks.forEach(check => {
@@ -135,16 +137,16 @@ const readme = fs.readFileSync('./README.md', 'utf8');
 const docChecks = [
     {
         name: 'README mentions Jellyfin in setup steps',
-        test: () => readme.includes('Connect your media sources (Plex, Jellyfin, TMDB, TVDB)')
+        test: () => readme.includes('Connect your media sources (Plex, Jellyfin, TMDB, TVDB)'),
     },
     {
         name: 'README mentions Jellyfin in features',
-        test: () => readme.includes('Plex and Jellyfin integration')
+        test: () => readme.includes('Plex and Jellyfin integration'),
     },
     {
         name: 'Jellyfin removed from roadmap (moved to implemented)',
-        test: () => !readme.includes('Emby and Jellyfin support')
-    }
+        test: () => !readme.includes('Emby and Jellyfin support'),
+    },
 ];
 
 docChecks.forEach(check => {
@@ -161,7 +163,9 @@ console.log('');
 console.log('✅ Complete Jellyfin Admin UI Integration:');
 console.log('   • Full HTML interface with all form elements');
 console.log('   • Complete JavaScript functionality for testing and library management');
-console.log('   • Backend API endpoints for connection testing, library fetching, and genre loading');
+console.log(
+    '   • Backend API endpoints for connection testing, library fetching, and genre loading'
+);
 console.log('   • Configuration support with schema validation');
 console.log('   • Environment variable documentation');
 console.log('   • README.md updates');

@@ -10,7 +10,7 @@ const BASE_URL = 'http://localhost:4000';
 
 async function testJellyfinGenres() {
     console.log('🧪 Testing Jellyfin genres endpoint...');
-    
+
     try {
         const response = await fetch(`${BASE_URL}/api/admin/jellyfin-genres`, {
             method: 'POST',
@@ -22,16 +22,16 @@ async function testJellyfinGenres() {
                 port: process.env.JELLYFIN_PORT,
                 apiKey: process.env.JELLYFIN_API_KEY,
                 movieLibraries: ['Movies', '4K', 'Plexpool Mark'],
-                showLibraries: []
-            })
+                showLibraries: [],
+            }),
         });
 
         console.log(`📡 Response status: ${response.status}`);
-        
+
         const result = await response.text();
         console.log('📋 Response body:');
         console.log(result);
-        
+
         if (response.ok) {
             try {
                 const jsonResult = JSON.parse(result);
@@ -45,7 +45,6 @@ async function testJellyfinGenres() {
         } else {
             console.log('❌ Request failed');
         }
-        
     } catch (error) {
         console.error('💥 Error testing Jellyfin genres:', error.message);
     }

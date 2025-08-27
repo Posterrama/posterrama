@@ -36,19 +36,19 @@ async function testJellyfinIntegration() {
 
     // Test 2: Test server connection
     console.log('2. Testing server connection...');
-    
+
     const testConfig = {
         name: 'Test Jellyfin Server',
         type: 'jellyfin',
         hostnameEnvVar: 'JELLYFIN_HOSTNAME',
         portEnvVar: 'JELLYFIN_PORT',
         tokenEnvVar: 'JELLYFIN_API_KEY',
-        enabled: true
+        enabled: true,
     };
 
     try {
         const result = await testServerConnection(testConfig);
-        
+
         if (result.status === 'ok') {
             console.log('✓ Jellyfin server connection successful!');
             console.log(`   Message: ${result.message}`);

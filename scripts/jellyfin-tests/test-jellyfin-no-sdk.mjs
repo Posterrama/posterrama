@@ -10,7 +10,7 @@ const BASE_URL = 'http://localhost:4000';
 
 async function testJellyfinAdmin() {
     console.log('🧪 Testing Jellyfin admin functionality...');
-    
+
     try {
         // Test connection
         console.log('1. Testing Jellyfin connection...');
@@ -20,10 +20,10 @@ async function testJellyfinAdmin() {
             body: JSON.stringify({
                 hostname: process.env.JELLYFIN_HOSTNAME,
                 port: process.env.JELLYFIN_PORT,
-                apiKey: process.env.JELLYFIN_API_KEY
-            })
+                apiKey: process.env.JELLYFIN_API_KEY,
+            }),
         });
-        
+
         if (testResponse.ok) {
             const testResult = await testResponse.json();
             console.log('✅ Connection test:', testResult);
@@ -39,10 +39,10 @@ async function testJellyfinAdmin() {
             body: JSON.stringify({
                 hostname: process.env.JELLYFIN_HOSTNAME,
                 port: process.env.JELLYFIN_PORT,
-                apiKey: process.env.JELLYFIN_API_KEY
-            })
+                apiKey: process.env.JELLYFIN_API_KEY,
+            }),
         });
-        
+
         if (libResponse.ok) {
             const libResult = await libResponse.json();
             console.log(`✅ Libraries: Found ${libResult.libraries?.length || 0} libraries`);
@@ -63,10 +63,10 @@ async function testJellyfinAdmin() {
                 port: process.env.JELLYFIN_PORT,
                 apiKey: process.env.JELLYFIN_API_KEY,
                 movieLibraries: ['Movies', '4K', 'Plexpool Mark'],
-                showLibraries: []
-            })
+                showLibraries: [],
+            }),
         });
-        
+
         if (genreResponse.ok) {
             const genreResult = await genreResponse.json();
             console.log(`✅ Genres: Found ${genreResult.genres?.length || 0} genres`);
@@ -74,7 +74,6 @@ async function testJellyfinAdmin() {
         } else {
             console.log('❌ Genres test failed:', genreResponse.status);
         }
-        
     } catch (error) {
         console.error('💥 Error:', error.message);
     }

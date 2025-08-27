@@ -38,7 +38,7 @@ async function testJellyfinIntegration() {
                 movieLibraryNames: ['Movies'],
                 showLibraryNames: ['TV Shows'],
                 recentlyAddedOnly: false,
-                recentlyAddedDays: 30
+                recentlyAddedDays: 30,
             });
             console.log('✓ JellyfinSource instantiated successfully');
         } catch (error) {
@@ -58,7 +58,11 @@ async function testJellyfinIntegration() {
     // Test 2: Test utility functions
     console.log('2. Testing Jellyfin utility functions...');
     try {
-        const { createJellyfinClient, fetchJellyfinLibraries, processJellyfinItems } = require('./server.js');
+        const {
+            createJellyfinClient,
+            fetchJellyfinLibraries,
+            processJellyfinItems,
+        } = require('./server.js');
         console.log('✓ All Jellyfin utility functions imported successfully');
     } catch (error) {
         console.log('❌ Failed to import utility functions:', error.message);
@@ -71,19 +75,22 @@ async function testJellyfinIntegration() {
     console.log('3. Testing server connection test...');
     try {
         const { testServerConnection } = require('./server.js');
-        
+
         const testConfig = {
             name: 'Test Jellyfin Server',
             type: 'jellyfin',
             hostnameEnvVar: 'JELLYFIN_HOSTNAME',
             portEnvVar: 'JELLYFIN_PORT',
             tokenEnvVar: 'JELLYFIN_API_KEY',
-            enabled: true
+            enabled: true,
         };
 
         const result = await testServerConnection(testConfig);
-        
-        if (result.status === 'error' && result.message.includes('Missing required environment variables')) {
+
+        if (
+            result.status === 'error' &&
+            result.message.includes('Missing required environment variables')
+        ) {
             console.log('✓ Connection test working (expected without env vars)');
         } else if (result.status === 'ok') {
             console.log('✓ Jellyfin server connection successful!');
@@ -102,7 +109,7 @@ async function testJellyfinIntegration() {
     try {
         const fs = require('fs');
         const configSchema = JSON.parse(fs.readFileSync('./config.schema.json', 'utf8'));
-        
+
         if (configSchema.properties.mediaServers.items.properties.type.enum.includes('jellyfin')) {
             console.log('✓ config.schema.json supports jellyfin type');
         } else {
@@ -119,7 +126,7 @@ async function testJellyfinIntegration() {
     try {
         const fs = require('fs');
         const configJson = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
-        
+
         const jellyfinServer = configJson.mediaServers.find(server => server.type === 'jellyfin');
         if (jellyfinServer) {
             console.log('✓ config.json contains example Jellyfin server');
@@ -139,10 +146,12 @@ async function testJellyfinIntegration() {
     try {
         const fs = require('fs');
         const envExample = fs.readFileSync('./config.example.env', 'utf8');
-        
-        if (envExample.includes('JELLYFIN_HOSTNAME') && 
-            envExample.includes('JELLYFIN_PORT') && 
-            envExample.includes('JELLYFIN_API_KEY')) {
+
+        if (
+            envExample.includes('JELLYFIN_HOSTNAME') &&
+            envExample.includes('JELLYFIN_PORT') &&
+            envExample.includes('JELLYFIN_API_KEY')
+        ) {
             console.log('✓ config.example.env contains Jellyfin variables');
         } else {
             console.log('❌ config.example.env missing Jellyfin variables');
@@ -164,7 +173,9 @@ async function testJellyfinIntegration() {
     console.log('   • Example configuration and environment setup');
     console.log('');
     console.log('🔧 To enable Jellyfin:');
-    console.log('   1. Set environment variables: JELLYFIN_HOSTNAME, JELLYFIN_PORT, JELLYFIN_API_KEY');
+    console.log(
+        '   1. Set environment variables: JELLYFIN_HOSTNAME, JELLYFIN_PORT, JELLYFIN_API_KEY'
+    );
     console.log('   2. Enable the Jellyfin server in config.json');
     console.log('   3. Configure library names for your Jellyfin setup');
     console.log('   4. Restart the application');
