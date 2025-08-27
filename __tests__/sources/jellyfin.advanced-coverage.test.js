@@ -173,9 +173,10 @@ describe('JellyfinSource Advanced Coverage', () => {
 
             const itemQuality = null;
             if (item.MediaSources && Array.isArray(item.MediaSources)) {
-                for (const source of item.MediaSources) {
-                    // Loop won't execute for empty array
-                }
+                // Loop won't execute for empty array - testing for coverage
+                item.MediaSources.forEach(() => {
+                    // Empty iteration for coverage
+                });
             }
 
             expect(itemQuality).toBe(null);

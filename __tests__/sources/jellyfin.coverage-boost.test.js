@@ -70,7 +70,7 @@ describe('JellyfinSource', () => {
         });
 
         it('should log rating configuration when debug is enabled', () => {
-            const debugJellyfinSource = new JellyfinSource(
+            new JellyfinSource(
                 mockServerConfig,
                 mockGetJellyfinClient,
                 mockProcessJellyfinItem,
@@ -92,7 +92,7 @@ describe('JellyfinSource', () => {
             delete configWithoutRating.ratingFilter;
             delete configWithoutRating.ratingFilters;
 
-            const debugJellyfinSource = new JellyfinSource(
+            new JellyfinSource(
                 configWithoutRating,
                 mockGetJellyfinClient,
                 mockProcessJellyfinItem,

@@ -2609,13 +2609,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return hiddenField ? hiddenField.value : '';
     }
 
-    function setupGenreFilterListeners() {
-        const clearBtn = document.getElementById('clearGenresBtn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', clearGenreSelection);
-        }
-    }
-
     // Make loadPlexGenres globally accessible
     window.loadPlexGenres = loadPlexGenres;
 
@@ -2693,13 +2686,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hostname && port && apiKey) {
                 showNotification(`Failed to load Jellyfin genres: ${error.message}`, 'error');
             }
-        }
-    }
-
-    function setupJellyfinGenreFilterListeners() {
-        const clearBtn = document.getElementById('clearJellyfinGenresBtn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', clearJellyfinGenreSelection);
         }
     }
 
@@ -8757,7 +8743,7 @@ async function populateRatingFilterCheckboxes(container, sourceType, currentValu
  * @param {HTMLDivElement} container - The checkbox container
  * @param {string} sourceType - The source type
  */
-function updateHiddenRatingField(container, sourceType) {
+function updateHiddenRatingField(container, _sourceType) {
     const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
     const selectedValues = Array.from(checkboxes).map(cb => cb.value);
 
@@ -8989,7 +8975,6 @@ function updateClearButtonVisibilityByContainer(container) {
     if (!container) return;
 
     const containerId = container.id;
-    let buttonId;
 
     // Map container IDs to their corresponding clear button IDs
     const buttonMapping = {
@@ -9002,7 +8987,7 @@ function updateClearButtonVisibilityByContainer(container) {
         'tmdbSource.genreFilter': 'clearTMDBGenresBtn',
     };
 
-    buttonId = buttonMapping[containerId];
+    const buttonId = buttonMapping[containerId];
     if (buttonId) {
         updateClearButtonVisibility(buttonId, container);
     }
@@ -9202,7 +9187,7 @@ function checkIfServerEnabled(sourceType) {
  * @param {HTMLElement} element - The rating filter element
  * @param {string} sourceType - The source type
  */
-function showDisabledRatingFilter(element, sourceType) {
+function showDisabledRatingFilter(element, _sourceType) {
     if (element.tagName === 'SELECT') {
         element.innerHTML = '<option value="">Server disabled</option>';
         element.disabled = true;
@@ -9343,11 +9328,11 @@ function initDynamicGenreFilters() {
         // Load genres based on source type
         try {
             if (sourceType === 'plex') {
-                await loadPlexGenres();
+                await window.loadPlexGenres?.();
             } else if (sourceType === 'jellyfin') {
-                await loadJellyfinGenres();
+                await window.loadJellyfinGenres?.();
             } else if (sourceType === 'tmdb') {
-                await loadTmdbGenres();
+                await window.loadTmdbGenres?.();
             }
         } catch (error) {
             console.warn(`Failed to load ${sourceType} genres:`, error);
@@ -9434,13 +9419,11 @@ function initDynamicQualityFilters() {
 
 // Content source conditional visibility
 function initSourceConditionalVisibility() {
-    // Plex enable checkbox handler
-    const plexEnabledCheckbox = document.getElementById('mediaServers[0].enabled');
-    const plexConfigContainer = document.getElementById('plex-config-container');
-
-    if (plexEnabledCheckbox && plexConfigContainer) {
-        // Function to toggle visibility
-        function togglePlexConfig() {
+    // Function to toggle visibility for Plex
+    function togglePlexConfig() {
+        const plexEnabledCheckbox = document.getElementById('mediaServers[0].enabled');
+        const plexConfigContainer = document.getElementById('plex-config-container');
+        if (plexEnabledCheckbox && plexConfigContainer) {
             if (plexEnabledCheckbox.checked) {
                 plexConfigContainer.classList.remove('hidden');
                 console.log('Plex config shown (checkbox is checked)');
@@ -9449,7 +9432,58 @@ function initSourceConditionalVisibility() {
                 console.log('Plex config hidden (checkbox is unchecked)');
             }
         }
+    }
 
+    // Function to toggle visibility for Jellyfin
+    function toggleJellyfinConfig() {
+        const jellyfinEnabledCheckbox = document.getElementById('mediaServers[1].enabled');
+        const jellyfinConfigContainer = document.getElementById('jellyfin-config-container');
+        if (jellyfinEnabledCheckbox && jellyfinConfigContainer) {
+            if (jellyfinEnabledCheckbox.checked) {
+                jellyfinConfigContainer.classList.remove('hidden');
+                console.log('Jellyfin config shown (checkbox is checked)');
+            } else {
+                jellyfinConfigContainer.classList.add('hidden');
+                console.log('Jellyfin config hidden (checkbox is unchecked)');
+            }
+        }
+    }
+
+    // Function to toggle visibility for TMDB
+    function toggleTmdbConfig() {
+        const tmdbEnabledCheckbox = document.getElementById('tmdbSource.enabled');
+        const tmdbConfigContainer = document.getElementById('tmdb-config-container');
+        if (tmdbEnabledCheckbox && tmdbConfigContainer) {
+            if (tmdbEnabledCheckbox.checked) {
+                tmdbConfigContainer.classList.remove('hidden');
+                console.log('TMDB config shown (checkbox is checked)');
+            } else {
+                tmdbConfigContainer.classList.add('hidden');
+                console.log('TMDB config hidden (checkbox is unchecked)');
+            }
+        }
+    }
+
+    // Function to toggle visibility for TVDB
+    function toggleTvdbConfig() {
+        const tvdbEnabledCheckbox = document.getElementById('tvdbSource.enabled');
+        const tvdbConfigContainer = document.getElementById('tvdb-config-container');
+        if (tvdbEnabledCheckbox && tvdbConfigContainer) {
+            if (tvdbEnabledCheckbox.checked) {
+                tvdbConfigContainer.classList.remove('hidden');
+                console.log('TVDB config shown (checkbox is checked)');
+            } else {
+                tvdbConfigContainer.classList.add('hidden');
+                console.log('TVDB config hidden (checkbox is unchecked)');
+            }
+        }
+    }
+
+    // Plex enable checkbox handler
+    const plexEnabledCheckbox = document.getElementById('mediaServers[0].enabled');
+    const plexConfigContainer = document.getElementById('plex-config-container');
+
+    if (plexEnabledCheckbox && plexConfigContainer) {
         // Set initial state immediately
         togglePlexConfig();
 
@@ -9475,17 +9509,6 @@ function initSourceConditionalVisibility() {
     const jellyfinConfigContainer = document.getElementById('jellyfin-config-container');
 
     if (jellyfinEnabledCheckbox && jellyfinConfigContainer) {
-        // Function to toggle visibility
-        function toggleJellyfinConfig() {
-            if (jellyfinEnabledCheckbox.checked) {
-                jellyfinConfigContainer.classList.remove('hidden');
-                console.log('Jellyfin config shown (checkbox is checked)');
-            } else {
-                jellyfinConfigContainer.classList.add('hidden');
-                console.log('Jellyfin config hidden (checkbox is unchecked)');
-            }
-        }
-
         // Set initial state immediately
         toggleJellyfinConfig();
 
@@ -9511,17 +9534,6 @@ function initSourceConditionalVisibility() {
     const tmdbConfigContainer = document.getElementById('tmdb-config-container');
 
     if (tmdbEnabledCheckbox && tmdbConfigContainer) {
-        // Function to toggle visibility
-        function toggleTmdbConfig() {
-            if (tmdbEnabledCheckbox.checked) {
-                tmdbConfigContainer.classList.remove('hidden');
-                console.log('TMDB config shown (checkbox is checked)');
-            } else {
-                tmdbConfigContainer.classList.add('hidden');
-                console.log('TMDB config hidden (checkbox is unchecked)');
-            }
-        }
-
         // Set initial state immediately
         toggleTmdbConfig();
 
@@ -9547,17 +9559,6 @@ function initSourceConditionalVisibility() {
     const tvdbConfigContainer = document.getElementById('tvdb-config-container');
 
     if (tvdbEnabledCheckbox && tvdbConfigContainer) {
-        // Function to toggle visibility
-        function toggleTvdbConfig() {
-            if (tvdbEnabledCheckbox.checked) {
-                tvdbConfigContainer.classList.remove('hidden');
-                console.log('TVDB config shown (checkbox is checked)');
-            } else {
-                tvdbConfigContainer.classList.add('hidden');
-                console.log('TVDB config hidden (checkbox is unchecked)');
-            }
-        }
-
         // Set initial state immediately
         toggleTvdbConfig();
 

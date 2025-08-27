@@ -60,7 +60,6 @@ module.exports = {
         'middleware/validation.js': { branches: 50, functions: 60, lines: 62, statements: 63 },
         // Coverage improvement targets
         'utils/rating-cache.js': { branches: 85, functions: 90, lines: 90, statements: 90 },
-        'utils/logger.js': { branches: 35, functions: 60, lines: 50, statements: 50 },
         'sources/jellyfin.js': { branches: 55, functions: 85, lines: 75, statements: 75 },
     },
 

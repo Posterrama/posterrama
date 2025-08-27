@@ -4718,7 +4718,7 @@ async function getRatingsWithCounts(sourceType) {
         let ratingsWithCounts = [];
 
         switch (sourceType.toLowerCase()) {
-            case 'jellyfin':
+            case 'jellyfin': {
                 const jellyfinClient = await getJellyfinClient(server);
                 const allLibraries = await getJellyfinLibraries(server);
 
@@ -4745,14 +4745,16 @@ async function getRatingsWithCounts(sourceType) {
 
                 ratingsWithCounts = await jellyfinClient.getRatingsWithCounts(libraryIds);
                 break;
+            }
 
-            case 'plex':
+            case 'plex': {
                 const PlexHttpClient = require('./utils/plex-http-client');
                 const plexClient = getPlexClient(server);
                 const plexHttpClient = new PlexHttpClient(plexClient, server, isDebug);
 
                 ratingsWithCounts = await plexHttpClient.getRatingsWithCounts();
                 break;
+            }
         }
 
         return ratingsWithCounts;
@@ -6443,7 +6445,8 @@ app.post(
                 '[Admin API] Request received for /api/admin/plex-genres-with-counts-test.'
             );
 
-        let { hostname, port, token } = req.body;
+        let { hostname, token } = req.body;
+        const { port } = req.body;
 
         if (!hostname || !port) {
             throw new ApiError(400, 'Hostname and port are required.');

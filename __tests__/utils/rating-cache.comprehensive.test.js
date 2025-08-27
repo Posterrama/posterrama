@@ -15,7 +15,6 @@ jest.mock('../../utils/logger', () => ({
 
 describe('RatingCacheManager', () => {
     const testCachePath = path.join(__dirname, '..', '..', 'cache', 'ratings.json');
-    const testCacheDir = path.dirname(testCachePath);
 
     beforeEach(async () => {
         // Clear cache state - handle the actual structure

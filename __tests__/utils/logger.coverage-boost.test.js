@@ -111,8 +111,6 @@ describe('Logger Functional Tests', () => {
         });
 
         it('should accumulate logs in memory', () => {
-            const initialCount = logger.memoryLogs.length;
-
             // Add some logs (these might not show up immediately due to winston's async nature)
             logger.error('Test error for memory');
             logger.warn('Test warning for memory');
