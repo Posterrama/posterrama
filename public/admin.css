@@ -5382,7 +5382,8 @@ fieldset:focus-within {
         height 0.2s ease,
         top 0.2s ease,
         left 0.2s ease,
-        right 0.2s ease !important;
+        right 0.2s ease,
+        transform 0.22s ease !important; /* allow slide-in/out */
     overflow: hidden !important;
     min-width: 180px !important; /* Minimum size for cinema mode */
     min-height: 120px !important;
@@ -5391,6 +5392,51 @@ fieldset:focus-within {
     cursor: grab !important; /* Indicate it's draggable */
     pointer-events: auto;
     user-select: none;
+}
+
+/* Mobile: collapse/peek handle */
+.preview-peek-handle {
+    position: absolute;
+    left: 0; /* Keep visible when sliding to the right */
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--peek-width, 16px);
+    height: 96px;
+    border: 0;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.18));
+    box-shadow:
+        inset -1px 0 0 rgba(255, 255, 255, 0.14),
+        0 2px 8px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+    z-index: 10003; /* above controls and iframe */
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    pointer-events: auto;
+    touch-action: manipulation;
+}
+.preview-peek-handle:hover,
+.preview-peek-handle:focus-visible {
+    opacity: 1;
+}
+
+@media (min-width: 1024px) {
+    .preview-peek-handle {
+        display: none;
+    }
+}
+
+/* Collapsed state: slide container almost fully off-screen to the right, leave peek width */
+.preview-container.pip-mode.collapsed {
+    transform: translateX(calc(100% - var(--peek-width, 16px)));
+}
+
+/* When collapsed, disable in-frame controls to avoid accidental taps behind the peek */
+.preview-container.pip-mode.collapsed .preview-controls,
+.preview-container.pip-mode.collapsed .preview-zoom-btn {
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 /* Ensure the inner iframe has consistent rounding; sizing is controlled by JS scaler */

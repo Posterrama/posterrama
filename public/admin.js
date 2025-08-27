@@ -356,6 +356,7 @@ window.scrollToSubsection = function (id) {
     const frame = document.getElementById('display-preview-frame');
     const toggleBtn = document.getElementById('toggle-preview-mode');
     const zoomBtn = document.getElementById('toggle-preview-zoom');
+    const peekBtn = document.querySelector('#display-preview-container .preview-peek-handle');
     let lastSettings = null;
     let resetInFlight = false;
 
@@ -395,6 +396,17 @@ window.scrollToSubsection = function (id) {
     container.classList.add('pip-mode');
     setPreviewVisibility(isDisplayActive());
 
+    // Restore collapsed state (mobile peek)
+    const COLLAPSE_KEY = 'posterrama.preview.collapsed';
+    const prefersCollapsed = (() => {
+        try {
+            return localStorage.getItem(COLLAPSE_KEY) === '1';
+        } catch (_) {
+            return false;
+        }
+    })();
+    if (prefersCollapsed) container.classList.add('collapsed');
+
     // Restore position/size
     // Default size
     const startW = 320; // default 16:9 preview
@@ -425,6 +437,28 @@ window.scrollToSubsection = function (id) {
         const offsetY = parseFloat(style.paddingTop) + (ch - baseH * scale) / 2;
         frame.style.left = `${offsetX}px`;
         frame.style.top = `${offsetY}px`;
+    }
+
+    // Peek toggle handler
+    function setCollapsed(next) {
+        preserveTopRightAnchor(() => {
+            container.classList.toggle('collapsed', next);
+        });
+        try {
+            localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
+        } catch (_) {}
+        // After transition, ensure scale still correct
+        setTimeout(() => {
+            if (container.style.display !== 'none' && typeof updateFrameScale === 'function')
+                updateFrameScale();
+        }, 240);
+    }
+    if (peekBtn) {
+        peekBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            const next = !container.classList.contains('collapsed');
+            setCollapsed(next);
+        });
     }
 
     function placePreviewAtAnchor() {
