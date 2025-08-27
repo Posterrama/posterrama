@@ -545,7 +545,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             // Restore document title to current media when exiting wallart mode
-            if (currentIndex >= 0 && currentIndex < mediaQueue.length) {
+            if (
+                mediaQueue &&
+                Array.isArray(mediaQueue) &&
+                currentIndex >= 0 &&
+                currentIndex < mediaQueue.length
+            ) {
                 const currentMedia = mediaQueue[currentIndex];
                 if (currentMedia) {
                     updateDocumentTitle(currentMedia);
@@ -841,8 +846,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         let currentPosters = []; // Track current posters for uniqueness
         const usedPosters = new Set(); // Track used poster IDs
 
-        // Get dynamically calculated poster count
-        const posterCount = Math.min(layoutInfo.posterCount, mediaQueue.length);
+        // Get dynamically calculated poster count - robust check for mediaQueue
+        const posterCount = Math.min(layoutInfo.posterCount, mediaQueue?.length || 0);
+
+        // Early exit if no media available
+        if (posterCount === 0) {
+            console.warn('[Wallart] No media available for wallart mode');
+            return;
+        }
+
         const animationType = wallartConfig.animationType || wallartConfig.animationPack || 'fade';
 
         // Initialize the grid with posters
@@ -954,7 +966,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         function getUniqueRandomPoster(excludePosterId = null) {
-            if (mediaQueue.length === 0) return null;
+            // Robust check: ensure mediaQueue exists and is an array
+            if (!mediaQueue || !Array.isArray(mediaQueue) || mediaQueue.length === 0) {
+                console.warn('[Wallart] mediaQueue is empty or invalid, returning null');
+                return null;
+            }
 
             // Collect currently visible ids to avoid immediate repeats in grid
             const visibleIds = new Set();
@@ -2796,9 +2812,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const newMediaQueue = await mediaResponse.json();
-            if (newMediaQueue.length === 0) {
+            if (!Array.isArray(newMediaQueue) || newMediaQueue.length === 0) {
+                console.warn('[Media] Received invalid or empty media queue:', newMediaQueue);
                 showError('No media found. Check the library configuration.');
                 if (loader.style.opacity !== '0') loader.style.opacity = '0';
+                // Ensure mediaQueue remains a valid empty array
+                mediaQueue = [];
                 return;
             }
             mediaQueue = newMediaQueue;
@@ -2822,6 +2841,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Failed to fetch media', e);
             showError(e.message || 'Could not load media. Check the server connection.');
             if (loader.style.opacity !== '0') loader.style.opacity = '0';
+            // Ensure mediaQueue remains a valid empty array on error
+            mediaQueue = [];
         }
     }
 
@@ -2833,7 +2854,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const maxPreloadedImages = 5; // Preload next 5 items
 
     function preloadNextImages() {
-        if (mediaQueue.length < 2) return;
+        // Robust check for mediaQueue
+        if (!mediaQueue || !Array.isArray(mediaQueue) || mediaQueue.length < 2) return;
 
         // Preload next few items for smooth transitions
         const itemsToPreload = Math.min(maxPreloadedImages, mediaQueue.length - 1);
@@ -2881,6 +2903,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function cleanupPreloadedImages() {
+        // Robust check for mediaQueue
+        if (!mediaQueue || !Array.isArray(mediaQueue) || mediaQueue.length === 0) {
+            // Clear all preloaded images if no media
+            preloadedImages.backgrounds.clear();
+            preloadedImages.posters.clear();
+            return;
+        }
+
         // Keep only images for current and next few items
         const currentUrls = new Set();
         const itemsToKeep = Math.min(maxPreloadedImages + 2, mediaQueue.length);
@@ -3160,6 +3190,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log(
             `📝 updateInfo called: direction=${direction}, isFirstLoad=${isFirstLoad}, currentIndex=${currentIndex}`
         );
+
+        // Robust check: ensure mediaQueue is valid and has content
+        if (!mediaQueue || !Array.isArray(mediaQueue) || mediaQueue.length === 0) {
+            console.warn('❌ mediaQueue is empty or invalid, cannot update info');
+            return;
+        }
 
         if (direction === 'next') {
             currentIndex = (currentIndex + 1) % mediaQueue.length;

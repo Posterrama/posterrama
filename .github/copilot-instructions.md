@@ -64,7 +64,7 @@ pm2 restart posterrama-app       # Restart server
 
 ### Route Organization
 
-- **Public API**: `/get-config`, `/get-media`, `/health`
+- **Public API**: `/get-config`, `/get-media`, `/health` (with `?detailed=true` for full checks)
 - **Admin API**: `/api/admin/*` (authenticated)
 - **API v1 Aliases**: `/api/v1/*` redirects to main endpoints
 - **Frontend Routes**: `/admin/*` (authenticated), `/` (public viewer)
@@ -115,8 +115,9 @@ SESSION_SECRET=xyz     # Required for sessions
 
 ### Health Monitoring
 
-- `/health` - Basic health check
-- `/health/detailed` - Comprehensive system status
+- `/health` - Unified health check endpoint
+    - Basic mode: `/health` (default)
+    - Detailed mode: `/health?detailed=true` (comprehensive system status)
 - Automatic memory usage logging every 5 minutes
 - Built-in metrics collection (`utils/metrics.js`)
 

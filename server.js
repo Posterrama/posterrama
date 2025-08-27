@@ -2258,9 +2258,11 @@ async function getJellyfinLibraries(serverConfig) {
         const librariesMap = new Map();
 
         libraries.forEach(library => {
-            if (library.Name && library.Id) {
+            // Jellyfin virtual folders use ItemId instead of Id
+            const libraryId = library.ItemId || library.Id;
+            if (library.Name && libraryId) {
                 librariesMap.set(library.Name, {
-                    id: library.Id,
+                    id: libraryId,
                     name: library.Name,
                     type: library.CollectionType || 'mixed',
                 });
@@ -2574,6 +2576,7 @@ async function getPlaylistMedia() {
 let playlistCache = null;
 let cacheTimestamp = 0;
 let isRefreshing = false; // Lock to prevent concurrent refreshes
+let refreshStartTime = null; // Track when refresh started for auto-recovery
 
 /**
  * Fetches media from all enabled servers and refreshes the in-memory cache.
@@ -2589,12 +2592,34 @@ let isRefreshing = false; // Lock to prevent concurrent refreshes
  */
 async function refreshPlaylistCache() {
     if (isRefreshing) {
-        logger.debug('Playlist refresh skipped - already in progress');
-        return;
+        // Check if the current refresh is stuck
+        if (refreshStartTime && Date.now() - refreshStartTime > 20000) {
+            logger.warn('Force-clearing stuck refresh state before starting new refresh', {
+                action: 'force_clear_stuck_refresh',
+                stuckDuration: `${Date.now() - refreshStartTime}ms`,
+            });
+            isRefreshing = false;
+            refreshStartTime = null;
+        } else {
+            logger.debug('Playlist refresh skipped - already in progress');
+            return;
+        }
     }
 
     const startTime = process.hrtime();
     isRefreshing = true;
+    refreshStartTime = Date.now(); // Track when refresh started
+
+    // Add a safety timeout to prevent stuck refresh state
+    const refreshTimeout = setTimeout(() => {
+        logger.warn('Playlist refresh timeout - forcing reset of isRefreshing flag', {
+            action: 'playlist_refresh_timeout',
+            duration: '15000ms',
+        });
+        isRefreshing = false;
+        refreshStartTime = null;
+    }, 15000); // 15 second timeout (was 60)
+
     logger.info('Starting playlist refresh', {
         action: 'playlist_refresh_start',
         timestamp: new Date().toISOString(),
@@ -2650,7 +2675,9 @@ async function refreshPlaylistCache() {
         });
         // We keep the old cache in case of an error
     } finally {
+        clearTimeout(refreshTimeout);
         isRefreshing = false;
+        refreshStartTime = null;
     }
 }
 
@@ -3134,85 +3161,41 @@ const { getBasicHealth, getDetailedHealth } = require('./utils/healthCheck');
  * @swagger
  * /health:
  *   get:
- *     summary: Basic Health Check
+ *     summary: Health Check Endpoint
  *     description: >
- *       Simple health check endpoint for basic monitoring and load balancers.
- *       Always returns 200 OK if the service is running, along with basic
- *       service information like version and uptime.
+ *       Health check endpoint that returns basic service status by default.
+ *       Use ?detailed=true query parameter for comprehensive health checks
+ *       including configuration validation, filesystem access, and media server connectivity.
  *     tags: ['Public API']
+ *     parameters:
+ *       - in: query
+ *         name: detailed
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Whether to perform detailed health checks
  *     responses:
  *       200:
- *         description: Service is running
+ *         description: Health check completed
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/BasicHealthResponse'
- */
-app.get('/health', (req, res) => {
-    const health = getBasicHealth();
-    res.json(health);
-});
-
-/**
- * @swagger
- * /api/health:
- *   get:
- *     summary: Detailed Health Check
- *     description: >
- *       Comprehensive health check that validates configuration, filesystem access,
- *       media cache status, and connectivity to configured media servers. This endpoint
- *       performs actual connectivity tests and may take longer to respond. Results are
- *       cached for 30 seconds to improve performance.
- *     tags: ['Public API']
- *     responses:
- *       200:
- *         description: Health check completed successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/HealthCheckResponse'
- *       503:
- *         description: One or more systems are not operational.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/HealthCheckResponse'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/BasicHealthResponse'
+ *                 - $ref: '#/components/schemas/HealthCheckResponse'
  */
 app.get(
-    '/api/health',
+    '/health',
     asyncHandler(async (req, res) => {
-        const health = await getDetailedHealth();
+        const detailed = req.query.detailed === 'true';
 
-        // Always return 200 for health checks - let the consumer decide based on status
-        res.status(200).json(health);
-    })
-);
-
-/**
- * @swagger
- * /health/detailed:
- *   get:
- *     summary: Detailed Health Check (Alternative Route)
- *     description: >
- *       Alternative route for the detailed health check endpoint. This provides
- *       the same comprehensive health information as /api/health, included for
- *       convenience and API consistency.
- *     tags: ['Public API']
- *     responses:
- *       200:
- *         description: Health check completed successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/HealthCheckResponse'
- */
-app.get(
-    '/health/detailed',
-    asyncHandler(async (req, res) => {
-        const health = await getDetailedHealth();
-
-        // Always return 200 for health checks - let the consumer decide based on status
-        res.status(200).json(health);
+        if (detailed) {
+            const health = await getDetailedHealth();
+            res.json(health);
+        } else {
+            const health = getBasicHealth();
+            res.json(health);
+        }
     })
 );
 
@@ -3376,6 +3359,26 @@ app.get(
         }
 
         if (isRefreshing) {
+            // Check if refresh has been stuck for too long (over 20 seconds)
+            if (refreshStartTime && Date.now() - refreshStartTime > 20000) {
+                logger.warn('Detected stuck refresh state - forcing reset', {
+                    action: 'stuck_refresh_reset',
+                    stuckDuration: `${Date.now() - refreshStartTime}ms`,
+                });
+                isRefreshing = false;
+                refreshStartTime = null;
+
+                // Start a new refresh
+                refreshPlaylistCache();
+
+                return res.status(202).json({
+                    status: 'building',
+                    message:
+                        'Playlist refresh was stuck and has been restarted. Please try again in a few seconds.',
+                    retryIn: 3000,
+                });
+            }
+
             // The full cache is being built. Tell the client to wait and try again.
             if (isDebug)
                 logger.debug('[Debug] Cache is empty but refreshing. Sending 202 Accepted.');
@@ -5464,7 +5467,10 @@ app.post(
 
         // Trigger a background refresh of the playlist with the new settings.
         // We don't await this, so the admin UI gets a fast response.
-        refreshPlaylistCache();
+        // Add a small delay to prevent overwhelming the server during rapid config changes
+        setTimeout(() => {
+            refreshPlaylistCache();
+        }, 1000);
 
         if (isDebug) {
             logger.debug(
@@ -7326,6 +7332,16 @@ app.post(
         const cleared = cacheManager.clear('media');
         logger.info('Media cache cleared before refresh', { cleared });
 
+        // Force reset any stuck refresh state before starting
+        if (isRefreshing) {
+            logger.warn('Admin refresh: Force-clearing stuck refresh state', {
+                action: 'admin_force_clear_refresh',
+                stuckDuration: refreshStartTime ? `${Date.now() - refreshStartTime}ms` : 'unknown',
+            });
+            isRefreshing = false;
+            refreshStartTime = null;
+        }
+
         // The refreshPlaylistCache function already has a lock (isRefreshing)
         // so we can call it directly. We'll await it to give feedback to the user.
         await refreshPlaylistCache();
@@ -7335,6 +7351,87 @@ app.post(
         if (isDebug) logger.debug(`[Admin API] ${message}`);
 
         res.json({ success: true, message: message, itemCount: itemCount, cacheCleared: cleared });
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/reset-refresh:
+ *   post:
+ *     summary: Reset stuck playlist refresh state
+ *     description: Force-reset the playlist refresh state if it gets stuck
+ *     tags: ['Admin API']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Refresh state has been reset successfully
+ */
+app.post(
+    '/api/admin/reset-refresh',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        logger.info('Admin refresh reset requested', {
+            action: 'admin_refresh_reset',
+            wasRefreshing: isRefreshing,
+            stuckDuration: refreshStartTime ? `${Date.now() - refreshStartTime}ms` : 'none',
+        });
+
+        // Force reset the refresh state
+        isRefreshing = false;
+        refreshStartTime = null;
+
+        res.json({
+            success: true,
+            message: 'Playlist refresh state has been reset. You can now trigger a new refresh.',
+        });
+    })
+);
+
+/**
+ * User-friendly endpoint to reset stuck refresh state
+ * Can be accessed directly in browser: /reset-refresh
+ */
+app.get(
+    '/reset-refresh',
+    asyncHandler(async (req, res) => {
+        logger.info('User reset refresh requested via GET', {
+            action: 'user_refresh_reset',
+            wasRefreshing: isRefreshing,
+            stuckDuration: refreshStartTime ? `${Date.now() - refreshStartTime}ms` : 'none',
+        });
+
+        // Force reset the refresh state
+        const wasStuck = isRefreshing;
+        isRefreshing = false;
+        refreshStartTime = null;
+
+        // Return HTML response for browser users
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+    <title>Posterrama - Refresh Reset</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 40px; text-align: center; }
+        .container { max-width: 500px; margin: 0 auto; }
+        .success { color: #28a745; }
+        .info { color: #6c757d; margin-top: 20px; }
+        .button { background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Refresh Reset</h1>
+        <p class="success">✅ Playlist refresh state has been reset successfully!</p>
+        ${wasStuck ? '<p><strong>Status:</strong> Stuck refresh was detected and cleared.</p>' : '<p><strong>Status:</strong> No stuck state detected.</p>'}
+        <p class="info">You can now refresh the screensaver or wait for automatic refresh.</p>
+        <a href="/" class="button">Go to Screensaver</a>
+        <a href="/admin" class="button">Go to Admin Panel</a>
+    </div>
+</body>
+</html>`;
+
+        res.send(html);
     })
 );
 

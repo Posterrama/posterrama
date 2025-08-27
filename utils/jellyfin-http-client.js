@@ -29,10 +29,44 @@ class JellyfinHttpClient {
     }
 
     /**
+     * Helper method to retry requests with exponential backoff
+     */
+    async retryRequest(requestFn, maxRetries = 2, baseDelay = 1000) {
+        let lastError;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                return await requestFn();
+            } catch (error) {
+                lastError = error;
+
+                // Don't retry on authentication errors or client errors (4xx)
+                if (error.response && error.response.status >= 400 && error.response.status < 500) {
+                    throw error;
+                }
+
+                if (attempt === maxRetries) {
+                    break;
+                }
+
+                // Exponential backoff: wait longer between retries
+                const delay = baseDelay * Math.pow(2, attempt);
+                console.warn(
+                    `[JellyfinClient] Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms:`,
+                    error.message
+                );
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+
+        throw lastError;
+    }
+
+    /**
      * Test the connection to the Jellyfin server
      */
     async testConnection() {
-        try {
+        return this.retryRequest(async () => {
             const response = await this.http.get('/System/Info');
             return {
                 success: true,
@@ -40,32 +74,24 @@ class JellyfinHttpClient {
                 version: response.data.Version,
                 id: response.data.Id,
             };
-        } catch (error) {
-            throw new Error(`Connection failed: ${error.message}`);
-        }
+        });
     }
 
     /**
      * Get all virtual folders (libraries) from the server
      */
     async getLibraries() {
-        try {
+        return this.retryRequest(async () => {
             const response = await this.http.get('/Library/VirtualFolders');
-            return response.data.map(library => ({
-                Id: library.ItemId,
-                Name: library.Name,
-                CollectionType: library.CollectionType || 'mixed',
-            }));
-        } catch (error) {
-            throw new Error(`Failed to fetch libraries: ${error.message}`);
-        }
+            return response.data;
+        });
     }
 
     /**
      * Get items from a specific library
      */
     async getItems({
-        parentId,
+        parentId = '',
         includeItemTypes = [],
         recursive = true,
         fields = [],
@@ -73,7 +99,7 @@ class JellyfinHttpClient {
         limit = 100,
         startIndex = 0,
     }) {
-        try {
+        return this.retryRequest(async () => {
             const params = new URLSearchParams({
                 ParentId: parentId,
                 Recursive: recursive.toString(),
@@ -95,9 +121,7 @@ class JellyfinHttpClient {
 
             const response = await this.http.get(`/Items?${params}`);
             return response.data;
-        } catch (error) {
-            throw new Error(`Failed to fetch items: ${error.message}`);
-        }
+        });
     }
 
     /**

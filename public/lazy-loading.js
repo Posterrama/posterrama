@@ -184,10 +184,10 @@ class LazyLoader {
 window.lazyLoader = new LazyLoader();
 
 // Auto-reinitialize when new content is added
-const originalSetInnerHTML = Element.prototype.innerHTML;
+const originalDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
 Object.defineProperty(Element.prototype, 'innerHTML', {
     set: function (value) {
-        originalSetInnerHTML.call(this, value);
+        originalDescriptor.set.call(this, value);
 
         // Re-observe new lazy images after a short delay
         setTimeout(() => {
@@ -197,7 +197,7 @@ Object.defineProperty(Element.prototype, 'innerHTML', {
         }, 100);
     },
     get: function () {
-        return originalSetInnerHTML.call(this);
+        return originalDescriptor.get.call(this);
     },
 });
 
