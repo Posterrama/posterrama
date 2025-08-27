@@ -3780,6 +3780,14 @@ fieldset:focus-within {
     flex-shrink: 0;
 }
 
+/* Make library checkbox labels use flexbox layout for proper alignment */
+.checkbox-group label {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
 .form-group select[name*='genreFilter'] option:hover {
     background: rgba(124, 58, 237, 0.3);
 }

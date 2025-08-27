@@ -5728,50 +5728,102 @@ app.post(
                 timeout: 10000,
             });
 
-            const libraries = await fetchJellyfinLibraries(client);
+            // Step 1: Get user views (libraries)
+            // First try to get any user to use for the Views endpoint
+            let userViews = [];
+            try {
+                // Try the general Views endpoint first
+                const viewsResponse = await client.http.get('/Library/Views');
+                userViews = viewsResponse?.data?.Items || [];
+            } catch (viewsError) {
+                if (isDebug) {
+                    logger.debug(
+                        '[Jellyfin Libraries] Library/Views failed, trying Users endpoint:',
+                        viewsError.message
+                    );
+                }
 
-            // Fetch item counts for each library
+                try {
+                    // Get users and use the first one
+                    const usersResponse = await client.http.get('/Users');
+                    const users = usersResponse?.data || [];
+
+                    if (users.length > 0) {
+                        const userId = users[0].Id;
+                        const userViewsResponse = await client.http.get(`/Users/${userId}/Views`);
+                        userViews = userViewsResponse?.data?.Items || [];
+                    }
+                } catch (userError) {
+                    if (isDebug) {
+                        logger.debug(
+                            '[Jellyfin Libraries] Users approach also failed:',
+                            userError.message
+                        );
+                    }
+                    // Fallback to original virtual folders approach
+                    const libraries = await fetchJellyfinLibraries(client);
+                    userViews = libraries.map(lib => ({
+                        Id: lib.Id,
+                        Name: lib.Name,
+                        CollectionType: lib.CollectionType,
+                    }));
+                }
+            }
+
+            if (isDebug) {
+                logger.debug(
+                    '[Jellyfin Libraries] Found user views:',
+                    userViews.map(view => `${view.Name} (${view.CollectionType || 'unknown'})`)
+                );
+            }
+
+            // Step 2: For each library, get the item counts
             const formattedLibraries = await Promise.all(
-                libraries.map(async lib => {
+                userViews.map(async view => {
                     let itemCount = 0;
-                    try {
-                        // Only fetch count for movie and show libraries
-                        const libType =
-                            lib.CollectionType === 'movies'
-                                ? 'movie'
-                                : lib.CollectionType === 'tvshows'
-                                  ? 'show'
-                                  : lib.CollectionType || 'other';
+                    const libType =
+                        view.CollectionType === 'movies'
+                            ? 'movie'
+                            : view.CollectionType === 'tvshows'
+                              ? 'show'
+                              : view.CollectionType || 'other';
 
+                    try {
                         if (libType === 'movie' || libType === 'show') {
-                            const itemTypes = libType === 'movie' ? ['Movie'] : ['Series'];
-                            const response = await client.getItems({
-                                parentId: lib.Id,
-                                includeItemTypes: itemTypes,
-                                recursive: true,
-                                limit: 1,
-                                startIndex: 0,
-                            });
-                            itemCount = parseInt(response?.TotalRecordCount || 0);
+                            // Use Jellyfin's dedicated counts endpoint
+                            const countsResponse = await client.http.get(
+                                `/Items/Counts?parentId=${view.Id}`
+                            );
+                            const counts = countsResponse?.data;
+
+                            if (isDebug) {
+                                logger.debug(
+                                    `[Jellyfin Lib Count] Counts for ${view.Name} (${view.CollectionType}):`,
+                                    counts
+                                );
+                            }
+
+                            // Get the appropriate count based on library type
+                            if (libType === 'movie') {
+                                itemCount = counts?.MovieCount || 0;
+                            } else if (libType === 'show') {
+                                itemCount = counts?.SeriesCount || 0;
+                            }
                         }
                     } catch (countError) {
-                        if (isDebug)
+                        if (isDebug) {
                             logger.debug(
-                                `[Jellyfin Lib Count] Failed to get count for ${lib.Name}:`,
+                                `[Jellyfin Lib Count] Failed to get count for ${view.Name}:`,
                                 countError.message
                             );
+                        }
                         // Continue without count
                     }
 
                     return {
-                        key: lib.Id,
-                        name: lib.Name,
-                        type:
-                            lib.CollectionType === 'movies'
-                                ? 'movie'
-                                : lib.CollectionType === 'tvshows'
-                                  ? 'show'
-                                  : lib.CollectionType || 'other',
+                        key: view.Id,
+                        name: view.Name,
+                        type: libType,
                         itemCount: itemCount,
                     };
                 })
