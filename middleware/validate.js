@@ -69,12 +69,71 @@ const queryParamsSchema = Joi.object({
     offset: Joi.number().integer().min(0).optional(),
 });
 
+// Public API endpoint schemas
+const getConfigQuerySchema = Joi.object({
+    // No query parameters expected for get-config endpoint
+    // Accept any parameters but strip them during validation
+}).unknown(true);
+
+const getMediaQuerySchema = Joi.object({
+    search: Joi.string().max(200).optional(),
+    year: Joi.number().integer().min(1900).max(2100).optional(),
+    genre: Joi.string().max(50).optional(),
+    limit: Joi.number().integer().min(1).max(1000).optional(),
+    offset: Joi.number().integer().min(0).optional(),
+});
+
+const imageQuerySchema = Joi.object({
+    // Either server+path OR url is required
+    server: Joi.string().max(100).optional(),
+    path: Joi.string().max(500).optional(),
+    url: Joi.string()
+        .uri({
+            scheme: ['http', 'https'],
+        })
+        .optional(),
+    // Optional image processing parameters
+    width: Joi.number().integer().min(1).max(4000).optional(),
+    height: Joi.number().integer().min(1).max(4000).optional(),
+    quality: Joi.number().integer().min(1).max(100).optional(),
+})
+    .or('url', 'server')
+    .with('server', 'path')
+    .messages({
+        'object.missing': 'Either URL parameter or both server and path parameters are required',
+    });
+
+const mediaKeyParamSchema = Joi.object({
+    key: Joi.string()
+        .pattern(/^[a-zA-Z0-9\-_]+$/)
+        .max(100)
+        .required()
+        .messages({
+            'string.pattern.base':
+                'Key must contain only alphanumeric characters, hyphens, and underscores',
+            'string.max': 'Key must not exceed 100 characters',
+            'any.required': 'Key parameter is required',
+        }),
+});
+
 // Recursively sanitize strings; guard against circular references.
 const circularGuard = new WeakSet();
 function sanitizeInput(obj) {
     if (typeof obj === 'string') {
         try {
-            return getPurify().sanitize(obj);
+            // Additional sanitization for common attack vectors
+            let sanitized = getPurify().sanitize(obj);
+
+            // Remove potential script/javascript protocols
+            sanitized = sanitized.replace(/^javascript:/i, '');
+            sanitized = sanitized.replace(/^data:.*?script/i, '');
+
+            // Validate against common injection patterns
+            if (sanitized.match(/<script|javascript:|data:.*?script|on\w+\s*=/i)) {
+                return ''; // Return empty string for obvious attack attempts
+            }
+
+            return sanitized;
         } catch (_) {
             return obj;
         }
@@ -136,7 +195,11 @@ function createValidationMiddleware(schema, property = 'body') {
 
 function validateQueryParams(req, res, next) {
     const raw = { ...req.query };
-    const { error, value } = queryParamsSchema.validate(raw, {
+
+    // Sanitize all query parameters first
+    const sanitized = sanitizeInput(raw);
+
+    const { error, value } = queryParamsSchema.validate(sanitized, {
         ...baseValidationOptions,
         stripUnknown: true,
     });
@@ -152,6 +215,90 @@ function validateQueryParams(req, res, next) {
         if (Object.prototype.hasOwnProperty.call(raw, k)) rebuilt[k] = raw[k];
     });
     req.query = rebuilt;
+    return next();
+}
+
+// Specific validation middleware for public API endpoints
+function validateGetConfigQuery(req, res, next) {
+    const sanitized = sanitizeInput(req.query || {});
+    const { error, value } = getConfigQuerySchema.validate(sanitized, {
+        ...baseValidationOptions,
+        stripUnknown: true,
+    });
+
+    if (error) {
+        return res.status(400).json({
+            error: 'Invalid query parameters',
+            details: error.details.map(d => ({
+                field: d.path.join('.'),
+                message: d.message,
+            })),
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    // For get-config, we ignore query parameters, so just set to empty object
+    req.query = {};
+    return next();
+}
+
+function validateGetMediaQuery(req, res, next) {
+    const sanitized = sanitizeInput(req.query || {});
+    const { error, value } = getMediaQuerySchema.validate(sanitized, {
+        ...baseValidationOptions,
+        stripUnknown: true,
+    });
+
+    if (error) {
+        return res.status(400).json({
+            error: 'Invalid query parameters',
+            details: error.details.map(d => ({
+                field: d.path.join('.'),
+                message: d.message,
+            })),
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    req.query = value;
+    return next();
+}
+
+function validateImageQuery(req, res, next) {
+    const sanitized = sanitizeInput(req.query || {});
+    const { error, value } = imageQuerySchema.validate(sanitized, baseValidationOptions);
+
+    if (error) {
+        return res.status(400).json({
+            error: 'Invalid image parameters',
+            details: error.details.map(d => ({
+                field: d.path.join('.'),
+                message: d.message,
+            })),
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    req.query = value;
+    return next();
+}
+
+function validateMediaKeyParam(req, res, next) {
+    const sanitized = sanitizeInput(req.params || {});
+    const { error, value } = mediaKeyParamSchema.validate(sanitized, baseValidationOptions);
+
+    if (error) {
+        return res.status(400).json({
+            error: 'Invalid media key parameter',
+            details: error.details.map(d => ({
+                field: d.path.join('.'),
+                message: d.message,
+            })),
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    req.params = value;
     return next();
 }
 
@@ -173,11 +320,19 @@ function validateRequest(schemaKey) {
 module.exports = {
     createValidationMiddleware,
     validateQueryParams,
+    validateGetConfigQuery,
+    validateGetMediaQuery,
+    validateImageQuery,
+    validateMediaKeyParam,
     sanitizeInput,
     validateRequest,
     schemas: {
         config: configSchema,
         plexConnection: plexConnectionSchema,
         queryParams: queryParamsSchema,
+        getConfigQuery: getConfigQuerySchema,
+        getMediaQuery: getMediaQuerySchema,
+        imageQuery: imageQuerySchema,
+        mediaKeyParam: mediaKeyParamSchema,
     },
 };

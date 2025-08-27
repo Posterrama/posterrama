@@ -714,6 +714,10 @@ app.use(metricsMiddleware);
 const {
     createValidationMiddleware,
     validateQueryParams,
+    validateGetConfigQuery,
+    validateGetMediaQuery,
+    validateImageQuery,
+    validateMediaKeyParam,
     schemas,
 } = require('./middleware/validate');
 
@@ -3232,6 +3236,7 @@ app.get(
  */
 app.get(
     '/get-config',
+    validateGetConfigQuery,
     cacheMiddleware({
         ttl: 30000, // 30 seconds instead of 10 minutes
         cacheControl: 'public, max-age=30',
@@ -3325,7 +3330,7 @@ app.get(
  */
 app.get(
     '/get-media',
-    newValidationMiddleware(validationRules.mediaRequest),
+    validateGetMediaQuery,
     apiCacheMiddleware.media,
     asyncHandler(async (req, res) => {
         // Skip caching if nocache param is present (for admin invalidation)
@@ -3420,6 +3425,7 @@ app.get(
  */
 app.get(
     '/get-media-by-key/:key',
+    validateMediaKeyParam,
     asyncHandler(async (req, res) => {
         const keyParts = req.params.key.split('-'); // e.g., ['plex', 'My', 'Server', '12345']
         if (keyParts.length < 3) {
@@ -3489,6 +3495,7 @@ app.get(
  */
 app.get(
     '/image',
+    validateImageQuery,
     cacheMiddleware({
         ttl: 86400000, // 24 hours
         cacheControl: 'public, max-age=86400',
