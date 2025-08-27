@@ -894,7 +894,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const img = document.createElement('img');
             // Use custom lazy loading for better control
             if (item.posterUrl && window.makeLazy) {
-                makeLazy(img, item.posterUrl);
+                window.makeLazy(img, item.posterUrl);
             } else {
                 img.src = item.posterUrl || transparentPixel;
             }
