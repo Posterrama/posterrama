@@ -339,6 +339,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (isScreensaver) {
                     const pw = document.getElementById('poster-wrapper');
                     if (pw) pw.classList.toggle('is-hidden', !partial.showPoster);
+                    // Ensure the main info container reflects visibility of poster/metadata
+                    const posterVisible = partial.showPoster !== false;
+                    const metaVisible =
+                        typeof partial.showMetadata === 'boolean'
+                            ? partial.showMetadata
+                            : next.showMetadata !== false;
+                    if (posterVisible || metaVisible) {
+                        infoContainer.classList.add('visible');
+                    } else {
+                        infoContainer.classList.remove('visible');
+                    }
                 }
             }
             if (typeof partial.showMetadata === 'boolean') {
@@ -347,6 +358,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (isScreensaver) {
                     const tw = document.getElementById('text-wrapper');
                     if (tw) tw.classList.toggle('is-hidden', !partial.showMetadata);
+                    const posterVisible = next.showPoster !== false;
+                    const metaVisible = partial.showMetadata !== false;
+                    if (posterVisible || metaVisible) {
+                        infoContainer.classList.add('visible');
+                    } else {
+                        infoContainer.classList.remove('visible');
+                    }
                 }
             }
             // ClearLogo and Rotten Tomatoes toggles affect the media display
@@ -429,6 +447,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 timerId = null;
                 // Trigger immediate update of current media to reflect effect if possible
                 updateCurrentMediaDisplay();
+                // Also re-apply poster/background effect right away in screensaver mode
+                const isScreensaverNow = !next.cinemaMode && !next.wallartMode?.enabled;
+                if (isScreensaverNow && currentIndex >= 0 && currentIndex < mediaQueue.length) {
+                    try {
+                        const currentMedia = mediaQueue[currentIndex];
+                        if (currentMedia && currentMedia.posterUrl) {
+                            applyPosterTransitionEffect(currentMedia.posterUrl);
+                        }
+                    } catch (_) {
+                        // ignore
+                    }
+                }
             }
             // Commit the new config
             appConfig = next;
@@ -439,6 +469,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Rerender current media if necessary (e.g., clearlogo/RT changes)
             if (rerenderNeeded) {
                 updateCurrentMediaDisplay();
+            }
+            // Final visibility check for screensaver preview: ensure info-container is shown
+            // when either poster or metadata is enabled (addresses first-toggle-not-showing)
+            const isScreensaverFinal = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
+            if (isScreensaverFinal) {
+                const posterVisibleFinal = appConfig.showPoster !== false;
+                const metaVisibleFinal = appConfig.showMetadata !== false;
+                if (posterVisibleFinal || metaVisibleFinal) {
+                    infoContainer.classList.add('visible');
+                }
             }
         } catch (e) {
             logger.warn('[Preview] Failed to apply settings', e);

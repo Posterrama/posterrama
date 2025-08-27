@@ -52,6 +52,7 @@ body {
     --content-border: 1px solid rgba(255, 255, 255, 0.1);
     --content-radius: 12px;
     --content-backdrop-blur: 12px;
+    --pip-radius: 12px; /* PiP frame/icon radius for consistent rounded corners */
 }
 
 /* Emergency fallback visibility class */
@@ -1786,6 +1787,26 @@ div:nth-of-type(2).subsection-header i {
     border: none;
     gap: 1rem;
     margin-bottom: 1rem;
+}
+
+/* Horizontal row for Visual Elements checkboxes */
+.subsection-content .checkbox-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem; /* row/column gaps */
+    align-items: center;
+    padding: 0.25rem 0.5rem; /* subtle padding around the row */
+}
+.subsection-content .checkbox-row .checkbox-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    padding: 0.25rem 0.5rem; /* padding next to checkbox label */
+    margin: 0;
+}
+.subsection-content .checkbox-row .checkbox-group label {
+    padding-left: 0.35rem; /* small space between box and label */
 }
 
 .subsection-content .form-grid-2 .form-group {
@@ -5346,7 +5367,7 @@ fieldset:focus-within {
     height: var(--preview-height) !important; /* Dynamic height based on mode */
     z-index: 10000 !important; /* Above everything */
     padding: 8px;
-    border-radius: 14px !important;
+    border-radius: var(--pip-radius) !important;
     /* Lighter, more transparent glass */
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
     border: none !important; /* Remove border */
@@ -5368,6 +5389,17 @@ fieldset:focus-within {
     cursor: grab !important; /* Indicate it's draggable */
     pointer-events: auto;
     user-select: none;
+}
+
+/* Ensure the inner iframe matches the container rounding and fills it */
+#display-preview-frame.preview-frame,
+.preview-container .preview-frame {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    border: 0 !important;
+    border-radius: var(--pip-radius) !important; /* Match PiP controls/icon rounding */
+    overflow: hidden !important;
 }
 
 /* 2x zoom state: double the preview width/height variables */
@@ -5444,7 +5476,7 @@ fieldset:focus-within {
 .pip-button {
     background: rgba(0, 0, 0, 0.7);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--pip-radius);
     color: #fff;
     cursor: pointer;
     padding: 8px 10px;
@@ -5527,7 +5559,7 @@ fieldset:focus-within {
     border: none;
     background: #000;
     display: block; /* Always visible when container is shown */
-    border-radius: 12px; /* Slightly rounder inner preview window */
+    border-radius: var(--pip-radius); /* Match container/icons radius */
     transform-origin: top left;
     pointer-events: none; /* Allow dragging/resizing anywhere */
     z-index: 1;

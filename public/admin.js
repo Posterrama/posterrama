@@ -748,11 +748,9 @@ window.scrollToSubsection = function (id) {
 
     function shouldHardReset(prev, next) {
         if (!prev) return false;
-        const prevWall = !!(prev.wallartMode && prev.wallartMode.enabled);
-        const nextWall = !!(next.wallartMode && next.wallartMode.enabled);
+        // Only hard-reset when cinema mode or its orientation changes.
+        // Wallart mode supports live switching and internal restarts without a full reload.
         if (prev.cinemaMode !== next.cinemaMode) return true;
-        if (prevWall !== nextWall) return true;
-        // Orientation flips can significantly change layout
         if (prev.cinemaOrientation !== next.cinemaOrientation) return true;
         return false;
     }
@@ -2668,10 +2666,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Update slider background to show progress
                 updateSliderBackground(slider);
 
-                // Add event listener to update display in real-time
+                // Add event listener to update display and preview in real-time
                 slider.addEventListener('input', () => {
                     percentageDisplay.textContent = `${slider.value}%`;
                     updateSliderBackground(slider);
+                    // Push a debounced preview update so scaling reflects immediately
+                    if (typeof debouncedSend === 'function') {
+                        debouncedSend();
+                    }
                 });
 
                 // Add event listener for live preview updates
