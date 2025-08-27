@@ -5368,7 +5368,7 @@ fieldset:focus-within {
     width: var(--preview-width) !important; /* Dynamic width based on mode */
     height: var(--preview-height) !important; /* Dynamic height based on mode */
     z-index: 10000 !important; /* Above everything */
-    padding: 8px;
+    padding: var(--preview-container-padding, 8px);
     border-radius: var(--pip-radius) !important;
     /* Lighter, more transparent glass */
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
@@ -5401,11 +5401,11 @@ fieldset:focus-within {
     border-radius: var(--pip-radius) !important; /* Match PiP controls/icon rounding */
     overflow: hidden;
     /* Occupy inner area inside container padding so buttons remain within inner frame */
-    width: calc(100% - 2 * var(--preview-padding, 4px));
-    height: calc(100% - 2 * var(--preview-padding, 4px));
+    width: calc(100% - 2 * (var(--preview-container-padding, 8px) + var(--preview-padding, 4px)));
+    height: calc(100% - 2 * (var(--preview-container-padding, 8px) + var(--preview-padding, 4px)));
     position: absolute;
-    top: var(--preview-padding, 4px);
-    left: var(--preview-padding, 4px);
+    top: calc(var(--preview-container-padding, 8px) + var(--preview-padding, 4px));
+    left: calc(var(--preview-container-padding, 8px) + var(--preview-padding, 4px));
 }
 
 /* 2x zoom state: double the preview width/height variables */
@@ -5431,8 +5431,8 @@ fieldset:focus-within {
 .preview-controls {
     position: absolute;
     top: auto;
-    bottom: var(--preview-padding, 4px);
-    right: var(--preview-padding, 4px);
+    bottom: calc(var(--preview-container-padding, 8px) + var(--preview-padding, 4px));
+    right: calc(var(--preview-container-padding, 8px) + var(--preview-padding, 4px));
     z-index: 10001;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -5458,8 +5458,8 @@ fieldset:focus-within {
 /* Desktop-only left-top zoom button */
 .preview-zoom-btn {
     position: absolute;
-    top: var(--preview-padding, 4px);
-    right: var(--preview-padding, 4px);
+    top: calc(var(--preview-container-padding, 8px) + var(--preview-padding, 4px));
+    right: calc(var(--preview-container-padding, 8px) + var(--preview-padding, 4px));
     left: auto;
     z-index: 10002; /* Above iframe (z=1) and controls (z=10001) */
     pointer-events: auto;
