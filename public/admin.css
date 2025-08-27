@@ -1466,6 +1466,20 @@ div:nth-of-type(2).subsection-header i {
     max-width: none; /* Remove max-width constraint */
 }
 
+/* Content source configuration containers */
+.source-config-container {
+    transition:
+        opacity 0.3s ease,
+        max-height 0.3s ease;
+    overflow: hidden;
+}
+
+.source-config-container.hidden {
+    opacity: 0.3;
+    max-height: 0;
+    pointer-events: none;
+}
+
 /* Last subsection content has more bottom margin */
 .subsection-content:last-of-type {
     margin-bottom: var(--content-padding-y) !important;

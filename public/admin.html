@@ -564,6 +564,9 @@
                                         <input type="checkbox" id="mediaServers[0].enabled" name="mediaServers[0].enabled">
                                         <label for="mediaServers[0].enabled">Enable Plex Server as Content Source</label>
                                     </div>
+                                    
+                                    <!-- Plex Configuration Container (hidden when disabled) -->
+                                    <div id="plex-config-container" class="source-config-container">
                                     <div class="form-group">
                                         <label for="mediaServers[0].hostname">Plex Hostname/IP</label>
                                         <input type="text" id="mediaServers[0].hostname" name="mediaServers[0].hostname" placeholder="192.168.1.10 or plex.local" pattern="^[a-zA-Z0-9\.\-]+$">
@@ -654,6 +657,7 @@
                                         <small id="plex-connection-status"></small>
                                     </div>
                                 </div>
+                                    </div> <!-- End Plex Configuration Container -->
                                 
                                 <!-- Jellyfin Media Server Subsection -->
                                 <div class="subsection-header" id="jellyfin-subsection">

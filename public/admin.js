@@ -9429,9 +9429,41 @@ function initDynamicQualityFilters() {
     });
 }
 
+// Content source conditional visibility
+function initSourceConditionalVisibility() {
+    // Plex enable checkbox handler
+    const plexEnabledCheckbox = document.getElementById('mediaServers[0].enabled');
+    const plexConfigContainer = document.getElementById('plex-config-container');
+
+    if (plexEnabledCheckbox && plexConfigContainer) {
+        // Function to toggle visibility
+        function togglePlexConfig() {
+            if (plexEnabledCheckbox.checked) {
+                plexConfigContainer.classList.remove('hidden');
+            } else {
+                plexConfigContainer.classList.add('hidden');
+            }
+        }
+
+        // Set initial state
+        togglePlexConfig();
+
+        // Listen for changes
+        plexEnabledCheckbox.addEventListener('change', togglePlexConfig);
+
+        console.log('Plex conditional visibility initialized');
+    }
+}
+
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    initSourceConditionalVisibility();
+});
+
 // Make functions globally available
 window.loadAvailableRatings = loadAvailableRatings;
 window.populateRatingFilter = populateRatingFilter;
 window.refreshRatingFilters = refreshRatingFilters;
 window.initDynamicGenreFilters = initDynamicGenreFilters;
 window.initDynamicQualityFilters = initDynamicQualityFilters;
+window.initSourceConditionalVisibility = initSourceConditionalVisibility;
