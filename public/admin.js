@@ -3820,6 +3820,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof initSourceConditionalVisibility === 'function') {
                 initSourceConditionalVisibility();
             }
+
+            // After the UI has been fully populated, capture a fresh baseline
+            // so restart detection compares against the actual loaded values.
+            try {
+                if (typeof captureFormState === 'function') {
+                    originalConfigValues = captureFormState();
+                }
+            } catch (e) {
+                // Non-fatal: if capturing fails, the timed snapshot will still exist
+                logger && logger.warn && logger.warn('Could not capture baseline form state', e);
+            }
         } catch (error) {
             console.error('Failed to load config:', error);
             showNotification('Failed to load settings. Please try refreshing the page.', 'error');
@@ -5528,6 +5539,38 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
     }
 
+    // Determine if the specific set of settings that require a restart have changed
+    function needsRestartChange(originalValues, currentValues) {
+        try {
+            const toNum = v => (Number.isFinite(Number(v)) ? Number(v) : null);
+            const toBool = v => v === true || v === 'true';
+
+            // Normalize relevant fields
+            const origServerPort = toNum(originalValues?.['SERVER_PORT']);
+            const currServerPort = toNum(currentValues?.['SERVER_PORT']);
+
+            const origDebug = toBool(originalValues?.['DEBUG']);
+            const currDebug = toBool(currentValues?.['DEBUG']);
+
+            const origSiteEnabled = toBool(originalValues?.['siteServer.enabled']);
+            const currSiteEnabled = toBool(currentValues?.['siteServer.enabled']);
+
+            const origSitePort = toNum(originalValues?.['siteServer.port']);
+            const currSitePort = toNum(currentValues?.['siteServer.port']);
+
+            if (origServerPort !== currServerPort) return true;
+            if (origDebug !== currDebug) return true;
+            if (origSiteEnabled !== currSiteEnabled) return true;
+            // Only consider siteServer.port when enabled in either snapshot
+            if ((origSiteEnabled || currSiteEnabled) && origSitePort !== currSitePort) return true;
+
+            return false;
+        } catch (e) {
+            // Be safe: if anything goes wrong, do not incorrectly show the button
+            return false;
+        }
+    }
+
     // Remove automatic background initialization - it will be handled by section switching
 
     // Cleanup timers when page unloads
@@ -5936,13 +5979,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             await refreshRatingFilters();
                         }
 
-                        // Only show restart button if form actually changed
-                        if (hasFormChanged()) {
+                        // Compute restart requirement against snapshot-before-save
+                        const preSaveValues = { ...originalConfigValues };
+                        const postSaveValues = captureFormState();
+
+                        if (needsRestartChange(preSaveValues, postSaveValues)) {
                             showRestartButton();
+                        } else {
+                            hideRestartButton();
                         }
 
                         // Update original values after successful save
-                        originalConfigValues = captureFormState();
+                        originalConfigValues = postSaveValues;
 
                         if (window.__saveCoordinator) {
                             window.__saveCoordinator.lastManualAt = Date.now();
