@@ -2,7 +2,7 @@ const GitHubService = require('../../utils/github');
 const logger = require('../../utils/logger');
 
 // Mock logger
-jest.mock('../../logger');
+jest.mock('../../utils/logger');
 
 describe('GitHub Service - API Methods', () => {
     beforeEach(() => {

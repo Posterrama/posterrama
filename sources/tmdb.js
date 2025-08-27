@@ -2,7 +2,7 @@
  * TMDB media source for posterrama.app
  * Handles fetching and processing media from The Movie Database API.
  */
-const logger = require('../logger');
+const logger = require('../utils/logger');
 
 class TMDBSource {
     constructor(sourceConfig, shuffleArray, isDebug) {

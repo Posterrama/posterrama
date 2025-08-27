@@ -24,7 +24,7 @@ jest.mock('child_process', () => ({
 }));
 
 // Mock logger to prevent fs issues
-jest.mock('../../logger', () => ({
+jest.mock('../../utils/logger', () => ({
     info: jest.fn(),
     error: jest.fn(),
     warn: jest.fn(),

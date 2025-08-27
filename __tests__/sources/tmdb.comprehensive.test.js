@@ -1,4 +1,10 @@
 // Formerly tmdb-source.test.js (renamed to tmdb.comprehensive.test.js)
+jest.mock('../../utils/logger', () => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+}));
 const TMDBSource = require('../../sources/tmdb');
 
 // We'll mock global fetch

@@ -3,7 +3,7 @@ const mockLogger = {
     error: jest.fn(),
     warn: jest.fn(),
 };
-jest.mock('../../logger', () => mockLogger);
+jest.mock('../../utils/logger', () => mockLogger);
 
 const {
     AppError,

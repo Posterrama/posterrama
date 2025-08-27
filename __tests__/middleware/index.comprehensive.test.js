@@ -15,7 +15,7 @@ const {
 } = require('../../middleware/index');
 
 // Mock dependencies
-jest.mock('../../logger', () => ({
+jest.mock('../../utils/logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),

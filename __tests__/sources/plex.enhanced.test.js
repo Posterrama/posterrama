@@ -1,3 +1,9 @@
+jest.mock('../../utils/logger', () => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+}));
 const PlexSource = require('../../sources/plex');
 
 describe('Plex Source - Enhanced Coverage', () => {

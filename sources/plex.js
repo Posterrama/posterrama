@@ -2,7 +2,7 @@
  * Plex media source for posterrama.app
  * Handles fetching and processing media from a Plex server.
  */
-const logger = require('../logger');
+const logger = require('../utils/logger');
 
 class PlexSource {
     constructor(

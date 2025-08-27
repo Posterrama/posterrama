@@ -3,7 +3,7 @@
  * Implements intelligent caching for API responses
  */
 
-const logger = require('../logger');
+const logger = require('../utils/logger');
 
 class ApiCache {
     constructor(defaultTTL = 5 * 60 * 1000) {

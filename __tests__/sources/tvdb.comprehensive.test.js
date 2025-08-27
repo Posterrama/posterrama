@@ -3,7 +3,12 @@ const TVDBSource = require('../../sources/tvdb');
 const axios = require('axios');
 
 jest.mock('axios', () => ({ post: jest.fn(), get: jest.fn() }));
-jest.mock('../../logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
+jest.mock('../../utils/logger', () => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+}));
 
 function queueGet(responses) {
     axios.get.mockReset();

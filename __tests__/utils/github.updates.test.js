@@ -4,7 +4,7 @@ const logger = require('../../utils/logger');
 
 // Mock dependencies
 jest.mock('semver');
-jest.mock('../../logger');
+jest.mock('../../utils/logger');
 
 describe('GitHub Service - checkForUpdates', () => {
     beforeEach(() => {

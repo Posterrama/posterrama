@@ -13,7 +13,7 @@ jest.mock('child_process', () => ({
 jest.mock('adm-zip');
 
 // Mock logger
-jest.mock('../../logger', () => ({
+jest.mock('../../utils/logger', () => ({
     info: jest.fn(),
     error: jest.fn(),
     warn: jest.fn(),

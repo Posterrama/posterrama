@@ -45,14 +45,14 @@ describe('HealthCheck - Plex and Integration', () => {
         delete require.cache[require.resolve('../../utils/logger')];
         delete require.cache[require.resolve('../../package.json')];
 
-        jest.doMock('../../logger', () => mockLogger);
+        jest.doMock('../../utils/logger', () => mockLogger);
         jest.doMock('../../package.json', () => mockPackageJson);
 
         healthCheck = require('../../utils/healthCheck');
     });
 
     afterEach(() => {
-        jest.dontMock('../../logger');
+        jest.dontMock('../../utils/logger');
         jest.dontMock('../../package.json');
 
         if (healthCheck.__resetCache) {

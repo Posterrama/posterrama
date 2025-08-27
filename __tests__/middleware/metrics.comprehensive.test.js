@@ -4,7 +4,7 @@ const logger = require('../../utils/logger');
 
 // Mock dependencies
 jest.mock('../../utils/metrics');
-jest.mock('../../logger');
+jest.mock('../../utils/logger');
 
 describe('Metrics Middleware - Comprehensive Tests', () => {
     let req, res, next, originalEnd;

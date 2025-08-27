@@ -26,6 +26,16 @@ describe('AutoUpdater - Basic Tests', () => {
             expect(AutoUpdater.updateStatus.backupPath).toBeNull();
         });
 
+        test('should have required static properties', () => {
+            expect(AutoUpdater.updateInProgress).toBe(false);
+            expect(AutoUpdater.deferStop).toBe(false);
+            expect(typeof AutoUpdater.updateStatus).toBe('object');
+            expect(typeof AutoUpdater.appRoot).toBe('string');
+            expect(typeof AutoUpdater.backupDir).toBe('string');
+            expect(typeof AutoUpdater.tempDir).toBe('string');
+            expect(typeof AutoUpdater.statusFile).toBe('string');
+        });
+
         test('should return status correctly', () => {
             const status = AutoUpdater.getStatus();
             expect(status).toHaveProperty('phase');

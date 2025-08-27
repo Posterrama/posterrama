@@ -6,7 +6,7 @@ const {
 } = require('../../middleware/cache.js');
 
 // Mock logger
-jest.mock('../../logger', () => ({
+jest.mock('../../utils/logger', () => ({
     info: jest.fn(),
 }));
 const logger = require('../../utils/logger');

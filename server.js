@@ -9,7 +9,7 @@
  * (at your option) any later version.
  */
 
-const logger = require('./logger');
+const logger = require('./utils/logger');
 
 // Handle uncaught exceptions and unhandled promise rejections
 process.on('uncaughtException', error => {

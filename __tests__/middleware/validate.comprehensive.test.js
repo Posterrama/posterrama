@@ -17,7 +17,7 @@ jest.mock('jsdom', () => ({
 
 // Mock validators module
 const mockValidate = jest.fn();
-jest.mock('../../validators', () => ({ validate: mockValidate }));
+jest.mock('../../config/validators', () => ({ validate: mockValidate }));
 
 // Mock errors module
 const mockApiError = jest.fn().mockImplementation((status, message) => {
@@ -25,7 +25,7 @@ const mockApiError = jest.fn().mockImplementation((status, message) => {
     error.status = status;
     return error;
 });
-jest.mock('../../errors', () => ({ ApiError: mockApiError }));
+jest.mock('../../utils/errors', () => ({ ApiError: mockApiError }));
 
 describe('Validate Middleware', () => {
     let req, res, next;

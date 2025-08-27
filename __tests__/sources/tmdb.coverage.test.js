@@ -3,6 +3,13 @@
  * Focus on error handling, edge cases, and uncovered paths
  */
 
+jest.mock('../../utils/logger', () => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+}));
+
 const TMDBSource = require('../../sources/tmdb');
 
 describe('TMDB Coverage Enhancement', () => {

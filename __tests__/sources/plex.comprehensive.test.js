@@ -1,4 +1,10 @@
 // Formerly plex-source.test.js (renamed to plex.comprehensive.test.js)
+jest.mock('../../utils/logger', () => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+}));
 const PlexSource = require('../../sources/plex');
 
 describe('Plex Source', () => {
@@ -87,20 +93,44 @@ describe('Plex Source', () => {
         it('should warn when library is not found', async () => {
             const mockLibraries = new Map([['Movies', { key: '1', title: 'Movies' }]]);
             mockGetPlexLibraries.mockResolvedValue(mockLibraries);
-            const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+            const logger = require('../../utils/logger');
+            const loggerWarnSpy = jest.spyOn(logger, 'warn').mockImplementation();
             const result = await plexSource.fetchMedia(['NonExistent'], 'movie', 10);
-            expect(consoleWarnSpy).toHaveBeenCalledWith(
+            expect(loggerWarnSpy).toHaveBeenCalledWith(
                 '[PlexSource:Test Plex Server] Library "NonExistent" not found.'
             );
             expect(result).toEqual([]);
-            consoleWarnSpy.mockRestore();
+            loggerWarnSpy.mockRestore();
         });
         it('should handle libraries with no content', async () => {
-            const mockLibraries = new Map([['Empty', { key: '1', title: 'Empty' }]]);
+            const mockLibraries = new Map([['Movies', { key: '1', title: 'Movies' }]]);
             mockGetPlexLibraries.mockResolvedValue(mockLibraries);
-            mockPlexClient.query.mockResolvedValue({ MediaContainer: {} });
-            const result = await plexSource.fetchMedia(['Empty'], 'movie', 10);
+            mockPlexClient.query.mockResolvedValue({ MediaContainer: { Metadata: [] } });
+            const result = await plexSource.fetchMedia(['Movies'], 'movie', 10);
             expect(result).toEqual([]);
+        });
+
+        it('should handle library query errors gracefully', async () => {
+            const mockLibraries = new Map([['Movies', { key: '1', title: 'Movies' }]]);
+            mockGetPlexLibraries.mockResolvedValue(mockLibraries);
+            mockPlexClient.query.mockRejectedValue(new Error('Connection failed'));
+
+            const logger = require('../../utils/logger');
+            const loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation();
+
+            const result = await plexSource.fetchMedia(['Movies'], 'movie', 10);
+
+            expect(loggerErrorSpy).toHaveBeenCalledWith(
+                '[PlexSource:Test Plex Server] Failed to fetch from library "Movies":',
+                {
+                    error: 'Connection failed',
+                    type: 'movie',
+                    libraryKey: '1',
+                }
+            );
+            expect(result).toEqual([]);
+
+            loggerErrorSpy.mockRestore();
         });
         it('should handle errors gracefully', async () => {
             mockGetPlexLibraries.mockRejectedValue(new Error('Network error'));

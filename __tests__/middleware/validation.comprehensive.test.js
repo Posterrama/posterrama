@@ -10,7 +10,7 @@ const {
 const logger = require('../../utils/logger');
 
 // Mock logger
-jest.mock('../../logger');
+jest.mock('../../utils/logger');
 
 // Mock express-validator
 jest.mock('express-validator', () => ({

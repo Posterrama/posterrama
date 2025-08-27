@@ -2,7 +2,7 @@
  * Jellyfin media source for posterrama.app
  * Handles fetching and processing media from a Jellyfin server.
  */
-const logger = require('../logger');
+const logger = require('../utils/logger');
 
 class JellyfinSource {
     constructor(
