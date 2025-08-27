@@ -59,6 +59,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     rtBadge.appendChild(rtIcon);
     posterEl.appendChild(rtBadge);
 
+    // Helper: ensure the RT badge stays attached to the poster element, even if posterEl.innerHTML was reset
+    function ensureRtBadgeAttached() {
+        try {
+            if (!rtBadge.isConnected || rtBadge.parentNode !== posterEl) {
+                posterEl.appendChild(rtBadge);
+            }
+        } catch (_) {
+            // no-op: conservative safety
+        }
+    }
+
+    // Helper: in screensaver mode, re-assert visibility of poster/metadata/info container
+    function ensureScreensaverVisibility() {
+        try {
+            const isScreensaver = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
+            if (!isScreensaver) return;
+            const posterVisible = appConfig.showPoster !== false;
+            const metaVisible = appConfig.showMetadata !== false;
+
+            // Toggle poster and metadata wrappers
+            if (posterWrapper) posterWrapper.classList.toggle('is-hidden', !posterVisible);
+            if (textWrapper) textWrapper.classList.toggle('is-hidden', !metaVisible);
+
+            // If any is visible, ensure the container is shown
+            if (posterVisible || metaVisible) {
+                infoContainer.classList.add('visible');
+                // Also guard against inline display:none from previous modes
+                if (infoContainer.style.display === 'none') {
+                    infoContainer.style.display = 'flex';
+                }
+            } else {
+                // Hide the container when nothing should be shown
+                infoContainer.classList.remove('visible');
+            }
+        } catch (_) {
+            // ignore
+        }
+    }
+
     // --- State ---
     let mediaQueue = [];
     let currentIndex = -1;
@@ -335,22 +374,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             if (typeof partial.showPoster === 'boolean') {
                 next.showPoster = partial.showPoster;
-                const isScreensaver = !next.cinemaMode && !next.wallartMode?.enabled;
-                if (isScreensaver) {
+                const isScreensaverNow = !next.cinemaMode && !next.wallartMode?.enabled;
+                if (isScreensaverNow) {
                     const pw = document.getElementById('poster-wrapper');
                     if (pw) pw.classList.toggle('is-hidden', !partial.showPoster);
-                    // Ensure the main info container reflects visibility of poster/metadata
-                    const posterVisible = partial.showPoster !== false;
-                    const metaVisible =
-                        typeof partial.showMetadata === 'boolean'
-                            ? partial.showMetadata
-                            : next.showMetadata !== false;
-                    if (posterVisible || metaVisible) {
-                        infoContainer.classList.add('visible');
+                }
+                // If poster is hidden, also hide metadata (requested coupling) - screensaver only
+                if (isScreensaverNow) {
+                    if (partial.showPoster === false) {
+                        const tw = document.getElementById('text-wrapper');
+                        if (tw) tw.classList.add('is-hidden');
                     } else {
-                        infoContainer.classList.remove('visible');
+                        // Restore metadata only when allowed by its own toggle
+                        const canShowMeta = next.showMetadata !== false;
+                        const tw = document.getElementById('text-wrapper');
+                        if (tw) tw.classList.toggle('is-hidden', !canShowMeta);
                     }
                 }
+                // Info container visibility is handled by final ensure helper below
             }
             if (typeof partial.showMetadata === 'boolean') {
                 next.showMetadata = partial.showMetadata;
@@ -480,6 +521,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     infoContainer.classList.add('visible');
                 }
             }
+            // Persist helpers in case poster innerHTML resets or class toggles race with transitions
+            ensureRtBadgeAttached();
+            ensureScreensaverVisibility();
         } catch (e) {
             logger.warn('[Preview] Failed to apply settings', e);
         }
@@ -3512,9 +3556,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             rtIcon.src = iconUrl;
             rtBadge.classList.add('visible');
+            ensureRtBadgeAttached();
         } else {
             rtBadge.classList.remove('visible');
+            ensureRtBadgeAttached(); // keep it mounted even when hidden
         }
+
+        // After rendering, re-assert screensaver visibility to avoid flash->hide
+        ensureScreensaverVisibility();
     }
 
     function updateInfo(direction, isFirstLoad = false) {
@@ -3663,6 +3712,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (appConfig.cinemaMode) {
                         infoContainer.classList.add('visible');
                     }
+                    // Persist visibility and badge attachment after async transition
+                    ensureRtBadgeAttached();
+                    ensureScreensaverVisibility();
                 }, 500);
             }
             if (!isPaused) {
@@ -4210,6 +4262,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             clearlogoEl.classList.remove('visible');
             rtBadge.classList.remove('visible'); // Hide RT badge
+            ensureRtBadgeAttached();
         }
         if (isFirstLoad) {
             console.log('🚀 First load: calling updateInfo immediately');
