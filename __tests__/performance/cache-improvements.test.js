@@ -10,13 +10,11 @@ const fs = require('fs').promises;
 jest.mock('../../utils/logger');
 
 describe('Cache Configuration Improvements', () => {
-    let originalConfig;
-
     beforeAll(async () => {
-        // Backup original config
+        // Backup original config (not used in current tests but kept for future expansion)
         const configPath = path.join(__dirname, '../../config.json');
         const configContent = await fs.readFile(configPath, 'utf8');
-        originalConfig = JSON.parse(configContent);
+        JSON.parse(configContent); // Validate config format
     });
 
     test('should have improved cache configuration in config.json', () => {
@@ -34,7 +32,9 @@ describe('Cache Configuration Improvements', () => {
 
     test('should validate cache configuration against schema', () => {
         const config = require('../../config.json');
+        // Schema validation (schema object used for reference)
         const schema = require('../../config.schema.json');
+        expect(schema).toBeDefined(); // Ensure schema exists
 
         // Basic validation that cache section exists and has expected properties
         expect(config.cache).toBeDefined();
@@ -97,8 +97,12 @@ describe('Cache Disk Manager Integration', () => {
 
         // Test that it uses the improved configuration
         const config = require('../../config.json');
-        const expectedMaxSize = config.cache.maxSizeGB * 1024 * 1024 * 1024;
-        const expectedMinFree = config.cache.minFreeDiskSpaceMB * 1024 * 1024;
+        const maxSizeBytes = config.cache.maxSizeGB * 1024 * 1024 * 1024;
+        const minFreeBytes = config.cache.minFreeDiskSpaceMB * 1024 * 1024;
+
+        // Verify config values are reasonable
+        expect(maxSizeBytes).toBeGreaterThan(0);
+        expect(minFreeBytes).toBeGreaterThan(0);
 
         // We can't directly test private properties, but we can test behavior
         expect(typeof cacheDiskManager.getDiskUsage).toBe('function');
