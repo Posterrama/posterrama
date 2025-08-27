@@ -5433,10 +5433,11 @@ fieldset:focus-within {
     top: auto;
     bottom: calc(var(--preview-container-padding, 8px) + var(--preview-padding, 4px));
     right: calc(var(--preview-container-padding, 8px) + var(--preview-padding, 4px));
-    z-index: 10001;
+    z-index: 10001; /* above iframe */
     opacity: 0;
     transition: opacity 0.2s ease;
     pointer-events: auto;
+    touch-action: manipulation; /* improve mobile tap responsiveness */
 }
 
 /* Only change when hovering the controls themselves, not the whole preview */
@@ -5465,6 +5466,7 @@ fieldset:focus-within {
     pointer-events: auto;
     opacity: 0.5; /* match right controls base transparency */
     transition: opacity 0.2s ease;
+    touch-action: manipulation;
 }
 
 @media (max-width: 1023px) {

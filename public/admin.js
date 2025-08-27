@@ -503,7 +503,22 @@ window.scrollToSubsection = function (id) {
         let offsetFromTop = 0;
         let rafId = null;
         let nextPos = null;
+        // Helper: avoid initiating drag on interactive controls inside the preview
+        function isInteractiveTarget(target) {
+            if (!target || !(target instanceof Element)) return false;
+            return (
+                target.closest('.pip-button') ||
+                target.closest('.preview-controls') ||
+                target.closest('button, a, select, input, label')
+            );
+        }
         function onDown(e) {
+            // Do not start drag when interacting with internal controls (fixes mobile taps on buttons)
+            const tgt = e.target;
+            if (isInteractiveTarget(tgt)) return;
+            // Ignore multi-touch gestures
+            if (e.touches && e.touches.length > 1) return;
+
             dragging = true;
             container.classList.add('dragging');
             container.style.cursor = 'grabbing';
@@ -513,12 +528,24 @@ window.scrollToSubsection = function (id) {
             // Store offset relative to the right and top edges to maintain right-top anchoring
             offsetFromRight = rect.right - clientX;
             offsetFromTop = clientY - rect.top;
-            e.preventDefault();
+            // Prevent default only for actual drag to avoid suppressing click on touch devices
+            if (e.cancelable) e.preventDefault();
         }
+        // Minimal movement threshold to classify as drag (px)
+        const DRAG_THRESHOLD = 4;
+        let startedDragging = false;
+        let startClientX = 0;
+        let startClientY = 0;
         function onMove(e) {
             if (!dragging) return;
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            if (!startedDragging) {
+                const dx = Math.abs(clientX - startClientX);
+                const dy = Math.abs(clientY - startClientY);
+                if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) return;
+                startedDragging = true;
+            }
             const vw = window.innerWidth;
             const vh = window.innerHeight;
             const rect = container.getBoundingClientRect();
@@ -542,17 +569,36 @@ window.scrollToSubsection = function (id) {
                 });
             }
         }
-        function onUp() {
+        function onUp(e) {
             if (!dragging) return;
+            const wasDragging = startedDragging;
             dragging = false;
+            startedDragging = false;
             container.style.cursor = 'grab';
             container.classList.remove('dragging');
-            // Prevent click-through after drag
-            container.style.pointerEvents = 'none';
-            setTimeout(() => (container.style.pointerEvents = 'auto'), 0);
+            // If it was an actual drag, prevent an accidental click; otherwise, let the tap/click fire
+            if (wasDragging && e && e.cancelable) {
+                e.preventDefault();
+                e.stopPropagation();
+                // Prevent click-through after drag
+                container.style.pointerEvents = 'none';
+                setTimeout(() => (container.style.pointerEvents = 'auto'), 0);
+            }
         }
-        container.addEventListener('mousedown', onDown);
-        container.addEventListener('touchstart', onDown, { passive: false });
+        container.addEventListener('mousedown', e => {
+            startClientX = e.clientX;
+            startClientY = e.clientY;
+            onDown(e);
+        });
+        container.addEventListener(
+            'touchstart',
+            e => {
+                startClientX = e.touches ? e.touches[0].clientX : 0;
+                startClientY = e.touches ? e.touches[0].clientY : 0;
+                onDown(e);
+            },
+            { passive: false }
+        );
         window.addEventListener('mousemove', onMove);
         window.addEventListener('touchmove', onMove, { passive: false });
         window.addEventListener('mouseup', onUp);
