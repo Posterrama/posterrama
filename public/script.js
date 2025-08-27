@@ -115,6 +115,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Helper: force-initialize background layers when returning to screensaver mode
+    function reinitBackgroundForScreensaver() {
+        try {
+            const isScreensaver = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
+            if (!isScreensaver) return;
+
+            const la = document.getElementById('layer-a');
+            const lb = document.getElementById('layer-b');
+            if (!la || !lb) return;
+
+            // Reset styles
+            [la, lb].forEach(el => {
+                el.style.animation = 'none';
+                el.style.transition = 'none';
+                el.style.transform = 'none';
+            });
+
+            // Choose a media item
+            let mediaItem = null;
+            if (mediaQueue && mediaQueue.length > 0) {
+                const idx = currentIndex >= 0 ? currentIndex : 0;
+                mediaItem = mediaQueue[idx] || mediaQueue[0];
+            }
+
+            if (mediaItem && mediaItem.backgroundUrl) {
+                la.style.backgroundImage = `url('${mediaItem.backgroundUrl}')`;
+            }
+
+            la.style.opacity = '1';
+            lb.style.opacity = '0';
+
+            // Reset references to a known state
+            activeLayer = la;
+            inactiveLayer = lb;
+
+            ensureBackgroundVisible();
+        } catch (_) {
+            // ignore
+        }
+    }
+
     // --- State ---
     let mediaQueue = [];
     let currentIndex = -1;
@@ -174,7 +215,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Simple network status indicator
     function showNetworkStatus(status) {
         let indicator = document.getElementById('network-status');
-
         if (!indicator) {
             indicator = document.createElement('div');
             indicator.id = 'network-status';
@@ -619,6 +659,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(() => {
                 infoContainer.classList.add('visible');
             }, 100);
+        } else {
+            // Cinema mode disabled: likely returning to screensaver
+            // Reinitialize background layers to avoid black background
+            setTimeout(() => {
+                reinitBackgroundForScreensaver();
+            }, 50);
         }
     }
 
@@ -927,6 +973,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (appConfig.transitionIntervalSeconds > 0) {
                 startTimer();
             }
+
+            // Reset background layers shortly after leaving wallart
+            setTimeout(() => {
+                reinitBackgroundForScreensaver();
+            }, 50);
         }
     }
 
