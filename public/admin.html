@@ -668,94 +668,98 @@
                                         <input type="checkbox" id="mediaServers[1].enabled" name="mediaServers[1].enabled">
                                         <label for="mediaServers[1].enabled">Enable Jellyfin Server as Content Source</label>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[1].hostname">Jellyfin Hostname/IP</label>
-                                        <input type="text" id="mediaServers[1].hostname" name="mediaServers[1].hostname" placeholder="192.168.1.101 or jellyfin.local" pattern="^[a-zA-Z0-9\.\-]+$">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[1].port">Jellyfin Port</label>
-                                        <input type="number" id="mediaServers[1].port" name="mediaServers[1].port" min="1" max="65535" placeholder="8096">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[1].apiKey">Jellyfin API Key</label>
-                                        <input type="password" id="mediaServers[1].apiKey" name="mediaServers[1].apiKey">
-                                    </div>
-                                </div>
-                                
-                                <!-- Jellyfin Library Configuration Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-folder-open"></i>
-                                    Jellyfin Library Configuration
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <label>Movie Library Names</label>
-                                        <div id="jellyfin-movie-libraries-container" class="library-container">
-                                            <small>Test the connection to fetch the libraries.</small>
+                                    
+                                    <!-- Jellyfin Configuration Container (hidden when disabled) -->
+                                    <div id="jellyfin-config-container" class="source-config-container">
+                                        <div class="form-group">
+                                            <label for="mediaServers[1].hostname">Jellyfin Hostname/IP</label>
+                                            <input type="text" id="mediaServers[1].hostname" name="mediaServers[1].hostname" placeholder="192.168.1.101 or jellyfin.local" pattern="^[a-zA-Z0-9\.\-]+$">
                                         </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Show Library Names</label>
-                                        <div id="jellyfin-show-libraries-container" class="library-container">
-                                            <small>Test the connection to fetch the libraries.</small>
+                                        <div class="form-group">
+                                            <label for="mediaServers[1].port">Jellyfin Port</label>
+                                            <input type="number" id="mediaServers[1].port" name="mediaServers[1].port" min="1" max="65535" placeholder="8096">
                                         </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Jellyfin Content Filtering Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-filter"></i>
-                                    Jellyfin Content Filtering
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <label for="mediaServers[1].ratingFilter">Rating Filter</label>
-                                        <div class="rating-filter-container">
-                                            <div id="mediaServers[1].ratingFilter" class="dynamic-rating-filter multi-select-checkboxes" data-source="jellyfin">
-                                                <div class="loading-indicator">Loading ratings...</div>
+                                        <div class="form-group">
+                                            <label for="mediaServers[1].apiKey">Jellyfin API Key</label>
+                                            <input type="password" id="mediaServers[1].apiKey" name="mediaServers[1].apiKey">
+                                        </div>
+                                        
+                                        <!-- Jellyfin Library Configuration Subsection -->
+                                        <div class="subsection-header">
+                                            <i class="fas fa-folder-open"></i>
+                                            Jellyfin Library Configuration
+                                        </div>
+                                        <div class="subsection-content">
+                                            <div class="form-group">
+                                                <label>Movie Library Names</label>
+                                                <div id="jellyfin-movie-libraries-container" class="library-container">
+                                                    <small>Test the connection to fetch the libraries.</small>
+                                                </div>
                                             </div>
-                                            <input type="hidden" name="mediaServers[1].ratingFilter" id="mediaServers[1].ratingFilter-hidden" value="">
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[1].genreFilter">Genre Filter</label>
-                                        <div class="genre-filter-container">
-                                            <div id="mediaServers[1].genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="jellyfin">
-                                                <div class="loading-indicator">Loading genres...</div>
+                                            <div class="form-group">
+                                                <label>Show Library Names</label>
+                                                <div id="jellyfin-show-libraries-container" class="library-container">
+                                                    <small>Test the connection to fetch the libraries.</small>
+                                                </div>
                                             </div>
-                                            <input type="hidden" name="mediaServers[1].genreFilter" id="mediaServers[1].genreFilter-hidden" value="">
                                         </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="mediaServers[1].qualityFilter">Quality Filter</label>
-                                        <div id="mediaServers[1].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="jellyfin">
-                                            <div class="loading-indicator">Loading qualities...</div>
+                                        
+                                        <!-- Jellyfin Content Filtering Subsection -->
+                                        <div class="subsection-header">
+                                            <i class="fas fa-filter"></i>
+                                            Jellyfin Content Filtering
                                         </div>
-                                        <input type="hidden" name="mediaServers[1].qualityFilter" id="mediaServers[1].qualityFilter-hidden" value="">
-                                    </div>
-                                    <div class="form-group checkbox-group">
-                                        <input type="checkbox" id="mediaServers[1].recentlyAddedOnly" name="mediaServers[1].recentlyAddedOnly">
-                                        <label for="mediaServers[1].recentlyAddedOnly">Show Only Recently Added Content</label>
-                                    </div>
-                                    <div class="form-group recently-added-days-group hidden" id="jellyfinRecentlyAddedDaysContainer">
-                                        <label for="mediaServers[1].recentlyAddedDays">Recently Added (days)</label>
-                                        <input type="number" id="mediaServers[1].recentlyAddedDays" name="mediaServers[1].recentlyAddedDays" min="1" max="365" placeholder="30" value="30">
-                                    </div>
-                                </div>
-                                
-                                <!-- Jellyfin Connection Testing Subsection -->
-                                <div class="subsection-header">
-                                    <i class="fas fa-plug"></i>
-                                    Jellyfin Connection Testing
-                                </div>
-                                <div class="subsection-content">
-                                    <div class="form-group">
-                                        <button type="button" id="test-jellyfin-button" class="btn btn-primary">
-                                            <i class="fas fa-plug icon"></i>
-                                            <span>Test Jellyfin Connection</span>
-                                        </button>
-                                        <small id="jellyfin-connection-status"></small>
-                                    </div>
+                                        <div class="subsection-content">
+                                            <div class="form-group">
+                                                <label for="mediaServers[1].ratingFilter">Rating Filter</label>
+                                                <div class="rating-filter-container">
+                                                    <div id="mediaServers[1].ratingFilter" class="dynamic-rating-filter multi-select-checkboxes" data-source="jellyfin">
+                                                        <div class="loading-indicator">Loading ratings...</div>
+                                                    </div>
+                                                    <input type="hidden" name="mediaServers[1].ratingFilter" id="mediaServers[1].ratingFilter-hidden" value="">
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="mediaServers[1].genreFilter">Genre Filter</label>
+                                                <div class="genre-filter-container">
+                                                    <div id="mediaServers[1].genreFilter" class="dynamic-genre-filter multi-select-checkboxes" data-source="jellyfin">
+                                                        <div class="loading-indicator">Loading genres...</div>
+                                                    </div>
+                                                    <input type="hidden" name="mediaServers[1].genreFilter" id="mediaServers[1].genreFilter-hidden" value="">
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="mediaServers[1].qualityFilter">Quality Filter</label>
+                                                <div id="mediaServers[1].qualityFilter" class="dynamic-quality-filter multi-select-checkboxes" data-source="jellyfin">
+                                                    <div class="loading-indicator">Loading qualities...</div>
+                                                </div>
+                                                <input type="hidden" name="mediaServers[1].qualityFilter" id="mediaServers[1].qualityFilter-hidden" value="">
+                                            </div>
+                                            <div class="form-group checkbox-group">
+                                                <input type="checkbox" id="mediaServers[1].recentlyAddedOnly" name="mediaServers[1].recentlyAddedOnly">
+                                                <label for="mediaServers[1].recentlyAddedOnly">Show Only Recently Added Content</label>
+                                            </div>
+                                            <div class="form-group recently-added-days-group hidden" id="jellyfinRecentlyAddedDaysContainer">
+                                                <label for="mediaServers[1].recentlyAddedDays">Recently Added (days)</label>
+                                                <input type="number" id="mediaServers[1].recentlyAddedDays" name="mediaServers[1].recentlyAddedDays" min="1" max="365" placeholder="30" value="30">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Jellyfin Connection Testing Subsection -->
+                                        <div class="subsection-header">
+                                            <i class="fas fa-plug"></i>
+                                            Jellyfin Connection Testing
+                                        </div>
+                                        <div class="subsection-content">
+                                            <div class="form-group">
+                                                <button type="button" id="test-jellyfin-button" class="btn btn-primary">
+                                                    <i class="fas fa-plug icon"></i>
+                                                    <span>Test Jellyfin Connection</span>
+                                                </button>
+                                                <small id="jellyfin-connection-status"></small>
+                                            </div>
+                                        </div>
+                                    </div> <!-- End Jellyfin Configuration Container -->
                                 </div>
                                 
                                 <!-- TMDB External Source Subsection -->

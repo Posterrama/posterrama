@@ -9471,6 +9471,42 @@ function initSourceConditionalVisibility() {
             container: !!plexConfigContainer,
         });
     }
+
+    // Jellyfin enable checkbox handler
+    const jellyfinEnabledCheckbox = document.getElementById('mediaServers[1].enabled');
+    const jellyfinConfigContainer = document.getElementById('jellyfin-config-container');
+
+    if (jellyfinEnabledCheckbox && jellyfinConfigContainer) {
+        // Function to toggle visibility
+        function toggleJellyfinConfig() {
+            if (jellyfinEnabledCheckbox.checked) {
+                jellyfinConfigContainer.classList.remove('hidden');
+                console.log('Jellyfin config shown (checkbox is checked)');
+            } else {
+                jellyfinConfigContainer.classList.add('hidden');
+                console.log('Jellyfin config hidden (checkbox is unchecked)');
+            }
+        }
+
+        // Set initial state immediately
+        toggleJellyfinConfig();
+
+        // Also set state after a short delay to handle config loading timing
+        setTimeout(() => {
+            toggleJellyfinConfig();
+            console.log('Jellyfin conditional visibility re-initialized after delay');
+        }, 100);
+
+        // Listen for changes
+        jellyfinEnabledCheckbox.addEventListener('change', toggleJellyfinConfig);
+
+        console.log('Jellyfin conditional visibility initialized');
+    } else {
+        console.warn('Jellyfin checkbox or container not found', {
+            checkbox: !!jellyfinEnabledCheckbox,
+            container: !!jellyfinConfigContainer,
+        });
+    }
 }
 
 // Initialize on DOM ready
