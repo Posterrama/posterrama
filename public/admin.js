@@ -543,6 +543,7 @@ window.scrollToSubsection = function (id) {
             return (
                 target.closest('.pip-button') ||
                 target.closest('.preview-controls') ||
+                target.closest('.preview-peek-handle') ||
                 target.closest('button, a, select, input, label')
             );
         }
@@ -620,6 +621,10 @@ window.scrollToSubsection = function (id) {
             }
         }
         container.addEventListener('mousedown', e => {
+            // If collapsed, a simple left click expands without initiating drag
+            if (container.classList.contains('collapsed') && e.button === 0) {
+                setCollapsed(false);
+            }
             startClientX = e.clientX;
             startClientY = e.clientY;
             onDown(e);
@@ -627,6 +632,10 @@ window.scrollToSubsection = function (id) {
         container.addEventListener(
             'touchstart',
             e => {
+                // If collapsed, any tap expands
+                if (container.classList.contains('collapsed')) {
+                    setCollapsed(false);
+                }
                 startClientX = e.touches ? e.touches[0].clientX : 0;
                 startClientY = e.touches ? e.touches[0].clientY : 0;
                 onDown(e);

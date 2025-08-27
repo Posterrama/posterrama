@@ -5401,7 +5401,7 @@ fieldset:focus-within {
     top: 50%;
     transform: translateY(-50%);
     width: var(--peek-width, 16px);
-    height: 96px;
+    height: 100%;
     border: 0;
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
