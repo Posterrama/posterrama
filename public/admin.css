@@ -5430,7 +5430,8 @@ fieldset:focus-within {
 /* Preview Controls */
 .preview-controls {
     position: absolute;
-    top: var(--preview-padding, 4px);
+    top: auto;
+    bottom: var(--preview-padding, 4px);
     right: var(--preview-padding, 4px);
     z-index: 10001;
     opacity: 0;
@@ -5458,7 +5459,8 @@ fieldset:focus-within {
 .preview-zoom-btn {
     position: absolute;
     top: var(--preview-padding, 4px);
-    left: var(--preview-padding, 4px);
+    right: var(--preview-padding, 4px);
+    left: auto;
     z-index: 10002; /* Above iframe (z=1) and controls (z=10001) */
     pointer-events: auto;
     opacity: 0.5; /* match right controls base transparency */
@@ -5485,15 +5487,15 @@ fieldset:focus-within {
     border-radius: var(--pip-radius);
     color: #fff;
     cursor: pointer;
-    padding: 8px 10px;
-    font-size: 12px;
+    padding: 6px 8px; /* smaller */
+    font-size: 11px; /* smaller icon font */
     transition: all 0.2s ease;
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 28px; /* smaller */
+    min-height: 28px; /* smaller */
 }
 
 .pip-button:hover {
@@ -5506,7 +5508,7 @@ fieldset:focus-within {
 }
 
 .pip-button i {
-    font-size: 12px;
+    font-size: 11px; /* smaller glyph */
 }
 
 /* Screensaver mode (16:9 landscape) */
