@@ -2,14 +2,19 @@ module.exports = {
     env: {
         browser: true,
         commonjs: true,
+        es6: true,
+        es2017: true,
+        es2020: true,
+        es2021: true,
         es2022: true,
         node: true,
         jest: true,
     },
     extends: ['eslint:recommended', 'plugin:prettier/recommended'],
     parserOptions: {
-        ecmaVersion: 2022,
+        ecmaVersion: 'latest',
         sourceType: 'module',
+        allowImportExportEverywhere: true,
     },
     rules: {
         'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
@@ -22,16 +27,4 @@ module.exports = {
         enableDebug: 'readonly',
         disableDebug: 'readonly',
     },
-    ignorePatterns: [
-        'node_modules/',
-        'coverage/',
-        'logs/',
-        'sessions/',
-        'image_cache/',
-        'screenshots/',
-        'temp/',
-        '.env',
-        '*.min.js',
-        '*.html',
-    ],
 };

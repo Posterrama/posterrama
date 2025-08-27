@@ -1,0 +1,15 @@
+node_modules/
+coverage/
+logs/
+sessions/
+image_cache/
+screenshots/
+temp/
+cache/
+.env*
+*.min.js
+*.html
+public/assets/
+dist/
+build/
+scripts/jellyfin-tests/

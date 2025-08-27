@@ -147,7 +147,7 @@ class JellyfinSource {
             }
 
             // Filter items based on Rotten Tomatoes score if applicable
-            const filteredItems = allItems.filter(item => {
+            const filteredItems = allItems.filter(_item => {
                 // For now, skip RT filtering for Jellyfin (could be added later)
                 return true;
             });

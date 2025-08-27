@@ -5685,7 +5685,8 @@ app.post(
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Request received for /api/admin/jellyfin-genres.');
 
-        let { hostname, port, apiKey, movieLibraries = [], showLibraries = [] } = req.body;
+        let { hostname, port, apiKey } = req.body;
+        const { movieLibraries = [], showLibraries = [] } = req.body;
 
         // Sanitize hostname
         if (hostname) {
