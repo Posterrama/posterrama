@@ -1,6 +1,5 @@
 // Realistic test for healthCheck that tests actual implementation methods
 const fs = require('fs').promises;
-const path = require('path');
 
 // Mock server.js to prevent process.exit
 jest.mock('../../server', () => ({
@@ -400,7 +399,6 @@ describe('HealthCheck Module', () => {
                 ],
             };
             fs.readFile.mockResolvedValue(JSON.stringify(mockConfig));
-            const originalExistsSync = require('fs').existsSync;
             require('fs').existsSync.mockReturnValue(true);
 
             const result = await healthCheck.checkPlexConnectivity();

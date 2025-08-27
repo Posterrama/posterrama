@@ -67,7 +67,7 @@ describe('Coverage Booster Tests', () => {
 
             try {
                 await errorTest();
-                fail('Should have thrown an error');
+                throw new Error('Should have thrown an error');
             } catch (error) {
                 expect(error.message).toBe('Test error');
             }

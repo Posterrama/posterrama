@@ -43,7 +43,7 @@ describe('88% Coverage Push', () => {
         const keys = Object.keys(obj);
         const values = Object.values(obj);
         const entries = Object.entries(obj);
-        const hasA = obj.hasOwnProperty('a');
+        const hasA = Object.prototype.hasOwnProperty.call(obj, 'a');
         const spread = { ...obj, e: 5 };
 
         expect(keys).toEqual(['a', 'b', 'c', 'd']);
@@ -84,7 +84,7 @@ describe('88% Coverage Push', () => {
 
         try {
             await Promise.reject(new Error('rejection'));
-            fail('Should have rejected');
+            throw new Error('Should have rejected');
         } catch (error) {
             expect(error.message).toBe('rejection');
         }

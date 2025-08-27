@@ -1,5 +1,4 @@
 // Test logger functionality - focusing on the aspects we can test effectively
-const path = require('path');
 
 // Mock logger dependencies
 jest.mock('fs', () => ({

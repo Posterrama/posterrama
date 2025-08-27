@@ -1,5 +1,3 @@
-const fs = require('fs');
-
 // Simple functional tests for logger coverage
 describe('Logger Advanced Coverage', () => {
     let logger;
