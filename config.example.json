@@ -46,7 +46,14 @@
             "movieLibraryNames": [],
             "showLibraryNames": [],
             "recentlyAddedOnly": false,
-            "recentlyAddedDays": 30
+            "recentlyAddedDays": 30,
+            "ratingFilter": [],
+            "genreFilter": "",
+            "ratingFilters": {
+                "minCommunityRating": 0,
+                "allowedOfficialRatings": [],
+                "minUserRating": 0
+            }
         }
     ],
     "tmdbSource": {
