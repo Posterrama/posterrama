@@ -5333,6 +5333,8 @@ fieldset:focus-within {
     margin-top: 0;
     border: 1px solid rgba(255, 255, 255, 0.08);
     display: none; /* Hidden by default */
+    /* Use variable so we can align inner icons with the inner frame edge */
+    padding: var(--preview-padding, 8px);
 }
 
 /* CSS Variables for dynamic positioning */
@@ -5398,6 +5400,12 @@ fieldset:focus-within {
     border: 0;
     border-radius: var(--pip-radius) !important; /* Match PiP controls/icon rounding */
     overflow: hidden;
+    /* Occupy inner area inside container padding so buttons remain within inner frame */
+    width: calc(100% - 2 * var(--preview-padding, 8px));
+    height: calc(100% - 2 * var(--preview-padding, 8px));
+    position: absolute;
+    top: var(--preview-padding, 8px);
+    left: var(--preview-padding, 8px);
 }
 
 /* 2x zoom state: double the preview width/height variables */
@@ -5422,8 +5430,8 @@ fieldset:focus-within {
 /* Preview Controls */
 .preview-controls {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: calc(var(--preview-padding, 8px) + 8px);
+    right: calc(var(--preview-padding, 8px) + 8px);
     z-index: 10001;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -5449,8 +5457,8 @@ fieldset:focus-within {
 /* Desktop-only left-top zoom button */
 .preview-zoom-btn {
     position: absolute;
-    top: 8px;
-    left: 8px;
+    top: calc(var(--preview-padding, 8px) + 8px);
+    left: calc(var(--preview-padding, 8px) + 8px);
     z-index: 10002; /* Above iframe (z=1) and controls (z=10001) */
     pointer-events: auto;
     opacity: 0.5; /* match right controls base transparency */
