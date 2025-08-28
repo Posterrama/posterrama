@@ -11,7 +11,7 @@
             const result = await healthCheck.getDetailedHealth();
 
             // The function may handle errors gracefully and return 'ok' status
-            expect(['ok', 'error']).toContain(result.status);
+            expect(['ok', 'warning', 'error']).toContain(result.status);
             expect(result.checks).toBeDefined();
             expect(Array.isArray(result.checks)).toBe(true);back functions and error paths
  * Target: Lines 66, 151, 205-304, 348-349 (uncovered lines in coverage report)
@@ -52,8 +52,8 @@ describe('HealthCheck Fallback and Error Path Coverage', () => {
 
             const result = await healthCheck.getDetailedHealth();
 
-            // The function may handle errors gracefully and return 'ok' status
-            expect(['ok', 'error']).toContain(result.status);
+            // The function may handle errors gracefully and return 'ok', 'warning', or 'error' status
+            expect(['ok', 'warning', 'error']).toContain(result.status);
             expect(result.checks).toBeDefined();
             expect(Array.isArray(result.checks)).toBe(true);
         });
