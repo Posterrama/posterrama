@@ -5518,26 +5518,7 @@ document.addEventListener('DOMContentLoaded', () => {
         originalConfigValues = captureFormState();
     }, 1000);
 
-    // Function to check if form has actually changed
-    function hasFormChanged() {
-        const currentValues = captureFormState();
-
-        // Compare with original values
-        for (const key in currentValues) {
-            if (originalConfigValues[key] !== currentValues[key]) {
-                return true;
-            }
-        }
-
-        // Check for new keys
-        for (const key in originalConfigValues) {
-            if (!(key in currentValues)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    // hasFormChanged utility removed (unused)
 
     // Determine if the specific set of settings that require a restart have changed
     function needsRestartChange(originalValues, currentValues) {

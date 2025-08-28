@@ -37,26 +37,15 @@ function generateSwaggerSpec() {
                         'Endpoints available to the frontend client without authentication.',
                 },
                 {
-                    name: 'Admin API',
+                    name: 'Admin',
                     description:
-                        'Secured endpoints for managing the application. Requires an active admin session.',
-                },
-                {
-                    name: 'Admin Authentication',
-                    description: 'Admin user authentication and authorization endpoints.',
+                        'Secured endpoints for admin panel, setup, and configuration. Requires an active admin session where applicable.',
                 },
                 {
                     name: 'Authentication',
                     description: 'General authentication and authorization endpoints.',
                 },
-                {
-                    name: 'Admin Panel',
-                    description: 'Admin panel interface and management endpoints.',
-                },
-                {
-                    name: 'Admin Setup',
-                    description: 'Initial admin setup and configuration endpoints.',
-                },
+                // Consolidated under 'Admin' tag
                 {
                     name: 'Configuration',
                     description: 'Application configuration management endpoints.',

@@ -2,6 +2,7 @@
 # Prevent sensitive data from being committed to Git
 .env
 config.json
+.env.backup
 
 # Node dependencies
 # These are installed via `npm install`
@@ -72,7 +73,6 @@ temp/
 sessions/*.json
 
 # Private development files
-# Personal notes, todo lists, and other private development files
 private/
 
 # Security files (certificates, keys, etc.)

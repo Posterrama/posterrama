@@ -48,6 +48,20 @@
             "recentlyAddedOnly": false,
             "recentlyAddedDays": 30,
             "ratingFilter": [],
+            "genreFilter": ""
+        },
+        {
+            "name": "Jellyfin Server",
+            "type": "jellyfin",
+            "enabled": false,
+            "hostnameEnvVar": "JELLYFIN_HOSTNAME",
+            "portEnvVar": "JELLYFIN_PORT",
+            "tokenEnvVar": "JELLYFIN_API_KEY",
+            "movieLibraryNames": [],
+            "showLibraryNames": [],
+            "recentlyAddedOnly": false,
+            "recentlyAddedDays": 30,
+            "ratingFilter": [],
             "genreFilter": "",
             "ratingFilters": {
                 "minCommunityRating": 0,

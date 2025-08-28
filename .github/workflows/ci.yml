@@ -7,6 +7,9 @@ on:
         branches: [main, develop]
         types: [opened, synchronize, reopened]
 
+permissions:
+  contents: write
+
 jobs:
     # Pre-review quality checks for pull requests
     code-quality:
@@ -109,6 +112,20 @@ jobs:
             - name: Generate coverage report
               if: matrix.node-version == '18.x'
               run: npm run test:coverage
+
+            - name: Update badges in README
+              if: matrix.node-version == '18.x' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+              run: |
+                npm run badges:update
+                if git diff --quiet --exit-code -- README.md; then
+                  echo "No README changes to commit."
+                else
+                  git config user.name "github-actions"
+                  git config user.email "github-actions@users.noreply.github.com"
+                  git add README.md
+                  git commit -m "chore(ci): auto-update badges (tests/coverage)"
+                  git push
+                fi
 
             - name: Upload coverage to Codecov
               if: matrix.node-version == '18.x'

@@ -501,6 +501,19 @@ app.use((req, res, next) => {
 });
 
 // Lightweight route to serve the preview page (friendly URL)
+/**
+ * @swagger
+ * /preview:
+ *   get:
+ *     summary: Preview page
+ *     description: Serves a lightweight preview HTML page for quick manual checks.
+ *     tags: ['Frontend']
+ *     responses:
+ *       200:
+ *         description: Preview HTML page
+ *         content:
+ *           text/html: {}
+ */
 app.get('/preview', (_req, res) => {
     try {
         const filePath = path.join(__dirname, 'public', 'preview.html');
@@ -1201,7 +1214,7 @@ app.get('/api/v1/metrics/export', (req, res) => {
  *   post:
  *     summary: Update metrics configuration
  *     description: Updates the metrics collection configuration
- *     tags: ['Metrics', 'Admin API']
+ *     tags: ['Metrics', 'Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -3171,7 +3184,7 @@ function isAdminSetup() {
  *   get:
  *     summary: Admin panel homepage
  *     description: Serves the main admin panel interface. Redirects to setup if not configured, requires authentication.
- *     tags: ['Admin Panel']
+ *     tags: ['Admin']
  *     responses:
  *       200:
  *         description: Admin panel served successfully
@@ -3254,7 +3267,7 @@ app.get('/admin', (req, res) => {
  *   get:
  *     summary: Admin logs viewer
  *     description: Serves the live log viewer page for administrators
- *     tags: ['Admin Panel']
+ *     tags: ['Admin']
  *     security:
  *       - isAuthenticated: []
  *     responses:
@@ -3896,7 +3909,7 @@ app.get(
  *   get:
  *     summary: Admin setup page
  *     description: Serves the initial admin setup page if no admin user exists, otherwise redirects to admin panel
- *     tags: ['Admin Setup']
+ *     tags: ['Admin']
  *     responses:
  *       200:
  *         description: Setup page served successfully
@@ -3942,7 +3955,7 @@ app.get('/admin/setup', (req, res) => {
  *   post:
  *     summary: Complete admin setup
  *     description: Creates the initial admin user account with username and password
- *     tags: ['Admin Setup']
+ *     tags: ['Admin']
  *     requestBody:
  *       required: true
  *       content:
@@ -4057,7 +4070,7 @@ app.post(
  *   get:
  *     summary: Admin login page
  *     description: Serves the admin login page, redirects to setup if admin not configured, or to admin panel if already logged in
- *     tags: ['Admin Authentication']
+ *     tags: ['Authentication']
  *     responses:
  *       200:
  *         description: Login page served successfully
@@ -4118,7 +4131,7 @@ const loginLimiter = rateLimit({
  *   post:
  *     summary: Admin login authentication
  *     description: Authenticate admin user with username and password. May require 2FA verification if enabled.
- *     tags: ['Admin Authentication']
+ *     tags: ['Authentication']
  *     requestBody:
  *       required: true
  *       content:
@@ -4374,7 +4387,7 @@ app.post(
  *   get:
  *     summary: Admin logout
  *     description: Logs out the admin user by destroying their session and redirects to login page
- *     tags: ['Admin Authentication']
+ *     tags: ['Authentication']
  *     responses:
  *       302:
  *         description: Session destroyed, redirects to login page
@@ -4404,7 +4417,7 @@ app.get('/admin/logout', (req, res, next) => {
  *       Generates a new secret for Two-Factor Authentication (2FA) and returns a QR code
  *       that the user can scan with an authenticator app. The secret is temporarily stored in the session
  *       and only becomes permanent after successful verification.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -4452,7 +4465,7 @@ app.post(
  *     description: >
  *       Verifies the TOTP code entered by the user against the temporary secret in the session.
  *       Upon success, the 2FA secret is permanently stored in the .env file and 2FA is activated.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -4522,7 +4535,7 @@ app.post(
  *     description: >
  *       Disables Two-Factor Authentication for the admin account.
  *       The user must provide their current password for confirmation.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -5190,7 +5203,7 @@ app.get(
  *     description: >
  *       Retrieves the complete `config.json` along with relevant environment variables
  *       and security status (like 2FA) needed for the admin panel.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -5321,7 +5334,7 @@ app.get(
  *     description: >
  *       Checks if the application can connect to a Plex server with the provided
  *       hostname, port, and token. This is a lightweight check that queries the server root.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -5432,7 +5445,7 @@ app.post(
  *     description: >
  *       Retrieves a list of all available libraries (such as 'Movies', 'TV Shows')
  *       from the configured Plex server.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -5548,7 +5561,7 @@ app.post(
  *     description: >
  *       Checks if the application can connect to a Jellyfin server with the provided
  *       hostname, port, and API key. This is a lightweight check that queries the system info.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -5670,7 +5683,7 @@ app.post(
  *     description: >
  *       Retrieves the list of media libraries from a Jellyfin server.
  *       Returns libraries with their types (movie, show, etc.).
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -5876,7 +5889,7 @@ app.post(
  *     description: >
  *       Tests the connection to TVDB API using the hardcoded developer key and fetches sample data
  *       to verify that the integration is working correctly.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -5991,7 +6004,7 @@ app.post(
  *       Saves the changes to both `config.json` and the `.env` file.
  *       After a successful save, the application caches and clients are cleared
  *       and a background refresh of the playlist is initiated.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -6193,7 +6206,7 @@ app.post(
  *   get:
  *     summary: Get all available genres from Plex servers
  *     description: Retrieves a list of all genres available in the configured Plex servers.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -6328,7 +6341,7 @@ app.get(
  *   post:
  *     summary: Get Plex genres for testing (with connection parameters)
  *     description: Retrieves all available genres from a Plex server using provided connection parameters.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -6432,7 +6445,7 @@ app.post(
  * /api/admin/plex-genres-with-counts-test:
  *   post:
  *     summary: Get Plex genres with counts for testing (with connection parameters)
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -6529,7 +6542,7 @@ app.post(
  *     summary: Get genres from Jellyfin libraries
  *     description: >
  *       Retrieves all unique genres from the specified Jellyfin libraries.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -6662,7 +6675,7 @@ app.post(
  *     summary: Get genres with counts from Jellyfin libraries
  *     description: >
  *       Retrieves all unique genres with their counts from the specified Jellyfin libraries.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -6816,7 +6829,7 @@ app.post(
  *   get:
  *     summary: Get Plex qualities with content counts
  *     description: Retrieves available video qualities from Plex servers with item counts
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     responses:
  *       200:
  *         description: Quality data with counts
@@ -6886,7 +6899,7 @@ app.get(
  *   get:
  *     summary: Get Jellyfin qualities with content counts
  *     description: Retrieves available video qualities from Jellyfin servers with item counts
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     responses:
  *       200:
  *         description: Quality data with counts
@@ -6958,7 +6971,7 @@ app.get(
  *   post:
  *     summary: Test TMDB API connection
  *     description: Tests the connection to TMDB API with provided credentials.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -7097,7 +7110,7 @@ app.post(
  *   get:
  *     summary: Get available TMDB genres
  *     description: Fetches the list of available genres from TMDB API for filtering.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -7151,7 +7164,7 @@ app.get(
  *   post:
  *     summary: Get TMDB genres for testing (with connection parameters)
  *     description: Retrieves all available genres from TMDB using provided API key.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -7231,7 +7244,7 @@ app.post(
  *   get:
  *     summary: Get available TVDB genres
  *     description: Fetches the list of available genres from TVDB API for filtering.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -7281,7 +7294,7 @@ app.get(
  *   post:
  *     summary: Get TVDB genres for testing
  *     description: Retrieves all available genres from TVDB API for testing purposes.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -7350,7 +7363,7 @@ app.post(
  *   get:
  *     summary: Get TMDB cache statistics
  *     description: Returns cache statistics for debugging TMDB performance.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -7395,7 +7408,7 @@ app.get(
  *   post:
  *     summary: Change the admin password
  *     description: Allows the user to change their own admin password.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -7488,7 +7501,7 @@ app.post(
  *       Sends a command to PM2 to restart the application.
  *       This is useful after modifying critical settings such as the port.
  *       The API responds immediately with a 202 Accepted status.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -7545,7 +7558,7 @@ app.post(
  *     description: >
  *       Returns comprehensive system status including application, database, cache,
  *       disk space, memory usage, and uptime information.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     responses:
  *       200:
  *         description: System status retrieved successfully
@@ -7661,7 +7674,7 @@ app.get(
  *   get:
  *     summary: Get current application version
  *     description: Returns the current version of the application from package.json
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - ApiKeyAuth: []
  *     responses:
@@ -8352,7 +8365,7 @@ app.post(
  *     description: >
  *       Returns real-time system performance data including CPU usage,
  *       memory usage, disk usage, and load average.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     responses:
  *       200:
  *         description: Performance metrics retrieved successfully
@@ -8481,7 +8494,7 @@ app.get(
  *       Manually starts the process to fetch media from all configured servers.
  *       This is an asynchronous operation. The API responds when the refresh is complete.
  *       This endpoint is secured and requires an active admin session.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -8530,7 +8543,7 @@ app.post(
  *   post:
  *     summary: Reset stuck playlist refresh state
  *     description: Force-reset the playlist refresh state if it gets stuck
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -8610,7 +8623,7 @@ app.get(
  * /api/admin/debug-cache:
  *   get:
  *     summary: Debug cache status and configuration
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - isAuthenticated: []
  *     responses:
@@ -8715,7 +8728,7 @@ app.post(
  *   get:
  *     summary: Get cache statistics
  *     description: Returns cache size and disk usage information using session authentication
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - isAuthenticated: []
  *     responses:
@@ -8841,7 +8854,7 @@ function getCacheConfig() {
  *   post:
  *     summary: Cleanup cache directories
  *     description: Performs cleanup of cache directories by removing old or expired files based on configuration
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -9004,7 +9017,7 @@ app.post(
  *   get:
  *     summary: Get the current API key
  *     description: Retrieves the currently configured API access key. This is only returned to an authenticated admin session.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -9029,7 +9042,7 @@ app.get('/api/admin/api-key', isAuthenticated, (req, res) => {
  *   get:
  *     summary: Check the API key status
  *     description: Indicates whether an API access key is currently configured in the application.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -9059,7 +9072,7 @@ app.get('/api/admin/api-key/status', isAuthenticated, (req, res) => {
  *       Generates a new, cryptographically secure API access token and stores it in the .env file
  *       and overwrites any existing key. The new key is returned ONCE ONLY.
  *       Store it securely, as it cannot be retrieved again.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -9091,7 +9104,7 @@ app.post(
  *   post:
  *     summary: Revoke current API key
  *     description: Removes the current API access token from the configuration, making it unusable.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -9120,7 +9133,7 @@ app.post(
  *     description: >
  *       Retrieves a list of the most recent log entries stored in memory.
  *       This is useful for debugging from the admin panel without direct server access.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -9147,7 +9160,7 @@ app.get('/api/admin/logs', isAuthenticated, (req, res) => {
  *     description: >
  *       Returns the raw data of all items in the current *cached* playlist.
  *       This endpoint is only available when debug mode is enabled in the .env file.
- *     tags: ['Admin API']
+ *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
  *     responses:
