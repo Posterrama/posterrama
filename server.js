@@ -3652,7 +3652,9 @@ app.get(
         const type = keyParts.shift();
         const originalKey = keyParts.pop();
         const serverName = keyParts.join('-'); // Re-join the middle parts
-        const serverConfig = config.mediaServers.find(
+        // Be defensive: handle missing or non-array mediaServers gracefully
+        const mediaServers = Array.isArray(config.mediaServers) ? config.mediaServers : [];
+        const serverConfig = mediaServers.find(
             s => s.name === serverName && s.type === type && s.enabled === true
         );
 

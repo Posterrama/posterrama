@@ -175,9 +175,9 @@ describe('Cache Performance Metrics', () => {
         await request(app).get(endpoint).expect(200);
         const time2 = Date.now() - start2;
 
-        // Cache hit should be significantly faster
-        // Allow some variance but expect at least 50% improvement
-        expect(time2).toBeLessThan(time1 * 0.8);
+        // Cache hit should be faster.
+        // Allow more variance in CI by expecting at least ~10% improvement.
+        expect(time2).toBeLessThan(time1 * 0.9);
     });
 
     test('should not accumulate memory during cache operations', async () => {

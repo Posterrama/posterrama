@@ -88,6 +88,7 @@ jobs:
                     "serverName": "Test Server",
                     "baseUrl": "http://localhost:3000",
                     "port": 3000,
+                    "mediaServers": [],
                     "cache": {
                       "maxSizeGB": 1.5,
                       "minFreeDiskSpaceMB": 750,
