@@ -4,6 +4,21 @@
  * Scope: Cache stats functionality with clearer labeling.
  */
 
+// Silence debug/info noise in the admin console while keeping warnings/errors
+(() => {
+    try {
+        const noop = () => {};
+        if (typeof window !== 'undefined' && window.console) {
+            // Preserve existing functions to avoid breaking feature detection
+            console.log = noop;
+            console.info = noop;
+            console.debug = noop;
+        }
+    } catch (_) {
+        // no-op
+    }
+})();
+
 // Make version available globally (will be updated by server)
 window.POSTERRAMA_VERSION = 'Loading...';
 

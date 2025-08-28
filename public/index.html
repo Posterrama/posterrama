@@ -83,7 +83,7 @@
         <script src="/client-logger.js"></script>
 
         <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20250823b" />
+    <link rel="stylesheet" href="style.css?v=20250828a" />
 
         <!-- Clean wallart mode styles -->
         <style>
@@ -292,18 +292,20 @@
         </div>
 
     <script src="lazy-loading.js?v=20250825a"></script>
-    <script src="script.js?v=20250823c"></script>
+    <script src="script.js?v=20250828a"></script>
         
         <!-- PWA Service Worker Registration -->
         <script>
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js')
+                    navigator.serviceWorker
+                        .register('/sw.js')
                         .then(registration => {
-                            console.log('SW registered: ', registration);
+                            if (window.KB_DEBUG) console.log('SW registered:', registration);
                         })
                         .catch(registrationError => {
-                            console.log('SW registration failed: ', registrationError);
+                            if (window.KB_DEBUG)
+                                console.log('SW registration failed:', registrationError);
                         });
                 });
             }

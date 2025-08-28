@@ -44,7 +44,7 @@ class LazyLoader {
             this.observer.observe(img);
         });
 
-        console.log(`[LazyLoader] Observing ${lazyImages.length} lazy images`);
+        // Debug log removed to keep browser console clean
     }
 
     handleIntersection(entries) {
@@ -93,7 +93,7 @@ class LazyLoader {
                     // Remove from failed images if it was there
                     this.failedImages.delete(img);
 
-                    console.log(`[LazyLoader] Successfully loaded: ${lazySrc}`);
+                    // Info log removed to keep browser console clean
                     resolve();
                 };
 
@@ -159,9 +159,7 @@ class LazyLoader {
 
             setTimeout(
                 () => {
-                    console.log(
-                        `[LazyLoader] Retrying image load (${retryCount + 1}/${this.options.maxRetries}): ${src}`
-                    );
+                    // Debug log removed to keep browser console clean
                     this.loadImage(img);
                 },
                 this.options.retryDelay * (retryCount + 1)

@@ -19,16 +19,13 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', event => {
-    console.log('[SW] Installing...');
     event.waitUntil(
         caches
             .open(CACHE_NAME)
             .then(cache => {
-                console.log('[SW] Caching static assets');
                 return cache.addAll(STATIC_ASSETS);
             })
             .then(() => {
-                console.log('[SW] Skip waiting');
                 return self.skipWaiting();
             })
             .catch(error => {
@@ -39,7 +36,6 @@ self.addEventListener('install', event => {
 
 // Activate event - cleanup old caches
 self.addEventListener('activate', event => {
-    console.log('[SW] Activating...');
     event.waitUntil(
         caches
             .keys()
@@ -47,14 +43,12 @@ self.addEventListener('activate', event => {
                 return Promise.all(
                     cacheNames.map(cacheName => {
                         if (cacheName !== CACHE_NAME && cacheName !== MEDIA_CACHE_NAME) {
-                            console.log('[SW] Deleting old cache:', cacheName);
                             return caches.delete(cacheName);
                         }
                     })
                 );
             })
             .then(() => {
-                console.log('[SW] Claiming clients');
                 return self.clients.claim();
             })
     );
@@ -92,10 +86,6 @@ self.addEventListener('fetch', event => {
                 return cache.match(request).then(cachedResponse => {
                     if (cachedResponse) {
                         // Serve from cache immediately
-                        console.log(
-                            '[SW] Serving from cache:',
-                            url.pathname + (url.search ? '?...' : '')
-                        );
                         return cachedResponse;
                     }
 
@@ -114,10 +104,7 @@ self.addEventListener('fetch', event => {
                                     : url.searchParams.get('path')?.includes('thumb')
                                       ? 'poster'
                                       : 'fanart';
-                                console.log(
-                                    `[SW] Cached ${imageType}:`,
-                                    url.pathname + (url.search ? '?...' : '')
-                                );
+                                // Cached successfully
                             }
                             return networkResponse;
                         })
@@ -218,7 +205,6 @@ self.addEventListener('message', event => {
     if (event.data && event.data.type === 'PRELOAD_POSTERS') {
         event.waitUntil(
             preloadPosters(event.data.urls).then(results => {
-                console.log('[SW] Preloaded posters:', results);
                 if (event.ports && event.ports[0]) {
                     event.ports[0].postMessage({
                         success: true,
@@ -252,7 +238,6 @@ async function preloadPosters(urls) {
             if (response.ok) {
                 await cache.put(url, response.clone());
                 results.push({ url, success: true, cached: false });
-                console.log('[SW] Preloaded and cached:', url.substring(url.lastIndexOf('/') + 1));
             } else {
                 results.push({ url, success: false, error: `HTTP ${response.status}` });
             }
@@ -269,7 +254,6 @@ async function preloadPosters(urls) {
 if ('sync' in self.registration) {
     self.addEventListener('sync', event => {
         if (event.tag === 'posterrama-sync') {
-            console.log('[SW] Background sync triggered');
             // Handle offline actions when coming back online
         }
     });

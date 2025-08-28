@@ -631,13 +631,13 @@ body.promo-site #promo-box.is-hidden {
 }
 
 /* Apply stability only when no Ken Burns animation is active */
-.screensaver-layer:not([data-ken-burns='true']) {
+.screensaver-layer:not([data-ken-burns]) {
     transform: translateZ(0);
     background-attachment: fixed;
 }
 
 /* Ken Burns layers need special handling */
-.screensaver-layer[data-ken-burns='true'] {
+.screensaver-layer[data-ken-burns] {
     background-attachment: scroll;
     transform: none;
 }
