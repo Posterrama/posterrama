@@ -28,7 +28,7 @@ const logger = {
             console.debug = noop;
         }
     } catch (_) {
-        // no-op
+        // intentionally empty: silencing console in non-debug mode may fail in some environments
     }
 })();
 
@@ -40,16 +40,27 @@ const logger = {
         // Local override via devtools/localStorage
         try {
             if (localStorage.getItem('KB_DEBUG') === '1') window.KB_DEBUG = true;
-        } catch (e) {}
-    } catch (e) {}
+        } catch (e) {
+            // intentionally empty: localStorage may be unavailable
+        }
+    } catch (e) {
+        // intentionally empty: URLSearchParams not supported or other benign error
+    }
 
     window.kbDebug = function (event, data) {
         if (!window.KB_DEBUG) return;
         try {
             console.warn(`[KB] ${event}`, data || '');
-        } catch (_) {}
+        } catch (_) {
+            // intentionally empty: console may be restricted
+        }
     };
 })();
+
+// Local alias for kbDebug to satisfy linters (no-undef) while preserving runtime behavior
+const kbDebug = (event, data) => {
+    if (window.kbDebug) window.kbDebug(event, data);
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
     // --- iOS background behavior: lock to 'clip' mode ---
@@ -91,7 +102,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             layerA.style.opacity = '1';
             layerB.style.opacity = '0';
         }
-    } catch (_) {}
+    } catch (_) {
+        // intentionally empty: early priming is best-effort only
+    }
 
     // --- Create and inject Rotten Tomatoes badge ---
     const rtBadge = document.createElement('div');
@@ -672,7 +685,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!isKenBurnsActive()) {
                         try {
                             updateCurrentMediaDisplay();
-                        } catch (_) {}
+                        } catch (_) {
+                            // intentionally empty: updateCurrentMediaDisplay may be unavailable briefly
+                        }
                     }
                 }, 1500);
             }
@@ -3404,7 +3419,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             inactiveLayer = lb;
                         }
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // intentionally empty: best-effort visibility adjustment
+                }
                 changeMedia('next', true); // This will start the slideshow at `randomIndex`
             }
 
@@ -3864,7 +3881,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Swap references so the visible one becomes the active layer
                     swapLayers(inactiveLayer, activeLayer, { preserveNewAnimation: false });
                     ensureBackgroundVisible();
-                } catch (_) {}
+                } catch (_) {
+                    // intentionally empty: startup swap best-effort; proceed even on minor style errors
+                }
             } else {
                 // Apply transition effects with proper layering AFTER content is ready
                 if (inactiveLayer && activeLayer) {
@@ -3880,7 +3899,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (aOp <= 0.01 && bOp <= 0.01) {
                     (inactiveLayer || activeLayer).style.opacity = '1';
                 }
-            } catch (_) {}
+            } catch (_) {
+                // intentionally empty: visibility guard is best-effort
+            }
 
             if (loader && loader.style && loader.style.opacity !== '0') {
                 loader.style.opacity = '0';
@@ -4203,7 +4224,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     swapLayers(newLayer, oldLayer, { preserveNewAnimation: false });
                     ensureBackgroundVisible();
                 }, fadeDuration * 1000);
-            } catch (_) {}
+            } catch (e) {
+                kbDebug('preview:kenburns-fade:error', e);
+            }
             return;
         }
         // Prep layers
@@ -4275,7 +4298,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 ensureBackgroundVisible();
                 kbDebug('KB:swapped', { via: trigger });
-            } catch (_) {}
+            } catch (e) {
+                kbDebug('KB:swap:error', e);
+            }
         }
 
         function doCleanup(trigger) {
@@ -4287,7 +4312,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 newLayer.style.willChange = '';
                 newLayer.removeAttribute('data-ken-burns');
                 kbDebug('KB:cleanup', { via: trigger });
-            } catch (_) {}
+            } catch (e) {
+                kbDebug('KB:cleanup:error', e);
+            }
         }
 
         const startAnimation = () => {
@@ -4296,7 +4323,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Mark layer as Ken Burns active so swapLayers doesn't reset its transform
             try {
                 newLayer.setAttribute('data-ken-burns', 'true');
-            } catch (_) {}
+            } catch (e) {
+                kbDebug('KB:attr-set:error', e);
+            }
 
             const transformTransition = `transform ${durationSec}s linear`;
             const fadeTransition = `opacity ${fadeSec}s ease-in-out`;
@@ -4327,7 +4356,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         if (onNewFadeEndRef)
                             newLayer.removeEventListener('transitionend', onNewFadeEndRef);
-                    } catch (_) {}
+                    } catch (e) {
+                        kbDebug('KB:swapTimer:removeListener:error', e);
+                    }
                     doSwap('timeout');
                 },
                 Math.max(50, fadeSec * 1000)
@@ -4350,7 +4381,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         if (onNewTransformEndRef)
                             newLayer.removeEventListener('transitionend', onNewTransformEndRef);
-                    } catch (_) {}
+                    } catch (e) {
+                        kbDebug('KB:cleanupTimer:removeListener:error', e);
+                    }
                     doCleanup('timeout');
                 },
                 Math.max(100, durationSec * 1000)
@@ -4410,7 +4443,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     swapLayers(newLayer, oldLayer, { preserveNewAnimation: false });
                     ensureBackgroundVisible();
                 }, fadeDuration * 1000);
-            } catch (_) {}
+            } catch (e) {
+                kbDebug('preview:crossfade:error', e);
+            }
             return;
         }
 

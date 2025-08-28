@@ -96,14 +96,6 @@ self.addEventListener('fetch', event => {
                                 // Clone response for caching
                                 const responseClone = networkResponse.clone();
                                 cache.put(request, responseClone);
-
-                                const imageType = url.searchParams
-                                    .get('path')
-                                    ?.includes('clearLogo')
-                                    ? 'clearlogo'
-                                    : url.searchParams.get('path')?.includes('thumb')
-                                      ? 'poster'
-                                      : 'fanart';
                                 // Cached successfully
                             }
                             return networkResponse;
