@@ -88,6 +88,13 @@ jobs:
                     "serverName": "Test Server",
                     "baseUrl": "http://localhost:3000",
                     "port": 3000,
+                    "cache": {
+                      "maxSizeGB": 1.5,
+                      "minFreeDiskSpaceMB": 750,
+                      "autoCleanup": true,
+                      "cleanupIntervalMinutes": 15,
+                      "maxAgeHours": 168
+                    },
                     "sources": {
                       "themoviedb": {
                         "url": "https://api.themoviedb.org/3",

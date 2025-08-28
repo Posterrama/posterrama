@@ -1,8 +1,8 @@
 /**
  * @fileoverview Tests for hea        test(            const result = await healthCheck.getDetailedHealth();
 
-            // The function may handle errors gracefully and return 'ok' status
-            expect(['ok', 'error']).toContain(result.status);
+            // The function may handle errors gracefully and return 'ok', 'warning', or 'error' status
+            expect(['ok', 'warning', 'error']).toContain(result.status);
             expect(result.checks).toBeDefined();
             expect(Array.isArray(result.checks)).toBe(true);le config read error gracefully in getDetailedHealth', async () => {
             // Mock config read to throw an error
