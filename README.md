@@ -4,7 +4,7 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/Posterrama/posterrama) [![Downloads](https://img.shields.io/github/downloads/Posterrama/posterrama/total?style=flat&logo=github&label=Downloads&color=brightgreen)](https://github.com/Posterrama/posterrama/releases) [![Tests](https://img.shields.io/badge/tests-681%20tests%20in%2047%20suites-brightgreen)](#testing) [![Coverage](https://img.shields.io/badge/coverage-87.53%25-brightgreen)](#testing) [![Node.js](https://img.shields.io/badge/node.js-%E2%89%A518.0.0-brightgreen)](https://nodejs.org/) [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/Posterrama/posterrama) [![Downloads](https://img.shields.io/github/downloads/Posterrama/posterrama/total?style=flat&logo=github&label=Downloads&color=brightgreen)](https://github.com/Posterrama/posterrama/releases) [![Tests](https://img.shields.io/badge/tests-949%20tests%20in%2061%20suites-brightgreen)](#testing) [![Coverage](https://img.shields.io/badge/coverage-87.53%25-brightgreen)](#testing) [![Node.js](https://img.shields.io/badge/node.js-%E2%89%A518.0.0-brightgreen)](https://nodejs.org/) [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
 
 <p style="margin: 6px 0 0 0;">
   <a href="https://www.plex.tv/"><img alt="Plex" src="https://img.shields.io/badge/Plex-Supported-E5A00D?logo=plex&logoColor=white"></a>
