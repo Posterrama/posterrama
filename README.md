@@ -11,18 +11,15 @@ Transform any screen into a cinematic, always-fresh movie poster display.
   <a href="https://jellyfin.org/"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-Supported-00A4DC?logo=jellyfin&logoColor=white"></a>
   <a href="https://www.themoviedb.org/"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-Integrated-01D277?logo=tmdb&logoColor=white"></a>
   <a href="https://thetvdb.com/"><img alt="TVDB" src="https://img.shields.io/badge/TVDB-Integrated-0285FF?logo=thetvdb&logoColor=white"></a>
-  <a href="/api-docs"><img alt="OpenAPI Docs" src="https://img.shields.io/badge/Docs-Swagger_/_OpenAPI-6BA539?logo=swagger&logoColor=white"></a>
+  <img alt="OpenAPI Docs" src="https://img.shields.io/badge/Docs-Swagger_/_OpenAPI-6BA539?logo=swagger&logoColor=white">
 
 </p>
 
 <img src="./screenshots/screensaver.png" alt="Posterrama hero" width="740">
 
-</div>
+ </div>
 
 ---
-
-<!-- Right-aligned mobile preview with spacing -->
-<img src="./screenshots/admin_mobile_long.png" alt="Mobile Admin (long)" align="right" width="260" style="margin-left: 16px; margin-bottom: 8px;">
 
 ## 🌟 What can you do with Posterrama?
 
@@ -83,11 +80,12 @@ Perfect for vertical screens or digital signage. Show a rotating selection of po
 
 ### 📱 Mobile Admin & Responsive Design
 
-<figure>
-  <img src="./screenshots/admin_mobile.png" alt="Mobile Admin" width="120">
-  <figcaption style="text-align:left; color:#6a6a6a;"><em>Mobile admin interface</em></figcaption>
+<div align="center" style="margin: 8px 0;">
+  <img src="./screenshots/admin_1.jpg" alt="Admin UI 1" height="240" style="margin: 0 8px; vertical-align: bottom;" />
+  <img src="./screenshots/admin_2.jpg" alt="Admin UI 2" height="240" style="margin: 0 8px; vertical-align: bottom;" />
+  <img src="./screenshots/admin_3.jpg" alt="Admin UI 3" height="240" style="margin: 0 8px; vertical-align: bottom;" />
   
-</figure>
+</div>
 
 Configure everything from your phone, tablet, or desktop. The admin dashboard is fully responsive and works on any device.
 
