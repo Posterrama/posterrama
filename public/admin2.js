@@ -1318,12 +1318,42 @@
 
         // Toggle port/status visibility
         const promoEnabled = document.getElementById('siteServer.enabled');
-        promoEnabled?.addEventListener('change', () => {
+        promoEnabled?.addEventListener('change', async () => {
             const show = promoEnabled.checked;
             const portGroup = document.getElementById('siteServerPortGroup');
             const status = document.getElementById('siteServerStatus');
             if (portGroup) portGroup.style.display = show ? 'block' : 'none';
-            if (status) status.style.display = show ? 'block' : 'none';
+            if (status) {
+                status.style.display = show ? 'block' : 'none';
+                if (show) {
+                    try {
+                        // Fetch current server info to get an IP if exposed; otherwise, use the current host
+                        const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
+                        const cfg = cfgRes.ok ? await cfg.json() : {};
+                        const hostFromApi = cfg?.server?.ipAddress;
+                        const host =
+                            hostFromApi && hostFromApi !== '127.0.0.1'
+                                ? hostFromApi
+                                : window.location?.hostname || 'localhost';
+                        const protocol = window.location?.protocol === 'https:' ? 'https' : 'http';
+                        const port = Number(
+                            document.getElementById('siteServer.port')?.value || 4001
+                        );
+                        const url = `${protocol}://${host}:${port}`;
+                        status.innerHTML = `<div class="status-line"><i class="fas fa-globe"></i> Will run at <a class="url-chip" href="${url}" target="_blank" rel="noopener">${url}</a></div>`;
+                    } catch {
+                        const host = window.location?.hostname || 'localhost';
+                        const protocol = window.location?.protocol === 'https:' ? 'https' : 'http';
+                        const port = Number(
+                            document.getElementById('siteServer.port')?.value || 4001
+                        );
+                        const url = `${protocol}://${host}:${port}`;
+                        status.innerHTML = `<div class="status-line"><i class="fas fa-globe"></i> Will run at <a class="url-chip" href="${url}" target="_blank" rel="noopener">${url}</a></div>`;
+                    }
+                } else {
+                    status.textContent = '';
+                }
+            }
         });
     });
 
@@ -1354,10 +1384,17 @@
             if (status) {
                 status.style.display = site.enabled ? 'block' : 'none';
                 if (site.enabled) {
-                    const ip = j?.server?.ipAddress || 'localhost';
+                    const hostFromApi = j?.server?.ipAddress;
+                    const host =
+                        hostFromApi && hostFromApi !== '127.0.0.1'
+                            ? hostFromApi
+                            : window.location?.hostname || 'localhost';
+                    const protocol = window.location?.protocol === 'https:' ? 'https' : 'http';
                     const port = site.port || 4001;
-                    const url = `http://${ip}:${port}`;
-                    status.innerHTML = `<i class="fas fa-globe"></i> Running at <a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+                    const url = `${protocol}://${host}:${port}`;
+                    status.innerHTML = `<div class="status-line"><i class="fas fa-globe"></i> Running at <a class="url-chip" href="${url}" target="_blank" rel="noopener">${url}</a></div>`;
+                } else {
+                    status.textContent = '';
                 }
             }
         } catch (e) {

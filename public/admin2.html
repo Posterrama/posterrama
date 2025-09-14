@@ -95,6 +95,25 @@
   .operations-panel .input-row { display:flex; gap:8px; align-items:center; }
   .operations-panel .status-pill { font-size: 0.8rem; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); }
   .operations-panel .status-pill.status-success { background: rgba(34,197,94,0.15); color: #86efac; }
+  /* Operations layout */
+  .operations-panel .content-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; align-items: start; }
+  @media (max-width: 1200px) { .operations-panel .content-grid { grid-template-columns: 1fr; } }
+  .operations-panel .ops-col { display: flex; flex-direction: column; gap: 12px; }
+  /* URL chip and status line */
+  .operations-panel .status-line { display:flex; align-items:center; gap:8px; margin-top:6px; }
+  .operations-panel .url-chip { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: inherit; text-decoration: none; }
+  .operations-panel .url-chip:hover { border-color: rgba(96,165,250,0.45); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); }
+  /* Operations cards (theme aligned) */
+  .operations-panel .perf-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
+  .operations-panel .perf-card h3 { margin: 0 0 10px 0; font-size: 0.95rem; opacity: 0.9; display: flex; align-items: center; gap: 8px; }
+  .operations-panel .metric-row { display: flex; flex-direction: column; gap: 10px; }
+  /* Update progress bar */
+  #update-progress { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
+  #update-progress > div { height: 100%; width: 0; background: linear-gradient(90deg, #60a5fa, #2563eb); transition: width .2s ease; }
+  /* Backups list styling */
+  #backups-display { border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 10px; }
+  #backups-content { display: grid; gap: 8px; }
+  #backups-content .backup-item { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); border-radius:10px; }
   /* Security panel polish */
   .security-panel .perf-card { background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: var(--space-lg); }
   .security-panel .perf-card h3 { margin: 0 0 12px 0; font-weight: 700; opacity: .92; display:flex; align-items:center; gap:8px; }
@@ -378,10 +397,14 @@
   <section id="section-operations" class="app-section">
     <section class="panel operations-panel">
         <header class="panel-header">
-          <h2><i class="fas fa-screwdriver-wrench"></i> Operations</h2>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;">
+            <h2 style="margin:0; display:flex; align-items:center; gap:10px;"><i class="fas fa-screwdriver-wrench"></i> Operations</h2>
+            <div class="subtle" style="opacity:.8;">Maintenance, updates, and server settings</div>
+          </div>
         </header>
         <div class="panel-content">
       <div class="content-grid" style="gap:12px;">
+        <div class="ops-col">
             <!-- Media Operations -->
             <section class="perf-card" aria-label="Media Operations">
               <h3><i class="fas fa-sync-alt"></i> Media</h3>
@@ -394,7 +417,32 @@
                 </button>
               </div>
             </section>
-
+            <!-- Server Settings -->
+            <section class="perf-card" aria-label="Server Settings">
+              <h3><i class="fas fa-gear"></i> Server Settings</h3>
+              <div class="metric-row">
+                <div class="form-group">
+                  <label for="SERVER_PORT">Port</label>
+                  <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" style="width:120px;" />
+                  <div class="subtle">Application port (default 4000). Changing this requires a restart.</div>
+                </div>
+                <div class="form-group checkbox-group">
+                  <label class="checkbox" for="DEBUG">
+                    <input type="checkbox" id="DEBUG" />
+                    <span class="checkmark"></span>
+                    <span>Enable Debug Mode</span>
+                  </label>
+                </div>
+                <div class="subtle">Debug mode increases logging detail. Use temporarily for troubleshooting.</div>
+              </div>
+              <div class="actions" style="margin-top:8px;">
+                <button type="button" id="btn-save-server-settings" class="btn btn-primary btn-sm">
+                  <i class="fas fa-save"></i><span>Save Settings</span>
+                </button>
+              </div>
+            </section>
+        </div>
+        <div class="ops-col">
             <!-- Auto-Update Operations -->
             <section class="perf-card" aria-label="Automatic Updates">
               <h3><i class="fas fa-download"></i> Automatic Updates</h3>
@@ -427,39 +475,13 @@
                 </div>
               </div>
               <div id="backups-display" class="status-display" style="display:none; margin-top:10px;">
-                <div class="subtle">Available Backups</div>
+                <div class="subtle" style="display:flex; align-items:center; gap:8px;"><i class="fas fa-archive"></i> Available Backups</div>
                 <div id="backups-content" class="metric-row" style="margin-top:6px;">
                   <div class="subtle">Loading…</div>
                 </div>
               </div>
-            </section>
-
-            <!-- Server Settings -->
-            <section class="perf-card" aria-label="Server Settings">
-              <h3><i class="fas fa-gear"></i> Server Settings</h3>
-              <div class="metric-row">
-                <div class="form-group">
-                  <label for="SERVER_PORT">Port Number</label>
-                  <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" style="width:120px;" />
-                  <div class="subtle">Application port (default 4000). Changing this requires a restart.</div>
-                </div>
-                <div class="form-group checkbox-group">
-                  <label class="checkbox" for="DEBUG">
-                    <input type="checkbox" id="DEBUG" />
-                    <span class="checkmark"></span>
-                    <span>Enable Debug Mode</span>
-                  </label>
-                </div>
-                <div class="subtle">Debug mode increases logging detail. Use temporarily for troubleshooting.</div>
-              </div>
-              <div class="actions" style="margin-top:8px;">
-                <button type="button" id="btn-save-server-settings" class="btn btn-primary btn-sm">
-                  <i class="fas fa-save"></i><span>Save Settings</span>
-                </button>
-              </div>
-            </section>
-
-            <!-- Debug & Logging -->
+      </section>
+      <!-- Debug & Logging -->
             <section class="perf-card" aria-label="Debug & Logging">
               <h3><i class="fas fa-bug"></i> Debug & Logging</h3>
               <div class="metric-row">
@@ -469,8 +491,7 @@
                 <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
               </div>
             </section>
-
-            <!-- Promobox Site -->
+      <!-- Promobox Site -->
             <section class="perf-card" aria-label="Promobox Site">
               <h3><i class="fas fa-bullhorn"></i> Promobox Site</h3>
               <div class="metric-row">
@@ -485,7 +506,7 @@
                   <label for="siteServer.port">Port</label>
                   <input type="number" id="siteServer.port" min="1024" max="65535" value="4001" style="width:110px;" />
                 </div>
-                <div id="siteServerStatus" class="subtle" style="display:none;">—</div>
+                <div id="siteServerStatus" class="subtle" style="display:none;"></div>
               </div>
               <div class="actions" style="margin-top:8px;">
                 <button type="button" id="btn-save-promobox" class="btn btn-primary btn-sm">
@@ -493,6 +514,7 @@
                 </button>
               </div>
             </section>
+    </div>
           </div>
         </div>
       </section>
