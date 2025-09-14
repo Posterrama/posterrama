@@ -448,6 +448,18 @@ class MetricsManager {
         return { systemPercent, processPercent, loadAverage1m, cores };
     }
 
+    // Backward-compatible helper returning overall CPU usage percent
+    // Tests expect this to reflect load-average based estimate on first call
+    getCpuUsagePercent() {
+        try {
+            const stats = this.getCpuUsage();
+            // Keep two decimals without introducing floating drift
+            return Math.round(stats.systemPercent * 100) / 100;
+        } catch (_) {
+            return 0;
+        }
+    }
+
     _readSystemCpuTimes() {
         try {
             const cpuInfo = typeof os.cpus === 'function' ? os.cpus() : [];
