@@ -1486,7 +1486,7 @@
   #section-display .status-pill { font-size: 0.8rem; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); }
   #section-display .status-pill.status-info { background: rgba(59,130,246,0.18); color:#bfdbfe; border-color: rgba(59,130,246,0.35); }
   /* Grids */
-  #section-display .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  #section-display .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
     #section-display .form-row { display:flex; flex-direction:column; gap:6px; }
     #section-display .form-row.inline { flex-direction:row; align-items:center; gap:10px; }
     #section-display .form-row label { font-size:.9rem; color: var(--color-text-secondary); }
@@ -1494,7 +1494,7 @@
   #section-display .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
   @media (max-width: 1200px) { #section-display .content-grid { grid-template-columns: 1fr; } }
     /* Mode cards aligned with perf-card look */
-    #section-display .mode-card { position: relative; background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
+  #section-display .mode-card { position: relative; background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); align-self: start; height: auto; }
         #section-display .mode-card.inactive { opacity: .6; }
         #section-display .card-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom: 10px; }
   #section-display .card-title { display:flex; align-items:center; gap:8px; font-weight:700; }
