@@ -1526,7 +1526,7 @@
                     ? '<i class="fas fa-image" aria-hidden="true"></i>'
                     : active === 'wallart'
                       ? '<i class="fas fa-images" aria-hidden="true"></i>'
-                      : '<i class="fas fa-image-portrait" aria-hidden="true"></i>';
+                      : '<i class="fas fa-tv" aria-hidden="true" style="transform: rotate(90deg);"></i>';
             pill.innerHTML = `${icon} <span class="mode-label">Mode:</span> ${label}`;
         }
         // Note: Screensaver now contains its own cards (Visual, Clock, Scaling, Effects, Playback, Sync).
@@ -4157,7 +4157,7 @@
                 const m = String(mode || '').toLowerCase();
                 if (m === 'screensaver') return 'fas fa-moon';
                 if (m === 'wallart') return 'fas fa-images';
-                if (m === 'cinema') return 'fas fa-image-portrait';
+                if (m === 'cinema') return 'fas fa-tv';
                 return 'fas fa-circle';
             }
             function roomLabel(d) {
