@@ -1229,11 +1229,11 @@
         (function initNotifications() {
             const btn = document.getElementById('notif-btn');
             const badge = document.getElementById('notif-count');
-            const menu = document.getElementById('notif-menu'); // legacy, unused
+            // const menu = document.getElementById('notif-menu'); // legacy, unused
             const panel = document.getElementById('notify-center');
             const list = document.getElementById('notify-list');
-            const btnMarkAll = document.getElementById('notify-mark-all');
-            const btnClose = document.getElementById('notify-close');
+            // const btnMarkAll = document.getElementById('notify-mark-all');
+            // const btnClose = document.getElementById('notify-close');
             if (!btn || !badge || !panel || !list) return;
 
             // Helper to always get fresh references (soft refresh safe)
