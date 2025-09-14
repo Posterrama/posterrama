@@ -1,0 +1,164 @@
+[
+    {
+        "id": "f083c739-1ef6-44c6-8648-df89abfe5c85",
+        "installId": "22e585b5-d796-4bf8-a46b-f9ab7138e43d-mezubdwz",
+        "hardwareId": "hw-74458640",
+        "secretHash": "sha256:c2b389291c01ee670995cc326fc27a5623f0f1a686eee697f5b7c2c5a427251a",
+        "name": "Cinema Display #1",
+        "location": "Cinema",
+        "tags": [],
+        "groups": ["13003001-d3ec-4d5f-aec3-48e27e89f419"],
+        "createdAt": "2025-08-31T07:23:45.930Z",
+        "updatedAt": "2025-09-01T21:02:36.901Z",
+        "lastSeenAt": "2025-09-01T21:02:20.769Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+            "screen": {
+                "w": 1710,
+                "h": 1112,
+                "dpr": 2
+            },
+            "mode": "wallart"
+        },
+        "settingsOverride": {
+            "wallartMode": {
+                "enabled": true,
+                "density": "high",
+                "animationType": "chromaticShift",
+                "layoutSettings": {
+                    "heroGrid": {
+                        "heroSide": "right"
+                    }
+                }
+            },
+            "cinemaMode": false
+        },
+        "preset": "",
+        "currentState": {
+            "paused": false,
+            "pinned": false,
+            "poweredOff": false
+        },
+        "pairing": {
+            "lastPairedAt": "2025-08-31T15:23:34.992Z"
+        }
+    },
+    {
+        "id": "7c768d60-b33f-49f9-adbb-7a95c24a4c04",
+        "installId": "ab37a046-60c0-4466-8863-964658ddaa11-mezghd6g",
+        "hardwareId": "hw-27987604",
+        "secretHash": "sha256:e13d8b31a1bdeee3b40eedf4abd5841dcbe31c756cae713b4940118cab3209a5",
+        "name": "Cinema Display #2",
+        "location": "Cinema",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-08-31T08:56:03.152Z",
+        "updatedAt": "2025-09-01T21:09:10.954Z",
+        "lastSeenAt": "2025-09-01T21:09:10.954Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15",
+            "screen": {
+                "w": 1710,
+                "h": 1112,
+                "dpr": 2
+            },
+            "mode": "wallart"
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {
+            "paused": false,
+            "pinned": false
+        },
+        "pairing": {}
+    },
+    {
+        "id": "2e66688e-e1a4-4400-8c5e-3f6bb6a7288f",
+        "installId": "inst-dff95b36-18da-4037-bc8a-c0f65ed6fac7",
+        "hardwareId": "hw-85cddc4d",
+        "secretHash": "sha256:7e0b6c7b604aff79991743754ef3a462a2df1246391e6a579eea1678f39f892b",
+        "name": "Screen hw-85cdd",
+        "location": "admin",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-01T21:03:58.971Z",
+        "updatedAt": "2025-09-01T21:28:21.744Z",
+        "lastSeenAt": "2025-09-01T21:28:21.744Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+            "screen": {
+                "w": 1710,
+                "h": 1112,
+                "dpr": 2
+            },
+            "mode": "wallart"
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {
+            "paused": false,
+            "pinned": false
+        },
+        "pairing": {}
+    },
+    {
+        "id": "fd9b1571-fed9-4f32-8519-0e588f7fd912",
+        "installId": "50014a13-0584-49ef-925f-7bccec940e72",
+        "hardwareId": "test-hw-123",
+        "secretHash": "sha256:75fbae97d1b5addab2517094728dd81beaa8dc9a8372ea676e8e6e22c6620bc9",
+        "name": "Test Device",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-01T21:13:25.549Z",
+        "updatedAt": "2025-09-01T21:22:54.940Z",
+        "lastSeenAt": null,
+        "status": "unknown",
+        "clientInfo": {},
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "4d18aba5-0523-480c-98d6-223640924f35",
+        "installId": "15d4e6fa-64b1-4d58-8be3-4a46435bc346",
+        "hardwareId": "test-refresh-123",
+        "secretHash": "sha256:f3645d2f69f22a4c8ba03da8e8c4da8a60886b1094dc8ed6e9df064e0069990c",
+        "name": "Test Auto-Refresh",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-01T21:22:24.865Z",
+        "updatedAt": "2025-09-01T21:22:24.865Z",
+        "lastSeenAt": null,
+        "status": "unknown",
+        "clientInfo": {},
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "0a9e2887-fbd8-411e-9929-3ff9ca0926f0",
+        "installId": "9e578a7f-fa6f-4dcf-99e7-0c45c2849fbd",
+        "hardwareId": "test-removal-123",
+        "secretHash": "sha256:0e5b084b83fcc929b3d697b88bcd0743c6ca1d56543ff30dbf55f7a767b61558",
+        "name": "Test Removal Fix",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-01T21:26:48.601Z",
+        "updatedAt": "2025-09-01T21:26:48.601Z",
+        "lastSeenAt": null,
+        "status": "unknown",
+        "clientInfo": {},
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    }
+]

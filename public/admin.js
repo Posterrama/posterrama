@@ -151,6 +151,7 @@
                 body: JSON.stringify({
                     name: deviceName || deviceId,
                     hardwareId: deviceId, // Pass deviceId as hardwareId for proper matching
+                    location: '', // Keep location empty
                 }),
             })
                 .then(response => {
@@ -10729,13 +10730,20 @@ function reconcileDevicesTable(devices) {
         });
     }
 
-    // Remove rows for devices that disappeared (skip while editing an inline field)
-    if (!editing) {
-        tbody.querySelectorAll('tr').forEach(tr => {
-            const id = tr.getAttribute('data-id') || '';
-            if (!byId.has(id)) tr.remove();
-        });
-    }
+    // Remove rows for devices that disappeared
+    // Always allow removal even during editing to keep data in sync
+    tbody.querySelectorAll('tr').forEach(tr => {
+        const id = tr.getAttribute('data-id') || '';
+        if (!byId.has(id)) {
+            // Only skip removal if this specific row is being actively edited
+            const isThisRowBeingEdited =
+                tr.contains(document.activeElement) &&
+                document.activeElement.matches?.('input.inline-edit, select.inline-edit');
+            if (!isThisRowBeingEdited) {
+                tr.remove();
+            }
+        }
+    });
     // Restore persisted selection
     try {
         const sel = JSON.parse(localStorage.getItem('devices.ui.selected') || '[]');
@@ -12285,10 +12293,32 @@ function initDevicesPanel() {
     const inhibit = (ms = 800) => {
         __devicesRefreshInhibitUntil = Date.now() + ms;
     };
-    // Inhibit on common interactions inside the devices table
-    container.addEventListener('focusin', () => inhibit(2000));
-    container.addEventListener('pointerdown', () => inhibit(1500));
-    container.addEventListener('keydown', () => inhibit(2000));
+    // Only inhibit on actual editing interactions, not general clicks
+    container.addEventListener('focusin', e => {
+        // Only inhibit if focusing an input/select field, not buttons
+        if (
+            e.target &&
+            e.target.matches('input.inline-edit, select.inline-edit, textarea.inline-edit')
+        ) {
+            inhibit(2000);
+        }
+    });
+    // Reduce inhibit time for clicks and only for specific interactive elements
+    container.addEventListener('pointerdown', e => {
+        // Only inhibit for input fields, not general table clicks
+        if (e.target && e.target.matches('input, select, textarea')) {
+            inhibit(500); // Reduced from 1500ms to 500ms
+        }
+    });
+    container.addEventListener('keydown', e => {
+        // Only inhibit if typing in input fields
+        if (
+            e.target &&
+            e.target.matches('input.inline-edit, select.inline-edit, textarea.inline-edit')
+        ) {
+            inhibit(1000); // Reduced from 2000ms to 1000ms
+        }
+    });
 
     async function refresh() {
         // Skip refresh if user is interacting (focus within or recent interaction)
@@ -12298,8 +12328,17 @@ function initDevicesPanel() {
                 devLog('initDevicesPanel: refresh inhibited');
                 return;
             }
-            if (container.matches && container.matches(':focus-within')) {
-                devLog('initDevicesPanel: refresh skipped due to focus');
+            // Only skip refresh if actively editing an input field, not just any focus
+            const activeElement = document.activeElement;
+            const isEditingInlineField =
+                activeElement &&
+                container.contains(activeElement) &&
+                activeElement.matches(
+                    'input.inline-edit, select.inline-edit, textarea.inline-edit'
+                );
+
+            if (isEditingInlineField) {
+                devLog('initDevicesPanel: refresh skipped due to active inline editing');
                 return;
             }
         } catch (_) {}

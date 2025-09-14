@@ -1611,6 +1611,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                     name:
                                         result.deviceName || `Screen ${hardwareId.substring(0, 9)}`,
                                     hardwareId: hardwareId,
+                                    location: '', // Keep location empty
                                 }),
                             });
 
