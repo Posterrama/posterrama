@@ -9939,13 +9939,16 @@ function deviceStatusBadgesHTML(d) {
     const statusBadge = `<span class="badge ${cls}" data-device-tip="1" title="${esc(
         explain
     )}">${esc(label)}<div class="device-tip">${statusTip}${detailsHtml}</div></span>`;
-    const together = [statusBadge, cellMode, groupsBadge, syncedBadge].filter(Boolean).join(' ');
+    // Add Overrides badge into the status cell, but not as the first item
+    const overridesBadge = deviceOverridesBadgeHTML(d);
+    const together = [statusBadge, cellMode, overridesBadge, groupsBadge, syncedBadge]
+        .filter(Boolean)
+        .join(' ');
     return `<div class="status-badges">${together}</div>`;
 }
 
 function deviceRowHTML(d) {
     const esc = s => (s == null ? '' : String(s));
-    const overridesBadge = deviceOverridesBadgeHTML(d);
     const isOffline = (d.status || 'unknown').toLowerCase() === 'offline';
     const isPoweredOff = !!(d.currentState && d.currentState.poweredOff === true);
     const isPaused = !!(d.currentState && d.currentState.paused === true);
@@ -10033,7 +10036,7 @@ function deviceRowHTML(d) {
                     )}" placeholder="Location" />
                 </div>
             </div>
-            <div class="row-bottom meta-line">${overridesBadge}</div>
+            <div class="row-bottom meta-line"></div>
         </td>
         <td class="cell-status">${deviceStatusBadgesHTML(d)}</td>`;
 }
@@ -10055,12 +10058,10 @@ function reconcileDevicesTable(devices, opts = {}) {
         seen.add(id);
         // If user is editing inside this row, preserve inputs; update status only
         const isRowActive = tr.contains(document.activeElement);
-        // Update status badges
+        // Update status badges (includes Overrides now)
         const statusCell = tr.querySelector('td.cell-status');
         if (statusCell) statusCell.innerHTML = deviceStatusBadgesHTML(d);
-        // Update overrides badge
-        const meta = tr.querySelector('.row-bottom.meta-line');
-        if (meta) meta.innerHTML = deviceOverridesBadgeHTML(d);
+        // Meta line remains empty (no overrides badge here)
         // Update buttons state conservatively
         try {
             const isOffline = (d.status || 'unknown').toLowerCase() === 'offline';
@@ -10430,7 +10431,7 @@ function renderDevicesTable(devices) {
                     
                     
                 </div>
-                <div class="row-bottom meta-line">${overridesBadge}</div>
+                <div class="row-bottom meta-line"></div>
             </td>
     <td class="cell-status">${(() => {
         const raw = (d.status || 'unknown').toLowerCase();
@@ -10492,7 +10493,7 @@ function renderDevicesTable(devices) {
         const syncedBadge = synced
             ? '<span class="badge is-online badge-synced" title="Device will align to sync ticks">Synced</span>'
             : '';
-        const together = [statusBadge, modeBadge, groupsBadge, syncedBadge]
+        const together = [statusBadge, modeBadge, overridesBadge, groupsBadge, syncedBadge]
             .filter(Boolean)
             .join(' ');
         return `<div class="status-badges">${together}</div>`;

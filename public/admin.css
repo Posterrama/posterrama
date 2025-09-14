@@ -4590,7 +4590,7 @@ fieldset:focus-within {
 /* Generic pill/badge (used by Devices status) */
 .badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 4px 12px; /* more breathing room for text */
     border-radius: 9999px;
     font-size: 0.8rem;
     line-height: 1.6;
@@ -4602,6 +4602,24 @@ fieldset:focus-within {
     border-color: rgba(34, 197, 94, 0.4);
     background: rgba(34, 197, 94, 0.12);
     color: rgba(34, 197, 94, 0.95);
+}
+.badge.is-live {
+    /* Neon magenta look */
+    border-color: rgba(255, 0, 200, 0.75);
+    background: linear-gradient(
+        135deg,
+        rgba(255, 0, 200, 0.3),
+        rgba(255, 0, 245, 0.16)
+    ); /* hot magenta -> pink */
+    color: #fff5fb; /* very light text for contrast */
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 0, 200, 0.7),
+        0 0 8px rgba(255, 0, 200, 0.48),
+        0 0 18px rgba(255, 0, 200, 0.28);
+    text-shadow: 0 0 3px rgba(255, 0, 200, 0.35);
+    font-weight: 400; /* no bold */
+    position: relative; /* allow halo pseudo-element */
+    overflow: visible;
 }
 .badge.is-offline {
     border-color: rgba(239, 68, 68, 0.4);
@@ -4690,6 +4708,45 @@ fieldset:focus-within {
     font-family: 'Font Awesome 6 Free';
     font-weight: 900;
     margin-right: 6px;
+}
+#devices-section td.cell-status .status-badges .badge.is-live::before {
+    content: none; /* no icon requested */
+    margin-right: 0;
+}
+
+/* Subtle pulsing halo around Live badge */
+.badge.is-live::after {
+    content: '';
+    position: absolute;
+    inset: -3px; /* slightly larger than the badge */
+    border-radius: 9999px;
+    pointer-events: none;
+    box-shadow: 0 0 0 0 rgba(255, 0, 200, 0.45);
+    opacity: 0.6;
+    animation: livePulse 2.4s ease-out infinite;
+}
+
+@keyframes livePulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 200, 0.45);
+        opacity: 0.6;
+    }
+    70% {
+        box-shadow: 0 0 0 12px rgba(255, 0, 200, 0);
+        opacity: 0;
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 200, 0);
+        opacity: 0;
+    }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .badge.is-live::after {
+        animation: none;
+        opacity: 0;
+    }
 }
 #devices-section .groups-menu {
     position: relative;
@@ -4856,7 +4913,7 @@ fieldset:focus-within {
     vertical-align: bottom; /* table fallback */
     display: flex; /* robust alignment to inputs baseline */
     align-items: flex-end; /* push badges to the bottom to match inputs */
-    padding-top: 32px; /* reserve toolbar space like name cell */
+    padding-top: 56px; /* reserve toolbar space like name cell */
     padding-bottom: 6px; /* match name cell bottom padding */
     padding-left: 12px; /* breathing room from inputs */
 }
