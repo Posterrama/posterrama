@@ -1,10 +1,26 @@
 # Posterrama - Bring your media library to life.
 
+---
+
 Transform any screen into a cinematic, always-fresh movie poster display.
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.0.3-blue.svg)](https://github.com/Posterrama/posterrama) [![Node.js](https://img.shields.io/badge/node.js-%E2%89%A518.0.0-blue)](https://nodejs.org/) [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
+<p style="margin: 0; line-height: 1.1;">
+  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.0.3-blue.svg"></a>
+  <a href="https://github.com/Posterrama/posterrama/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Posterrama/posterrama/total.svg"></a>
+  <a href="https://github.com/Posterrama/posterrama/actions/workflows/ci.yml"><img alt="Tests" src="https://github.com/Posterrama/posterrama/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="./coverage/lcov-report/index.html"><img alt="Coverage" src="https://img.shields.io/badge/coverage-87%25-brightgreen.svg"></a>
+  <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/node.js-%E2%89%A518.0.0-blue"></a>
+  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
+</p>
+<p style="margin: 2px 0 8px 0; line-height: 1.1;">
+  <a href="#content-source-features"><img alt="Plex" src="https://img.shields.io/badge/Plex-supported-ffaa00.svg?logo=plex&logoColor=white"></a>
+  <a href="#content-source-features"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-supported-8f7ee7.svg?logo=jellyfin&logoColor=white"></a>
+  <a href="#content-source-features"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-supported-01d277.svg?logo=themoviedatabase&logoColor=white"></a>
+  <a href="#content-source-features"><img alt="TVDB" src="https://img.shields.io/badge/TVDB-integrated-38a169.svg?logo=thetvdb&logoColor=white"></a>
+  <a href="http://localhost:4000/api-docs"><img alt="OpenAPI Docs" src="https://img.shields.io/badge/OpenAPI-Docs-85EA2D.svg?logo=swagger&logoColor=white"></a>
+</p>
 
 <img src="./screenshots/screensaver.png" alt="Posterrama hero" width="740">
 
@@ -16,6 +32,7 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 
 **Posterrama** transforms any screen into a dynamic, personal cinema experience. Use it as:
 
+- A digital movie poster display — turn any TV or monitor into a cinematic foyer piece that continuously showcases your collection with studio‑grade artwork
 - A digital movie wall for your living room, home theater, or office
 - A smart, always-fresh screensaver with posters from your own collection
 - A stylish showcase for your Plex or Jellyfin library
@@ -76,40 +93,29 @@ Perfect for vertical screens or digital signage. Show a rotating selection of po
 - Smooth poster transitions
 - Optional info overlays and ratings
 
-### Mobile admin and responsive design
+### Dashboard
 
-<div align="center" style="margin: 8px 0;">
-  <img src="./screenshots/admin_1.jpg" alt="Admin UI 1" height="240" style="margin: 0 8px; vertical-align: bottom;" />
-  <img src="./screenshots/admin_2.jpg" alt="Admin UI 2" height="240" style="margin: 0 8px; vertical-align: bottom;" />
-  <img src="./screenshots/admin_3.jpg" alt="Admin UI 3" height="240" style="margin: 0 8px; vertical-align: bottom;" />
+<figure>
+  <img src="./screenshots/dashboard.png" alt="Admin Dashboard" width="740">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>At‑a‑glance status, KPIs, recent activity, and quick actions</em></figcaption>
   
-</div>
+</figure>
 
-Configure everything from your phone, tablet, or desktop. The admin dashboard is fully responsive and works on any device.
+Get a clear overview of your setup the moment you sign in. The Dashboard highlights system health, key metrics, recent events, connected devices, and quick links to common tasks — so you can spot issues and act fast.
 
-### Realtime preview
-
-See changes instantly while you configure. Most settings hot‑reload without a restart; the display updates in real time as you tweak options in the admin.
-
-### Caching and optimization
-
-Images are loaded instantly thanks to smart caching and optimization. Posters always look sharp, even on 4K displays.
+<!-- Realtime preview moved into Display Settings as a bullet point -->
 
 ### Multiple content sources
 
 <figure>
-  <img src="./screenshots/admin_sources.png" alt="Admin Sources" width="740">
+  <img src="./screenshots/media_sources.png" alt="Media Sources" width="740">
   <figcaption style="text-align:left; color:#6a6a6a;"><em>Connect your media sources easily</em></figcaption>
   
 </figure>
 
 Connect your Plex or Jellyfin server, or add popular sources like TMDB and TVDB. Your collection is always up to date.
 
----
-
-## Content source features
-
-In the admin dashboard, you can configure for each source:
+<!-- Content source features heading and intro removed per request; keep the actionable bullets below -->
 
 - Enable/disable each source (Plex, Jellyfin, TMDB, TVDB)
 - Set server address and authentication (token, username/password)
@@ -118,30 +124,48 @@ In the admin dashboard, you can configure for each source:
 
 ---
 
+### Display Settings
+
 <figure>
-  <img src="./screenshots/admin_display.png" alt="Admin Display Settings" width="740">
+  <img src="./screenshots/display_settings.png" alt="Display Settings" width="740">
   <figcaption style="text-align:left; color:#6a6a6a;"><em>Fine-tune your display settings</em></figcaption>
   
 </figure>
 
+- Realtime preview — see changes instantly while you configure. Most settings hot‑reload without a restart; the display updates live as you tweak options.
+
 ### Device management (beta)
 
 <figure>
-  <img src="./screenshots/devices.png" alt="Device Management" width="740">
+  <img src="./screenshots/device_management.png" alt="Device Management" width="740">
   <figcaption style="text-align:left; color:#6a6a6a;"><em>Manage devices live: status, playback, and per‑device overrides</em></figcaption>
 </figure>
 
-Control all connected displays from the Admin dashboard:
+Orchestrate every Posterrama screen from a single, real‑time dashboard. Device Management shows live status, lets you control playback, and apply per‑device Display Settings without interrupting the experience. Whether you run one TV at home or a whole foyer of screens, changes land instantly over a lightweight WebSocket channel.
+
+What you can do:
 
 - Live controls per device: previous/next, play/pause toggle, pin current poster, and reload/reset
-- Clear status badge: Offline (grey), Online (green), Live (blue)
+- Clear status badges: Offline (grey), Online (green), Live (blue)
 - Controls auto‑disable when a device is offline
 - Per‑device Display Settings override with JSON editor and presets; apply live over WebSocket
 - WebSocket heartbeat keeps status and playback state in sync with the device
 
-Tooltips explain each control and status for quick onboarding. Overrides merge on top of global settings without affecting other devices.
+Where it shines:
+
+- At home — Quickly pause a screen when you get a call, pin a specific poster for a movie night, or tailor one display’s look (mode, grid density, info overlays) without touching the others.
+- In commercial cinemas and venues — Keep foyer and hallway displays fresh and on‑brand. Swap promos in seconds, verify screens are healthy at a glance, and minimize downtime with one‑click reload/reset.
 
 ---
+
+### Technical features
+
+- Smart multi‑tier caching (memory + disk) with intelligent expiration
+- Optimized image pipeline for fast loads and crisp 4K output
+- Efficient WebSocket updates for live device control and instant settings apply
+- Robust logging with compact Notification Center (filters, levels)
+- Resilient configuration (/get-config) with schema validation and safe defaults
+- API-first design with OpenAPI docs at /api-docs
 
 ## Roadmap
 
@@ -167,6 +191,15 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 - [ ] Music library support
 - [ ] Radarr/Sonarr/Lidarr integration
 - [ ] Steam and ROMM gaming libraries and collections
+
+**Integrations & automation**
+
+- [ ] Home Assistant support (MQTT) — publish device state and accept commands so displays can react to scenes, schedules, and smart‑home automations
+
+**Content & curation**
+
+- [ ] Online art galleries — browse and feature curated artwork streams alongside your library
+- [ ] Movie poster packs — themed, ready‑to‑use packs to quickly set a vibe for events, seasons, or franchises
 
 And that's just the beginning — much more is on the way.
 
