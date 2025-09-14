@@ -1704,14 +1704,14 @@
                         'Ultra',
                         'Ludicrous',
                     ];
-                    return map[Math.min(Math.max(v, 1), 10) - 1] + ' poster refresh rate';
+                    return map[Math.min(Math.max(v, 1), 10) - 1];
                 }
                 if (id === 'wallartMode.randomness') {
                     const v = Number(val);
-                    if (v <= 2) return 'Low timing randomness';
-                    if (v <= 5) return 'Medium timing randomness';
-                    if (v <= 8) return 'High timing randomness';
-                    return 'Chaotic timing randomness';
+                    if (v <= 2) return 'Low';
+                    if (v <= 5) return 'Medium';
+                    if (v <= 8) return 'High';
+                    return 'Chaotic';
                 }
                 if (id.startsWith('uiScaling.')) return `${val}%`;
                 return String(val);
