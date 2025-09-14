@@ -965,9 +965,14 @@
             const status = statusRes.ok ? await statusRes.json() : { hasKey: false };
             const hasKey = !!status?.hasKey;
             const statusText = document.getElementById('api-key-status-text');
+            const statusPill = document.getElementById('api-key-status-pill');
             const display = document.getElementById('api-key-display');
             const revokeBtn = document.getElementById('revoke-api-key-button');
             if (statusText) statusText.textContent = hasKey ? 'Present' : 'None';
+            if (statusPill) {
+                statusPill.classList.remove('status-success', 'status-warning');
+                statusPill.classList.add(hasKey ? 'status-success' : 'status-warning');
+            }
             if (display) display.classList.toggle('is-hidden', !hasKey);
             if (revokeBtn) revokeBtn.disabled = !hasKey;
             if (hasKey) {
@@ -2693,7 +2698,10 @@
         btnApiToggle?.addEventListener('click', () => {
             const input = document.getElementById('api-key-input');
             if (!input) return;
-            input.type = input.type === 'password' ? 'text' : 'password';
+            const icon = btnApiToggle.querySelector('i');
+            const toText = input.type === 'password';
+            input.type = toText ? 'text' : 'password';
+            if (icon) icon.className = toText ? 'fas fa-eye-slash' : 'fas fa-eye';
         });
         btnApiCopy?.addEventListener('click', async () => {
             const input = document.getElementById('api-key-input');
@@ -2807,12 +2815,16 @@
             if (!idle || !prog) return;
             const phaseEl = document.getElementById('update-phase-text');
             const pctEl = document.getElementById('update-progress-percent');
+            const idlePill = document.getElementById('update-idle-pill');
             const barEl = document.getElementById('update-progress-bar');
             const msgEl = document.getElementById('update-message');
             const isUpdating = !!status?.isUpdating;
             if (isUpdating) {
                 idle.style.display = 'none';
                 prog.style.display = '';
+                if (idlePill) idlePill.style.display = 'none';
+                if (phaseEl) phaseEl.style.display = '';
+                if (pctEl) pctEl.style.display = '';
                 const phase = status?.phase || 'working';
                 const pct = Math.max(0, Math.min(100, Number(status?.progress ?? 0)));
                 if (phaseEl) phaseEl.textContent = String(phase);
@@ -2823,6 +2835,9 @@
             } else {
                 prog.style.display = 'none';
                 idle.style.display = '';
+                if (idlePill) idlePill.style.display = '';
+                if (phaseEl) phaseEl.style.display = 'none';
+                if (pctEl) pctEl.style.display = 'none';
                 stopUpdatePolling();
             }
         }
@@ -7115,6 +7130,17 @@
             if (span) span.textContent = needs ? 'Save Settings & Restart' : 'Save Settings';
             btn.dataset.restartRequired = needs ? 'true' : 'false';
         }
+        // Update Debug status pill
+        function updateDebugPill() {
+            const chk = document.getElementById('DEBUG');
+            const pill = document.getElementById('debug-status-pill');
+            if (!pill || !chk) return;
+            const on = !!chk.checked;
+            pill.textContent = on ? 'Debug: On' : 'Debug: Off';
+            pill.classList.toggle('status-warning', on);
+            // Neutral (no class) when off; ensure success not lingering
+            pill.classList.remove('status-success');
+        }
         // Expose for later use after async loads
         window.updateOpsSaveButtonLabel = updateOpsSaveButtonLabel;
         // Wire live updates on port input
@@ -7123,6 +7149,10 @@
                 portInput.addEventListener(evt, updateOpsSaveButtonLabel)
             );
         }
+        // Wire Debug pill updates
+        document.getElementById('DEBUG')?.addEventListener('change', updateDebugPill);
+        // Initialize once
+        updateDebugPill();
 
         // Unified save for Operations: saves both Server Settings and Promobox
         btnSaveOps?.addEventListener('click', async () => {
@@ -7198,6 +7228,7 @@
             const show = promoEnabled.checked;
             const portGroup = document.getElementById('siteServerPortGroup');
             const status = document.getElementById('siteServerStatus');
+            const pill = document.getElementById('siteServer-pill');
             if (portGroup) portGroup.style.display = show ? 'block' : 'none';
             if (status) {
                 status.style.display = show ? 'block' : 'none';
@@ -7232,6 +7263,11 @@
                     status.textContent = '';
                 }
             }
+            if (pill) {
+                pill.textContent = show ? 'Enabled' : 'Disabled';
+                pill.classList.toggle('status-warning', !show);
+                pill.classList.toggle('status-success', !!show);
+            }
         });
     });
 
@@ -7258,6 +7294,7 @@
             const portEl = document.getElementById('siteServer.port');
             const portGroup = document.getElementById('siteServerPortGroup');
             const status = document.getElementById('siteServerStatus');
+            const sitePill = document.getElementById('siteServer-pill');
             if (enabledEl) enabledEl.checked = !!site.enabled;
             if (portEl) portEl.value = site.port || 4001;
             if (portGroup) portGroup.style.display = site.enabled ? 'block' : 'none';
@@ -7276,6 +7313,23 @@
                 } else {
                     status.textContent = '';
                 }
+            }
+            if (sitePill) {
+                sitePill.textContent = site.enabled ? 'Enabled' : 'Disabled';
+                sitePill.classList.toggle('status-warning', !site.enabled);
+                sitePill.classList.toggle('status-success', !!site.enabled);
+            }
+            // Debug pill initial sync
+            try {
+                const dbgPill = document.getElementById('debug-status-pill');
+                if (dbgPill) {
+                    const on = !!(env.DEBUG === true || env.DEBUG === 'true');
+                    dbgPill.textContent = on ? 'Debug: On' : 'Debug: Off';
+                    dbgPill.classList.toggle('status-warning', on);
+                    dbgPill.classList.remove('status-success');
+                }
+            } catch (_) {
+                /* no-op */
             }
             // Ensure the unified save button label is correct after loading
             if (typeof window.updateOpsSaveButtonLabel === 'function') {
@@ -7308,6 +7362,29 @@
                 } else {
                     pill.hidden = true;
                 }
+            }
+
+            // Also reflect availability in the Automatic Updates card (idle pill)
+            try {
+                const idlePill = document.getElementById('update-idle-pill');
+                const progState = document.getElementById('update-progress-state');
+                // Only adjust when not actively updating
+                const isProgressVisible = !!progState && progState.style.display !== 'none';
+                if (idlePill && !isProgressVisible) {
+                    if (hasUpdate && latest && latest !== version) {
+                        idlePill.textContent = 'Update available';
+                        idlePill.classList.remove('status-success');
+                        idlePill.classList.add('status-warning');
+                        idlePill.title = `Latest: v${latest}`;
+                    } else {
+                        idlePill.textContent = 'Ready';
+                        idlePill.classList.remove('status-warning');
+                        idlePill.classList.add('status-success');
+                        idlePill.removeAttribute('title');
+                    }
+                }
+            } catch (_) {
+                /* non-fatal */
             }
         } catch (e) {
             // Non-fatal

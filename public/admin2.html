@@ -525,6 +525,10 @@
   .operations-panel .input-row { display:flex; gap:8px; align-items:center; }
   .operations-panel .status-pill { font-size: 0.8rem; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); }
   .operations-panel .status-pill.status-success { background: rgba(34,197,94,0.15); color: #86efac; }
+  .operations-panel .status-pill.status-info { background: rgba(59,130,246,0.15); color: #93c5fd; }
+  .operations-panel .status-pill.status-warning { background: rgba(251,191,36,0.15); color: #fde68a; }
+  .operations-panel .status-pill.status-error { background: rgba(239,68,68,0.15); color: #fca5a5; }
+  .operations-panel .card-subtext { font-size: 0.85rem; color: var(--color-text-secondary); margin: -2px 0 8px; opacity: .9; }
   /* Utilities for spacing and sizing */
   .mt-6 { margin-top: 6px !important; }
   .mt-8 { margin-top: 8px !important; }
@@ -543,6 +547,14 @@
   .operations-panel .perf-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
   .operations-panel .perf-card h3 { margin: 0 0 10px 0; font-size: 0.95rem; opacity: 0.9; display: flex; align-items: center; gap: 8px; }
   .operations-panel .metric-row { display: flex; flex-direction: column; gap: 10px; }
+  /* Small, muted inline hints */
+  .operations-panel .micro-hint { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--color-text-secondary); opacity: 0.7; margin-top: 4px; }
+  .operations-panel .micro-hint i { font-size: 0.8em; color: var(--color-text-secondary); opacity: 0.6; }
+  /* Top-right pill placement inside cards */
+  .operations-panel .card-pill-spot { position: absolute; top: 10px; right: 12px; display: flex; gap: 6px; }
+  /* API key field styling */
+  .operations-panel #api-key-input { flex: 1; min-width: 220px; background: var(--color-bg-card); color: var(--color-text-primary); border: 1px solid var(--color-border); border-radius: 10px; padding: 8px 12px; outline: none; }
+  .operations-panel #api-key-input:focus { border-color: var(--color-info); box-shadow: 0 0 0 3px rgba(102,126,234,0.25); }
   /* Inline field styling for label + input rows */
   .operations-panel .inline-field { display: flex; align-items: center; gap: 12px; justify-content: flex-start; flex-wrap: nowrap; }
   .operations-panel .inline-field label {
@@ -1976,15 +1988,15 @@
             <!-- Auto-Update Operations (moved to top-left) -->
             <section class="perf-card" aria-label="Automatic Updates">
               <h3><i class="fas fa-download"></i> Automatic Updates</h3>
+              <div class="card-pill-spot">
+                <span id="update-phase-text" class="status-pill status-info" style="display:none;">Checking…</span>
+                <span id="update-progress-percent" class="status-pill" style="display:none;">0%</span>
+                <span id="update-idle-pill" class="status-pill status-success">Ready</span>
+              </div>
+              <div class="card-subtext">Manage updates and view progress.</div>
               <div id="ops-update-status" class="status-display">
-                <div id="update-idle-state">
-                  <div class="subtle">Status: <span class="status-pill status-success">Ready for Updates</span></div>
-                </div>
-                <div id="update-progress-state" style="display:none; margin-top:8px;">
-                  <div class="update-progress-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                    <span id="update-phase-text">Checking for updates…</span>
-                    <span id="update-progress-percent">0%</span>
-                  </div>
+                <div id="update-idle-state"></div>
+                <div id="update-progress-state" style="display:none;" class="mt-8">
                   <div class="meter mt-6">
                     <div id="update-progress-bar" style="width:0%; background: linear-gradient(90deg,#60a5fa,#1e40af);"></div>
                   </div>
@@ -2014,9 +2026,7 @@
             <!-- Media Operations -->
             <section class="perf-card" aria-label="Media Operations">
               <h3><i class="fas fa-sync-alt"></i> Media</h3>
-              <div class="metric-row">
-                <div class="subtle">Manually refresh media from configured sources.</div>
-              </div>
+              <div class="card-subtext">Refresh media from configured sources.</div>
         <div class="actions main-actions">
                 <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
                   <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
@@ -2025,7 +2035,8 @@
             </section>
             <!-- Server Settings -->
             <section class="perf-card" aria-label="Server Settings">
-              <h3><i class="fas fa-gear"></i> Server Settings</h3>
+              <h3><i class="fas fa-gear"></i> Server</h3>
+              <div class="card-subtext">Core server configuration.</div>
               <div class="metric-row">
                 <div class="form-group inline-field nowrap" style="display: block;">
                   <label for="SERVER_PORT" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
@@ -2041,16 +2052,19 @@
       <!-- Debug & Logging -->
             <section class="perf-card" aria-label="Debug & Logging">
               <h3><i class="fas fa-bug"></i> Debug & Logging</h3>
-              <div class="metric-row">
-                <div class="subtle">View recent logs and monitor server activity.</div>
-                <div class="form-group checkbox-group mt-6">
+              <div class="card-pill-spot">
+                <span class="status-pill" id="debug-status-pill">Debug: Off</span>
+              </div>
+              <div class="card-subtext">Detailed logging for troubleshooting.</div>
+              <div class="metric-row mt-6">
+                <div class="form-group checkbox-group">
                   <label class="checkbox" for="DEBUG">
                     <input type="checkbox" id="DEBUG" />
                     <span class="checkmark"></span>
                     <span>Enable Debug Mode</span>
                   </label>
                 </div>
-                <div class="subtle">Debug mode increases logging detail. Use temporarily for troubleshooting.</div>
+                <div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>Use temporarily; verbose logs can impact performance.</span></div>
               </div>
               <div class="actions mt-8">
                 <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
@@ -2059,7 +2073,11 @@
   <!-- Promobox Site -->
             <section class="perf-card" aria-label="Promobox Site">
               <h3><i class="fas fa-bullhorn"></i> Promobox Site</h3>
-              <div class="metric-row">
+              <div class="card-pill-spot">
+                <span class="status-pill status-warning" id="siteServer-pill">Disabled</span>
+              </div>
+              <div class="card-subtext">Optional static poster showcase.</div>
+              <div class="metric-row mt-6">
                 <div class="form-group checkbox-group">
                   <label class="checkbox" for="siteServer.enabled">
                     <input type="checkbox" id="siteServer.enabled" />
@@ -2078,42 +2096,31 @@
             <!-- API Access -->
             <section class="perf-card" aria-label="API Access Management">
               <h3><i class="fas fa-code"></i> API Access</h3>
-          <div class="input-row">
-                <div id="api-key-status" class="subtle">Status: <span id="api-key-status-text">Loading…</span></div>
-                <div id="api-key-display" class="is-hidden">
-                  <div class="form-group">
-                    <label for="api-key-input">Current API Key</label>
-          <div class="input-row">
-                      <input id="api-key-input" type="password" readonly style="min-width:280px;flex:1;" />
-            <div class="actions mt-6">
-                      <button id="copy-api-key-button" type="button" class="btn btn-icon btn-sm" title="Copy to clipboard"><i class="fas fa-copy"></i></button>
-                    </div>
+              <div class="card-pill-spot">
+                <span class="status-pill" id="api-key-status-pill">Key: <span id="api-key-status-text">Loading…</span></span>
+              </div>
+              <div class="card-subtext">Programmatic access to admin endpoints.</div>
+              <div id="api-key-display" class="is-hidden mt-6">
+                <div class="input-row">
+                  <input id="api-key-input" type="password" readonly />
+                  <div class="actions">
+                    <button id="toggle-api-key-visibility-button" type="button" class="btn btn-icon btn-sm" title="Show/Hide"><i class="fas fa-eye"></i></button>
+                    <button id="copy-api-key-button" type="button" class="btn btn-icon btn-sm" title="Copy to clipboard"><i class="fas fa-copy"></i></button>
                   </div>
                 </div>
               </div>
               <div class="actions" style="margin-top:6px;">
-        <button id="generate-api-key-button" type="button" class="btn btn-success btn-sm">
+                <button id="generate-api-key-button" type="button" class="btn btn-success btn-sm">
                   <i class="fas fa-key"></i>
                   <span>Generate New Key</span>
                 </button>
-        <button id="revoke-api-key-button" type="button" class="btn btn-error btn-sm" disabled>
+                <button id="revoke-api-key-button" type="button" class="btn btn-error btn-sm" disabled>
                   <i class="fas fa-trash-alt"></i>
                   <span>Revoke Key</span>
                 </button>
               </div>
             </section>
-      <div class="ops-group">
-        <div class="ops-group-title"><i class="fas fa-toolbox"></i> Tools & Logs</div>
-      </div>
-      <section class="perf-card" aria-label="Logs Quick Access">
-        <h3><i class="fas fa-scroll"></i> Logs</h3>
-        <div class="metric-row">
-          <div class="subtle">Quick access to server logs for troubleshooting.</div>
-        </div>
-  <div class="actions mt-8">
-          <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
-        </div>
-      </section>
+      
     </div>
           </div>
         </div>
