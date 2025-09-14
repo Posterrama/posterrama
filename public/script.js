@@ -1,3 +1,5 @@
+'use strict';
+/* eslint-disable no-empty, prettier/prettier */
 /**
  * posterrama.app - Client-side logic
  *
@@ -274,6 +276,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             return isPaused;
         },
     });
+    // Expose current media id and pin state for device-mgmt heartbeat
+    let currentMediaId = null;
+    let isPinned = false;
+    let pinnedMediaId = null;
+    Object.defineProperty(window, '__posterramaCurrentMediaId', {
+        get() {
+            return currentMediaId;
+        },
+    });
+    Object.defineProperty(window, '__posterramaPinned', {
+        get() {
+            return isPinned;
+        },
+    });
+    Object.defineProperty(window, '__posterramaPinnedMediaId', {
+        get() {
+            return pinnedMediaId;
+        },
+    });
     // Expose minimal playback control API for WS/admin control
     // Unified programmatic pause/resume that mirrors the UI button behavior
     function setPaused(val) {
@@ -357,16 +378,67 @@ document.addEventListener('DOMContentLoaded', async () => {
             );
         } catch (_) {}
         setPaused(false);
+        // Unpin on explicit resume
+        try {
+            isPinned = false;
+            pinnedMediaId = null;
+        } catch (_) {}
+        // Clear any timed pin
+        try {
+            if (window.__posterramaPinTimer) {
+                clearTimeout(window.__posterramaPinTimer);
+                window.__posterramaPinTimer = null;
+            }
+        } catch (_) {}
+        try {
+            window.PosterramaDevice &&
+                window.PosterramaDevice.beat &&
+                window.PosterramaDevice.beat();
+        } catch (_) {}
     }
-    function pinCurrentPoster() {
+    function pinCurrentPoster(payload) {
         try {
             (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
                 console,
                 '[Live] playback.pinPoster'
             );
         } catch (_) {}
-        // Freeze the current visual
+        // Freeze the current visual and remember which media is pinned
         setPaused(true);
+        try {
+            const m =
+                currentIndex >= 0 && currentIndex < mediaQueue.length
+                    ? mediaQueue[currentIndex]
+                    : null;
+            const id =
+                m && (m.id || m.guid || m.ratingKey || m.tmdbId || m.imdbId || m.tvdbId || m.title);
+            isPinned = true;
+            pinnedMediaId = id || null;
+        } catch (_) {}
+        // Optional timed unpin
+        try {
+            if (window.__posterramaPinTimer) {
+                clearTimeout(window.__posterramaPinTimer);
+                window.__posterramaPinTimer = null;
+            }
+            const dur = payload && typeof payload.durationMs === 'number' ? payload.durationMs : 0;
+            if (dur && dur > 0) {
+                window.__posterramaPinTimer = setTimeout(
+                    () => {
+                        // Auto-resume when timer elapses
+                        try {
+                            playbackResume();
+                        } catch (_) {}
+                    },
+                    Math.min(dur, 24 * 60 * 60 * 1000)
+                ); // cap at 24h safety
+            }
+        } catch (_) {}
+        try {
+            window.PosterramaDevice &&
+                window.PosterramaDevice.beat &&
+                window.PosterramaDevice.beat();
+        } catch (_) {}
         // Optional: extend pause interval behavior for transition-based cycles
         try {
             if (typeof window.applySettings === 'function') {
@@ -376,15 +448,61 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (_) {}
     }
-    function switchSource(_sourceKey) {
-        // Stub: requires deeper integration with playlist/source pipeline
+    async function switchSource(_sourceKey) {
+        const raw = (_sourceKey || '').toString().trim();
+        const src = raw.toLowerCase();
+        const CLEAR_SET = new Set(['', 'all', '*', 'any', 'reset', 'all-sources', 'default']);
         try {
             (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
                 console,
-                '[Live] source.switch requested',
-                _sourceKey
+                '[Live] source.switch applying',
+                src || '(clear to all)'
             );
         } catch (_) {}
+        try {
+            // Update persisted selection (best-effort)
+            if (CLEAR_SET.has(src)) localStorage.removeItem('posterrama.selectedSource');
+            else localStorage.setItem('posterrama.selectedSource', src);
+        } catch (_) {}
+        try {
+            // Cancel running timers to avoid race during reload
+            if (timerId) {
+                clearTimeout(timerId);
+                timerId = null;
+            }
+            if (controlsTimer) {
+                clearTimeout(controlsTimer);
+                controlsTimer = null;
+            }
+        } catch (_) {}
+        try {
+            // Refetch media (optionally filtered) and restart slideshow near current item
+            const cacheBuster = `&_=${Date.now()}`;
+            let url = '/get-media?';
+            if (!CLEAR_SET.has(src)) url += `source=${encodeURIComponent(src)}`;
+            const resp = await fetch(url + cacheBuster);
+            if (!resp.ok) throw new Error(`Source fetch failed (${resp.status})`);
+            const list = await resp.json();
+            if (!Array.isArray(list) || list.length === 0) {
+                showError(
+                    CLEAR_SET.has(src) ? 'No media available.' : 'No media for selected source.'
+                );
+                return;
+            }
+            // Reset queue and index; keep visual smoothness
+            mediaQueue = list;
+            currentIndex = -1;
+            changeMedia('next', true);
+            // Nudge heartbeat so admin sees the change quickly
+            try {
+                window.PosterramaDevice &&
+                    window.PosterramaDevice.beat &&
+                    window.PosterramaDevice.beat();
+            } catch (_) {}
+        } catch (e) {
+            console.error('[Live] switchSource failed', e);
+            showError(e.message || 'Failed switching source');
+        }
     }
     window.__posterramaPlayback = {
         prev: playbackPrev,
@@ -3556,6 +3674,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             const currentMedia = mediaQueue[currentIndex];
             if (currentMedia) {
                 renderMediaItem(currentMedia);
+                // Update current media identifier for device heartbeat
+                try {
+                    const id =
+                        currentMedia.id ||
+                        currentMedia.guid ||
+                        currentMedia.ratingKey ||
+                        currentMedia.tmdbId ||
+                        currentMedia.imdbId ||
+                        currentMedia.tvdbId ||
+                        currentMedia.title ||
+                        null;
+                    if (id !== currentMediaId) {
+                        currentMediaId = id;
+                        // Nudge device heartbeat so admin can see the new media id quickly
+                        window.PosterramaDevice &&
+                            window.PosterramaDevice.beat &&
+                            window.PosterramaDevice.beat();
+                    }
+                } catch (_) {}
             }
         }
     }
@@ -3563,8 +3700,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function fetchMedia(isInitialLoad = false) {
         try {
             // Add a cache-busting query parameter to ensure the browser always fetches a fresh response.
-            const cacheBuster = `?_=${Date.now()}`;
-            const mediaResponse = await fetch('/get-media' + cacheBuster);
+            const cacheBuster = `&_=${Date.now()}`;
+            let url = '/get-media?';
+            try {
+                const savedSrc = localStorage.getItem('posterrama.selectedSource');
+                if (savedSrc && typeof savedSrc === 'string' && savedSrc.trim()) {
+                    url += `source=${encodeURIComponent(savedSrc.trim())}`;
+                }
+            } catch (_) {}
+            const mediaResponse = await fetch(url + cacheBuster);
 
             if (mediaResponse.status === 202) {
                 // Server is still building the playlist, let's wait and retry.

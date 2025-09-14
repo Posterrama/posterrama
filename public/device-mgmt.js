@@ -188,6 +188,23 @@
 
     async function sendHeartbeat() {
         if (!state.enabled || !state.deviceId || !state.deviceSecret) return;
+        // Try to collect mediaId and pinned state from the main app runtime (if available)
+        let mediaId;
+        let pinned;
+        let pinMediaId;
+        try {
+            if (typeof window !== 'undefined') {
+                // Current media identifier exposed by script.js
+                if (window.__posterramaCurrentMediaId != null)
+                    mediaId = window.__posterramaCurrentMediaId;
+                // Pin state and the media it pinned (if available)
+                if (window.__posterramaPinned != null) pinned = !!window.__posterramaPinned;
+                if (window.__posterramaPinnedMediaId != null)
+                    pinMediaId = window.__posterramaPinnedMediaId;
+            }
+        } catch (_) {
+            // ignore inability to read runtime media state
+        }
         const payload = {
             deviceId: state.deviceId,
             deviceSecret: state.deviceSecret,
@@ -201,6 +218,9 @@
                 typeof window !== 'undefined' && window.__posterramaPaused != null
                     ? !!window.__posterramaPaused
                     : undefined,
+            mediaId,
+            pinned,
+            pinMediaId,
         };
         try {
             const res = await fetch('/api/devices/heartbeat', {
@@ -244,7 +264,9 @@
     function liveDbg() {
         try {
             if (typeof window !== 'undefined' && window.__POSTERRAMA_LIVE_DEBUG === false) return;
-        } catch (_) {}
+        } catch (_) {
+            // ignore logger availability check
+        }
         try {
             if (
                 typeof window !== 'undefined' &&
@@ -258,7 +280,9 @@
                 // eslint-disable-next-line no-console
                 console.info.apply(console, arguments);
             }
-        } catch (_) {}
+        } catch (_) {
+            // ignore logger fallback
+        }
     }
     function connectWS() {
         if (!state.enabled || !state.deviceId || !state.deviceSecret) return;
@@ -316,7 +340,16 @@
                                 liveDbg('[Live] invoking playback.pinPoster', {
                                     payload: msg.payload,
                                 });
-                                return void api.pinPoster(msg.payload);
+                                // Ensure we provide mediaId when pinning for better persistence
+                                try {
+                                    const mediaIdHint =
+                                        (typeof window !== 'undefined' &&
+                                            window.__posterramaCurrentMediaId) ||
+                                        undefined;
+                                    return void api.pinPoster({ mediaId: mediaIdHint });
+                                } catch (_) {
+                                    return void api.pinPoster(msg.payload);
+                                }
                             }
                             if (t === 'source.switch' && api.switchSource) {
                                 liveDbg('[Live] invoking source.switch', {
@@ -351,13 +384,17 @@
                 state.ws = null;
                 try {
                     liveDbg('[Live] WS close', { code: ev?.code, reason: ev?.reason });
-                } catch (_) {}
+                } catch (_) {
+                    // ignore parse or handling errors
+                }
                 scheduleReconnect();
             };
             ws.onerror = err => {
                 try {
                     liveDbg('[Live] WS error', err);
-                } catch (_) {}
+                } catch (_) {
+                    // ignore logging errors
+                }
                 try {
                     ws.close();
                 } catch (_) {

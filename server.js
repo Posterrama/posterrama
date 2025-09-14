@@ -1575,6 +1575,19 @@ if (isDeviceMgmtEnabled()) {
             const mode = b.mode;
             const mediaId = b.mediaId;
             const paused = b.paused;
+            // Support pinned state from clients (accept several aliases for compatibility)
+            const pinned =
+                typeof b.pinned === 'boolean'
+                    ? b.pinned
+                    : typeof b.pin === 'boolean'
+                      ? b.pin
+                      : undefined;
+            const pinMediaId =
+                b.pinMediaId != null
+                    ? b.pinMediaId
+                    : b.pinnedMediaId != null
+                      ? b.pinnedMediaId
+                      : undefined;
             const cookies = parseCookies(req.headers['cookie']);
             const hdrIid = req.headers['x-install-id'] || null;
             const hdrHw = req.headers['x-hardware-id'] || null;
@@ -1585,9 +1598,15 @@ if (isDeviceMgmtEnabled()) {
             if (!deviceId || !deviceSecret) return res.status(401).json({ error: 'unauthorized' });
             const ok = await deviceStore.verifyDevice(deviceId, deviceSecret);
             if (!ok) return res.status(401).json({ error: 'unauthorized' });
+            // Only include non-undefined fields in currentState update
+            const currentState = {};
+            if (mediaId != null) currentState.mediaId = mediaId;
+            if (paused != null) currentState.paused = !!paused;
+            if (pinned != null) currentState.pinned = !!pinned;
+            if (pinMediaId != null) currentState.pinMediaId = pinMediaId;
             await deviceStore.updateHeartbeat(deviceId, {
                 clientInfo: { userAgent, screen, mode },
-                currentState: { mediaId, paused },
+                currentState,
                 installId,
                 hardwareId,
             });
@@ -3954,6 +3973,14 @@ app.get(
  *       are configured or the initial fetch fails, returns a 503 Service Unavailable.
  *       The playlist is shuffled to ensure random playback order.
  *     tags: ['Public API']
+ *     parameters:
+ *       - in: query
+ *         name: source
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [plex, jellyfin, tmdb, tvdb]
+ *         description: Filter results to a single content source
  *     responses:
  *       200:
  *         description: An array of media items.
@@ -3981,6 +4008,23 @@ app.get(
     validateGetMediaQuery,
     apiCacheMiddleware.media,
     asyncHandler(async (req, res) => {
+        // Helper: apply optional source filter to cached playlist
+        const applySourceFilter = (items, src) => {
+            if (!src || !Array.isArray(items)) return items;
+            const norm = String(src).toLowerCase();
+            return items.filter(it => {
+                const s = (it.source || it.serverType || '').toString().toLowerCase();
+                const key = (it.key || '').toString().toLowerCase();
+                if (norm === 'plex') return s === 'plex' || key.startsWith('plex-');
+                if (norm === 'jellyfin') return s === 'jellyfin' || key.startsWith('jellyfin_');
+                if (norm === 'tmdb') {
+                    // Include classic TMDB plus streaming-provider items fetched via TMDB
+                    return s === 'tmdb' || key.startsWith('tmdb-') || !!it.tmdbId;
+                }
+                if (norm === 'tvdb') return s === 'tvdb' || key.startsWith('tvdb-');
+                return s === norm;
+            });
+        };
         // Skip caching if nocache param is present (for admin invalidation)
         if (req.query.nocache === '1') {
             res.setHeader('Cache-Control', 'no-store');
@@ -4020,7 +4064,9 @@ app.get(
                 }
             }
 
-            return res.json(playlistCache);
+            // Apply optional filtering by source
+            const filtered = applySourceFilter(playlistCache, req.query?.source);
+            return res.json(filtered);
         }
 
         if (isRefreshing) {

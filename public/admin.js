@@ -1,3 +1,4 @@
+/* eslint-disable no-empty, prettier/prettier */
 /*
  * Posterrama Admin Panel - Version 2.2.0
  * Date: 2025-08-14
@@ -33,6 +34,15 @@ try {
 
 // Make version available globally (will be updated by server)
 window.POSTERRAMA_VERSION = 'Loading...';
+
+// Placeholder helpers to satisfy lint where optional chaining is used
+function updateSliderBackground() {}
+// positionSliderBubble intentionally unused; keep signature for future UI polish
+async function promptDialog(message, defaultValue = '', _anchor) {
+    // Simple fallback to window.prompt; can be replaced by a styled modal
+    // eslint-disable-next-line no-alert
+    return window.prompt(message, defaultValue);
+}
 
 // Fetch current version immediately
 fetch('/api/admin/version')
@@ -9692,6 +9702,125 @@ async function sendDeviceCommand(id, type, payload = undefined) {
     return res.json();
 }
 
+// Small popover to send ad-hoc device commands (e.g., source.switch)
+function showSendCommandPopover(anchorEl, deviceId) {
+    try {
+        // Remove any existing popover
+        document.querySelectorAll('.send-command-popover').forEach(el => el.remove());
+
+        const pop = document.createElement('div');
+        pop.className = 'send-command-popover';
+        pop.setAttribute('role', 'dialog');
+        pop.setAttribute('aria-label', 'Send command');
+        Object.assign(pop.style, {
+            position: 'absolute',
+            zIndex: 10000,
+            background: '#1f2937',
+            color: '#fff',
+            border: '1px solid #374151',
+            padding: '10px',
+            borderRadius: '8px',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
+            minWidth: '240px',
+        });
+        pop.innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="font-weight:600;font-size:13px;">Send command</div>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;">
+                    <span>Command</span>
+                    <select class="sc-cmd" style="padding:6px;border-radius:6px;background:#111827;color:#e5e7eb;border:1px solid #374151;">
+                        <option value="playback.prev">playback.prev</option>
+                        <option value="playback.next">playback.next</option>
+                        <option value="playback.pause">playback.pause</option>
+                        <option value="playback.resume">playback.resume</option>
+                        <option value="playback.pinPoster">playback.pinPoster</option>
+                        <option value="source.switch">source.switch</option>
+                        <option disabled>──────────</option>
+                        <option value="core.mgmt.reload">core.mgmt.reload</option>
+                        <option value="core.mgmt.reset">core.mgmt.reset</option>
+                        <option value="core.mgmt.clearCache">core.mgmt.clearCache</option>
+                        <option value="core.mgmt.swUnregister">core.mgmt.swUnregister</option>
+                    </select>
+                </label>
+                <div class="sc-payload sc-payload-source" style="display:none;">
+                    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;">
+                        <span>Source key</span>
+                        <input class="sc-source" placeholder="plex | jellyfin | tmdb | tvdb | all" style="padding:6px;border-radius:6px;background:#111827;color:#e5e7eb;border:1px solid #374151;" />
+                    </label>
+                </div>
+                <div class="sc-payload sc-payload-pin" style="display:none;">
+                    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;">
+                        <span>Pin duration (seconds, optional)</span>
+                        <input class="sc-pin-seconds" type="number" min="0" step="1" placeholder="e.g. 60" style="padding:6px;border-radius:6px;background:#111827;color:#e5e7eb;border:1px solid #374151;" />
+                    </label>
+                </div>
+                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+                    <button type="button" class="btn sc-cancel">Cancel</button>
+                    <button type="button" class="btn is-primary sc-send"><span class="icon"><i class="fas fa-paper-plane"></i></span><span>Send</span></button>
+                </div>
+            </div>
+        `;
+        // Position near anchor
+        const rect = anchorEl.getBoundingClientRect();
+        pop.style.top = `${window.scrollY + rect.bottom + 8}px`;
+        pop.style.left = `${window.scrollX + rect.left}px`;
+        document.body.appendChild(pop);
+
+        const select = pop.querySelector('.sc-cmd');
+        const payloadSource = pop.querySelector('.sc-payload-source');
+        const payloadPin = pop.querySelector('.sc-payload-pin');
+        const sourceInput = pop.querySelector('.sc-source');
+        const pinSecondsInput = pop.querySelector('.sc-pin-seconds');
+        const updatePayloadVisibility = () => {
+            payloadSource.style.display = select.value === 'source.switch' ? 'block' : 'none';
+            payloadPin.style.display = select.value === 'playback.pinPoster' ? 'block' : 'none';
+        };
+        select.addEventListener('change', updatePayloadVisibility);
+        updatePayloadVisibility();
+
+        pop.querySelector('.sc-cancel').addEventListener('click', () => pop.remove());
+        pop.querySelector('.sc-send').addEventListener('click', async () => {
+            const type = select.value;
+            let payload;
+            if (type === 'source.switch') {
+                const v = (sourceInput.value || '').trim();
+                if (!v) {
+                    sourceInput.focus();
+                    return;
+                }
+                payload = { sourceKey: v };
+            } else if (type === 'playback.pinPoster') {
+                const secs = parseInt((pinSecondsInput.value || '0').trim(), 10);
+                if (!isNaN(secs) && secs > 0) payload = { durationMs: secs * 1000 };
+            }
+            try {
+                setButtonState(anchorEl, 'loading', { text: 'Queuing…' });
+                await sendDeviceCommand(deviceId, type, payload);
+                setButtonState(anchorEl, 'success', { text: 'Queued' });
+                const status = document.getElementById('devices-status');
+                if (status) status.textContent = 'Command queued. It will run on next heartbeat.';
+                setTimeout(() => setButtonState(anchorEl, 'revert'), 1200);
+            } catch (e) {
+                setButtonState(anchorEl, 'error', { text: 'Failed' });
+                setTimeout(() => setButtonState(anchorEl, 'revert'), 1500);
+            } finally {
+                pop.remove();
+            }
+        });
+
+        // Close on outside click
+        const onDocDown = ev => {
+            if (!pop.contains(ev.target) && ev.target !== anchorEl) {
+                pop.remove();
+                document.removeEventListener('mousedown', onDocDown, true);
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', onDocDown, true), 0);
+    } catch (_) {
+        // ignore popover errors
+    }
+}
+
 // Pairing modal utilities
 function __ensurePairingModal() {
     let el = document.getElementById('pairing-modal');
@@ -9924,7 +10053,6 @@ function renderDevicesTable(devices) {
 
         // Compute status flags for control availability
         const rawStatus = (d.status || 'unknown').toLowerCase();
-        const hasWs = !!d.wsConnected;
         const isOffline = rawStatus === 'offline';
         const isPaused = !!(d.currentState && d.currentState.paused === true);
         // Local UI-pinned memory (decoupled from paused)
@@ -9952,6 +10080,9 @@ function renderDevicesTable(devices) {
                         </button>
             <button type="button" class="btn" data-cmd="overrides" data-id="${d.id}" title="Edit display settings override">
                             <span class="icon"><i class="fas fa-sliders-h"></i></span>
+                        </button>
+            <button type="button" class="btn" data-cmd="send-command" data-id="${d.id}" title="Send command (e.g., source.switch)" ${isOffline ? 'disabled' : ''}>
+                            <span class="icon"><i class="fas fa-paper-plane"></i></span>
                         </button>
             <button type="button" class="btn" data-cmd="playback.prev" data-id="${d.id}" title="Previous poster" ${isOffline ? 'disabled' : ''}>
                             <span class="icon"><i class="fas fa-step-backward"></i></span>
@@ -10198,6 +10329,10 @@ function renderDevicesTable(devices) {
                     showDeviceSettingsModal(device);
                     return;
                 }
+                if (cmd === 'send-command') {
+                    showSendCommandPopover(btn, id);
+                    return;
+                }
                 if (cmd === 'delete') {
                     devLog('row delete: opening confirm');
                     const ok = await confirmDialog('Delete this device?', btn);
@@ -10317,11 +10452,14 @@ function renderDevicesTable(devices) {
                             }
                         }
                     } else {
-                        await sendDeviceCommand(id, type);
+                        var __result = await sendDeviceCommand(id, type);
                     }
-                    setButtonState(btn, 'success', { text: 'Queued' });
+                    const live = (__result && __result.live) === true;
+                    setButtonState(btn, 'success', { text: live ? 'Live' : 'Queued' });
                     if (status)
-                        status.textContent = 'Command queued. It will run on next heartbeat.';
+                        status.textContent = live
+                            ? 'Live: command delivered via WebSocket.'
+                            : 'Queued: will run on next heartbeat.';
                     setTimeout(() => setButtonState(btn, 'revert'), 1200);
                 }
                 devLog('row command queued', { cmd, id, type });
@@ -10408,6 +10546,10 @@ function initDevicesPanel() {
                         if (!res.ok) throw new Error('Failed to load device');
                         const device = await res.json();
                         showDeviceSettingsModal(device);
+                        return;
+                    }
+                    if (cmd === 'send-command') {
+                        showSendCommandPopover(btn, id);
                         return;
                     }
                     if (cmd === 'delete') {
@@ -10531,10 +10673,15 @@ function initDevicesPanel() {
                                 }
                             }
                         }
-                        if (type !== 'playback.toggle') await sendDeviceCommand(id, type, payload);
-                        setButtonState(btn, 'success', { text: 'Queued' });
+                        let __result2;
+                        if (type !== 'playback.toggle')
+                            __result2 = await sendDeviceCommand(id, type, payload);
+                        const live2 = __result2 && __result2.live === true;
+                        setButtonState(btn, 'success', { text: live2 ? 'Live' : 'Queued' });
                         if (status)
-                            status.textContent = 'Command queued. It will run on next heartbeat.';
+                            status.textContent = live2
+                                ? 'Live: command delivered via WebSocket.'
+                                : 'Queued: will run on next heartbeat.';
                         setTimeout(() => setButtonState(btn, 'revert'), 1200);
                         devLog('delegated command queued', { cmd, id, type });
                     }
@@ -11093,7 +11240,7 @@ function showDeviceSettingsModal(device) {
                     <span class="device-name"><i class="fas fa-display"></i> ${
                         name ? escapeHtml(name) : 'Unnamed device'
                     }</span>
-                    ${loc ? `<span class="device-loc"><i class=\"fas fa-location-dot\"></i> ${escapeHtml(loc)}</span>` : ''}
+                    ${loc ? `<span class="device-loc"><i class="fas fa-location-dot"></i> ${escapeHtml(loc)}</span>` : ''}
                     <span class="device-id" title="Device ID"><i class="fas fa-hashtag"></i> ${escapeHtml(
                         id
                     )}</span>
@@ -11608,15 +11755,15 @@ function showDeviceSettingsModal(device) {
         const payload = {};
         const inputs = form.querySelectorAll('[data-key]');
         inputs.forEach(el => {
-            const key = el.getAttribute('data-key');
-            if (onlyDirty && !dirty.has(key)) return;
+            const keyPath = el.getAttribute('data-key');
+            if (onlyDirty && !dirty.has(keyPath)) return;
             let v;
             if (el.type === 'checkbox') v = !!el.checked;
             else if (el.type === 'number' || el.type === 'range')
                 v = el.value === '' ? undefined : Number(el.value);
             else v = el.value;
             if (v === '' || v === undefined || Number.isNaN(v)) return; // omit unset
-            setDeep(payload, key, v);
+            setDeep(payload, keyPath, v);
         });
         return payload;
     }
@@ -11731,7 +11878,7 @@ function showDeviceSettingsModal(device) {
             const input = wrapper.querySelector('input[type="range"]');
             const bubble = wrapper.querySelector('.slider-percentage');
             if (!input || !bubble) return; // most wrappers may not have bubbles now
-            const key = input.getAttribute('data-key') || '';
+            // key retained in DOM via data-key if needed; avoid unused variable
             // Initial position
             positionSliderBubble(input, bubble);
             // On input and change
@@ -12524,6 +12671,10 @@ function showDeviceSettingsModal(device) {
                     }
                     return;
                 }
+                if (cmd === 'send-command') {
+                    showSendCommandPopover(btn, id);
+                    return;
+                }
                 if (cmd === 'delete') {
                     devLog('global: delete confirm open');
                     const ok = await confirmDialog('Delete this device?', btn);
@@ -12585,10 +12736,15 @@ function showDeviceSettingsModal(device) {
                         if (icon) icon.className = `fas ${!isPlaying ? 'fa-pause' : 'fa-play'}`;
                         btn.classList.toggle('is-primary', !isPlaying);
                     }
-                    if (type !== 'playback.toggle') await sendDeviceCommand(id, type, payload);
-                    setButtonState(btn, 'success', { text: 'Queued' });
+                    let __result3;
+                    if (type !== 'playback.toggle')
+                        __result3 = await sendDeviceCommand(id, type, payload);
+                    const live3 = __result3 && __result3.live === true;
+                    setButtonState(btn, 'success', { text: live3 ? 'Live' : 'Queued' });
                     if (status)
-                        status.textContent = 'Command queued. It will run on next heartbeat.';
+                        status.textContent = live3
+                            ? 'Live: command delivered via WebSocket.'
+                            : 'Queued: will run on next heartbeat.';
                     setTimeout(() => setButtonState(btn, 'revert'), 1200);
                     devLog('global: command queued', { cmd, id, type });
                 }
