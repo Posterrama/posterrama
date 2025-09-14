@@ -2128,10 +2128,64 @@ input[type='range']::-moz-range-thumb {
     background: var(--color-bg);
     color: var(--color-text-secondary);
     cursor: pointer;
+    transition:
+        box-shadow 160ms ease,
+        border-color 160ms ease,
+        background-color 160ms ease,
+        transform 80ms ease;
+}
+.notify-filter .nf-btn:hover {
+    border-color: color-mix(in srgb, var(--color-text-secondary) 20%, var(--color-border));
+    transform: translateY(-1px);
+}
+.notify-filter .nf-btn:active {
+    transform: translateY(0);
+}
+.notify-filter .nf-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
 .notify-filter .nf-btn[aria-checked='true'] {
-    outline: 2px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
     color: var(--color-text);
+    border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-primary) 8%, transparent),
+        color-mix(in srgb, var(--color-primary) 2%, transparent)
+    );
+}
+.notify-filter .nf-btn[aria-checked='true'][data-level='info'] {
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--color-info) 25%, transparent),
+        0 2px 10px rgba(0, 0, 0, 0.18);
+    border-color: color-mix(in srgb, var(--color-info) 45%, var(--color-border));
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-info) 10%, transparent),
+        color-mix(in srgb, var(--color-info) 4%, transparent)
+    );
+}
+.notify-filter .nf-btn[aria-checked='true'][data-level='warn'] {
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--color-warning) 28%, transparent),
+        0 2px 10px rgba(0, 0, 0, 0.18);
+    border-color: color-mix(in srgb, var(--color-warning) 50%, var(--color-border));
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-warning) 12%, transparent),
+        color-mix(in srgb, var(--color-warning) 5%, transparent)
+    );
+}
+.notify-filter .nf-btn[aria-checked='true'][data-level='error'] {
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--color-error) 28%, transparent),
+        0 2px 10px rgba(0, 0, 0, 0.18);
+    border-color: color-mix(in srgb, var(--color-error) 50%, var(--color-border));
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-error) 12%, transparent),
+        color-mix(in srgb, var(--color-error) 5%, transparent)
+    );
 }
 .notify-filter .nf-btn[data-level='info'] i {
     color: var(--color-info);
