@@ -1622,7 +1622,7 @@
       transition: transform 160ms ease, width 160ms ease, height 160ms ease;
       /* Default visual scale ~1.1x */
       transform: scale(1.1);
-      cursor: move; /* draggable hint */
+      cursor: default; /* drag only via grip */
     }
     /* Landscape vs Portrait shell sizing (aspect-ratio approach) */
     #display-preview-container.landscape .preview-shell { width: var(--preview-long-side); height: auto; aspect-ratio: 16 / 9; }
@@ -1640,7 +1640,7 @@
       transform-origin: center center;
       transition: transform 200ms ease;
     }
-    /* Peek handle (collapse/expand) */
+    /* Small drag grip (reuse peek-handle visuals) */
     #display-preview-container .preview-peek-handle {
       position: absolute;
       top: 6px;
@@ -1660,8 +1660,8 @@
       border-top: 2px solid rgba(255,255,255,0.8);
       border-bottom: 2px solid rgba(255,255,255,0.8);
     }
-    #display-preview-container.collapsed .preview-shell { height: 28px; aspect-ratio: auto; }
-    #display-preview-container.collapsed .preview-frame { display: none; }
+  #display-preview-container.collapsed .preview-shell { height: 28px; aspect-ratio: auto; }
+  #display-preview-container.collapsed .preview-frame { display: none; }
     /* Top-right tool buttons */
     #display-preview-container .preview-tools {
       position: absolute; bottom: 6px; right: 6px; display: flex; flex-direction: column; gap: 6px; z-index: 2;
@@ -1723,6 +1723,7 @@
           <!-- Floating Live Preview (reuses /preview page) -->
           <div id="display-preview-container" class="pip-mode screensaver-mode">
             <div class="preview-shell">
+              <div class="preview-peek-handle" title="Drag preview"></div>
               <div class="preview-tools">
                 <button type="button" id="toggle-preview-orientation" class="pip-button" title="Toggle Orientation">
                   <i class="fas fa-mobile-alt"></i>
@@ -1732,7 +1733,7 @@
             </div>
           </div>
           <!-- Active mode selector -->
-          <div class="form-section">
+          <div class="form-section" id="card-active-mode">
             <div class="section-title"><i class="fas fa-layer-group"></i> Active Mode</div>
             <div class="form-row">
               <div class="segmented" role="tablist" aria-label="Display Mode">

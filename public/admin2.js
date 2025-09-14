@@ -2357,14 +2357,34 @@
         // Position the preview near the top-right of the Active Mode card
         function positionAtActiveMode() {
             try {
-                const activeCard = document.getElementById('section-display');
+                const activeCard =
+                    document.getElementById('card-active-mode') ||
+                    document.getElementById('section-display');
                 if (!activeCard) return;
                 const r = activeCard.getBoundingClientRect();
-                // Anchor a bit inset from the panel header (screenshot reference)
-                const inset = 16;
-                container.style.top = Math.max(window.scrollY + r.top + inset, 16) + 'px';
-                container.style.right = 16 + 'px';
-                container.style.left = 'auto';
+                const inset = 12;
+                const top = window.scrollY + r.top + inset;
+                const left = Math.max(
+                    0,
+                    window.scrollX + r.right - (container.offsetWidth || 420) - inset
+                );
+                // Clamp within viewport with a small margin
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const w = container.offsetWidth || 420;
+                const h = container.offsetHeight || 250;
+                const margin = 8;
+                const clampedTop = Math.min(
+                    Math.max(top, window.scrollY + margin),
+                    window.scrollY + vh - h - margin
+                );
+                const clampedLeft = Math.min(
+                    Math.max(left, window.scrollX + margin),
+                    window.scrollX + vw - w - margin
+                );
+                container.style.top = clampedTop + 'px';
+                container.style.left = clampedLeft + 'px';
+                container.style.right = 'auto';
                 container.style.bottom = 'auto';
             } catch (_) {}
         }
@@ -2574,7 +2594,7 @@
                 startY = 0,
                 startTop = 0,
                 startLeft = 0;
-            const shell = container.querySelector('.preview-shell');
+            const grip = container.querySelector('.preview-peek-handle');
             const onDown = e => {
                 try {
                     dragging = true;
@@ -2598,8 +2618,22 @@
                 const evt = e.touches ? e.touches[0] : e;
                 const dx = evt.clientX - startX;
                 const dy = evt.clientY - startY;
-                const top = Math.max(0, startTop + dy);
-                const left = Math.max(0, startLeft + dx);
+                let top = startTop + dy;
+                let left = startLeft + dx;
+                // Clamp within viewport
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const w = container.offsetWidth || 420;
+                const h = container.offsetHeight || 250;
+                const margin = 8;
+                top = Math.min(
+                    Math.max(top, window.scrollY + margin),
+                    window.scrollY + vh - h - margin
+                );
+                left = Math.min(
+                    Math.max(left, window.scrollX + margin),
+                    window.scrollX + vw - w - margin
+                );
                 container.style.top = top + 'px';
                 container.style.left = left + 'px';
                 container.style.right = 'auto';
@@ -2613,8 +2647,8 @@
                 document.removeEventListener('touchmove', onMove);
                 document.removeEventListener('touchend', onUp);
             };
-            shell?.addEventListener('mousedown', onDown);
-            shell?.addEventListener('touchstart', onDown, { passive: false });
+            grip?.addEventListener('mousedown', onDown);
+            grip?.addEventListener('touchstart', onDown, { passive: false });
         })();
     }
 
