@@ -3132,7 +3132,22 @@
             async function openPairingFor(ids, overrides) {
                 if (!Array.isArray(ids) || !ids.length) return;
                 const container = document.getElementById('pairing-list');
-                if (container) container.innerHTML = '';
+                if (container) {
+                    // Reset previous content and timers if any
+                    container.innerHTML = '';
+                    if (container._tickTimer) {
+                        try {
+                            clearInterval(container._tickTimer);
+                        } catch (_) {}
+                        container._tickTimer = null;
+                    }
+                    if (container._pairPollTimer) {
+                        try {
+                            clearInterval(container._pairPollTimer);
+                        } catch (_) {}
+                        container._pairPollTimer = null;
+                    }
+                }
                 // Keep title static; show device name inside content name bar if single selection
                 try {
                     const bar = document.getElementById('pairing-namebar');
@@ -3159,6 +3174,8 @@
                     const r = s % 60;
                     return m ? `${m}m ${r}s` : `${r}s`;
                 };
+                // Track generated codes to detect successful claims and auto-close modal
+                const watchers = [];
                 for (const id of ids) {
                     try {
                         const r = await fetchJSON(
@@ -3205,6 +3222,9 @@
                             baseOrigin = window.location.origin;
                         }
                         const claimUrl = `${baseOrigin}/?pair=${encodeURIComponent(r?.code || '')}`;
+                        if (r?.code) {
+                            watchers.push({ id, code: String(r.code) });
+                        }
                         const ttlMs =
                             Number(r?.expiresInMs) ||
                             Math.max(0, Date.parse(r?.expiresAt || 0) - Date.now());
@@ -3310,7 +3330,83 @@
                     container._tickTimer = setInterval(tick, 1000);
                 }
                 // QR removed per UX
-                document.getElementById('modal-pairing')?.classList.add('open');
+                const pairingOverlay = document.getElementById('modal-pairing');
+                pairingOverlay?.classList.add('open');
+
+                // Helper to show a short success state and fade out the modal
+                function closePairingModalWithSuccess() {
+                    try {
+                        if (!pairingOverlay) return;
+                        const box = pairingOverlay.querySelector('.modal');
+                        if (box) {
+                            box.innerHTML =
+                                '<div class="modal-body"><div class="pairing-success"><i class="fas fa-check-circle"></i><span>Screen Paired</span></div></div>';
+                        }
+                        // stop timers to avoid UI flicker during fade
+                        if (container && container._tickTimer) {
+                            try {
+                                clearInterval(container._tickTimer);
+                            } catch (_) {}
+                            container._tickTimer = null;
+                        }
+                        if (container && container._pairPollTimer) {
+                            try {
+                                clearInterval(container._pairPollTimer);
+                            } catch (_) {}
+                            container._pairPollTimer = null;
+                        }
+                        pairingOverlay.classList.add('fade-out');
+                        setTimeout(() => {
+                            pairingOverlay.classList.remove('open');
+                            pairingOverlay.classList.remove('fade-out');
+                        }, 650);
+                    } catch (_) {
+                        /* noop */
+                    }
+                }
+
+                // Poll devices to see when any watched code gets claimed, then refresh + close modal
+                if (container && watchers.length) {
+                    const pollOnce = async () => {
+                        try {
+                            const list = await fetchJSON('/api/devices').catch(() => null);
+                            if (!Array.isArray(list)) return;
+                            const byId = new Map(list.map(d => [String(d.id), d]));
+                            const now = Date.now();
+                            for (const w of watchers) {
+                                const d = byId.get(String(w.id));
+                                if (!d) continue;
+                                const p = d.pairing || {};
+                                const lp = Date.parse(p.lastPairedAt || 0) || 0;
+                                const codeStillMatches =
+                                    p.code && String(p.code) === String(w.code);
+                                const recentlyPaired = lp && now - lp < 5 * 60 * 1000; // 5 minutes
+                                if (recentlyPaired && !codeStillMatches) {
+                                    try {
+                                        await loadDevices();
+                                    } catch (_) {}
+                                    try {
+                                        await refreshDevices();
+                                    } catch (_) {}
+                                    closePairingModalWithSuccess();
+                                    // Stop polling after success
+                                    if (container._pairPollTimer) {
+                                        try {
+                                            clearInterval(container._pairPollTimer);
+                                        } catch (_) {}
+                                        container._pairPollTimer = null;
+                                    }
+                                    return;
+                                }
+                            }
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    };
+                    // Prime once quickly, then poll every 1.5s
+                    pollOnce();
+                    container._pairPollTimer = setInterval(pollOnce, 1500);
+                }
             }
             function openRemoteFor(id) {
                 const dev = (state.all || []).find(d => d.id === id);

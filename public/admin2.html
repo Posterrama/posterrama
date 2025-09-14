@@ -93,6 +93,11 @@
   }
   /* Pairing modal layout */
   #modal-pairing .modal-body { padding-top: 12px; }
+  /* Pairing modal fade-out and success state */
+  #modal-pairing.fade-out { opacity: 0; transition: opacity 600ms ease; }
+  .pairing-success { display:flex; align-items:center; justify-content:center; gap:10px; font-weight:700; color: var(--color-success, #22c55e); padding: 24px 8px; }
+  .pairing-success i { color: var(--color-success, #22c55e); font-size: 20px; }
+  .pairing-success span { font-size: 1rem; }
   /* Name bar shown at top of modal content when a single device is paired */
   .pairing-namebar { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--color-border); background: rgba(255,255,255,0.03); border-radius: 12px; font-weight: 700; margin-bottom: 10px; }
   .pairing-namebar i { color: var(--color-text-muted); }
