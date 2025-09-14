@@ -1108,6 +1108,7 @@ function renderGroupsTable(groups, devices) {
     });
     (groups || []).forEach(g => {
         const tr = document.createElement('tr');
+        tr.setAttribute('data-id', g.id);
         tr.innerHTML = `
             <td class="col-select"><input type="checkbox" class="row-select" data-id="${g.id}" aria-label="Select group"/></td>
             <td class="col-name">
@@ -1116,7 +1117,10 @@ function renderGroupsTable(groups, devices) {
                 <div class="muted tiny">ID: ${esc(g.id)}</div>
             </td>
             <td class="col-order">
-                <div class="order-controls" data-id="${g.id}">
+                <div class="order-controls" data-id="${g.id}" style="display:flex;align-items:center;gap:.35rem;">
+                    <span class="drag-handle" draggable="true" title="Drag to reorder" style="cursor:grab;display:inline-flex;align-items:center;color:#aaa;">
+                        <i class="fas fa-grip-vertical"></i>
+                    </span>
                     <button type="button" class="btn btn-compact" data-act="ord-dec" title="Move up"><i class="fas fa-chevron-up"></i></button>
                     <input type="number" class="inline-order" value="${Number.isFinite(g.order) ? g.order : 0}" min="0" step="1" style="width:72px" />
                     <button type="button" class="btn btn-compact" data-act="ord-inc" title="Move down"><i class="fas fa-chevron-down"></i></button>
@@ -1134,6 +1138,9 @@ function renderGroupsTable(groups, devices) {
             </td>`;
         tbody.appendChild(tr);
     });
+
+    // Enable drag-and-drop reordering
+    setupGroupDragAndDrop(tbody);
 }
 
 function openGroupEditor(group) {
@@ -1391,6 +1398,96 @@ async function patchDeviceGroups(id, groups) {
     await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
         method: 'PATCH',
         body: JSON.stringify({ groups: Array.isArray(groups) ? groups : [] }),
+    });
+}
+
+// --- Drag & Drop helpers for Groups -------------------------------------------------
+function setupGroupDragAndDrop(tbody) {
+    if (!tbody || tbody.__groupsDndInit) return;
+    tbody.__groupsDndInit = true;
+    // Restrict drag start to the handle to avoid accidental drags
+    let draggingEl = null;
+    let dragStartIndex = -1;
+
+    // Mark rows as draggable only during handle drag
+    tbody.addEventListener('dragstart', e => {
+        const row = e.target.closest('tr');
+        const onHandle = e.target.closest('.drag-handle');
+        if (!row || !onHandle) {
+            e.preventDefault();
+            return;
+        }
+        draggingEl = row;
+        dragStartIndex = Array.from(tbody.children).indexOf(row);
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        try {
+            e.dataTransfer.setData('text/plain', row.getAttribute('data-id') || '');
+        } catch (_) {}
+    });
+
+    tbody.addEventListener('dragend', async () => {
+        if (!draggingEl) return;
+        draggingEl.classList.remove('dragging');
+        const status = document.getElementById('groups-status');
+        try {
+            await persistGroupOrder(tbody);
+            status && (status.textContent = 'Order saved');
+        } catch (err) {
+            status && (status.textContent = err.message || 'Order save failed');
+        } finally {
+            draggingEl = null;
+            dragStartIndex = -1;
+        }
+    });
+
+    tbody.addEventListener('dragover', e => {
+        if (!draggingEl) return;
+        e.preventDefault();
+        const after = getDragAfterRow(tbody, e.clientY);
+        if (!after) {
+            tbody.appendChild(draggingEl);
+        } else {
+            tbody.insertBefore(draggingEl, after);
+        }
+    });
+
+    // Make handles focusable for accessibility (keyboard DnD could be added later)
+    tbody.querySelectorAll('.drag-handle').forEach(h => h.setAttribute('tabindex', '0'));
+}
+
+function getDragAfterRow(container, y) {
+    const rows = [...container.querySelectorAll('tr:not(.dragging)')];
+    return (
+        rows
+            .map(row => {
+                const rect = row.getBoundingClientRect();
+                const offset = y - rect.top - rect.height / 2;
+                return { row, offset };
+            })
+            .filter(x => x.offset < 0)
+            .sort((a, b) => b.offset - a.offset)[0]?.row || null
+    );
+}
+
+async function persistGroupOrder(tbody) {
+    // Recompute order based on current DOM order (0..n-1)
+    const ids = Array.from(tbody.querySelectorAll('tr')).map(tr => tr.getAttribute('data-id'));
+    const byId = new Map((__groupsCache || []).map(g => [g.id, g]));
+    const ops = [];
+    ids.forEach((id, index) => {
+        const g = byId.get(id);
+        const current = Number.isFinite(g?.order) ? g.order : -1;
+        if (current !== index) {
+            ops.push(patchGroup(id, { order: index }));
+            if (g) g.order = index;
+        }
+    });
+    if (ops.length) await Promise.all(ops);
+    // Update the inline order inputs to reflect new indices
+    Array.from(tbody.querySelectorAll('tr')).forEach((tr, index) => {
+        const input = tr.querySelector('.inline-order');
+        if (input) input.value = index;
     });
 }
 
