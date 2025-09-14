@@ -1318,28 +1318,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 mediaQueue.length > 0 &&
                 mediaQueue.length <= 12;
 
-            if (shouldPrefetchFullList) {
-                try {
-                    fetchMedia(false)
-                        .catch(() => {
-                            // Preview prefetch failed; grid will start with current list
-                        })
-                        .finally(() => {
-                            try {
-                                startWallartCycle(config.wallartMode);
-                                window._lastWallartConfig = { ...config.wallartMode };
-                            } catch (_) {
-                                // Failed to start wallart cycle after prefetch; ignore
-                            }
-                        });
-                } catch (_) {
-                    // Fallback to immediate start if fetch throws synchronously
+            // Only (re)build the grid if not already active. When already active and nothing
+            // changed (needsRestart handled above), keep the ongoing per‑tile refresh running.
+            if (!isAlreadyActive) {
+                if (shouldPrefetchFullList) {
+                    try {
+                        fetchMedia(false)
+                            .catch(() => {
+                                // Preview prefetch failed; grid will start with current list
+                            })
+                            .finally(() => {
+                                try {
+                                    startWallartCycle(config.wallartMode);
+                                    window._lastWallartConfig = { ...config.wallartMode };
+                                } catch (_) {
+                                    // Failed to start wallart cycle after prefetch; ignore
+                                }
+                            });
+                    } catch (_) {
+                        // Fallback to immediate start if fetch throws synchronously
+                        startWallartCycle(config.wallartMode);
+                        window._lastWallartConfig = { ...config.wallartMode };
+                    }
+                } else {
                     startWallartCycle(config.wallartMode);
                     window._lastWallartConfig = { ...config.wallartMode };
                 }
-            } else {
-                startWallartCycle(config.wallartMode);
-                window._lastWallartConfig = { ...config.wallartMode };
             }
 
             // Spotlight removed

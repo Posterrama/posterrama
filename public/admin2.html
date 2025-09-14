@@ -581,45 +581,17 @@
     #section-devices .device-card .device-corner .synced-dot { animation: pulse-green 1.8s ease-out infinite; }
   }
 
-  /* Live status pill: green theme with outward ripple rings from the edge */
+  /* Live status pill: match Display Settings Mode pill design (Wallart/Cinema style) */
   #section-devices .device-badges .status-pill.status-live {
+    background: linear-gradient(90deg, rgba(16,185,129,0.32), rgba(59,130,246,0.24)) !important;
+    color: #ecfdf5 !important;
+    border: 1px solid rgba(16,185,129,0.65) !important;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.14), 0 10px 28px rgba(16,185,129,0.35) !important;
+    font-weight: 800 !important;
     position: relative;
     overflow: visible;
-    background: rgba(34,197,94,0.12) !important;
-    border: 1px solid rgba(34,197,94,0.35) !important;
-    color: #86efac !important;
   }
-  #section-devices .device-badges .status-pill.status-live i { color: #86efac !important; }
-  #section-devices .device-badges .status-pill.status-live::before,
-  #section-devices .device-badges .status-pill.status-live::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 100%;
-    height: 100%;
-    border-radius: 999px;
-    pointer-events: none;
-    border: 1px solid rgba(34,197,94,0.28);
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0;
-  }
-  @keyframes live-ripple {
-    0%   { transform: translate(-50%, -50%) scale(1);    opacity: .16; }
-    70%  {                                            opacity: .04; }
-    100% { transform: translate(-50%, -50%) scale(1.5);  opacity: 0; }
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    #section-devices .device-badges .status-pill.status-live::before {
-      animation: live-ripple 6.8s ease-out infinite;
-      will-change: transform, opacity;
-    }
-    #section-devices .device-badges .status-pill.status-live::after {
-      animation: live-ripple 6.8s ease-out infinite;
-      animation-delay: 3.4s; /* stagger second ring */
-      will-change: transform, opacity;
-    }
-  }
+  #section-devices .device-badges .status-pill.status-live i { color: inherit !important; }
 
   /* Powered off pill (red variant) */
   #section-devices .device-badges .status-pill.sp-poweredoff {
@@ -1104,8 +1076,29 @@
   }
   @keyframes pulse-dot { 0%{ box-shadow: 0 0 0 0 rgba(255,255,255,.0);} 70%{ box-shadow: 0 0 0 6px rgba(255,255,255,.05);} 100%{ box-shadow: 0 0 0 0 rgba(255,255,255,.0);} }
   #section-media-sources .sc-status .status-pill { font-size:.75rem; padding: 3px 10px; border-radius:999px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
+  /* Match 'Mode: Wallart' pill design for Configured state */
+  #section-media-sources .sc-status .status-pill.status-success,
+  #section-media-sources .status-pill.is-configured {
+    background: linear-gradient(90deg, rgba(16,185,129,0.22), rgba(59,130,246,0.16));
+    color:#d1fae5;
+    border-color: rgba(16,185,129,0.45);
+    box-shadow: 0 0 0 2px rgba(16,185,129,0.08), 0 6px 22px rgba(16,185,129,0.26);
+    font-weight: 700;
+  }
   #section-media-sources .sc-status .header-toggle { margin-left:auto; }
   #section-media-sources .sc-meta { display:flex; align-items:center; align-content: flex-start; flex-wrap: wrap; gap: 10px 10px; font-size:.85rem; color: var(--color-text-secondary); margin: 10px 0 16px; }
+  /* Header pills (Not configured / Configured) use same look when configured */
+  #section-media-sources .status-pill.is-configured,
+  #plex-status-pill-header.is-configured,
+  #jf-status-pill-header.is-configured,
+  #tmdb-status-pill-header.is-configured,
+  #tvdb-status-pill-header.is-configured {
+    background: linear-gradient(90deg, rgba(16,185,129,0.22), rgba(59,130,246,0.16));
+    color:#d1fae5;
+    border-color: rgba(16,185,129,0.45);
+    box-shadow: 0 0 0 2px rgba(16,185,129,0.08), 0 6px 22px rgba(16,185,129,0.26);
+    font-weight: 700;
+  }
   /* Ensure consistent pill area height so cards line up evenly */
   /* Very wide screens: allow up to two chip lines comfortably */
   @media (min-width: 1400px) {
