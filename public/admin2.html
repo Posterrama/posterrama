@@ -146,7 +146,7 @@
   /* Modern Dropdown Menu Styling */
   .dropdown-menu {
     position: absolute !important;
-    top: calc(100% + 4px) !important; /* Reduced gap to improve hover */
+    top: calc(100% + 4px) !important; /* Default gap; navbar menus override below */
     min-width: 240px !important;
     max-width: 280px !important;
     padding: 8px !important;
@@ -318,8 +318,15 @@
     left: auto !important;
   margin-top: 0 !important;
     margin-right: 0 !important;
-  top: calc(100% + 4px) !important; /* small gap from button */
+  /* Align user menu height with navbar buttons by compensating for the inner shift */
+  top: calc(100% - var(--navbar-inner-shift) + 2px) !important; /* slight upward nudge for a tighter anchor */
     position: absolute !important;
+  }
+
+  /* Ensure Notifications and Settings dropdowns match the same vertical offset as the User menu */
+  .navbar .nav-actions #notif-dropdown > .dropdown-menu,
+  .navbar .nav-actions #settings-dropdown > .dropdown-menu {
+    top: calc(100% - var(--navbar-inner-shift) + 2px) !important;
   }
   
   /* Dropdown items */
