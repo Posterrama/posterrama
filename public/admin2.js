@@ -5530,6 +5530,7 @@
                         el.disabled = false;
                         const mirror = document.getElementById('tvdb.enabled');
                         if (mirror) mirror.checked = el.checked;
+                        // Repaint header pills and dependent UI
                         loadMediaSources(true).catch(() => {});
                     });
                 } catch (_) {}
@@ -6664,6 +6665,28 @@
             // TVDB
             const tvdb = cfg.tvdbSource || {};
             if (getInput('tvdb.enabled')) getInput('tvdb.enabled').checked = !!tvdb.enabled;
+            // Header pill for TVDB
+            try {
+                const pill = document.getElementById('tvdb-status-pill-header');
+                if (pill) {
+                    pill.classList.remove(
+                        'status-success',
+                        'status-error',
+                        'is-configured',
+                        'is-not-configured'
+                    );
+                    if (!tvdb.enabled) {
+                        pill.textContent = 'Disabled';
+                        pill.classList.add('is-not-configured');
+                    } else {
+                        // No API key required for TVDB in our model; treat enabled as configured
+                        pill.textContent = 'Configured';
+                        pill.classList.add('is-configured');
+                    }
+                }
+            } catch (_) {
+                /* no-op */
+            }
             const tvdbCatEl = getInput('tvdb.category');
             if (tvdbCatEl) {
                 tvdbCatEl.value = tvdb.category || 'popular';
