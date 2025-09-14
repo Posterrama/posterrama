@@ -11160,6 +11160,7 @@ ${escHtml(presets.length ? JSON.stringify(presets[0], null, 2) : '')}
         const btn = container.querySelector('#groups-menu-button');
         const menu = container.querySelector('#groups-menu');
         const manageBtn = container.querySelector('#menu-manage-groups');
+        const sendBtn = container.querySelector('#menu-group-send');
         if (!btn || !menu || !manageBtn) return;
         const setOpen = open => {
             btn.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -11177,6 +11178,18 @@ ${escHtml(presets.length ? JSON.stringify(presets[0], null, 2) : '')}
             setOpen(false);
             showManageGroupsModal();
         });
+        if (sendBtn) {
+            sendBtn.addEventListener('click', async ev => {
+                ev.stopPropagation();
+                setOpen(false);
+                try {
+                    const groups = await fetchGroups();
+                    showQuickGroupCommandModal(groups);
+                } catch (_) {
+                    // no-op
+                }
+            });
+        }
         document.addEventListener('click', e => {
             if (!open) return;
             if (!menu.contains(e.target) && e.target !== btn) {
@@ -11338,7 +11351,7 @@ function showManageGroupsModal() {
                         ? JSON.stringify(g.settingsTemplate, null, 2)
                         : '';
                     tplHint.textContent =
-                        'Group settings override device defaults for members. Leave empty to inherit.';
+                        'Group templates override device defaults. Known keys: transitionIntervalSeconds, cinemaMode, cinemaOrientation, wallartMode.*';
                 } catch (_) {
                     tplEl.value = '';
                 }
@@ -11367,6 +11380,21 @@ function showManageGroupsModal() {
                             'Invalid JSON: ' + (e && e.message ? e.message : 'parse error');
                         return;
                     }
+                }
+                // Warn on unknown top-level keys (non-blocking)
+                try {
+                    const allowedTop = new Set([
+                        'transitionIntervalSeconds',
+                        'cinemaMode',
+                        'cinemaOrientation',
+                        'wallartMode',
+                    ]);
+                    const unknown = Object.keys(parsed || {}).filter(k => !allowedTop.has(k));
+                    if (unknown.length) {
+                        tplHint.textContent = `Note: unknown keys [${unknown.join(', ')}]`; // not an error
+                    }
+                } catch (_) {
+                    // ignore hint errors
                 }
                 try {
                     await patchGroup(gid, { settingsTemplate: parsed });
@@ -11484,6 +11512,82 @@ function showManageGroupsModal() {
     };
 
     loadAndRender();
+}
+
+// Lightweight modal for quick group command send
+function showQuickGroupCommandModal(groups) {
+    try {
+        const existing = document.getElementById('group-quick-cmd-modal');
+        if (existing) existing.remove();
+    } catch (_) {}
+    const esc = s => (s == null ? '' : String(s).replace(/</g, '&lt;'));
+    const html = `
+        <div id="group-quick-cmd-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="group-quick-title">
+            <div class="modal-background" data-close></div>
+            <div class="modal-content" style="max-width:640px;">
+                <span class="close" data-close>&times;</span>
+                <h3 id="group-quick-title" class="section-title modal-section-title"><i class="fas fa-paper-plane"></i> <span>Send Group Command</span></h3>
+                <div class="form-section unified-section">
+                    <div class="subsection-content">
+                        <div class="form-grid-3" style="gap:8px;align-items:end;">
+                            <div class="form-group"><label>Group</label>
+                                <select id="gqc-group" style="min-width:200px;">
+                                    ${groups.map(g => `<option value="${esc(g.id)}">${esc(g.name || g.id)}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group"><label>Command</label>
+                                <select id="gqc-type" style="min-width:180px">
+                                    <option value="playback.next">Next Poster</option>
+                                    <option value="playback.prev">Previous Poster</option>
+                                    <option value="playback.toggle">Toggle Pause/Resume</option>
+                                    <option value="source.switch">Switch Source</option>
+                                    <option value="power.off">Power Off</option>
+                                    <option value="power.on">Power On</option>
+                                    <option value="reload">Reload</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>Payload (JSON)</label>
+                                <input id="gqc-payload" type="text" placeholder='{"sourceKey":"plex"}' />
+                            </div>
+                            <div class="form-group"><button id="gqc-send" class="btn"><i class="fas fa-paper-plane icon"></i><span>Send</span></button></div>
+                        </div>
+                        <div class="hint" id="gqc-status" style="margin-top:6px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    const el = wrap.firstElementChild;
+    document.body.appendChild(el);
+    el.querySelectorAll('[data-close]').forEach(c =>
+        c.addEventListener('click', () => el.remove())
+    );
+    const gidEl = el.querySelector('#gqc-group');
+    const typeEl = el.querySelector('#gqc-type');
+    const payloadEl = el.querySelector('#gqc-payload');
+    const sendBtn = el.querySelector('#gqc-send');
+    const status = el.querySelector('#gqc-status');
+    sendBtn.addEventListener('click', async () => {
+        const gid = gidEl.value;
+        const type = typeEl.value;
+        let payload;
+        const txt = (payloadEl.value || '').trim();
+        if (txt) {
+            try {
+                payload = JSON.parse(txt);
+            } catch (e) {
+                status.textContent = 'Invalid payload JSON';
+                return;
+            }
+        }
+        try {
+            await sendGroupCommand(gid, type, payload);
+            status.textContent = 'Command sent';
+        } catch (_) {
+            status.textContent = 'Failed to send';
+        }
+    });
 }
 
 // Device Settings Override Modal
