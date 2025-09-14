@@ -324,11 +324,8 @@
   }
 
   /* Ensure Notifications and Settings dropdowns match the same vertical offset as the User menu */
-  /* Notifications: slightly higher (a couple of px) */
-  .navbar .nav-actions #notif-dropdown > .dropdown-menu {
-    top: calc(100% - var(--navbar-inner-shift) + 2px) !important;
-  }
-  /* Settings: keep aligned with user menu */
+  /* Notifications & Settings: align with user menu */
+  .navbar .nav-actions #notif-dropdown > .dropdown-menu,
   .navbar .nav-actions #settings-dropdown > .dropdown-menu {
     top: calc(100% - var(--navbar-inner-shift) + 4px) !important;
   }

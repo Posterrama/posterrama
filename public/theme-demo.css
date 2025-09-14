@@ -89,7 +89,8 @@
 
     /* Layout */
     --sidebar-width: 280px;
-    --navbar-height: 64px;
+    --navbar-height: 68px;
+    --navbar-inner-shift: 4px; /* shift header contents down for added top spacing */
 }
 
 /* Reset & Base */
@@ -124,6 +125,11 @@ body {
     z-index: 1000;
     box-shadow: var(--shadow-md);
     backdrop-filter: blur(10px);
+}
+
+/* Move all header contents down uniformly for extra top breathing room */
+.navbar > * {
+    transform: translateY(var(--navbar-inner-shift));
 }
 
 .nav-brand {
@@ -2070,7 +2076,7 @@ input[type='range']::-moz-range-thumb {
 /* Notification Center (in-app, non-toast) */
 .notify-center {
     position: fixed;
-    top: calc(var(--navbar-height) + 8px);
+    top: calc(var(--navbar-height) + 4px);
     right: 16px;
     width: min(380px, 92vw);
     background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
