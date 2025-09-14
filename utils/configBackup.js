@@ -22,7 +22,9 @@ const FILE_WHITELIST = [
 function ensureDirSync(dir) {
     try {
         fs.mkdirSync(dir, { recursive: true });
-    } catch (_) {}
+    } catch (_) {
+        /* ignore mkdir error (race condition not critical) */
+    }
 }
 
 function nowId() {
@@ -72,7 +74,9 @@ async function listBackups() {
         try {
             const m = await fsp.readFile(path.join(dir, 'meta.json'), 'utf8');
             meta = JSON.parse(m);
-        } catch (_) {}
+        } catch (_) {
+            /* ignore malformed/missing meta.json */
+        }
         const files = [];
         for (const name of FILE_WHITELIST) {
             const fp = path.join(dir, name);
@@ -96,7 +100,9 @@ async function cleanupOldBackups(keep = 7) {
         try {
             await fsp.rm(dir, { recursive: true, force: true });
             deleted++;
-        } catch (_) {}
+        } catch (_) {
+            /* ignore delete failure; continue */
+        }
     }
     return { deleted, kept: list.length - deleted };
 }
@@ -120,7 +126,9 @@ async function restoreFile(backupId, fileName) {
         ensureDirSync(safedir);
         try {
             await fsp.copyFile(dst, path.join(safedir, fileName));
-        } catch (_) {}
+        } catch (_) {
+            /* ignore safety copy failure */
+        }
     }
     await fsp.copyFile(src, dst);
     return { ok: true };

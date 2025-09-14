@@ -48,7 +48,9 @@ function unmockAll() {
     try {
         const serverPath = path.resolve(__dirname, '../../server.js');
         jest.dontMock(serverPath);
-    } catch (_) {}
+    } catch (_) {
+        // ignore cleanup errors in test teardown
+    }
 }
 
 describe('jellyfin_connectivity health check', () => {

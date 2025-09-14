@@ -1880,155 +1880,7 @@
             applyClock();
         } catch (_) {}
 
-        // Screensaver cards (including Presets): customizable two-column layout
-        try {
-            const initModeCustomize = ({
-                scope,
-                containerId,
-                btnStartId,
-                btnDoneId,
-                btnResetId,
-                colLeftId,
-                colRightId,
-                cardSelector,
-                keyAttr = 'data-card-key',
-            }) => {
-                const container = document.getElementById(containerId);
-                const btnStart = document.getElementById(btnStartId);
-                const btnDone = document.getElementById(btnDoneId);
-                const btnReset = document.getElementById(btnResetId);
-                const colL = document.getElementById(colLeftId);
-                const colR = document.getElementById(colRightId);
-                if (!container || !btnStart || !btnDone || !btnReset || !colL || !colR) return;
-
-                const STORAGE_KEY = `display.${scope}.layout.v1`;
-                const readLayout = () => {
-                    try {
-                        const raw = localStorage.getItem(STORAGE_KEY);
-                        return raw ? JSON.parse(raw) : null;
-                    } catch (_) {
-                        return null;
-                    }
-                };
-                const writeLayout = layout => {
-                    try {
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
-                    } catch (_) {}
-                };
-                const getCards = () => Array.from(container.querySelectorAll(cardSelector));
-
-                let dragEl = null;
-                const enableDrag = () => {
-                    getCards().forEach(el => {
-                        el.setAttribute('draggable', 'true');
-                        el.addEventListener('dragstart', e => {
-                            dragEl = el;
-                            el.classList.add('dragging');
-                            e.dataTransfer?.setData(
-                                'text/plain',
-                                el.id || el.getAttribute(keyAttr) || ''
-                            );
-                        });
-                        el.addEventListener('dragend', () => {
-                            el.classList.remove('dragging');
-                            dragEl = null;
-                        });
-                    });
-                    [colL, colR].forEach(col => {
-                        col.addEventListener('dragover', e => {
-                            e.preventDefault();
-                            col.classList.add('drag-over');
-                        });
-                        col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
-                        col.addEventListener('drop', e => {
-                            e.preventDefault();
-                            col.classList.remove('drag-over');
-                            if (!dragEl) return;
-                            const after = Array.from(col.children).find(
-                                child =>
-                                    e.clientY <=
-                                    child.getBoundingClientRect().top +
-                                        child.getBoundingClientRect().height / 2
-                            );
-                            if (after) col.insertBefore(dragEl, after);
-                            else col.appendChild(dragEl);
-                        });
-                    });
-                };
-
-                const enterCustomize = () => {
-                    container.classList.add('customizing');
-                    colL.style.display = '';
-                    colR.style.display = '';
-                    btnStart.style.display = 'none';
-                    btnDone.style.display = '';
-                    const saved = readLayout();
-                    colL.innerHTML = '';
-                    colR.innerHTML = '';
-                    if (saved) {
-                        const all = new Map(getCards().map(el => [el.getAttribute(keyAttr), el]));
-                        (saved.left || []).forEach(k => {
-                            const el = all.get(k);
-                            if (el) colL.appendChild(el);
-                        });
-                        (saved.right || []).forEach(k => {
-                            const el = all.get(k);
-                            if (el) colR.appendChild(el);
-                        });
-                    } else {
-                        // Default: put Presets first on the left, rest balanced by current DOM order
-                        const cards = getCards();
-                        const presets = cards.find(el => el.getAttribute(keyAttr) === 'presets');
-                        const rest = cards.filter(el => el !== presets);
-                        if (presets) colL.appendChild(presets);
-                        const mid = Math.ceil(rest.length / 2);
-                        rest.slice(0, mid).forEach(el => colL.appendChild(el));
-                        rest.slice(mid).forEach(el => colR.appendChild(el));
-                    }
-                    enableDrag();
-                };
-
-                const exitCustomize = (persist = true) => {
-                    if (persist) {
-                        const left = Array.from(colL.children).map(ch => ch.getAttribute(keyAttr));
-                        const right = Array.from(colR.children).map(ch => ch.getAttribute(keyAttr));
-                        writeLayout({ left, right });
-                    }
-                    const all = [...Array.from(colL.children), ...Array.from(colR.children)];
-                    all.forEach(el => container.appendChild(el));
-                    container.classList.remove('customizing');
-                    colL.style.display = 'none';
-                    colR.style.display = 'none';
-                    btnStart.style.display = '';
-                    btnDone.style.display = 'none';
-                };
-
-                const applySaved = () => {
-                    const saved = readLayout();
-                    if (!saved) return;
-                    const all = new Map(getCards().map(el => [el.getAttribute(keyAttr), el]));
-                    const append = keys =>
-                        keys.forEach(k => {
-                            const el = all.get(k);
-                            if (el) container.appendChild(el);
-                        });
-                    append(saved.left || []);
-                    append(saved.right || []);
-                };
-                applySaved();
-
-                btnStart.addEventListener('click', () => enterCustomize());
-                btnDone.addEventListener('click', () => exitCustomize(true));
-                btnReset.addEventListener('click', () => {
-                    try {
-                        localStorage.removeItem(`display.${scope}.layout.v1`);
-                    } catch (_) {}
-                    if (container.classList.contains('customizing')) enterCustomize();
-                });
-            };
-
-            // Screensaver no longer supports custom layout; initializer removed.
-        } catch (_) {}
+        // Screensaver no longer supports custom layout; initializer removed.
 
         // Wallart & Cinema: customize/reset functionality removed per request.
 
@@ -2893,7 +2745,7 @@
 
                 // Create/restore SSE with backoff when closed
                 let reconnectTimer = null;
-                function establishSSE() {
+                const establishSSE = () => {
                     try {
                         const existing = window.__adminSSE;
                         if (existing && existing.readyState !== 2 /* CLOSED */) return;
@@ -2951,7 +2803,7 @@
                             }, 5000);
                         }
                     }
-                }
+                };
 
                 establishSSE();
             } catch (_) {
@@ -3505,12 +3357,12 @@
                     // Sync hidden select if present
                     if (sel && [...sel.options].some(o => o.value === saved)) sel.value = saved;
                     // Helper to update aria-checked on icon buttons
-                    function paint(v) {
+                    const paint = v => {
                         if (!container) return;
                         container.querySelectorAll('.nf-btn').forEach(btn => {
                             btn.setAttribute('aria-checked', String(btn.dataset.level === v));
                         });
-                    }
+                    };
                     paint(saved);
                     // Click handling on compact icons
                     container?.addEventListener('click', e => {
@@ -7515,12 +7367,12 @@
                                 const html = [
                                     titleHTML,
                                     '<div class="hc-list">',
-                                    `<div class=\"hc-row\"><i class=\"fas fa-plug\"></i><span>WebSocket</span><span class=\"mono value ${d.wsConnected ? '' : 'dim'}\">${escapeHtml(ws)}</span></div>`,
-                                    `<div class=\"hc-row\"><i class=\"fas fa-clock\"></i><span>Last seen</span><span class=\"mono value ${lastTs ? '' : 'dim'}\">${escapeHtml(last)}</span></div>`,
-                                    `<div class=\"hc-row\"><i class=\"fas fa-hashtag\"></i><span>Device ID</span><span class=\"mono value\">${escapeHtml(d.id || '—')}</span></div>`,
-                                    `<div class=\"hc-row\"><i class=\"fas fa-expand\"></i><span>Resolution</span><span class=\"mono value ${w && h ? '' : 'dim'}\">${escapeHtml(res)}</span></div>`,
-                                    `<div class=\"hc-row\"><i class=\"fas fa-sliders\"></i><span>Mode</span><span class=\"mono value ${mode ? '' : 'dim'}\">${escapeHtml(modeLabel(mode) || '—')}</span></div>`,
-                                    `<div class=\"hc-row hc-ua\"><i class=\"fas fa-globe\"></i><span>User agent</span><span class=\"mono value ${ua ? '' : 'dim'}\" title=\"${escapeHtml(ua)}\">${escapeHtml(ua || '—')}</span></div>`,
+                                    `<div class="hc-row"><i class="fas fa-plug"></i><span>WebSocket</span><span class="mono value ${d.wsConnected ? '' : 'dim'}">${escapeHtml(ws)}</span></div>`,
+                                    `<div class="hc-row"><i class="fas fa-clock"></i><span>Last seen</span><span class="mono value ${lastTs ? '' : 'dim'}">${escapeHtml(last)}</span></div>`,
+                                    `<div class="hc-row"><i class="fas fa-hashtag"></i><span>Device ID</span><span class="mono value">${escapeHtml(d.id || '—')}</span></div>`,
+                                    `<div class="hc-row"><i class="fas fa-expand"></i><span>Resolution</span><span class="mono value ${w && h ? '' : 'dim'}">${escapeHtml(res)}</span></div>`,
+                                    `<div class="hc-row"><i class="fas fa-sliders"></i><span>Mode</span><span class="mono value ${mode ? '' : 'dim'}">${escapeHtml(modeLabel(mode) || '—')}</span></div>`,
+                                    `<div class="hc-row hc-ua"><i class="fas fa-globe"></i><span>User agent</span><span class="mono value ${ua ? '' : 'dim'}" title="${escapeHtml(ua)}">${escapeHtml(ua || '—')}</span></div>`,
                                     '</div>',
                                 ].join('');
                                 hc.innerHTML = html;

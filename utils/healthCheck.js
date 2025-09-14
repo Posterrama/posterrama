@@ -6,7 +6,6 @@ const pkg = require('../package.json');
 const deviceStore = require('./deviceStore');
 const metricsManager = require('./metrics');
 let GitHubService = null; // lazy-loaded for optional update check to avoid startup cost
-const { setTimeout: sleep } = require('timers/promises');
 
 // Health check cache to avoid expensive checks on every request
 let healthCheckCache = null;

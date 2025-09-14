@@ -1004,11 +1004,15 @@ app.post(
                 if (cached && now - cached.ts < 15000) {
                     try {
                         res.setHeader('X-Preview-Cache', 'hit');
-                    } catch (_) {}
+                    } catch (_) {
+                        /* ignore header set failure */
+                    }
                     if (perfTrace) {
                         try {
                             res.setHeader('Server-Timing', `cache;dur=${Date.now() - reqStart}`);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* ignore server-timing header failure */
+                        }
                     }
                     return res.json(cached.value);
                 }
@@ -1467,7 +1471,9 @@ app.post(
                 adminFilterPreviewCache.set(cacheKey, { ts: Date.now(), value: payload });
                 try {
                     res.setHeader('X-Preview-Cache', 'miss');
-                } catch (_) {}
+                } catch (_) {
+                    /* ignore header set failure */
+                }
             }
             res.json(payload);
         } catch (e) {
@@ -12819,7 +12825,9 @@ app.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
         const meta = await cfgCreateBackup();
         try {
             broadcastAdminEvent?.('backup-created', meta);
-        } catch (_) {}
+        } catch (_) {
+            /* best-effort admin event */
+        }
         res.json(meta);
     } catch (e) {
         res.status(500).json({ error: e?.message || 'Failed to create backup' });
@@ -12833,7 +12841,9 @@ app.post('/api/admin/config-backups/cleanup', isAuthenticated, async (req, res) 
         const result = await cfgCleanupOld(keep);
         try {
             broadcastAdminEvent?.('backup-cleanup', { keep, ...result });
-        } catch (_) {}
+        } catch (_) {
+            /* best-effort admin event */
+        }
         res.json({ keep, ...result });
     } catch (e) {
         res.status(500).json({ error: e?.message || 'Cleanup failed' });
@@ -12850,12 +12860,16 @@ app.post('/api/admin/config-backups/restore', isAuthenticated, async (req, res) 
         await cfgRestoreFile(id, file);
         try {
             broadcastAdminEvent?.('backup-restored', { id, file });
-        } catch (_) {}
+        } catch (_) {
+            /* best-effort admin event */
+        }
         // If config.json changed, also broadcast a config-updated event
         if (file === 'config.json') {
             try {
                 broadcastAdminEvent?.('config-updated', { t: Date.now(), source: 'restore' });
-            } catch (_) {}
+            } catch (_) {
+                /* best-effort admin event */
+            }
         }
         res.json({ ok: true });
     } catch (e) {
@@ -12871,7 +12885,9 @@ app.delete('/api/admin/config-backups/:id', isAuthenticated, async (req, res) =>
         await cfgDeleteBackup(id);
         try {
             broadcastAdminEvent?.('backup-deleted', { id });
-        } catch (_) {}
+        } catch (_) {
+            /* best-effort admin event */
+        }
         res.json({ ok: true, id });
     } catch (e) {
         res.status(400).json({ error: e?.message || 'Delete failed' });
@@ -12896,7 +12912,9 @@ app.post('/api/admin/config-backups/schedule', isAuthenticated, async (req, res)
         // Re-align scheduler after saving
         try {
             await scheduleConfigBackups();
-        } catch (_) {}
+        } catch (_) {
+            /* ignore scheduler realign failure */
+        }
         res.json(out);
     } catch (e) {
         res.status(400).json({ error: e?.message || 'Failed to save schedule' });
@@ -12908,7 +12926,9 @@ let __cfgBackupTimer = null;
 async function scheduleConfigBackups() {
     try {
         if (__cfgBackupTimer) clearTimeout(__cfgBackupTimer);
-    } catch (_) {}
+    } catch (_) {
+        /* ignore missing/invalid timer */
+    }
     const parseTime = t => {
         const m = String(t || '02:30').match(/^(\d{1,2}):(\d{2})$/);
         const hh = Math.max(0, Math.min(23, Number(m?.[1] || 2)));
@@ -12931,10 +12951,14 @@ async function scheduleConfigBackups() {
             const meta = await cfgCreateBackup();
             try {
                 await cfgCleanupOld(cfg.retention || 7);
-            } catch (_) {}
+            } catch (_) {
+                /* ignore cleanup errors; proceed */
+            }
             try {
                 broadcastAdminEvent('backup-created', meta);
-            } catch (_) {}
+            } catch (_) {
+                /* best-effort admin event */
+            }
         } catch (e) {
             logger.warn('[cfg-backup] scheduled backup failed', e?.message || e);
         } finally {
@@ -13435,7 +13459,9 @@ try {
         req.on('close', () => {
             try {
                 clearInterval(client.heartbeat);
-            } catch (_) {}
+            } catch (_) {
+                /* ignore */
+            }
             __sseClients.delete(client);
         });
     });
