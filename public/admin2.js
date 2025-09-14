@@ -135,6 +135,69 @@
         await refreshDevices();
     }
 
+    // --- Live Dashboard KPIs ---
+    let dashTimer = null;
+    let dashLastRun = 0;
+    const DASH_MIN_INTERVAL = 5000; // 5s between refreshes
+    function stopDashboardLive() {
+        if (dashTimer) {
+            clearTimeout(dashTimer);
+            dashTimer = null;
+        }
+    }
+    function scheduleNextDashboardTick() {
+        stopDashboardLive();
+        dashTimer = setTimeout(runDashboardTick, DASH_MIN_INTERVAL);
+    }
+    async function runDashboardTick() {
+        try {
+            // Only refresh if dashboard is visible
+            const active = document.getElementById('section-dashboard');
+            const visible = !!active && active.classList.contains('active') && !active.hidden;
+            if (!visible) return;
+            const now = Date.now();
+            if (now - dashLastRun < DASH_MIN_INTERVAL - 50) return scheduleNextDashboardTick();
+            dashLastRun = now;
+            await refreshDashboardMetrics();
+        } catch (_) {
+            /* ignore errors */
+        } finally {
+            scheduleNextDashboardTick();
+        }
+    }
+    function startDashboardLive() {
+        // Avoid duplicate loops
+        if (dashTimer) return;
+        runDashboardTick();
+    }
+
+    // --- Live System Performance ---
+    let perfTimer = null;
+    const PERF_INTERVAL = 10000; // 10s
+    function stopPerfLive() {
+        if (perfTimer) {
+            clearTimeout(perfTimer);
+            perfTimer = null;
+        }
+    }
+    async function runPerfTick() {
+        try {
+            const active = document.getElementById('section-dashboard');
+            const visible = !!active && active.classList.contains('active') && !active.hidden;
+            if (!visible) return; // only refresh when dashboard visible
+            await refreshPerfDashboard();
+        } catch (_) {
+            /* ignore */
+        } finally {
+            perfTimer = setTimeout(runPerfTick, PERF_INTERVAL);
+        }
+    }
+    function startPerfLive() {
+        if (perfTimer) return; // avoid duplicates
+        // Kick off immediately then schedule
+        runPerfTick();
+    }
+
     async function refreshPerfDashboard() {
         // System status chips and resources
         try {
@@ -449,6 +512,19 @@
             }
         }
         dbg('showSection() applied', { activeId: id, sections: sections.length });
+
+        // Live dashboard KPIs: start/stop polling based on active section
+        try {
+            if (id === 'section-dashboard') {
+                startDashboardLive();
+                startPerfLive();
+            } else {
+                stopDashboardLive();
+                stopPerfLive();
+            }
+        } catch (_) {
+            /* non-fatal */
+        }
     }
 
     // Ensure a custom select UI (trigger + popup list) reflects the current value of the hidden <select>
@@ -915,7 +991,7 @@
                 });
         }
 
-        mediaGroup?.querySelectorAll('.nav-subitem').forEach((sub, idx) => {
+        mediaGroup?.querySelectorAll('.nav-subitem').forEach(sub => {
             sub.addEventListener('click', e => {
                 e.preventDefault();
                 document
@@ -923,27 +999,32 @@
                     .forEach(n => n.classList.remove('active'));
                 // Mark group header and the clicked subitem as active
                 toggleLink?.classList.add('active');
+                mediaGroup?.classList.add('open');
                 mediaGroup
                     ?.querySelectorAll('.nav-subitem')
                     .forEach(s => s.classList.remove('active'));
                 sub.classList.add('active');
-                const panelIds = ['panel-plex', 'panel-jellyfin', 'panel-tmdb', 'panel-tvdb'];
-                const titles = ['Plex', 'Jellyfin', 'TMDB', 'TVDB'];
-                const id = panelIds[idx] || 'panel-plex';
-                const title = titles[idx] || 'Media Sources';
-                dbg('submenu click', { idx, id, title });
+                const key = sub.getAttribute('data-sub');
+                const map = {
+                    plex: { id: 'panel-plex', title: 'Plex', hash: '#plex' },
+                    jellyfin: { id: 'panel-jellyfin', title: 'Jellyfin', hash: '#jellyfin' },
+                    tmdb: { id: 'panel-tmdb', title: 'TMDB', hash: '#tmdb' },
+                    tvdb: { id: 'panel-tvdb', title: 'TVDB', hash: '#tvdb' },
+                };
+                const t = map[key] || map.plex;
+                dbg('submenu click', { key, ...t });
                 // Update URL hash for direct linking and routing
-                const hashes = ['#plex', '#jellyfin', '#tmdb', '#tvdb'];
-                const h = hashes[idx] || '#plex';
-                if (location.hash !== h) location.hash = h;
-                // Just update the URL and let the hash router display the panel; avoid extra reloads
-                // The initial load happens on DOMContentLoaded and after saves.
+                if (location.hash !== t.hash) location.hash = t.hash;
+                // Also show immediately to avoid any race conditions with routing
+                showSourcePanel(t.id, t.title);
             });
         });
 
-        // Lightweight hash router so /admin2.html#plex always opens Plex panel
+        // Lightweight hash router so /admin2.html#plex opens Plex panel.
+        // On initial load, always show Dashboard regardless of hash.
         // Debounced router to avoid rapid flicker when switching fast
         let routeTimer = null;
+        let firstRoute = true;
         function routeByHash() {
             if (routeTimer) {
                 clearTimeout(routeTimer);
@@ -951,21 +1032,76 @@
             }
             routeTimer = setTimeout(() => {
                 routeTimer = null;
+                // First-run: force Dashboard view and clear any hash
+                if (firstRoute) {
+                    firstRoute = false;
+                    try {
+                        if (location.hash) {
+                            // replaceState to avoid history entry
+                            history.replaceState(null, '', location.pathname + location.search);
+                        }
+                    } catch (_) {
+                        try {
+                            // Fallback if History API fails
+                            // eslint-disable-next-line no-self-assign
+                            location.hash = '';
+                        } catch (__) {
+                            /* no-op */
+                        }
+                    }
+                    // Activate dashboard section and nav item
+                    showSection('section-dashboard');
+                    document
+                        .querySelectorAll('.sidebar-nav .nav-item')
+                        .forEach(n => n.classList.remove('active'));
+                    document
+                        .querySelector('.sidebar-nav .nav-item[data-nav="dashboard"]')
+                        ?.classList.add('active');
+                    return;
+                }
                 const h = (location.hash || '').toLowerCase();
                 if (h === '#plex' || h === '#media-sources/plex') {
                     showSourcePanel('panel-plex', 'Plex');
+                    mediaGroup?.classList.add('open');
+                    mediaGroup
+                        ?.querySelectorAll('.nav-subitem')
+                        ?.forEach(s => s.classList.remove('active'));
+                    mediaGroup
+                        ?.querySelector('.nav-subitem[data-sub="plex"]')
+                        ?.classList.add('active');
                     return;
                 }
                 if (h === '#jellyfin') {
                     showSourcePanel('panel-jellyfin', 'Jellyfin');
+                    mediaGroup?.classList.add('open');
+                    mediaGroup
+                        ?.querySelectorAll('.nav-subitem')
+                        ?.forEach(s => s.classList.remove('active'));
+                    mediaGroup
+                        ?.querySelector('.nav-subitem[data-sub="jellyfin"]')
+                        ?.classList.add('active');
                     return;
                 }
                 if (h === '#tmdb') {
                     showSourcePanel('panel-tmdb', 'TMDB');
+                    mediaGroup?.classList.add('open');
+                    mediaGroup
+                        ?.querySelectorAll('.nav-subitem')
+                        ?.forEach(s => s.classList.remove('active'));
+                    mediaGroup
+                        ?.querySelector('.nav-subitem[data-sub="tmdb"]')
+                        ?.classList.add('active');
                     return;
                 }
                 if (h === '#tvdb') {
                     showSourcePanel('panel-tvdb', 'TVDB');
+                    mediaGroup?.classList.add('open');
+                    mediaGroup
+                        ?.querySelectorAll('.nav-subitem')
+                        ?.forEach(s => s.classList.remove('active'));
+                    mediaGroup
+                        ?.querySelector('.nav-subitem[data-sub="tvdb"]')
+                        ?.classList.add('active');
                     return;
                 }
                 if (h === '#media-sources' || h === '#media-sources/overview') {
@@ -993,6 +1129,33 @@
         routeByHash();
 
         // Security panel auto-refresh handled on nav; no manual refresh button
+
+        // --- Admin fetch de-dupe + short-lived caching to avoid rate limiter bursts ---
+        const inflight = new Map();
+        const miniCache = new Map(); // key -> { ts, data }
+        const MINI_TTL = 10 * 1000; // 10s
+        window.dedupJSON = async function (url, opts = {}) {
+            const key = `${url}|${opts.method || 'GET'}`;
+            const now = Date.now();
+            const cached = miniCache.get(key);
+            if (cached && now - cached.ts < MINI_TTL) {
+                return { ok: true, json: async () => cached.data, status: 200, fromCache: true };
+            }
+            if (inflight.has(key)) return inflight.get(key);
+            const p = (async () => {
+                const res = await fetch(url, { credentials: 'include', ...opts });
+                if (!res.ok) return res; // propagate errors (e.g., 429)
+                const data = await res.json();
+                miniCache.set(key, { ts: Date.now(), data });
+                return { ok: true, json: async () => data, status: 200 };
+            })()
+                .catch(err => {
+                    return { ok: false, status: 0, error: err };
+                })
+                .finally(() => inflight.delete(key));
+            inflight.set(key, p);
+            return p;
+        };
 
         // helper: ensure button spinner exists
         const ensureSpinner = btn => {
@@ -1510,6 +1673,38 @@
         wireEvents();
         wireCacheActions();
         refreshAll();
+        // Start live KPIs if Dashboard is visible on first load
+        try {
+            const dashEl = document.getElementById('section-dashboard');
+            const isDash = !!dashEl && dashEl.classList.contains('active');
+            if (isDash) {
+                startDashboardLive();
+                startPerfLive();
+            }
+        } catch (_) {
+            /* no-op */
+        }
+
+        // Pause/resume polling when the tab/window visibility changes
+        try {
+            document.addEventListener('visibilitychange', () => {
+                const isHidden = document.visibilityState === 'hidden';
+                if (isHidden) {
+                    stopDashboardLive();
+                    stopPerfLive();
+                } else {
+                    const isDashActive = document
+                        .getElementById('section-dashboard')
+                        ?.classList.contains('active');
+                    if (isDashActive) {
+                        startDashboardLive();
+                        startPerfLive();
+                    }
+                }
+            });
+        } catch (_) {
+            /* ignore */
+        }
     });
 
     // Update confirmation modal (theme-demo style)
@@ -1629,23 +1824,41 @@
         const btnSaveServer = document.getElementById('btn-save-server-settings');
         const btnSavePromo = document.getElementById('btn-save-promobox');
         const btnSaveOps = document.getElementById('btn-save-operations');
+        // Sync insecure HTTPS toggles (header and form)
+        const jfInsecureForm = document.getElementById('jf.insecureHttps');
+        const jfInsecureHeader = document.getElementById('jf.insecureHttpsHeader');
+        if (jfInsecureForm && jfInsecureHeader) {
+            const syncPair = (src, dest) => {
+                if (dest && dest.checked !== src.checked) dest.checked = src.checked;
+            };
+            jfInsecureForm.addEventListener('change', () =>
+                syncPair(jfInsecureForm, jfInsecureHeader)
+            );
+            jfInsecureHeader.addEventListener('change', () =>
+                syncPair(jfInsecureHeader, jfInsecureForm)
+            );
+        }
         const portInput = document.getElementById('SERVER_PORT');
         // Helper to fetch config, patch minimal keys, and POST back
         async function saveConfigPatch(patchConfig, patchEnv) {
-            const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
-            const cfg = cfgRes.ok ? await cfgRes.json() : {};
-            const body = {
-                config: { ...(cfg?.config || cfg || {}), ...(patchConfig || {}) },
-                env: { ...(cfg?.env || {}), ...(patchEnv || {}) },
-            };
+            // Only send the env keys we intend to change to avoid overwriting secrets with booleans
             const r = await fetch('/api/admin/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify(body),
+                body: JSON.stringify({ config: patchConfig, env: patchEnv || {} }),
             });
             const j = await r.json().catch(() => ({}));
             if (!r.ok) throw new Error(j?.error || j?.message || 'Save failed');
+            // Invalidate any cached GET of /api/admin/config so subsequent reloads see fresh data
+            try {
+                if (typeof miniCache?.delete === 'function')
+                    miniCache.delete('/api/admin/config|GET');
+                if (typeof inflight?.delete === 'function')
+                    inflight.delete('/api/admin/config|GET');
+            } catch (_) {
+                /* no-op */
+            }
             return j;
         }
 
@@ -1717,7 +1930,7 @@
             const sel = document.getElementById(selectId);
             const root = document.getElementById(`${idBase}`);
             if (!sel || !root) return;
-            if (root.dataset.msWired === 'true') return;
+            if (root.dataset.msWired === 'true') return; // listeners already attached; use rebuildMsForSelect() to refresh options
             const control = root.querySelector('.ms-control');
             const chipsEl = root.querySelector('.ms-chips');
             const menu = document.getElementById(`${idBase}-menu`);
@@ -1863,12 +2076,74 @@
             root.dataset.msWired = 'true';
         }
 
-        async function loadMediaSources() {
-            const r = await fetch('/api/admin/config', { credentials: 'include' });
+        // Refresh an already-initialized multiselect's options and chips from the current <select> state
+        function rebuildMsForSelect(idBase, selectId) {
+            const sel = document.getElementById(selectId);
+            const root = document.getElementById(`${idBase}`);
+            if (!sel || !root) return;
+            if (root.dataset.msWired !== 'true') {
+                // Not wired yet; initialize now
+                initMsForSelect(idBase, selectId);
+                return;
+            }
+            const control = root.querySelector('.ms-control');
+            const chipsEl = root.querySelector('.ms-chips');
+            const optsEl = document.getElementById(`${idBase}-options`);
+            if (!control || !chipsEl || !optsEl) return;
+            // Build options from current <select>
+            const selected = new Set(Array.from(sel.selectedOptions).map(o => o.value));
+            optsEl.innerHTML = '';
+            const items = Array.from(sel.options).map(o => ({
+                value: o.value,
+                label: o.textContent,
+            }));
+            items.forEach(it => {
+                const row = document.createElement('div');
+                row.className = 'ms-option';
+                row.dataset.value = it.value;
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = selected.has(it.value);
+                const span = document.createElement('span');
+                span.textContent = it.label;
+                row.appendChild(cb);
+                row.appendChild(span);
+                optsEl.appendChild(row);
+            });
+            // Render chips
+            chipsEl.innerHTML = '';
+            selected.forEach(v => {
+                const label = Array.from(sel.options).find(o => o.value === v)?.textContent || v;
+                const chip = document.createElement('span');
+                chip.className = 'ms-chip';
+                chip.dataset.value = v;
+                chip.innerHTML = `${label} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                    e.stopPropagation();
+                    // Update select
+                    Array.from(sel.options).forEach(o => {
+                        if (o.value === v) o.selected = false;
+                    });
+                    // Recurse to refresh options and chips
+                    rebuildMsForSelect(idBase, selectId);
+                    control.classList.toggle('has-selection', sel.selectedOptions.length > 0);
+                    sel.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                chipsEl.appendChild(chip);
+            });
+            control.classList.toggle('has-selection', selected.size > 0);
+        }
+
+        async function loadMediaSources(forceFresh = false) {
+            const r = forceFresh
+                ? await fetch('/api/admin/config', { credentials: 'include' })
+                : await window.dedupJSON('/api/admin/config', { credentials: 'include' });
             const j = r.ok ? await r.json() : {};
             const env = j?.env || {};
             const cfg = j?.config || j || {};
             dbg('loadMediaSources()', { hasConfig: !!cfg, hasEnv: !!env });
+            // Initialize once-per-session auto-fetch guards
+            window.__autoFetchedLibs = window.__autoFetchedLibs || { plex: false, jf: false };
             // Plex/Jellyfin server entries
             const plex = (cfg.mediaServers || []).find(s => s.type === 'plex') || {};
             const jf = (cfg.mediaServers || []).find(s => s.type === 'jellyfin') || {};
@@ -1878,6 +2153,54 @@
             const plexPortVar = plex.portEnvVar || 'PLEX_PORT';
             const plexTokenVar = plex.tokenEnvVar || 'PLEX_TOKEN';
             getInput('plex.enabled') && (getInput('plex.enabled').checked = plexEnabled);
+            // Prefill status pill based on enabled + presence of host/port
+            try {
+                const pill = document.getElementById('plex-status-pill-header');
+                const openLink = document.getElementById('plex-open-link');
+                const host = env[plexHostVar] || '';
+                const portVal = env[plexPortVar] || '';
+                if (pill) {
+                    pill.classList.remove(
+                        'status-success',
+                        'status-error',
+                        'is-configured',
+                        'is-not-configured'
+                    );
+                    if (!plexEnabled) {
+                        pill.textContent = 'Disabled';
+                        pill.classList.add('is-not-configured');
+                    } else if (host && portVal) {
+                        pill.textContent = 'Configured';
+                        pill.classList.add('is-configured');
+                    } else {
+                        pill.textContent = 'Not configured';
+                        pill.classList.add('is-not-configured');
+                    }
+                }
+                if (openLink) {
+                    if (plexEnabled && host && portVal) {
+                        const portNum = Number(portVal);
+                        const hostClean = host.replace(/^https?:\/\//i, '').replace(/\/?$/, '');
+                        const protocol =
+                            portNum === 443
+                                ? 'https'
+                                : /^https:\/\//i.test(host)
+                                  ? 'https'
+                                  : /^http:\/\//i.test(host)
+                                    ? 'http'
+                                    : 'http';
+                        const base = `${protocol}://${hostClean}`;
+                        const url = `${base}:${portVal}/web`;
+                        openLink.href = url;
+                        openLink.removeAttribute('hidden');
+                    } else {
+                        openLink.setAttribute('hidden', '');
+                        openLink.removeAttribute('href');
+                    }
+                }
+            } catch (_) {
+                /* no-op */
+            }
             if (getInput('plex.hostname')) getInput('plex.hostname').value = env[plexHostVar] || '';
             if (getInput('plex.port')) getInput('plex.port').value = env[plexPortVar] || '';
             if (getInput('plex.token')) {
@@ -1924,12 +2247,71 @@
             initMsForSelect('plex-ms-shows', 'plex.shows');
             // Populate Plex genres with counts and apply selected values from config
             await loadPlexGenres(plex.genreFilter || '');
+            // Auto-fetch full Plex libraries on load when enabled and host/port are available
+            try {
+                const hostEnv = env[plexHostVar] || '';
+                const portEnv = env[plexPortVar] || '';
+                if (!window.__autoFetchedLibs.plex && plexEnabled && hostEnv && portEnv) {
+                    window.__autoFetchedLibs.plex = true;
+                    await fetchPlexLibraries(true);
+                }
+            } catch (_) {
+                /* silent */
+            }
             // Jellyfin
             const jfEnabled = !!jf.enabled;
             const jfHostVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
             const jfPortVar = jf.portEnvVar || 'JELLYFIN_PORT';
             const jfKeyVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
             if (getInput('jf.enabled')) getInput('jf.enabled').checked = jfEnabled;
+            // Header pill for Jellyfin
+            try {
+                const pill = document.getElementById('jf-status-pill-header');
+                const openLink = document.getElementById('jf-open-link');
+                const host = env[jfHostVar] || '';
+                const portVal = env[jfPortVar] || '';
+                if (pill) {
+                    pill.classList.remove(
+                        'status-success',
+                        'status-error',
+                        'is-configured',
+                        'is-not-configured'
+                    );
+                    if (!jfEnabled) {
+                        pill.textContent = 'Disabled';
+                        pill.classList.add('is-not-configured');
+                    } else if (host && portVal) {
+                        pill.textContent = 'Configured';
+                        pill.classList.add('is-configured');
+                    } else {
+                        pill.textContent = 'Not configured';
+                        pill.classList.add('is-not-configured');
+                    }
+                }
+                if (openLink) {
+                    if (jfEnabled && host && portVal) {
+                        const portNum = Number(portVal);
+                        const hostClean = host.replace(/^https?:\/\//i, '').replace(/\/?$/, '');
+                        const protocol =
+                            portNum === 443
+                                ? 'https'
+                                : /^https:\/\//i.test(host)
+                                  ? 'https'
+                                  : /^http:\/\//i.test(host)
+                                    ? 'http'
+                                    : 'http';
+                        const base = `${protocol}://${hostClean}`;
+                        const url = `${base}:${portVal}/web`;
+                        openLink.href = url;
+                        openLink.removeAttribute('hidden');
+                    } else {
+                        openLink.setAttribute('hidden', '');
+                        openLink.removeAttribute('href');
+                    }
+                }
+            } catch (_) {
+                /* no-op */
+            }
             if (getInput('jf.hostname')) getInput('jf.hostname').value = env[jfHostVar] || '';
             if (getInput('jf.port')) getInput('jf.port').value = env[jfPortVar] || '';
             if (getInput('jf.apikey')) {
@@ -1948,6 +2330,21 @@
                 getInput('jf.yearFilter').value = v == null ? '' : String(v);
             }
             // Preload Jellyfin rating/genre/quality selectors using config values
+            // Initialize library selects before fetching dependent data (genres need libraries)
+            setMultiSelect(
+                'jf.movies',
+                (jf.movieLibraryNames || []).map(n => ({ value: n, label: n })),
+                jf.movieLibraryNames || []
+            );
+            setMultiSelect(
+                'jf.shows',
+                (jf.showLibraryNames || []).map(n => ({ value: n, label: n })),
+                jf.showLibraryNames || []
+            );
+            // Initialize theme-demo multiselects for Jellyfin libraries
+            initMsForSelect('jf-ms-movies', 'jf.movies');
+            initMsForSelect('jf-ms-shows', 'jf.shows');
+            // Now load dependent selectors
             try {
                 await loadJellyfinRatings(
                     Array.isArray(jf.ratingFilter)
@@ -1967,22 +2364,44 @@
             } catch (e) {
                 dbg('loadJellyfinQualities failed', e);
             }
-            setMultiSelect(
-                'jf.movies',
-                (jf.movieLibraryNames || []).map(n => ({ value: n, label: n })),
-                jf.movieLibraryNames || []
-            );
-            setMultiSelect(
-                'jf.shows',
-                (jf.showLibraryNames || []).map(n => ({ value: n, label: n })),
-                jf.showLibraryNames || []
-            );
-            // Initialize theme-demo multiselects for Jellyfin libraries
-            initMsForSelect('jf-ms-movies', 'jf.movies');
-            initMsForSelect('jf-ms-shows', 'jf.shows');
+            // Auto-fetch full Jellyfin libraries on load when enabled and host/port are available
+            try {
+                const hostEnv = env[jfHostVar] || '';
+                const portEnv = env[jfPortVar] || '';
+                if (!window.__autoFetchedLibs.jf && jfEnabled && hostEnv && portEnv) {
+                    window.__autoFetchedLibs.jf = true;
+                    await fetchJellyfinLibraries(true);
+                }
+            } catch (_) {
+                /* silent */
+            }
             // TMDB
             const tmdb = cfg.tmdbSource || {};
             if (getInput('tmdb.enabled')) getInput('tmdb.enabled').checked = !!tmdb.enabled;
+            // Header pill for TMDB
+            try {
+                const pill = document.getElementById('tmdb-status-pill-header');
+                if (pill) {
+                    pill.classList.remove(
+                        'status-success',
+                        'status-error',
+                        'is-configured',
+                        'is-not-configured'
+                    );
+                    if (!tmdb.enabled) {
+                        pill.textContent = 'Disabled';
+                        pill.classList.add('is-not-configured');
+                    } else if (tmdb.apiKey) {
+                        pill.textContent = 'Configured';
+                        pill.classList.add('is-configured');
+                    } else {
+                        pill.textContent = 'Not configured';
+                        pill.classList.add('is-not-configured');
+                    }
+                }
+            } catch (_) {
+                /* no-op */
+            }
             if (getInput('tmdb.apikey'))
                 getInput('tmdb.apikey').value = tmdb.apiKey ? '••••••••' : '';
             if (getInput('tmdb.category')) {
@@ -2079,47 +2498,70 @@
         window.admin2.loadMediaSources = loadMediaSources;
 
         // Fetch libraries
-        async function fetchPlexLibraries() {
-            try {
-                const hostname = getInput('plex.hostname')?.value || undefined;
-                const port = getInput('plex.port')?.value || undefined;
-                const token = getInput('plex.token')?.value || undefined;
-                const res = await fetch('/api/admin/plex-libraries', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ hostname, port, token }),
-                });
-                const j = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(j?.error || 'Failed to load Plex libraries');
-                const libs = Array.isArray(j.libraries) ? j.libraries : [];
-                const movies = libs
-                    .filter(l => l.type === 'movie')
-                    .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
-                const shows = libs
-                    .filter(l => l.type === 'show')
-                    .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
-                const prevMovies = new Set(getMultiSelectValues('plex.movies'));
-                const prevShows = new Set(getMultiSelectValues('plex.shows'));
-                setMultiSelect('plex.movies', movies, Array.from(prevMovies));
-                setMultiSelect('plex.shows', shows, Array.from(prevShows));
-                // Rebuild multiselect options
-                initMsForSelect('plex-ms-movies', 'plex.movies');
-                initMsForSelect('plex-ms-shows', 'plex.shows');
-                window.notify?.toast({
-                    type: 'success',
-                    title: 'Plex',
-                    message: 'Libraries loaded',
-                    duration: 2200,
-                });
-            } catch (e) {
-                window.notify?.toast({
-                    type: 'error',
-                    title: 'Plex',
-                    message: e?.message || 'Failed to fetch libraries',
-                    duration: 4200,
-                });
-            }
+        async function fetchPlexLibraries(refreshFilters = false) {
+            // If any caller requests dependent refresh, mark it globally for this flight
+            if (refreshFilters) window.__plexLibsRefreshRequested = true;
+            // Deduplicate concurrent calls so only one request + toast occurs
+            if (window.__plexLibsInFlight) return window.__plexLibsInFlight;
+            window.__plexLibsInFlight = (async () => {
+                try {
+                    const hostname = getInput('plex.hostname')?.value || undefined;
+                    const port = getInput('plex.port')?.value || undefined;
+                    const token = getInput('plex.token')?.value || undefined;
+                    const res = await fetch('/api/admin/plex-libraries', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ hostname, port, token }),
+                    });
+                    const j = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(j?.error || 'Failed to load Plex libraries');
+                    const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                    const movies = libs
+                        .filter(l => l.type === 'movie')
+                        .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                    const shows = libs
+                        .filter(l => l.type === 'show')
+                        .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                    const prevMovies = new Set(getMultiSelectValues('plex.movies'));
+                    const prevShows = new Set(getMultiSelectValues('plex.shows'));
+                    setMultiSelect('plex.movies', movies, Array.from(prevMovies));
+                    setMultiSelect('plex.shows', shows, Array.from(prevShows));
+                    // Rebuild multiselect options
+                    rebuildMsForSelect('plex-ms-movies', 'plex.movies');
+                    rebuildMsForSelect('plex-ms-shows', 'plex.shows');
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'Plex',
+                        message: 'Libraries loaded',
+                        duration: 2200,
+                    });
+                    // Optionally refresh dependent filters now that libraries are known
+                    if (window.__plexLibsRefreshRequested) {
+                        try {
+                            const currentGenres = getPlexGenreFilterHidden?.() || '';
+                            loadPlexGenres(currentGenres)?.catch?.(() => {});
+                            loadPlexRatings?.(getPlexHidden?.('plex.ratingFilter-hidden'));
+                            loadPlexQualities?.(getPlexHidden?.('plex.qualityFilter-hidden'));
+                        } catch (_) {
+                            /* no-op */
+                        }
+                    }
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Plex',
+                        message: e?.message || 'Failed to fetch libraries',
+                        duration: 4200,
+                    });
+                } finally {
+                    // Clear in-flight marker after settle so subsequent manual fetches are allowed
+                    window.__plexLibsInFlight = null;
+                    // Reset refresh request flag after one settled cycle
+                    window.__plexLibsRefreshRequested = false;
+                }
+            })();
+            return window.__plexLibsInFlight;
         }
 
         // ------- Plex Genre Filter (chips with hidden input) -------
@@ -2185,17 +2627,19 @@
                 select.innerHTML = '';
                 select.appendChild(placeholder);
             }
-            // Sort by count desc then name
+            // Sort by count desc then name (normalize objects -> string names)
+            const normName = g =>
+                typeof g === 'string'
+                    ? g
+                    : (g && (g.genre || g.name || g.value || g.label || g.Title)) || String(g);
             const list = (genres || []).slice().sort((a, b) => {
-                const ac = Number(a.count || 0);
-                const bc = Number(b.count || 0);
+                const ac = Number((a && a.count) || 0);
+                const bc = Number((b && b.count) || 0);
                 if (bc !== ac) return bc - ac;
-                return String(a.name || a.value || '').localeCompare(
-                    String(b.name || b.value || '')
-                );
+                return String(normName(a)).localeCompare(String(normName(b)));
             });
             list.forEach(g => {
-                const name = g.name || g.value || String(g);
+                const name = normName(g);
                 const label = g.count != null ? `${name} (${g.count})` : name;
                 renderChip(container, label, name, selected);
                 if (select) {
@@ -2249,24 +2693,28 @@
                 const token = getInput('plex.token')?.value;
                 let res;
                 if (hostname && port) {
-                    res = await fetch('/api/admin/plex-genres-with-counts-test', {
+                    res = await window.dedupJSON('/api/admin/plex-genres-with-counts-test', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify({ hostname, port, token: token || undefined }),
                     });
                 } else {
-                    res = await fetch('/api/admin/plex-genres-with-counts', {
+                    res = await window.dedupJSON('/api/admin/plex-genres-with-counts', {
                         credentials: 'include',
                     });
                 }
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json().catch(() => ({}));
                 const genres = Array.isArray(data?.genres) ? data.genres : [];
-                // Build options and chips using theme-demo component
+                // Build options list using normalized names from server objects
+                const normName = g =>
+                    typeof g === 'string'
+                        ? g
+                        : (g && (g.genre || g.name || g.value || g.label || g.Title)) || String(g);
                 const names = genres
                     .slice()
-                    .map(g => g.name || g.value || String(g))
+                    .map(normName)
                     .sort((a, b) => a.localeCompare(b));
                 const selected = new Set(
                     String(currentValueCsv || '')
@@ -2440,47 +2888,69 @@
                 chipsRoot.innerHTML = '<div class="subtle">Failed to load genres</div>';
             }
         }
-        async function fetchJellyfinLibraries() {
-            try {
-                const hostname = getInput('jf.hostname')?.value || undefined;
-                const port = getInput('jf.port')?.value || undefined;
-                const apiKey = getInput('jf.apikey')?.value || undefined;
-                const res = await fetch('/api/admin/jellyfin-libraries', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ hostname, port, apiKey }),
-                });
-                const j = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(j?.error || 'Failed to load Jellyfin libraries');
-                const libs = Array.isArray(j.libraries) ? j.libraries : [];
-                const movies = libs
-                    .filter(l => l.type === 'movie')
-                    .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
-                const shows = libs
-                    .filter(l => l.type === 'show')
-                    .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
-                const prevMovies = new Set(getMultiSelectValues('jf.movies'));
-                const prevShows = new Set(getMultiSelectValues('jf.shows'));
-                setMultiSelect('jf.movies', movies, Array.from(prevMovies));
-                setMultiSelect('jf.shows', shows, Array.from(prevShows));
-                // Rebuild multiselect options
-                initMsForSelect('jf-ms-movies', 'jf.movies');
-                initMsForSelect('jf-ms-shows', 'jf.shows');
-                window.notify?.toast({
-                    type: 'success',
-                    title: 'Jellyfin',
-                    message: 'Libraries loaded',
-                    duration: 2200,
-                });
-            } catch (e) {
-                window.notify?.toast({
-                    type: 'error',
-                    title: 'Jellyfin',
-                    message: e?.message || 'Failed to fetch libraries',
-                    duration: 4200,
-                });
-            }
+        async function fetchJellyfinLibraries(refreshFilters = false) {
+            // If any caller requests dependent refresh, mark it globally for this flight
+            if (refreshFilters) window.__jfLibsRefreshRequested = true;
+            // Deduplicate concurrent calls so only one request + toast occurs
+            if (window.__jfLibsInFlight) return window.__jfLibsInFlight;
+            window.__jfLibsInFlight = (async () => {
+                try {
+                    const hostname = getInput('jf.hostname')?.value || undefined;
+                    const port = getInput('jf.port')?.value || undefined;
+                    const apiKey = getInput('jf.apikey')?.value || undefined;
+                    const res = await fetch('/api/admin/jellyfin-libraries', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ hostname, port, apiKey }),
+                    });
+                    const j = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(j?.error || 'Failed to load Jellyfin libraries');
+                    const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                    const movies = libs
+                        .filter(l => l.type === 'movie')
+                        .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                    const shows = libs
+                        .filter(l => l.type === 'show')
+                        .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                    const prevMovies = new Set(getMultiSelectValues('jf.movies'));
+                    const prevShows = new Set(getMultiSelectValues('jf.shows'));
+                    setMultiSelect('jf.movies', movies, Array.from(prevMovies));
+                    setMultiSelect('jf.shows', shows, Array.from(prevShows));
+                    // Rebuild multiselect options
+                    rebuildMsForSelect('jf-ms-movies', 'jf.movies');
+                    rebuildMsForSelect('jf-ms-shows', 'jf.shows');
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'Jellyfin',
+                        message: 'Libraries loaded',
+                        duration: 2200,
+                    });
+                    // Optionally refresh dependent filters now that libraries are known
+                    if (window.__jfLibsRefreshRequested) {
+                        try {
+                            loadJellyfinRatings?.(getJfHidden?.('jf.ratingFilter-hidden'));
+                            loadJellyfinGenres?.(getJfHidden?.('jf.genreFilter-hidden'));
+                            loadJellyfinQualities?.(getJfHidden?.('jf.qualityFilter-hidden'));
+                        } catch (_) {
+                            /* no-op */
+                        }
+                    }
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Jellyfin',
+                        message: e?.message || 'Failed to fetch libraries',
+                        duration: 4200,
+                    });
+                } finally {
+                    // Clear in-flight marker after settle so subsequent manual fetches are allowed
+                    window.__jfLibsInFlight = null;
+                    // Reset refresh request flag after one settled cycle
+                    window.__jfLibsRefreshRequested = false;
+                }
+            })();
+            return window.__jfLibsInFlight;
         }
 
         // ------- Jellyfin Multiselect Helpers (ratings/genres/qualities) -------
@@ -2662,10 +3132,11 @@
             const chips = document.getElementById('jf-ms-ratings-chips');
             const optsEl = document.getElementById('jf-ms-ratings-options');
             const control = document.querySelector('#jf-ms-ratings .ms-control');
+            const root = document.getElementById('jf-ms-ratings');
             if (!chips || !optsEl || !control) return;
             chips.innerHTML = '<div class="subtle">Loading ratings…</div>';
             try {
-                const res = await fetch('/api/sources/jellyfin/ratings-with-counts', {
+                const res = await window.dedupJSON('/api/sources/jellyfin/ratings-with-counts', {
                     credentials: 'include',
                 });
                 const data = await res.json().catch(() => ({}));
@@ -2684,9 +3155,44 @@
                 optsEl.innerHTML = '';
                 ratings.forEach(n => optsEl.appendChild(jfMsOption(n, selected.has(n))));
                 setJfHidden('jf.ratingFilter-hidden', Array.from(selected).join(','));
-                jfAttachMsHandlers('jf-ms-ratings', ratings, selected, sel =>
-                    setJfHidden('jf.ratingFilter-hidden', Array.from(sel).join(','))
-                );
+                // If already wired, just re-render chips and sync options; otherwise attach handlers
+                if (root?.dataset.msWired === 'true') {
+                    const syncOptions = () => {
+                        Array.from(optsEl.children).forEach(row => {
+                            const v = row.dataset.value;
+                            const cb = row.querySelector('input[type="checkbox"]');
+                            if (cb) cb.checked = selected.has(v);
+                        });
+                    };
+                    const renderChips = () => {
+                        chips.innerHTML = '';
+                        Array.from(selected).forEach(v => {
+                            const chip = document.createElement('span');
+                            chip.className = 'ms-chip';
+                            chip.dataset.value = v;
+                            chip.innerHTML = `${v} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                            chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                                e.stopPropagation();
+                                selected.delete(v);
+                                setJfHidden(
+                                    'jf.ratingFilter-hidden',
+                                    Array.from(selected).join(',')
+                                );
+                                syncOptions();
+                                renderChips();
+                                control.classList.toggle('has-selection', selected.size > 0);
+                            });
+                            chips.appendChild(chip);
+                        });
+                        control.classList.toggle('has-selection', selected.size > 0);
+                    };
+                    syncOptions();
+                    renderChips();
+                } else {
+                    jfAttachMsHandlers('jf-ms-ratings', ratings, selected, sel =>
+                        setJfHidden('jf.ratingFilter-hidden', Array.from(sel).join(','))
+                    );
+                }
             } catch (e) {
                 chips.innerHTML = '<div class="subtle">Failed to load ratings</div>';
             }
@@ -2695,6 +3201,7 @@
             const chips = document.getElementById('jf-ms-genres-chips');
             const optsEl = document.getElementById('jf-ms-genres-options');
             const control = document.querySelector('#jf-ms-genres .ms-control');
+            const root = document.getElementById('jf-ms-genres');
             if (!chips || !optsEl || !control) return;
             chips.innerHTML = '<div class="subtle">Loading genres…</div>';
             try {
@@ -2703,14 +3210,15 @@
                 const apiKey = getInput('jf.apikey')?.value;
                 const movieLibraries = getMultiSelectValues('jf.movies');
                 const showLibraries = getMultiSelectValues('jf.shows');
-                if (
-                    !hostname ||
-                    !port ||
-                    (!apiKey && !movieLibraries.length && !showLibraries.length)
-                ) {
-                    // Basic guard; we'll still try server fallback below if available
+                // If no libraries are selected yet, don't call the API (it requires at least one)
+                if (movieLibraries.length === 0 && showLibraries.length === 0) {
+                    chips.innerHTML =
+                        '<div class="subtle">Select one or more libraries to load genres</div>';
+                    optsEl.innerHTML = '';
+                    setJfHidden('jf.genreFilter-hidden', '');
+                    return;
                 }
-                const res = await fetch('/api/admin/jellyfin-genres-with-counts', {
+                const res = await window.dedupJSON('/api/admin/jellyfin-genres-with-counts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -2737,9 +3245,43 @@
                 optsEl.innerHTML = '';
                 names.forEach(n => optsEl.appendChild(jfMsOption(n, selected.has(n))));
                 setJfHidden('jf.genreFilter-hidden', Array.from(selected).join(','));
-                jfAttachMsHandlers('jf-ms-genres', names, selected, sel =>
-                    setJfHidden('jf.genreFilter-hidden', Array.from(sel).join(','))
-                );
+                if (root?.dataset.msWired === 'true') {
+                    const syncOptions = () => {
+                        Array.from(optsEl.children).forEach(row => {
+                            const v = row.dataset.value;
+                            const cb = row.querySelector('input[type="checkbox"]');
+                            if (cb) cb.checked = selected.has(v);
+                        });
+                    };
+                    const renderChips = () => {
+                        chips.innerHTML = '';
+                        Array.from(selected).forEach(v => {
+                            const chip = document.createElement('span');
+                            chip.className = 'ms-chip';
+                            chip.dataset.value = v;
+                            chip.innerHTML = `${v} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                            chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                                e.stopPropagation();
+                                selected.delete(v);
+                                setJfHidden(
+                                    'jf.genreFilter-hidden',
+                                    Array.from(selected).join(',')
+                                );
+                                syncOptions();
+                                renderChips();
+                                control.classList.toggle('has-selection', selected.size > 0);
+                            });
+                            chips.appendChild(chip);
+                        });
+                        control.classList.toggle('has-selection', selected.size > 0);
+                    };
+                    syncOptions();
+                    renderChips();
+                } else {
+                    jfAttachMsHandlers('jf-ms-genres', names, selected, sel =>
+                        setJfHidden('jf.genreFilter-hidden', Array.from(sel).join(','))
+                    );
+                }
             } catch (e) {
                 chips.innerHTML = '<div class="subtle">Failed to load genres</div>';
             }
@@ -2748,10 +3290,11 @@
             const chips = document.getElementById('jf-ms-qualities-chips');
             const optsEl = document.getElementById('jf-ms-qualities-options');
             const control = document.querySelector('#jf-ms-qualities .ms-control');
+            const root = document.getElementById('jf-ms-qualities');
             if (!chips || !optsEl || !control) return;
             chips.innerHTML = '<div class="subtle">Loading qualities…</div>';
             try {
-                const res = await fetch('/api/admin/jellyfin-qualities-with-counts', {
+                const res = await window.dedupJSON('/api/admin/jellyfin-qualities-with-counts', {
                     credentials: 'include',
                 });
                 const data = await res.json().catch(() => ({}));
@@ -2777,9 +3320,43 @@
                 optsEl.innerHTML = '';
                 names.forEach(n => optsEl.appendChild(jfMsOption(n, selected.has(n))));
                 setJfHidden('jf.qualityFilter-hidden', Array.from(selected).join(','));
-                jfAttachMsHandlers('jf-ms-qualities', names, selected, sel =>
-                    setJfHidden('jf.qualityFilter-hidden', Array.from(sel).join(','))
-                );
+                if (root?.dataset.msWired === 'true') {
+                    const syncOptions = () => {
+                        Array.from(optsEl.children).forEach(row => {
+                            const v = row.dataset.value;
+                            const cb = row.querySelector('input[type="checkbox"]');
+                            if (cb) cb.checked = selected.has(v);
+                        });
+                    };
+                    const renderChips = () => {
+                        chips.innerHTML = '';
+                        Array.from(selected).forEach(v => {
+                            const chip = document.createElement('span');
+                            chip.className = 'ms-chip';
+                            chip.dataset.value = v;
+                            chip.innerHTML = `${v} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                            chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                                e.stopPropagation();
+                                selected.delete(v);
+                                setJfHidden(
+                                    'jf.qualityFilter-hidden',
+                                    Array.from(selected).join(',')
+                                );
+                                syncOptions();
+                                renderChips();
+                                control.classList.toggle('has-selection', selected.size > 0);
+                            });
+                            chips.appendChild(chip);
+                        });
+                        control.classList.toggle('has-selection', selected.size > 0);
+                    };
+                    syncOptions();
+                    renderChips();
+                } else {
+                    jfAttachMsHandlers('jf-ms-qualities', names, selected, sel =>
+                        setJfHidden('jf.qualityFilter-hidden', Array.from(sel).join(','))
+                    );
+                }
             } catch (e) {
                 chips.innerHTML = '<div class="subtle">Failed to load qualities</div>';
             }
@@ -2806,6 +3383,16 @@
             btn.removeAttribute('aria-busy');
         }
 
+        function setPlexStatus(text, variant = '', url = '') {
+            const pill = document.getElementById('plex-status-pill-header');
+            if (pill) {
+                pill.textContent = text;
+                pill.classList.remove('status-success', 'status-error');
+                if (variant) pill.classList.add(variant);
+            }
+            // URL is not shown in the header pill to keep it compact
+        }
+
         async function testPlex() {
             const btn = document.getElementById('btn-plex-test');
             startBtnSpinner(btn);
@@ -2828,6 +3415,26 @@
                     message: 'Connection successful',
                     duration: 2200,
                 });
+                const portNum = Number(port);
+                const hostClean = String(hostname)
+                    .replace(/^https?:\/\//i, '')
+                    .replace(/\/?$/, '');
+                const protocol =
+                    portNum === 443
+                        ? 'https'
+                        : /^https:\/\//i.test(hostname)
+                          ? 'https'
+                          : /^http:\/\//i.test(hostname)
+                            ? 'http'
+                            : 'http';
+                const basePlex = `${protocol}://${hostClean}`;
+                const url = `${basePlex}:${port}/web`;
+                setPlexStatus('Connected', 'status-success', url);
+                const linkPlex = document.getElementById('plex-open-link');
+                if (linkPlex) {
+                    linkPlex.href = url;
+                    linkPlex.removeAttribute('hidden');
+                }
                 // On success, offer to fetch libraries
                 fetchPlexLibraries();
                 // And refresh available filters using the same connection context
@@ -2842,6 +3449,7 @@
                     message: e?.message || 'Connection failed',
                     duration: 4200,
                 });
+                setPlexStatus('Connection failed', 'status-error', '');
             } finally {
                 stopBtnSpinner(btn);
             }
@@ -2853,12 +3461,21 @@
                 const hostname = getInput('jf.hostname')?.value || '';
                 const port = getInput('jf.port')?.value || '';
                 const apiKey = getInput('jf.apikey')?.value || '';
+                const insecureHttps = !!(
+                    document.getElementById('jf.insecureHttps')?.checked ||
+                    document.getElementById('jf.insecureHttpsHeader')?.checked
+                );
                 if (!hostname || !port) throw new Error('Hostname and port are required');
                 const res = await fetch('/api/admin/test-jellyfin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ hostname, port, apiKey: apiKey || undefined }),
+                    body: JSON.stringify({
+                        hostname,
+                        port,
+                        apiKey: apiKey || undefined,
+                        insecureHttps,
+                    }),
                 });
                 const j = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(j?.error || 'Connection failed');
@@ -2868,6 +3485,30 @@
                     message: 'Connection successful',
                     duration: 2200,
                 });
+                const pill = document.getElementById('jf-status-pill-header');
+                if (pill) {
+                    pill.textContent = 'Connected';
+                    pill.classList.remove('status-error', 'is-not-configured');
+                    pill.classList.add('status-success', 'is-configured');
+                }
+                const linkJf = document.getElementById('jf-open-link');
+                if (linkJf && hostname && port) {
+                    const portNum = Number(port);
+                    const hostClean = String(hostname)
+                        .replace(/^https?:\/\//i, '')
+                        .replace(/\/?$/, '');
+                    const protocol =
+                        portNum === 443
+                            ? 'https'
+                            : /^https:\/\//i.test(hostname)
+                              ? 'https'
+                              : /^http:\/\//i.test(hostname)
+                                ? 'http'
+                                : 'http';
+                    const base = `${protocol}://${hostClean}`;
+                    linkJf.href = `${base}:${port}/web`;
+                    linkJf.removeAttribute('hidden');
+                }
                 fetchJellyfinLibraries();
                 // Refresh dependent filters
                 loadJellyfinRatings(getJfHidden('jf.ratingFilter-hidden'));
@@ -2880,6 +3521,12 @@
                     message: e?.message || 'Connection failed',
                     duration: 4200,
                 });
+                const pill = document.getElementById('jf-status-pill-header');
+                if (pill) {
+                    pill.textContent = 'Connection failed';
+                    pill.classList.remove('status-success', 'is-configured');
+                    pill.classList.add('status-error', 'is-not-configured');
+                }
             } finally {
                 stopBtnSpinner(btn);
             }
@@ -2905,6 +3552,12 @@
                     message: 'Connection successful',
                     duration: 2200,
                 });
+                const pill = document.getElementById('tmdb-status-pill-header');
+                if (pill) {
+                    pill.textContent = 'Connected';
+                    pill.classList.remove('status-error', 'is-not-configured');
+                    pill.classList.add('status-success', 'is-configured');
+                }
                 // On success, reload genres in case API key unlocks genre list
                 const curr = getTMDBGenreFilterHidden();
                 loadTMDBGenres(curr).catch(() => {});
@@ -2915,6 +3568,12 @@
                     message: e?.message || 'Connection failed',
                     duration: 4200,
                 });
+                const pill = document.getElementById('tmdb-status-pill-header');
+                if (pill) {
+                    pill.textContent = 'Connection failed';
+                    pill.classList.remove('status-success', 'is-configured');
+                    pill.classList.add('status-error', 'is-not-configured');
+                }
             } finally {
                 stopBtnSpinner(btn);
             }
@@ -3014,10 +3673,11 @@
             const btn = document.getElementById('btn-save-plex');
             btn?.classList.add('btn-loading');
             try {
-                const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
+                const cfgRes = await window.dedupJSON('/api/admin/config', {
+                    credentials: 'include',
+                });
                 const base = cfgRes.ok ? await cfgRes.json() : {};
                 const currentCfg = base?.config || base || {};
-                const currentEnv = base?.env || {};
                 const servers = Array.isArray(currentCfg.mediaServers)
                     ? [...currentCfg.mediaServers]
                     : [];
@@ -3064,7 +3724,7 @@
                 if (plexIdx >= 0) servers[plexIdx] = plex;
                 else servers.push(plex);
                 // Env updates (only if provided)
-                const envPatch = { ...currentEnv };
+                const envPatch = {};
                 const setIfProvided = (key, val) => {
                     if (val != null && String(val).trim() !== '')
                         envPatch[key] = String(val).trim();
@@ -3090,7 +3750,9 @@
                 });
             } finally {
                 btn?.classList.remove('btn-loading');
-                loadMediaSources()
+                // allow one auto-fetch after save on next load
+                if (window.__autoFetchedLibs) window.__autoFetchedLibs.plex = false;
+                loadMediaSources(true)
                     .then(() => {
                         const r = getPlexGenreFilterHidden();
                         loadPlexGenres(r).catch(() => {});
@@ -3105,10 +3767,11 @@
             const btn = document.getElementById('btn-save-jellyfin');
             btn?.classList.add('btn-loading');
             try {
-                const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
+                const cfgRes = await window.dedupJSON('/api/admin/config', {
+                    credentials: 'include',
+                });
                 const base = cfgRes.ok ? await cfgRes.json() : {};
                 const currentCfg = base?.config || base || {};
-                const currentEnv = base?.env || {};
                 const servers = Array.isArray(currentCfg.mediaServers)
                     ? [...currentCfg.mediaServers]
                     : [];
@@ -3133,7 +3796,7 @@
                 jf.tokenEnvVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
                 if (jfIdx >= 0) servers[jfIdx] = jf;
                 else servers.push(jf);
-                const envPatch = { ...currentEnv };
+                const envPatch = {};
                 const setIfProvided = (key, val) => {
                     if (val != null && String(val).trim() !== '')
                         envPatch[key] = String(val).trim();
@@ -3158,7 +3821,9 @@
                 });
             } finally {
                 btn?.classList.remove('btn-loading');
-                loadMediaSources().catch(() => {});
+                // allow one auto-fetch after save on next load
+                if (window.__autoFetchedLibs) window.__autoFetchedLibs.jf = false;
+                loadMediaSources(true).catch(() => {});
             }
         }
 
@@ -3166,7 +3831,9 @@
             const btn = document.getElementById('btn-save-tmdb');
             btn?.classList.add('btn-loading');
             try {
-                const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
+                const cfgRes = await window.dedupJSON('/api/admin/config', {
+                    credentials: 'include',
+                });
                 const base = cfgRes.ok ? await cfgRes.json() : {};
                 const currentCfg = base?.config || base || {};
                 const tmdb = { ...(currentCfg.tmdbSource || {}) };
@@ -3376,7 +4043,9 @@
             chipsContainer.innerHTML = '<div class="subtle">Loading genres…</div>';
             try {
                 // Try server-provided genre list
-                const r = await fetch('/api/admin/tmdb-genres', { credentials: 'include' });
+                const r = await window.dedupJSON('/api/admin/tmdb-genres', {
+                    credentials: 'include',
+                });
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const data = await r.json().catch(() => ({}));
                 const genres = Array.isArray(data?.genres) ? data.genres : [];
@@ -3578,10 +4247,11 @@
             const chips = document.getElementById('plex-ms-ratings-chips');
             const optsEl = document.getElementById('plex-ms-ratings-options');
             const control = document.querySelector('#plex-ms-ratings .ms-control');
+            const root = document.getElementById('plex-ms-ratings');
             if (!chips || !optsEl || !control) return;
             chips.innerHTML = '<div class="subtle">Loading ratings…</div>';
             try {
-                const res = await fetch('/api/sources/plex/ratings-with-counts', {
+                const res = await window.dedupJSON('/api/sources/plex/ratings-with-counts', {
                     credentials: 'include',
                 });
                 const data = await res.json().catch(() => ({}));
@@ -3599,9 +4269,43 @@
                 optsEl.innerHTML = '';
                 ratings.forEach(n => optsEl.appendChild(plexMsOption(n, selected.has(n))));
                 setPlexHidden('plex.ratingFilter-hidden', Array.from(selected).join(','));
-                plexAttachMsHandlers('plex-ms-ratings', ratings, selected, sel =>
-                    setPlexHidden('plex.ratingFilter-hidden', Array.from(sel).join(','))
-                );
+                if (root?.dataset.msWired === 'true') {
+                    const syncOptions = () => {
+                        Array.from(optsEl.children).forEach(row => {
+                            const v = row.dataset.value;
+                            const cb = row.querySelector('input[type="checkbox"]');
+                            if (cb) cb.checked = selected.has(v);
+                        });
+                    };
+                    const renderChips = () => {
+                        chips.innerHTML = '';
+                        Array.from(selected).forEach(v => {
+                            const chip = document.createElement('span');
+                            chip.className = 'ms-chip';
+                            chip.dataset.value = v;
+                            chip.innerHTML = `${v} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                            chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                                e.stopPropagation();
+                                selected.delete(v);
+                                setPlexHidden(
+                                    'plex.ratingFilter-hidden',
+                                    Array.from(selected).join(',')
+                                );
+                                syncOptions();
+                                renderChips();
+                                control.classList.toggle('has-selection', selected.size > 0);
+                            });
+                            chips.appendChild(chip);
+                        });
+                        control.classList.toggle('has-selection', selected.size > 0);
+                    };
+                    syncOptions();
+                    renderChips();
+                } else {
+                    plexAttachMsHandlers('plex-ms-ratings', ratings, selected, sel =>
+                        setPlexHidden('plex.ratingFilter-hidden', Array.from(sel).join(','))
+                    );
+                }
             } catch (e) {
                 chips.innerHTML = '<div class="subtle">Failed to load ratings</div>';
             }
@@ -3610,10 +4314,11 @@
             const chips = document.getElementById('plex-ms-qualities-chips');
             const optsEl = document.getElementById('plex-ms-qualities-options');
             const control = document.querySelector('#plex-ms-qualities .ms-control');
+            const root = document.getElementById('plex-ms-qualities');
             if (!chips || !optsEl || !control) return;
             chips.innerHTML = '<div class="subtle">Loading qualities…</div>';
             try {
-                const res = await fetch('/api/admin/plex-qualities-with-counts', {
+                const res = await window.dedupJSON('/api/admin/plex-qualities-with-counts', {
                     credentials: 'include',
                 });
                 const data = await res.json().catch(() => ({}));
@@ -3639,9 +4344,43 @@
                 optsEl.innerHTML = '';
                 names.forEach(n => optsEl.appendChild(plexMsOption(n, selected.has(n))));
                 setPlexHidden('plex.qualityFilter-hidden', Array.from(selected).join(','));
-                plexAttachMsHandlers('plex-ms-qualities', names, selected, sel =>
-                    setPlexHidden('plex.qualityFilter-hidden', Array.from(sel).join(','))
-                );
+                if (root?.dataset.msWired === 'true') {
+                    const syncOptions = () => {
+                        Array.from(optsEl.children).forEach(row => {
+                            const v = row.dataset.value;
+                            const cb = row.querySelector('input[type="checkbox"]');
+                            if (cb) cb.checked = selected.has(v);
+                        });
+                    };
+                    const renderChips = () => {
+                        chips.innerHTML = '';
+                        Array.from(selected).forEach(v => {
+                            const chip = document.createElement('span');
+                            chip.className = 'ms-chip';
+                            chip.dataset.value = v;
+                            chip.innerHTML = `${v} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                            chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                                e.stopPropagation();
+                                selected.delete(v);
+                                setPlexHidden(
+                                    'plex.qualityFilter-hidden',
+                                    Array.from(selected).join(',')
+                                );
+                                syncOptions();
+                                renderChips();
+                                control.classList.toggle('has-selection', selected.size > 0);
+                            });
+                            chips.appendChild(chip);
+                        });
+                        control.classList.toggle('has-selection', selected.size > 0);
+                    };
+                    syncOptions();
+                    renderChips();
+                } else {
+                    plexAttachMsHandlers('plex-ms-qualities', names, selected, sel =>
+                        setPlexHidden('plex.qualityFilter-hidden', Array.from(sel).join(','))
+                    );
+                }
             } catch (e) {
                 chips.innerHTML = '<div class="subtle">Failed to load qualities</div>';
             }
@@ -3651,7 +4390,9 @@
             const btn = document.getElementById('btn-save-tvdb');
             btn?.classList.add('btn-loading');
             try {
-                const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
+                const cfgRes = await window.dedupJSON('/api/admin/config', {
+                    credentials: 'include',
+                });
                 const base = cfgRes.ok ? await cfgRes.json() : {};
                 const currentCfg = base?.config || base || {};
                 const tvdb = { ...(currentCfg.tvdbSource || {}) };
@@ -3686,12 +4427,12 @@
         }
 
         // Wire buttons
-        document
-            .getElementById('btn-plex-libraries')
-            ?.addEventListener('click', fetchPlexLibraries);
-        document
-            .getElementById('btn-jf-libraries')
-            ?.addEventListener('click', fetchJellyfinLibraries);
+        document.getElementById('btn-plex-libraries')?.addEventListener('click', () => {
+            fetchPlexLibraries(true);
+        });
+        document.getElementById('btn-jf-libraries')?.addEventListener('click', () => {
+            fetchJellyfinLibraries(true);
+        });
         document.getElementById('btn-plex-test')?.addEventListener('click', testPlex);
         document.getElementById('btn-jf-test')?.addEventListener('click', testJellyfin);
         document.getElementById('btn-tmdb-test')?.addEventListener('click', testTMDB);
@@ -3928,6 +4669,55 @@
             }
         }
 
+        // Live auto-fetch libraries when connection inputs change (Plex/Jellyfin)
+        // Simple debounce to avoid rapid calls while typing
+        const debounce = (fn, ms = 300) => {
+            let t;
+            return (...args) => {
+                clearTimeout(t);
+                t = setTimeout(() => fn(...args), ms);
+            };
+        };
+
+        const autoFetchPlexIfReady = debounce(() => {
+            try {
+                const enabled = !!document.getElementById('plex.enabled')?.checked;
+                const host = document.getElementById('plex.hostname')?.value?.trim();
+                const port = document.getElementById('plex.port')?.value?.trim();
+                if (enabled && host && port) fetchPlexLibraries(true);
+            } catch (_) {
+                /* no-op */
+            }
+        }, 350);
+
+        const autoFetchJfIfReady = debounce(() => {
+            try {
+                const enabled = !!document.getElementById('jf.enabled')?.checked;
+                const host = document.getElementById('jf.hostname')?.value?.trim();
+                const port = document.getElementById('jf.port')?.value?.trim();
+                if (enabled && host && port) fetchJellyfinLibraries(true);
+            } catch (_) {
+                /* no-op */
+            }
+        }, 350);
+
+        // Attach listeners
+        ['plex.enabled', 'plex.hostname', 'plex.port'].forEach(id => {
+            const el = document.getElementById(id);
+            el?.addEventListener('change', autoFetchPlexIfReady);
+            // For text inputs, also react on input typing
+            if (el && el.tagName === 'INPUT' && el.type === 'text') {
+                el.addEventListener('input', autoFetchPlexIfReady);
+            }
+        });
+        ['jf.enabled', 'jf.hostname', 'jf.port'].forEach(id => {
+            const el = document.getElementById(id);
+            el?.addEventListener('change', autoFetchJfIfReady);
+            if (el && el.tagName === 'INPUT' && el.type === 'text') {
+                el.addEventListener('input', autoFetchJfIfReady);
+            }
+        });
+
         // TVDB custom select + overlay icon
         if (tvdbCat && tvdbCatIcon) {
             tvdbCatIcon.className = iconFor(tvdbCat.value);
@@ -4114,13 +4904,7 @@
         document.getElementById('btn-save-jellyfin')?.addEventListener('click', saveJellyfin);
         document.getElementById('btn-save-tmdb')?.addEventListener('click', saveTMDB);
         document.getElementById('btn-save-tvdb')?.addEventListener('click', saveTVDB);
-        // Reload genres when user clicks Fetch Libraries (often indicates valid connection)
-        document.getElementById('btn-plex-libraries')?.addEventListener('click', () => {
-            const current = getPlexGenreFilterHidden();
-            loadPlexGenres(current).catch(() => {});
-            loadPlexRatings(getPlexHidden('plex.ratingFilter-hidden'));
-            loadPlexQualities(getPlexHidden('plex.qualityFilter-hidden'));
-        });
+        // No extra handlers needed here; dependent refresh is driven by fetchPlexLibraries(true)
 
         // Initial population
         loadMediaSources()
@@ -4302,8 +5086,10 @@
                 if (show) {
                     try {
                         // Fetch current server info to get an IP if exposed; otherwise, use the current host
-                        const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
-                        const cfg = cfgRes.ok ? await cfg.json() : {};
+                        const cfgRes = await window.dedupJSON('/api/admin/config', {
+                            credentials: 'include',
+                        });
+                        const cfg = cfgRes.ok ? await cfgRes.json() : {};
                         const hostFromApi = cfg?.server?.ipAddress;
                         const host =
                             hostFromApi && hostFromApi !== '127.0.0.1'
@@ -4333,7 +5119,7 @@
 
     async function refreshOperationsPanels() {
         try {
-            const r = await fetch('/api/admin/config', { credentials: 'include' });
+            const r = await window.dedupJSON('/api/admin/config', { credentials: 'include' });
             const j = r.ok ? await r.json() : null;
             const env = j?.env || {};
             const cfg = j?.config || {};

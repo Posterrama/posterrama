@@ -4,26 +4,68 @@
  */
 
 const axios = require('axios');
+const https = require('https');
+const os = require('os');
+const crypto = require('crypto');
+let pkgVersion = '1.0.0';
+try {
+    // Resolve version for User-Agent / authorization metadata
+    // Falls back silently if package.json cannot be loaded
+    // eslint-disable-next-line import/no-extraneous-dependencies
+    // eslint-disable-next-line global-require
+    pkgVersion = require('../package.json').version || pkgVersion;
+} catch (_) {}
 
 class JellyfinHttpClient {
-    constructor({ hostname, port, apiKey, timeout = 15000 }) {
+    constructor({ hostname, port, apiKey, timeout = 15000, basePath = '' }) {
         this.hostname = hostname;
         this.port = port;
         this.apiKey = apiKey;
         this.timeout = timeout;
+        this.basePath = basePath;
+        this.insecure = process.env.JELLYFIN_INSECURE_HTTPS === 'true';
 
         // Build base URL with protocol detection
-        const protocol = port === 443 || port === '443' ? 'https' : 'http';
-        this.baseUrl = `${protocol}://${hostname}:${port}`;
+        // Build base URL with protocol detection (Jellyfin defaults: 8096 http, 8920 https)
+        const httpsPorts = new Set([443, '443', 8920, '8920']);
+        const protocol = httpsPorts.has(port) ? 'https' : 'http';
+        // Normalize optional basePath
+        let normalizedBasePath = '';
+        if (this.basePath && this.basePath !== '/') {
+            normalizedBasePath = this.basePath.startsWith('/')
+                ? this.basePath
+                : `/${this.basePath}`;
+            // remove trailing slash
+            if (normalizedBasePath.length > 1 && normalizedBasePath.endsWith('/')) {
+                normalizedBasePath = normalizedBasePath.slice(0, -1);
+            }
+        }
+        this.baseUrl = `${protocol}://${hostname}:${port}${normalizedBasePath}`;
+
+        // Compose Jellyfin/Emby authorization metadata header
+        const deviceName = process.env.POSTERRAMA_DEVICE_NAME || os.hostname() || 'Posterrama';
+        const deviceId =
+            process.env.POSTERRAMA_DEVICE_ID ||
+            `posterrama-${crypto.createHash('md5').update(deviceName).digest('hex').slice(0, 12)}`;
+        const embyAuthHeader = `MediaBrowser Client="Posterrama", Device="${deviceName}", DeviceId="${deviceId}", Version="${pkgVersion}", Token="${this.apiKey}"`;
 
         // Create axios instance with default config
+        const httpsAgent =
+            this.insecure && protocol === 'https'
+                ? new https.Agent({ rejectUnauthorized: false })
+                : undefined;
         this.http = axios.create({
             baseURL: this.baseUrl,
             timeout: this.timeout,
+            httpsAgent,
             headers: {
+                // Both headers are accepted by Jellyfin/Emby; include for compatibility
                 'X-Emby-Token': this.apiKey,
+                'X-MediaBrowser-Token': this.apiKey,
+                'X-Emby-Authorization': embyAuthHeader,
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
+                'User-Agent': `Posterrama/${pkgVersion}`,
             },
         });
     }

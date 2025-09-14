@@ -591,9 +591,10 @@ const apiLimiter = createRateLimiter(
 );
 
 // Admin API Rate Limiting (more lenient for development/testing)
+// Increased ceiling to reduce 429s during admin UI operations and bulk fetches
 const adminApiLimiter = createRateLimiter(
     15 * 60 * 1000, // 15 minutes
-    500, // Max requests (increased for admin testing)
+    3000, // Max requests per IP
     'Too many admin API requests from this IP, please try again later.'
 );
 
@@ -610,7 +611,12 @@ const testApiLimiter =
           )
         : apiLimiter;
 
-app.use('/api/', testApiLimiter);
+// IMPORTANT: Avoid double limiting admin endpoints. Apply general API limiter to /api/*
+// except when the request targets /api/admin/*, which already has its own limiter.
+app.use('/api/', (req, res, next) => {
+    if (req.originalUrl && req.originalUrl.startsWith('/api/admin')) return next();
+    return testApiLimiter(req, res, next);
+});
 app.use('/get-config', apiLimiter);
 app.use('/get-media', apiLimiter);
 app.use('/get-media-by-key', apiLimiter);
@@ -4032,7 +4038,13 @@ async function fetchJellyfinLibraries(client) {
  * @param {number} [options.timeout] - Request timeout in milliseconds
  * @returns {Promise<object>} A new Jellyfin HTTP client instance
  */
-async function createJellyfinClient({ hostname, port, apiKey, timeout = 15000 }) {
+async function createJellyfinClient({
+    hostname,
+    port,
+    apiKey,
+    timeout = 15000,
+    insecureHttps = false,
+}) {
     if (!hostname || !port || !apiKey) {
         throw new ApiError(
             500,
@@ -4044,14 +4056,19 @@ async function createJellyfinClient({ hostname, port, apiKey, timeout = 15000 })
 
     // Sanitize hostname to prevent crashes if the user includes the protocol
     let sanitizedHostname = hostname.trim();
+    let basePath = '';
     try {
         const fullUrl = sanitizedHostname.includes('://')
             ? sanitizedHostname
             : `http://${sanitizedHostname}`;
         const url = new URL(fullUrl);
         sanitizedHostname = url.hostname;
+        // Capture any pathname as basePath for reverse proxies (e.g., /jellyfin)
+        basePath = url.pathname && url.pathname !== '/' ? url.pathname : '';
         if (isDebug)
-            logger.debug(`[Jellyfin Client] Sanitized hostname to: "${sanitizedHostname}"`);
+            logger.debug(
+                `[Jellyfin Client] Sanitized hostname to: "${sanitizedHostname}", basePath: "${basePath}"`
+            );
     } catch (e) {
         sanitizedHostname = sanitizedHostname.replace(/^https?:\/\//, '');
         if (isDebug)
@@ -4063,8 +4080,10 @@ async function createJellyfinClient({ hostname, port, apiKey, timeout = 15000 })
     const client = new JellyfinHttpClient({
         hostname: sanitizedHostname,
         port,
-        apiKey,
+        apiKey: String(apiKey).trim(),
         timeout,
+        basePath,
+        insecure: !!insecureHttps,
     });
 
     // Test connection to ensure it works
@@ -7474,7 +7493,7 @@ app.post(
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Received request to test Jellyfin connection.');
         let { hostname, apiKey } = req.body; // apiKey is now optional
-        const { port: portValue } = req.body;
+        const { port: portValue, insecureHttps } = req.body;
 
         if (!hostname || !portValue) {
             throw new ApiError(400, 'Hostname and port are required for the test.');
@@ -7521,6 +7540,7 @@ app.post(
                 port,
                 apiKey,
                 timeout: 10000,
+                insecureHttps: !!insecureHttps,
             });
 
             // Test connection with our HTTP client

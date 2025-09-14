@@ -31,6 +31,10 @@
     --color-info-dark: #5a6acf;
     --color-info-light: #a8b5f0;
 
+    /* Nav/submenu indicators */
+    --color-submenu-indicator: #a3aed0; /* default muted blue-grey */
+    --color-submenu-accent: #667eea; /* submenu highlight (blue), distinct from primary green */
+
     /* Neutrals - Modern Balanced Dark Theme */
     --color-bg-primary: #1a1d29;
     --color-bg-secondary: #252a3a;
@@ -228,7 +232,8 @@ body {
     font-size: 12px;
     transition: transform 0.3s ease;
     margin-left: auto;
-    opacity: 0.6;
+    opacity: 0.8;
+    color: var(--color-submenu-indicator);
 }
 
 .nav-group.open .nav-arrow {
@@ -270,13 +275,13 @@ body {
 .nav-subitem:hover {
     background: var(--color-bg-card);
     color: var(--color-text-primary);
-    border-left-color: var(--color-primary);
+    border-left-color: var(--color-submenu-accent);
     transform: translateX(2px);
 }
 
 .nav-subitem:active {
     background: var(--color-bg-tertiary);
-    border-left-color: var(--color-primary);
+    border-left-color: var(--color-submenu-accent);
     color: var(--color-text-primary);
     font-weight: var(--font-weight-medium);
 }
@@ -285,6 +290,14 @@ body {
     width: 14px;
     font-size: 12px;
     opacity: 0.8;
+}
+
+/* Active state indicator for submenu links */
+.nav-subitem.active {
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+    border-left-color: var(--color-submenu-accent);
+    font-weight: var(--font-weight-medium);
 }
 
 .sidebar-footer {
@@ -494,6 +507,104 @@ body {
     align-items: center;
     gap: var(--space-md);
     flex-wrap: wrap; /* allow actions to wrap on smaller screens */
+}
+
+/* Compact header toggle used in panel headers */
+.header-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+.header-toggle input {
+    position: absolute;
+    opacity: 0;
+}
+.ht-switch {
+    width: 34px;
+    height: 20px;
+    border-radius: 999px;
+    background: var(--color-border);
+    position: relative;
+    transition: background 0.2s ease;
+    box-shadow: inset 0 0 0 1px var(--color-border-dark);
+}
+.ht-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-bg-card);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+.header-toggle input:checked + .ht-switch {
+    background: var(--color-success);
+}
+.header-toggle input:checked + .ht-switch::after {
+    transform: translateX(14px);
+}
+.ht-text {
+    color: var(--color-text-muted);
+}
+
+/* Generic status pill (used inline in headers) */
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: var(--font-size-sm);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+}
+.header-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    color: var(--color-text-secondary);
+    opacity: 0.85;
+    transition:
+        color 0.2s ease,
+        opacity 0.2s ease,
+        background 0.2s ease;
+}
+.header-link:hover {
+    opacity: 1;
+    color: var(--color-info-light);
+    background: rgba(255, 255, 255, 0.06);
+}
+.status-pill.status-success {
+    background: rgba(0, 212, 170, 0.12);
+    border-color: rgba(0, 212, 170, 0.45);
+    color: #a7f3d0;
+}
+.status-pill.status-error {
+    background: rgba(232, 67, 147, 0.12);
+    border-color: rgba(232, 67, 147, 0.45);
+    color: #fbcfe8;
+}
+
+/* Dedicated variants for configuration state */
+.status-pill.is-configured {
+    background: rgba(102, 126, 234, 0.15); /* secondary blue tone */
+    border-color: rgba(102, 126, 234, 0.5);
+    color: var(--color-info-light);
+}
+.status-pill.is-not-configured {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--color-border);
+    color: var(--color-text-secondary);
 }
 
 .panel-content {
@@ -2289,7 +2400,7 @@ input[type='range']::-moz-range-thumb {
 .ms-caret {
     position: absolute;
     right: 10px;
-    color: var(--color-text-secondary);
+    color: var(--color-submenu-indicator);
     pointer-events: none;
 }
 

@@ -161,6 +161,19 @@
   /* Safety: ensure Plex panel content is visible */
   #panel-plex .panel-content { display: block !important; visibility: visible !important; }
   /* Operations panel polish (align with theme-demo) */
+  /* Ensure Operations/Security panels use the same panel background as theme-demo */
+  .operations-panel,
+  .security-panel {
+    background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--border-radius-lg) !important;
+    box-shadow: var(--shadow-md) !important;
+  }
+  .operations-panel > .panel-header,
+  .security-panel > .panel-header {
+    background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card)) !important;
+    border-bottom: 1px solid var(--color-border) !important;
+  }
   .operations-panel .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .operations-panel .main-actions { margin-top: 8px; }
   .operations-panel .sub-actions { margin-top: 8px; }
@@ -197,7 +210,16 @@
   #backups-content { display: grid; gap: 8px; }
   #backups-content .backup-item { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); border-radius:10px; }
   /* Security panel – compact layout */
-  .security-panel .perf-card { background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px 12px; }
+  /* Match inner card backgrounds to theme across both panels */
+  .operations-panel .perf-card,
+  .security-panel .perf-card {
+    background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .security-panel .perf-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px 12px; }
+  .operations-panel .perf-card { position: relative; background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
   .security-panel .perf-card h3 { margin: 0 0 8px 0; font-weight: 700; opacity: .92; display:flex; align-items:center; gap:8px; }
   .security-panel .metric-row { gap: 8px; }
   .security-panel .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
@@ -245,6 +267,8 @@
   /* Subpanel styling (used inside TMDB for Streaming Releases) */
   .subpanel { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,0.02); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
   .subpanel + .subpanel { margin-top: 10px; }
+  /* Streaming Releases should match themed panel background */
+  #subpanel-streaming { background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); }
   .subpanel-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin: -2px 0 8px; }
   .subpanel-header h3 { margin:0; font-size: 1rem; display:flex; align-items:center; gap:8px; opacity:.95; }
   .subpanel-body .subtle { opacity:.8; margin-bottom: 8px; }
@@ -291,49 +315,10 @@
             <i class="fas fa-external-link-alt"></i>
             <span>View Posterrama</span>
           </a>
-          <a class="dropdown-item" href="https://github.com/Posterrama/posterrama#readme" target="_blank" rel="noopener">
-            <i class="fas fa-circle-question"></i>
-              <select id="plex.movies" multiple style="display:none"></select>
-              <div class="multiselect" id="plex-ms-movies">
-                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-                  <div class="ms-chips" id="plex-ms-movies-chips"></div>
-                  <button class="ms-clear" id="plex-ms-movies-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
-                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
-                </div>
-                <div class="ms-menu" id="plex-ms-movies-menu" role="listbox">
-                  <div class="ms-search">
-                    <i class="fas fa-search"></i>
-                    <input id="plex-ms-movies-search" type="text" placeholder="Search libraries…">
-                  </div>
-                  <div class="ms-actions">
-                    <button class="btn btn-outline btn-sm" id="plex-ms-movies-select-all"><i class="fas fa-square-check"></i> Select all</button>
-                    <button class="btn btn-outline btn-sm" id="plex-ms-movies-clear-all"><i class="fas fa-eraser"></i> Clear</button>
-                  </div>
-                  <div class="ms-options" id="plex-ms-movies-options"></div>
-                </div>
-              </div>
-          </a>
+          
           <a class="dropdown-item" href="/api-docs" target="_blank" rel="noopener">
             <i class="fas fa-book"></i>
-              <select id="plex.shows" multiple style="display:none"></select>
-              <div class="multiselect" id="plex-ms-shows">
-                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-                  <div class="ms-chips" id="plex-ms-shows-chips"></div>
-                  <button class="ms-clear" id="plex-ms-shows-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
-                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
-                </div>
-                <div class="ms-menu" id="plex-ms-shows-menu" role="listbox">
-                  <div class="ms-search">
-                    <i class="fas fa-search"></i>
-                    <input id="plex-ms-shows-search" type="text" placeholder="Search libraries…">
-                  </div>
-                  <div class="ms-actions">
-                    <button class="btn btn-outline btn-sm" id="plex-ms-shows-select-all"><i class="fas fa-square-check"></i> Select all</button>
-                    <button class="btn btn-outline btn-sm" id="plex-ms-shows-clear-all"><i class="fas fa-eraser"></i> Clear</button>
-                  </div>
-                  <div class="ms-options" id="plex-ms-shows-options"></div>
-                </div>
-              </div>
+            <span>API Docs</span>
           </a>
           <a class="dropdown-item" href="https://github.com/Posterrama/posterrama" target="_blank" rel="noopener">
             <i class="fab fa-github"></i>
@@ -341,47 +326,11 @@
           </a>
           <a class="dropdown-item" href="https://github.com/Posterrama/posterrama/issues/new/choose" target="_blank" rel="noopener">
             <i class="fas fa-bug"></i>
-              <select id="jf.movies" multiple style="display:none"></select>
-              <div class="multiselect" id="jf-ms-movies">
-                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-                  <div class="ms-chips" id="jf-ms-movies-chips"></div>
-                  <button class="ms-clear" id="jf-ms-movies-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
-                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
-                </div>
-                <div class="ms-menu" id="jf-ms-movies-menu" role="listbox">
-                  <div class="ms-search">
-                    <i class="fas fa-search"></i>
-                    <input id="jf-ms-movies-search" type="text" placeholder="Search libraries…">
-                  </div>
-                  <div class="ms-actions">
-                    <button class="btn btn-outline btn-sm" id="jf-ms-movies-select-all"><i class="fas fa-square-check"></i> Select all</button>
-                    <button class="btn btn-outline btn-sm" id="jf-ms-movies-clear-all"><i class="fas fa-eraser"></i> Clear</button>
-                  </div>
-                  <div class="ms-options" id="jf-ms-movies-options"></div>
-                </div>
-              </div>
+            <span>Report an Issue</span>
           </a>
           <div class="dropdown-divider"></div>
           <div class="dropdown-heading">Server</div>
-              <select id="jf.shows" multiple style="display:none"></select>
-              <div class="multiselect" id="jf-ms-shows">
-                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-                  <div class="ms-chips" id="jf-ms-shows-chips"></div>
-                  <button class="ms-clear" id="jf-ms-shows-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
-                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
-                </div>
-                <div class="ms-menu" id="jf-ms-shows-menu" role="listbox">
-                  <div class="ms-search">
-                    <i class="fas fa-search"></i>
-                    <input id="jf-ms-shows-search" type="text" placeholder="Search libraries…">
-                  </div>
-                  <div class="ms-actions">
-                    <button class="btn btn-outline btn-sm" id="jf-ms-shows-select-all"><i class="fas fa-square-check"></i> Select all</button>
-                    <button class="btn btn-outline btn-sm" id="jf-ms-shows-clear-all"><i class="fas fa-eraser"></i> Clear</button>
-                  </div>
-                  <div class="ms-options" id="jf-ms-shows-options"></div>
-                </div>
-              </div>
+          <a class="dropdown-item" href="#" id="menu-restart">
             <i class="fas fa-rotate"></i>
             <span>Restart Posterrama</span>
           </a>
@@ -612,6 +561,13 @@
         <header class="panel-header">
           <h2><i class="fas fa-film"></i> Plex</h2>
           <div class="panel-actions">
+            <span class="status-pill" id="plex-status-pill-header" title="Plex configuration status">Not configured</span>
+            <a href="#" id="plex-open-link" class="header-link" title="Open Plex Web UI" hidden aria-label="Open Plex Web UI" target="_blank" rel="noopener"><i class="fas fa-globe"></i></a>
+            <label class="header-toggle" for="plex.enabled" title="Enable Plex source">
+              <input type="checkbox" id="plex.enabled" />
+              <span class="ht-switch" aria-hidden="true"></span>
+              <span class="ht-text">Enabled</span>
+            </label>
             <button class="btn btn-icon btn-sm" id="btn-plex-test" title="Test connection"><i class="fas fa-vial"></i></button>
             <button class="btn btn-icon btn-sm" id="btn-plex-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
             <button class="btn btn-primary btn-sm" id="btn-save-plex" title="Save Plex settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
@@ -622,17 +578,8 @@
             <div class="glass"></div>
             <div class="loader"><span class="spinner"></span></div>
           </div>
-          <div class="status-line" id="plex-status-line" aria-live="polite" style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">
-            <span class="status-pill" id="plex-status-pill">Not tested</span>
-            <a href="#" class="url-chip" id="plex-url-chip" hidden target="_blank" rel="noopener">
-              <i class="fas fa-link"></i>
-              <span id="plex-url-text"></span>
-            </a>
-          </div>
+          <!-- header status pill replaces the inline status-line; URL chip moved to header-less view if needed -->
           <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="plex.enabled"><span class="checkmark"></span><span>Enabled</span></label>
-            </div>
             <div class="form-group">
               <label for="plex.hostname">Hostname</label>
               <input type="text" id="plex.hostname" placeholder="e.g. 192.168.1.10">
@@ -650,11 +597,47 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="plex.movies">Movie Libraries</label>
-              <select id="plex.movies" multiple></select>
+              <select id="plex.movies" multiple style="display:none"></select>
+              <div class="multiselect" id="plex-ms-movies">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="plex-ms-movies-chips"></div>
+                  <button class="ms-clear" id="plex-ms-movies-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="plex-ms-movies-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="plex-ms-movies-search" type="text" placeholder="Search libraries…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="plex-ms-movies-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="plex-ms-movies-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="plex-ms-movies-options"></div>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label for="plex.shows">Show Libraries</label>
-              <select id="plex.shows" multiple></select>
+              <select id="plex.shows" multiple style="display:none"></select>
+              <div class="multiselect" id="plex-ms-shows">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="plex-ms-shows-chips"></div>
+                  <button class="ms-clear" id="plex-ms-shows-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="plex-ms-shows-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="plex-ms-shows-search" type="text" placeholder="Search libraries…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="plex-ms-shows-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="plex-ms-shows-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="plex-ms-shows-options"></div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="form-grid">
@@ -713,7 +696,7 @@
           </div>
             <div class="form-grid">
               <div class="form-group" style="grid-column: 1 / -1;">
-                <label>Genre filter</label>
+                <label>Genres</label>
                 <input type="hidden" id="plex.genreFilter-hidden" value="">
                 <div class="multiselect" id="plex-ms-genres">
                   <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
@@ -754,6 +737,13 @@
         <header class="panel-header">
           <h2><i class="fas fa-play"></i> Jellyfin</h2>
           <div class="panel-actions">
+            <span class="status-pill" id="jf-status-pill-header" title="Jellyfin configuration status">Not configured</span>
+            <a href="#" id="jf-open-link" class="header-link" title="Open Jellyfin Web UI" hidden aria-label="Open Jellyfin Web UI" target="_blank" rel="noopener"><i class="fas fa-globe"></i></a>
+            <label class="header-toggle" for="jf.enabled" title="Enable Jellyfin source">
+              <input type="checkbox" id="jf.enabled" />
+              <span class="ht-switch" aria-hidden="true"></span>
+              <span class="ht-text">Enabled</span>
+            </label>
             <button class="btn btn-icon btn-sm" id="btn-jf-test" title="Test connection"><i class="fas fa-vial"></i></button>
             <button class="btn btn-icon btn-sm" id="btn-jf-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
             <button class="btn btn-primary btn-sm" id="btn-save-jellyfin" title="Save Jellyfin settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
@@ -765,9 +755,6 @@
             <div class="loader"><span class="spinner"></span></div>
           </div>
           <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="jf.enabled"><span class="checkmark"></span><span>Enabled</span></label>
-            </div>
             <div class="form-group">
               <label for="jf.hostname">Hostname</label>
               <input type="text" id="jf.hostname" placeholder="e.g. 192.168.1.20">
@@ -781,15 +768,59 @@
               <input type="password" id="jf.apikey" placeholder="Jellyfin API Key">
               <small class="form-help">Stored in environment. Not shown after save.</small>
             </div>
+            <div class="form-group">
+              <label class="header-toggle" for="jf.insecureHttps" title="Allow insecure HTTPS (self-signed)">
+                <input type="checkbox" id="jf.insecureHttps" />
+                <span class="ht-switch" aria-hidden="true"></span>
+                <span class="ht-text">Insecure HTTPS</span>
+              </label>
+              <small class="form-help">Use for testing with self-signed certs (e.g., HTTPS on port 8920).</small>
+            </div>
           </div>
           <div class="form-grid">
             <div class="form-group">
               <label for="jf.movies">Movie Libraries</label>
-              <select id="jf.movies" multiple></select>
+              <select id="jf.movies" multiple style="display:none"></select>
+              <div class="multiselect" id="jf-ms-movies">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="jf-ms-movies-chips"></div>
+                  <button class="ms-clear" id="jf-ms-movies-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="jf-ms-movies-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="jf-ms-movies-search" type="text" placeholder="Search libraries…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="jf-ms-movies-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="jf-ms-movies-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="jf-ms-movies-options"></div>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label for="jf.shows">Show Libraries</label>
-              <select id="jf.shows" multiple></select>
+              <select id="jf.shows" multiple style="display:none"></select>
+              <div class="multiselect" id="jf-ms-shows">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="jf-ms-shows-chips"></div>
+                  <button class="ms-clear" id="jf-ms-shows-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="jf-ms-shows-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="jf-ms-shows-search" type="text" placeholder="Search libraries…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="jf-ms-shows-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="jf-ms-shows-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="jf-ms-shows-options"></div>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -890,6 +921,12 @@
         <header class="panel-header">
           <h2><i class="fas fa-database"></i> TMDB</h2>
           <div class="panel-actions">
+            <span class="status-pill" id="tmdb-status-pill-header" title="TMDB configuration status">Not configured</span>
+            <label class="header-toggle" for="tmdb.enabled" title="Enable TMDB source">
+              <input type="checkbox" id="tmdb.enabled" />
+              <span class="ht-switch" aria-hidden="true"></span>
+              <span class="ht-text">Enabled</span>
+            </label>
             <button class="btn btn-icon btn-sm" id="btn-tmdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
             <button class="btn btn-primary btn-sm" id="btn-save-tmdb" title="Save TMDB settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
           </div>
@@ -900,9 +937,6 @@
             <div class="loader"><span class="spinner"></span></div>
           </div>
           <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="tmdb.enabled"><span class="checkmark"></span><span>Enabled</span></label>
-            </div>
             <div class="form-group">
               <label for="tmdb.apikey">API Key</label>
               <input type="password" id="tmdb.apikey" placeholder="TMDB API Key">
@@ -953,7 +987,7 @@
           </div>
             <div class="form-grid">
               <div class="form-group" style="grid-column: 1 / -1;">
-                <label>Genre filter</label>
+                <label>Genres</label>
                 <input type="hidden" id="tmdb.genreFilter-hidden" value="">
                 <div class="multiselect" id="tmdb-ms-genres">
                   <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
@@ -986,17 +1020,18 @@
                 <span>Streaming Releases</span>
               </h3>
               <div class="panel-actions">
+                <label class="header-toggle" for="streamingSources.enabled" title="Enable Streaming Releases">
+                  <input type="checkbox" id="streamingSources.enabled" />
+                  <span class="ht-switch" aria-hidden="true"></span>
+                  <span class="ht-text">Enabled</span>
+                </label>
                 <button class="btn btn-icon btn-sm" id="test-streaming-button" title="Test Streaming"><i class="fas fa-vial"></i></button>
               </div>
             </header>
             <div class="subpanel-body">
               <div class="subtle">Add latest releases from popular streaming platforms using TMDB's provider data.</div>
               <small id="streaming-connection-status" class="form-help"></small>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="streamingSources.enabled"><span class="checkmark"></span><span>Enabled</span></label>
-            </div>
-          </div>
+          
           <div class="form-grid">
             <div class="form-group" style="grid-column: 1 / -1;">
               <label>Streaming Providers</label>
@@ -1101,6 +1136,11 @@
         <header class="panel-header">
           <h2><i class="fas fa-tv"></i> TVDB</h2>
           <div class="panel-actions">
+            <label class="header-toggle" for="tvdb.enabled" title="Enable TVDB source">
+              <input type="checkbox" id="tvdb.enabled" />
+              <span class="ht-switch" aria-hidden="true"></span>
+              <span class="ht-text">Enabled</span>
+            </label>
             <button class="btn btn-icon btn-sm" id="btn-tvdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
             <button class="btn btn-primary btn-sm" id="btn-save-tvdb" title="Save TVDB settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
           </div>
@@ -1111,9 +1151,6 @@
             <div class="loader"><span class="spinner"></span></div>
           </div>
           <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="tvdb.enabled"><span class="checkmark"></span><span>Enabled</span></label>
-            </div>
             <div class="form-group">
               <label for="tvdb.category">Category</label>
               <div class="select-wrap">

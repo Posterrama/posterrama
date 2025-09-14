@@ -3553,7 +3553,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
-            const genres = data.genres || [];
+            // Normalize to array of { genre, count? }
+            const genres = (data.genres || []).map(g => (typeof g === 'string' ? { genre: g } : g));
 
             // Use the new checkbox population function with counts
             populateGenreFilterCheckboxes(genres, genreContainer, currentValue);
