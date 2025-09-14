@@ -1525,8 +1525,8 @@
                 active === 'screensaver'
                     ? '<i class="fas fa-image" aria-hidden="true"></i>'
                     : active === 'wallart'
-                      ? '<i class="fas fa-border-all" aria-hidden="true"></i>'
-                      : '<i class="fas fa-mobile-alt" aria-hidden="true"></i>';
+                      ? '<i class="fas fa-th-large" aria-hidden="true"></i>'
+                      : '<i class="fas fa-film" aria-hidden="true"></i>';
             pill.innerHTML = `${icon} <span class="mode-label">Mode:</span> ${label}`;
         }
         // Note: Screensaver now contains its own cards (Visual, Clock, Scaling, Effects, Playback, Sync).
