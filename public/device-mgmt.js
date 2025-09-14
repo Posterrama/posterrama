@@ -52,7 +52,9 @@
         try {
             store.removeItem(STORAGE_KEYS.id);
             store.removeItem(STORAGE_KEYS.secret);
-        } catch (_) {}
+        } catch (_) {
+            // ignore storage removal errors
+        }
     }
 
     function cacheBustUrl(url) {
@@ -74,7 +76,9 @@
                 Date.now().toString(36);
             try {
                 store.setItem('posterrama.installId', iid);
-            } catch (_) {}
+            } catch (_) {
+                // ignore inability to persist installId
+            }
         }
         return iid;
     }
@@ -243,10 +247,14 @@
             case 'core.mgmt.reset':
                 try {
                     await clearCaches();
-                } catch (_) {}
+                } catch (_) {
+                    // ignore cache clear errors
+                }
                 try {
                     await unregisterServiceWorkers();
-                } catch (_) {}
+                } catch (_) {
+                    // ignore SW unregister errors
+                }
                 forceReload();
                 break;
             case 'core.mgmt.clearCache':
@@ -272,9 +280,15 @@
         if (!('serviceWorker' in navigator)) return;
         try {
             const regs = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+            await Promise.all(
+                regs.map(r =>
+                    r.unregister().catch(() => {
+                        // ignore per-registration unregister errors
+                    })
+                )
+            );
         } catch (_) {
-            // ignore
+            // ignore SW registry errors
         }
     }
 
@@ -282,9 +296,16 @@
         if (!('caches' in window)) return;
         try {
             const keys = await caches.keys();
-            await Promise.all(keys.map(k => caches.delete(k).catch(() => false)));
+            await Promise.all(
+                keys.map(k =>
+                    caches.delete(k).catch(() => {
+                        // ignore per-cache delete errors
+                        return false;
+                    })
+                )
+            );
         } catch (_) {
-            // ignore
+            // ignore cache deletion errors
         }
     }
 
@@ -356,7 +377,9 @@
                             url.searchParams.delete('pair');
                             url.searchParams.delete('pairCode');
                             window.history.replaceState({}, document.title, url.toString());
-                        } catch (_) {}
+                        } catch (_) {
+                            // ignore URL cleanup errors
+                        }
                         // Reload to pick up the new identity cleanly
                         forceReload();
                         return;
@@ -367,9 +390,13 @@
                             url.searchParams.delete('pair');
                             url.searchParams.delete('pairCode');
                             window.history.replaceState({}, document.title, url.toString());
-                        } catch (_) {}
+                        } catch (_) {
+                            // ignore URL cleanup errors (pairing failed)
+                        }
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore pairing request errors
+                }
             }
             const shouldReset =
                 sp.get('deviceReset') === '1' ||
@@ -381,7 +408,9 @@
                     const url = new URL(window.location.href);
                     ['deviceReset', 'device', 'devreset'].forEach(k => url.searchParams.delete(k));
                     window.history.replaceState({}, document.title, url.toString());
-                } catch (_) {}
+                } catch (_) {
+                    // ignore URL cleanup errors
+                }
                 // Perform reset + reload for clarity
                 if (
                     window.PosterramaDevice &&
@@ -391,7 +420,9 @@
                     return; // prevent starting old heartbeat
                 }
             }
-        } catch (_) {}
+        } catch (_) {
+            // ignore store.setItem errors
+        }
 
         // If no identity yet, try to register once; if register fails, stop silently
         if (!hasIdentity) {
@@ -420,22 +451,26 @@
                 registerIfNeeded().then(() => {
                     try {
                         window.location.reload();
-                    } catch (_) {}
+                    } catch (_) {
+                        // ignore reload errors
+                    }
                 });
-            } catch (_) {}
+            } catch (_) {
+                // ignore resetIdentity errors
+            }
         },
         debugHandle: async cmd => {
             try {
                 await handleCommand(cmd);
             } catch (_) {
-                /* ignore */
+                // ignore debugHandle errors
             }
         },
         debugBeat: () => {
             try {
                 return sendHeartbeat();
             } catch (_) {
-                /* ignore */
+                // ignore debugBeat errors
             }
         },
     };

@@ -238,7 +238,9 @@ async function deleteDevice(id) {
         // Clear any queued commands for this device
         try {
             commandQueue.delete(id);
-        } catch (_) {}
+        } catch (_) {
+            /* no-op */
+        }
     }
     return removed;
 }
@@ -319,7 +321,9 @@ async function pruneLikelyDuplicates({
     } catch (e) {
         try {
             logger.warn('[Devices] pruneLikelyDuplicates failed', e);
-        } catch (_) {}
+        } catch (_) {
+            /* no-op */
+        }
         return { deleted: 0 };
     }
 }

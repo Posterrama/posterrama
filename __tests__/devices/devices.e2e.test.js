@@ -3,7 +3,6 @@
  Covers: register, heartbeat, pairing claim, and command queue
 */
 
-const path = require('path');
 const http = require('http');
 
 let app;
@@ -48,7 +47,8 @@ async function stopServer() {
 async function api(pathname, opts = {}) {
     // Preserve Content-Type even when custom headers are provided
     const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-    const { headers: _ignored, ...rest } = opts;
+    const rest = { ...opts };
+    delete rest.headers;
     const res = await fetch(baseUrl + pathname, {
         redirect: 'manual',
         ...rest,
@@ -115,7 +115,7 @@ describe('Devices E2E', () => {
             body: JSON.stringify({ installId: iid, hardwareId: 'hw-test-abc' }),
             headers: { 'X-Install-Id': iid, 'X-Hardware-Id': 'hw-test-abc' },
         });
-        const { deviceId } = reg.data;
+        // no-op: just ensure registration succeeded
 
         // Pairing code generation requires admin auth; we cannot call it here
         // Instead, simulate claimByPairingCode by directly calling the public endpoint with an invalid code

@@ -16,14 +16,20 @@ try {
                 ev.lineno,
                 ev.colno
             );
-        } catch (_) {}
+        } catch (_) {
+            // ignore
+        }
     });
     window.addEventListener('unhandledrejection', ev => {
         try {
             console.error('[Admin] Unhandled rejection:', ev.reason);
-        } catch (_) {}
+        } catch (_) {
+            // ignore
+        }
     });
-} catch (_) {}
+} catch (_) {
+    // ignore bootstrap wrapper errors
+}
 
 // Make version available globally (will be updated by server)
 window.POSTERRAMA_VERSION = 'Loading...';
@@ -370,7 +376,7 @@ window.scrollToSubsection = function (id) {
         el.classList.add('pulse-highlight');
         setTimeout(() => el.classList.remove('pulse-highlight'), 800);
     } catch (e) {
-        console.error('scrollToSubsection error:', e);
+        // ignore
     }
 };
 
@@ -2146,7 +2152,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     initDevicesPanel();
                 } catch (e) {
-                    // silent
+                    // ignore
                 }
             }, 50);
         }
@@ -3882,7 +3888,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         window.__mediaLazyLoaded = true; // Mark as loaded
                     } catch (e) {
-                        logger.warn('[ADMIN] Library load failed during config load', e);
+                        // ignore
                         if (movieContainer)
                             movieContainer.innerHTML = '<small>Failed to load libraries</small>';
                         if (showContainer)
@@ -3920,7 +3926,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     originalConfigValues = captureFormState();
                 }
             } catch (e) {
-                // Non-fatal: if capturing fails, the timed snapshot will still exist
+                // ignore
                 logger && logger.warn && logger.warn('Could not capture baseline form state', e);
             }
         } catch (error) {
@@ -5662,7 +5668,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             return false;
         } catch (e) {
-            // Be safe: if anything goes wrong, do not incorrectly show the button
+            // ignore
             return false;
         }
     }
@@ -9375,7 +9381,9 @@ async function fetchDevices() {
     const data = await res.json();
     try {
         devLog('fetchDevices:', Array.isArray(data) ? data.length : 'n/a', 'device(s)');
-    } catch (_) {}
+    } catch (_) {
+        // ignore debug logging errors
+    }
     return data;
 }
 
@@ -9390,7 +9398,9 @@ function confirmDialog(message, triggerEl = null) {
             devLog('confirmDialog: forced native confirm via flag');
             return window.confirm(message);
         }
-    } catch (_) {}
+    } catch (_) {
+        // ignore URLSearchParams/localStorage errors
+    }
     // Always re-inject a fresh modal to avoid stale/hidden DOM or duplicate IDs
     try {
         const existing = document.getElementById('confirm-modal');
@@ -9443,13 +9453,17 @@ function confirmDialog(message, triggerEl = null) {
                 if (triggerEl && typeof triggerEl.focus === 'function') {
                     triggerEl.focus();
                 }
-            } catch (_) {}
+            } catch (_) {
+                // ignore focus/blur errors
+            }
             modal.classList.add('is-hidden');
             modal.classList.remove('modal-open');
             modal.classList.remove('force-show');
             try {
                 modal.setAttribute('aria-hidden', 'true');
-            } catch (_) {}
+            } catch (_) {
+                // ignore focusing errors during cleanup
+            }
             okBtn.removeEventListener('click', onOk);
             cancelEls.forEach(el => el.removeEventListener('click', onCancel));
             document.removeEventListener('keydown', onEsc);
@@ -9496,7 +9510,9 @@ function confirmDialog(message, triggerEl = null) {
             setTimeout(() => {
                 try {
                     (modal.focus && modal.focus()) || okBtn.focus();
-                } catch (_) {}
+                } catch (_) {
+                    // ignore modal visibility check errors
+                }
             }, 0);
 
             // Immediate visibility check (same tick) to preserve user gesture for native confirm fallback
@@ -9524,7 +9540,9 @@ function confirmDialog(message, triggerEl = null) {
                     devLog('confirmDialog: immediate fallback to native confirm');
                     return resolve(window.confirm(message));
                 }
-            } catch (_) {}
+            } catch (_) {
+                // ignore aria-hidden set errors
+            }
 
             // Safety fallback: if for any reason the modal isn't open after 200ms, use native confirm
             setTimeout(() => {
@@ -9556,10 +9574,14 @@ function confirmDialog(message, triggerEl = null) {
                                 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#c53030;color:#fff;padding:8px 12px;border-radius:6px;z-index:10000002;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.3)';
                             document.body.appendChild(banner);
                             setTimeout(() => banner.remove(), 2000);
-                        } catch (_) {}
+                        } catch (_) {
+                            // ignore banner removal errors
+                        }
                         resolve(window.confirm(message));
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore immediate visibility check errors
+                }
             }, 200);
         } catch (e) {
             console.error('[Devices] confirmDialog: open error', e);
@@ -9600,7 +9622,9 @@ function __ensurePairingModal() {
                 // Return focus to the trigger if we stored it
                 const lastTrigger = el.__lastTrigger || null;
                 if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
-            } catch (_) {}
+            } catch (_) {
+                // ignore focus restoration errors
+            }
         })
     );
     return el;
@@ -9636,7 +9660,9 @@ function showPairingModal({ code, expiresAt, claimUrl }) {
             el.querySelector('[data-pairing-close]') ||
             el;
         setTimeout(() => firstFocusable.focus && firstFocusable.focus(), 0);
-    } catch (_) {}
+    } catch (_) {
+        // ignore focus get/set errors
+    }
 }
 
 function renderDevicesTable(devices) {
@@ -9646,7 +9672,9 @@ function renderDevicesTable(devices) {
     try {
         const ids = (devices || []).map(d => d && (d.id || d.installId)).filter(Boolean);
         devLog('renderDevicesTable:', ids.length, 'device(s)', ids.slice(0, 10));
-    } catch (_) {}
+    } catch (_) {
+        /* ignore debug log errors */ void 0;
+    }
 
     // Format last-seen into separate date/time lines for compact layout
     const fmtParts = ts => {
@@ -9737,11 +9765,12 @@ function renderDevicesTable(devices) {
     devices.forEach(d => {
         const tr = document.createElement('tr');
         const groupsArr = parseGroups(d.groups);
-        const screen = d.clientInfo?.screen || {};
+        // const screen = d.clientInfo?.screen || {};
         const mode = d.clientInfo?.mode || '';
-        const dims = screen.w && screen.h ? `${screen.w}×${screen.h} @${screen.dpr || 1}x` : '';
+        // const dims =
+        //     screen.w && screen.h ? `${screen.w}×${screen.h} @${screen.dpr || 1}x` : '';
         const last = fmtParts(d.lastSeenAt);
-        const cellScreen = dims ? `<span class="badge is-unknown">${esc(dims)}</span>` : '—';
+        // const cellScreen = dims ? `<span class="badge is-unknown">${esc(dims)}</span>` : '—';
         const cellMode = mode ? `<span class="badge is-unknown">${esc(mode)}</span>` : '—';
         const details = (() => {
             const id = d.id || d.installId || '';
@@ -9761,10 +9790,10 @@ function renderDevicesTable(devices) {
                 .filter(([_, v]) => v && v !== '—')
                 .map(
                     ([k, v]) =>
-                        `<span class=\"tip-k\">${esc(k)}:</span><span class=\"tip-v\">${esc(v)}</span>`
+                        `<span class="tip-k">${esc(k)}:</span><span class="tip-v">${esc(v)}</span>`
                 )
                 .join('');
-            return `<div class=\"tip-title\">Device details</div><div class=\"tip-grid\">${rows || '<span class=\\"tip-k\\">No details</span><span class=\\"tip-v\\"></span>'}</div>`;
+            return `<div class="tip-title">Device details</div><div class="tip-grid">${rows || '<span class="tip-k">No details</span><span class="tip-v"></span>'}</div>`;
         })();
 
         tr.innerHTML = `
@@ -9806,7 +9835,7 @@ function renderDevicesTable(devices) {
                                 • New names are allowed
                             </div>
                             <div class="help-subtitle">Existing groups</div>
-                            <div class="help-groups">${groupsListHtml || '<span class=\"muted\">No groups</span>'}</div>
+                            <div class="help-groups">${groupsListHtml || '<span class="muted">No groups</span>'}</div>
                         </div>
                         <div class="group-badges">${toChips(groupsArr)}</div>
                     </div>
@@ -9818,9 +9847,9 @@ function renderDevicesTable(devices) {
                 const s = d.status || 'unknown';
                 const cls =
                     s === 'online' ? 'is-online' : s === 'offline' ? 'is-offline' : 'is-unknown';
-                return `<span class=\"badge ${cls}\" data-device-tip="1">${esc(s)}<div class=\"device-tip\">${details || '<div class=\\"tip-row\\"><span class=\\"tip-k\\">No details</span></div>'}</div></span>`;
+                return `<span class="badge ${cls}" data-device-tip="1">${esc(s)}<div class="device-tip">${details || '<div class="tip-row"><span class="tip-k">No details</span></div>'}</div></span>`;
             })()}</td>
-            <td class="cell-last">${last ? `<div class=\"last-date\">${esc(last.date)}</div><div class=\"last-time\">${esc(last.time)}</div>` : '—'}</td>`;
+            <td class="cell-last">${last ? `<div class="last-date">${esc(last.date)}</div><div class="last-time">${esc(last.time)}</div>` : '—'}</td>`;
         tbody.appendChild(tr);
     });
 
@@ -9864,7 +9893,9 @@ function renderDevicesTable(devices) {
                         noRedirectOn401: true,
                     });
                     devLog('bulkDeleteBtn: deleted', id);
-                } catch (_) {}
+                } catch (_) {
+                    // ignore per-id delete errors
+                }
             }
             const list = await fetchDevices();
             renderDevicesTable(list);
@@ -9926,7 +9957,9 @@ function renderDevicesTable(devices) {
             // Proactively blur the trigger to avoid focus remaining inside aria-hidden region
             try {
                 btn.blur();
-            } catch (_) {}
+            } catch (_) {
+                // ignore pairing modal close errors
+            }
             const id = btn.getAttribute('data-id');
             const cmd = btn.getAttribute('data-cmd');
             const status = document.getElementById('devices-status');
@@ -10024,7 +10057,9 @@ function initDevicesPanel() {
                 ev.stopPropagation();
                 try {
                     btn.blur?.();
-                } catch (_) {}
+                } catch (_) {
+                    // ignore blur errors
+                }
                 const id = btn.getAttribute('data-id');
                 const cmd = btn.getAttribute('data-cmd');
                 devLog('delegated table click', { cmd, id });
@@ -10116,7 +10151,9 @@ function initDevicesPanel() {
                             noRedirectOn401: true,
                         });
                         devLog('init bulk delete: deleted', id);
-                    } catch (_) {}
+                    } catch (_) {
+                        // ignore per-id delete errors
+                    }
                 }
                 const list = await fetchDevices();
                 renderDevicesTable(list);
@@ -10172,7 +10209,9 @@ function initDevicesPanel() {
             ev.stopPropagation();
             try {
                 btn.blur?.();
-            } catch (_) {}
+            } catch (_) {
+                // ignore blur errors
+            }
             const id = btn.getAttribute('data-id');
             const cmd = btn.getAttribute('data-cmd');
             const status = getStatusEl();
@@ -10266,7 +10305,9 @@ function initDevicesPanel() {
                         noRedirectOn401: true,
                     });
                     devLog('global: bulk deleted', id);
-                } catch (_) {}
+                } catch (_) {
+                    // ignore showPairingModal focus errors
+                }
             }
             const list = await fetchDevices();
             renderDevicesTable(list);

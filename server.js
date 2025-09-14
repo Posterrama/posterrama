@@ -1493,7 +1493,7 @@ if (isDeviceMgmtEnabled()) {
         'Too many device heartbeats from this IP, please slow down.'
     );
     // Lightweight cookie parsing to bind an install identifier across tabs
-    function parseCookies(header) {
+    const parseCookies = header => {
         const out = {};
         if (!header) return out;
         const parts = header.split(';');
@@ -1506,15 +1506,16 @@ if (isDeviceMgmtEnabled()) {
             out[k] = decodeURIComponent(v);
         }
         return out;
-    }
-    function setInstallCookie(res, iid) {
+    };
+    const setInstallCookie = (res, iid) => {
         try {
             const cookie = `pr_iid=${encodeURIComponent(iid)}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax`;
             res.setHeader('Set-Cookie', cookie);
         } catch (_) {
             // ignore cookie set failures
+            /* no-op */
         }
-    }
+    };
 
     // Device register (MVP)
     app.post('/api/devices/register', deviceRegisterLimiter, express.json(), async (req, res) => {
@@ -1597,7 +1598,9 @@ if (isDeviceMgmtEnabled()) {
                     screen,
                     hardwareId,
                 });
-            } catch (_) {}
+            } catch (_) {
+                // best-effort duplicate pruning; ignore errors
+            }
             // If name is still empty, attempt a best-effort reverse DNS and set it once
             try {
                 const existing = await deviceStore.getById(deviceId);
@@ -1609,7 +1612,9 @@ if (isDeviceMgmtEnabled()) {
                         await deviceStore.patchDevice(deviceId, { name: hostnames[0] });
                     }
                 }
-            } catch (_) {}
+            } catch (_) {
+                // reverse DNS is best-effort; ignore lookup errors
+            }
             const commandsQueued = deviceStore.popCommands(deviceId);
             res.json({ serverTime: Date.now(), commandsQueued });
         } catch (e) {
