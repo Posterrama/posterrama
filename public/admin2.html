@@ -319,14 +319,14 @@
   margin-top: 0 !important;
     margin-right: 0 !important;
   /* Align user menu height with navbar buttons by compensating for the inner shift */
-  top: calc(100% - var(--navbar-inner-shift) + 2px) !important; /* slight upward nudge for a tighter anchor */
+  top: calc(100% - var(--navbar-inner-shift) + 4px) !important; /* nudged a bit lower for consistent spacing */
     position: absolute !important;
   }
 
   /* Ensure Notifications and Settings dropdowns match the same vertical offset as the User menu */
   .navbar .nav-actions #notif-dropdown > .dropdown-menu,
   .navbar .nav-actions #settings-dropdown > .dropdown-menu {
-    top: calc(100% - var(--navbar-inner-shift) + 2px) !important;
+    top: calc(100% - var(--navbar-inner-shift) + 4px) !important;
   }
   
   /* Dropdown items */
