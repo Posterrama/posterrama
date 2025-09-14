@@ -525,6 +525,12 @@
   .operations-panel .input-row { display:flex; gap:8px; align-items:center; }
   .operations-panel .status-pill { font-size: 0.8rem; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); }
   .operations-panel .status-pill.status-success { background: rgba(34,197,94,0.15); color: #86efac; }
+  /* Utilities for spacing and sizing */
+  .mt-6 { margin-top: 6px !important; }
+  .mt-8 { margin-top: 8px !important; }
+  .nowrap { white-space: nowrap !important; }
+  .w-90 { width: 90px !important; }
+  .w-110 { width: 110px !important; }
   /* Operations layout */
   .operations-panel .content-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; align-items: start; }
   @media (max-width: 1200px) { .operations-panel .content-grid { grid-template-columns: 1fr; } }
@@ -548,8 +554,8 @@
   }
   /* removed number input left padding per UX request */
   /* Update progress bar */
-  #update-progress { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
-  #update-progress > div { height: 100%; width: 0; background: linear-gradient(90deg, #60a5fa, #2563eb); transition: width .2s ease; }
+  .meter { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
+  .meter > div { height: 100%; width: 0; background: linear-gradient(90deg, #60a5fa, #2563eb); transition: width .2s ease; }
   /* Backups list styling */
   #backups-display { border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 10px; }
   #backups-content { display: grid; gap: 8px; }
@@ -1979,10 +1985,10 @@
                     <span id="update-phase-text">Checking for updates…</span>
                     <span id="update-progress-percent">0%</span>
                   </div>
-                  <div class="meter" style="margin-top:6px;">
+                  <div class="meter mt-6">
                     <div id="update-progress-bar" style="width:0%; background: linear-gradient(90deg,#60a5fa,#1e40af);"></div>
                   </div>
-                  <div id="update-message" class="subtle" style="margin-top:6px;">Preparing…</div>
+                  <div id="update-message" class="subtle mt-6">Preparing…</div>
                 </div>
               </div>
               <div class="actions main-actions">
@@ -1993,7 +1999,7 @@
               <div class="actions sub-actions">
                 <div class="input-row">
                   <div class="form-group" style="margin:0;">
-                    <input type="number" id="input-keep-backups" min="1" max="20" value="5" style="width:90px;" />
+                    <input type="number" id="input-keep-backups" min="1" max="20" value="5" class="w-90" />
                   </div>
                   <button type="button" id="btn-cleanup-backups" class="btn btn-secondary btn-sm"><i class="fas fa-trash"></i><span>Cleanup Old</span></button>
                 </div>
@@ -2021,9 +2027,9 @@
             <section class="perf-card" aria-label="Server Settings">
               <h3><i class="fas fa-gear"></i> Server Settings</h3>
               <div class="metric-row">
-                <div class="form-group inline-field" style="display: block; white-space: nowrap;">
+                <div class="form-group inline-field nowrap" style="display: block;">
                   <label for="SERVER_PORT" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
-                  <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" style="width:110px;" />
+                  <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" class="w-110" />
                 </div>
               </div>
             </section>
@@ -2037,7 +2043,7 @@
               <h3><i class="fas fa-bug"></i> Debug & Logging</h3>
               <div class="metric-row">
                 <div class="subtle">View recent logs and monitor server activity.</div>
-                <div class="form-group checkbox-group" style="margin-top:6px;">
+                <div class="form-group checkbox-group mt-6">
                   <label class="checkbox" for="DEBUG">
                     <input type="checkbox" id="DEBUG" />
                     <span class="checkmark"></span>
@@ -2046,7 +2052,7 @@
                 </div>
                 <div class="subtle">Debug mode increases logging detail. Use temporarily for troubleshooting.</div>
               </div>
-              <div class="actions" style="margin-top:8px;">
+              <div class="actions mt-8">
                 <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
               </div>
             </section>
@@ -2061,9 +2067,9 @@
                     <span>Enable Promobox Site</span>
                   </label>
                 </div>
-                <div class="form-group inline-field" id="siteServerPortGroup" style="display:none;white-space:nowrap;">
+                <div class="form-group inline-field nowrap" id="siteServerPortGroup" style="display:none;">
                   <label for="siteServer.port" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
-                  <input type="number" id="siteServer.port" min="1024" max="65535" value="4001" style="width:110px;" />
+                  <input type="number" id="siteServer.port" min="1024" max="65535" value="4001" class="w-110" />
                 </div>
                 <div id="siteServerStatus" class="subtle" style="display:none;"></div>
               </div>
@@ -2072,14 +2078,14 @@
             <!-- API Access -->
             <section class="perf-card" aria-label="API Access Management">
               <h3><i class="fas fa-code"></i> API Access</h3>
-              <div class="metric-row">
+          <div class="input-row">
                 <div id="api-key-status" class="subtle">Status: <span id="api-key-status-text">Loading…</span></div>
                 <div id="api-key-display" class="is-hidden">
                   <div class="form-group">
                     <label for="api-key-input">Current API Key</label>
           <div class="input-row">
                       <input id="api-key-input" type="password" readonly style="min-width:280px;flex:1;" />
-                      <button id="toggle-api-key-visibility-button" type="button" class="btn btn-icon btn-sm" title="Show/hide key"><i class="fas fa-eye"></i></button>
+            <div class="actions mt-6">
                       <button id="copy-api-key-button" type="button" class="btn btn-icon btn-sm" title="Copy to clipboard"><i class="fas fa-copy"></i></button>
                     </div>
                   </div>
@@ -2104,7 +2110,7 @@
         <div class="metric-row">
           <div class="subtle">Quick access to server logs for troubleshooting.</div>
         </div>
-        <div class="actions" style="margin-top:8px;">
+  <div class="actions mt-8">
           <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
         </div>
       </section>
