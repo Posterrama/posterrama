@@ -806,6 +806,10 @@ window.scrollToSubsection = function (id) {
                 },
             },
         };
+        // Enforce: Ken Burns has no pause. Always store 0.
+        if (payload.transitionEffect === 'kenburns') {
+            payload.effectPauseTime = 0;
+        }
         return payload;
     }
 
@@ -2393,6 +2397,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return JSON.stringify(originalFormData) !== JSON.stringify(captureFormState());
         };
 
+        // Expose a global checker so critical actions (like Restart) can enforce "save first"
+        window.hasUnsavedChanges = () => {
+            try {
+                return formHasChanged();
+            } catch (_) {
+                return false;
+            }
+        };
+
         const updateStatus = (message, className = '') => {
             statusMessage.textContent = message;
             statusMessage.className = `status-message ${className}`;
@@ -2539,6 +2552,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('transitionEffect').value = transitionEffect;
         document.getElementById('effectPauseTime').value =
             config.effectPauseTime ?? defaults.effectPauseTime;
+        // If Ken Burns is selected at load time, force the visible value to 0 and hide the control
+        try {
+            if (transitionEffect === 'kenburns') {
+                document.getElementById('effectPauseTime').value = '0';
+            }
+        } catch (_) {}
         document.getElementById('cinemaMode').checked = config.cinemaMode ?? defaults.cinemaMode;
         document.getElementById('cinemaOrientation').value =
             config.cinemaOrientation ?? defaults.cinemaOrientation;
@@ -5554,11 +5573,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const origSitePort = toNum(originalValues?.['siteServer.port']);
             const currSitePort = toNum(currentValues?.['siteServer.port']);
 
+            // Content source enable/disable toggles (require restart)
+            const origPlexEnabled = toBool(originalValues?.['mediaServers[0].enabled']);
+            const currPlexEnabled = toBool(currentValues?.['mediaServers[0].enabled']);
+
+            const origJellyfinEnabled = toBool(originalValues?.['mediaServers[1].enabled']);
+            const currJellyfinEnabled = toBool(currentValues?.['mediaServers[1].enabled']);
+
+            const origTmdbEnabled = toBool(originalValues?.['tmdbSource.enabled']);
+            const currTmdbEnabled = toBool(currentValues?.['tmdbSource.enabled']);
+
+            const origTvdbEnabled = toBool(originalValues?.['tvdbSource.enabled']);
+            const currTvdbEnabled = toBool(currentValues?.['tvdbSource.enabled']);
+
+            const origStreamingEnabled = toBool(originalValues?.['streamingSources.enabled']);
+            const currStreamingEnabled = toBool(currentValues?.['streamingSources.enabled']);
+
             if (origServerPort !== currServerPort) return true;
             if (origDebug !== currDebug) return true;
             if (origSiteEnabled !== currSiteEnabled) return true;
             // Only consider siteServer.port when enabled in either snapshot
             if ((origSiteEnabled || currSiteEnabled) && origSitePort !== currSitePort) return true;
+
+            // Any content source toggle change requires a restart
+            if (origPlexEnabled !== currPlexEnabled) return true;
+            if (origJellyfinEnabled !== currJellyfinEnabled) return true;
+            if (origTmdbEnabled !== currTmdbEnabled) return true;
+            if (origTvdbEnabled !== currTvdbEnabled) return true;
+            if (origStreamingEnabled !== currStreamingEnabled) return true;
 
             return false;
         } catch (e) {
@@ -5979,7 +6021,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const preSaveValues = { ...originalConfigValues };
                         const postSaveValues = captureFormState();
 
-                        if (needsRestartChange(preSaveValues, postSaveValues)) {
+                        // Persist restart requirement: if it was already visible, keep it visible after save
+                        const wasVisible =
+                            sessionStorage.getItem('restartButtonVisible') === 'true';
+                        if (needsRestartChange(preSaveValues, postSaveValues) || wasVisible) {
                             showRestartButton();
                         } else {
                             hideRestartButton();
@@ -6159,6 +6204,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const restartButton = document.getElementById('restart-app-button');
     if (restartButton) {
         addConfirmClickHandler(restartButton, 'Are you sure? Click again', async () => {
+            // Block restart if there are unsaved changes
+            if (typeof window.hasUnsavedChanges === 'function' && window.hasUnsavedChanges()) {
+                showNotification('Please save your changes first, then restart.', 'warning');
+                return;
+            }
             setButtonState(restartButton, 'loading', { text: 'Restarting...' });
 
             const handleRestartInitiated = message => {
@@ -6913,6 +6963,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (formGroup) {
                 formGroup.style.display = isKenBurns ? 'none' : 'block';
+            }
+            // Force the value to 0 when Ken Burns is selected so saves/preview reflect it immediately
+            if (isKenBurns) {
+                effectPauseTimeElement.value = '0';
             }
         }
     }
@@ -7928,6 +7982,14 @@ function hideRestartButton() {
 function performRestart() {
     const restartBtn = document.getElementById('restart-now-btn');
     const originalText = restartBtn.innerHTML;
+
+    // Guard: require saving changes before allowing restart
+    if (typeof window.hasUnsavedChanges === 'function' && window.hasUnsavedChanges()) {
+        if (typeof showNotification === 'function') {
+            showNotification('Please save your changes first, then restart.', 'warning');
+        }
+        return;
+    }
 
     // Show loading state
     restartBtn.disabled = true;
@@ -10104,6 +10166,12 @@ function initDynamicQualityFilters() {
 
 // Content source conditional visibility
 function initSourceConditionalVisibility() {
+    // One-time init guard to avoid duplicate listeners/notifications
+    if (initSourceConditionalVisibility.__initialized) {
+        return;
+    }
+    initSourceConditionalVisibility.__initialized = true;
+
     // Function to toggle visibility for Plex
     function togglePlexConfig() {
         const plexEnabledCheckbox = document.getElementById('mediaServers[0].enabled');
@@ -10178,8 +10246,20 @@ function initSourceConditionalVisibility() {
             console.log('Plex conditional visibility re-initialized after delay');
         }, 100);
 
-        // Listen for changes
-        plexEnabledCheckbox.addEventListener('change', togglePlexConfig);
+        // Listen for changes (visibility + restart required)
+        // Debounced notifier to avoid duplicate toasts if anything else reacts too
+        let plexNotifyTimer;
+        plexEnabledCheckbox.addEventListener('change', () => {
+            togglePlexConfig();
+            // Show restart banner when toggling content sources
+            try {
+                showRestartButton();
+                clearTimeout(plexNotifyTimer);
+                plexNotifyTimer = setTimeout(() => {
+                    showNotification('Restart required to apply Plex source change.', 'warning');
+                }, 50);
+            } catch (_) {}
+        });
 
         console.log('Plex conditional visibility initialized');
     } else {
@@ -10203,8 +10283,21 @@ function initSourceConditionalVisibility() {
             console.log('Jellyfin conditional visibility re-initialized after delay');
         }, 100);
 
-        // Listen for changes
-        jellyfinEnabledCheckbox.addEventListener('change', toggleJellyfinConfig);
+        // Listen for changes (visibility + restart required)
+        let jellyfinNotifyTimer;
+        jellyfinEnabledCheckbox.addEventListener('change', () => {
+            toggleJellyfinConfig();
+            try {
+                showRestartButton();
+                clearTimeout(jellyfinNotifyTimer);
+                jellyfinNotifyTimer = setTimeout(() => {
+                    showNotification(
+                        'Restart required to apply Jellyfin source change.',
+                        'warning'
+                    );
+                }, 50);
+            } catch (_) {}
+        });
 
         console.log('Jellyfin conditional visibility initialized');
     } else {
@@ -10228,8 +10321,18 @@ function initSourceConditionalVisibility() {
             console.log('TMDB conditional visibility re-initialized after delay');
         }, 100);
 
-        // Listen for changes
-        tmdbEnabledCheckbox.addEventListener('change', toggleTmdbConfig);
+        // Listen for changes (visibility + restart required)
+        let tmdbNotifyTimer;
+        tmdbEnabledCheckbox.addEventListener('change', () => {
+            toggleTmdbConfig();
+            try {
+                showRestartButton();
+                clearTimeout(tmdbNotifyTimer);
+                tmdbNotifyTimer = setTimeout(() => {
+                    showNotification('Restart required to apply TMDB source change.', 'warning');
+                }, 50);
+            } catch (_) {}
+        });
 
         console.log('TMDB conditional visibility initialized');
     } else {
@@ -10253,8 +10356,18 @@ function initSourceConditionalVisibility() {
             console.log('TVDB conditional visibility re-initialized after delay');
         }, 100);
 
-        // Listen for changes
-        tvdbEnabledCheckbox.addEventListener('change', toggleTvdbConfig);
+        // Listen for changes (visibility + restart required)
+        let tvdbNotifyTimer;
+        tvdbEnabledCheckbox.addEventListener('change', () => {
+            toggleTvdbConfig();
+            try {
+                showRestartButton();
+                clearTimeout(tvdbNotifyTimer);
+                tvdbNotifyTimer = setTimeout(() => {
+                    showNotification('Restart required to apply TVDB source change.', 'warning');
+                }, 50);
+            } catch (_) {}
+        });
 
         console.log('TVDB conditional visibility initialized');
     } else {
@@ -10262,6 +10375,33 @@ function initSourceConditionalVisibility() {
             checkbox: !!tvdbEnabledCheckbox,
             container: !!tvdbConfigContainer,
         });
+    }
+
+    // Streaming Sources enable checkbox handler (no dedicated container to toggle)
+    const streamingEnabledCheckbox = document.getElementById('streamingSources.enabled');
+    if (streamingEnabledCheckbox) {
+        // Initialize notification state based on current checkbox (no UI to toggle)
+        setTimeout(() => {
+            // No-op: keep for symmetry; could add container toggles in future
+        }, 100);
+
+        let streamingNotifyTimer;
+        streamingEnabledCheckbox.addEventListener('change', () => {
+            try {
+                showRestartButton();
+                clearTimeout(streamingNotifyTimer);
+                streamingNotifyTimer = setTimeout(() => {
+                    showNotification(
+                        'Restart required to apply Streaming Sources change.',
+                        'warning'
+                    );
+                }, 50);
+            } catch (_) {}
+        });
+
+        console.log('Streaming Sources restart requirement initialized');
+    } else {
+        console.warn('Streaming Sources checkbox not found');
     }
 }
 

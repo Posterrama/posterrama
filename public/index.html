@@ -300,12 +300,8 @@
                 window.addEventListener('load', () => {
                     navigator.serviceWorker
                         .register('/sw.js')
-                        .then(registration => {
-                            if (window.KB_DEBUG) console.log('SW registered:', registration);
-                        })
-                        .catch(registrationError => {
-                            if (window.KB_DEBUG)
-                                console.log('SW registration failed:', registrationError);
+                        .catch(() => {
+                            /* silent */
                         });
                 });
             }

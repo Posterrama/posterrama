@@ -21,18 +21,17 @@ const logger = {
 (() => {
     try {
         const noop = () => {};
-        // Allow overriding via KB_DEBUG flag
-        if (!window.KB_DEBUG) {
-            console.log = noop;
-            console.info = noop;
-            console.debug = noop;
-        }
+        // Silence logs unconditionally (debug helpers removed)
+        console.log = noop;
+        console.info = noop;
+        console.debug = noop;
     } catch (_) {
         // intentionally empty: silencing console in non-debug mode may fail in some environments
     }
 })();
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // (Ken Burns debug helpers removed)
     // --- iOS background behavior: lock to 'clip' mode ---
     (function () {
         const ua = navigator.userAgent || '';
@@ -62,6 +61,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const prevButton = document.getElementById('prev-button');
     const controlsContainer = document.getElementById('controls-container');
     const loader = document.getElementById('loader');
+
+    // (Ken Burns monitor removed)
 
     // Prime background visibility very early in screensaver mode to prevent black flashes
     try {
@@ -173,16 +174,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Helper: force-initialize background layers when returning to screensaver mode
+    // NOTE: If Ken Burns is active, defer reinit to avoid visible transform snaps.
     function reinitBackgroundForScreensaver() {
         try {
             const isScreensaver = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
             if (!isScreensaver) return;
 
+            // If Ken Burns is currently active on any layer, postpone reinit slightly.
+            if (isKenBurnsActive && typeof isKenBurnsActive === 'function' && isKenBurnsActive()) {
+                // Debounced retry to avoid stacking timers
+                if (window._reinitRetryTimer) {
+                    clearTimeout(window._reinitRetryTimer);
+                    window._reinitRetryTimer = null;
+                }
+                window._reinitRetryTimer = setTimeout(() => {
+                    window._reinitRetryTimer = null;
+                    try {
+                        if (
+                            !isKenBurnsActive() &&
+                            !appConfig.cinemaMode &&
+                            !appConfig.wallartMode?.enabled
+                        ) {
+                            reinitBackgroundForScreensaver();
+                        }
+                    } catch (_) {
+                        // best-effort
+                    }
+                }, 650);
+                return; // Don't reset transforms mid-KB
+            }
+
             const la = document.getElementById('layer-a');
             const lb = document.getElementById('layer-b');
             if (!la || !lb) return;
 
-            // Reset styles
+            // Reset styles (safe now because no active Ken Burns)
             [la, lb].forEach(el => {
                 el.style.animation = 'none';
                 el.style.transition = 'none';
@@ -718,7 +744,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             'cinema-portrait-flipped'
         );
 
-        if (config.cinemaMode) {
+        const nextCinemaEnabled = !!config.cinemaMode;
+        const lastCinemaEnabled = !!window._lastCinemaEnabled;
+        window._lastCinemaEnabled = nextCinemaEnabled;
+
+        if (nextCinemaEnabled) {
             // Add cinema mode base class
             body.classList.add('cinema-mode');
 
@@ -740,18 +770,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 infoContainer.classList.add('visible');
             }, 100);
         } else {
-            // Cinema mode disabled: likely returning to screensaver
-            // Reinitialize background layers to avoid black background
-            setTimeout(() => {
-                reinitBackgroundForScreensaver();
-            }, 50);
+            // Cinema mode disabled: only reinitialize if we actually transitioned
+            // from cinema (or wallart) to screensaver
+            const wallartNow = !!config.wallartMode?.enabled;
+            const wasCinema = lastCinemaEnabled === true;
+            const wasWallart = !!window._lastWallartEnabled;
+            if (!wallartNow && (wasCinema || wasWallart)) {
+                setTimeout(() => {
+                    reinitBackgroundForScreensaver();
+                }, 50);
+            }
         }
     }
 
     function applyWallartMode(config) {
         const body = document.body;
 
-        if (config.wallartMode?.enabled) {
+        const nextWallartEnabled = !!config.wallartMode?.enabled;
+        window._lastWallartEnabled = nextWallartEnabled;
+        if (nextWallartEnabled) {
             // Check if wallart mode is already active BEFORE removing the class
             const isAlreadyActive = body.classList.contains('wallart-mode');
             // Detect changes that require a restart of the wallart grid
@@ -4237,7 +4274,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const endTx = rand();
         const endTy = rand();
 
-        newLayer.style.transform = `scale(${startScale}) translate(${startTx}%, ${startTy}%)`;
+        // Apply translate first, then scale to avoid translation being scaled (prevents end-of-motion snapping)
+        newLayer.style.transform = `translate3d(${startTx}%, ${startTy}%, 0) scale(${startScale})`;
 
         // Force reflow
         newLayer.offsetHeight;
@@ -4256,13 +4294,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (swapped) return;
             swapped = true;
             try {
-                swapLayers(newLayer, oldLayer, { preserveNewAnimation: true });
+                // Defer old layer transform reset until after it's fully faded out to prevent a visible snap
+                swapLayers(newLayer, oldLayer, {
+                    preserveNewAnimation: true,
+                    deferOldTransformReset: true,
+                    preserveOldFade: true,
+                    oldFadeMs: Math.max(50, fadeSec * 1000),
+                });
                 if (oldLayer) {
                     oldLayer.style.zIndex = '';
                     oldLayer.style.willChange = '';
-                    // After swap, ensure old layer is not visible but don't snap its transform
-                    oldLayer.style.transition = 'opacity 120ms ease-out';
-                    oldLayer.style.opacity = 0;
+                    // Don't touch opacity here; we crossfaded earlier in startAnimation
                 }
                 ensureBackgroundVisible();
             } catch (e) {
@@ -4274,9 +4316,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (cleaned) return;
             cleaned = true;
             try {
-                newLayer.style.transition = 'none';
-                newLayer.style.zIndex = '';
-                newLayer.style.willChange = '';
+                // Do minimal cleanup to avoid any visual snap; leave z-index and will-change as-is
+                // and let the next cycle explicitly set what it needs.
                 newLayer.removeAttribute('data-ken-burns');
             } catch (e) {
                 // Intentionally empty: silencing transition errors
@@ -4293,15 +4334,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Intentionally empty: silencing transition errors
             }
 
-            const transformTransition = `transform ${durationSec}s linear`;
+            // Use linear easing for constant motion and extend beyond interval with a safety tail
+            const transformEasing = 'linear';
+            const tailSec = Math.max(0.75, fadeSec); // ensure motion continues into the next cycle
+            const motionDurationSec = durationSec + tailSec; // keeps movement during and past crossfade
+            const transformTransition = `transform ${motionDurationSec}s ${transformEasing}`;
             const fadeTransition = `opacity ${fadeSec}s ease-in-out`;
             newLayer.style.transition = `${fadeTransition}, ${transformTransition}`;
 
-            // Kick the animations (only fade-in the new layer; leave old layer untouched to keep its motion)
-            newLayer.style.opacity = 1;
-            // Apply end transform on next frame to ensure a visible start frame
+            // 1) Apply end transform first (double rAF) so the new image is already moving
             requestAnimationFrame(() => {
-                newLayer.style.transform = `scale(${endScale}) translate(${endTx}%, ${endTy}%)`;
+                requestAnimationFrame(() => {
+                    newLayer.style.transform = `translate3d(${endTx}%, ${endTy}%, 0) scale(${endScale})`;
+                    // 2) On the next frame, start the crossfade; old keeps its motion, we only add opacity transition now
+                    requestAnimationFrame(() => {
+                        newLayer.style.opacity = 1;
+                        if (oldLayer) {
+                            const prev = oldLayer.style.transition || '';
+                            const sep = prev && !/opacity/.test(prev) ? ', ' : '';
+                            oldLayer.style.transition = `${prev}${sep}opacity ${fadeSec}s ease-in-out`;
+                            oldLayer.style.opacity = 0;
+                        }
+                    });
+                });
             });
 
             // Prefer event-driven swap on newLayer opacity end, with timeout fallback
@@ -4316,18 +4371,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             };
             newLayer.addEventListener('transitionend', onNewFadeEndRef, { once: true });
-            swapTimer = setTimeout(
-                () => {
-                    try {
-                        if (onNewFadeEndRef)
-                            newLayer.removeEventListener('transitionend', onNewFadeEndRef);
-                    } catch (e) {
-                        // Intentionally empty: silencing transition errors
-                    }
-                    doSwap('timeout');
-                },
-                Math.max(50, fadeSec * 1000)
-            );
+            // No timeout fallback for swap; we want to swap strictly on the fade end to avoid early snaps
 
             // Cleanup on transform end for newLayer, with timeout fallback
             onNewTransformEndRef = ev => {
@@ -4340,7 +4384,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     doCleanup('transitionend(transform)');
                 }
             };
-            newLayer.addEventListener('transitionend', onNewTransformEndRef, { once: true });
+            // Don't use once:true here because the first transitionend fired will be for opacity;
+            // we only want to act when the transform transition finishes. We'll remove the
+            // listener ourselves when that happens.
+            newLayer.addEventListener('transitionend', onNewTransformEndRef);
             cleanupTimer = setTimeout(
                 () => {
                     try {
@@ -4351,7 +4398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     doCleanup('timeout');
                 },
-                Math.max(100, durationSec * 1000)
+                Math.max(100, motionDurationSec * 1000)
             );
         };
 
@@ -4654,12 +4701,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Helper function to swap layers after transition
     function swapLayers(newLayer, oldLayer, options = {}) {
         const preserveNewAnimation = options.preserveNewAnimation === true;
+        const deferOldTransformReset = options.deferOldTransformReset === true;
+        const preserveOldFade = options.preserveOldFade === true;
+        const oldFadeMs = typeof options.oldFadeMs === 'number' ? options.oldFadeMs : 200;
         if (oldLayer) {
             // Reset old layer completely
             oldLayer.style.animation = 'none';
-            oldLayer.style.transition = 'none';
-            oldLayer.style.opacity = 0;
-            oldLayer.style.transform = 'none'; // Reset any transforms from animations
+            // Preserve ongoing opacity transition if requested, otherwise drop transitions
+            if (!preserveOldFade) {
+                oldLayer.style.transition = 'none';
+            }
+            // Don't force opacity here if it's already fading; leave as-is
+            // Optionally defer transform reset to avoid a visible snap right at swap time
+            if (!deferOldTransformReset) {
+                oldLayer.style.transform = 'none'; // Reset any transforms from animations immediately
+            } else {
+                // Reset transform after the opacity transition actually ends
+                const handler = ev => {
+                    if (!ev || ev.propertyName === 'opacity') {
+                        try {
+                            oldLayer.removeEventListener('transitionend', handler);
+                        } catch (_) {}
+                        try {
+                            oldLayer.style.transform = 'none';
+                            // Clear transition after fade is done to avoid lingering style
+                            if (!preserveOldFade) oldLayer.style.transition = 'none';
+                        } catch (_) {}
+                    }
+                };
+                try {
+                    oldLayer.addEventListener('transitionend', handler);
+                } catch (_) {}
+                // Fallback in case transitionend is missed
+                setTimeout(() => {
+                    try {
+                        oldLayer.removeEventListener('transitionend', handler);
+                    } catch (_) {}
+                    try {
+                        oldLayer.style.transform = 'none';
+                        if (!preserveOldFade) oldLayer.style.transition = 'none';
+                    } catch (_) {}
+                }, oldFadeMs + 50);
+            }
             oldLayer.removeAttribute('data-ken-burns'); // Clean up Ken Burns marker
         }
 
