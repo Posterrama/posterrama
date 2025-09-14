@@ -11633,8 +11633,8 @@ app.get(
 
             const performanceData = {
                 cpu: {
-                    usage: cpuUsage,
-                    percent: cpuUsage,
+                    usage: systemPercent,
+                    percent: systemPercent,
                     system: systemPercent,
                     process: processPercent,
                     loadAverage: loadAverage,

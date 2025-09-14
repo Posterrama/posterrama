@@ -394,7 +394,9 @@
             }
             // Simple activity level for end users (Low/Medium/High) — now shown in header pill
             try {
-                const cpuPct = Number(status?.cpu?.percent ?? status?.cpu?.usage ?? 0);
+                const cpuPct = Number(
+                    status?.cpu?.system ?? status?.cpu?.percent ?? status?.cpu?.usage ?? 0
+                );
                 const mPct = Number.isFinite(memPct) ? memPct : 0;
                 const load = Math.max(0, Math.min(100, Math.round((cpuPct + mPct) / 2)));
                 const level = load < 30 ? 'Low' : load < 70 ? 'Medium' : 'High';
@@ -425,13 +427,12 @@
                 0,
                 Math.min(100, Number(perf?.cpu?.usage ?? perf?.cpu?.percent ?? 0))
             );
-            const cpuProc = Math.max(0, Math.min(100, Number(perf?.cpu?.process ?? 0)));
             const cpuSys = Math.max(0, Math.min(100, Number(perf?.cpu?.system ?? cpu)));
             const mem = Math.max(0, Math.min(100, Number(perf?.memory?.usage || 0)));
             const diskPct = Math.max(0, Math.min(100, Number(perf?.disk?.usage || 0)));
-            // Show overall and process CPU for clarity
-            setText('perf-cpu', `${cpu}% (proc ${cpuProc}%)`);
-            setMeter('meter-cpu', cpu, 'cpu');
+            // Show only system CPU as requested
+            setText('perf-cpu', `${cpuSys}%`);
+            setMeter('meter-cpu', cpuSys, 'cpu');
             setText(
                 'perf-mem',
                 `${mem}% (${perf?.memory?.used || '—'} / ${perf?.memory?.total || '—'})`
@@ -493,7 +494,7 @@
             try {
                 const cpuLabel = document.getElementById('perf-cpu');
                 const meter = document.getElementById('meter-cpu');
-                const tip = `CPU (system): ${cpuSys}%\nCPU (process): ${cpuProc}%`;
+                const tip = `CPU (system): ${cpuSys}%`;
                 if (cpuLabel) cpuLabel.setAttribute('title', tip);
                 if (meter) meter.setAttribute('title', tip);
             } catch (_) {
