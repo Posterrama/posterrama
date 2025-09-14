@@ -6196,20 +6196,20 @@ app.get(
                 : undefined,
         };
 
-        let safeString;
+        let safeObjToSend = finalPayload;
         try {
-            // Fast path: try direct JSON.stringify
-            safeString = JSON.stringify(finalPayload);
+            // Fast path: validate serializability
+            JSON.stringify(finalPayload);
         } catch (_) {
             try {
                 // Fallback: sanitize to a JSON-safe plain structure
-                const safeObj = toPlainJSONSafe(finalPayload);
-                safeString = JSON.stringify(safeObj);
+                safeObjToSend = toPlainJSONSafe(finalPayload);
+                // Validate again
+                JSON.stringify(safeObjToSend);
                 if (isDebug) logger.debug('[get-config] Response normalized via safe serializer');
             } catch (err) {
-                // Last resort: serve base config only
-                const minimal = toPlainJSONSafe({ ...merged, _debug: undefined });
-                safeString = JSON.stringify(minimal || {});
+                // Last resort: serve minimal base (without _debug)
+                safeObjToSend = toPlainJSONSafe({ ...merged, _debug: undefined }) || {};
                 if (isDebug)
                     logger.debug('[get-config] Failed to serialize full config, returned minimal', {
                         error: err?.message,
@@ -6217,8 +6217,7 @@ app.get(
             }
         }
 
-        res.set('Content-Type', 'application/json');
-        res.send(safeString);
+        res.json(safeObjToSend);
     }
 );
 
