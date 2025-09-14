@@ -5516,10 +5516,13 @@ fieldset:focus-within {
     opacity: 1;
 }
 
-/* Desktop-only left-top zoom button */
+/* Desktop-only zoom button - positioned above orientation button */
 .preview-zoom-btn {
     position: absolute;
-    top: calc(var(--preview-container-padding, 8px) + var(--preview-padding, 4px));
+    top: auto;
+    bottom: calc(
+        var(--preview-container-padding, 8px) + var(--preview-padding, 4px) + 35px
+    ); /* 35px above the controls - good spacing without overlap */
     right: calc(var(--preview-container-padding, 8px) + var(--preview-padding, 4px));
     left: auto;
     z-index: 10002; /* Above iframe (z=1) and controls (z=10001) */

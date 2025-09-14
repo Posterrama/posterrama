@@ -32,36 +32,6 @@ const logger = {
     }
 })();
 
-// KB debug toggle and helper
-(() => {
-    try {
-        const params = new URLSearchParams(window.location.search || '');
-        if (params.get('kbdebug') === '1') window.KB_DEBUG = true;
-        // Local override via devtools/localStorage
-        try {
-            if (localStorage.getItem('KB_DEBUG') === '1') window.KB_DEBUG = true;
-        } catch (e) {
-            // intentionally empty: localStorage may be unavailable
-        }
-    } catch (e) {
-        // intentionally empty: URLSearchParams not supported or other benign error
-    }
-
-    window.kbDebug = function (event, data) {
-        if (!window.KB_DEBUG) return;
-        try {
-            console.warn(`[KB] ${event}`, data || '');
-        } catch (_) {
-            // intentionally empty: console may be restricted
-        }
-    };
-})();
-
-// Local alias for kbDebug to satisfy linters (no-undef) while preserving runtime behavior
-const kbDebug = (event, data) => {
-    if (window.kbDebug) window.kbDebug(event, data);
-};
-
 document.addEventListener('DOMContentLoaded', async () => {
     // --- iOS background behavior: lock to 'clip' mode ---
     (function () {
@@ -4184,7 +4154,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Simple Ken Burns transition: smooth pan/zoom on newLayer with crossfade from oldLayer
     function applyKenBurnsTransition(newLayer, oldLayer, durationSec, fadeSec = 1.2) {
-        kbDebug('KB:start', { durationSec, fadeSec });
         // In preview, replace Ken Burns with a smooth crossfade
         if (window.IS_PREVIEW) {
             try {
@@ -4224,9 +4193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     swapLayers(newLayer, oldLayer, { preserveNewAnimation: false });
                     ensureBackgroundVisible();
                 }, fadeDuration * 1000);
-            } catch (e) {
-                kbDebug('preview:kenburns-fade:error', e);
-            }
+            } catch (e) {}
             return;
         }
         // Prep layers
@@ -4269,7 +4236,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const endTy = rand();
 
         newLayer.style.transform = `scale(${startScale}) translate(${startTx}%, ${startTy}%)`;
-        kbDebug('KB:init', { startScale, endScale, startTx, startTy, endTx, endTy });
 
         // Force reflow
         newLayer.offsetHeight;
@@ -4297,10 +4263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     oldLayer.style.opacity = 0;
                 }
                 ensureBackgroundVisible();
-                kbDebug('KB:swapped', { via: trigger });
-            } catch (e) {
-                kbDebug('KB:swap:error', e);
-            }
+            } catch (e) {}
         }
 
         function doCleanup(trigger) {
@@ -4311,10 +4274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 newLayer.style.zIndex = '';
                 newLayer.style.willChange = '';
                 newLayer.removeAttribute('data-ken-burns');
-                kbDebug('KB:cleanup', { via: trigger });
-            } catch (e) {
-                kbDebug('KB:cleanup:error', e);
-            }
+            } catch (e) {}
         }
 
         const startAnimation = () => {
@@ -4323,9 +4283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Mark layer as Ken Burns active so swapLayers doesn't reset its transform
             try {
                 newLayer.setAttribute('data-ken-burns', 'true');
-            } catch (e) {
-                kbDebug('KB:attr-set:error', e);
-            }
+            } catch (e) {}
 
             const transformTransition = `transform ${durationSec}s linear`;
             const fadeTransition = `opacity ${fadeSec}s ease-in-out`;
@@ -4337,7 +4295,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             requestAnimationFrame(() => {
                 newLayer.style.transform = `scale(${endScale}) translate(${endTx}%, ${endTy}%)`;
             });
-            kbDebug('KB:transition', { transformTransition, fadeTransition });
 
             // Prefer event-driven swap on newLayer opacity end, with timeout fallback
             onNewFadeEndRef = ev => {
@@ -4356,9 +4313,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         if (onNewFadeEndRef)
                             newLayer.removeEventListener('transitionend', onNewFadeEndRef);
-                    } catch (e) {
-                        kbDebug('KB:swapTimer:removeListener:error', e);
-                    }
+                    } catch (e) {}
                     doSwap('timeout');
                 },
                 Math.max(50, fadeSec * 1000)
@@ -4381,9 +4336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         if (onNewTransformEndRef)
                             newLayer.removeEventListener('transitionend', onNewTransformEndRef);
-                    } catch (e) {
-                        kbDebug('KB:cleanupTimer:removeListener:error', e);
-                    }
+                    } catch (e) {}
                     doCleanup('timeout');
                 },
                 Math.max(100, durationSec * 1000)
@@ -4396,7 +4349,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         setTimeout(() => {
             if (!started) {
-                kbDebug('KB:start:fallback');
                 startAnimation();
             }
         }, 120);
@@ -4443,9 +4395,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     swapLayers(newLayer, oldLayer, { preserveNewAnimation: false });
                     ensureBackgroundVisible();
                 }, fadeDuration * 1000);
-            } catch (e) {
-                kbDebug('preview:crossfade:error', e);
-            }
+            } catch (e) {}
             return;
         }
 
@@ -4466,7 +4416,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (transitionEffect === 'none') {
             // For 'none', do a short, safe crossfade to avoid popping
-            kbDebug('transition:none');
             const fadeDuration = 0.5;
             newLayer.style.opacity = 0;
             newLayer.style.transition = 'none';
@@ -4520,12 +4469,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (kenBurnsRequested) {
             const durationSec = transitionInterval; // full interval for motion
             const fadeSec = 1.2; // crossfade duration
-            kbDebug('applyTransitionEffect:kenburns', {
-                durationSec,
-                fadeSec,
-                activeLayer: !!activeLayer,
-                inactiveLayer: !!inactiveLayer,
-            });
             applyKenBurnsTransition(newLayer, oldLayer, durationSec, fadeSec);
             return;
         }
@@ -4534,7 +4477,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         switch (transitionEffect) {
             case 'fade': {
                 // Smooth crossfade with compositor-friendly hints
-                kbDebug('transition:fade');
                 const fadeDuration = 1.2; // slightly shorter for smoother feel
                 newLayer.style.opacity = 0;
                 newLayer.style.transition = 'none';
@@ -4578,7 +4520,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             case 'slide': {
                 // Slide using explicit transforms to avoid initial fullscreen flash
-                kbDebug('transition:slide:start');
                 const directions = ['left', 'right', 'up', 'down'];
                 const dir = directions[Math.floor(Math.random() * directions.length)];
 
@@ -4666,7 +4607,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     activeLayer = inactiveLayer;
                     inactiveLayer = tempLayer;
                     ensureBackgroundVisible();
-                    kbDebug('transition:slide:done');
                 }, actualDuration * 1000);
 
                 return; // Exit early to avoid the swapLayers call at the end

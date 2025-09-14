@@ -892,7 +892,7 @@ body.screensaver-mode #poster-wrapper {
     padding-bottom: 0;
     transform: scale(var(--content-scale));
     transform-origin: bottom left;
-    padding-left: calc(20px * var(--content-scale)); /* Add some spacing from poster */
+    padding-left: calc(30px * var(--content-scale)); /* Extra spacing for shadow */
 }
 
 #title {
@@ -908,8 +908,11 @@ body.screensaver-mode #poster-wrapper {
     font-size: 1.3em;
     font-style: italic;
     color: var(--text-color-muted);
-    margin: 0 0 15px 0; /* Lighter font */
+    margin: 0 0 20px 0; /* Extra margin for shadow space */
     font-weight: 400;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); /* Add shadow for readability */
+    padding: 0 8px 8px 8px; /* Padding on all sides for shadow */
+    margin-left: -8px; /* Compensate for left padding */
 }
 
 #meta-info {
@@ -1066,7 +1069,7 @@ body.screensaver-mode #poster-wrapper {
     /* Poster layers are hidden, no screensaver specific rules needed */
 
     #text-wrapper {
-        padding-left: calc(20px * var(--content-scale)) !important;
+        padding-left: calc(30px * var(--content-scale)) !important; /* Extra space for shadow */
     }
 }
 
@@ -1162,7 +1165,7 @@ body.screensaver-mode #poster-wrapper {
         width: auto; /* Let it take remaining space */
         flex: 1; /* Take up remaining space after poster */
         min-width: 0; /* Allow text to wrap/shrink */
-        padding-left: 20px !important; /* More padding for better spacing from poster */
+        padding-left: 25px !important; /* Extra padding for shadow on mobile */
         transform: none !important; /* Remove scaling transform on mobile */
         transform-origin: unset !important; /* Reset transform origin */
     }
@@ -1176,7 +1179,10 @@ body.screensaver-mode #poster-wrapper {
 
     #tagline {
         font-size: clamp(0.7rem, 2.5vw, 0.9rem);
-        margin-bottom: 4px; /* Compact spacing */
+        margin-bottom: 12px; /* Extra space for shadow */
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); /* Scaled shadow for mobile */
+        padding: 0 6px 6px 6px; /* Padding for shadow space on mobile */
+        margin-left: -6px; /* Compensate for left padding */
     }
 
     #meta-info {
@@ -1376,16 +1382,19 @@ body.cinema-mode::before {
     #text-wrapper #tagline {
         order: 2 !important;
         flex: 1 !important;
-        overflow: hidden !important;
+        overflow: visible !important; /* Allow shadow to show */
         display: -webkit-box !important;
         -webkit-line-clamp: 6 !important; /* Limit tagline to ~6 lines on desktop */
         line-clamp: 6 !important;
         -webkit-box-orient: vertical !important;
         text-overflow: ellipsis !important;
-        margin: 8px 0 !important;
+        margin: 8px 0 16px 0 !important; /* More bottom margin for shadow space */
         word-wrap: break-word !important;
         hyphens: auto !important;
         min-height: 0 !important;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important; /* Ensure shadow shows */
+        padding: 0 8px 8px 8px !important; /* Padding on all sides for shadow space */
+        margin-left: -8px !important; /* Compensate for left padding */
     }
 
     #text-wrapper #meta-info {
