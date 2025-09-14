@@ -1,9 +1,6 @@
 /**
  * Tests for healthCheck dashboard include toggles
  */
-
-const path = require('path');
-
 // Load module fresh with controlled env and spies
 function loadHealthCheck() {
     jest.resetModules();
