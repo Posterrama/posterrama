@@ -2336,6 +2336,8 @@
         let previewWin = null;
         let lastPayload = null;
         let debounceTimer = null;
+        // Preview-only orientation state for non-cinema modes
+        let previewOrientation = 'landscape'; // 'landscape' | 'portrait'
 
         function setVisible(on) {
             container.style.display = on ? 'block' : 'none';
@@ -2367,11 +2369,11 @@
             const isCinema = !!payload.cinemaMode;
             container.classList.toggle('cinema-mode', isCinema);
             container.classList.toggle('screensaver-mode', !isCinema);
-            // Orientation indicator for preview sizing
-            const orient = String(payload.cinemaOrientation || 'auto');
-            const portrait = orient === 'portrait' || orient === 'portrait-flipped';
-            container.classList.toggle('portrait', isCinema && portrait);
-            container.classList.toggle('landscape', !(isCinema && portrait));
+            // In Cinema preview, orientation is fixed to portrait and button hidden
+            if (orientBtn) orientBtn.style.display = isCinema ? 'none' : '';
+            const portrait = isCinema ? true : previewOrientation === 'portrait';
+            container.classList.toggle('portrait', portrait);
+            container.classList.toggle('landscape', !portrait);
         }
 
         function updateFrameScale() {
@@ -2405,6 +2407,8 @@
                 return hardReset();
             }
             lastPayload = payload;
+            // For Cinema preview, force portrait orientation regardless of form select
+            if (payload.cinemaMode) payload.cinemaOrientation = 'portrait';
             // Reflect mode/orientation on the container so aspect and scale update smoothly
             applyContainerMode(payload);
             // Wait a frame then rescale to accommodate CSS transitions
@@ -2484,18 +2488,33 @@
             if (on) container.classList.remove('zoom-200'); // keep single zoom class
         });
 
-        // Orientation toggle: cycle auto -> portrait -> portrait-flipped -> auto
+        // Orientation toggle for non-cinema modes: landscape <-> portrait
         orientBtn?.addEventListener('click', () => {
-            const sel = document.getElementById('cinemaOrientation');
-            if (!sel) return;
-            const order = ['auto', 'portrait', 'portrait-flipped'];
-            const cur = sel.value && order.includes(sel.value) ? sel.value : 'auto';
-            const next = order[(order.indexOf(cur) + 1) % order.length];
-            sel.value = next;
-            // Fire change events so any UI state updates and preview logic can react
-            sel.dispatchEvent(new Event('change', { bubbles: true }));
-            // Send immediately to update mode/orientation classes smoothly
+            // Only applies in Screensaver/Wallart; hidden in Cinema
+            previewOrientation = previewOrientation === 'portrait' ? 'landscape' : 'portrait';
+            // Update container immediately for visual aspect switch
+            try {
+                const payload = collectPreviewPayload();
+                applyContainerMode(payload);
+            } catch (_) {}
+            requestAnimationFrame(updateFrameScale);
+            // No config change needed; just update the preview
             sendUpdate();
+        });
+
+        // Keep orientation control visibility and shell aspect in sync with active mode
+        const modeRadios = document.querySelectorAll('input[name="display.mode"]');
+        modeRadios.forEach(r => {
+            r.addEventListener('change', () => {
+                // Apply immediately and rescale
+                try {
+                    const payload = collectPreviewPayload();
+                    applyContainerMode(payload);
+                } catch (_) {}
+                requestAnimationFrame(updateFrameScale);
+                // Update the preview content too
+                sendUpdate();
+            });
         });
 
         // Ensure visibility aligns with current section on init
@@ -2503,6 +2522,11 @@
             .getElementById('section-display')
             ?.classList.contains('active');
         setVisible(!!isDisplayActive);
+        // Initialize container classes based on current form for correct aspect immediately
+        try {
+            const payload0 = collectPreviewPayload();
+            applyContainerMode(payload0);
+        } catch (_) {}
         // Initial scale sync
         requestAnimationFrame(updateFrameScale);
     }

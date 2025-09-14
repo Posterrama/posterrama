@@ -1626,12 +1626,11 @@
     #display-preview-container.zoom-200 .preview-shell { transform: scale(2); }
     #display-preview-container .preview-frame {
       position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
       border: 0;
       background: #000;
       z-index: 1; /* keep below controls */
+      /* JS sets width/height (1920x1080 or 1080x1920) and centers via translate(-50%, -50%) */
+      transform-origin: center center;
     }
     /* Peek handle (collapse/expand) */
     #display-preview-container .preview-peek-handle {
@@ -1657,7 +1656,7 @@
     #display-preview-container.collapsed .preview-frame { display: none; }
     /* Top-right tool buttons */
     #display-preview-container .preview-tools {
-      position: absolute; top: 6px; right: 6px; display: flex; gap: 6px; z-index: 2;
+      position: absolute; bottom: 6px; right: 6px; display: flex; flex-direction: column; gap: 6px; z-index: 2;
     }
     #display-preview-container .preview-tools .pip-button {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
