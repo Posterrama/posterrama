@@ -187,6 +187,15 @@
                 // reload after unregister to ensure a clean scope
                 forceReload();
                 break;
+            case 'core.mgmt.reset':
+                try {
+                    await clearCaches();
+                } catch (_) {}
+                try {
+                    await unregisterServiceWorkers();
+                } catch (_) {}
+                forceReload();
+                break;
             case 'core.mgmt.clearCache':
                 await clearCaches();
                 // optional reload after cache clear

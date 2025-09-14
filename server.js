@@ -1589,6 +1589,49 @@ if (isDeviceMgmtEnabled()) {
         }
     });
 
+    // Pairing: Admin generates a short-lived pairing code for a device
+    const devicePairGenLimiter = createRateLimiter(
+        60 * 1000,
+        30,
+        'Too many pairing requests from this IP, please try again later.'
+    );
+    app.post(
+        '/api/devices/:id/pairing-code',
+        adminAuth,
+        devicePairGenLimiter,
+        express.json(),
+        async (req, res) => {
+            try {
+                const ttlMs = Math.max(
+                    60_000,
+                    Math.min(60 * 60_000, Number(req.body?.ttlMs) || 600_000)
+                );
+                const result = await deviceStore.generatePairingCode(req.params.id, { ttlMs });
+                if (!result) return res.status(404).json({ error: 'not_found' });
+                res.json(result);
+            } catch (e) {
+                res.status(500).json({ error: 'pair_generate_failed' });
+            }
+        }
+    );
+
+    // Pairing: Client claims an existing device using the code (rotates secret)
+    const devicePairClaimLimiter = createRateLimiter(
+        60 * 1000,
+        60,
+        'Too many pairing attempts from this IP, please try again later.'
+    );
+    app.post('/api/devices/pair', devicePairClaimLimiter, express.json(), async (req, res) => {
+        try {
+            const { code, name = '', location = '' } = req.body || {};
+            const result = await deviceStore.claimByPairingCode({ code, name, location });
+            if (!result) return res.status(400).json({ error: 'invalid_or_expired' });
+            res.json({ deviceId: result.device.id, deviceSecret: result.secret });
+        } catch (e) {
+            res.status(500).json({ error: 'pair_claim_failed' });
+        }
+    });
+
     // Admin: list devices
     app.get('/api/devices', adminAuth, async (_req, res) => {
         try {

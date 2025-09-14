@@ -9719,8 +9719,11 @@ function renderDevicesTable(devices) {
             <button type="button" class="btn is-primary" data-cmd="reload" data-id="${d.id}" title="Reload this device">
                             <span class="icon"><i class="fas fa-redo"></i></span>
                         </button>
-            <button type="button" class="btn" data-cmd="sw" data-id="${d.id}" title="Unregister Service Worker on device">
+            <button type="button" class="btn" data-cmd="reset" data-id="${d.id}" title="Clear caches + unregister SW + reload on device">
                             <span class="icon"><i class="fas fa-broom"></i></span>
+                        </button>
+            <button type="button" class="btn" data-cmd="pair" data-id="${d.id}" title="Generate pairing code (admin)">
+                            <span class="icon"><i class="fas fa-link"></i></span>
                         </button>
             <button type="button" class="btn btn-danger" data-cmd="delete" data-id="${d.id}" title="Delete this device">
                             <span class="icon"><i class="fas fa-trash"></i></span>
@@ -9876,8 +9879,8 @@ function renderDevicesTable(devices) {
                 const type =
                     cmd === 'reload'
                         ? 'core.mgmt.reload'
-                        : cmd === 'sw'
-                          ? 'core.mgmt.swUnregister'
+                        : cmd === 'reset'
+                          ? 'core.mgmt.reset'
                           : null;
                 if (cmd === 'delete') {
                     devLog('row delete: opening confirm');
@@ -9904,11 +9907,33 @@ function renderDevicesTable(devices) {
                     setButtonState(btn, 'revert');
                     return;
                 }
-                setButtonState(btn, 'loading', { text: 'Queuing…' });
-                await sendDeviceCommand(id, type);
-                setButtonState(btn, 'success', { text: 'Queued' });
-                if (status) status.textContent = 'Command queued. It will run on next heartbeat.';
-                setTimeout(() => setButtonState(btn, 'revert'), 1200);
+                if (cmd === 'pair') {
+                    setButtonState(btn, 'loading', { text: 'Pairing…' });
+                    const res = await authenticatedFetch(
+                        apiUrl(`/api/devices/${encodeURIComponent(id)}/pairing-code`),
+                        {
+                            method: 'POST',
+                            body: JSON.stringify({ ttlMs: 10 * 60 * 1000 }),
+                            noRedirectOn401: true,
+                        }
+                    );
+                    if (!res.ok) throw new Error('Failed to get code');
+                    const data = await res.json();
+                    setButtonState(btn, 'success', { text: 'Code' });
+                    try {
+                        const msg = `Pairing code: ${data.code}\nExpires: ${new Date(data.expiresAt).toLocaleString()}\nShare this code with the target device.`;
+                        window.prompt('Pairing code (copy):', data.code);
+                        if (status) status.textContent = msg;
+                    } catch (_) {}
+                    setTimeout(() => setButtonState(btn, 'revert'), 1500);
+                } else if (type) {
+                    setButtonState(btn, 'loading', { text: 'Queuing…' });
+                    await sendDeviceCommand(id, type);
+                    setButtonState(btn, 'success', { text: 'Queued' });
+                    if (status)
+                        status.textContent = 'Command queued. It will run on next heartbeat.';
+                    setTimeout(() => setButtonState(btn, 'revert'), 1200);
+                }
                 devLog('row command queued', { cmd, id, type });
             } catch (err) {
                 setButtonState(btn, 'error', { text: 'Failed' });
@@ -9946,8 +9971,8 @@ function initDevicesPanel() {
                 const type =
                     cmd === 'reload'
                         ? 'core.mgmt.reload'
-                        : cmd === 'sw'
-                          ? 'core.mgmt.swUnregister'
+                        : cmd === 'reset'
+                          ? 'core.mgmt.reset'
                           : null;
                 try {
                     if (cmd === 'delete') {
@@ -9967,7 +9992,26 @@ function initDevicesPanel() {
                         setButtonState(btn, 'revert');
                         return;
                     }
-                    if (type) {
+                    if (cmd === 'pair') {
+                        setButtonState(btn, 'loading', { text: 'Pairing…' });
+                        const res = await authenticatedFetch(
+                            apiUrl(`/api/devices/${encodeURIComponent(id)}/pairing-code`),
+                            {
+                                method: 'POST',
+                                body: JSON.stringify({ ttlMs: 10 * 60 * 1000 }),
+                                noRedirectOn401: true,
+                            }
+                        );
+                        if (!res.ok) throw new Error('Failed to get code');
+                        const data = await res.json();
+                        setButtonState(btn, 'success', { text: 'Code' });
+                        try {
+                            window.prompt('Pairing code (copy):', data.code);
+                            if (status)
+                                status.textContent = `Pairing code: ${data.code} (expires ${new Date(data.expiresAt).toLocaleString()})`;
+                        } catch (_) {}
+                        setTimeout(() => setButtonState(btn, 'revert'), 1500);
+                    } else if (type) {
                         setButtonState(btn, 'loading', { text: 'Queuing…' });
                         await sendDeviceCommand(id, type);
                         setButtonState(btn, 'success', { text: 'Queued' });
@@ -10067,11 +10111,7 @@ function initDevicesPanel() {
             const status = getStatusEl();
             devLog('global: action click', { cmd, id });
             const type =
-                cmd === 'reload'
-                    ? 'core.mgmt.reload'
-                    : cmd === 'sw'
-                      ? 'core.mgmt.swUnregister'
-                      : null;
+                cmd === 'reload' ? 'core.mgmt.reload' : cmd === 'reset' ? 'core.mgmt.reset' : null;
             try {
                 if (cmd === 'delete') {
                     devLog('global: delete confirm open');
@@ -10090,7 +10130,29 @@ function initDevicesPanel() {
                     setButtonState(btn, 'revert');
                     return;
                 }
-                if (type) {
+                if (cmd === 'pair') {
+                    setButtonState(btn, 'loading', { text: 'Pairing…' });
+                    const res = await authenticatedFetch(
+                        apiUrl(`/api/devices/${encodeURIComponent(id)}/pairing-code`),
+                        {
+                            method: 'POST',
+                            body: JSON.stringify({ ttlMs: 10 * 60 * 1000 }),
+                            noRedirectOn401: true,
+                        }
+                    );
+                    if (!res.ok) throw new Error('Failed to get code');
+                    const data = await res.json();
+                    setButtonState(btn, 'success', { text: 'Code' });
+                    try {
+                        window.prompt('Pairing code (copy):', data.code);
+                        const status = getStatusEl();
+                        if (status)
+                            status.textContent = `Pairing code: ${data.code} (expires ${new Date(
+                                data.expiresAt
+                            ).toLocaleString()})`;
+                    } catch (_) {}
+                    setTimeout(() => setButtonState(btn, 'revert'), 1500);
+                } else if (type) {
                     setButtonState(btn, 'loading', { text: 'Queuing…' });
                     await sendDeviceCommand(id, type);
                     setButtonState(btn, 'success', { text: 'Queued' });

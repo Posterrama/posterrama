@@ -119,6 +119,48 @@ async function patchDevice(id, patch) {
     return all[idx];
 }
 
+function genPairCode(len = 6) {
+    // Numeric code, easy to read/type
+    let s = '';
+    for (let i = 0; i < len; i++) s += Math.floor(Math.random() * 10).toString();
+    return s;
+}
+
+async function generatePairingCode(id, { ttlMs = 10 * 60 * 1000 } = {}) {
+    const all = await readAll();
+    const idx = all.findIndex(d => d.id === id);
+    if (idx === -1) return null;
+    const now = Date.now();
+    const code = genPairCode(6);
+    const expiresAt = new Date(now + ttlMs).toISOString();
+    all[idx].pairing = { ...(all[idx].pairing || {}), code, expiresAt };
+    all[idx].updatedAt = new Date(now).toISOString();
+    await writeAll(all);
+    return { code, expiresAt };
+}
+
+async function claimByPairingCode({ code, name, location } = {}) {
+    if (!code) return null;
+    const all = await readAll();
+    const now = Date.now();
+    const idx = all.findIndex(d => d.pairing && d.pairing.code === code);
+    if (idx === -1) return null;
+    const exp = Date.parse(all[idx].pairing.expiresAt || 0) || 0;
+    if (!exp || exp < now) return null;
+    // rotate secret and (optionally) update name/location
+    const newSecret = crypto.randomBytes(32).toString('hex');
+    all[idx] = {
+        ...all[idx],
+        secretHash: hashSecret(newSecret),
+        name: name || all[idx].name,
+        location: location || all[idx].location,
+        pairing: { lastPairedAt: new Date(now).toISOString() },
+        updatedAt: new Date(now).toISOString(),
+    };
+    await writeAll(all);
+    return { device: all[idx], secret: newSecret };
+}
+
 async function updateHeartbeat(id, { clientInfo, currentState, installId } = {}) {
     const all = await readAll();
     const idx = all.findIndex(d => d.id === id);
@@ -260,4 +302,6 @@ module.exports = {
     pruneLikelyDuplicates,
     queueCommand,
     popCommands,
+    generatePairingCode,
+    claimByPairingCode,
 };
