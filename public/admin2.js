@@ -402,9 +402,11 @@
 
             // Uptime (prefer numeric seconds → compact format Xd Xh Xm)
             (function () {
+                const us = status?.uptimeSeconds;
                 const u = status?.uptime;
                 let txt = '—';
-                if (typeof u === 'number' && Number.isFinite(u)) txt = formatUptime(u);
+                if (typeof us === 'number' && Number.isFinite(us)) txt = formatUptime(us);
+                else if (typeof u === 'number' && Number.isFinite(u)) txt = formatUptime(u);
                 else if (/^\d+$/.test(String(u || ''))) txt = formatUptime(Number(u));
                 else if (u) txt = String(u);
                 setText('perf-uptime', txt);
@@ -470,9 +472,11 @@
             // Update disk progress bar similar to CPU/Memory
             setMeter('meter-disk', diskPct);
             (function () {
+                const us = perf?.uptimeSeconds;
                 const u = perf?.uptime;
                 let txt = '—';
-                if (typeof u === 'number' && Number.isFinite(u)) txt = formatUptime(u);
+                if (typeof us === 'number' && Number.isFinite(us)) txt = formatUptime(us);
+                else if (typeof u === 'number' && Number.isFinite(u)) txt = formatUptime(u);
                 else if (/^\d+$/.test(String(u || ''))) txt = formatUptime(Number(u));
                 else if (u) txt = String(u);
                 setText('perf-uptime', txt);
@@ -1225,13 +1229,9 @@
         const d = Math.floor(s / 86400);
         const h = Math.floor((s % 86400) / 3600);
         const m = Math.floor((s % 3600) / 60);
-        const parts = [];
-        // Most significant first; hide zero units and cap to two units
-        if (d) parts.push(`${d}d`);
-        if (h && parts.length < 2) parts.push(`${h}h`);
-        // Ensure at least minutes are shown; fill remaining slot with minutes if available
-        if (parts.length < 2 && (m || parts.length === 0)) parts.push(`${m}m`);
-        return parts.join(' ');
+        if (d > 0) return `${d}d ${h}h`;
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m`;
     }
 
     // Debug helper

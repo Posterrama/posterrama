@@ -10785,7 +10785,10 @@ app.post(
  *                       example: "active"
  *                 uptime:
  *                   type: string
- *                   example: "2 days, 5 hours"
+ *                   example: "2d 5h"
+ *                 uptimeSeconds:
+ *                   type: integer
+ *                   example: 183600
  */
 app.get(
     '/api/admin/status',
@@ -10794,9 +10797,16 @@ app.get(
         try {
             const os = require('os');
             const uptime = process.uptime();
-            const hours = Math.floor(uptime / 3600);
-            const minutes = Math.floor((uptime % 3600) / 60);
-            const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            const uptimeSeconds = Math.max(0, Math.floor(Number(uptime) || 0));
+            const days = Math.floor(uptimeSeconds / 86400);
+            const hours = Math.floor((uptimeSeconds % 86400) / 3600);
+            const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+            const uptimeString =
+                days > 0
+                    ? `${days}d ${hours}h`
+                    : hours > 0
+                      ? `${hours}h ${minutes}m`
+                      : `${minutes}m`;
 
             // Check database connection (file system access)
             let databaseStatus = 'disconnected';
@@ -10864,6 +10874,7 @@ app.get(
                     status: memUsage > 90 ? 'error' : memUsage > 70 ? 'warning' : 'success',
                 },
                 uptime: uptimeString,
+                uptimeSeconds: uptimeSeconds,
             };
 
             res.json(statusData);
@@ -11667,9 +11678,16 @@ app.get(
 
             // Uptime
             const uptime = process.uptime();
-            const hours = Math.floor(uptime / 3600);
-            const minutes = Math.floor((uptime % 3600) / 60);
-            const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            const uptimeSeconds = Math.max(0, Math.floor(Number(uptime) || 0));
+            const days = Math.floor(uptimeSeconds / 86400);
+            const hours = Math.floor((uptimeSeconds % 86400) / 3600);
+            const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+            const uptimeString =
+                days > 0
+                    ? `${days}d ${hours}h`
+                    : hours > 0
+                      ? `${hours}h ${minutes}m`
+                      : `${minutes}m`;
 
             const performanceData = {
                 cpu: {
@@ -11686,6 +11704,7 @@ app.get(
                 },
                 disk: diskUsage,
                 uptime: uptimeString,
+                uptimeSeconds: uptimeSeconds,
             };
 
             res.json(performanceData);
