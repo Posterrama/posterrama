@@ -1598,6 +1598,76 @@
         #section-display .micro-hint i { font-size: 0.85em; color: var(--color-text-secondary); opacity: 0.7; }
     /* Themed sliders for Display section */
     #section-display .modern-slider { display:block; width:100%; }
+
+    /* Live Preview (floating PiP inside Display section) */
+    #display-preview-container {
+      position: fixed; /* keep anchored while scrolling Display */
+      right: 16px;
+      bottom: 16px;
+      z-index: 5000;
+      display: none; /* shown when Display section is active */
+    }
+    #display-preview-container .preview-shell {
+      position: relative;
+      width: 420px;
+      aspect-ratio: 16 / 9;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-lg);
+      background: #000;
+      transform-origin: bottom right;
+      transition: transform 160ms ease, width 160ms ease, height 160ms ease;
+    }
+    /* Simulate device aspect: landscape vs portrait */
+    #display-preview-container.landscape .preview-shell { aspect-ratio: 16 / 9; }
+    #display-preview-container.portrait .preview-shell { aspect-ratio: 9 / 16; }
+    #display-preview-container.zoom-150 .preview-shell { transform: scale(1.5); }
+    #display-preview-container.zoom-200 .preview-shell { transform: scale(2); }
+    #display-preview-container .preview-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+      z-index: 1; /* keep below controls */
+    }
+    /* Peek handle (collapse/expand) */
+    #display-preview-container .preview-peek-handle {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      cursor: pointer;
+      z-index: 2; /* above iframe */
+    }
+    #display-preview-container .preview-peek-handle::before {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border-top: 2px solid rgba(255,255,255,0.8);
+      border-bottom: 2px solid rgba(255,255,255,0.8);
+    }
+    #display-preview-container.collapsed .preview-shell { height: 28px; aspect-ratio: auto; }
+    #display-preview-container.collapsed .preview-frame { display: none; }
+    /* Top-right tool buttons */
+    #display-preview-container .preview-tools {
+      position: absolute; top: 6px; right: 6px; display: flex; gap: 6px; z-index: 2;
+    }
+    #display-preview-container .preview-tools .pip-button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 6px 8px; border-radius: 8px; border: 1px solid var(--color-border);
+      background: rgba(20,20,28,0.7); color: #E5E7EB; cursor: pointer; font-size: .8rem;
+    }
+    #display-preview-container .preview-tools .pip-button:hover { background: rgba(30,30,40,0.75); }
+    #display-preview-container .preview-tools .pip-button i { font-size: .9em; opacity: .9; }
+    </style>
+    <style>
   #section-display .modern-slider input[type="range"] { width:100%; height: 28px; background: transparent; accent-color: var(--color-info); position: relative; z-index: 1; }
     /* Add a non-intrusive progress bar behind the native slider */
     #section-display .modern-slider { position: relative; }
@@ -1640,6 +1710,20 @@
           </div>
         </div>
         <div class="panel-content">
+          <!-- Floating Live Preview (reuses /preview page) -->
+          <div id="display-preview-container" class="pip-mode screensaver-mode">
+            <div class="preview-shell">
+              <div class="preview-tools">
+                <button type="button" id="toggle-preview-zoom" class="pip-button preview-zoom-btn" title="Toggle Preview Size (1.5x)">
+                  <i class="fas fa-expand"></i>
+                </button>
+                <button type="button" id="toggle-preview-orientation" class="pip-button" title="Toggle Orientation">
+                  <i class="fas fa-rotate-right"></i>
+                </button>
+              </div>
+              <iframe id="display-preview-frame" class="preview-frame" title="Display Settings Live Preview" src="/preview"></iframe>
+            </div>
+          </div>
           <!-- Active mode selector -->
           <div class="form-section">
             <div class="section-title"><i class="fas fa-layer-group"></i> Active Mode</div>

@@ -1357,6 +1357,14 @@
         }
         dbg('showSection() applied', { activeId: id, sections: sections.length });
 
+        // Toggle Admin v2 Display preview visibility based on active section
+        try {
+            const pvc = document.getElementById('display-preview-container');
+            if (pvc) {
+                pvc.style.display = id === 'section-display' ? 'block' : 'none';
+            }
+        } catch (_) {}
+
         // Show/hide Activity pill - only show on dashboard
         const activityPill = document.getElementById('perf-activity');
         if (activityPill) {
@@ -1385,6 +1393,13 @@
             if (id === 'section-display' && !window.__displayInit) {
                 window.__displayInit = true;
                 initDisplaySection();
+                // Lazily initialize the floating live preview for Display
+                try {
+                    if (!window.__displayPreviewInit) {
+                        window.__displayPreviewInit = true;
+                        initDisplayPreviewV2();
+                    }
+                } catch (_) {}
             }
         } catch (_) {}
     }
@@ -2308,6 +2323,188 @@
                 message: e?.message || 'Could not load display settings',
             });
         }
+    }
+
+    // ------- Admin v2 Display: Floating Live Preview wiring -------
+    function initDisplayPreviewV2() {
+        const container = document.getElementById('display-preview-container');
+        const frame = document.getElementById('display-preview-frame');
+        const zoomBtn = document.getElementById('toggle-preview-zoom');
+        const orientBtn = document.getElementById('toggle-preview-orientation');
+        if (!container || !frame) return; // HTML not present, nothing to do
+
+        let previewWin = null;
+        let lastPayload = null;
+        let debounceTimer = null;
+
+        function setVisible(on) {
+            container.style.display = on ? 'block' : 'none';
+        }
+
+        function collectPreviewPayload() {
+            // Reuse existing patch builder; it produces the shape expected by /preview runtime
+            return collectDisplayFormPatch();
+        }
+
+        function shouldHardReset(prev, next) {
+            if (!prev) return false;
+            // Only hard-reset when cinema mode on/off changes; orientation can be applied live
+            return !!prev.cinemaMode !== !!next.cinemaMode;
+        }
+
+        function hardReset() {
+            try {
+                // Simple iframe reload; the preview page restores state from incoming payload
+                frame.contentWindow?.location.reload();
+            } catch (_) {
+                // Fallback: nudge via src cache-bust
+                const src = frame.getAttribute('src') || '/preview';
+                frame.setAttribute('src', src.split('?')[0] + '?cb=' + Date.now());
+            }
+        }
+
+        function applyContainerMode(payload) {
+            const isCinema = !!payload.cinemaMode;
+            container.classList.toggle('cinema-mode', isCinema);
+            container.classList.toggle('screensaver-mode', !isCinema);
+            // Orientation indicator for preview sizing
+            const orient = String(payload.cinemaOrientation || 'auto');
+            const portrait = orient === 'portrait' || orient === 'portrait-flipped';
+            container.classList.toggle('portrait', isCinema && portrait);
+            container.classList.toggle('landscape', !(isCinema && portrait));
+        }
+
+        function updateFrameScale() {
+            const isCinema = container.classList.contains('cinema-mode');
+            const isPortrait = container.classList.contains('portrait');
+            // Simulate device resolution base for correct proportions
+            const baseW = isCinema ? (isPortrait ? 1080 : 1920) : 1920;
+            const baseH = isCinema ? (isPortrait ? 1920 : 1080) : 1080;
+            const shell = container.querySelector('.preview-shell');
+            const frameEl = container.querySelector('.preview-frame');
+            if (!shell || !frameEl) return;
+            // Compute available inner size (shell itself is sized via aspect-ratio and CSS), then scale iframe content
+            // We set iframe to base size and scale down to fit shell
+            frameEl.style.width = baseW + 'px';
+            frameEl.style.height = baseH + 'px';
+            // shell content box
+            const cw = shell.clientWidth;
+            const ch = shell.clientHeight;
+            const scale = Math.max(0.01, Math.min(cw / baseW, ch / baseH));
+            frameEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            frameEl.style.transformOrigin = 'center center';
+            frameEl.style.left = '50%';
+            frameEl.style.top = '50%';
+        }
+
+        function sendUpdate() {
+            if (!previewWin) return;
+            const payload = collectPreviewPayload();
+            if (shouldHardReset(lastPayload, payload)) {
+                lastPayload = payload;
+                return hardReset();
+            }
+            lastPayload = payload;
+            // Reflect mode/orientation on the container so aspect and scale update smoothly
+            applyContainerMode(payload);
+            // Wait a frame then rescale to accommodate CSS transitions
+            requestAnimationFrame(updateFrameScale);
+            try {
+                previewWin.postMessage(
+                    { type: 'posterrama.preview.update', payload },
+                    window.location.origin
+                );
+            } catch (_) {}
+        }
+
+        function debouncedSend() {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(sendUpdate, 120);
+        }
+
+        frame.addEventListener('load', () => {
+            previewWin = frame.contentWindow;
+            // Initial sync after iframe is ready
+            sendUpdate();
+            // Listen to container/shell size changes for smooth updates
+            try {
+                if (window.ResizeObserver) {
+                    const shell = container.querySelector('.preview-shell');
+                    const ro = new ResizeObserver(() => updateFrameScale());
+                    if (shell) ro.observe(shell);
+                } else {
+                    window.addEventListener('resize', updateFrameScale);
+                }
+            } catch (_) {}
+        });
+
+        // If the iframe already loaded before this wiring, use current contentWindow and try an initial send
+        try {
+            if (frame.contentWindow) {
+                previewWin = frame.contentWindow;
+                // Fire two staged attempts to cover document ready timing inside preview
+                setTimeout(sendUpdate, 0);
+                setTimeout(sendUpdate, 200);
+            }
+        } catch (_) {}
+
+        // Wire global input/change handlers within Display section
+        const section = document.getElementById('section-display');
+        if (section) {
+            const handler = () => debouncedSend();
+            section.addEventListener('input', handler, true);
+            section.addEventListener('change', handler, true);
+        }
+
+        // Extra targeted listeners for cinema toggles where structural reset is needed
+        const cinemaToggle = document.getElementById('mode-cinema');
+        cinemaToggle?.addEventListener('change', () => {
+            const next = collectPreviewPayload();
+            if (shouldHardReset(lastPayload, next)) {
+                lastPayload = next;
+                hardReset();
+            } else {
+                debouncedSend();
+            }
+        });
+        const orientSel = document.getElementById('cinemaOrientation');
+        orientSel?.addEventListener('change', () => {
+            const next = collectPreviewPayload();
+            if (shouldHardReset(lastPayload, next)) {
+                lastPayload = next;
+                hardReset();
+            } else {
+                debouncedSend();
+            }
+        });
+
+        // Zoom toggle (cycle between default and 1.5x)
+        zoomBtn?.addEventListener('click', () => {
+            const on = container.classList.toggle('zoom-150');
+            if (on) container.classList.remove('zoom-200'); // keep single zoom class
+        });
+
+        // Orientation toggle: cycle auto -> portrait -> portrait-flipped -> auto
+        orientBtn?.addEventListener('click', () => {
+            const sel = document.getElementById('cinemaOrientation');
+            if (!sel) return;
+            const order = ['auto', 'portrait', 'portrait-flipped'];
+            const cur = sel.value && order.includes(sel.value) ? sel.value : 'auto';
+            const next = order[(order.indexOf(cur) + 1) % order.length];
+            sel.value = next;
+            // Fire change events so any UI state updates and preview logic can react
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            // Send immediately to update mode/orientation classes smoothly
+            sendUpdate();
+        });
+
+        // Ensure visibility aligns with current section on init
+        const isDisplayActive = document
+            .getElementById('section-display')
+            ?.classList.contains('active');
+        setVisible(!!isDisplayActive);
+        // Initial scale sync
+        requestAnimationFrame(updateFrameScale);
     }
 
     async function refreshApiKeyStatus() {

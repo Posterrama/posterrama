@@ -1166,6 +1166,74 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(() => {
                 infoContainer.classList.add('visible');
             }, 100);
+
+            // In preview mode, simulate device orientation by rotating the content area
+            // so the admin can see the difference between landscape and portrait.
+            if (typeof window !== 'undefined' && window.IS_PREVIEW) {
+                const container = document.getElementById('info-container');
+                const poster = document.getElementById('poster');
+                const layers = Array.from(document.querySelectorAll('.poster-layer'));
+
+                // Helper to clear any preview-only overrides
+                const clearPreviewOrientation = () => {
+                    if (!container) return;
+                    container.style.position = '';
+                    container.style.top = '';
+                    container.style.left = '';
+                    container.style.width = '';
+                    container.style.height = '';
+                    container.style.transform = '';
+                    container.style.transformOrigin = '';
+                    [poster, ...layers].forEach(el => {
+                        if (el) {
+                            el.style.height = '';
+                            el.style.maxWidth = '';
+                        }
+                    });
+                };
+
+                // Remove any previous resize listener we installed
+                if (window._previewOrientationResize) {
+                    window.removeEventListener('resize', window._previewOrientationResize);
+                    window._previewOrientationResize = null;
+                }
+
+                if (container) {
+                    if (orientation === 'portrait' || orientation === 'portrait-flipped') {
+                        // Apply rotation and swap width/height for the container
+                        container.style.position = 'fixed';
+                        container.style.top = '0';
+                        container.style.left = '0';
+                        container.style.width = '100vh';
+                        container.style.height = '100vw';
+                        container.style.transformOrigin = 'top left';
+                        if (orientation === 'portrait') {
+                            container.style.transform = 'rotate(90deg) translateY(-100vh)';
+                        } else {
+                            container.style.transform = 'rotate(-90deg) translateX(-100vw)';
+                        }
+
+                        // Size poster elements based on viewport width (since we've rotated)
+                        const applySizing = () => {
+                            const W = window.innerWidth || document.documentElement.clientWidth;
+                            const targetHeight = W;
+                            const targetMaxWidth = W / 1.5;
+                            [poster, ...layers].forEach(el => {
+                                if (el) {
+                                    el.style.height = targetHeight + 'px';
+                                    el.style.maxWidth = targetMaxWidth + 'px';
+                                }
+                            });
+                        };
+                        applySizing();
+                        window._previewOrientationResize = applySizing;
+                        window.addEventListener('resize', window._previewOrientationResize);
+                    } else {
+                        // Orientation 'auto' → clear preview-only overrides
+                        clearPreviewOrientation();
+                    }
+                }
+            }
         } else {
             // Cinema mode disabled: only reinitialize if we actually transitioned
             // from cinema (or wallart) to screensaver
@@ -1176,6 +1244,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setTimeout(() => {
                     reinitBackgroundForScreensaver();
                 }, 50);
+            }
+
+            // If we were in preview mode, also clear any orientation overrides and listeners
+            if (typeof window !== 'undefined' && window.IS_PREVIEW) {
+                const container = document.getElementById('info-container');
+                const poster = document.getElementById('poster');
+                const layers = Array.from(document.querySelectorAll('.poster-layer'));
+                if (container) {
+                    container.style.position = '';
+                    container.style.top = '';
+                    container.style.left = '';
+                    container.style.width = '';
+                    container.style.height = '';
+                    container.style.transform = '';
+                    container.style.transformOrigin = '';
+                }
+                [poster, ...layers].forEach(el => {
+                    if (el) {
+                        el.style.height = '';
+                        el.style.maxWidth = '';
+                    }
+                });
+                if (window._previewOrientationResize) {
+                    window.removeEventListener('resize', window._previewOrientationResize);
+                    window._previewOrientationResize = null;
+                }
             }
         }
     }
