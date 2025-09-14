@@ -3451,7 +3451,13 @@
                     const status = getStatusClass(d);
                     // Use the same slugification as the filter menu to ensure consistent matching
                     const room = slugify(roomLabel(d));
-                    const matchesStatus = !fs || status === fs;
+                    // Support a pseudo-status 'active' that matches either 'live' or 'online'
+                    let matchesStatus = true;
+                    if (fs) {
+                        if (fs === 'active')
+                            matchesStatus = status === 'live' || status === 'online';
+                        else matchesStatus = status === fs;
+                    }
                     const matchesRoom = !fr || room === fr;
                     return matchesText && matchesStatus && matchesRoom;
                 };
@@ -5606,6 +5612,105 @@
         /* ignore */
     }
 
+    // Wire only the dashboard metric numbers (kept isolated so failures elsewhere don't block it)
+    function wireDashboardMetricShortcuts() {
+        try {
+            const makeClickable = (id, handler, title) => {
+                const el = document.getElementById(id);
+                if (!el || el.dataset.wired === 'true') return;
+                el.dataset.wired = 'true';
+                el.tabIndex = 0;
+                el.setAttribute('role', 'button');
+                if (title) el.setAttribute('title', title);
+                el.style.cursor = 'pointer';
+                const onActivate = evt => {
+                    evt.preventDefault();
+                    handler();
+                };
+                el.addEventListener('click', onActivate);
+                el.addEventListener('keydown', e => {
+                    if (e.key === 'Enter' || e.key === ' ') onActivate(e);
+                });
+            };
+
+            makeClickable(
+                'metric-active-devices',
+                () => {
+                    try {
+                        showSection('section-devices');
+                        window.admin2?.initDevices?.();
+                        setTimeout(() => {
+                            try {
+                                const state = window.admin2?.devicesDebug?.state;
+                                if (state) {
+                                    state.filterStatus = 'active';
+                                    state.filterRoom = null;
+                                    state.query = '';
+                                }
+                                window.admin2?.devicesDebug?.render?.();
+                            } catch (_) {}
+                        }, 0);
+                    } catch (_) {}
+                },
+                'View active devices'
+            );
+
+            makeClickable(
+                'metric-offline-devices',
+                () => {
+                    try {
+                        showSection('section-devices');
+                        window.admin2?.initDevices?.();
+                        setTimeout(() => {
+                            try {
+                                const state = window.admin2?.devicesDebug?.state;
+                                if (state) {
+                                    state.filterStatus = 'offline';
+                                    state.filterRoom = null;
+                                    state.query = '';
+                                }
+                                window.admin2?.devicesDebug?.render?.();
+                            } catch (_) {}
+                        }, 0);
+                    } catch (_) {}
+                },
+                'View offline devices'
+            );
+
+            makeClickable(
+                'metric-media-items',
+                () => {
+                    try {
+                        showSection('section-media-sources');
+                        const section = document.getElementById('section-media-sources');
+                        if (section) {
+                            section
+                                .querySelectorAll('section.panel')
+                                .forEach(p => (p.hidden = p.id !== 'panel-sources-overview'));
+                        }
+                    } catch (_) {}
+                },
+                'View media sources overview'
+            );
+
+            makeClickable(
+                'metric-warnings',
+                () => {
+                    try {
+                        showSection('section-operations');
+                        const logsBtn = document.querySelector(
+                            '#section-operations a[href="/logs.html"]'
+                        );
+                        if (logsBtn) logsBtn.focus();
+                    } catch (_) {}
+                },
+                'View system warnings and logs'
+            );
+        } catch (_) {
+            /* isolated wiring: do not throw */
+        }
+    }
+
     // Update confirmation modal (theme-demo style)
     async function openUpdateModal() {
         const overlay = document.getElementById('modal-update');
@@ -5728,6 +5833,10 @@
                 console.warn('wireEvents() init failed', e);
             } catch (_) {}
         }
+        // Always wire dashboard metric shortcuts
+        try {
+            wireDashboardMetricShortcuts();
+        } catch (_) {}
         const btnSaveServer = document.getElementById('btn-save-server-settings');
         const btnSavePromo = document.getElementById('btn-save-promobox');
         const btnSaveOps = document.getElementById('btn-save-operations');
@@ -9953,6 +10062,15 @@
             }
         });
     });
+    // If the DOM is already loaded, run wireEvents immediately
+    try {
+        if (document.readyState !== 'loading') {
+            typeof wireEvents === 'function' && wireEvents();
+            try {
+                wireDashboardMetricShortcuts();
+            } catch (_) {}
+        }
+    } catch (_) {}
 
     async function refreshOperationsPanels() {
         try {

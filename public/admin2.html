@@ -192,6 +192,23 @@
   }
   /* No CSS hover-open; JS controls visibility */
 
+  /* KPI cards: only the metric number is interactive (not the whole card) */
+  #kpi-cards .status-card { cursor: default; }
+  #kpi-cards .status-card .metric {
+    display: inline-block; /* click target shrinks to number width */
+    cursor: pointer;
+    pointer-events: auto;
+    margin-bottom: var(--space-xs);
+  }
+  /* Disable clicks on other parts of the KPI card */
+  #kpi-cards .status-card .card-icon,
+  #kpi-cards .status-card h3,
+  #kpi-cards .status-card .trend {
+    pointer-events: none;
+  }
+  /* Ensure the subtext (trend) stays below the number */
+  #kpi-cards .status-card .trend { display: block; }
+
   /* Trigger buttons: modern hover/active visuals */
   .nav-actions .dropdown .btn.btn-icon {
     border: 1px solid transparent;
@@ -2791,7 +2808,7 @@
       </div>
       <div class="modal-footer pairing-footer">
         <div class="pairing-exp subtle" id="pairing-exp-footer"></div>
-        <button class="btn btn-outline" data-close-modal>Close</button>
+  <button class="btn btn-outline" data-close-modal>Close</button>
       </div>
     </div>
   </div>
@@ -3171,7 +3188,7 @@
   </div>
 
   <script src="/notify.js?v=20250906-1"></script>
-  <script src="/admin2.js?v=20250907-07"></script>
+  <script src="/admin2.js?v=20250909-01"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
     if ('serviceWorker' in navigator) {

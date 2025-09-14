@@ -214,6 +214,44 @@ async function claimByPairingCode({ code, token, name, location } = {}) {
     return { device: all[idx], secret: newSecret };
 }
 
+async function revokePairingCode(id) {
+    const all = await readAll();
+    const idx = all.findIndex(d => d.id === id);
+    if (idx === -1) return false;
+    const nowIso = new Date().toISOString();
+    const prev = all[idx].pairing || {};
+    // Clear pairing details to immediately revoke
+    const nextPairing = {};
+    all[idx] = { ...all[idx], pairing: nextPairing, updatedAt: nowIso };
+    await writeAll(all);
+    return true;
+}
+
+async function getActivePairings() {
+    const all = await readAll();
+    const now = Date.now();
+    const list = [];
+    for (const d of all) {
+        const p = d.pairing || {};
+        const code = p.code ? String(p.code) : '';
+        const exp = Date.parse(p.expiresAt || 0) || 0;
+        if (code && exp && exp > now) {
+            list.push({
+                deviceId: d.id,
+                name: d.name || '',
+                location: d.location || '',
+                code,
+                expiresAt: new Date(exp).toISOString(),
+                requireToken: !!p.requireToken,
+                expiresInMs: Math.max(0, exp - now),
+            });
+        }
+    }
+    // Sort soonest-expiring first
+    list.sort((a, b) => (a.expiresInMs || 0) - (b.expiresInMs || 0));
+    return list;
+}
+
 async function updateHeartbeat(id, { clientInfo, currentState, installId, hardwareId } = {}) {
     const all = await readAll();
     const idx = all.findIndex(d => d.id === id);
@@ -493,5 +531,7 @@ module.exports = {
     popCommands,
     generatePairingCode,
     claimByPairingCode,
+    revokePairingCode,
+    getActivePairings,
     mergeDevices,
 };

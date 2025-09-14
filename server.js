@@ -2656,6 +2656,68 @@ if (isDeviceMgmtEnabled()) {
         }
     });
 
+    // Admin: revoke an active pairing code for a device
+    /**
+     * @swagger
+     * /api/devices/{id}/pairing-code/revoke:
+     *   post:
+     *     summary: Revoke the current pairing code for a device
+     *     description: Clears the pairing code so it can no longer be used.
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     responses:
+     *       200:
+     *         description: Revoked
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Not found
+     *       500:
+     *         description: Revoke failed
+     */
+    app.post('/api/devices/:id/pairing-code/revoke', adminAuth, async (req, res) => {
+        try {
+            const ok = await deviceStore.revokePairingCode(req.params.id);
+            if (!ok) return res.status(404).json({ error: 'not_found' });
+            res.json({ ok: true });
+        } catch (e) {
+            res.status(500).json({ error: 'pair_revoke_failed' });
+        }
+    });
+
+    // Admin: list all active pairing codes across devices
+    /**
+     * @swagger
+     * /api/devices/pairing-codes/active:
+     *   get:
+     *     summary: List all active pairing codes
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     responses:
+     *       200:
+     *         description: Array of active pairing codes
+     *       401:
+     *         description: Unauthorized
+     *       500:
+     *         description: List failed
+     */
+    app.get('/api/devices/pairing-codes/active', adminAuth, async (_req, res) => {
+        try {
+            const list = await deviceStore.getActivePairings();
+            res.json(list);
+        } catch (e) {
+            res.status(500).json({ error: 'pair_active_list_failed' });
+        }
+    });
+
     // Public: Generate a QR code for arbitrary text (used by pairing modal)
     // Supports format=svg|png, defaults to svg. Rate-limited and size-limited.
     const qrLimiter = createRateLimiter(
