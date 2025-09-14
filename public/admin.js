@@ -4634,6 +4634,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     ">
                         <!-- QR code will be inserted here -->
                     </div>
+
+                    <style id="ds-inline-style">
+                        /* Scoped layout tweaks for Device Settings modal */
+                        #device-settings-modal .ds-form .form-grid-3 {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                            gap: 12px;
+                        }
+                        #device-settings-modal .ds-form .form-grid-2 {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                            gap: 12px;
+                        }
+                        #device-settings-modal .ds-form .slider-wrapper {
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                        }
+                        #device-settings-modal .ds-form .slider-wrapper .slider-percentage {
+                            min-width: 64px;
+                            text-align: right;
+                            opacity: 0.9;
+                        }
+                    </style>
                     <input type="text" id="custom-2fa-token" placeholder="000000" maxlength="6" style="
                         display: block !important;
                         width: 200px !important;
@@ -10393,8 +10417,8 @@ function showDeviceSettingsModal(device) {
                                                         <div class="form-group"><label>Animation Type</label><select data-key="wallartMode.animationType"><option value="">(inherit)</option><option value="random">Random</option><option value="fade">Fade</option><option value="slideLeft">Slide Left</option><option value="slideUp">Slide Up</option><option value="zoom">Zoom</option><option value="flip">Flip</option><option value="staggered">Staggered</option><option value="ripple">Ripple</option><option value="scanline">Scanline</option><option value="parallax">Parallax</option><option value="neonPulse">Neon Pulse</option><option value="chromaticShift">Chromatic Shift</option><option value="mosaicShatter">Mosaic Shatter</option></select></div>
                                                     </div>
                                                     <div class="form-grid-2">
-                                                        <div class="form-group"><label>Poster Refresh Rate</label><div class="slider-wrapper modern-slider"><input type="range" min="1" max="10" step="1" data-key="wallartMode.refreshRate"><div class="slider-percentage" data-out="wallartMode.refreshRate"></div></div></div>
-                                                        <div class="form-group"><label>Timing Randomness</label><div class="slider-wrapper modern-slider"><input type="range" min="0" max="10" step="1" data-key="wallartMode.randomness"><div class="slider-percentage" data-out="wallartMode.randomness"></div></div></div>
+                                                        <div class="form-group"><label>Poster Refresh Rate</label><div class="slider-wrapper modern-slider"><input type="range" min="1" max="10" step="1" data-key="wallartMode.refreshRate"><div class="slider-percentage" data-out="wallartMode.refreshRate" data-target="wallartMode.refreshRate"></div></div></div>
+                                                        <div class="form-group"><label>Timing Randomness</label><div class="slider-wrapper modern-slider"><input type="range" min="0" max="10" step="1" data-key="wallartMode.randomness"><div class="slider-percentage" data-out="wallartMode.randomness" data-target="wallartMode.randomness"></div></div></div>
                                                     </div>
                                                     <div class="form-grid-2" id="ovr-hero-grid">
                                                         <div class="form-group"><label>Hero side</label><select data-key="wallartMode.layoutSettings.heroGrid.heroSide"><option value="">(inherit)</option><option value="left">Left</option><option value="right">Right</option></select></div>
@@ -10575,6 +10599,12 @@ function showDeviceSettingsModal(device) {
             return undefined;
         }
     }
+    function formatSliderLabel(key, value) {
+        const v = Number(value);
+        if (key === 'wallartMode.refreshRate') return `${v}/10`;
+        if (key === 'wallartMode.randomness') return `${v}/10`;
+        return String(v);
+    }
     function bindInitialValues() {
         const inputs = form.querySelectorAll('[data-key]');
         inputs.forEach(el => {
@@ -10595,7 +10625,7 @@ function showDeviceSettingsModal(device) {
                 const out =
                     form.querySelector(`[data-out="${key}"]`) ||
                     form.querySelector(`[data-target="${key}"]`);
-                if (out) out.textContent = `${el.value}%`;
+                if (out) out.textContent = formatSliderLabel(key, el.value);
             }
         });
     }
@@ -10650,7 +10680,7 @@ function showDeviceSettingsModal(device) {
             const out =
                 form.querySelector(`[data-out="${key}"]`) ||
                 form.querySelector(`[data-target="${key}"]`);
-            if (out) out.textContent = `${el.value}%`;
+            if (out) out.textContent = formatSliderLabel(key, el.value);
         }
         // live preview just for this field
         const partial = {};
@@ -10802,6 +10832,11 @@ function showDeviceSettingsModal(device) {
                 heroGridGroup.style.display =
                     enabled && (variant === 'heroGrid' || variant === '') ? '' : 'none';
             }
+            // Responsive tweak: ensure grids render optimally when container width changes
+            const grids = content.querySelectorAll('.form-grid-2, .form-grid-3');
+            grids.forEach(g => {
+                g.style.gridAutoRows = 'minmax(40px, auto)';
+            });
         } catch (_) {
             /* ignore */
         }
