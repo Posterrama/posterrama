@@ -1026,6 +1026,7 @@ input[type='range']::-moz-range-thumb {
     font-weight: var(--font-weight-medium);
     border: 1px solid var(--color-border);
     transition: all 0.2s ease;
+    line-height: 1; /* keep pill height consistent across cards */
 }
 
 .pill:hover {
@@ -1087,6 +1088,7 @@ input[type='range']::-moz-range-thumb {
     flex-wrap: wrap;
     gap: var(--space-sm);
     margin-bottom: var(--space-lg);
+    align-items: center;
 }
 
 .nav-item .badge {
@@ -1107,8 +1109,8 @@ input[type='range']::-moz-range-thumb {
 
 .nav-badge {
     position: absolute;
-    top: -6px;
-    right: -18px;
+    top: -10px;
+    right: -24px;
     background: linear-gradient(135deg, #3b82f6, #1d4ed8);
     color: white;
     font-size: 8px;
@@ -1659,6 +1661,10 @@ input[type='range']::-moz-range-thumb {
 .dropdown-item:hover {
     background: var(--color-bg-tertiary);
 }
+.dropdown-item.active {
+    background: var(--color-bg-tertiary);
+    color: var(--color-primary);
+}
 .dropdown-heading {
     padding: var(--space-xs) var(--space-md);
     color: var(--color-text-secondary);
@@ -2027,6 +2033,48 @@ input[type='range']::-moz-range-thumb {
     }
 }
 
+/* Notification banners (top-right) */
+.notification-container {
+    position: fixed;
+    top: 80px;
+    right: var(--space-xl);
+    z-index: 2100;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    max-width: 420px;
+}
+.notification {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-info);
+    color: var(--color-text);
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(120%);
+    opacity: 0;
+    transition:
+        transform 0.25s ease,
+        opacity 0.25s ease;
+}
+.notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+.notification.success {
+    border-left-color: var(--color-success);
+}
+.notification.warning {
+    border-left-color: var(--color-warning);
+}
+.notification.error {
+    border-left-color: var(--color-error);
+}
+.notification.info {
+    border-left-color: var(--color-info);
+}
+
 /* Advanced Sliders */
 .range-demo {
     display: grid;
@@ -2340,6 +2388,15 @@ input[type='range']::-moz-range-thumb {
     padding: var(--space-md) var(--space-lg);
     border-bottom: 1px solid var(--color-border);
 }
+.device-select-wrap {
+    display: grid;
+    place-items: center;
+    margin-right: var(--space-sm);
+}
+.device-card.selected {
+    outline: 2px solid var(--color-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
 .device-id {
     display: flex;
     align-items: center;
@@ -2375,6 +2432,7 @@ input[type='range']::-moz-range-thumb {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    align-items: center;
 }
 .device-actions {
     display: flex;
@@ -2455,6 +2513,18 @@ input[type='range']::-moz-range-thumb {
 /* Pagination tweaks for device section */
 .device-pagination {
     margin-top: var(--space-lg);
+}
+.device-pagination .pagination {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+.device-pagination .per-page select {
+    background: var(--color-bg-elevated);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    padding: 6px 8px;
+    border-radius: var(--border-radius-sm);
 }
 
 /* Ensure the Device Management panel does not clip floating menus */

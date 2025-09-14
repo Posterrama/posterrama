@@ -34,7 +34,9 @@
             </div>
         </div>
     </nav>
-
+    
+    <!-- Unified notifications shared with admin -->
+    <script src="/notify.js?v=20250902"></script>
     <!-- Sidebar -->
     <aside class="sidebar">
         <nav class="sidebar-nav">
@@ -79,6 +81,10 @@
                 <span>Security</span>
             </a>
             <a href="#" class="nav-item">
+                <i class="fas fa-screwdriver-wrench"></i>
+                <span>Operations</span>
+            </a>
+            <a href="#" class="nav-item">
                 <i class="fas fa-chart-line"></i>
                 <span>Analytics</span>
             </a>
@@ -121,10 +127,13 @@
         </header>
 
         <div class="content-grid">
-            <!-- Device Management UI -->
+                            <button class="btn btn-primary" data-open-modal="#modal-2fa">
+                                <i class="fas fa-key"></i>
+                                Open 2FA Setup
+                            </button>
             <section class="panel" id="device-ui">
                 <header class="panel-header">
-                    <h2><i class="fas fa-laptop"></i> Device Management</h2>
+                    <h2><i class="fas fa-laptop"></i> Device Management <span class="badge badge-beta">BETA</span></h2>
                     <div class="panel-actions device-toolbar">
                         <div class="dropdown">
                             <button class="btn btn-outline btn-sm dropdown-toggle" id="device-filter-toggle">
@@ -152,6 +161,9 @@
                                 <div class="dropdown-item" data-device-action="merge"><i class="fas fa-object-group"></i> Merge selected</div>
                                 <div class="dropdown-item" data-device-action="group"><i class="fas fa-layer-group"></i> Add to group</div>
                                 <div class="dropdown-item" data-device-action="preset"><i class="fas fa-star"></i> Assign preset</div>
+                                <div class="dropdown-heading">Selection</div>
+                                <div class="dropdown-item" data-device-action="select-all"><i class="fas fa-check-double"></i> Select all</div>
+                                <div class="dropdown-item" data-device-action="clear-selection"><i class="fas fa-eraser"></i> Clear selection</div>
                             </div>
                         </div>
                         <div class="dropdown">
@@ -177,6 +189,7 @@
                         <!-- Sample device cards reflecting statuses and dupes -->
                         <div class="device-card" data-status="live" data-room="living-room">
                             <div class="device-card-header">
+                                <div class="device-select-wrap"><input type="checkbox" class="device-select" aria-label="Select device: Living Room TV"></div>
                                 <div class="device-id">
                                     <div class="device-avatar"><i class="fas fa-tv"></i></div>
                                     <div class="device-title">
@@ -223,6 +236,7 @@
 
                         <div class="device-card" data-status="online" data-room="office">
                             <div class="device-card-header">
+                                <div class="device-select-wrap"><input type="checkbox" class="device-select" aria-label="Select device: Office Monitor"></div>
                                 <div class="device-id">
                                     <div class="device-avatar"><i class="fas fa-desktop"></i></div>
                                     <div class="device-title">
@@ -267,6 +281,7 @@
 
                         <div class="device-card" data-status="offline" data-room="kitchen">
                             <div class="device-card-header">
+                                <div class="device-select-wrap"><input type="checkbox" class="device-select" aria-label="Select device: Kitchen Tablet"></div>
                                 <div class="device-id">
                                     <div class="device-avatar"><i class="fas fa-tablet"></i></div>
                                     <div class="device-title">
@@ -311,15 +326,20 @@
                     </div>
 
                     <div class="table-footer device-pagination">
-                        <div class="table-info">Showing 3 of 24 devices</div>
+                        <div class="table-info" id="device-page-info">Showing 0 of 0 devices</div>
                         <div class="pagination">
-                            <button class="btn btn-icon btn-sm" disabled><i class="fas fa-chevron-left"></i></button>
-                            <span class="page-numbers">
-                                <button class="btn btn-sm active">1</button>
-                                <button class="btn btn-sm">2</button>
-                                <button class="btn btn-sm">3</button>
-                            </span>
-                            <button class="btn btn-icon btn-sm"><i class="fas fa-chevron-right"></i></button>
+                            <button class="btn btn-icon btn-sm" id="device-page-prev" aria-label="Previous page"><i class="fas fa-chevron-left"></i></button>
+                            <span class="page-numbers" id="device-page-numbers"></span>
+                            <button class="btn btn-icon btn-sm" id="device-page-next" aria-label="Next page"><i class="fas fa-chevron-right"></i></button>
+                            <div class="per-page">
+                                <label for="device-per-page" class="sr-only">Per page</label>
+                                <select id="device-per-page">
+                                    <option value="6">6 / page</option>
+                                    <option value="9" selected>9 / page</option>
+                                    <option value="12">12 / page</option>
+                                    <option value="24">24 / page</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -696,14 +716,29 @@ And more text here...</textarea>
                 </div>
             </section>
 
-            <!-- Data Table -->
+            <!-- Data Table (renamed to Device Management) -->
             <section class="panel">
                 <header class="panel-header">
-                    <h2><i class="fas fa-table"></i> Data Tables</h2>
+                    <h2><i class="fas fa-laptop"></i> Device Management <span class="badge badge-beta">BETA</span></h2>
                     <div class="panel-actions">
                         <div class="search-box">
                             <i class="fas fa-search"></i>
                             <input type="text" placeholder="Search devices...">
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-outline btn-sm dropdown-toggle" id="table-actions-toggle">
+                                <i class="fas fa-gear"></i>
+                                Actions
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="dropdown-menu" id="table-actions-menu">
+                                <div class="dropdown-item" data-table-action="merge"><i class="fas fa-object-group"></i> Merge selected</div>
+                                <div class="dropdown-item" data-table-action="group"><i class="fas fa-layer-group"></i> Add to group</div>
+                                <div class="dropdown-item" data-table-action="preset"><i class="fas fa-star"></i> Assign preset</div>
+                                <div class="dropdown-heading">Selection</div>
+                                <div class="dropdown-item" data-table-action="select-all"><i class="fas fa-check-double"></i> Select all</div>
+                                <div class="dropdown-item" data-table-action="clear-selection"><i class="fas fa-eraser"></i> Clear selection</div>
+                            </div>
                         </div>
                         <div class="dropdown">
                             <button class="btn btn-outline btn-sm dropdown-toggle" id="filters-toggle">
@@ -822,10 +857,11 @@ And more text here...</textarea>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="status-badge status-live">
+                                        <span class="status-badge status-live js-status-hover" tabindex="0">
                                             <i class="fas fa-circle"></i>
                                             Live
                                         </span>
+                                        <span class="pill pill-dupes js-dupes-hover" tabindex="0" style="margin-left:8px"><i class="fas fa-clone"></i> 2 dupes</span>
                                     </td>
                                     <td>Living Room</td>
                                     <td>2 minutes ago</td>
@@ -855,10 +891,11 @@ And more text here...</textarea>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="status-badge status-online">
+                                        <span class="status-badge status-online js-status-hover" tabindex="0">
                                             <i class="fas fa-circle"></i>
                                             Online
                                         </span>
+                                        <span class="pill pill-dupes js-dupes-hover" tabindex="0" style="margin-left:8px"><i class="fas fa-clone"></i> 1 dupe</span>
                                     </td>
                                     <td>Home Office</td>
                                     <td>5 minutes ago</td>
@@ -888,10 +925,11 @@ And more text here...</textarea>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="status-badge status-offline">
+                                        <span class="status-badge status-offline js-status-hover" tabindex="0">
                                             <i class="fas fa-circle"></i>
                                             Offline
                                         </span>
+                                        <span class="pill pill-dupes js-dupes-hover" tabindex="0" style="margin-left:8px"><i class="fas fa-clone"></i> 3 dupes</span>
                                     </td>
                                     <td>Kitchen</td>
                                     <td>2 hours ago</td>
@@ -1354,48 +1392,11 @@ And more text here...</textarea>
                 });
             });
 
-            // Toasts
-            const toastContainer = document.getElementById('toast-container');
+            // Toasts via unified module
             function showToast(type = 'info', title = 'Notification', message = 'This is a toast', duration = 3500) {
-                const toast = document.createElement('div');
-                toast.className = `toast toast-${type}`;
-                toast.innerHTML = `
-                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-times-circle' : type === 'warning' ? 'fa-triangle-exclamation' : 'fa-info-circle'}"></i>
-                    <div>
-                        <div class="toast-title">${title}</div>
-                        <div class="toast-message">${message}</div>
-                    </div>
-                    <button class="toast-close"><i class="fas fa-times"></i></button>
-                    <div class="toast-progress"></div>
-                `;
-                toastContainer.appendChild(toast);
-
-                const close = () => {
-                    toast.style.animation = 'toast-out 0.25s ease-in forwards';
-                    setTimeout(() => toast.remove(), 250);
-                };
-
-                const closeBtn = toast.querySelector('.toast-close');
-                closeBtn.addEventListener('click', close);
-
-                // Progress bar countdown
-                const progress = toast.querySelector('.toast-progress');
-                progress.style.transitionDuration = duration + 'ms';
-                requestAnimationFrame(() => progress.style.transform = 'scaleX(0)');
-
-                const timer = setTimeout(close, duration);
-
-                // Pause on hover
-                toast.addEventListener('mouseenter', () => {
-                    clearTimeout(timer);
-                    progress.style.transitionDuration = '0ms';
-                });
-                toast.addEventListener('mouseleave', () => {
-                    const remaining = progress.getBoundingClientRect().width / toast.getBoundingClientRect().width * duration;
-                    progress.style.transitionDuration = remaining + 'ms';
-                    requestAnimationFrame(() => progress.style.transform = 'scaleX(0)');
-                    setTimeout(close, remaining);
-                });
+                if (window.notify && typeof window.notify.toast === 'function') {
+                    window.notify.toast({ type, title, message, duration });
+                }
             }
 
             document.querySelectorAll('[data-toast]').forEach(btn => {
@@ -1568,13 +1569,58 @@ And more text here...</textarea>
             document.querySelectorAll('#device-ui .dropdown-toggle').forEach(btn => {
                 btn.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(e.currentTarget); });
             });
-            // Device filter chips behavior (reuse general chips if desired)
+            // Data table actions dropdown
+            document.getElementById('table-actions-toggle')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleDropdown(e.currentTarget);
+            });
+            document.querySelectorAll('#table-actions-menu .dropdown-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const act = item.getAttribute('data-table-action');
+                    const rowChecks = Array.from(document.querySelectorAll('.data-table .row-select'));
+                    const selectedRows = rowChecks.filter(c => c.checked);
+                    if (act === 'select-all') {
+                        rowChecks.forEach(c => { if (!c.disabled) c.checked = true; });
+                        updateBulkUI();
+                        closeAllDropdowns();
+                        return;
+                    }
+                    if (act === 'clear-selection') {
+                        rowChecks.forEach(c => { c.checked = false; });
+                        updateBulkUI();
+                        closeAllDropdowns();
+                        return;
+                    }
+                    if (!selectedRows.length) {
+                        showToast('warning', 'No selection', 'Select one or more devices first');
+                    } else {
+                        showToast('info', 'Action', `Queued ${act} for ${selectedRows.length} device${selectedRows.length!==1?'s':''}`);
+                    }
+                    closeAllDropdowns();
+                });
+            });
+            // Device filters (status/room)
+            function updateDeviceFilterUI() {
+                document.querySelectorAll('#device-filter-menu .dropdown-item').forEach(it => {
+                    const val = it.getAttribute('data-device-filter') || '';
+                    const [type, v] = val.split(':');
+                    const active = (type === 'status' && deviceState.filterStatus === v) || (type === 'room' && deviceState.filterRoom === v);
+                    it.classList.toggle('active', !!active);
+                });
+            }
             document.querySelectorAll('#device-filter-menu .dropdown-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const val = item.getAttribute('data-device-filter');
                     const label = item.textContent.trim();
-                    const [type] = val.split(':');
-                    // Show a toast and keep demo simple
+                    const [type, v] = (val || '').split(':');
+                    if (type === 'status') {
+                        deviceState.filterStatus = deviceState.filterStatus === v ? null : v;
+                    } else if (type === 'room') {
+                        deviceState.filterRoom = deviceState.filterRoom === v ? null : v;
+                    }
+                    deviceState.currentPage = 1;
+                    updateDeviceFilterUI();
+                    renderDevicePage();
                     showToast('info', 'Filter', `${type} → ${label}`);
                     closeAllDropdowns();
                 });
@@ -1582,7 +1628,25 @@ And more text here...</textarea>
             document.querySelectorAll('#device-actions-menu .dropdown-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const act = item.getAttribute('data-device-action');
-                    showToast('info', 'Action', `Queued ${act} for selected devices`);
+                    // Compute selected cards
+                    const selected = Array.from(document.querySelectorAll('#device-grid .device-card.selected'));
+                    if (act === 'select-all') {
+                        document.querySelectorAll('#device-grid .device-select').forEach(cb => { cb.checked = true; cb.closest('.device-card')?.classList.add('selected'); });
+                        updateBulkUI();
+                        closeAllDropdowns();
+                        return;
+                    }
+                    if (act === 'clear-selection') {
+                        document.querySelectorAll('#device-grid .device-select').forEach(cb => { cb.checked = false; cb.closest('.device-card')?.classList.remove('selected'); });
+                        updateBulkUI();
+                        closeAllDropdowns();
+                        return;
+                    }
+                    if (!selected.length && act !== 'select-all' && act !== 'clear-selection') {
+                        showToast('warning', 'No selection', 'Select one or more devices first');
+                    } else {
+                        showToast('info', 'Action', `Queued ${act} for ${selected.length} device${selected.length!==1?'s':''}`);
+                    }
                     closeAllDropdowns();
                 });
             });
@@ -1597,14 +1661,109 @@ And more text here...</textarea>
             // Device search
             const deviceSearch = document.getElementById('device-search');
             const deviceCards = Array.from(document.querySelectorAll('#device-grid .device-card'));
-            deviceSearch?.addEventListener('input', () => {
-                const q = (deviceSearch.value || '').toLowerCase();
-                deviceCards.forEach(card => {
+            const pageInfo = document.getElementById('device-page-info');
+            const pageNumbers = document.getElementById('device-page-numbers');
+            const pagePrev = document.getElementById('device-page-prev');
+            const pageNext = document.getElementById('device-page-next');
+            const perPageSel = document.getElementById('device-per-page');
+
+            const deviceState = {
+                currentPage: 1,
+                perPage: perPageSel ? parseInt(perPageSel.value, 10) : 9,
+                query: '',
+                filterStatus: null, // 'live' | 'online' | 'offline' | null
+                filterRoom: null,   // 'living-room' | 'office' | 'kitchen' | null
+            };
+
+            function getFiltered() {
+                const q = deviceState.query;
+                const fs = deviceState.filterStatus;
+                const fr = deviceState.filterRoom;
+                return deviceCards.filter(card => {
                     const name = card.querySelector('.device-title .name')?.textContent.toLowerCase() || '';
                     const meta = card.querySelector('.device-title .meta')?.textContent.toLowerCase() || '';
-                    card.style.display = (name.includes(q) || meta.includes(q)) ? '' : 'none';
+                    const matchesText = !q || name.includes(q) || meta.includes(q);
+                    const statusAttr = card.getAttribute('data-status');
+                    const roomAttr = card.getAttribute('data-room');
+                    const matchesStatus = !fs || statusAttr === fs;
+                    const matchesRoom = !fr || roomAttr === fr;
+                    return matchesText && matchesStatus && matchesRoom;
                 });
+            }
+
+            function renderDevicePage() {
+                const filtered = getFiltered();
+                const total = filtered.length;
+                const perPage = Math.max(1, deviceState.perPage | 0);
+                const maxPage = Math.max(1, Math.ceil(total / perPage));
+                if (deviceState.currentPage > maxPage) deviceState.currentPage = maxPage;
+                const start = (deviceState.currentPage - 1) * perPage;
+                const end = start + perPage;
+
+                // Hide all, then show only the current slice
+                deviceCards.forEach(c => (c.style.display = 'none'));
+                filtered.slice(start, end).forEach(c => (c.style.display = ''));
+
+                // Update info text
+                const showing = Math.min(perPage, Math.max(0, total - start));
+                if (pageInfo) pageInfo.textContent = `Showing ${showing} of ${total} devices`;
+
+                // Update pagination buttons
+                if (pagePrev) pagePrev.disabled = deviceState.currentPage <= 1;
+                if (pageNext) pageNext.disabled = deviceState.currentPage >= maxPage;
+
+                // Build page numbers (cap at 7 buttons for demo)
+                if (pageNumbers) {
+                    pageNumbers.innerHTML = '';
+                    const maxButtons = 7;
+                    let startPage = Math.max(1, deviceState.currentPage - 3);
+                    let endPage = Math.min(maxPage, startPage + maxButtons - 1);
+                    startPage = Math.max(1, Math.min(startPage, endPage - maxButtons + 1));
+                    for (let p = startPage; p <= endPage; p++) {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn btn-sm' + (p === deviceState.currentPage ? ' active' : '');
+                        btn.textContent = String(p);
+                        btn.addEventListener('click', () => {
+                            deviceState.currentPage = p;
+                            renderDevicePage();
+                        });
+                        pageNumbers.appendChild(btn);
+                    }
+                }
+            }
+
+            // Wire up search to pagination
+            deviceSearch?.addEventListener('input', () => {
+                deviceState.query = (deviceSearch.value || '').toLowerCase();
+                deviceState.currentPage = 1;
+                renderDevicePage();
             });
+
+            // Wire up per-page selector
+            perPageSel?.addEventListener('change', () => {
+                deviceState.perPage = parseInt(perPageSel.value, 10) || 9;
+                deviceState.currentPage = 1;
+                renderDevicePage();
+            });
+
+            // Prev/Next controls
+            pagePrev?.addEventListener('click', () => {
+                if (deviceState.currentPage > 1) {
+                    deviceState.currentPage--;
+                    renderDevicePage();
+                }
+            });
+            pageNext?.addEventListener('click', () => {
+                const total = getFiltered().length;
+                const maxPage = Math.max(1, Math.ceil(total / Math.max(1, deviceState.perPage | 0)));
+                if (deviceState.currentPage < maxPage) {
+                    deviceState.currentPage++;
+                    renderDevicePage();
+                }
+            });
+
+            // Initial render
+            renderDevicePage();
 
             // Hovercards for Status and Dupes
             function createHovercard(id, html) {
@@ -1739,8 +1898,8 @@ And more text here...</textarea>
             const bulkCount = document.getElementById('bulk-count');
             const bulkSelectBtn = document.getElementById('bulk-select');
             function updateBulkUI() {
-                const total = rowChecks.length;
-                const selected = rowChecks.filter(c => c.checked).length;
+                const total = document.querySelectorAll('#device-grid .device-card').length;
+                const selected = document.querySelectorAll('#device-grid .device-card.selected').length;
                 if (bulkCount) bulkCount.textContent = String(selected);
                 if (bulkBar) bulkBar.classList.toggle('open', selected > 0);
                 if (master) {
@@ -1749,11 +1908,24 @@ And more text here...</textarea>
                 }
             }
             function selectAllRows(checked) {
+                // Table rows (demo) remain
                 rowChecks.forEach(c => { if (!c.disabled) c.checked = !!checked; });
+                // Device cards
+                document.querySelectorAll('#device-grid .device-select').forEach(cb => {
+                    cb.checked = !!checked;
+                    cb.closest('.device-card')?.classList.toggle('selected', !!checked);
+                });
                 updateBulkUI();
             }
             master?.addEventListener('change', (e) => selectAllRows(master.checked));
             rowChecks.forEach(c => c.addEventListener('change', updateBulkUI));
+            // Device card selection
+            document.querySelectorAll('#device-grid .device-select').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    cb.closest('.device-card')?.classList.toggle('selected', cb.checked);
+                    updateBulkUI();
+                });
+            });
             bulkSelectBtn?.addEventListener('click', () => selectAllRows(true));
 
             // Bulk bar actions

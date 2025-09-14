@@ -45,6 +45,9 @@
     z-index: 9999;
 }
 .toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     background: rgba(20, 20, 20, 0.95);
     color: #fff;
     border-radius: 6px;
@@ -57,6 +60,13 @@
         transform 160ms ease;
     font-size: 13px;
     border-left: 3px solid #888;
+}
+.toast .toast-icon {
+    line-height: 1;
+}
+.toast .toast-content {
+    display: flex;
+    flex-direction: column;
 }
 .toast.show {
     opacity: 1;

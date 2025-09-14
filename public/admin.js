@@ -8270,35 +8270,38 @@ async function performStatusCheckSilent() {
  * @param {string} type The type of notification ('success' or 'error').
  */
 function showNotification(message, type = 'success') {
-    const container = document.getElementById('notification-area');
-    if (!container) return;
+    try {
+        const isSetup = typeof message === 'string' && message.includes('Setup complete!');
+        const { element } =
+            window.notify && typeof window.notify.banner === 'function'
+                ? window.notify.banner(message, type, { duration: isSetup ? 8000 : 5000 })
+                : (function fallback() {
+                      const container = document.getElementById('notification-area');
+                      if (!container) return { element: null };
+                      const el = document.createElement('div');
+                      el.className = `notification ${type}` + (isSetup ? ' setup-complete' : '');
+                      el.textContent = message;
+                      container.appendChild(el);
+                      setTimeout(() => el.classList.add('show'), 10);
+                      setTimeout(
+                          () => {
+                              el.classList.remove('show');
+                              el.addEventListener('transitionend', () => el.remove());
+                          },
+                          isSetup ? 8000 : 5000
+                      );
+                      return { element: el };
+                  })();
 
-    const notification = document.createElement('div');
-    // Special styling for setup complete message
-    if (message.includes('Setup complete!')) {
-        notification.className = `notification ${type} setup-complete`;
-        notification.innerHTML = `<i class='fas fa-rocket'></i> <strong>${message}</strong>`;
-    } else {
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
+        if (element && isSetup) {
+            // Decorate special case like before (icon + strong)
+            element.classList.add('setup-complete');
+            element.innerHTML = `<i class='fas fa-rocket'></i> <strong>${message}</strong>`;
+        }
+        return element;
+    } catch (_) {
+        return null;
     }
-
-    container.appendChild(notification);
-
-    // Trigger the transition for appearing
-    setTimeout(() => {
-        notification.classList.add('show');
-    }, 10);
-
-    // Setup complete message stays longer (8s), others 5s
-    const timeout = notification.classList.contains('setup-complete') ? 8000 : 5000;
-    setTimeout(() => {
-        notification.classList.remove('show');
-        notification.addEventListener('transitionend', () => notification.remove());
-    }, timeout);
-
-    // Return the notification element so it can be managed externally
-    return notification;
 }
 
 // Restart Button Management
@@ -12083,8 +12086,14 @@ function initDevicesPanel() {
                 if (!mergeMenu.contains(e.target) && e.target !== mergeMenuBtn) closeMenu();
             });
 
-            // Lightweight toast helper for status feedback
+            // Lightweight toast helper routed through unified notifications
             const showToast = (message, type = 'info', timeout = 3500) => {
+                try {
+                    if (window.notify && typeof window.notify.toast === 'function') {
+                        return window.notify.toast({ type, title: '', message, duration: timeout });
+                    }
+                } catch (_) {}
+                // Fallback if unified module not available
                 try {
                     let container = document.getElementById('toast-container');
                     if (!container) {
@@ -12108,8 +12117,9 @@ function initDevicesPanel() {
                         setTimeout(() => t.remove(), 500);
                     };
                     setTimeout(remove, Math.max(1500, timeout | 0));
+                    return { element: t, dismiss: remove };
                 } catch (_) {
-                    /* no-op */
+                    return null;
                 }
             };
 
