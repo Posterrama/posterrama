@@ -2,6 +2,16 @@
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
+    // Small utility: debounce
+    function debounce(fn, wait = 120) {
+        let t;
+        return function debounced(...args) {
+            const self = this;
+            if (t) clearTimeout(t);
+            t = setTimeout(() => fn.apply(self, args), wait);
+        };
+    }
+
     // Fallback for update polling if not provided by this build
     if (typeof window.pollUpdateStatusOnce !== 'function') {
         window.pollUpdateStatusOnce = async function () {
@@ -779,12 +789,16 @@
         const subtitle = pageHeader?.querySelector('p');
         if (pageHeader && h1) {
             if (id === 'section-media-sources') {
-                // Hide the big page header for Media Sources (we use a compact in-panel header)
+                // Hide the big page header for Media Sources (use compact in-panel header)
                 pageHeader.style.display = 'none';
             } else if (id === 'section-operations') {
                 // Hide the big page header for Operations (use compact in-panel header)
                 pageHeader.style.display = 'none';
+            } else if (id === 'section-devices') {
+                // Hide the big page header for Device Management (use compact in-panel header)
+                pageHeader.style.display = 'none';
             } else {
+                // Default (Dashboard and any other sections using the big header)
                 pageHeader.style.display = '';
                 h1.innerHTML = '<i class=\"fas fa-gauge-high\"></i> Dashboard';
                 if (subtitle) subtitle.textContent = 'Devices, media, and health at a glance';
@@ -2207,68 +2221,889 @@
         window.admin2 = window.admin2 || {};
         window.admin2.initDevices = function initDevices() {
             const section = document.getElementById('section-devices');
-            if (!section || section.dataset.inited === '1') return; // guard against double init
-            section.dataset.inited = '1';
-            // Dropdown toggles within device toolbar and cards
-            document.querySelectorAll('#section-devices .dropdown-toggle').forEach(btn => {
-                btn.addEventListener('click', e => {
-                    e.stopPropagation();
-                    const dd = btn.closest('.dropdown');
-                    const willOpen = !dd.classList.contains('open');
-                    document.querySelectorAll('#section-devices .dropdown').forEach(x => {
-                        if (x !== dd) x.classList.remove('open');
-                    });
-                    dd.classList.toggle('open', willOpen);
-                });
-            });
-            document.addEventListener('click', () => {
-                document
-                    .querySelectorAll('#section-devices .dropdown')
-                    .forEach(x => x.classList.remove('open'));
-            });
-
-            // Device search + pagination
+            if (!section) return;
+            if (section.dataset.inited === '1') {
+                dbg('initDevices(): already initialized');
+                return;
+            }
+            dbg('initDevices(): starting');
+            const grid = document.getElementById('device-grid');
             const deviceSearch = document.getElementById('device-search');
-            const deviceCards = Array.from(document.querySelectorAll('#device-grid .device-card'));
             const pageInfo = document.getElementById('device-page-info');
             const pageNumbers = document.getElementById('device-page-numbers');
             const pagePrev = document.getElementById('device-page-prev');
             const pageNext = document.getElementById('device-page-next');
             const perPageSel = document.getElementById('device-per-page');
+            const mergeSource = document.getElementById('merge-source');
+            const mergeTarget = document.getElementById('merge-target');
+            const mergeConfirm = document.getElementById('btn-merge-confirm');
+            const bulkBar = document.getElementById('bulk-bar');
+            const bulkCount = document.getElementById('bulk-count');
+
             const state = {
+                all: [],
+                filteredIds: [],
                 currentPage: 1,
                 perPage: perPageSel ? parseInt(perPageSel.value, 10) : 9,
                 query: '',
                 filterStatus: null,
                 filterRoom: null,
+                presets: [],
+                groups: [],
+                syncEnabled: undefined, // loaded from /get-config
             };
-            function getFiltered() {
+            // Expose minimal debug hooks
+            try {
+                window.admin2 = window.admin2 || {};
+                window.admin2.devicesDebug = {
+                    get state() {
+                        return state;
+                    },
+                    reload: () => loadDevices(),
+                    render: () => renderPage(),
+                };
+            } catch (_) {}
+
+            const slugify = s =>
+                String(s || '')
+                    .trim()
+                    .toLowerCase()
+                    .replace(/\s+/g, '-')
+                    .replace(/[^a-z0-9\-]/g, '');
+
+            function getStatusClass(d) {
+                const st = String(d?.status || '').toLowerCase();
+                if (d?.currentState?.poweredOff) return 'offline';
+                if (d?.wsConnected) return 'live';
+                if (st === 'online' || st === 'live') return st === 'live' ? 'live' : 'online';
+                if (st === 'unknown') return 'unknown';
+                return 'offline';
+            }
+            function iconForStatus(status) {
+                switch (String(status || '').toLowerCase()) {
+                    case 'live':
+                        return 'fas fa-bolt';
+                    case 'online':
+                        return 'fas fa-signal';
+                    case 'offline':
+                        return 'fas fa-plug-circle-xmark';
+                    default:
+                        return 'fas fa-question-circle';
+                }
+            }
+            function iconForDevice(d) {
+                const ua = String(d?.clientInfo?.userAgent || '').toLowerCase();
+                if (/android|tv/.test(ua)) return 'fa-tv';
+                if (/ipad|tablet/.test(ua)) return 'fa-tablet';
+                if (/mobile|iphone|android/.test(ua)) return 'fa-mobile-screen';
+                if (/windows|mac|linux|chrome|safari|firefox/.test(ua)) return 'fa-desktop';
+                return 'fa-display';
+            }
+            function typeLabel(d) {
+                const ua = String(d?.clientInfo?.userAgent || '');
+                if (/Android TV/i.test(ua)) return 'Android TV';
+                if (/Android/i.test(ua)) return 'Android';
+                if (/iPhone|iPad|iOS/i.test(ua)) return 'iOS';
+                if (/Chrome/i.test(ua)) return 'Chrome';
+                if (/Safari/i.test(ua)) return 'Safari';
+                if (/Firefox/i.test(ua)) return 'Firefox';
+                if (/Windows/i.test(ua)) return 'Windows';
+                if (/Mac OS|Macintosh/i.test(ua)) return 'macOS';
+                return 'Browser';
+            }
+            function iconForType(type) {
+                const t = String(type || '').toLowerCase();
+                if (t.includes('android tv')) return 'fas fa-tv';
+                if (t === 'android') return 'fab fa-android';
+                if (t === 'ios') return 'fab fa-apple';
+                if (t === 'chrome') return 'fab fa-chrome';
+                if (t === 'safari') return 'fab fa-safari';
+                if (t === 'firefox') return 'fab fa-firefox-browser';
+                if (t === 'windows') return 'fab fa-windows';
+                if (t === 'macos') return 'fab fa-apple';
+                if (t === 'browser') return 'fas fa-globe';
+                return 'fas fa-display';
+            }
+            function modeLabel(mode) {
+                const m = String(mode || '').toLowerCase();
+                if (m === 'screensaver') return 'Screensaver';
+                if (m === 'wallart') return 'Wallart';
+                if (m === 'cinema') return 'Cinema';
+                return '';
+            }
+            function iconForMode(mode) {
+                const m = String(mode || '').toLowerCase();
+                if (m === 'screensaver') return 'fas fa-moon';
+                if (m === 'wallart') return 'fas fa-th';
+                if (m === 'cinema') return 'fas fa-film';
+                return 'fas fa-circle';
+            }
+            function roomLabel(d) {
+                return d.location ? d.location : 'Unassigned';
+            }
+            function versionMeta(d) {
+                // Only show app version; hide user agent details
+                const appVer = d?.clientInfo?.appVersion || d?.clientInfo?.version || '';
+                return appVer ? `v${appVer}` : '';
+            }
+            // Resolution helpers -> render using theme-demo badge styles
+            function getScreen(d) {
+                const sc = d?.clientInfo?.screen || {};
+                const w = Number(sc.w || sc.width || 0) || 0;
+                const h = Number(sc.h || sc.height || 0) || 0;
+                const dpr = Number(sc.dpr || sc.scale || 1) || 1;
+                return { w, h, dpr, raw: sc };
+            }
+            function resolutionTier(d) {
+                const { w, h } = getScreen(d);
+                if (!w || !h) return null;
+                const maxSide = Math.max(w, h);
+                if (maxSide >= 7680) return { key: '8K' };
+                if (maxSide >= 3840) return { key: '4K' };
+                if (maxSide >= 2560) return { key: '1440p' }; // QHD
+                if (maxSide >= 1920) return { key: '1080p' };
+                if (maxSide >= 1280) return { key: '720p' };
+                return { key: 'SD' };
+            }
+            function resolutionIcon(d) {
+                const { w, h, dpr } = getScreen(d);
+                const tier = resolutionTier(d);
+                if (!tier) return '';
+                const label = tier.key;
+                const title = `${w}×${h}${dpr && dpr !== 1 ? ` @${dpr}x` : ''}`;
+                const cls = (lbl => {
+                    switch (lbl) {
+                        case '8K':
+                            return 'badge-premium'; // gold gradient – stands out
+                        case '4K':
+                            return 'badge-premium'; // gold gradient – stands out
+                        case '1440p':
+                            return 'badge-pro'; // purple gradient
+                        case '1080p':
+                            return 'badge-success'; // green gradient
+                        case '720p':
+                            return 'badge-primary'; // primary gradient
+                        case 'SD':
+                        default:
+                            return 'badge-secondary'; // gray gradient
+                    }
+                })(label);
+                return `<span class="badge ${cls}" title="${escapeHtml(title)}">${escapeHtml(label)}</span>`;
+            }
+            // Duplicate detection (hardwareId, installId, UA+screen)
+            function uaScKey(d) {
+                try {
+                    const ci = d && d.clientInfo ? d.clientInfo : {};
+                    const ua = (ci.userAgent || ci.ua || '').trim();
+                    const sc = ci.screen || {};
+                    const w = Number(sc.w || sc.width || 0) || 0;
+                    const h = Number(sc.h || sc.height || 0) || 0;
+                    const dpr = Number(sc.dpr || sc.scale || 1) || 1;
+                    if (!ua || !w || !h) return '';
+                    return `${ua}|${w}x${h}@${dpr}x`;
+                } catch (_) {
+                    return '';
+                }
+            }
+            function computeDupMaps() {
+                const hwMap = Object.create(null);
+                const iidMap = Object.create(null);
+                const uaScMap = Object.create(null);
+                const list = (state.filteredIds || [])
+                    .map(id => state.all.find(x => x.id === id))
+                    .filter(Boolean);
+                try {
+                    list.forEach(d => {
+                        const hw = d && d.hardwareId;
+                        if (hw) (hwMap[hw] = hwMap[hw] || []).push(d);
+                        const iid = d && d.installId;
+                        if (iid) (iidMap[iid] = iidMap[iid] || []).push(d);
+                        const key = uaScKey(d);
+                        if (key) (uaScMap[key] = uaScMap[key] || []).push(d);
+                    });
+                } catch (_) {}
+                state.dupMaps = { hwMap, iidMap, uaScMap };
+            }
+            function getDupesForDevice(d) {
+                const maps = state.dupMaps || {};
+                const { hwMap = {}, iidMap = {}, uaScMap = {} } = maps;
+                const reasonsById = Object.create(null);
+                const add = (x, reason) => {
+                    if (!x || x.id === d.id) return;
+                    const entry = reasonsById[x.id] || { dev: x, reasons: new Set() };
+                    entry.reasons.add(reason);
+                    reasonsById[x.id] = entry;
+                };
+                try {
+                    if (d.hardwareId && hwMap[d.hardwareId] && hwMap[d.hardwareId].length > 1) {
+                        for (const x of hwMap[d.hardwareId]) add(x, 'hardwareId');
+                    }
+                    if (d.installId && iidMap[d.installId] && iidMap[d.installId].length > 1) {
+                        for (const x of iidMap[d.installId]) add(x, 'installId');
+                    }
+                    const key = uaScKey(d);
+                    if (key && uaScMap[key] && uaScMap[key].length > 1) {
+                        for (const x of uaScMap[key]) add(x, 'UA+screen');
+                    }
+                } catch (_) {}
+                return Object.values(reasonsById).map(v => ({
+                    dev: v.dev,
+                    reasons: Array.from(v.reasons),
+                }));
+            }
+            function renderCard(d) {
+                const status = getStatusClass(d);
+                const icon = iconForDevice(d);
+                const type = typeLabel(d);
+                const mode = d?.clientInfo?.mode || d?.mode || '';
+                const room = roomLabel(d);
+                const meta = versionMeta(d);
+                const disabledPower = status === 'offline' ? ' disabled' : '';
+                const poweredOff = d?.currentState?.poweredOff
+                    ? ' title="Currently powered off"'
+                    : '';
+                const statusLabel =
+                    status === 'live'
+                        ? 'Live'
+                        : status === 'online'
+                          ? 'Online'
+                          : status === 'unknown'
+                            ? 'Unknown'
+                            : 'Offline';
+                const dupeList = getDupesForDevice(d);
+                const dupesPill = (() => {
+                    if (!dupeList || !dupeList.length) return '';
+                    const listIds = dupeList.map(x => x.dev && x.dev.id).filter(Boolean);
+                    const tipList = dupeList
+                        .map(x => {
+                            const nm =
+                                (x.dev && x.dev.name ? String(x.dev.name).slice(0, 40) : '') ||
+                                (x.dev && x.dev.id ? x.dev.id.slice(0, 8) : '(unnamed)');
+                            const sid = (x.dev && x.dev.id ? x.dev.id : '').slice(0, 8);
+                            const rsn =
+                                x.reasons && x.reasons.length ? ` [${x.reasons.join(', ')}]` : '';
+                            return `${nm} — ${sid}${rsn}`;
+                        })
+                        .join('\n');
+                    const title = `Likely duplicates (reasons per item):\n${tipList}`;
+                    const safeTitle = title.replace(/"/g, '&quot;');
+                    const safeIds = listIds.join(',').replace(/"/g, '&quot;');
+                    return `<span class="pill pill-dup js-dupes-hover" title="${safeTitle}" data-dupes-ids="${safeIds}" data-dupes-title="${safeTitle}"><i class="fas fa-clone"></i> Dupes: ${dupeList.length}</span>`;
+                })();
+                // Map preset and groups to human-readable labels
+                const presetKey = (d && typeof d.preset === 'string' ? d.preset : '').trim();
+                const presetName = presetKey
+                    ? state.presets.find(p => p.key === presetKey)?.name || presetKey
+                    : '';
+                const groupNames = Array.isArray(d?.groups)
+                    ? d.groups
+                          .map(gid => {
+                              const g = (state.groups || []).find(
+                                  x => x.id === gid || x.key === gid
+                              );
+                              return g?.name || gid;
+                          })
+                          .filter(Boolean)
+                    : [];
+                return `
+                                <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
+                                    <div class="device-card-header">
+                                        <div class="device-select-wrap">
+                                            <label class="checkbox" aria-label="Select device: ${escapeHtml(d.name || d.id)}">
+                                                <input type="checkbox" class="device-select">
+                                                <span class="checkmark"></span>
+                                            </label>
+                                        </div>
+                    <div class="device-id">
+                      <div class="device-avatar"><i class="fas ${icon}"></i></div>
+                      <div class="device-title">
+                        <span class="name">${escapeHtml(d.name || 'Unnamed')}</span>
+                        <span class="meta">${escapeHtml(meta)}</span>
+                      </div>
+                    </div>
+                                                                                <div class="action-buttons">
+                                            <button class="btn btn-icon btn-sm btn-power" title="Power Toggle"${disabledPower}${poweredOff}><i class="fas fa-power-off"></i></button>
+                                                                                        <button class="btn btn-icon btn-sm btn-reload card-secondary" title="Reload this device"><i class="fas fa-rotate-right"></i></button>
+                                                                                        <button class="btn btn-icon btn-sm btn-clearcache card-secondary" title="Clear caches"><i class="fas fa-broom"></i></button>
+                                                                                        <button class="btn btn-icon btn-sm btn-pair card-secondary" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
+                                                                                        <button class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control"><i class="fas fa-gamepad"></i></button>
+                                                                                        <button class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
+                                                                                        <button class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command"><i class="fas fa-terminal"></i></button>
+                                                                                        <button class="btn btn-icon btn-sm btn-playpause" title="Play/Pause"><i class="fas fa-play-pause"></i></button>
+                                                                                        <button class="btn btn-icon btn-sm btn-pin card-secondary" title="Pin current poster"><i class="fas fa-thumbtack"></i></button>
+                                                                                        <div class="dropdown card-more" style="position:relative;display:none;">
+                                                                                            <button class="btn btn-icon btn-sm" title="More"><i class="fas fa-ellipsis"></i></button>
+                                                                                            <div class="dropdown-menu"></div>
+                                                                                        </div>
+                                            <button class="btn btn-icon btn-sm btn-rename" title="Rename device"><i class="fas fa-pen"></i></button>
+                                        </div>
+                  </div>
+                  <div class="device-card-body">
+                                                      <div class="device-badges">
+                                                                                        <span class="status-pill status-${status} js-status-hover" tabindex="0">
+                                                                                                <i class="${iconForStatus(status)}"></i> ${statusLabel}
+                                                                                        </span>
+                                                          <span class="pill pill-type"><i class="${iconForType(type)}"></i> ${escapeHtml(type)}</span>
+                                                          ${dupesPill}
+                                                                                      ${modeLabel(mode) ? `<span class="pill pill-mode"><i class="${iconForMode(mode)}"></i> ${escapeHtml(modeLabel(mode))}</span>` : ''}
+                                                                                      ${d.wsConnected && state.syncEnabled !== false ? `<span class="badge badge-success" title="Device will align to sync ticks">Synced</span>` : ''}
+                                                                                </div>
+                    <div class="pill-grid">
+                      ${resolutionIcon(d)}
+                      ${Number.isFinite(Number(d?.currentState?.rating)) ? `<span class="pill pill-rating">${Number(d.currentState.rating).toFixed(1)}</span>` : ''}
+                    </div>
+                                    </div>
+                                    <div class="device-actions">
+                                        <div class="meta-pills" style="display:flex; gap:6px; flex-wrap:wrap;">
+                                            <span class="status-pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(room)}</span>
+                                            ${presetName ? `<span class="status-pill" title="Preset"><i class="fas fa-star"></i> ${escapeHtml(presetName)}</span>` : ''}
+                                            ${groupNames.length ? `<span class="status-pill" title="Groups"><i class="fas fa-layer-group"></i> ${escapeHtml(groupNames.join(', '))}</span>` : ''}
+                                        </div>
+                                    </div>
+                </div>`;
+            }
+            function escapeHtml(s) {
+                return String(s || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+            // Collapse secondary per-card actions into a kebab menu when space is tight
+            function collapseCardActions(card) {
+                try {
+                    const row = card.querySelector('.action-buttons');
+                    const moreWrap = card.querySelector('.card-more');
+                    if (!row || !moreWrap) return;
+                    const moreBtn = moreWrap.querySelector('button');
+                    const menu = moreWrap.querySelector('.dropdown-menu');
+                    const secondary = Array.from(row.querySelectorAll('.card-secondary'));
+                    if (!secondary.length) return;
+                    // Determine if actions overflow the row
+                    const tooNarrow = row.scrollWidth > row.clientWidth || window.innerWidth < 720;
+                    if (tooNarrow) {
+                        // Build menu items for hidden actions (use button titles)
+                        menu.innerHTML = secondary
+                            .map(
+                                (btn, idx) =>
+                                    `<div class="dropdown-item" data-card-idx="${idx}">${btn.title || btn.getAttribute('aria-label') || 'Action'}</div>`
+                            )
+                            .join('');
+                        // Hide secondary buttons and show kebab
+                        secondary.forEach(btn => (btn.style.display = 'none'));
+                        moreWrap.style.display = 'inline-block';
+                        // Attach click proxy once
+                        if (!moreWrap._menuWired) {
+                            moreWrap._menuWired = true;
+                            moreBtn?.addEventListener('click', e => {
+                                e.stopPropagation();
+                                const open = menu.style.display === 'block';
+                                menu.style.display = open ? 'none' : 'block';
+                                if (!open) {
+                                    // Position the dropdown relative to viewport
+                                    const r = moreBtn.getBoundingClientRect();
+                                    menu.style.position = 'fixed';
+                                    menu.style.top = `${r.bottom + 6}px`;
+                                    // Try aligning right edge roughly
+                                    const left = Math.max(
+                                        8,
+                                        Math.min(window.innerWidth - 228, r.right - 200)
+                                    );
+                                    menu.style.left = `${left}px`;
+                                    menu.style.zIndex = 1701; // above hovercards
+                                }
+                            });
+                            document.addEventListener('click', ev => {
+                                if (!menu.contains(ev.target) && ev.target !== moreBtn)
+                                    menu.style.display = 'none';
+                            });
+                            menu.addEventListener('click', ev => {
+                                const item = ev.target.closest('.dropdown-item');
+                                if (!item) return;
+                                const idx = Number(item.getAttribute('data-card-idx'));
+                                const target = secondary[idx];
+                                if (target) target.click();
+                                menu.style.display = 'none';
+                            });
+                        }
+                        // Store current secondary reference for this menu scope
+                        moreWrap._secondary = secondary;
+                    } else {
+                        // Restore inline buttons and hide kebab
+                        secondary.forEach(btn => (btn.style.display = ''));
+                        menu.innerHTML = '';
+                        menu.style.display = 'none';
+                        moreWrap.style.display = 'none';
+                    }
+                } catch (_) {
+                    /* noop */
+                }
+            }
+
+            function bindCardEvents(card) {
+                const cb = card.querySelector('.device-select');
+                cb?.addEventListener('change', () => {
+                    card.classList.toggle('selected', cb.checked);
+                    updateBulkUI();
+                });
+                card.querySelector('.btn-power')?.addEventListener('click', async () => {
+                    const id = card.getAttribute('data-id');
+                    await sendCommand(id, 'power.toggle');
+                });
+                card.querySelector('.btn-reload')?.addEventListener('click', async () => {
+                    const id = card.getAttribute('data-id');
+                    await sendCommand(id, 'core.mgmt.reload');
+                    window.notify?.toast({
+                        type: 'info',
+                        title: 'Reload',
+                        message: `${state.all.find(d => d.id === id)?.name || id}: reloading`,
+                    });
+                });
+                card.querySelector('.btn-clearcache')?.addEventListener('click', async () => {
+                    const id = card.getAttribute('data-id');
+                    await sendCommand(id, 'core.mgmt.clearCache');
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'Clear cache',
+                        message: `${state.all.find(d => d.id === id)?.name || id}: cache cleared`,
+                    });
+                });
+                card.querySelector('.btn-pair')?.addEventListener('click', async () => {
+                    const id = card.getAttribute('data-id');
+                    await openPairingFor([id]);
+                });
+                card.querySelector('.btn-remote')?.addEventListener('click', async () => {
+                    const id = card.getAttribute('data-id');
+                    openRemoteFor(id);
+                });
+                card.querySelector('.btn-override')?.addEventListener('click', async () => {
+                    const id = card.getAttribute('data-id');
+                    openOverrideFor([id]);
+                });
+                card.querySelector('.btn-sendcmd')?.addEventListener('click', async () => {
+                    const id = card.getAttribute('data-id');
+                    openSendCmdFor([id]);
+                });
+                card.querySelector('.btn-playpause')?.addEventListener('click', async () => {
+                    const id = card.getAttribute('data-id');
+                    await sendCommand(id, 'playback.toggle');
+                });
+                card.querySelector('.btn-pin')?.addEventListener('click', async () => {
+                    const id = card.getAttribute('data-id');
+                    await sendCommand(id, 'playback.pinPoster');
+                });
+                const renameBtn = card.querySelector('.btn-rename');
+                renameBtn?.addEventListener('click', () => startRename(card));
+                // per-card merge/group buttons removed; actions available via toolbar
+                // Ensure action row collapses when width is tight
+                collapseCardActions(card);
+            }
+            function startRename(card) {
+                try {
+                    const id = card.getAttribute('data-id');
+                    const nameEl = card.querySelector('.device-title .name');
+                    if (!nameEl || nameEl.dataset.editing === '1') return;
+                    const current = nameEl.textContent || '';
+                    nameEl.dataset.editing = '1';
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = current;
+                    input.className = 'inline-rename-input';
+                    // styling handled in theme CSS (.inline-rename-input)
+                    const finish = async commit => {
+                        nameEl.dataset.editing = '';
+                        nameEl.style.display = '';
+                        input.remove();
+                        if (!commit) return;
+                        const val = (input.value || '').trim();
+                        if (!val || val === current) return;
+                        try {
+                            await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name: val }),
+                            });
+                            nameEl.textContent = val;
+                            window.notify?.toast({
+                                type: 'success',
+                                title: 'Renamed',
+                                message: 'Device name updated',
+                            });
+                        } catch (e) {
+                            window.notify?.toast({
+                                type: 'error',
+                                title: 'Rename failed',
+                                message: e?.message || 'Could not update device',
+                            });
+                        }
+                    };
+                    nameEl.style.display = 'none';
+                    nameEl.parentElement.insertBefore(input, nameEl);
+                    input.focus();
+                    input.select();
+                    input.addEventListener('keydown', ev => {
+                        if (ev.key === 'Enter') finish(true);
+                        else if (ev.key === 'Escape') finish(false);
+                    });
+                    input.addEventListener('blur', () => finish(true));
+                } catch (_) {
+                    /* ignore */
+                }
+            }
+            function updateBulkUI() {
+                const selected = document.querySelectorAll(
+                    '#device-grid .device-card.selected'
+                ).length;
+                if (bulkCount) bulkCount.textContent = String(selected);
+                if (bulkBar) bulkBar.classList.toggle('open', selected > 0);
+                // Responsive controls: collapse secondary buttons on narrow widths
+                try {
+                    const bar = document.getElementById('bulk-bar');
+                    const more = document.getElementById('bulk-more');
+                    const menu = document.getElementById('bulk-more-menu');
+                    if (bar && more && menu) {
+                        const tooNarrow = bar.clientWidth < 760; // heuristic
+                        const secs = Array.from(bar.querySelectorAll('.bulk-secondary'));
+                        if (tooNarrow) {
+                            // move secondary buttons into dropdown menu
+                            menu.innerHTML = secs
+                                .map(
+                                    btn =>
+                                        `<div class="dropdown-item" data-bulk-proxy="#${btn.id}">${btn.title}</div>`
+                                )
+                                .join('');
+                            secs.forEach(btn => (btn.style.display = 'none'));
+                            more.parentElement.style.display = 'inline-block';
+                        } else {
+                            secs.forEach(btn => (btn.style.display = ''));
+                            more.parentElement.style.display = 'none';
+                            menu.innerHTML = '';
+                        }
+                        more.onclick = () => {
+                            const open = menu.style.display === 'block';
+                            menu.style.display = open ? 'none' : 'block';
+                            if (!open) {
+                                // position below button
+                                const r = more.getBoundingClientRect();
+                                menu.style.position = 'fixed';
+                                menu.style.top = `${r.bottom + 6}px`;
+                                menu.style.left = `${Math.max(8, r.left - 120)}px`;
+                                menu.style.zIndex = 3002;
+                            }
+                        };
+                        document.addEventListener('click', e => {
+                            if (!menu.contains(e.target) && e.target !== more)
+                                menu.style.display = 'none';
+                        });
+                        menu.onclick = e => {
+                            const item = e.target.closest('.dropdown-item');
+                            if (!item) return;
+                            const targetSel = item.getAttribute('data-bulk-proxy');
+                            const target = targetSel ? document.querySelector(targetSel) : null;
+                            if (target) target.click();
+                            menu.style.display = 'none';
+                        };
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
+            }
+            async function sendCommand(id, type, payload) {
+                try {
+                    const wait = type.startsWith('playback.') ? 'false' : 'true';
+                    const res = await fetchJSON(
+                        `/api/devices/${encodeURIComponent(id)}/command?wait=${wait}`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type, payload }),
+                        }
+                    );
+                    if (res?.ack?.status === 'timeout') {
+                        window.notify?.toast({
+                            type: 'warning',
+                            title: 'No response',
+                            message: 'Device did not ack in time',
+                        });
+                    }
+                    return res;
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Command failed',
+                        message: e?.message || 'Failed to send',
+                    });
+                    return null;
+                }
+            }
+            function populateMergeOptions() {
+                if (!mergeSource || !mergeTarget) return;
+                const opts = state.all
+                    .map(d => `<option value="${d.id}">${escapeHtml(d.name || d.id)}</option>`)
+                    .join('');
+                mergeSource.innerHTML = opts;
+                mergeTarget.innerHTML = opts;
+            }
+            function openMergeWith(targetId) {
+                populateMergeOptions();
+                if (mergeTarget && targetId) mergeTarget.value = targetId;
+                const overlay = document.getElementById('modal-merge');
+                overlay?.classList.add('open');
+            }
+            async function submitMerge() {
+                const src = mergeSource?.value;
+                const tgt = mergeTarget?.value;
+                if (!src || !tgt || src === tgt) {
+                    return window.notify?.toast({
+                        type: 'warning',
+                        title: 'Select two different devices',
+                    });
+                }
+                try {
+                    const res = await fetchJSON(`/api/devices/${encodeURIComponent(tgt)}/merge`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sourceIds: [src] }),
+                    });
+                    if (res?.ok) {
+                        window.notify?.toast({
+                            type: 'success',
+                            title: 'Merged',
+                            message: `${res.merged} device merged`,
+                        });
+                        document.getElementById('modal-merge')?.classList.remove('open');
+                        await loadDevices();
+                    }
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Merge failed',
+                        message: e?.message || 'Failed to merge',
+                    });
+                }
+            }
+
+            // Utilities: Modals for pairing, remote, override, send command
+            async function openPairingFor(ids) {
+                if (!Array.isArray(ids) || !ids.length) return;
+                const container = document.getElementById('pairing-list');
+                if (container) container.innerHTML = '';
+                for (const id of ids) {
+                    try {
+                        const r = await fetchJSON(
+                            `/api/devices/${encodeURIComponent(id)}/pairing-code`,
+                            {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ttlMs: 600000 }),
+                            }
+                        );
+                        const name = (state.all || []).find(d => d.id === id)?.name || id;
+                        const html = `
+                            <div class="pairing-item" style="display:flex; gap:12px; align-items:center;">
+                                <div style="flex:1;">
+                                    <div style="font-weight:600;">${escapeHtml(name)}</div>
+                                    <div class="subtle">Code: <code>${escapeHtml(r?.code || '—')}</code> · Expires in ${Math.round((r?.expiresInMs || 0) / 1000)}s</div>
+                                </div>
+                                <div>${r?.qrCodeDataUrl ? `<img src="${r.qrCodeDataUrl}" alt="QR" style="width:96px;height:96px;background:#fff;padding:6px;border-radius:8px;"/>` : ''}</div>
+                            </div>`;
+                        if (container) container.insertAdjacentHTML('beforeend', html);
+                    } catch (e) {
+                        window.notify?.toast({
+                            type: 'error',
+                            title: 'Pairing',
+                            message: `Failed for ${id}`,
+                        });
+                    }
+                }
+                document.getElementById('modal-pairing')?.classList.add('open');
+            }
+            function openRemoteFor(id) {
+                const dev = (state.all || []).find(d => d.id === id);
+                const nameEl = document.getElementById('remote-target-name');
+                if (nameEl) nameEl.textContent = dev ? `— ${dev.name || dev.id}` : '';
+                const overlay = document.getElementById('modal-remote');
+                overlay?.classList.add('open');
+                overlay?.querySelectorAll('[data-remote]')?.forEach(btn => {
+                    btn.addEventListener(
+                        'click',
+                        async () => {
+                            const key = btn.getAttribute('data-remote');
+                            if (key === 'playpause') {
+                                await sendCommand(id, 'playback.toggle');
+                            } else {
+                                await sendCommand(id, 'remote.key', { key });
+                            }
+                        },
+                        { once: false }
+                    );
+                });
+            }
+            async function openOverrideFor(ids) {
+                if (!Array.isArray(ids) || !ids.length) return;
+                const overlay = document.getElementById('modal-override');
+                const textarea = document.getElementById('override-json');
+                if (textarea) textarea.value = '{\n  "wallart": { "duration": 30 }\n}';
+                overlay?.classList.add('open');
+                const applyBtn = document.getElementById('btn-override-apply');
+                if (applyBtn) {
+                    const newBtn = applyBtn.cloneNode(true);
+                    applyBtn.parentNode.replaceChild(newBtn, applyBtn);
+                    newBtn.addEventListener('click', async () => {
+                        let payload;
+                        try {
+                            payload = JSON.parse(textarea.value || '{}');
+                        } catch (e) {
+                            window.notify?.toast({
+                                type: 'error',
+                                title: 'Invalid JSON',
+                                message: e.message,
+                            });
+                            return;
+                        }
+                        let ok = 0,
+                            fail = 0;
+                        for (const id of ids) {
+                            try {
+                                await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ settingsOverride: payload }),
+                                });
+                                ok++;
+                            } catch (_) {
+                                fail++;
+                            }
+                        }
+                        document.getElementById('modal-override')?.classList.remove('open');
+                        if (ok)
+                            window.notify?.toast({
+                                type: 'success',
+                                title: 'Overrides applied',
+                                message: `${ok}/${ids.length} updated`,
+                            });
+                        if (fail)
+                            window.notify?.toast({
+                                type: 'error',
+                                title: 'Some failed',
+                                message: `${fail} failed`,
+                            });
+                        await loadDevices();
+                    });
+                }
+            }
+            async function openSendCmdFor(ids) {
+                if (!Array.isArray(ids) || !ids.length) return;
+                const overlay = document.getElementById('modal-sendcmd');
+                overlay?.classList.add('open');
+                const typeEl = document.getElementById('sendcmd-type');
+                const payloadEl = document.getElementById('sendcmd-payload');
+                const applyBtn = document.getElementById('btn-sendcmd-apply');
+                if (applyBtn) {
+                    const newBtn = applyBtn.cloneNode(true);
+                    applyBtn.parentNode.replaceChild(newBtn, applyBtn);
+                    newBtn.addEventListener('click', async () => {
+                        const type = String(typeEl?.value || '').trim();
+                        if (!type) {
+                            window.notify?.toast({
+                                type: 'info',
+                                title: 'Type required',
+                                message: 'Enter a command type',
+                            });
+                            return;
+                        }
+                        let payload = undefined;
+                        if (payloadEl && payloadEl.value.trim()) {
+                            try {
+                                payload = JSON.parse(payloadEl.value);
+                            } catch (e) {
+                                window.notify?.toast({
+                                    type: 'error',
+                                    title: 'Invalid JSON',
+                                    message: e.message,
+                                });
+                                return;
+                            }
+                        }
+                        let ok = 0,
+                            fail = 0;
+                        for (const id of ids) {
+                            try {
+                                await sendCommand(id, type, payload);
+                                ok++;
+                            } catch (_) {
+                                fail++;
+                            }
+                        }
+                        document.getElementById('modal-sendcmd')?.classList.remove('open');
+                        if (ok)
+                            window.notify?.toast({
+                                type: 'success',
+                                title: 'Commands sent',
+                                message: `${ok}/${ids.length} sent`,
+                            });
+                        if (fail)
+                            window.notify?.toast({
+                                type: 'error',
+                                title: 'Some failed',
+                                message: `${fail} failed`,
+                            });
+                    });
+                }
+            }
+            mergeConfirm?.addEventListener('click', submitMerge);
+
+            function applyFilters() {
                 const q = state.query;
                 const fs = state.filterStatus;
                 const fr = state.filterRoom;
-                return deviceCards.filter(card => {
-                    const name =
-                        card.querySelector('.device-title .name')?.textContent.toLowerCase() || '';
-                    const meta =
-                        card.querySelector('.device-title .meta')?.textContent.toLowerCase() || '';
+                const matches = d => {
+                    const name = String(d.name || '').toLowerCase();
+                    const meta = String(versionMeta(d) || '').toLowerCase();
                     const matchesText = !q || name.includes(q) || meta.includes(q);
-                    const statusAttr = card.getAttribute('data-status');
-                    const roomAttr = card.getAttribute('data-room');
-                    const matchesStatus = !fs || statusAttr === fs;
-                    const matchesRoom = !fr || roomAttr === fr;
+                    const status = getStatusClass(d);
+                    // Use the same slugification as the filter menu to ensure consistent matching
+                    const room = slugify(roomLabel(d));
+                    const matchesStatus = !fs || status === fs;
+                    const matchesRoom = !fr || room === fr;
                     return matchesText && matchesStatus && matchesRoom;
-                });
+                };
+                state.filteredIds = state.all.filter(matches).map(d => d.id);
+                // Failsafe: if no filters are active but nothing matched, show all
+                if (!q && !fs && !fr && state.filteredIds.length === 0) {
+                    state.filteredIds = state.all.map(d => d.id);
+                }
             }
             function renderPage() {
-                const filtered = getFiltered();
-                const total = filtered.length;
+                applyFilters();
+                // prepare duplicate maps for current filtered set
+                computeDupMaps();
+                const total = state.filteredIds.length;
                 const perPage = Math.max(1, state.perPage | 0);
                 const maxPage = Math.max(1, Math.ceil(total / perPage));
                 if (state.currentPage > maxPage) state.currentPage = maxPage;
                 const start = (state.currentPage - 1) * perPage;
                 const end = start + perPage;
-                deviceCards.forEach(c => (c.style.display = 'none'));
-                filtered.slice(start, end).forEach(c => (c.style.display = ''));
+                grid.innerHTML = '';
+                if (total === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty-state';
+                    empty.style.padding = '20px';
+                    empty.style.color = 'var(--color-text-muted)';
+                    empty.innerHTML =
+                        '<i class="fas fa-circle-info"></i> No devices to show. Try clearing filters or check if any devices have registered.';
+                    grid.appendChild(empty);
+                }
+                const pageIds = state.filteredIds.slice(start, end);
+                for (const id of pageIds) {
+                    const dev = state.all.find(x => x.id === id);
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = renderCard(dev);
+                    const card = wrapper.firstElementChild;
+                    grid.appendChild(card);
+                    bindCardEvents(card);
+                }
                 const showing = Math.min(perPage, Math.max(0, total - start));
                 if (pageInfo) pageInfo.textContent = `Showing ${showing} of ${total} devices`;
                 if (pagePrev) pagePrev.disabled = state.currentPage <= 1;
@@ -2290,7 +3125,237 @@
                         pageNumbers.appendChild(btn);
                     }
                 }
+                updateBulkUI();
+                // Re-evaluate per-card action overflow after rendering
+                document.querySelectorAll('#device-grid .device-card').forEach(collapseCardActions);
             }
+
+            // Reflow handlers for responsive action overflow
+            const reflowActions = (function () {
+                const fn = () => {
+                    try {
+                        updateBulkUI();
+                        document
+                            .querySelectorAll('#device-grid .device-card')
+                            .forEach(collapseCardActions);
+                    } catch (_) {}
+                };
+                return debounce(fn, 150);
+            })();
+            window.addEventListener('resize', reflowActions, { passive: true });
+
+            // Build toolbar menus dynamically
+            function buildActionsMenu() {
+                const menu = document.getElementById('device-actions-menu');
+                if (!menu) return;
+                dbg('buildActionsMenu()');
+                menu.innerHTML = `
+                    <div class="dropdown-item" data-device-action="merge"><i class="fas fa-object-group"></i> Merge selected</div>
+                    <div class="dropdown-item" data-device-action="groups"><i class="fas fa-layer-group"></i> Groups…</div>
+                    <div class="dropdown-item" data-device-action="presets"><i class="fas fa-star"></i> Presets…</div>
+                    <div class="dropdown-item" data-device-action="location"><i class="fas fa-location-dot"></i> Assign location</div>
+                    <div class="dropdown-heading">Selection</div>
+                    <div class="dropdown-item" data-device-action="select-all"><i class="fas fa-check-double"></i> Select all</div>
+                    <div class="dropdown-item" data-device-action="clear-selection"><i class="fas fa-eraser"></i> Clear selection</div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-item" data-device-action="delete"><i class="fas fa-trash"></i> Delete selected</div>`;
+            }
+
+            function buildFilterMenu() {
+                const menu = document.getElementById('device-filter-menu');
+                if (!menu) return;
+                dbg('buildFilterMenu()');
+                const roomsSet = new Set();
+                let hasUnassigned = false;
+                (state.all || []).forEach(d => {
+                    const loc = (d && d.location != null ? String(d.location) : '').trim();
+                    if (!loc) hasUnassigned = true;
+                    else roomsSet.add(loc);
+                });
+                const rooms = Array.from(roomsSet).sort((a, b) => a.localeCompare(b));
+                const parts = [];
+                parts.push('<div class="dropdown-heading">Status</div>');
+                parts.push(
+                    '<div class="dropdown-item" data-device-filter="status:live"><i class="fas fa-bolt"></i> Live</div>'
+                );
+                parts.push(
+                    '<div class="dropdown-item" data-device-filter="status:online"><i class="fas fa-signal"></i> Online</div>'
+                );
+                parts.push(
+                    '<div class="dropdown-item" data-device-filter="status:offline"><i class="fas fa-plug-circle-xmark"></i> Offline</div>'
+                );
+                parts.push(
+                    '<div class="dropdown-item" data-device-filter="status:unknown"><i class="fas fa-question-circle"></i> Unknown</div>'
+                );
+                parts.push('<div class="dropdown-heading">Location</div>');
+                rooms.forEach(r => {
+                    const slug = slugify(r);
+                    parts.push(
+                        `<div class="dropdown-item" data-device-filter="location:${slug}"><i class=\"fas fa-location-dot\"></i> ${r.replace(/</g, '&lt;')}</div>`
+                    );
+                });
+                if (hasUnassigned) {
+                    parts.push(
+                        '<div class="dropdown-item" data-device-filter="location:unassigned"><i class="fas fa-circle-dot"></i> Unassigned</div>'
+                    );
+                }
+                // Quick reset to recover from empty result states
+                parts.push('<div class="dropdown-divider"></div>');
+                parts.push(
+                    '<div class="dropdown-item" data-device-filter="clear"><i class="fas fa-filter-circle-xmark"></i> Clear filters</div>'
+                );
+                menu.innerHTML = parts.join('');
+                wireFilterMenuHandlers();
+                updateFilterMenuUI();
+            }
+
+            // Assign Location modal logic
+            const locationInput = document.getElementById('location-input');
+            const btnLocationApply = document.getElementById('btn-location-apply');
+            const btnLocationClear = document.getElementById('btn-location-clear');
+            function openAssignLocationModal() {
+                const overlay = document.getElementById('modal-assign-location');
+                if (!overlay) return;
+                // Prefill if all selected share the same location
+                const selected = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                );
+                const locs = new Set(
+                    selected.map(
+                        c =>
+                            (state.all || []).find(d => d.id === c.getAttribute('data-id'))
+                                ?.location || ''
+                    )
+                );
+                if (locationInput) locationInput.value = locs.size === 1 ? Array.from(locs)[0] : '';
+                overlay.classList.add('open');
+                setTimeout(() => locationInput?.focus(), 50);
+            }
+            btnLocationApply?.addEventListener('click', async () => {
+                const val = (locationInput?.value || '').trim();
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                if (!ids.length) {
+                    window.notify?.toast({ type: 'warning', title: 'No devices selected' });
+                    return;
+                }
+                let ok = 0;
+                for (const id of ids) {
+                    try {
+                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ location: val }),
+                        });
+                        ok++;
+                    } catch (_) {
+                        /* ignore */
+                    }
+                }
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Location updated',
+                    message: `${ok}/${ids.length} device${ids.length !== 1 ? 's' : ''}`,
+                });
+                document.getElementById('modal-assign-location')?.classList.remove('open');
+                await loadDevices();
+            });
+            btnLocationClear?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                if (!ids.length) {
+                    window.notify?.toast({ type: 'warning', title: 'No devices selected' });
+                    return;
+                }
+                let ok = 0;
+                for (const id of ids) {
+                    try {
+                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ location: '' }),
+                        });
+                        ok++;
+                    } catch (_) {
+                        /* ignore */
+                    }
+                }
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Location cleared',
+                    message: `${ok}/${ids.length} device${ids.length !== 1 ? 's' : ''}`,
+                });
+                document.getElementById('modal-assign-location')?.classList.remove('open');
+                await loadDevices();
+            });
+            locationInput?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') btnLocationApply?.click();
+            });
+
+            async function loadPresets() {
+                try {
+                    const list = await fetchJSON('/api/admin/device-presets').catch(() => []);
+                    state.presets = Array.isArray(list) ? list : [];
+                } catch (_) {
+                    state.presets = [];
+                }
+                // presets dropdown removed; presets available via modal
+            }
+
+            async function loadDevices() {
+                try {
+                    const list = await fetchJSON('/api/devices');
+                    state.all = Array.isArray(list) ? list : [];
+                    dbg('loadDevices(): count', state.all.length);
+                    state.currentPage = 1;
+                    buildFilterMenu();
+                    populateMergeOptions();
+                    renderPage();
+                } catch (e) {
+                    dbg('loadDevices(): failed', e?.message || e);
+                    // Show empty state but don't crash section
+                    state.all = [];
+                    buildFilterMenu();
+                    renderPage();
+                }
+            }
+            async function loadGroupsForCards() {
+                try {
+                    const list = await fetchJSON('/api/groups');
+                    state.groups = Array.isArray(list) ? list : [];
+                } catch (_) {
+                    state.groups = [];
+                }
+            }
+            // Dropdown toggles within device toolbar and cards
+            document.querySelectorAll('#section-devices .dropdown-toggle').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const dd = btn.closest('.dropdown');
+                    const willOpen = !dd.classList.contains('open');
+                    dbg('dropdown toggle click', { id: btn.id, willOpen });
+                    document.querySelectorAll('#section-devices .dropdown').forEach(x => {
+                        if (x !== dd) x.classList.remove('open');
+                    });
+                    dd.classList.toggle('open', willOpen);
+                    // Reflect state for a11y
+                    try {
+                        btn.setAttribute('aria-expanded', String(!!willOpen));
+                    } catch (_) {}
+                });
+            });
+            document.addEventListener('click', () => {
+                document
+                    .querySelectorAll('#section-devices .dropdown')
+                    .forEach(x => x.classList.remove('open'));
+                // Reset aria-expanded on all toggles
+                document
+                    .querySelectorAll('#section-devices .dropdown-toggle[aria-expanded="true"]')
+                    .forEach(b => b.setAttribute('aria-expanded', 'false'));
+            });
+
             deviceSearch?.addEventListener('input', () => {
                 state.query = (deviceSearch.value || '').toLowerCase();
                 state.currentPage = 1;
@@ -2308,14 +3373,15 @@
                 }
             });
             pageNext?.addEventListener('click', () => {
-                const total = getFiltered().length;
+                const total = state.filteredIds.length;
                 const maxPage = Math.max(1, Math.ceil(total / Math.max(1, state.perPage | 0)));
                 if (state.currentPage < maxPage) {
                     state.currentPage++;
                     renderPage();
                 }
             });
-            renderPage();
+            // Load groups first (for name mapping), then devices
+            loadGroupsForCards().finally(loadDevices);
 
             // Hovercards (status, dupes)
             function createHovercard(id, html) {
@@ -2332,7 +3398,7 @@
             const statusHoverHTML =
                 '\n                <div class="hc-title">Status details</div>\n                <div class="hc-list">\n                    <div class="hc-row"><i class="fas fa-wave-square"></i><span>Uptime</span><span class="mono">3d 12h</span></div>\n                    <div class="hc-row"><i class="fas fa-gauge-high"></i><span>Load</span><span class="mono">27%</span></div>\n                    <div class="hc-row"><i class="fas fa-wifi"></i><span>Signal</span><span class="mono">Good</span></div>\n                </div>\n                <div class="hc-actions">\n                    <button class="btn btn-outline btn-sm"><i class="fas fa-rotate-right"></i> Restart</button>\n                    <button class="btn btn-outline btn-sm"><i class="fas fa-plug"></i> Reconnect</button>\n                </div>';
             const dupesHoverHTML =
-                '\n                <div class="hc-title">Duplicates found</div>\n                <div class="hc-list">\n                    <div class="hc-row"><i class="fas fa-clone"></i><span>Living Room TV (old)</span><button class="btn btn-outline btn-sm"><i class="fas fa-object-group"></i> Merge</button></div>\n                    <div class="hc-row"><i class="fas fa-clone"></i><span>Bedroom TV</span><button class="btn btn-outline btn-sm"><i class="fas fa-object-group"></i> Merge</button></div>\n                </div>';
+                '\n                <div class="hc-title">Duplicates found</div>\n                <div class="hc-list"><div class="hc-row"><span>No details</span></div></div>';
             const statusCard = createHovercard('hc-status', statusHoverHTML);
             const dupesCard = createHovercard('hc-dupes', dupesHoverHTML);
             function positionHover(el, trigger) {
@@ -2357,6 +3423,38 @@
                     };
                     const show = () => {
                         clearHide();
+                        // If dupes hovercard, rebuild content from trigger datasets
+                        try {
+                            if (card && card.id === 'hc-dupes') {
+                                const title = tr.getAttribute('data-dupes-title') || '';
+                                const ids = (tr.getAttribute('data-dupes-ids') || '')
+                                    .split(',')
+                                    .filter(Boolean);
+                                const rows = (title || '').split('\n').slice(1);
+                                const listHtml = rows
+                                    .filter(Boolean)
+                                    .map(
+                                        (line, idx) =>
+                                            `<div class="hc-row"><i class="fas fa-clone"></i><span>${escapeHtml(line)}</span><button class="btn btn-outline btn-sm" data-merge-tgt="${escapeHtml(tr.closest('.device-card')?.getAttribute('data-id') || '')}" data-merge-src="${escapeHtml(ids[idx] || '')}"><i class="fas fa-object-group"></i> Merge</button></div>`
+                                    )
+                                    .join('');
+                                card.innerHTML = `
+                                    <div class="hc-title">Duplicates found</div>
+                                    <div class="hc-list">${listHtml || '<div class="hc-row"><span>No details</span></div>'}</div>
+                                `;
+                                card.querySelectorAll('button[data-merge-tgt]').forEach(btn => {
+                                    btn.addEventListener('click', () => {
+                                        const tgt = btn.getAttribute('data-merge-tgt');
+                                        const src = btn.getAttribute('data-merge-src');
+                                        openMergeWith(tgt);
+                                        if (src) {
+                                            const srcSel = document.getElementById('merge-source');
+                                            if (srcSel) srcSel.value = src;
+                                        }
+                                    });
+                                });
+                            }
+                        } catch (_) {}
                         positionHover(card, tr);
                         card.classList.add('open');
                     };
@@ -2387,33 +3485,12 @@
             bindHover('.js-status-hover', statusCard);
             bindHover('.js-dupes-hover', dupesCard);
 
-            // Presets dropdowns (toolbar + card-level)
-            document
-                .querySelectorAll(
-                    '#device-presets-menu .dropdown-item, #device-ui .device-actions .dropdown .dropdown-item'
-                )
-                .forEach(item => {
-                    item.addEventListener('click', () => {
-                        const preset = item.getAttribute('data-device-preset');
-                        const labels = {
-                            default: 'Default',
-                            maintenance: 'Maintenance',
-                            showroom: 'Showroom',
-                        };
-                        window.notify?.toast({
-                            type: 'info',
-                            title: 'Preset applied',
-                            message: `${labels[preset] || 'Preset'} loaded`,
-                        });
-                        document
-                            .querySelectorAll('#section-devices .dropdown')
-                            .forEach(x => x.classList.remove('open'));
-                    });
-                });
+            // (removed) toolbar presets handlers
 
-            // Toolbar actions menu (merge, group, select-all, clear-selection, preset)
+            // Toolbar actions menu (merge, group, preset, location, selection tools)
+            buildActionsMenu();
             document.querySelectorAll('#device-actions-menu .dropdown-item').forEach(item => {
-                item.addEventListener('click', () => {
+                item.addEventListener('click', async () => {
                     const act = item.getAttribute('data-device-action');
                     if (act === 'select-all') {
                         document.querySelectorAll('#device-grid .device-card').forEach(card => {
@@ -2428,7 +3505,7 @@
                         window.notify?.toast({
                             type: 'info',
                             title: 'Selection',
-                            message: 'All visible devices selected',
+                            message: 'All on page selected',
                         });
                     } else if (act === 'clear-selection') {
                         document.querySelectorAll('#device-grid .device-select').forEach(cb => {
@@ -2441,37 +3518,132 @@
                             title: 'Selection',
                             message: 'Selection cleared',
                         });
+                    } else if (act === 'location') {
+                        openAssignLocationModal();
+                    } else if (act === 'groups') {
+                        openGroupModal();
+                    } else if (act === 'presets') {
+                        openAssignPresetModal();
                     } else if (act === 'merge') {
-                        const n = document.querySelectorAll(
-                            '#device-grid .device-card.selected'
-                        ).length;
-                        window.notify?.toast({
-                            type: 'info',
-                            title: 'Merge devices',
-                            message: `${n} selected`,
-                        });
-                    } else if (act === 'group') {
-                        const n = document.querySelectorAll(
-                            '#device-grid .device-card.selected'
-                        ).length;
-                        window.notify?.toast({
-                            type: 'info',
-                            title: 'Add to group',
-                            message: `${n} selected`,
-                        });
-                    } else if (act === 'preset') {
-                        // Open the presets dropdown in the toolbar
-                        const dd = document.querySelector(
-                            '#device-ui .device-toolbar > .dropdown:nth-child(3)'
+                        const selected = Array.from(
+                            document.querySelectorAll('#device-grid .device-card.selected')
                         );
-                        if (dd) {
-                            // Close others first, then open presets
-                            document.querySelectorAll('#section-devices .dropdown').forEach(x => {
-                                if (x !== dd) x.classList.remove('open');
+                        if (selected.length < 2) {
+                            window.notify?.toast({
+                                type: 'warning',
+                                title: 'Select at least 2 devices',
+                                message: 'Pick a source and a target to merge',
                             });
-                            dd.classList.add('open');
-                            return; // don't close all
+                            return;
                         }
+                        // Prefer the last selected as target, others as sources
+                        const tgt = selected[selected.length - 1].getAttribute('data-id');
+                        populateMergeOptions();
+                        if (mergeTarget) mergeTarget.value = tgt;
+                        if (mergeSource) {
+                            // If exactly two, set source to the other; else leave first option
+                            const srcId = selected[0].getAttribute('data-id');
+                            if (srcId && srcId !== tgt) mergeSource.value = srcId;
+                        }
+                        document.getElementById('modal-merge')?.classList.add('open');
+                    } else if (act === 'group') {
+                        const selected = Array.from(
+                            document.querySelectorAll('#device-grid .device-card.selected')
+                        );
+                        if (!selected.length) {
+                            window.notify?.toast({
+                                type: 'info',
+                                title: 'No devices selected',
+                                message: 'Select one or more devices first',
+                            });
+                            return;
+                        }
+                        openGroupModal();
+                    } else if (act === 'preset') {
+                        // Open Assign Preset modal instead of toolbar dropdown
+                        document
+                            .querySelectorAll('#section-devices .dropdown')
+                            .forEach(x => x.classList.remove('open'));
+                        openAssignPresetModal();
+                        return;
+                    } else if (act === 'delete') {
+                        const selectedCards = Array.from(
+                            document.querySelectorAll('#device-grid .device-card.selected')
+                        );
+                        if (!selectedCards.length) {
+                            window.notify?.toast({
+                                type: 'info',
+                                title: 'No devices selected',
+                                message: 'Select one or more devices first',
+                            });
+                            return;
+                        }
+                        const ids = selectedCards
+                            .map(c => c.getAttribute('data-id'))
+                            .filter(Boolean);
+                        const names = selectedCards
+                            .map(
+                                c =>
+                                    c.querySelector('.device-title .name')?.textContent?.trim() ||
+                                    c.getAttribute('data-id')
+                            )
+                            .filter(Boolean);
+                        // Populate and open themed modal
+                        const overlay = document.getElementById('modal-delete-devices');
+                        const content = document.getElementById('modal-delete-content');
+                        const confirmBtn = document.getElementById('btn-confirm-delete-devices');
+                        if (content) {
+                            const list = names
+                                .slice(0, 6)
+                                .map(n => `<li>${escapeHtml(n)}</li>`)
+                                .join('');
+                            const more =
+                                names.length > 6 ? `<li>…and ${names.length - 6} more</li>` : '';
+                            content.innerHTML = `
+                                <p>You're about to permanently delete <strong>${ids.length}</strong> device${ids.length !== 1 ? 's' : ''}. This action cannot be undone.</p>
+                                <ul style="margin: 10px 0 0 18px;">${list}${more}</ul>
+                            `;
+                        }
+                        // Clean previous handlers
+                        if (confirmBtn) {
+                            const newBtn = confirmBtn.cloneNode(true);
+                            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+                            newBtn.addEventListener('click', async () => {
+                                newBtn.classList.add('btn-loading');
+                                newBtn.disabled = true;
+                                let ok = 0;
+                                let fail = 0;
+                                for (const id of ids) {
+                                    try {
+                                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                                            method: 'DELETE',
+                                        });
+                                        ok++;
+                                    } catch (_) {
+                                        fail++;
+                                    }
+                                }
+                                document
+                                    .getElementById('modal-delete-devices')
+                                    ?.classList.remove('open');
+                                if (ok) {
+                                    window.notify?.toast({
+                                        type: 'success',
+                                        title: 'Deleted',
+                                        message: `Deleted ${ok} device${ok !== 1 ? 's' : ''}`,
+                                    });
+                                }
+                                if (fail) {
+                                    window.notify?.toast({
+                                        type: 'error',
+                                        title: 'Some failed',
+                                        message: `${fail} could not be deleted`,
+                                    });
+                                }
+                                await loadDevices();
+                            });
+                        }
+                        overlay?.classList.add('open');
                     }
                     document
                         .querySelectorAll('#section-devices .dropdown')
@@ -2486,52 +3658,65 @@
                     const [type, v] = val.split(':');
                     const active =
                         (type === 'status' && state.filterStatus === v) ||
-                        (type === 'room' && state.filterRoom === v);
+                        (type === 'location' && state.filterRoom === v);
                     it.classList.toggle('active', !!active);
                 });
             }
-            document.querySelectorAll('#device-filter-menu .dropdown-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const val = item.getAttribute('data-device-filter');
-                    const label = item.textContent.trim();
-                    const [type, v] = (val || '').split(':');
-                    if (type === 'status') {
-                        state.filterStatus = state.filterStatus === v ? null : v;
-                    } else if (type === 'room') {
-                        state.filterRoom = state.filterRoom === v ? null : v;
-                    }
-                    state.currentPage = 1;
-                    updateFilterMenuUI();
-                    renderPage();
-                    window.notify?.toast({
-                        type: 'info',
-                        title: 'Filter',
-                        message: `${type} → ${label}`,
+            function wireFilterMenuHandlers() {
+                document.querySelectorAll('#device-filter-menu .dropdown-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const val = item.getAttribute('data-device-filter');
+                        const label = item.textContent.trim();
+                        const [type, v] = (val || '').split(':');
+                        if (type === 'status') {
+                            state.filterStatus = state.filterStatus === v ? null : v;
+                        } else if (type === 'location') {
+                            state.filterRoom = state.filterRoom === v ? null : v;
+                        } else if (type === 'clear' || val === 'clear') {
+                            state.filterStatus = null;
+                            state.filterRoom = null;
+                            state.query = '';
+                            const deviceSearch = document.getElementById('device-search');
+                            if (deviceSearch) deviceSearch.value = '';
+                        }
+                        state.currentPage = 1;
+                        updateFilterMenuUI();
+                        renderPage();
+                        window.notify?.toast({
+                            type: 'info',
+                            title: 'Filter',
+                            message: `${type} → ${label}`,
+                        });
+                        document
+                            .querySelectorAll('#section-devices .dropdown')
+                            .forEach(x => x.classList.remove('open'));
                     });
-                    document
-                        .querySelectorAll('#section-devices .dropdown')
-                        .forEach(x => x.classList.remove('open'));
                 });
-            });
-            updateFilterMenuUI();
-
-            // Bulk selection bar
-            const bulkBar = document.getElementById('bulk-bar');
-            const bulkCount = document.getElementById('bulk-count');
-            function updateBulkUI() {
-                const total = document.querySelectorAll('#device-grid .device-card').length;
-                const selected = document.querySelectorAll(
-                    '#device-grid .device-card.selected'
-                ).length;
-                if (bulkCount) bulkCount.textContent = String(selected);
-                if (bulkBar) bulkBar.classList.toggle('open', selected > 0);
             }
-            document.querySelectorAll('#device-grid .device-select').forEach(cb => {
-                cb.addEventListener('change', () => {
-                    cb.closest('.device-card')?.classList.toggle('selected', cb.checked);
-                    updateBulkUI();
-                });
-            });
+            // Initial menu builds (populate immediately, even before loadDevices)
+            buildActionsMenu();
+            buildFilterMenu();
+            loadPresets();
+            // Mark as initialized only after core menus are present
+            try {
+                section.dataset.inited = '1';
+                dbg('initDevices(): initialized');
+            } catch (_) {}
+            // Load syncEnabled from /get-config so we can show 'Synced' badge on devices
+            (async () => {
+                try {
+                    const cfg = await fetchJSON('/get-config').catch(() => null);
+                    if (cfg && typeof cfg.syncEnabled !== 'undefined') {
+                        state.syncEnabled = !!cfg.syncEnabled;
+                    } else {
+                        state.syncEnabled = true; // default enabled when not specified
+                    }
+                } catch (_) {
+                    state.syncEnabled = undefined;
+                }
+            })();
+
+            // Bulk selection bar (events are bound to selection changes in bindCardEvents)
             document.getElementById('bulk-clear')?.addEventListener('click', () => {
                 document.querySelectorAll('#device-grid .device-select').forEach(cb => {
                     cb.checked = false;
@@ -2539,40 +3724,402 @@
                 });
                 updateBulkUI();
             });
-            document.getElementById('bulk-restart')?.addEventListener('click', () => {
-                const n = document.querySelectorAll('#device-grid .device-card.selected').length;
+            document.getElementById('bulk-reload')?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                for (const id of ids) await sendCommand(id, 'core.mgmt.reload');
                 window.notify?.toast({
                     type: 'info',
-                    title: 'Restart requested',
-                    message: `Restarting ${n} device${n !== 1 ? 's' : ''}...`,
+                    title: 'Reload',
+                    message: `Requested reload for ${ids.length} device${ids.length !== 1 ? 's' : ''}`,
                 });
             });
-            document.getElementById('bulk-poweroff')?.addEventListener('click', () => {
-                const n = document.querySelectorAll('#device-grid .device-card.selected').length;
-                window.notify?.toast({
-                    type: 'warning',
-                    title: 'Power off',
-                    message: `Powering off ${n} device${n !== 1 ? 's' : ''}...`,
-                });
-            });
-            document.getElementById('bulk-update')?.addEventListener('click', () => {
-                const n = document.querySelectorAll('#device-grid .device-card.selected').length;
+            document.getElementById('bulk-clearcache')?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                for (const id of ids) await sendCommand(id, 'core.mgmt.clearCache');
                 window.notify?.toast({
                     type: 'success',
-                    title: 'Updates queued',
-                    message: `${n} device${n !== 1 ? 's' : ''} scheduled for update`,
+                    title: 'Clear cache',
+                    message: `Cleared cache on ${ids.length} device${ids.length !== 1 ? 's' : ''}`,
                 });
+            });
+            document.getElementById('bulk-pair')?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                await openPairingFor(ids);
+            });
+            document.getElementById('bulk-remote')?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                if (ids.length) openRemoteFor(ids[0]);
+            });
+            document.getElementById('bulk-override')?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                await openOverrideFor(ids);
+            });
+            document.getElementById('bulk-sendcmd')?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                await openSendCmdFor(ids);
+            });
+            document.getElementById('bulk-playpause')?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                for (const id of ids) await sendCommand(id, 'playback.toggle');
+            });
+            document.getElementById('bulk-delete')?.addEventListener('click', async () => {
+                // reuse existing delete modal flow
+                const selectedCards = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                );
+                if (!selectedCards.length) {
+                    window.notify?.toast({
+                        type: 'info',
+                        title: 'No devices selected',
+                        message: 'Select one or more devices first',
+                    });
+                    return;
+                }
+                const ids = selectedCards.map(c => c.getAttribute('data-id')).filter(Boolean);
+                const names = selectedCards
+                    .map(
+                        c =>
+                            c.querySelector('.device-title .name')?.textContent?.trim() ||
+                            c.getAttribute('data-id')
+                    )
+                    .filter(Boolean);
+                const overlay = document.getElementById('modal-delete-devices');
+                const content = document.getElementById('modal-delete-content');
+                const confirmBtn = document.getElementById('btn-confirm-delete-devices');
+                if (content) {
+                    const list = names
+                        .slice(0, 6)
+                        .map(n => `<li>${escapeHtml(n)}</li>`)
+                        .join('');
+                    const more = names.length > 6 ? `<li>…and ${names.length - 6} more</li>` : '';
+                    content.innerHTML = `<p>You're about to permanently delete <strong>${ids.length}</strong> device${ids.length !== 1 ? 's' : ''}. This action cannot be undone.</p><ul style="margin:10px 0 0 18px;">${list}${more}</ul>`;
+                }
+                if (confirmBtn) {
+                    const newBtn = confirmBtn.cloneNode(true);
+                    confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+                    newBtn.addEventListener('click', async () => {
+                        newBtn.classList.add('btn-loading');
+                        newBtn.disabled = true;
+                        let ok = 0,
+                            fail = 0;
+                        for (const id of ids) {
+                            try {
+                                await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                                    method: 'DELETE',
+                                });
+                                ok++;
+                            } catch (_) {
+                                fail++;
+                            }
+                        }
+                        document.getElementById('modal-delete-devices')?.classList.remove('open');
+                        if (ok)
+                            window.notify?.toast({
+                                type: 'success',
+                                title: 'Deleted',
+                                message: `Deleted ${ok} device${ok !== 1 ? 's' : ''}`,
+                            });
+                        if (fail)
+                            window.notify?.toast({
+                                type: 'error',
+                                title: 'Some failed',
+                                message: `${fail} could not be deleted`,
+                            });
+                        await loadDevices();
+                    });
+                }
+                overlay?.classList.add('open');
+            });
+            document.getElementById('bulk-poweroff')?.addEventListener('click', async () => {
+                const selectedCards = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                );
+                const ids = selectedCards.map(c => c.getAttribute('data-id'));
+                const offline = [];
+                // For per-device toast, determine pre-toggle state from state.all
+                for (const id of ids) {
+                    const dev = (state.all || []).find(d => d.id === id);
+                    const statusClass = dev ? getStatusClass(dev) : 'unknown';
+                    if (statusClass === 'offline') {
+                        offline.push(dev || { id });
+                        continue;
+                    }
+                    const wasOff = !!dev?.currentState?.poweredOff;
+                    const res = await sendCommand(id, 'power.toggle');
+                    if (!res || res?.ack?.status === 'timeout') {
+                        // sendCommand already showed a warning/error toast; skip success toast
+                        continue;
+                    }
+                    const nowOff =
+                        typeof res?.state?.poweredOff === 'boolean'
+                            ? res.state.poweredOff
+                            : !wasOff;
+                    const turned = nowOff ? 'off' : 'on';
+                    window.notify?.toast({
+                        type: nowOff ? 'warning' : 'success',
+                        title: 'Power toggle',
+                        message: `${dev?.name || id}: ${turned}`,
+                    });
+                    // Optimistically update local state so subsequent actions reflect new status
+                    if (dev) {
+                        dev.currentState = dev.currentState || {};
+                        dev.currentState.poweredOff = nowOff;
+                    }
+                }
+                if (offline.length > 0) {
+                    const names = offline.map(d => d?.name || d?.id || 'Unknown');
+                    const preview = names.slice(0, 5).join(', ');
+                    const more = names.length > 5 ? ` +${names.length - 5} more` : '';
+                    window.notify?.toast({
+                        type: 'info',
+                        title: 'Offline devices',
+                        message: `${names.length} skipped: ${preview}${more}`,
+                    });
+                }
+                // Re-render current page to reflect updated power icon/title tooltips
+                renderPage?.();
             });
             updateBulkUI();
 
-            // Modal open buttons in device cards
-            document.querySelectorAll('#section-devices [data-open-modal]')?.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const sel = btn.getAttribute('data-open-modal');
-                    if (!sel) return;
-                    const overlay = document.querySelector(sel);
-                    if (overlay) overlay.classList.add('open');
+            // Modal open buttons in device cards will be bound per-card after render
+
+            // Group modal logic
+            const groupSelect = document.getElementById('group-select');
+            const btnAssign = document.getElementById('btn-group-assign');
+            const btnRemove = document.getElementById('btn-group-remove');
+            const btnCreateAssign = document.getElementById('btn-group-create-assign');
+            const newGroupInput = document.getElementById('new-group-name');
+            async function loadGroups() {
+                try {
+                    const list = await fetchJSON('/api/groups');
+                    if (groupSelect) {
+                        groupSelect.innerHTML = list
+                            .map(
+                                g =>
+                                    `<option value="${g.id}">${escapeHtml(g.name || g.id)}</option>`
+                            )
+                            .join('');
+                    }
+                } catch (_) {
+                    if (groupSelect) groupSelect.innerHTML = '';
+                }
+            }
+            function openGroupModal() {
+                loadGroups();
+                document.getElementById('modal-group-assign')?.classList.add('open');
+            }
+            async function patchDeviceGroups(deviceId, mutate) {
+                try {
+                    const dev = state.all.find(d => d.id === deviceId);
+                    const current = Array.isArray(dev?.groups) ? dev.groups.slice() : [];
+                    const next = mutate(current);
+                    await fetchJSON(`/api/devices/${encodeURIComponent(deviceId)}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ groups: next }),
+                    });
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            }
+            btnAssign?.addEventListener('click', async () => {
+                const gid = groupSelect?.value;
+                if (!gid) return;
+                const selected = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                let ok = 0;
+                for (const id of selected) {
+                    // add if missing
+                    const res = await patchDeviceGroups(id, arr =>
+                        arr.includes(gid) ? arr : [...arr, gid]
+                    );
+                    if (res) ok++;
+                }
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Group updated',
+                    message: `${ok}/${selected.length} devices updated`,
                 });
+                document.getElementById('modal-group-assign')?.classList.remove('open');
+                await loadDevices();
+            });
+            btnRemove?.addEventListener('click', async () => {
+                const gid = groupSelect?.value;
+                if (!gid) return;
+                const selected = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                let ok = 0;
+                for (const id of selected) {
+                    const res = await patchDeviceGroups(id, arr => arr.filter(x => x !== gid));
+                    if (res) ok++;
+                }
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Removed from group',
+                    message: `${ok}/${selected.length} devices updated`,
+                });
+                document.getElementById('modal-group-assign')?.classList.remove('open');
+                await loadDevices();
+            });
+            // Assign Preset modal logic
+            const presetSelect = document.getElementById('preset-select');
+            const btnPresetApply = document.getElementById('btn-preset-apply');
+            const btnPresetClear = document.getElementById('btn-preset-clear');
+            function openAssignPresetModal() {
+                // Populate from state.presets
+                const list = Array.isArray(state.presets) ? state.presets : [];
+                if (presetSelect) {
+                    if (!list.length) {
+                        presetSelect.innerHTML =
+                            '<option value="" disabled selected>No presets defined</option>';
+                    } else {
+                        presetSelect.innerHTML = list
+                            .map(
+                                p =>
+                                    `<option value="${(p.key || '').replace(/"/g, '&quot;')}">${(p.name || p.key || '').replace(/</g, '&lt;')}</option>`
+                            )
+                            .join('');
+                    }
+                }
+                document.getElementById('modal-assign-preset')?.classList.add('open');
+            }
+            btnPresetApply?.addEventListener('click', async () => {
+                const preset = presetSelect?.value || '';
+                if (!preset) return;
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                if (!ids.length) {
+                    window.notify?.toast({
+                        type: 'info',
+                        title: 'No devices selected',
+                        message: 'Select one or more devices first',
+                    });
+                    return;
+                }
+                let ok = 0;
+                for (const id of ids) {
+                    try {
+                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ preset }),
+                        });
+                        ok++;
+                    } catch (_) {}
+                }
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Preset applied',
+                    message: `Applied to ${ok}/${ids.length} device${ids.length !== 1 ? 's' : ''}`,
+                });
+                document.getElementById('modal-assign-preset')?.classList.remove('open');
+                await loadDevices();
+            });
+            btnPresetClear?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                if (!ids.length) {
+                    window.notify?.toast({
+                        type: 'info',
+                        title: 'No devices selected',
+                        message: 'Select one or more devices first',
+                    });
+                    return;
+                }
+                let ok = 0;
+                for (const id of ids) {
+                    try {
+                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ preset: null }),
+                        });
+                        ok++;
+                    } catch (_) {}
+                }
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Preset cleared',
+                    message: `Cleared on ${ok}/${ids.length}`,
+                });
+                document.getElementById('modal-assign-preset')?.classList.remove('open');
+                await loadDevices();
+            });
+            // Enter key triggers Create & assign
+            newGroupInput?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    btnCreateAssign?.click();
+                }
+            });
+            // Create a new group and assign selected devices
+            btnCreateAssign?.addEventListener('click', async () => {
+                const name = (newGroupInput?.value || '').trim();
+                if (!name) {
+                    window.notify?.toast({ type: 'info', title: 'Group name required' });
+                    return;
+                }
+                try {
+                    const created = await fetchJSON('/api/groups', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name }),
+                    });
+                    const gid = created?.id || created?.name || name;
+                    await loadGroups();
+                    if (groupSelect && gid) groupSelect.value = gid;
+                    const selected = Array.from(
+                        document.querySelectorAll('#device-grid .device-card.selected')
+                    ).map(c => c.getAttribute('data-id'));
+                    let ok = 0;
+                    for (const id of selected) {
+                        const res = await patchDeviceGroups(id, arr =>
+                            arr.includes(gid) ? arr : [...arr, gid]
+                        );
+                        if (res) ok++;
+                    }
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'Group created',
+                        message: `Assigned ${ok}/${selected.length} devices to ${gid}`,
+                    });
+                    document.getElementById('modal-group-assign')?.classList.remove('open');
+                    await loadDevices();
+                } catch (e) {
+                    const msg = e?.message || '';
+                    if (/exists|409/i.test(msg)) {
+                        window.notify?.toast({
+                            type: 'warning',
+                            title: 'Group already exists',
+                            message: name,
+                        });
+                    } else {
+                        window.notify?.toast({
+                            type: 'error',
+                            title: 'Create group failed',
+                            message: msg || 'Unknown error',
+                        });
+                    }
+                }
             });
         };
 
@@ -3339,6 +4886,10 @@
         wireEvents();
         wireCacheActions();
         refreshAll();
+        // Fallback: ensure Devices section gets initialized even if user lands directly
+        try {
+            window.admin2?.initDevices?.();
+        } catch (_) {}
         // Start live KPIs if Dashboard is visible on first load
         try {
             const dashEl = document.getElementById('section-dashboard');

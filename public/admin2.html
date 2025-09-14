@@ -18,7 +18,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="/theme-demo.css?v=20250906-8" />
+  <link rel="stylesheet" href="/theme-demo.css?v=20250907-1" />
   <style>
   /* Themed dropdowns */
   select { 
@@ -79,6 +79,12 @@
   .custom-option:hover { background: var(--color-bg-tertiary); }
   .custom-option[aria-selected="true"] { background: var(--color-bg-tertiary); box-shadow: inset 3px 0 0 var(--color-info); }
   .custom-option i { color: var(--color-text-muted); }
+  /* Sidebar nav badge error variant */
+  .nav-badge.nav-badge-error {
+    background: linear-gradient(135deg, var(--color-error), #f87171);
+    color: #fff;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+  }
   /* Custom select optgroup header */
   .custom-optgroup { position: sticky; top: 0; background: var(--color-bg-card); color: var(--color-text-muted); font-size: 0.78rem; letter-spacing: .02em; text-transform: none; padding: 6px 10px; margin: 4px 0 2px; opacity: .9; }
   @media (prefers-reduced-motion: no-preference) {
@@ -144,6 +150,19 @@
     opacity: 1 !important;
     transform: translateY(0) scale(1) !important;
     pointer-events: auto !important;
+  }
+  /* Device toolbar dropdowns: toggle visibility via parent .open */
+  #section-devices .dropdown.open > .dropdown-menu {
+    opacity: 1 !important;
+    transform: translateY(0) scale(1) !important;
+    pointer-events: auto !important;
+  }
+  /* Anchor toolbar dropdown menus to their trigger container */
+  #section-devices .device-toolbar .dropdown { position: relative; }
+  /* Active state for selected filter items */
+  #section-devices .dropdown-menu .dropdown-item.active {
+    background: rgba(0,0,0,0.18) !important;
+    border-color: rgba(0,0,0,0.7) !important;
   }
   /* No CSS hover-open; JS controls visibility */
 
@@ -918,7 +937,7 @@
         <i class="fas fa-laptop"></i>
         <span class="nav-text-with-badge">
           Device Management
-          <span class="nav-badge">BETA</span>
+          <span class="nav-badge nav-badge-error">BETA</span>
         </span>
       </a>
       <a href="#" class="nav-item" data-nav="operations"><i class="fas fa-screwdriver-wrench"></i><span>Operations</span></a>
@@ -932,8 +951,8 @@
   <main class="main-content">
     <header class="page-header">
       <div class="page-title">
-  <h1><i class="fas fa-gauge-high"></i> Dashboard</h1>
-  <p>Devices, media, and health at a glance</p>
+        <h1><i class="fas fa-gauge-high"></i> Dashboard</h1>
+        <p>Devices, media, and health at a glance</p>
       </div>
       <div class="page-actions">
         <span class="header-pill" id="perf-activity" title="Overall system activity (CPU and memory)">
@@ -1134,7 +1153,7 @@
     <section id="section-media-sources" class="app-section" hidden>
       <section class="panel" id="panel-sources-overview">
         <header class="panel-header">
-          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; width:100%;">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
             <div class="panel-title">
               <h2><i class="fas fa-database"></i> Media Sources</h2>
               <div class="panel-subtitle">Combine media across platforms into a unified poster gallery</div>
@@ -1967,7 +1986,10 @@
     <section id="section-devices" class="app-section" hidden>
       <section class="panel" id="device-ui">
         <header class="panel-header">
-          <h2><i class="fas fa-laptop"></i> Device Management <span class="badge badge-beta">BETA</span></h2>
+          <div class="panel-title">
+            <h2><i class="fas fa-laptop"></i> Device Management <span class="badge badge-error">BETA</span></h2>
+            <div class="panel-subtitle">Manage devices, groups, and configuration presets</div>
+          </div>
           <div class="panel-actions device-toolbar">
             <div class="dropdown">
               <button class="btn btn-outline btn-sm dropdown-toggle" id="device-filter-toggle">
@@ -1975,15 +1997,7 @@
                 Filter
                 <i class="fas fa-chevron-down"></i>
               </button>
-              <div class="dropdown-menu" id="device-filter-menu">
-                <div class="dropdown-heading">Status</div>
-                <div class="dropdown-item" data-device-filter="status:live"><i class="fas fa-bolt"></i> Live</div>
-                <div class="dropdown-item" data-device-filter="status:online"><i class="fas fa-signal"></i> Online</div>
-                <div class="dropdown-item" data-device-filter="status:offline"><i class="fas fa-plug-circle-xmark"></i> Offline</div>
-                <div class="dropdown-heading">Room</div>
-                <div class="dropdown-item" data-device-filter="room:living-room"><i class="fas fa-tv"></i> Living Room</div>
-                <div class="dropdown-item" data-device-filter="room:office"><i class="fas fa-briefcase"></i> Office</div>
-              </div>
+              <div class="dropdown-menu" id="device-filter-menu"></div>
             </div>
             <div class="dropdown">
               <button class="btn btn-outline btn-sm dropdown-toggle" id="device-actions-toggle">
@@ -1991,26 +2005,7 @@
                 Actions
                 <i class="fas fa-chevron-down"></i>
               </button>
-              <div class="dropdown-menu" id="device-actions-menu">
-                <div class="dropdown-item" data-device-action="merge"><i class="fas fa-object-group"></i> Merge selected</div>
-                <div class="dropdown-item" data-device-action="group"><i class="fas fa-layer-group"></i> Add to group</div>
-                <div class="dropdown-item" data-device-action="preset"><i class="fas fa-star"></i> Assign preset</div>
-                <div class="dropdown-heading">Selection</div>
-                <div class="dropdown-item" data-device-action="select-all"><i class="fas fa-check-double"></i> Select all</div>
-                <div class="dropdown-item" data-device-action="clear-selection"><i class="fas fa-eraser"></i> Clear selection</div>
-              </div>
-            </div>
-            <div class="dropdown">
-              <button class="btn btn-outline btn-sm dropdown-toggle" id="device-presets-toggle">
-                <i class="fas fa-star"></i>
-                Presets
-                <i class="fas fa-chevron-down"></i>
-              </button>
-              <div class="dropdown-menu" id="device-presets-menu">
-                <div class="dropdown-item" data-device-preset="default"><i class="fas fa-rotate"></i> Default</div>
-                <div class="dropdown-item" data-device-preset="maintenance"><i class="fas fa-wrench"></i> Maintenance</div>
-                <div class="dropdown-item" data-device-preset="showroom"><i class="fas fa-store"></i> Showroom</div>
-              </div>
+              <div class="dropdown-menu" id="device-actions-menu"></div>
             </div>
             <div class="search-box">
               <i class="fas fa-search"></i>
@@ -2020,143 +2015,7 @@
         </header>
         <div class="panel-content">
           <div class="device-grid" id="device-grid">
-            <!-- Sample device cards reflecting statuses and dupes -->
-            <div class="device-card" data-status="live" data-room="living-room">
-              <div class="device-card-header">
-                <div class="device-select-wrap"><input type="checkbox" class="device-select" aria-label="Select device: Living Room TV"></div>
-                <div class="device-id">
-                  <div class="device-avatar"><i class="fas fa-tv"></i></div>
-                  <div class="device-title">
-                    <span class="name">Living Room TV</span>
-                    <span class="meta">Android TV • v2.0.3</span>
-                  </div>
-                </div>
-                <div class="action-buttons">
-                  <button class="btn btn-icon btn-sm" title="Power"><i class="fas fa-power-off"></i></button>
-                  <button class="btn btn-icon btn-sm" title="Settings"><i class="fas fa-cog"></i></button>
-                </div>
-              </div>
-              <div class="device-card-body">
-                <div class="device-badges">
-                  <span class="status-badge status-live js-status-hover" tabindex="0">
-                    <i class="fas fa-circle"></i> Live
-                  </span>
-                  <span class="pill pill-room">Living Room</span>
-                  <span class="pill pill-type">Android TV</span>
-                  <span class="pill pill-dupes js-dupes-hover" tabindex="0"><i class="fas fa-clone"></i> 2 dupes</span>
-                </div>
-                <div class="pill-grid">
-                  <span class="pill pill-quality">4K</span>
-                  <span class="pill pill-rating">9.1</span>
-                </div>
-              </div>
-              <div class="device-actions">
-                <div class="btn-group">
-                  <button class="btn btn-outline btn-sm" data-open-modal="#modal-merge"><i class="fas fa-object-group"></i> Merge</button>
-                  <button class="btn btn-outline btn-sm"><i class="fas fa-layer-group"></i> Group</button>
-                </div>
-                <div class="dropdown">
-                  <button class="btn btn-secondary btn-sm dropdown-toggle">
-                    <i class="fas fa-star"></i> Preset <i class="fas fa-chevron-down"></i>
-                  </button>
-                  <div class="dropdown-menu">
-                    <div class="dropdown-item" data-device-preset="default">Default</div>
-                    <div class="dropdown-item" data-device-preset="maintenance">Maintenance</div>
-                    <div class="dropdown-item" data-device-preset="showroom">Showroom</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="device-card" data-status="online" data-room="office">
-              <div class="device-card-header">
-                <div class="device-select-wrap"><input type="checkbox" class="device-select" aria-label="Select device: Office Monitor"></div>
-                <div class="device-id">
-                  <div class="device-avatar"><i class="fas fa-desktop"></i></div>
-                  <div class="device-title">
-                    <span class="name">Office Monitor</span>
-                    <span class="meta">Chrome • v2.0.3</span>
-                  </div>
-                </div>
-                <div class="action-buttons">
-                  <button class="btn btn-icon btn-sm" title="Power"><i class="fas fa-power-off"></i></button>
-                  <button class="btn btn-icon btn-sm" title="Settings"><i class="fas fa-cog"></i></button>
-                </div>
-              </div>
-              <div class="device-card-body">
-                <div class="device-badges">
-                  <span class="status-badge status-online js-status-hover" tabindex="0">
-                    <i class="fas fa-circle"></i> Online
-                  </span>
-                  <span class="pill pill-room">Office</span>
-                  <span class="pill pill-type">Browser</span>
-                </div>
-                <div class="pill-grid">
-                  <span class="pill pill-quality">HD</span>
-                  <span class="pill pill-rating">8.4</span>
-                </div>
-              </div>
-              <div class="device-actions">
-                <div class="btn-group">
-                  <button class="btn btn-outline btn-sm"><i class="fas fa-layer-group"></i> Group</button>
-                </div>
-                <div class="dropdown">
-                  <button class="btn btn-secondary btn-sm dropdown-toggle">
-                    <i class="fas fa-star"></i> Preset <i class="fas fa-chevron-down"></i>
-                  </button>
-                  <div class="dropdown-menu">
-                    <div class="dropdown-item" data-device-preset="default">Default</div>
-                    <div class="dropdown-item" data-device-preset="maintenance">Maintenance</div>
-                    <div class="dropdown-item" data-device-preset="showroom">Showroom</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="device-card" data-status="offline" data-room="kitchen">
-              <div class="device-card-header">
-                <div class="device-select-wrap"><input type="checkbox" class="device-select" aria-label="Select device: Kitchen Tablet"></div>
-                <div class="device-id">
-                  <div class="device-avatar"><i class="fas fa-tablet"></i></div>
-                  <div class="device-title">
-                    <span class="name">Kitchen Tablet</span>
-                    <span class="meta">Safari • v2.0.3</span>
-                  </div>
-                </div>
-                <div class="action-buttons">
-                  <button class="btn btn-icon btn-sm" title="Power" disabled><i class="fas fa-power-off"></i></button>
-                  <button class="btn btn-icon btn-sm" title="Settings"><i class="fas fa-cog"></i></button>
-                </div>
-              </div>
-              <div class="device-card-body">
-                <div class="device-badges">
-                  <span class="status-badge status-offline js-status-hover" tabindex="0">
-                    <i class="fas fa-circle"></i> Offline
-                  </span>
-                  <span class="pill pill-room">Kitchen</span>
-                  <span class="pill pill-type">Tablet</span>
-                </div>
-                <div class="pill-grid">
-                  <span class="pill pill-quality">HD</span>
-                  <span class="pill pill-rating">7.2</span>
-                </div>
-              </div>
-              <div class="device-actions">
-                <div class="btn-group">
-                  <button class="btn btn-outline btn-sm" data-open-modal="#modal-merge"><i class="fas fa-object-group"></i> Merge</button>
-                </div>
-                <div class="dropdown">
-                  <button class="btn btn-secondary btn-sm dropdown-toggle">
-                    <i class="fas fa-star"></i> Preset <i class="fas fa-chevron-down"></i>
-                  </button>
-                  <div class="dropdown-menu">
-                    <div class="dropdown-item" data-device-preset="default">Default</div>
-                    <div class="dropdown-item" data-device-preset="maintenance">Maintenance</div>
-                    <div class="dropdown-item" data-device-preset="showroom">Showroom</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <!-- Device cards will be rendered dynamically from /api/devices -->
           </div>
 
           <div class="table-footer device-pagination">
@@ -2703,25 +2562,17 @@
         <div class="form-grid" style="margin-top: var(--space-lg);">
           <div class="form-group">
             <label>Source Device</label>
-            <select>
-              <option>Living Room TV</option>
-              <option>Office Monitor</option>
-              <option>Kitchen Tablet</option>
-            </select>
+            <select id="merge-source"></select>
           </div>
           <div class="form-group">
             <label>Target Device</label>
-            <select>
-              <option>Office Monitor</option>
-              <option>Living Room TV</option>
-              <option>Kitchen Tablet</option>
-            </select>
+            <select id="merge-target"></select>
           </div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" data-close-modal>Cancel</button>
-        <button class="btn btn-error">Merge</button>
+        <button class="btn btn-error" id="btn-merge-confirm">Merge</button>
       </div>
     </div>
   </div>
@@ -2731,10 +2582,192 @@
     <div class="bulk-inner">
       <div class="bulk-count"><strong id="bulk-count">0</strong> selected</div>
       <div class="bulk-actions">
-        <button class="btn btn-secondary btn-sm" id="bulk-restart"><i class="fas fa-rotate-right"></i> Restart</button>
-        <button class="btn btn-warning btn-sm" id="bulk-poweroff"><i class="fas fa-power-off"></i> Power off</button>
-        <button class="btn btn-primary btn-sm" id="bulk-update"><i class="fas fa-download"></i> Update</button>
-        <button class="btn btn-outline btn-sm" id="bulk-clear"><i class="fas fa-xmark"></i> Clear</button>
+        <button class="btn btn-warning btn-sm" id="bulk-poweroff" title="Power toggle"><i class="fas fa-power-off"></i></button>
+        <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-reload" title="Reload devices"><i class="fas fa-rotate-right"></i></button>
+        <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-clearcache" title="Clear caches"><i class="fas fa-broom"></i></button>
+        <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-pair" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
+        <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-remote" title="Open remote control"><i class="fas fa-gamepad"></i></button>
+        <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-override" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
+        <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-sendcmd" title="Send command"><i class="fas fa-terminal"></i></button>
+        <button class="btn btn-secondary btn-sm" id="bulk-playpause" title="Play/Pause"><i class="fas fa-play-pause"></i></button>
+        <button class="btn btn-error btn-sm" id="bulk-delete" title="Delete selected"><i class="fas fa-trash"></i></button>
+        <button class="btn btn-outline btn-sm" id="bulk-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+        <div class="dropdown">
+          <button class="btn btn-icon btn-sm" id="bulk-more" title="More"><i class="fas fa-ellipsis"></i></button>
+          <div class="dropdown-menu" id="bulk-more-menu"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remote Control Modal -->
+  <div class="modal-overlay" id="modal-remote">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="remote-title">
+      <div class="modal-header">
+        <div class="modal-title" id="remote-title"><i class="fas fa-gamepad"></i> Remote Control <span id="remote-target-name" style="opacity:.75"></span></div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="remote-grid" style="display:grid;grid-template-columns:repeat(3,60px);gap:10px;justify-content:center;align-items:center;">
+          <div></div>
+          <button class="btn" data-remote="up" title="Up"><i class="fas fa-arrow-up"></i></button>
+          <div></div>
+          <button class="btn" data-remote="left" title="Left"><i class="fas fa-arrow-left"></i></button>
+          <button class="btn btn-primary" data-remote="select" title="Select"><i class="fas fa-dot-circle"></i></button>
+          <button class="btn" data-remote="right" title="Right"><i class="fas fa-arrow-right"></i></button>
+          <div></div>
+          <button class="btn" data-remote="down" title="Down"><i class="fas fa-arrow-down"></i></button>
+          <div></div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:10px;margin-top:14px;">
+          <button class="btn" data-remote="back" title="Back"><i class="fas fa-arrow-rotate-left"></i></button>
+          <button class="btn" data-remote="home" title="Home"><i class="fas fa-house"></i></button>
+          <button class="btn" data-remote="menu" title="Menu"><i class="fas fa-bars"></i></button>
+          <button class="btn" data-remote="playpause" title="Play/Pause"><i class="fas fa-play-pause"></i></button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close-modal>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Display Settings Override Modal -->
+  <div class="modal-overlay" id="modal-override">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="override-title">
+      <div class="modal-header">
+        <div class="modal-title" id="override-title"><i class="fas fa-sliders"></i> Display Settings Override</div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Provide a JSON object to override display settings for the selected device(s).</p>
+        <textarea id="override-json" rows="10" style="width:100%;" placeholder="{\n  \"wallart\": { \"duration\": 30 }\n}"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close-modal>Cancel</button>
+        <button class="btn btn-primary" id="btn-override-apply"><i class="fas fa-check"></i> Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send Command Modal -->
+  <div class="modal-overlay" id="modal-sendcmd">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sendcmd-title">
+      <div class="modal-header">
+        <div class="modal-title" id="sendcmd-title"><i class="fas fa-terminal"></i> Send Command</div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Type</label>
+          <input id="sendcmd-type" type="text" placeholder="e.g. playback.pause" />
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Payload (JSON, optional)</label>
+          <textarea id="sendcmd-payload" rows="6" style="width:100%;" placeholder="{ }"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close-modal>Cancel</button>
+        <button class="btn btn-primary" id="btn-sendcmd-apply"><i class="fas fa-paper-plane"></i> Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pairing Codes Modal -->
+  <div class="modal-overlay" id="modal-pairing">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pairing-title">
+      <div class="modal-header">
+        <div class="modal-title" id="pairing-title"><i class="fas fa-qrcode"></i> Pairing Codes</div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" id="pairing-list" style="display:grid; gap:12px;">
+        <!-- dynamically filled: per device code + QR image -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close-modal>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Group Assign Modal -->
+  <div class="modal-overlay" id="modal-group-assign">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-group-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-group-title">
+          <i class="fas fa-layer-group"></i>
+          Assign to Group
+        </div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Select a group to assign or remove for the selected devices.</p>
+        <div class="form-group" style="margin-top: var(--space-md);">
+          <label for="group-select">Group</label>
+          <select id="group-select"></select>
+        </div>
+        <div class="form-group" style="margin-top: var(--space-md);">
+          <label for="new-group-name">Or create a new group</label>
+          <div style="display:flex; gap:.5rem; align-items:center;">
+            <input id="new-group-name" type="text" placeholder="New group name" />
+            <button class="btn btn-outline" id="btn-group-create-assign"><i class="fas fa-plus"></i> Create & assign</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close-modal>Cancel</button>
+        <button class="btn btn-secondary" id="btn-group-remove">Remove from group</button>
+        <button class="btn btn-primary" id="btn-group-assign">Assign to group</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign Preset Modal -->
+  <div class="modal-overlay" id="modal-assign-preset">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-preset-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-preset-title">
+          <i class="fas fa-star"></i>
+          Presets
+        </div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+  <p>Choose a preset to apply to the selected devices, or clear the current preset.</p>
+        <div class="form-group" style="margin-top: var(--space-md);">
+          <label for="preset-select">Preset</label>
+          <select id="preset-select"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+  <button class="btn btn-outline" data-close-modal>Cancel</button>
+  <button class="btn btn-secondary" id="btn-preset-clear">Clear preset</button>
+  <button class="btn btn-primary" id="btn-preset-apply">Apply preset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign Location Modal -->
+  <div class="modal-overlay" id="modal-assign-location">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-location-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-location-title">
+          <i class="fas fa-location-dot"></i>
+          Assign Location
+        </div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Set or clear the location for the selected devices.</p>
+        <div class="form-group" style="margin-top: var(--space-md);">
+          <label for="location-input">Location</label>
+          <input id="location-input" type="text" placeholder="e.g. Living Room" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close-modal>Cancel</button>
+        <button class="btn btn-secondary" id="btn-location-clear">Clear location</button>
+        <button class="btn btn-primary" id="btn-location-apply">Assign location</button>
       </div>
     </div>
   </div>
@@ -2770,6 +2803,23 @@
         <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
         <button type="button" id="btn-update-force" class="btn btn-warning" style="display:none;"><i class="fas fa-hammer"></i><span>Force Update</span></button>
         <button type="button" id="btn-update-confirm" class="btn btn-primary" disabled><i class="fas fa-check"></i><span>Start Update</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Devices Confirmation Modal (theme-demo structure) -->
+  <div class="modal-overlay" id="modal-delete-devices">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-delete-title"><i class="fas fa-trash"></i> Delete devices</div>
+        <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" id="modal-delete-content" style="padding: 20px;">
+        <!-- Filled dynamically with selection summary -->
+      </div>
+      <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end; padding: 16px 20px;">
+        <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
+        <button type="button" class="btn btn-error" id="btn-confirm-delete-devices"><i class="fas fa-trash"></i><span> Delete</span></button>
       </div>
     </div>
   </div>
@@ -2982,7 +3032,7 @@
   </div>
 
   <script src="/notify.js?v=20250906-1"></script>
-  <script src="/admin2.js?v=20250907-04"></script>
+  <script src="/admin2.js?v=20250907-06"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
     if ('serviceWorker' in navigator) {

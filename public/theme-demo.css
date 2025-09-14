@@ -703,6 +703,32 @@ body {
     color: #fbcfe8;
 }
 
+/* Device status variants (worst -> best: unknown, offline, online, live) */
+.status-pill.status-unknown {
+    background: rgba(148, 163, 184, 0.14); /* slate-400 */
+    border-color: rgba(148, 163, 184, 0.45);
+    color: #cbd5e1; /* slate-300 */
+}
+.status-pill.status-offline {
+    background: rgba(239, 68, 68, 0.14); /* red-500 */
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #fecaca; /* red-200 */
+}
+.status-pill.status-online {
+    background: rgba(34, 197, 94, 0.14); /* green-500 */
+    border-color: rgba(34, 197, 94, 0.5);
+    color: #bbf7d0; /* green-200 */
+}
+.status-pill.status-live {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    border-color: rgba(16, 185, 129, 0.7);
+    color: #fff;
+    box-shadow:
+        0 0 0 2px rgba(16, 185, 129, 0.3),
+        0 0 18px rgba(16, 185, 129, 0.55);
+    animation: live-pulse 2s infinite;
+}
+
 /* Dedicated variants for configuration state */
 .status-pill.is-configured {
     background: rgba(102, 126, 234, 0.15); /* secondary blue tone */
@@ -1237,6 +1263,7 @@ input[type='range']::-moz-range-thumb {
 .pill {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     padding: 4px 12px;
     background: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
@@ -1616,13 +1643,8 @@ input[type='range']::-moz-range-thumb {
     gap: var(--space-xs);
 }
 
-.page-numbers {
-    display: flex;
-    gap: var(--space-xs);
-}
-
 .pagination .btn {
-    color: var(--color-text-primary);
+    color: var(--color-text-primary) !important; /* ensure page numbers are readable */
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
 }
@@ -1634,7 +1656,7 @@ input[type='range']::-moz-range-thumb {
 
 .pagination .btn.active {
     background: var(--color-primary);
-    color: var(--color-text-inverse);
+    color: #fff !important; /* white text on green for contrast */
     border-color: var(--color-primary);
 }
 
@@ -1876,6 +1898,7 @@ input[type='range']::-moz-range-thumb {
     padding: var(--space-sm) var(--space-md);
     cursor: pointer;
     color: var(--color-text-primary);
+    white-space: nowrap;
 }
 .dropdown-item:hover {
     background: var(--color-bg-tertiary);
@@ -1956,6 +1979,7 @@ input[type='range']::-moz-range-thumb {
 .bulk-actions {
     display: flex;
     gap: var(--space-sm);
+    align-items: center;
 }
 
 /* Notification Center (in-app, non-toast) */
@@ -2581,13 +2605,48 @@ input[type='range']::-moz-range-thumb {
 /* Device Management - Cards Grid */
 .device-toolbar {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: var(--space-md);
     align-items: center;
+    white-space: nowrap; /* keep on one line on desktop */
+}
+/* Keep toolbar to the right within the header while letting title keep space */
+.panel-header .panel-actions.device-toolbar {
+    margin-left: auto;
+}
+/* Toolbar items: fixed-size buttons, search with constrained width */
+.device-toolbar .dropdown {
+    flex: 0 0 auto;
+}
+.device-toolbar .search-box {
+    flex: 0 0 auto;
+}
+.device-toolbar .search-box input {
+    min-width: 160px;
+    width: clamp(180px, 18vw, 240px);
+}
+
+/* On smaller screens, allow wrapping so controls don’t overflow */
+@media (max-width: 1024px) {
+    .device-toolbar {
+        flex-wrap: wrap;
+        white-space: normal;
+    }
+    .panel-header .panel-actions.device-toolbar {
+        margin-left: 0;
+        width: 100%;
+    }
+    .device-toolbar .search-box {
+        flex: 1 1 100%;
+    }
+    .device-toolbar .search-box input {
+        width: 100%;
+        min-width: 0;
+    }
 }
 .device-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
     gap: var(--space-lg);
 }
 .device-card {
@@ -2606,6 +2665,10 @@ input[type='range']::-moz-range-thumb {
     gap: var(--space-md);
     padding: var(--space-md) var(--space-lg);
     border-bottom: 1px solid var(--color-border);
+    /* Ensure header background follows card curvature */
+    border-top-left-radius: var(--border-radius-lg);
+    border-top-right-radius: var(--border-radius-lg);
+    overflow: hidden;
 }
 .device-select-wrap {
     display: grid;
@@ -2613,8 +2676,10 @@ input[type='range']::-moz-range-thumb {
     margin-right: var(--space-sm);
 }
 .device-card.selected {
-    outline: 2px solid var(--color-primary);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 25%, transparent);
+    /* Use ring-style box-shadows that respect border-radius instead of outline */
+    box-shadow:
+        0 0 0 2px var(--color-primary),
+        0 0 0 6px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 .device-id {
     display: flex;
@@ -2642,6 +2707,39 @@ input[type='range']::-moz-range-thumb {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
 }
+/* Inline rename input - matches theme inputs and device title look */
+.device-title .inline-rename-input,
+.inline-rename-input {
+    display: inline-block;
+    font: inherit;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: 4px 8px;
+    margin: -2px 0; /* align with title baseline */
+    min-width: 120px;
+    max-width: 100%;
+    width: auto;
+    box-shadow: none;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.device-title .inline-rename-input:focus,
+.inline-rename-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3);
+    background: var(--color-bg-card);
+}
+
+.inline-rename-input::placeholder {
+    color: var(--color-text-muted);
+}
 .device-card-body {
     padding: var(--space-lg);
     display: grid;
@@ -2661,10 +2759,63 @@ input[type='range']::-moz-range-thumb {
     padding: var(--space-md) var(--space-lg);
     border-top: 1px solid var(--color-border);
     background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card));
+    /* Ensure footer background follows card curvature */
+    border-bottom-left-radius: var(--border-radius-lg);
+    border-bottom-right-radius: var(--border-radius-lg);
+    overflow: hidden;
 }
 .device-actions .btn-group {
     display: flex;
     gap: var(--space-sm);
+}
+
+/* Overflow menus (kebab) for device cards and bulk bar */
+.action-buttons .dropdown.card-more {
+    position: relative;
+}
+.action-buttons .dropdown.card-more .dropdown-menu {
+    right: 0;
+    left: auto;
+    min-width: 220px;
+    max-height: 60vh;
+    overflow: auto;
+}
+.bulk-actions .dropdown .dropdown-menu {
+    right: 0;
+    left: auto;
+    min-width: 220px;
+    max-height: 60vh;
+    overflow: auto;
+}
+
+/* Kebab menus for action overflow */
+.bulk-actions .dropdown .dropdown-menu,
+.action-buttons .dropdown .dropdown-menu {
+    min-width: 220px;
+    max-height: 60vh;
+    overflow: auto;
+}
+.action-buttons .dropdown,
+.bulk-actions .dropdown {
+    position: relative;
+}
+.action-buttons .dropdown .btn,
+.bulk-actions .dropdown .btn {
+    min-width: 32px;
+    padding: 6px;
+}
+
+/* Hide the per-card kebab by default; JS will enable when needed */
+.action-buttons .dropdown.card-more {
+    display: none;
+}
+
+/* Bulk bar small screens: stack and show kebab */
+@media (max-width: 800px) {
+    .bulk-actions {
+        flex-wrap: nowrap;
+        overflow: hidden;
+    }
 }
 
 /* Hovercards (modal-on-hover) */
@@ -2725,8 +2876,18 @@ input[type='range']::-moz-range-thumb {
 }
 .pill-type {
     background: linear-gradient(135deg, rgba(107, 114, 128, 0.12), rgba(156, 163, 175, 0.12));
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary);
     border-color: rgba(107, 114, 128, 0.35);
+    border-radius: 999px;
+    padding: 6px 14px;
+    min-height: 28px;
+    line-height: 1.1;
+}
+
+/* tighten icon sizing/spacing inside type pill for balance */
+.pill-type i {
+    font-size: 0.95em;
+    opacity: 0.95;
 }
 
 /* Pagination tweaks for device section */
@@ -2744,6 +2905,15 @@ input[type='range']::-moz-range-thumb {
     border: 1px solid var(--color-border);
     padding: 6px 8px;
     border-radius: var(--border-radius-sm);
+}
+
+/* Ensure page number buttons are white for readability (without affecting prev/next arrows) */
+.device-pagination .pagination .page-numbers .btn {
+    color: #fff !important;
+}
+.device-pagination .pagination .page-numbers .btn:hover,
+.device-pagination .pagination .page-numbers .btn:focus-visible {
+    color: #fff !important;
 }
 
 /* Ensure the Device Management panel does not clip floating menus */
