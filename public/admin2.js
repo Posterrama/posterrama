@@ -797,6 +797,9 @@
             } else if (id === 'section-devices') {
                 // Hide the big page header for Device Management (use compact in-panel header)
                 pageHeader.style.display = 'none';
+            } else if (id === 'section-display') {
+                // Hide the big page header for Display Settings (placeholder uses compact panel)
+                pageHeader.style.display = 'none';
             } else {
                 // Default (Dashboard and any other sections using the big header)
                 pageHeader.style.display = '';
@@ -1707,6 +1710,9 @@
                 item.classList.add('active');
                 if (nav === 'dashboard') {
                     showSection('section-dashboard');
+                } else if (nav === 'display') {
+                    // Dedicated placeholder section for Display Settings (coming soon)
+                    showSection('section-display');
                 } else if (nav === 'operations') {
                     showSection('section-operations');
                     // ensure latest status/backups when entering
@@ -3113,7 +3119,7 @@
             }
 
             // Utilities: Modals for pairing, remote, override, send command
-            async function openPairingFor(ids) {
+            async function openPairingFor(ids, overrides) {
                 if (!Array.isArray(ids) || !ids.length) return;
                 const container = document.getElementById('pairing-list');
                 if (container) container.innerHTML = '';
@@ -3134,16 +3140,42 @@
                             }
                         );
                         const dev = (state.all || []).find(d => d.id === id);
-                        const name = dev?.name || id;
+                        const meta = (overrides && overrides[id]) || {};
+                        const name = meta.name || dev?.name || id;
+                        const location =
+                            meta.location != null ? meta.location : dev?.location || '';
+                        const groupIds = Array.isArray(meta.groups)
+                            ? meta.groups
+                            : Array.isArray(dev?.groups)
+                              ? dev.groups
+                              : [];
+                        // Map group ids to names using state.groups
+                        const groups = Array.isArray(groupIds)
+                            ? groupIds
+                                  .map(gid => {
+                                      const g = (state.groups || []).find(
+                                          x => String(x.id) === String(gid)
+                                      );
+                                      return g ? g.name || g.id : gid;
+                                  })
+                                  .filter(Boolean)
+                            : [];
                         const claimUrl = `${location.origin}/?pair=${encodeURIComponent(r?.code || '')}`;
                         const qrUrl = `/api/qr?text=${encodeURIComponent(claimUrl)}&format=svg`;
                         const expMs =
                             r?.expiresInMs ||
                             Math.max(0, Date.parse(r?.expiresAt || 0) - Date.now());
+                        const expAt = Date.now() + (r?.expiresInMs || 0);
+                        const tagHtml = `
+                            <div class="pairing-tags" aria-label="Device attributes">
+                                ${location ? `<span class="pill" title="Location"><i class=\"fas fa-location-dot\"></i> ${escapeHtml(String(location))}</span>` : ''}
+                                ${groups.map(g => `<span class=\"pill\" title=\"Group\"><i class=\"fas fa-layer-group\"></i> ${escapeHtml(String(g))}</span>`).join(' ')}
+                            </div>`;
                         const html = `
-                            <div class="pairing-item">
+                            <div class="pairing-item" data-expires-at="${String(expAt)}">
                                 <div class="pairing-meta">
                                     <div class="pairing-title">${escapeHtml(name)}</div>
+                                    ${tagHtml}
                                     <div class="pairing-row">
                                         <div class="pairing-label">Code</div>
                                         <div class="pairing-copy">
@@ -3196,6 +3228,19 @@
                         }
                     });
                     container._copyBound = true;
+                }
+                // Start ticking countdown for all items in this container
+                if (container && !container._tickTimer) {
+                    container._tickTimer = setInterval(() => {
+                        container.querySelectorAll('.pairing-item').forEach(item => {
+                            const expAt = Number(item.getAttribute('data-expires-at') || '0');
+                            const left = Math.max(0, expAt - Date.now());
+                            const el = item.querySelector('.pairing-exp');
+                            if (el)
+                                el.textContent =
+                                    left > 0 ? `Expires in ${fmtExp(left)}` : 'Expired';
+                        });
+                    }, 1000);
                 }
                 document.getElementById('modal-pairing')?.classList.add('open');
             }
@@ -5434,57 +5479,48 @@
     // exportMetrics removed with header Export button
 
     async function refreshAll() {
-        await Promise.all([
-            refreshDevices(),
-            refreshDashboardMetrics(),
-            refreshPerfDashboard(),
-            refreshVersionAndUpdate(),
-        ]);
+        await Promise.all([refreshDevices(), refreshPerfDashboard(), refreshVersionAndUpdate()]);
         await refreshCacheStatsV2();
     }
 
-    // Init
-    document.addEventListener('DOMContentLoaded', () => {
-        wireEvents();
-        wireCacheActions();
-        refreshAll();
-        // Fallback: ensure Devices section gets initialized even if user lands directly
-        try {
-            window.admin2?.initDevices?.();
-        } catch (_) {}
-        // Start live KPIs if Dashboard is visible on first load
-        try {
-            const dashEl = document.getElementById('section-dashboard');
-            const isDash = !!dashEl && dashEl.classList.contains('active');
-            if (isDash) {
-                startDashboardLive();
-                startPerfLive();
-            }
-        } catch (_) {
-            /* no-op */
+    // Initialize cache actions and kick off initial refreshes
+    wireCacheActions();
+    refreshAll();
+    // Fallback: ensure Devices section gets initialized even if user lands directly
+    try {
+        window.admin2?.initDevices?.();
+    } catch (_) {}
+    // If dashboard is the active tab on load, start live updates
+    try {
+        const dashEl = document.getElementById('section-dashboard');
+        const isDash = !!dashEl && dashEl.classList.contains('active');
+        if (isDash) {
+            startDashboardLive();
+            startPerfLive();
         }
-
-        // Pause/resume polling when the tab/window visibility changes
-        try {
-            document.addEventListener('visibilitychange', () => {
-                const isHidden = document.visibilityState === 'hidden';
-                if (isHidden) {
-                    stopDashboardLive();
-                    stopPerfLive();
-                } else {
-                    const isDashActive = document
-                        .getElementById('section-dashboard')
-                        ?.classList.contains('active');
-                    if (isDashActive) {
-                        startDashboardLive();
-                        startPerfLive();
-                    }
+    } catch (_) {
+        /* no-op */
+    }
+    // Pause/resume polling when the tab/window visibility changes
+    try {
+        document.addEventListener('visibilitychange', () => {
+            const isHidden = document.visibilityState === 'hidden';
+            if (isHidden) {
+                stopDashboardLive();
+                stopPerfLive();
+            } else {
+                const isDashActive = document
+                    .getElementById('section-dashboard')
+                    ?.classList.contains('active');
+                if (isDashActive) {
+                    startDashboardLive();
+                    startPerfLive();
                 }
-            });
-        } catch (_) {
-            /* ignore */
-        }
-    });
+            }
+        });
+    } catch (_) {
+        /* ignore */
+    }
 
     // Update confirmation modal (theme-demo style)
     async function openUpdateModal() {
@@ -5600,6 +5636,14 @@
 
     // Server Settings + Promobox save + Media Sources wiring
     document.addEventListener('DOMContentLoaded', () => {
+        // Ensure all interactive UI handlers (including sidebar nav) are wired
+        try {
+            typeof wireEvents === 'function' && wireEvents();
+        } catch (e) {
+            try {
+                console.warn('wireEvents() init failed', e);
+            } catch (_) {}
+        }
         const btnSaveServer = document.getElementById('btn-save-server-settings');
         const btnSavePromo = document.getElementById('btn-save-promobox');
         const btnSaveOps = document.getElementById('btn-save-operations');

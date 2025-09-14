@@ -95,7 +95,7 @@
   #modal-pairing .modal-body { padding-top: 12px; }
   .pairing-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--color-border); background: rgba(255,255,255,0.03); }
   .pairing-meta { flex: 1; min-width: 0; }
-  .pairing-title { font-weight: 600; margin-bottom: 6px; }
+  .pairing-title { font-weight: 700; margin-bottom: 8px; font-size: 1.05rem; }
   .pairing-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
   .pairing-label { width: 96px; color: var(--color-text-muted); flex: 0 0 auto; }
   .pairing-copy { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
@@ -103,7 +103,9 @@
   .pairing-input { width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-card); color: var(--color-text-primary); }
   .pairing-input:focus { outline: none; border-color: var(--color-info); box-shadow: 0 0 0 3px rgba(102,126,234,0.25); }
   .pairing-exp { margin-top: 6px; opacity: .85; }
-  .pairing-qr img { width: 104px; height: 104px; background: #fff; padding: 8px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.25); }
+  .pairing-qr img { width: 176px; height: 176px; background: #fff; padding: 10px; border-radius: 14px; box-shadow: 0 3px 14px rgba(0,0,0,0.3); }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; border:1px solid var(--color-border); background: rgba(255,255,255,0.04); font-size: .85rem; }
+  .pill i { color: var(--color-text-muted); }
     /* Status tiles styling */
     .status-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
     .status-tile { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
@@ -1200,6 +1202,19 @@
       </section>
     </section>
     </section> <!-- /section-dashboard -->
+
+    <!-- Display Settings (placeholder) -->
+    <section id="section-display" class="app-section" hidden>
+      <div class="panel" style="padding: 20px;">
+        <div class="panel-header" style="display:flex;align-items:center;gap:10px;">
+          <i class="fas fa-desktop" aria-hidden="true"></i>
+          <h2 style="margin:0;">Display Settings</h2>
+        </div>
+        <div class="panel-content" style="margin-top:12px;">
+          <p class="subtle">This section is under construction. Display presets and per-device display configuration will appear here.</p>
+        </div>
+      </div>
+    </section>
 
     <!-- Media Sources Section (top-level sibling, not nested under dashboard) -->
     <section id="section-media-sources" class="app-section" hidden>
