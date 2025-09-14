@@ -6219,6 +6219,82 @@ app.get(
 
 /**
  * @swagger
+ * /api/admin/restart-app:
+ *   post:
+ *     summary: Restart the Posterrama application
+ *     description: >
+ *       Triggers a safe application restart. When running under PM2, the process
+ *       is restarted using PM2 with --update-env to ensure fresh environment variables.
+ *       The endpoint responds immediately to avoid client timeouts while the process
+ *       restarts in the background. The admin UI will poll /health until the server
+ *       is back online.
+ *     tags: ['Admin', 'Operations']
+ *     responses:
+ *       200:
+ *         description: Restart initiated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 restarting:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         description: Unauthorized (admin only)
+ */
+app.post('/api/admin/restart-app', adminAuth, (req, res) => {
+    try {
+        // Respond immediately so the client can start polling /health
+        res.setHeader('Cache-Control', 'no-store');
+        res.json({ ok: true, restarting: true });
+    } catch (_) {
+        // Even if response fails, still attempt restart below
+    }
+
+    // Defer actual restart a moment to allow response to flush
+    setTimeout(() => {
+        try {
+            const name = (ecosystemConfig?.apps && ecosystemConfig.apps[0]?.name) || 'posterrama';
+            const underPm2 = !!process.env.PM2_HOME;
+            if (underPm2) {
+                const cmd = `pm2 restart ${name} --update-env || pm2 start ecosystem.config.js`;
+                exec(cmd, (err, stdout, stderr) => {
+                    if (err) {
+                        try {
+                            logger.warn('[Admin Restart] PM2 command failed', {
+                                error: err.message,
+                                stdout: (stdout || '').slice(0, 500),
+                                stderr: (stderr || '').slice(0, 500),
+                            });
+                        } catch (_) {}
+                        return;
+                    }
+                    try {
+                        logger.info('[Admin Restart] Restart command issued via PM2');
+                    } catch (_) {}
+                });
+            } else {
+                // Not under PM2: exit and rely on nodemon/systemd/supervisor to restart (or manual)
+                try {
+                    logger.info('[Admin Restart] Exiting process to trigger external restart');
+                } catch (_) {}
+                setTimeout(() => process.exit(0), 250);
+            }
+        } catch (e) {
+            try {
+                logger.error('[Admin Restart] Unexpected failure', { error: e?.message });
+            } catch (_) {}
+            if (!process.env.PM2_HOME) setTimeout(() => process.exit(0), 250);
+        }
+    }, 200);
+});
+
+/**
+ * @swagger
  * /get-config:
  *   get:
  *     summary: Retrieve the public application configuration
@@ -6321,7 +6397,9 @@ app.get(
                 transitionInterval: 30,
             },
             transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
-            backgroundRefreshMinutes: 30,
+            backgroundRefreshMinutes: Number.isFinite(Number(config.backgroundRefreshMinutes))
+                ? Number(config.backgroundRefreshMinutes)
+                : 60,
             showClearLogo: config.showClearLogo !== false,
             showPoster: config.showPoster !== false,
             showMetadata: config.showMetadata === true,
@@ -13227,11 +13305,16 @@ if (require.main === module) {
 
             logger.info('Server startup complete - media cache is ready');
 
-            // Fixed background refresh interval (30 minutes)
-            const refreshInterval = 30 * 60 * 1000;
+            // Background refresh interval (minutes)
+            const refreshMinutes = Number(config.backgroundRefreshMinutes ?? 60);
+            const refreshInterval = Math.max(0, Math.round(refreshMinutes)) * 60 * 1000;
             if (refreshInterval > 0) {
                 global.playlistRefreshInterval = setInterval(refreshPlaylistCache, refreshInterval);
-                logger.debug(`Playlist will be refreshed in the background every 30 minutes.`);
+                logger.debug(
+                    `Playlist will be refreshed in the background every ${Math.round(
+                        refreshMinutes
+                    )} minutes.`
+                );
             }
 
             // Set up automatic cache cleanup - use configurable interval

@@ -3306,11 +3306,11 @@
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closeMenu();
         });
-        // Close settings menu when any item (except restart confirmation flow) is clicked
+        // Close settings menu when any item is clicked (restart is now single-click)
         settingsMenu?.addEventListener('click', e => {
             const item = e.target.closest('a.dropdown-item');
             if (!item) return;
-            if (item.id !== 'menu-restart') closeMenu();
+            closeMenu();
         });
 
         // Notifications bell: themed Notification Center panel (matches theme-demo)
@@ -4426,75 +4426,67 @@
             }
         });
 
-        // Restart action under settings
+        // Restart action under settings (resilient to immediate POST failure)
         const restartLink = document.getElementById('menu-restart');
         restartLink?.addEventListener('click', async e => {
             e.preventDefault();
-            const el = e.currentTarget;
-            const confirming = el.getAttribute('data-confirm') === '1';
-            if (!confirming) {
-                el.setAttribute('data-confirm', '1');
-                const span = el.querySelector('span');
-                if (span) span.textContent = 'Click again to confirm';
-                setTimeout(() => {
-                    el.removeAttribute('data-confirm');
-                    const sp = el.querySelector('span');
-                    if (sp) sp.textContent = 'Restart Posterrama';
-                }, 2000);
-                return;
-            }
+            // Immediately close the settings menu and trigger restart on single click
             try {
-                el.classList.add('disabled');
-                await fetch('/api/admin/restart-app', {
-                    method: 'POST',
-                    credentials: 'include',
-                });
-                // Show persistent toast and begin polling until the server is back
-                const t = window.notify?.toast({
-                    type: 'info',
-                    title: 'Restarting…',
-                    message: 'Posterrama is restarting. This may take a few seconds.',
-                    duration: 0,
-                });
-                const start = Date.now();
-                const timeoutMs = 120000; // 2 minutes safety cap
-                const poll = async () => {
-                    try {
-                        const r = await fetch('/health?_=' + Date.now(), { cache: 'no-store' });
-                        if (r.ok) {
-                            t?.dismiss && t.dismiss();
-                            window.notify?.toast({
-                                type: 'success',
-                                title: 'Back online',
-                                message: 'Server is available again. Refreshing…',
-                                duration: 2000,
-                            });
-                            setTimeout(() => location.reload(), 800);
-                            return;
-                        }
-                    } catch (_) {
-                        /* server likely down; keep polling */
-                    }
-                    if (Date.now() - start < timeoutMs) {
-                        setTimeout(poll, 1500);
-                    } else {
+                closeMenu();
+            } catch (_) {}
+            const el = e.currentTarget;
+            el.classList.add('disabled');
+            // Show persistent toast up-front so users get feedback even if POST fails mid-restart
+            const t = window.notify?.toast({
+                type: 'info',
+                title: 'Restarting…',
+                message: 'Posterrama is restarting. This may take a few seconds.',
+                duration: 0,
+            });
+            // Fire-and-forget the restart request; errors are non-fatal because the server may drop during restart
+            try {
+                fetch('/api/admin/restart-app', { method: 'POST', credentials: 'include' }).catch(
+                    () => {}
+                );
+            } catch (_) {
+                /* ignore */
+            }
+            const start = Date.now();
+            const timeoutMs = 120000; // 2 minutes safety cap
+            const poll = async () => {
+                try {
+                    const r = await fetch('/health?_=' + Date.now(), { cache: 'no-store' });
+                    if (r.ok) {
                         t?.dismiss && t.dismiss();
                         window.notify?.toast({
-                            type: 'warning',
-                            title: 'Still restarting',
-                            message:
-                                'Server not reachable yet. You can refresh manually when it’s back.',
-                            duration: 6000,
+                            type: 'success',
+                            title: 'Back online',
+                            message: 'Server is available again. Refreshing…',
+                            duration: 2000,
                         });
+                        setTimeout(() => location.reload(), 800);
+                        return;
                     }
-                };
-                // Short delay to allow restart to start, then poll
-                setTimeout(poll, 1500);
-            } catch (_) {
-                // non-fatal
-            } finally {
-                el.classList.remove('disabled');
-            }
+                } catch (_) {
+                    /* server likely down; keep polling */
+                }
+                if (Date.now() - start < timeoutMs) {
+                    setTimeout(poll, 1500);
+                } else {
+                    t?.dismiss && t.dismiss();
+                    window.notify?.toast({
+                        type: 'warning',
+                        title: 'Still restarting',
+                        message:
+                            'Server not reachable yet. You can refresh manually when it’s back.',
+                        duration: 6000,
+                    });
+                }
+            };
+            // Short delay to allow restart to begin, then poll
+            setTimeout(poll, 1500);
+            // Keep the control enabled after we initiate restart to allow navigation if needed
+            el.classList.remove('disabled');
         });
 
         // Sidebar section switching (ignore group toggles)
@@ -13299,8 +13291,8 @@
                 }
                 // Collect Background Refresh Minutes (Media)
                 const brmInput = document.getElementById('ops.backgroundRefreshMinutes');
-                let backgroundRefreshMinutes = Number(brmInput?.value || 30);
-                if (!Number.isFinite(backgroundRefreshMinutes)) backgroundRefreshMinutes = 30;
+                let backgroundRefreshMinutes = Number(brmInput?.value || 60);
+                if (!Number.isFinite(backgroundRefreshMinutes)) backgroundRefreshMinutes = 60;
                 backgroundRefreshMinutes = Math.max(
                     5,
                     Math.min(1440, Math.round(backgroundRefreshMinutes))
@@ -13440,8 +13432,8 @@
             // Background Refresh Minutes (Media)
             const brmEl = document.getElementById('ops.backgroundRefreshMinutes');
             if (brmEl) {
-                const v = Number(cfg?.backgroundRefreshMinutes ?? 30);
-                brmEl.value = Number.isFinite(v) && v > 0 ? String(v) : '30';
+                const v = Number(cfg?.backgroundRefreshMinutes ?? 60);
+                brmEl.value = Number.isFinite(v) && v > 0 ? String(v) : '60';
             }
             // Promobox
             const site = cfg.siteServer || {};

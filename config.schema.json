@@ -411,7 +411,7 @@
             "description": "Cache tuning parameters.",
             "type": "object",
             "properties": {
-                "maxSizeGB": { "type": "number", "minimum": 0, "default": 5 },
+                "maxSizeGB": { "type": "number", "minimum": 0, "default": 2 },
                 "minFreeDiskSpaceMB": { "type": "integer", "minimum": 0, "default": 750 },
                 "autoCleanup": { "type": "boolean", "default": true },
                 "cleanupIntervalMinutes": { "type": "integer", "minimum": 1, "default": 15 },
