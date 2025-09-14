@@ -4,24 +4,15 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.0.3-blue.svg)](https://github.com/Posterrama/posterrama) [![Downloads](https://img.shields.io/github/downloads/Posterrama/posterrama/total?style=flat&logo=github&label=Downloads&color=brightgreen)](https://github.com/Posterrama/posterrama/releases) [![Tests](https://img.shields.io/badge/tests-949%20tests%20in%2061%20suites-brightgreen)](#testing) [![Coverage](https://img.shields.io/badge/coverage-87.53%25-brightgreen)](#testing) [![Node.js](https://img.shields.io/badge/node.js-%E2%89%A518.0.0-brightgreen)](https://nodejs.org/) [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
-
-<p style="margin: 6px 0 0 0;">
-  <a href="https://www.plex.tv/"><img alt="Plex" src="https://img.shields.io/badge/Plex-Supported-E5A00D?logo=plex&logoColor=white"></a>
-  <a href="https://jellyfin.org/"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-Supported-00A4DC?logo=jellyfin&logoColor=white"></a>
-  <a href="https://www.themoviedb.org/"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-Integrated-01D277?logo=tmdb&logoColor=white"></a>
-  <a href="https://thetvdb.com/"><img alt="TVDB" src="https://img.shields.io/badge/TVDB-Integrated-0285FF?logo=thetvdb&logoColor=white"></a>
-  <img alt="OpenAPI Docs" src="https://img.shields.io/badge/Docs-Swagger_/_OpenAPI-6BA539?logo=swagger&logoColor=white">
-
-</p>
+[![Version](https://img.shields.io/badge/version-2.0.3-blue.svg)](https://github.com/Posterrama/posterrama) [![Node.js](https://img.shields.io/badge/node.js-%E2%89%A518.0.0-blue)](https://nodejs.org/) [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](./LICENSE)
 
 <img src="./screenshots/screensaver.png" alt="Posterrama hero" width="740">
 
- </div>
+</div>
 
 ---
 
-## 🌟 What can you do with Posterrama?
+## What you can do with Posterrama
 
 **Posterrama** transforms any screen into a dynamic, personal cinema experience. Use it as:
 
@@ -32,9 +23,9 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎬 Screensaver Mode
+### Screensaver mode
 
 <figure>
   <img src="./screenshots/screensaver_2.png" alt="Screensaver Mode – Ken Burns and smooth fades" width="740">
@@ -53,7 +44,7 @@ Turn any screen into a cinematic slideshow. Enjoy smooth, full-screen poster tra
 - Option to show movie/series info, ratings, and logos
 - Works in both landscape and portrait orientation
 
-### 🖼️ Wallart Mode
+### Wallart mode
 
 <figure>
   <img src="./screenshots/wallart.png" alt="Wallart Grid" width="740">
@@ -75,7 +66,7 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
   
 </figure>
 
-### 🏛️ Cinema Mode
+### Cinema mode
 
 Perfect for vertical screens or digital signage. Show a rotating selection of posters in portrait orientation, with smooth transitions and optional info overlays. Ideal for hallway displays, kiosks, or a true cinema entrance feel.
 
@@ -85,7 +76,7 @@ Perfect for vertical screens or digital signage. Show a rotating selection of po
 - Smooth poster transitions
 - Optional info overlays and ratings
 
-### 📱 Mobile Admin & Responsive Design
+### Mobile admin and responsive design
 
 <div align="center" style="margin: 8px 0;">
   <img src="./screenshots/admin_1.jpg" alt="Admin UI 1" height="240" style="margin: 0 8px; vertical-align: bottom;" />
@@ -96,15 +87,15 @@ Perfect for vertical screens or digital signage. Show a rotating selection of po
 
 Configure everything from your phone, tablet, or desktop. The admin dashboard is fully responsive and works on any device.
 
-### ⚡ Realtime Preview
+### Realtime preview
 
 See changes instantly while you configure. Most settings hot‑reload without a restart; the display updates in real time as you tweak options in the admin.
 
-### ⚡ Blazing Fast Caching & Optimization
+### Caching and optimization
 
 Images are loaded instantly thanks to smart caching and optimization. Posters always look sharp, even on 4K displays.
 
-### 🔗 Multiple Content Sources
+### Multiple content sources
 
 <figure>
   <img src="./screenshots/admin_sources.png" alt="Admin Sources" width="740">
@@ -116,7 +107,7 @@ Connect your Plex or Jellyfin server, or add popular sources like TMDB and TVDB.
 
 ---
 
-## 🔧 Content Source Features
+## Content source features
 
 In the admin dashboard, you can configure for each source:
 
@@ -133,7 +124,7 @@ In the admin dashboard, you can configure for each source:
   
 </figure>
 
-### 🖥️ Device Management (BETA)
+### Device management (beta)
 
 <figure>
   <img src="./screenshots/devices.png" alt="Device Management" width="740">
@@ -152,11 +143,11 @@ Tooltips explain each control and status for quick onboarding. Overrides merge o
 
 ---
 
-## 🔊 Coming Soon — turn it up to eleven
+## Roadmap
 
 A quick peek at what's next. We're actively building these high‑impact upgrades to make Posterrama even more powerful and fun.
 
-**🎬 Cinema & Visual Experience**
+**Cinema & visual experience**
 
 - [ ] Cinema mode: major expansion planned with many new features
 - [ ] Advanced transition effects
@@ -164,11 +155,11 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 - [ ] Now playing mode (cinema)
 - [ ] Trailer support
 
-**🎨 Customization & Design**
+**Customization & design**
 
 - [ ] Font/size/color customization
 
-**📚 Media Sources & Libraries**
+**Media sources & libraries**
 
 - [ ] Local photo directory support
 - [ ] Emby integration
@@ -179,7 +170,7 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 
 And that's just the beginning — much more is on the way.
 
-## 🚀 Get Started Instantly
+## Get started
 
 ### One-line install
 
@@ -211,13 +202,13 @@ pm2 start ecosystem.config.js
 pm2 save
 ```
 
-## 🛠️ Configuration & Usage
+## Configuration and usage
 
 Go to http://your-posterrama-ip:4000/admin to:
 
 Everything is managed through a clear dashboard—no coding required.
 
-### 🔌 Platform Integration
+### Platform integration
 
 #### Android TV
 
@@ -227,6 +218,6 @@ Everything is managed through a clear dashboard—no coding required.
 
 ---
 
-## 📄 License
+## License
 
 GPL-3.0-or-later – See [LICENSE](LICENSE) for details.
