@@ -108,4 +108,9 @@ cat .env | grep JELLYFIN_API_KEY
 3. **Monitor startup logs**: Check for "Updated X from PM2 cache" messages
 4. **Verify environment**: Use `pm2 env 0` to confirm correct values loaded
 
+### Admin UI cache refresh
+
+- The Admin UI (`/admin`) loads `admin.js` and `admin.css` with server-side cache-busting and a Service Worker network-first strategy.
+- A regular restart is sufficient to pick up UI changes; clients typically receive the latest assets on next load.
+
 This solution ensures that `.env` values are **always** used, regardless of PM2's internal caching behavior.

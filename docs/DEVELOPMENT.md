@@ -35,6 +35,20 @@ posterrama/
 3. **API** → Serve aggregated data via REST endpoints
 4. **Frontend** → Display content with smooth transitions
 
+## 🧭 Admin UI
+
+- Entry points:
+    - Admin panel: `/admin`
+    - Admin login: `/admin/login`
+- Assets and cache-busting:
+    - Admin assets are `admin.js` and `admin.css`
+    - `server.js` stamps `?v=<per-file-version>` onto these assets when serving `public/admin.html`
+    - The Service Worker fetch strategy is network-first for `/admin.js` and `/admin.css` to ensure you always get the latest UI; it falls back to cache if offline
+- Legacy routes/assets:
+    - The legacy `/admin2` route has been removed; use `/admin`
+    - Older admin files are archived under `private/` for rollback only and are not served
+    - `admin-help.js` has been removed (no active references)
+
 ## 📦 Dependency Management
 
 ### Production Dependencies

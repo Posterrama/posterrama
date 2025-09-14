@@ -129,6 +129,7 @@ npm test sources           # Specific test suite
 ### Documentation
 
 - Update README for user-facing changes
+- If changes affect the Admin UI, ensure docs and routes reflect that the admin lives at `/admin` (not `/admin2`) and references `admin.css`/`admin.js`
 - Add JSDoc for new APIs
 - Include examples in documentation
 - Keep documentation concise
