@@ -123,6 +123,22 @@
     display: inline-flex;
     align-items: center;
 }
+
+/* Devices pagination */
+#devices-pagination {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 8px;
+}
+#devices-pagination .hint {
+    opacity: 0.9;
+}
+#devices-page-size {
+    background: #0b0b0b;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 4px 8px;
+}
 /* === POSTERRAMA ADMIN DARK THEME === */
 
 /* Screen reader only content */
@@ -5139,6 +5155,22 @@ fieldset:focus-within {
     border: 1px solid rgba(37, 99, 235, 0.4);
     color: #c7d2fe;
 }
+/* Icons-only toolbar state when rows are selected */
+#devices-section .devices-toolbar.icons-only .btn {
+    min-width: 0;
+    padding: 0.4rem 0.5rem; /* tighter for icon-only */
+    text-align: center;
+}
+#devices-section .devices-toolbar.icons-only .btn .caret,
+#devices-section .devices-toolbar.icons-only .btn span:not(.icon) {
+    display: none !important; /* hide labels and dropdown carets */
+}
+#devices-section .devices-toolbar.icons-only .btn .icon {
+    margin-right: 0; /* no gap when label hidden */
+}
+#devices-section .devices-toolbar.icons-only .btn.btn-compact {
+    min-width: 0; /* override 160px in compact style */
+}
 /* Left-align the pill in the status header */
 #devices-section th.col-status {
     text-align: left;
@@ -5220,6 +5252,89 @@ fieldset:focus-within {
 /* Make each device row a positioning context */
 #devices-section tbody tr {
     position: relative;
+}
+/* Highlight selected device rows with magenta (error) outline */
+#devices-section tbody tr.is-selected,
+#devices-section .table-wrapper table tbody tr.is-selected,
+#devices-section tbody tr:has(.row-select:checked) {
+    outline: 2px solid rgba(255, 0, 167, 0.8) !important; /* magenta */
+    outline-offset: 2px !important;
+    border-radius: 12px;
+    box-shadow: 0 0 0 3px rgba(255, 0, 167, 0.18) !important;
+}
+
+/* Bulk bar: icons-only, white icons (no colored pills) */
+#devices-section .bulk-bar .bulk-actions .btn,
+#devices-section .bulk-bar .btn,
+#devices-section .bulk-bar .bulk-actions .btn.btn-warning,
+#devices-section .bulk-bar .bulk-actions .btn.btn-secondary,
+#devices-section .bulk-bar .bulk-actions .btn.btn-error,
+#devices-section .bulk-bar .bulk-actions .btn.btn-outline {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: #e5e7eb !important; /* white-ish */
+    box-shadow: none !important;
+    min-width: 0;
+    padding: 0.35rem 0.4rem; /* tighter hit area for smaller icons */
+}
+#devices-section .bulk-bar .btn .icon,
+#devices-section .bulk-bar .btn i {
+    color: #e5e7eb !important;
+    font-size: 16px !important; /* smaller icons */
+    line-height: 1; /* tighten */
+}
+#devices-section .bulk-bar .btn:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: transparent !important;
+}
+#devices-section .bulk-bar .btn span:not(.icon) {
+    display: none !important;
+}
+
+/* Remove the Remote Control action from bulk bar (robust selectors) */
+#devices-section .bulk-bar #bulk-remote,
+#devices-section .bulk-bar [id*='bulk-remote'],
+#devices-section .bulk-bar [data-cmd='remote'],
+#devices-section .bulk-bar [data-action='remote'],
+#devices-section .bulk-bar button[title*='Remote' i],
+#devices-section .bulk-actions .dropdown-menu [data-cmd='remote'],
+#devices-section .bulk-actions .dropdown-menu [data-action='remote'],
+#devices-section .bulk-actions .dropdown-menu [title*='Remote' i] {
+    display: none !important;
+}
+/* Ensure hide applies even if bulk bar markup lacks .bulk-bar */
+#devices-section #bulk-remote {
+    display: none !important;
+}
+#bulk-remote {
+    display: none !important;
+}
+
+/* Also style when only .bulk-actions is present (no .bulk-bar wrapper) */
+#devices-section .bulk-actions .btn,
+#devices-section .bulk-actions .btn.btn-warning,
+#devices-section .bulk-actions .btn.btn-secondary,
+#devices-section .bulk-actions .btn.btn-error,
+#devices-section .bulk-actions .btn.btn-outline {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: #e5e7eb !important;
+    box-shadow: none !important;
+    min-width: 0;
+    padding: 0.4rem 0.45rem !important;
+}
+#devices-section .bulk-actions .btn .icon,
+#devices-section .bulk-actions .btn i {
+    color: #e5e7eb !important;
+    font-size: 16px !important; /* smaller icons */
+    line-height: 1;
+}
+#devices-section .bulk-actions .btn:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: transparent !important;
+}
+#devices-section .bulk-actions .btn span:not(.icon) {
+    display: none !important;
 }
 /* Bottom-align input controls across cells using a consistent baseline gap */
 /* Removed absolute positioning to prevent overlap and restore normal flow */

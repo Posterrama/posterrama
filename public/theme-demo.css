@@ -2044,6 +2044,29 @@ input[type='range']::-moz-range-thumb {
     align-items: center;
 }
 
+/* Bulk bar: icons-only with white icons (no colored pills) */
+.bulk-bar .bulk-actions .btn {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: #e5e7eb !important; /* light/white-ish */
+    box-shadow: none !important;
+    min-width: 0;
+    padding: 6px; /* smaller tap target */
+}
+.bulk-bar .bulk-actions .btn .icon,
+.bulk-bar .bulk-actions .btn i {
+    color: #e5e7eb !important;
+    font-size: 16px !important; /* smaller icons */
+    line-height: 1;
+}
+.bulk-bar .bulk-actions .btn:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: transparent !important;
+}
+.bulk-bar .bulk-actions .btn span:not(.icon) {
+    display: none !important; /* hide any text labels if present */
+}
+
 /* Notification Center (in-app, non-toast) */
 .notify-center {
     position: fixed;
@@ -2742,8 +2765,8 @@ input[type='range']::-moz-range-thumb {
 .device-card {
     /* Title color for name text */
     --device-title-color: color-mix(in srgb, var(--color-text-secondary) 92%, white 8%);
-    /* Accent matches the client/browser pill blue */
-    --device-accent: #3b82f6; /* blue-500 */
+    /* Accent color for selected border */
+    --device-accent: #03bcc2; /* cyan */
 }
 .device-card.selected {
     /* Change the actual border to blue (no extra ring) */

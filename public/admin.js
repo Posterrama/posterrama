@@ -9686,6 +9686,99 @@ function devLog(...args) {
     }
 }
 devLog('Debug logging enabled');
+// Client-side pagination state for Devices table
+window.__devicesPagination = window.__devicesPagination || {
+    currentPage: 1,
+    pageSize: Number(localStorage.getItem('devices.ui.pageSize') || 25) || 25,
+    totalItems: 0,
+};
+function devicesSetPageSize(n) {
+    const size = Math.max(1, Number(n) || 25);
+    window.__devicesPagination.pageSize = size;
+    try {
+        localStorage.setItem('devices.ui.pageSize', String(size));
+    } catch (_) {}
+}
+function devicesSetPage(p) {
+    const pg = Math.max(1, Number(p) || 1);
+    window.__devicesPagination.currentPage = pg;
+}
+function devicesClampPage() {
+    const { totalItems, pageSize } = window.__devicesPagination;
+    const totalPages = Math.max(1, Math.ceil((totalItems || 0) / Math.max(1, pageSize)));
+    if (window.__devicesPagination.currentPage > totalPages)
+        window.__devicesPagination.currentPage = totalPages;
+    if (window.__devicesPagination.currentPage < 1) window.__devicesPagination.currentPage = 1;
+    return totalPages;
+}
+function devicesApplyPaginationToRows() {
+    try {
+        const tbody = document.querySelector('#devices-table tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const { currentPage, pageSize } = window.__devicesPagination;
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        rows.forEach((tr, idx) => {
+            tr.style.display = idx >= start && idx < end ? '' : 'none';
+        });
+        devicesUpdatePaginationUI(rows.length);
+    } catch (_) {}
+}
+function devicesUpdatePaginationUI(total) {
+    try {
+        const info = document.getElementById('devices-page-info');
+        const prev = document.getElementById('devices-page-prev');
+        const next = document.getElementById('devices-page-next');
+        const sel = document.getElementById('devices-page-size');
+        if (sel) {
+            const size = window.__devicesPagination.pageSize;
+            if (String(sel.value) !== String(size)) sel.value = String(size);
+        }
+        const pageSize = Math.max(1, window.__devicesPagination.pageSize || 25);
+        const totalItems =
+            Number(total != null ? total : window.__devicesPagination.totalItems) || 0;
+        window.__devicesPagination.totalItems = totalItems;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        devicesClampPage();
+        const currentPage = window.__devicesPagination.currentPage;
+        const start = totalItems ? (currentPage - 1) * pageSize + 1 : 0;
+        const end = Math.min(totalItems, currentPage * pageSize);
+        if (info) info.textContent = `${start}-${end} of ${totalItems}`;
+        if (prev) prev.disabled = currentPage <= 1;
+        if (next) next.disabled = currentPage >= totalPages;
+        const container = document.getElementById('devices-pagination');
+        if (container) container.style.display = totalItems > pageSize ? 'flex' : 'none';
+    } catch (_) {}
+}
+function devicesResetToFirstPage() {
+    window.__devicesPagination.currentPage = 1;
+}
+function devicesBindPaginationControlsOnce() {
+    if (window.__devicesPaginationBound) return;
+    window.__devicesPaginationBound = true;
+    try {
+        const prev = document.getElementById('devices-page-prev');
+        const next = document.getElementById('devices-page-next');
+        const sel = document.getElementById('devices-page-size');
+        if (prev)
+            prev.addEventListener('click', () => {
+                devicesSetPage(window.__devicesPagination.currentPage - 1);
+                devicesApplyPaginationToRows();
+            });
+        if (next)
+            next.addEventListener('click', () => {
+                devicesSetPage(window.__devicesPagination.currentPage + 1);
+                devicesApplyPaginationToRows();
+            });
+        if (sel)
+            sel.addEventListener('change', () => {
+                devicesSetPageSize(sel.value);
+                devicesResetToFirstPage();
+                devicesApplyPaginationToRows();
+            });
+    } catch (_) {}
+}
 async function fetchDevices() {
     const res = await authenticatedFetch(apiUrl('/api/devices'), { noRedirectOn401: true });
     if (res.status === 401) {
@@ -10472,6 +10565,21 @@ function deviceStatusBadgesHTML(d) {
     return `<div class="status-badges">${together}</div>`;
 }
 
+// Compute an effective, UI-facing status string for filtering: 'live' | 'online' | 'offline' | 'unknown'
+function deviceEffectiveStatus(d) {
+    try {
+        const raw = (d && d.status ? String(d.status) : 'unknown').toLowerCase();
+        const hasWs = !!(d && d.wsConnected);
+        const poweredOff = !!(d && d.currentState && d.currentState.poweredOff === true);
+        if (raw === 'offline' || poweredOff) return 'offline';
+        if (raw === 'online' && hasWs) return 'live';
+        if (raw === 'online' && !hasWs) return 'online';
+        return 'unknown';
+    } catch (_) {
+        return 'unknown';
+    }
+}
+
 function deviceRowHTML(d) {
     const esc = s => (s == null ? '' : String(s));
     const isOffline = (d.status || 'unknown').toLowerCase() === 'offline';
@@ -10580,7 +10688,20 @@ function reconcileDevicesTable(devices) {
     )
         .trim()
         .toLowerCase();
+    const statusFilter = (
+        (typeof window !== 'undefined' && window.__devicesStatusFilter) ||
+        localStorage.getItem('devices.ui.status') ||
+        'all'
+    ).toLowerCase();
     const matches = d => {
+        // Status filter first
+        try {
+            if (statusFilter && statusFilter !== 'all') {
+                const eff = deviceEffectiveStatus(d);
+                if (eff !== statusFilter) return false;
+            }
+        } catch (_) {}
+        // Text search filter
         if (!term) return true;
         try {
             const fields = [d.name, d.location, d.id, d.installId, d.hardwareId]
@@ -10737,7 +10858,12 @@ function reconcileDevicesTable(devices) {
             } catch (_) {}
             try {
                 const cb = tr.querySelector('.row-select');
-                if (cb) cb.addEventListener('change', updateBulkSelectionState);
+                if (cb)
+                    cb.addEventListener('change', e => {
+                        const row = e.target.closest('tr');
+                        if (row) row.classList.toggle('is-selected', e.target.checked);
+                        updateBulkSelectionState();
+                    });
             } catch (_) {}
         });
     }
@@ -10763,9 +10889,18 @@ function reconcileDevicesTable(devices) {
             tbody.querySelectorAll('.row-select').forEach(cb => {
                 const id = cb.getAttribute('data-id');
                 cb.checked = sel.includes(id);
+                const row = cb.closest('tr');
+                if (row) row.classList.toggle('is-selected', cb.checked);
             });
             updateBulkSelectionState();
         }
+    } catch (_) {}
+
+    // Update pagination after reconcile
+    try {
+        window.__devicesPagination.totalItems = filtered.length;
+        devicesClampPage();
+        devicesApplyPaginationToRows();
     } catch (_) {}
 }
 
@@ -10834,6 +10969,11 @@ function updateBulkSelectionState() {
             selectAll.checked =
                 selected.length > 0 &&
                 selected.length === tbody.querySelectorAll('.row-select').length;
+        // Toggle toolbar icons-only style when there is a selection
+        try {
+            const toolbar = document.querySelector('#devices-section .devices-toolbar');
+            if (toolbar) toolbar.classList.toggle('icons-only', selected.length > 0);
+        } catch (_) {}
     } catch (_) {}
 }
 
@@ -10877,7 +11017,20 @@ function renderDevicesTable(devices) {
     }
     // Apply client-side filter on initial render as well
     const term = (localStorage.getItem('devices.ui.search') || '').trim().toLowerCase();
+    const statusFilter = (
+        (typeof window !== 'undefined' && window.__devicesStatusFilter) ||
+        localStorage.getItem('devices.ui.status') ||
+        'all'
+    ).toLowerCase();
     const matches = d => {
+        // Status filter first
+        try {
+            if (statusFilter && statusFilter !== 'all') {
+                const eff = deviceEffectiveStatus(d);
+                if (eff !== statusFilter) return false;
+            }
+        } catch (_) {}
+        // Text search filter
         if (!term) return true;
         try {
             const fields = [d.name, d.location, d.id, d.installId, d.hardwareId]
@@ -11242,6 +11395,8 @@ function renderDevicesTable(devices) {
             tbody.querySelectorAll('.row-select').forEach(cb => {
                 const id = cb.getAttribute('data-id');
                 cb.checked = sel.includes(id);
+                const row = cb.closest('tr');
+                if (row) row.classList.toggle('is-selected', cb.checked);
             });
         }
     } catch (_) {}
@@ -11252,12 +11407,20 @@ function renderDevicesTable(devices) {
     const bulkAssignBtn = document.getElementById('devices-assign-preset');
     const bulkPresetSelect = document.getElementById('bulk-preset-select');
     const updateBulkState = updateBulkSelectionState;
-    tbody
-        .querySelectorAll('.row-select')
-        .forEach(cb => cb.addEventListener('change', updateBulkState));
+    tbody.querySelectorAll('.row-select').forEach(cb =>
+        cb.addEventListener('change', e => {
+            const row = e.target.closest('tr');
+            if (row) row.classList.toggle('is-selected', e.target.checked);
+            updateBulkState();
+        })
+    );
     if (selectAll) {
         selectAll.addEventListener('change', () => {
-            tbody.querySelectorAll('.row-select').forEach(cb => (cb.checked = selectAll.checked));
+            tbody.querySelectorAll('.row-select').forEach(cb => {
+                cb.checked = selectAll.checked;
+                const row = cb.closest('tr');
+                if (row) row.classList.toggle('is-selected', cb.checked);
+            });
             updateBulkState();
         });
     }
@@ -11601,6 +11764,18 @@ function renderDevicesTable(devices) {
             }
         });
     });
+
+    // Initialize and apply pagination on full render
+    try {
+        devicesBindPaginationControlsOnce();
+        window.__devicesPagination.totalItems = filtered.length;
+        // When rendering due to new data or initial load, clamp and apply
+        devicesClampPage();
+        devicesApplyPaginationToRows();
+        // Set per-page selector to stored value
+        const sel = document.getElementById('devices-page-size');
+        if (sel) sel.value = String(window.__devicesPagination.pageSize || 25);
+    } catch (_) {}
 }
 
 function tbodyHasRows() {
@@ -11881,6 +12056,8 @@ function initDevicesPanel() {
                     }
                     localStorage.setItem('devices.ui.search', val);
                 } catch (_) {}
+                // Reset to first page on search change
+                devicesResetToFirstPage();
                 // Optimistic client-side filter of existing rows first (snappier)
                 try {
                     const existing = Array.from(
@@ -11915,6 +12092,37 @@ function initDevicesPanel() {
             if ((searchEl.value || '').trim()) {
                 doFilter();
             }
+        }
+        // Status filter UI
+        const statusSel = container.querySelector('#devices-status-filter');
+        if (statusSel) {
+            try {
+                const saved = (localStorage.getItem('devices.ui.status') || 'all').toLowerCase();
+                statusSel.value = saved || 'all';
+                if (typeof window !== 'undefined') window.__devicesStatusFilter = statusSel.value;
+            } catch (_) {}
+            const apply = async () => {
+                try {
+                    const val = (statusSel.value || 'all').toLowerCase();
+                    if (typeof window !== 'undefined') window.__devicesStatusFilter = val;
+                    localStorage.setItem('devices.ui.status', val);
+                } catch (_) {}
+                devicesResetToFirstPage();
+                // Optimistic reconcile of existing rows
+                try {
+                    const existing = Array.from(
+                        document.querySelectorAll('#devices-table tbody tr')
+                    )
+                        .map(tr => tr.__deviceData)
+                        .filter(Boolean);
+                    if (existing.length) reconcileDevicesTable(existing);
+                } catch (_) {}
+                // Fetch fresh list to reflect live status
+                const list = await fetchDevices();
+                if (tbodyHasRows()) reconcileDevicesTable(list);
+                else renderDevicesTable(list);
+            };
+            statusSel.addEventListener('change', apply);
         }
         const bulkDeleteBtn = container.querySelector('#devices-delete-selected');
         const managePresetsBtn = container.querySelector('#manage-device-presets');

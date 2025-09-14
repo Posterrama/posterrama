@@ -4784,12 +4784,10 @@
                 ).map(c => c.getAttribute('data-id'));
                 await openPairingFor(ids);
             });
-            document.getElementById('bulk-remote')?.addEventListener('click', async () => {
-                const ids = Array.from(
-                    document.querySelectorAll('#device-grid .device-card.selected')
-                ).map(c => c.getAttribute('data-id'));
-                if (ids.length) openRemoteFor(ids[0]);
-            });
+            (function () {
+                const el = document.getElementById('bulk-remote');
+                if (el) el.remove();
+            })();
             document.getElementById('bulk-override')?.addEventListener('click', async () => {
                 const ids = Array.from(
                     document.querySelectorAll('#device-grid .device-card.selected')
