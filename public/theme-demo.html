@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posterrama Admin Theme Demo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="theme-demo.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span>Posterrama</span>
+            <span class="version">v2.0.3</span>
+        </div>
+        <div class="nav-actions">
+            <button class="btn btn-icon" title="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="badge">3</span>
+            </button>
+            <button class="btn btn-icon" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+            <div class="nav-user">
+                <i class="fas fa-user-circle"></i>
+                <span>Admin</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-desktop"></i>
+                <span>Display Settings</span>
+            </a>
+            <div class="nav-group open">
+                <a href="#" class="nav-item nav-toggle">
+                    <i class="fas fa-server"></i>
+                    <span>Media Sources</span>
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <div class="nav-submenu">
+                    <a href="#" class="nav-subitem">
+                        <i class="fas fa-film"></i>
+                        <span>Plex</span>
+                    </a>
+                    <a href="#" class="nav-subitem">
+                        <i class="fas fa-play"></i>
+                        <span>Jellyfin</span>
+                    </a>
+                    <a href="#" class="nav-subitem">
+                        <i class="fas fa-database"></i>
+                        <span>TMDB</span>
+                    </a>
+                </div>
+            </div>
+            <a href="#" class="nav-item">
+                <i class="fas fa-laptop"></i>
+                <span class="nav-text-with-badge">
+                    Device Management
+                    <span class="nav-badge">BETA</span>
+                </span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-shield-alt"></i>
+                <span>Security</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="system-status">
+                <div class="status-item">
+                    <span class="status-dot status-success"></span>
+                    <span>System Online</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot status-warning"></span>
+                    <span>2 Updates Available</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="page-header">
+            <div class="page-title">
+                <h1><i class="fas fa-palette"></i> Theme Demo</h1>
+                <p>Preview of the new Posterrama admin interface design</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-secondary">
+                    <i class="fas fa-download"></i>
+                    Export Theme
+                </button>
+                <button class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Apply Theme
+                </button>
+            </div>
+        </header>
+
+        <div class="content-grid">
+            <!-- Status Cards -->
+            <section class="card-grid">
+                <div class="status-card status-success">
+                    <div class="card-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Active Devices</h3>
+                        <span class="metric">12</span>
+                        <span class="trend positive">+2 today</span>
+                    </div>
+                </div>
+                
+                <div class="status-card status-info">
+                    <div class="card-icon">
+                        <i class="fas fa-images"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Media Items</h3>
+                        <span class="metric">2,847</span>
+                        <span class="trend">from 3 sources</span>
+                    </div>
+                </div>
+                
+                <div class="status-card status-warning">
+                    <div class="card-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Warnings</h3>
+                        <span class="metric">3</span>
+                        <span class="trend">cache issues</span>
+                    </div>
+                </div>
+                
+                <div class="status-card status-error">
+                    <div class="card-icon">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Offline Devices</h3>
+                        <span class="metric">1</span>
+                        <span class="trend negative">needs attention</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Form Elements -->
+            <section class="panel">
+                <header class="panel-header">
+                    <h2><i class="fas fa-edit"></i> Form Elements</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-icon btn-sm" title="Refresh">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                        <button class="btn btn-icon btn-sm" title="Settings">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </header>
+                
+                <div class="panel-content">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="demo-text">Text Input</label>
+                            <input type="text" id="demo-text" placeholder="Enter text..." value="Sample value">
+                            <small class="form-help">This is helpful text</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="demo-select">Select Dropdown</label>
+                            <select id="demo-select">
+                                <option>Choose an option...</option>
+                                <option selected>Selected option</option>
+                                <option>Another option</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="demo-number">Number Input</label>
+                            <input type="number" id="demo-number" value="42" min="0" max="100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="demo-range">Range Slider</label>
+                            <div class="range-container">
+                                <input type="range" id="demo-range" value="75" min="0" max="100">
+                                <div class="range-value">75</div>
+                            </div>
+                            <div class="range-labels">
+                                <span>0</span>
+                                <span>100</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="checkbox-group">
+                            <label class="checkbox">
+                                <input type="checkbox" checked>
+                                <span class="checkmark"></span>
+                                <span>Enable notifications</span>
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox">
+                                <span class="checkmark"></span>
+                                <span>Auto-update</span>
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" disabled>
+                                <span class="checkmark"></span>
+                                <span>Disabled option</span>
+                            </label>
+                        </div>
+                        
+                        <div class="radio-group">
+                            <label class="radio">
+                                <input type="radio" name="demo-radio" checked>
+                                <span class="radiomark"></span>
+                                <span>Option A</span>
+                            </label>
+                            <label class="radio">
+                                <input type="radio" name="demo-radio">
+                                <span class="radiomark"></span>
+                                <span>Option B</span>
+                            </label>
+                            <label class="radio">
+                                <input type="radio" name="demo-radio" disabled>
+                                <span class="radiomark"></span>
+                                <span>Disabled</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="demo-textarea">Textarea</label>
+                        <textarea id="demo-textarea" rows="4" placeholder="Enter multiple lines...">Sample content
+With multiple lines
+And more text here...</textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Badges & Pills -->
+            <section class="panel">
+                <header class="panel-header">
+                    <h2><i class="fas fa-tags"></i> Badges & Pills</h2>
+                </header>
+                
+                <div class="panel-content">
+                    <div class="component-section">
+                        <h3>Status Badges</h3>
+                        <div class="badge-grid">
+                            <span class="badge badge-primary">Primary</span>
+                            <span class="badge badge-success">Online</span>
+                            <span class="badge badge-warning">Warning</span>
+                            <span class="badge badge-error">Error</span>
+                            <span class="badge badge-info">Info</span>
+                            <span class="badge badge-secondary">Secondary</span>
+                        </div>
+                        
+                        <h3>Beta & Version Badges</h3>
+                        <div class="badge-grid">
+                            <span class="badge badge-beta">BETA</span>
+                            <span class="badge badge-new">NEW</span>
+                            <span class="badge badge-alpha">ALPHA</span>
+                            <span class="badge badge-version">v2.1.0</span>
+                            <span class="badge badge-pro">PRO</span>
+                            <span class="badge badge-premium">PREMIUM</span>
+                        </div>
+                        
+                        <h3>Notification Badges</h3>
+                        <div class="badge-grid">
+                            <div class="badge-demo">
+                                <i class="fas fa-bell"></i>
+                                <span class="badge badge-notification">3</span>
+                            </div>
+                            <div class="badge-demo">
+                                <i class="fas fa-envelope"></i>
+                                <span class="badge badge-notification">12</span>
+                            </div>
+                            <div class="badge-demo">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span class="badge badge-notification badge-pulse">!</span>
+                            </div>
+                        </div>
+                        
+                        <h3>Pills (Posterrama Style)</h3>
+                        <div class="pill-grid">
+                            <span class="pill pill-genre">Action</span>
+                            <span class="pill pill-genre">Drama</span>
+                            <span class="pill pill-genre">Comedy</span>
+                            <span class="pill pill-quality">4K</span>
+                            <span class="pill pill-quality">HD</span>
+                            <span class="pill pill-rating">8.5</span>
+                            <span class="pill pill-year">2024</span>
+                            <span class="pill pill-duration">2h 15m</span>
+                            <span class="pill pill-source">Plex</span>
+                            <span class="pill pill-source">Jellyfin</span>
+                            <span class="pill pill-status">Available</span>
+                            <span class="pill pill-status pill-unavailable">Unavailable</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Buttons & Components -->
+            <section class="panel">
+                <header class="panel-header">
+                    <h2><i class="fas fa-mouse-pointer"></i> Buttons & Components</h2>
+                </header>
+                
+                <div class="panel-content">
+                    <div class="component-section">
+                        <h3>Button Variants</h3>
+                        <div class="button-grid">
+                            <button class="btn btn-primary">Primary</button>
+                            <button class="btn btn-secondary">Secondary</button>
+                            <button class="btn btn-success">Success</button>
+                            <button class="btn btn-warning">Warning</button>
+                            <button class="btn btn-error">Error</button>
+                            <button class="btn btn-outline">Outline</button>
+                        </div>
+                        
+                        <div class="button-grid">
+                            <button class="btn btn-primary btn-sm">Small</button>
+                            <button class="btn btn-primary">Normal</button>
+                            <button class="btn btn-primary btn-lg">Large</button>
+                            <button class="btn btn-primary" disabled>Disabled</button>
+                        </div>
+                        
+                        <div class="button-grid">
+                            <button class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                Save Changes
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </button>
+                            <button class="btn btn-icon">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="component-section">
+                        <h3>Alerts & Messages</h3>
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Settings saved successfully!</span>
+                            <button class="alert-close"><i class="fas fa-times"></i></button>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Warning: Some devices are not responding</span>
+                        </div>
+                        
+                        <div class="alert alert-error">
+                            <i class="fas fa-times-circle"></i>
+                            <span>Error: Failed to connect to media server</span>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Info: New update available (v2.0.4)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="component-section">
+                        <h3>Progress & Loading</h3>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 75%"></div>
+                        </div>
+                        <p class="progress-text">Syncing media library... 75%</p>
+                        
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Data Table -->
+            <section class="panel">
+                <header class="panel-header">
+                    <h2><i class="fas fa-table"></i> Data Tables</h2>
+                    <div class="panel-actions">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Search devices...">
+                        </div>
+                        <button class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i>
+                            Add Device
+                        </button>
+                    </div>
+                </header>
+                
+                <div class="panel-content">
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox"></th>
+                                    <th>Device Name</th>
+                                    <th>Status</th>
+                                    <th>Location</th>
+                                    <th>Last Seen</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td>
+                                        <div class="device-info">
+                                            <i class="fas fa-tv device-icon"></i>
+                                            <div>
+                                                <span class="device-name">Living Room TV</span>
+                                                <span class="device-type">Android TV</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-live">
+                                            <i class="fas fa-circle"></i>
+                                            Live
+                                        </span>
+                                    </td>
+                                    <td>Living Room</td>
+                                    <td>2 minutes ago</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-icon btn-sm" title="Power Toggle">
+                                                <i class="fas fa-power-off"></i>
+                                            </button>
+                                            <button class="btn btn-icon btn-sm" title="Play/Pause">
+                                                <i class="fas fa-pause"></i>
+                                            </button>
+                                            <button class="btn btn-icon btn-sm" title="Settings">
+                                                <i class="fas fa-cog"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td>
+                                        <div class="device-info">
+                                            <i class="fas fa-desktop device-icon"></i>
+                                            <div>
+                                                <span class="device-name">Office Monitor</span>
+                                                <span class="device-type">Chrome Browser</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-online">
+                                            <i class="fas fa-circle"></i>
+                                            Online
+                                        </span>
+                                    </td>
+                                    <td>Home Office</td>
+                                    <td>5 minutes ago</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-icon btn-sm" title="Power Toggle">
+                                                <i class="fas fa-power-off"></i>
+                                            </button>
+                                            <button class="btn btn-icon btn-sm" title="Play/Pause">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                            <button class="btn btn-icon btn-sm" title="Settings">
+                                                <i class="fas fa-cog"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td>
+                                        <div class="device-info">
+                                            <i class="fas fa-tablet device-icon"></i>
+                                            <div>
+                                                <span class="device-name">Kitchen Tablet</span>
+                                                <span class="device-type">iPad Safari</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-offline">
+                                            <i class="fas fa-circle"></i>
+                                            Offline
+                                        </span>
+                                    </td>
+                                    <td>Kitchen</td>
+                                    <td>2 hours ago</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-icon btn-sm" title="Power Toggle" disabled>
+                                                <i class="fas fa-power-off"></i>
+                                            </button>
+                                            <button class="btn btn-icon btn-sm" title="Play/Pause" disabled>
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                            <button class="btn btn-icon btn-sm" title="Settings">
+                                                <i class="fas fa-cog"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="table-footer">
+                        <div class="table-info">
+                            Showing 3 of 12 devices
+                        </div>
+                        <div class="pagination">
+                            <button class="btn btn-icon btn-sm" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span class="page-numbers">
+                                <button class="btn btn-sm active">1</button>
+                                <button class="btn btn-sm">2</button>
+                                <button class="btn btn-sm">3</button>
+                            </span>
+                            <button class="btn btn-icon btn-sm">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Color Palette -->
+            <section class="panel">
+                <header class="panel-header">
+                    <h2><i class="fas fa-palette"></i> Color System</h2>
+                </header>
+                
+                <div class="panel-content">
+                    <div class="color-section">
+                        <h3>Primary Colors</h3>
+                        <div class="color-grid">
+                            <div class="color-swatch">
+                                <div class="color-preview" style="background: var(--color-primary)"></div>
+                                <div class="color-info">
+                                    <span class="color-name">Primary</span>
+                                    <span class="color-value">#3B82F6</span>
+                                </div>
+                            </div>
+                            <div class="color-swatch">
+                                <div class="color-preview" style="background: var(--color-secondary)"></div>
+                                <div class="color-info">
+                                    <span class="color-name">Secondary</span>
+                                    <span class="color-value">#6B7280</span>
+                                </div>
+                            </div>
+                            <div class="color-swatch">
+                                <div class="color-preview" style="background: var(--color-accent)"></div>
+                                <div class="color-info">
+                                    <span class="color-name">Accent</span>
+                                    <span class="color-value">#8B5CF6</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="color-section">
+                        <h3>Status Colors</h3>
+                        <div class="color-grid">
+                            <div class="color-swatch">
+                                <div class="color-preview" style="background: var(--color-success)"></div>
+                                <div class="color-info">
+                                    <span class="color-name">Success</span>
+                                    <span class="color-value">#10B981</span>
+                                </div>
+                            </div>
+                            <div class="color-swatch">
+                                <div class="color-preview" style="background: var(--color-warning)"></div>
+                                <div class="color-info">
+                                    <span class="color-name">Warning</span>
+                                    <span class="color-value">#F59E0B</span>
+                                </div>
+                            </div>
+                            <div class="color-swatch">
+                                <div class="color-preview" style="background: var(--color-error)"></div>
+                                <div class="color-info">
+                                    <span class="color-name">Error</span>
+                                    <span class="color-value">#EF4444</span>
+                                </div>
+                            </div>
+                            <div class="color-swatch">
+                                <div class="color-preview" style="background: var(--color-info)"></div>
+                                <div class="color-info">
+                                    <span class="color-name">Info</span>
+                                    <span class="color-value">#06B6D4</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Demo Scripts -->
+    <script>
+        // Demo interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Alert close buttons
+            document.querySelectorAll('.alert-close').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.closest('.alert').style.display = 'none';
+                });
+            });
+
+            // Navigation submenu toggle
+            document.querySelectorAll('.nav-toggle').forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const group = toggle.closest('.nav-group');
+                    group.classList.toggle('open');
+                });
+            });
+
+            // Range slider value display
+            const rangeInput = document.getElementById('demo-range');
+            const rangeValue = document.querySelector('.range-value');
+            
+            if (rangeInput && rangeValue) {
+                rangeInput.addEventListener('input', function() {
+                    rangeValue.textContent = this.value;
+                    // Update position based on value
+                    const percent = (this.value - this.min) / (this.max - this.min) * 100;
+                    rangeValue.style.left = percent + '%';
+                });
+            }
+            
+            // Sidebar navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
+                });
+            });
+            
+            // Demo notifications
+            setTimeout(() => {
+                console.log('🎨 Theme Demo Loaded! This showcases the new Posterrama admin design.');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
