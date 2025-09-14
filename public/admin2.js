@@ -122,12 +122,15 @@
         try {
             const list = await fetchJSON('/api/devices');
             const devices = Array.isArray(list) ? list : [];
+            const STALE_OFFLINE_MS = 60 * 60 * 1000; // 1 hour (keep in sync with getStatusClass)
             const isLive = d => {
                 try {
                     const raw = String(d.status || '').toLowerCase();
                     // Consider device active if it's live (WS) or reported online by server
                     if (d?.wsConnected) return true;
-                    return raw === 'online' || raw === 'live';
+                    const last = Date.parse(d?.lastSeenAt || 0) || 0;
+                    const recent = last && Date.now() - last <= STALE_OFFLINE_MS;
+                    return recent && (raw === 'online' || raw === 'live');
                 } catch (_) {
                     return false;
                 }
@@ -2331,11 +2334,18 @@
 
             function getStatusClass(d) {
                 const st = String(d?.status || '').toLowerCase();
-                // Status precedence:
                 // 1) Live when a WebSocket is connected
-                // 2) Otherwise reflect server status string (online/unknown)
-                // Note: poweredOff is a separate state and must NOT force "offline"
                 if (d?.wsConnected) return 'live';
+
+                // 2) If we haven't seen the device recently, consider it offline
+                //    Frontend safeguard so stale "online" doesn't linger when lastSeenAt is old
+                const lastTs = Date.parse(d?.lastSeenAt || 0) || 0;
+                const now = Date.now();
+                const STALE_OFFLINE_MS = 60 * 60 * 1000; // 1 hour
+                if (!lastTs) return 'unknown';
+                if (now - lastTs > STALE_OFFLINE_MS) return 'offline';
+
+                // 3) Otherwise reflect server status string (online/unknown)
                 if (st === 'live') return 'live';
                 if (st === 'online') return 'online';
                 if (st === 'unknown') return 'unknown';
@@ -2531,12 +2541,13 @@
                 const room = roomLabel(d);
                 const meta = versionMeta(d);
                 const disabledPower = status === 'offline' ? ' disabled' : '';
-                const poweredOff = d?.currentState?.poweredOff
-                    ? ' title="Currently powered off"'
-                    : '';
+                const isPoweredOff = d?.currentState?.poweredOff === true;
+                const poweredOff = isPoweredOff ? ' title="Currently powered off"' : '';
                 const statusLabel =
                     status === 'live'
-                        ? 'Live'
+                        ? isPoweredOff
+                            ? 'Powered off'
+                            : 'Live'
                         : status === 'online'
                           ? 'Online'
                           : status === 'unknown'
@@ -2615,15 +2626,15 @@
                                     </div>
 
                                     <div class="device-tools">
-                                                <button class="btn btn-icon btn-sm btn-power" title="Power Toggle"${disabledPower}${poweredOff}><i class="fas fa-power-off"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-power${isPoweredOff ? ' is-off' : ''}" title="Power Toggle"${disabledPower}${poweredOff}><i class="fas fa-power-off"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-reload" title="Reload this device"><i class="fas fa-rotate-right"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-clearcache" title="Clear caches"><i class="fas fa-broom"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-pair card-secondary" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control"><i class="fas fa-gamepad"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-gamepad"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command"><i class="fas fa-terminal"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-playpause${ppCls}" title="${ppTitle}"><i class="fas ${ppIcon}"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-pin card-secondary${pinCls}" title="${pinTitle}" aria-pressed="${pinPressed}"><i class="fas ${pinIcon}"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-terminal"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-playpause${ppCls}" title="${ppTitle}" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas ${ppIcon}"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-pin card-secondary${pinCls}" title="${pinTitle}" aria-pressed="${pinPressed}" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas ${pinIcon}"></i></button>
                                                 <div class="dropdown card-more" style="position:relative;display:none;">
                                                         <button class="btn btn-icon btn-sm" title="More"><i class="fas fa-ellipsis"></i></button>
                                                         <div class="dropdown-menu"></div>
@@ -2631,12 +2642,13 @@
                                     </div>
 
                                     <div class="device-card-body">
-                                                      <div class="device-badges">
-                                                                                        <span class="status-pill status-${status} js-status-hover" tabindex="0">
-                                                                                                <i class="${iconForStatus(status)}"></i> ${statusLabel}
-                                                                                        </span>
+                              <div class="device-badges">
+                                            <span class="status-pill status-${status} js-status-hover" tabindex="0">
+                                                <i class="${iconForStatus(isPoweredOff && status === 'live' ? 'offline' : status)}"></i> ${statusLabel}
+                                            </span>
                                                           <span class="status-pill sp-browser"><i class="${iconForType(type)}"></i> ${escapeHtml(type)}</span>
                                                           ${dupesPill}
+                                                          
                                                                                       ${(() => {
                                                                                           const m =
                                                                                               String(
@@ -3583,6 +3595,12 @@
                         .querySelectorAll('#device-grid .device-card')
                         .forEach(collapseCardActions);
                 });
+
+                // Re-bind hover listeners for newly rendered pills
+                try {
+                    bindHover('.js-status-hover', statusCard);
+                    bindHover('.js-dupes-hover', dupesCard);
+                } catch (_) {}
             }
 
             // Reflow handlers for responsive action overflow
@@ -3869,8 +3887,37 @@
                 }
                 return el;
             }
+            // Helpers for hovercards
+            function fmtAgo(ms) {
+                if (!ms || Number.isNaN(ms)) return '—';
+                const now = Date.now();
+                const diff = Math.max(0, now - ms);
+                const sec = Math.floor(diff / 1000);
+                if (sec < 5) return 'just now';
+                if (sec < 60) return `${sec}s ago`;
+                const min = Math.floor(sec / 60);
+                if (min < 60) return `${min}m ago`;
+                const hr = Math.floor(min / 60);
+                if (hr < 24) return `${hr}h ago`;
+                const day = Math.floor(hr / 24);
+                return `${day}d ago`;
+            }
+            function statusPretty(s) {
+                const t = String(s || '').toLowerCase();
+                if (t === 'live') return 'Live';
+                if (t === 'online') return 'Online';
+                if (t === 'unknown') return 'Unknown';
+                return 'Offline';
+            }
+            function statusDotClass(s) {
+                const t = String(s || '').toLowerCase();
+                if (t === 'live') return 'sd-live';
+                if (t === 'online') return 'sd-online';
+                if (t === 'unknown') return 'sd-unknown';
+                return 'sd-offline';
+            }
             const statusHoverHTML =
-                '\n                <div class="hc-title">Status details</div>\n                <div class="hc-list">\n                    <div class="hc-row"><i class="fas fa-wave-square"></i><span>Uptime</span><span class="mono">3d 12h</span></div>\n                    <div class="hc-row"><i class="fas fa-gauge-high"></i><span>Load</span><span class="mono">27%</span></div>\n                    <div class="hc-row"><i class="fas fa-wifi"></i><span>Signal</span><span class="mono">Good</span></div>\n                </div>\n                <div class="hc-actions">\n                    <button class="btn btn-outline btn-sm"><i class="fas fa-rotate-right"></i> Restart</button>\n                    <button class="btn btn-outline btn-sm"><i class="fas fa-plug"></i> Reconnect</button>\n                </div>';
+                '\n                <div class="hc-title"><span class="status-dot sd-online"></span><span>Status</span></div>\n                <div class="hc-list">\n                    <div class="hc-row"><i class="fas fa-plug"></i><span>WebSocket</span><span class="mono value dim">—</span></div>\n                    <div class="hc-row"><i class="fas fa-clock"></i><span>Last seen</span><span class="mono value dim">—</span></div>\n                    <div class="hc-row"><i class="fas fa-hashtag"></i><span>Device ID</span><span class="mono value dim">—</span></div>\n                    <div class="hc-row"><i class="fas fa-expand"></i><span>Resolution</span><span class="mono value dim">—</span></div>\n                    <div class="hc-row"><i class="fas fa-sliders"></i><span>Mode</span><span class="mono value dim">—</span></div>\n                    <div class="hc-row hc-ua"><i class="fas fa-globe"></i><span>User agent</span><span class="mono value dim">—</span></div>\n                </div>';
             const dupesHoverHTML =
                 '\n                <div class="hc-title">Duplicates found</div>\n                <div class="hc-list"><div class="hc-row"><span>No details</span></div></div>';
             const statusCard = createHovercard('hc-status', statusHoverHTML);
@@ -3897,6 +3944,54 @@
                     };
                     const show = () => {
                         clearHide();
+                        // If status hovercard, rebuild from the device referenced by trigger
+                        try {
+                            if (card && card.id === 'hc-status') {
+                                const cardEl = tr.closest('.device-card');
+                                const id = cardEl?.getAttribute('data-id');
+                                const d = (state.all || []).find(x => x.id === id);
+                                if (d) {
+                                    const status = getStatusClass(d);
+                                    const ws = d.wsConnected ? 'Connected' : 'Not connected';
+                                    const lastTs = Date.parse(d.lastSeenAt || 0) || 0;
+                                    const last = lastTs
+                                        ? `${fmtAgo(lastTs)}\u00A0·\u00A0${new Date(lastTs).toLocaleString()}`
+                                        : '—';
+                                    const sc = d?.clientInfo?.screen || {};
+                                    const w = Number(sc.w || sc.width || 0) || 0;
+                                    const h = Number(sc.h || sc.height || 0) || 0;
+                                    const dpr = Number(sc.dpr || sc.scale || 1) || 1;
+                                    const res =
+                                        w && h
+                                            ? `${w}×${h}${dpr && dpr !== 1 ? ` @${dpr}x` : ''}`
+                                            : '—';
+                                    const mode = d?.clientInfo?.mode || d?.mode || '';
+                                    const ua = (
+                                        d?.clientInfo?.userAgent ||
+                                        d?.clientInfo?.ua ||
+                                        ''
+                                    ).trim();
+                                    const isPO = d?.currentState?.poweredOff === true;
+                                    const dotCls =
+                                        isPO && status === 'live'
+                                            ? 'sd-poweredoff'
+                                            : statusDotClass(status);
+                                    const titleHTML = `<div class="hc-title"><span class="status-dot ${dotCls}"></span><span>${escapeHtml(isPO && status === 'live' ? 'Powered off' : statusPretty(status))}</span></div>`;
+                                    const html = [
+                                        titleHTML,
+                                        '<div class="hc-list">',
+                                        `<div class="hc-row"><i class="fas fa-plug"></i><span>WebSocket</span><span class="mono value ${d.wsConnected ? '' : 'dim'}">${escapeHtml(ws)}</span></div>`,
+                                        `<div class="hc-row"><i class="fas fa-clock"></i><span>Last seen</span><span class="mono value ${lastTs ? '' : 'dim'}">${escapeHtml(last)}</span></div>`,
+                                        `<div class="hc-row"><i class="fas fa-hashtag"></i><span>Device ID</span><span class="mono value">${escapeHtml(d.id || '—')}</span></div>`,
+                                        `<div class="hc-row"><i class="fas fa-expand"></i><span>Resolution</span><span class="mono value ${w && h ? '' : 'dim'}">${escapeHtml(res)}</span></div>`,
+                                        `<div class="hc-row"><i class="fas fa-sliders"></i><span>Mode</span><span class="mono value ${mode ? '' : 'dim'}">${escapeHtml(modeLabel(mode) || '—')}</span></div>`,
+                                        `<div class="hc-row hc-ua"><i class="fas fa-globe"></i><span>User agent</span><span class="mono value ${ua ? '' : 'dim'}" title="${escapeHtml(ua)}">${escapeHtml(ua || '—')}</span></div>`,
+                                        '</div>',
+                                    ].join('');
+                                    card.innerHTML = html;
+                                }
+                            }
+                        } catch (_) {}
                         // If dupes hovercard, rebuild content from trigger datasets
                         try {
                             if (card && card.id === 'hc-dupes') {
@@ -3931,10 +4026,17 @@
                         } catch (_) {}
                         positionHover(card, tr);
                         card.classList.add('open');
+                        // Track the current trigger so we can live-refresh while open
+                        try {
+                            card._trigger = tr;
+                        } catch (_) {}
                     };
                     const hide = () => {
                         clearHide();
                         card.classList.remove('open');
+                        try {
+                            card._trigger = null;
+                        } catch (_) {}
                     };
                     tr.addEventListener('mouseenter', show);
                     tr.addEventListener('focus', show);
@@ -4419,6 +4521,10 @@
                 try {
                     const list = await fetchJSON('/api/devices').catch(() => null);
                     if (!Array.isArray(list)) return;
+                    // Keep in-memory state fresh for hovercards and filters
+                    try {
+                        state.all = list;
+                    } catch (_) {}
                     const byId = new Map(
                         list.map(d => [String(d.id || d.deviceId || d._id || d.name || ''), d])
                     );
@@ -4452,10 +4558,174 @@
                                 icon.className = `fas ${pinned ? 'fa-map-pin' : 'fa-thumbtack'}`;
                             pinBtn.title = pinned ? 'Unpin poster' : 'Pin current poster';
                         }
+
+                        // Status pill + synced-dot + power button enablement
+                        try {
+                            const status = getStatusClass(d);
+                            // Keep data-status attribute in sync for styling/hooks
+                            try {
+                                card.setAttribute('data-status', status);
+                            } catch (_) {}
+                            // Update only the status pill (js-status-hover) and replace its inner content to avoid duplicates
+                            const statusPill = card.querySelector(
+                                '.device-badges .js-status-hover'
+                            );
+                            if (statusPill) {
+                                const prev =
+                                    (statusPill.className.match(
+                                        /status-(live|online|offline|unknown)/
+                                    ) || [])[0] || '';
+                                const nextCls = `status-${status}`;
+                                const changed = prev !== nextCls;
+                                statusPill.classList.remove(
+                                    'status-live',
+                                    'status-online',
+                                    'status-offline',
+                                    'status-unknown'
+                                );
+                                statusPill.classList.add(nextCls);
+                                const po = d?.currentState?.poweredOff === true;
+                                const labelText =
+                                    status === 'live'
+                                        ? po
+                                            ? 'Powered off'
+                                            : 'Live'
+                                        : status === 'online'
+                                          ? 'Online'
+                                          : status === 'unknown'
+                                            ? 'Unknown'
+                                            : 'Offline';
+                                const ico = iconForStatus(
+                                    po && status === 'live' ? 'offline' : status
+                                );
+                                statusPill.innerHTML = `<i class="${ico}"></i> ${labelText}`;
+                                if (changed) {
+                                    // retrigger animation by toggling the class
+                                    statusPill.classList.remove('status-flip');
+                                    // force reflow
+                                    // eslint-disable-next-line no-unused-expressions
+                                    statusPill.offsetWidth;
+                                    statusPill.classList.add('status-flip');
+                                    setTimeout(
+                                        () => statusPill.classList.remove('status-flip'),
+                                        600
+                                    );
+                                }
+                            }
+                            // Synced dot visibility
+                            const corner = card.querySelector('.device-corner .synced-dot');
+                            const shouldShowDot = !!d.wsConnected && state.syncEnabled !== false;
+                            if (corner) {
+                                corner.style.display = shouldShowDot ? '' : 'none';
+                            } else if (shouldShowDot) {
+                                // Create the corner container + dot if missing
+                                const cornerWrap = document.createElement('div');
+                                cornerWrap.className = 'device-corner';
+                                const dot = document.createElement('span');
+                                dot.className = 'synced-dot';
+                                dot.setAttribute('role', 'status');
+                                dot.setAttribute('aria-label', 'Device will align to sync ticks');
+                                dot.title = 'Device will align to sync ticks';
+                                cornerWrap.appendChild(dot);
+                                // Insert at the top of card
+                                card.insertBefore(cornerWrap, card.firstChild);
+                            }
+                            // Power button disabled when offline; magenta icon when powered off
+                            const powerBtn = card.querySelector('.btn-power');
+                            if (powerBtn) {
+                                powerBtn.disabled = status === 'offline';
+                                const po = d?.currentState?.poweredOff === true;
+                                powerBtn.classList.toggle('is-off', po);
+                                if (po) powerBtn.title = 'Power Toggle (Powered off)';
+                            }
+                            // Disable other controls while offline or powered off
+                            try {
+                                const disabled =
+                                    status === 'offline' || d?.currentState?.poweredOff === true;
+                                const sel = [
+                                    '.btn-remote',
+                                    '.btn-sendcmd',
+                                    '.btn-playpause',
+                                    '.btn-pin',
+                                ];
+                                sel.forEach(s => {
+                                    const el = card.querySelector(s);
+                                    if (el) el.disabled = disabled;
+                                });
+                            } catch (_) {}
+                            // No separate powered-off pill anymore
+                        } catch (_) {}
                     });
+
+                    // If the status hovercard is currently open, refresh its content live
+                    try {
+                        const hc = document.getElementById('hc-status');
+                        if (hc && hc.classList.contains('open') && hc._trigger) {
+                            const tr = hc._trigger;
+                            const cardEl = tr.closest('.device-card');
+                            const did = cardEl?.getAttribute('data-id');
+                            const d = byId.get(did);
+                            if (d) {
+                                const status = getStatusClass(d);
+                                const ws = d.wsConnected ? 'Connected' : 'Not connected';
+                                const lastTs = Date.parse(d.lastSeenAt || 0) || 0;
+                                const last = lastTs
+                                    ? `${fmtAgo(lastTs)}\u00A0·\u00A0${new Date(lastTs).toLocaleString()}`
+                                    : '—';
+                                const sc = d?.clientInfo?.screen || {};
+                                const w = Number(sc.w || sc.width || 0) || 0;
+                                const h = Number(sc.h || sc.height || 0) || 0;
+                                const dpr = Number(sc.dpr || sc.scale || 1) || 1;
+                                const res =
+                                    w && h
+                                        ? `${w}×${h}${dpr && dpr !== 1 ? ` @${dpr}x` : ''}`
+                                        : '—';
+                                const mode = d?.clientInfo?.mode || d?.mode || '';
+                                const ua = (
+                                    d?.clientInfo?.userAgent ||
+                                    d?.clientInfo?.ua ||
+                                    ''
+                                ).trim();
+                                const isPO = d?.currentState?.poweredOff === true;
+                                const dotCls =
+                                    isPO && status === 'live'
+                                        ? 'sd-poweredoff'
+                                        : statusDotClass(status);
+                                const titleHTML = `<div class="hc-title"><span class="status-dot ${dotCls}"></span><span>${escapeHtml(isPO && status === 'live' ? 'Powered off' : statusPretty(status))}</span></div>`;
+                                const html = [
+                                    titleHTML,
+                                    '<div class="hc-list">',
+                                    `<div class=\"hc-row\"><i class=\"fas fa-plug\"></i><span>WebSocket</span><span class=\"mono value ${d.wsConnected ? '' : 'dim'}\">${escapeHtml(ws)}</span></div>`,
+                                    `<div class=\"hc-row\"><i class=\"fas fa-clock\"></i><span>Last seen</span><span class=\"mono value ${lastTs ? '' : 'dim'}\">${escapeHtml(last)}</span></div>`,
+                                    `<div class=\"hc-row\"><i class=\"fas fa-hashtag\"></i><span>Device ID</span><span class=\"mono value\">${escapeHtml(d.id || '—')}</span></div>`,
+                                    `<div class=\"hc-row\"><i class=\"fas fa-expand\"></i><span>Resolution</span><span class=\"mono value ${w && h ? '' : 'dim'}\">${escapeHtml(res)}</span></div>`,
+                                    `<div class=\"hc-row\"><i class=\"fas fa-sliders\"></i><span>Mode</span><span class=\"mono value ${mode ? '' : 'dim'}\">${escapeHtml(modeLabel(mode) || '—')}</span></div>`,
+                                    `<div class=\"hc-row hc-ua\"><i class=\"fas fa-globe\"></i><span>User agent</span><span class=\"mono value ${ua ? '' : 'dim'}\" title=\"${escapeHtml(ua)}\">${escapeHtml(ua || '—')}</span></div>`,
+                                    '</div>',
+                                ].join('');
+                                hc.innerHTML = html;
+                                // Keep position anchored to trigger
+                                positionHover(hc, tr);
+                            }
+                        }
+                    } catch (_) {}
                 } catch (_) {
                     /* ignore transient errors */
                 }
+                // After applying live updates, re-evaluate filters; if set changed, re-render
+                try {
+                    const before = Array.isArray(state.filteredIds)
+                        ? state.filteredIds.slice()
+                        : [];
+                    applyFilters();
+                    const after = state.filteredIds || [];
+                    const changed =
+                        before.length !== after.length || before.some((id, i) => id !== after[i]);
+                    if (changed) {
+                        renderPage();
+                        return;
+                    }
+                } catch (_) {}
             }
             function startDevicesLiveReconcile() {
                 stopDevicesLiveReconcile();

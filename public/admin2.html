@@ -546,9 +546,52 @@
 
   /* Pinned state for Pin button: only icon turns magenta (strong specificity) */
   #section-devices .device-card .device-tools .btn-pin.is-pinned > i { color: #ff00a7 !important; }
+  /* Powered-off state for Power button: only icon turns magenta (same as pin) */
+  #section-devices .device-card .device-tools .btn-power.is-off > i { color: #ff00a7 !important; }
 
   /* Synced indicator: top-right pulsing green dot with tooltip */
   #section-devices .device-card { position: relative; }
+  /* Device list footer (pagination) styled like the cards above */
+  #device-ui .table-footer.device-pagination {
+    background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 14px 16px;
+    margin-top: var(--space-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+  #device-ui .table-footer.device-pagination .table-info {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+  }
+  #device-ui .table-footer.device-pagination .pagination {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  #device-ui .table-footer.device-pagination .pagination .btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+  #device-ui .table-footer.device-pagination .per-page select {
+    background: var(--color-bg-card);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+    border-radius: var(--border-radius-md);
+    padding: 6px 10px;
+  }
+  /* Wrap nicely on small widths */
+  @media (max-width: 640px) {
+    #device-ui .table-footer.device-pagination {
+      flex-wrap: wrap;
+      row-gap: 8px;
+    }
+    #device-ui .table-footer.device-pagination .pagination { margin-left: auto; }
+  }
   #section-devices .device-card .device-corner { position: absolute; top: 10px; right: 10px; z-index: 2; pointer-events: auto; }
   #section-devices .device-card .device-corner .synced-dot {
     width: 10px; height: 10px; display: inline-block; border-radius: 50%;
@@ -599,6 +642,82 @@
       will-change: transform, opacity;
     }
   }
+
+  /* Powered off pill (red variant) */
+  #section-devices .device-badges .status-pill.sp-poweredoff {
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.35);
+    color: #fca5a5;
+  }
+  #section-devices .device-badges .status-pill.sp-poweredoff i { color: #fca5a5; }
+
+  /* Status change flash animation (applies to any status when it changes) */
+  #section-devices .device-badges .status-pill { --status-flash: rgba(99,102,241,0.28); }
+  #section-devices .device-badges .status-pill.status-live { --status-flash: rgba(34,197,94,0.30); }
+  #section-devices .device-badges .status-pill.status-online { --status-flash: rgba(59,130,246,0.32); }
+  #section-devices .device-badges .status-pill.status-unknown { --status-flash: rgba(245,158,11,0.32); }
+  #section-devices .device-badges .status-pill.status-offline { --status-flash: rgba(239,68,68,0.32); }
+  @keyframes status-flip-kf {
+    0% { transform: scale(0.98); box-shadow: 0 0 0 0 var(--status-flash); }
+    55% { transform: scale(1.04); box-shadow: 0 0 0 8px color-mix(in srgb, var(--status-flash) 60%, transparent); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    #section-devices .device-badges .status-pill.status-flip { animation: status-flip-kf 420ms ease-out; }
+  }
+
+    /* Hovercard — modern floating panel */
+    .hovercard {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1700;
+      display: block; /* keep in flow so offsetWidth is measurable */
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(4px);
+      transition: opacity .16s ease, transform .16s ease, visibility .16s ease;
+      min-width: 300px;
+      max-width: 460px;
+      padding: 12px 12px 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--color-border, rgba(255,255,255,0.12));
+      background: linear-gradient(135deg, var(--color-bg-card, #12141a), var(--color-bg-tertiary, #0f1117));
+      box-shadow: 0 12px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+      color: var(--color-text-primary, #E5E7EB);
+      font-size: 0.88rem;
+    }
+    .hovercard.open { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); z-index: 1700; }
+    .hovercard .hc-title { font-weight: 400; font-size: .88rem; margin: 0 0 8px 0; padding-bottom: 8px; border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.08)); opacity: .95; display:flex; align-items:center; gap:8px; }
+    .hovercard .hc-title .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .hovercard .hc-title .sd-live { background: var(--color-success, #22c55e); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-success, #22c55e) 25%, transparent); }
+    .hovercard .hc-title .sd-online { background: var(--color-info, #60a5fa); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-info, #60a5fa) 25%, transparent); }
+    .hovercard .hc-title .sd-unknown { background: var(--color-warning, #f59e0b); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-warning, #f59e0b) 25%, transparent); }
+    .hovercard .hc-title .sd-offline { background: var(--color-error, #ef4444); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-error, #ef4444) 25%, transparent); }
+  /* Powered off (live but blacked out) — magenta like pin */
+  .hovercard .hc-title .sd-poweredoff { background: #ff00a7; box-shadow: 0 0 0 3px color-mix(in srgb, #ff00a7 25%, transparent); }
+    .hovercard .hc-list { display:flex; flex-direction:column; gap:0; margin-bottom:8px; }
+    .hovercard .hc-row { display:grid; grid-template-columns: 18px var(--hc-label-w, 130px) 1fr; gap:10px; align-items:center; padding:9px 0; }
+    /* Ensure labels take consistent width and don’t push values */
+    .hovercard .hc-row > span:nth-child(2) {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--color-text-secondary, #A3AED0);
+    }
+    .hovercard .hc-row + .hc-row { border-top: 1px solid var(--color-border, rgba(255,255,255,0.08)); }
+    .hovercard .hc-row:not(:first-child) { border-top: 1px solid var(--color-border, rgba(255,255,255,0.08)); }
+    .hovercard .hc-row i { opacity: .88; color: var(--color-text-primary, #E5E7EB); }
+    .hovercard .hc-row .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; opacity:.96; font-size: .88rem; }
+    .hovercard .hc-row .dim { opacity: .78; color: var(--color-text-muted, #9CA3AF); }
+    .hovercard .hc-row .value { justify-self: start; text-align: left; font-weight: 400; color: var(--color-text-primary, #E5E7EB); }
+    .hovercard .hc-row.hc-ua .value { justify-self: start; text-align: left; font-weight: 400; }
+    .hovercard .hc-row .value, .hovercard .hc-row .mono { word-break: break-word; overflow-wrap: anywhere; }
+    /* Fallback: if .value is missing, last cell still left-aligns */
+    .hovercard .hc-row > :nth-child(3) { justify-self: start; text-align: left; }
+    .hovercard .hc-actions { display:flex; gap:8px; justify-content:flex-end; }
+    .hovercard .hc-actions .btn { padding: 4px 8px; font-size: .8rem; }
 
   /* MODERN DASHBOARD - inspired by the screenshot */
   #panel-perf-dashboard {
