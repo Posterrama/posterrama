@@ -1483,8 +1483,15 @@
     #section-display .segmented input[type="radio"] { display:none; }
     #section-display .segmented .seg[aria-checked="true"] { background: rgba(59,130,246,0.18); color:#bfdbfe; border: 1px solid rgba(59,130,246,0.35); }
   /* Header status pill for current mode */
-  #section-display .status-pill { font-size: 0.8rem; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); }
-  #section-display .status-pill.status-info { background: rgba(59,130,246,0.18); color:#bfdbfe; border-color: rgba(59,130,246,0.35); }
+  #section-display .status-pill { font-size: 0.85rem; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14); display:inline-flex; align-items:center; gap:8px; font-weight: 700; letter-spacing: .2px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.18); }
+  #section-display .status-pill i { font-size: .95em; opacity: .95; }
+  #section-display .status-pill .mode-label { opacity: .95; }
+  /* Default/info look (fallback) */
+  #section-display .status-pill.status-info { background: linear-gradient(90deg, rgba(59,130,246,0.18), rgba(59,130,246,0.10)); color:#dbeafe; border-color: rgba(59,130,246,0.35); box-shadow: 0 0 0 2px rgba(59,130,246,0.06), 0 6px 20px rgba(59,130,246,0.20); }
+  /* Mode-specific highlight variants */
+  #section-display #display-mode-pill.pill-screensaver { background: linear-gradient(90deg, rgba(99,102,241,0.22), rgba(139,92,246,0.16)); color:#e0e7ff; border-color: rgba(139,92,246,0.45); box-shadow: 0 0 0 2px rgba(139,92,246,0.08), 0 6px 22px rgba(139,92,246,0.28); }
+  #section-display #display-mode-pill.pill-wallart { background: linear-gradient(90deg, rgba(16,185,129,0.22), rgba(59,130,246,0.16)); color:#d1fae5; border-color: rgba(16,185,129,0.45); box-shadow: 0 0 0 2px rgba(16,185,129,0.08), 0 6px 22px rgba(16,185,129,0.26); }
+  #section-display #display-mode-pill.pill-cinema { background: linear-gradient(90deg, rgba(245,158,11,0.26), rgba(244,63,94,0.16)); color:#fde68a; border-color: rgba(245,158,11,0.50); box-shadow: 0 0 0 2px rgba(245,158,11,0.10), 0 6px 22px rgba(245,158,11,0.30); }
   /* Grids */
   #section-display .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
   /* spacing below mode cards */
@@ -1544,17 +1551,7 @@
   /* Custom layout mode: Screensaver cards */
   /* Screensaver no longer supports customize layout; rules removed */
 
-  /* Custom layout mode: Wallart & Cinema mini-cards */
-  #section-display #wallart-cards.customizing,
-  #section-display #cinema-cards.customizing { display: grid; grid-template-columns: 1fr 1fr; column-count: initial; column-gap: 12px; gap: 12px; }
-  #section-display #wallart-cards.customizing .col,
-  #section-display #cinema-cards.customizing .col { display:flex; flex-direction:column; gap:12px; min-height: 40px; border: 1px dashed rgba(255,255,255,0.15); border-radius: 10px; padding: 8px; background: rgba(255,255,255,0.03); }
-  #section-display #wallart-cards.customizing .col.drag-over,
-  #section-display #cinema-cards.customizing .col.drag-over { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.45); }
-  #section-display #wallart-cards.customizing > .mode-card,
-  #section-display #cinema-cards.customizing > .mode-card { width: 100%; margin: 0; display:block; break-inside: auto; cursor: move; }
-  #section-display #wallart-cards.customizing > .mode-card.dragging,
-  #section-display #cinema-cards.customizing > .mode-card.dragging { opacity: .65; }
+  /* Custom layout mode for Wallart & Cinema removed */
     /* Mode cards aligned with perf-card look */
   #section-display .mode-card { position: relative; background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); align-self: start; height: auto; }
         #section-display .mode-card.inactive { opacity: .6; }
@@ -1766,32 +1763,26 @@
                 <div class="card-title"><i class="fas fa-border-all"></i> Wallart</div>
               </div>
               <fieldset id="fs-wallart">
-                <!-- Wallart layout tools -->
-                <div id="wallart-tools" style="display:flex; justify-content:flex-end; gap:8px; margin: 4px 0 8px;">
-                  <button type="button" class="btn btn-outline btn-sm" id="btn-wallart-customize" title="Reorder/move Wallart cards"><i class="fas fa-arrows-alt"></i> <span>Customize layout</span></button>
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-wallart-done" style="display:none;" title="Finish customizing"><i class="fas fa-check"></i> <span>Done</span></button>
-                  <button type="button" class="btn btn-outline btn-sm" id="btn-wallart-reset" title="Reset Wallart layout"><i class="fas fa-undo"></i> <span>Reset</span></button>
+                <div class="card-subtext" style="margin-bottom:10px; color: var(--color-text-secondary);">
+                  A dynamic, tiled poster wall. Fine‑tune density, animation, layout, ambience, and hero.
                 </div>
                 <div class="form-grid masonry" id="wallart-cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
-                  <!-- Customizing columns; only used when #wallart-cards has .customizing -->
-                  <div class="col" id="wallart-col-left" style="display:none"></div>
-                  <div class="col" id="wallart-col-right" style="display:none"></div>
                   <!-- Tempo card -->
                   <div class="mode-card" data-card-key="tempo" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-tachometer-alt"></i> Tempo</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="wallartMode.refreshRate">Refresh tempo</label>
+                        <label for="wallartMode.refreshRate">Poster Refresh Rate</label>
                         <div class="modern-slider">
                           <input type="range" min="1" max="10" step="1" id="wallartMode.refreshRate" value="5" />
-                          <div class="slider-percentage" data-target="wallartMode.refreshRate">Medium refresh rate</div>
+                          <div class="slider-percentage" data-target="wallartMode.refreshRate">Medium poster refresh rate</div>
                         </div>
                       </div>
                       <div class="form-row">
-                        <label for="wallartMode.randomness">Randomness</label>
+                        <label for="wallartMode.randomness">Timing Randomness</label>
                         <div class="modern-slider">
                           <input type="range" min="0" max="10" step="1" id="wallartMode.randomness" value="3" />
-                          <div class="slider-percentage" data-target="wallartMode.randomness">Low randomness</div>
+                          <div class="slider-percentage" data-target="wallartMode.randomness">Low timing randomness</div>
                         </div>
                       </div>
                     </div>
@@ -1842,18 +1833,7 @@
                           <option value="classic">Classic</option>
                         </select>
                       </div>
-                      <div class="form-row">
-                        <label for="wallartMode.columns">Columns</label>
-                        <div class="number-input-wrapper"><input type="number" min="2" max="12" id="wallartMode.columns" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
-                      </div>
-                      <div class="form-row">
-                        <label for="wallartMode.itemsPerScreen">Items per screen</label>
-                        <div class="number-input-wrapper"><input type="number" min="4" max="100" id="wallartMode.itemsPerScreen" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
-                      </div>
-                      <div class="form-row">
-                        <label for="wallartMode.transitionInterval">Grid transition (s)</label>
-                        <div class="number-input-wrapper"><input type="number" min="5" max="300" id="wallartMode.transitionInterval" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
-                      </div>
+                      
                     </div>
                   </div>
 
@@ -1905,16 +1885,10 @@
                 <div class="card-title"><i class="fas fa-mobile-alt"></i> Cinema</div>
               </div>
               <fieldset id="fs-cinema">
-                <!-- Cinema layout tools -->
-                <div id="cinema-tools" style="display:flex; justify-content:flex-end; gap:8px; margin: 4px 0 8px;">
-                  <button type="button" class="btn btn-outline btn-sm" id="btn-cinema-customize" title="Reorder/move Cinema cards"><i class="fas fa-arrows-alt"></i> <span>Customize layout</span></button>
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-cinema-done" style="display:none;" title="Finish customizing"><i class="fas fa-check"></i> <span>Done</span></button>
-                  <button type="button" class="btn btn-outline btn-sm" id="btn-cinema-reset" title="Reset Cinema layout"><i class="fas fa-undo"></i> <span>Reset</span></button>
+                <div class="card-subtext" style="margin-bottom:10px; color: var(--color-text-secondary);">
+                  A large, single‑poster view for displays. Choose your screen orientation.
                 </div>
                 <div class="form-grid masonry" id="cinema-cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
-                  <!-- Customizing columns; only used when #cinema-cards has .customizing -->
-                  <div class="col" id="cinema-col-left" style="display:none"></div>
-                  <div class="col" id="cinema-col-right" style="display:none"></div>
                   <!-- Orientation card -->
                   <div class="mode-card" data-card-key="orientation" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Orientation</div>

@@ -1511,7 +1511,23 @@
                     : active === 'wallart'
                       ? 'Wallart'
                       : 'Cinema';
-            pill.textContent = `Mode: ${label}`;
+            // Reset classes and apply mode-specific highlight
+            pill.classList.remove('pill-screensaver', 'pill-wallart', 'pill-cinema');
+            const modeClass =
+                active === 'screensaver'
+                    ? 'pill-screensaver'
+                    : active === 'wallart'
+                      ? 'pill-wallart'
+                      : 'pill-cinema';
+            pill.classList.add(modeClass);
+            // Add an icon for extra visual weight
+            const icon =
+                active === 'screensaver'
+                    ? '<i class="fas fa-image" aria-hidden="true"></i>'
+                    : active === 'wallart'
+                      ? '<i class="fas fa-border-all" aria-hidden="true"></i>'
+                      : '<i class="fas fa-mobile-alt" aria-hidden="true"></i>';
+            pill.innerHTML = `${icon} <span class="mode-label">Mode:</span> ${label}`;
         }
         // Note: Screensaver now contains its own cards (Visual, Clock, Scaling, Effects, Playback, Sync).
         // No separate shared container toggling is needed anymore.
@@ -1579,9 +1595,7 @@
         setIf('wallartMode.animationType', w.animationType || 'fade');
         setIf('wallartMode.layoutVariant', w.layoutVariant || 'heroGrid');
         setIf('wallartMode.ambientGradient', w.ambientGradient === true);
-        setIf('wallartMode.itemsPerScreen', w.itemsPerScreen ?? 30);
-        setIf('wallartMode.columns', w.columns ?? 6);
-        setIf('wallartMode.transitionInterval', w.transitionInterval ?? 30);
+        // Columns / Items per screen / Grid transition removed in Admin v2; Density controls layout.
         const hg = (w.layoutSettings && w.layoutSettings.heroGrid) || {};
         setIf('wallartMode.layoutSettings.heroGrid.heroSide', hg.heroSide || 'left');
         setIf(
@@ -1649,14 +1663,14 @@
                         'Ultra',
                         'Ludicrous',
                     ];
-                    return map[Math.min(Math.max(v, 1), 10) - 1] + ' refresh';
+                    return map[Math.min(Math.max(v, 1), 10) - 1] + ' poster refresh rate';
                 }
                 if (id === 'wallartMode.randomness') {
                     const v = Number(val);
-                    if (v <= 2) return 'Low randomness';
-                    if (v <= 5) return 'Medium randomness';
-                    if (v <= 8) return 'High randomness';
-                    return 'Chaotic randomness';
+                    if (v <= 2) return 'Low timing randomness';
+                    if (v <= 5) return 'Medium timing randomness';
+                    if (v <= 8) return 'High timing randomness';
+                    return 'Chaotic timing randomness';
                 }
                 if (id.startsWith('uiScaling.')) return `${val}%`;
                 return String(val);
@@ -1894,172 +1908,7 @@
             // Screensaver no longer supports custom layout; initializer removed.
         } catch (_) {}
 
-        // Wallart & Cinema: add the same customizable layout behavior to their mini-cards
-        try {
-            const initModeCustomize = ({
-                scope,
-                containerId,
-                btnStartId,
-                btnDoneId,
-                btnResetId,
-                colLeftId,
-                colRightId,
-                cardSelector,
-                keyAttr = 'data-card-key',
-            }) => {
-                const container = document.getElementById(containerId);
-                const btnStart = document.getElementById(btnStartId);
-                const btnDone = document.getElementById(btnDoneId);
-                const btnReset = document.getElementById(btnResetId);
-                const colL = document.getElementById(colLeftId);
-                const colR = document.getElementById(colRightId);
-                if (!container || !btnStart || !btnDone || !btnReset || !colL || !colR) return;
-
-                const STORAGE_KEY = `display.${scope}.layout.v1`;
-                const readLayout = () => {
-                    try {
-                        const raw = localStorage.getItem(STORAGE_KEY);
-                        return raw ? JSON.parse(raw) : null;
-                    } catch (_) {
-                        return null;
-                    }
-                };
-                const writeLayout = layout => {
-                    try {
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
-                    } catch (_) {}
-                };
-
-                const getCards = () => Array.from(container.querySelectorAll(cardSelector));
-
-                let dragEl = null;
-                const enableDrag = () => {
-                    getCards().forEach(el => {
-                        el.setAttribute('draggable', 'true');
-                        el.addEventListener('dragstart', e => {
-                            dragEl = el;
-                            el.classList.add('dragging');
-                            e.dataTransfer?.setData(
-                                'text/plain',
-                                el.id || el.getAttribute(keyAttr) || ''
-                            );
-                        });
-                        el.addEventListener('dragend', () => {
-                            el.classList.remove('dragging');
-                            dragEl = null;
-                        });
-                    });
-                    [colL, colR].forEach(col => {
-                        col.addEventListener('dragover', e => {
-                            e.preventDefault();
-                            col.classList.add('drag-over');
-                        });
-                        col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
-                        col.addEventListener('drop', e => {
-                            e.preventDefault();
-                            col.classList.remove('drag-over');
-                            if (!dragEl) return;
-                            const after = Array.from(col.children).find(
-                                child =>
-                                    e.clientY <=
-                                    child.getBoundingClientRect().top +
-                                        child.getBoundingClientRect().height / 2
-                            );
-                            if (after) col.insertBefore(dragEl, after);
-                            else col.appendChild(dragEl);
-                        });
-                    });
-                };
-
-                const enterCustomize = () => {
-                    container.classList.add('customizing');
-                    colL.style.display = '';
-                    colR.style.display = '';
-                    btnStart.style.display = 'none';
-                    btnDone.style.display = '';
-                    const saved = readLayout();
-                    colL.innerHTML = '';
-                    colR.innerHTML = '';
-                    if (saved) {
-                        const all = new Map(getCards().map(el => [el.getAttribute(keyAttr), el]));
-                        (saved.left || []).forEach(k => {
-                            const el = all.get(k);
-                            if (el) colL.appendChild(el);
-                        });
-                        (saved.right || []).forEach(k => {
-                            const el = all.get(k);
-                            if (el) colR.appendChild(el);
-                        });
-                    } else {
-                        // Split current DOM order evenly
-                        const cards = getCards();
-                        const mid = Math.ceil(cards.length / 2);
-                        cards.slice(0, mid).forEach(el => colL.appendChild(el));
-                        cards.slice(mid).forEach(el => colR.appendChild(el));
-                    }
-                    enableDrag();
-                };
-
-                const exitCustomize = (persist = true) => {
-                    if (persist) {
-                        const left = Array.from(colL.children).map(ch => ch.getAttribute(keyAttr));
-                        const right = Array.from(colR.children).map(ch => ch.getAttribute(keyAttr));
-                        writeLayout({ left, right });
-                    }
-                    const all = [...Array.from(colL.children), ...Array.from(colR.children)];
-                    all.forEach(el => container.appendChild(el));
-                    container.classList.remove('customizing');
-                    colL.style.display = 'none';
-                    colR.style.display = 'none';
-                    btnStart.style.display = '';
-                    btnDone.style.display = 'none';
-                };
-
-                const applySaved = () => {
-                    const saved = readLayout();
-                    if (!saved) return;
-                    const all = new Map(getCards().map(el => [el.getAttribute(keyAttr), el]));
-                    const append = keys =>
-                        keys.forEach(k => {
-                            const el = all.get(k);
-                            if (el) container.appendChild(el);
-                        });
-                    append(saved.left || []);
-                    append(saved.right || []);
-                };
-                applySaved();
-
-                btnStart.addEventListener('click', () => enterCustomize());
-                btnDone.addEventListener('click', () => exitCustomize(true));
-                btnReset.addEventListener('click', () => {
-                    try {
-                        localStorage.removeItem(STORAGE_KEY);
-                    } catch (_) {}
-                    if (container.classList.contains('customizing')) enterCustomize();
-                });
-            };
-
-            initModeCustomize({
-                scope: 'wallart',
-                containerId: 'wallart-cards',
-                btnStartId: 'btn-wallart-customize',
-                btnDoneId: 'btn-wallart-done',
-                btnResetId: 'btn-wallart-reset',
-                colLeftId: 'wallart-col-left',
-                colRightId: 'wallart-col-right',
-                cardSelector: '#wallart-cards > .mode-card[data-card-key]',
-            });
-            initModeCustomize({
-                scope: 'cinema',
-                containerId: 'cinema-cards',
-                btnStartId: 'btn-cinema-customize',
-                btnDoneId: 'btn-cinema-done',
-                btnResetId: 'btn-cinema-reset',
-                colLeftId: 'cinema-col-left',
-                colRightId: 'cinema-col-right',
-                cardSelector: '#cinema-cards > .mode-card[data-card-key]',
-            });
-        } catch (_) {}
+        // Wallart & Cinema: customize/reset functionality removed per request.
 
         // Number steppers: inc/dec handlers for all .number-input-wrapper blocks in Display section
         try {
@@ -2265,9 +2114,6 @@
                 animationType: val('wallartMode.animationType'),
                 layoutVariant: val('wallartMode.layoutVariant'),
                 ambientGradient: val('wallartMode.ambientGradient'),
-                itemsPerScreen: val('wallartMode.itemsPerScreen'),
-                columns: val('wallartMode.columns'),
-                transitionInterval: val('wallartMode.transitionInterval'),
                 layoutSettings: {
                     heroGrid: {
                         heroSide: val('wallartMode.layoutSettings.heroGrid.heroSide'),
