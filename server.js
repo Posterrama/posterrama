@@ -1806,7 +1806,9 @@ if (isDeviceMgmtEnabled()) {
                 if (cacheManager && typeof cacheManager.clear === 'function') {
                     cacheManager.clear('GET:/get-config');
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* no-op: cache clear is best-effort */
+            }
             res.status(201).json(g);
         } catch (e) {
             if (e && e.message === 'group_exists')
@@ -1822,7 +1824,9 @@ if (isDeviceMgmtEnabled()) {
                 if (cacheManager && typeof cacheManager.clear === 'function') {
                     cacheManager.clear('GET:/get-config');
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* no-op: cache clear is best-effort */
+            }
             res.json(g);
         } catch (e) {
             res.status(500).json({ error: 'group_patch_failed' });
@@ -1836,7 +1840,9 @@ if (isDeviceMgmtEnabled()) {
                 if (cacheManager && typeof cacheManager.clear === 'function') {
                     cacheManager.clear('GET:/get-config');
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* no-op: cache clear is best-effort */
+            }
             res.json({ ok: true });
         } catch (e) {
             res.status(500).json({ error: 'group_delete_failed' });
@@ -10061,7 +10067,9 @@ if (require.main === module) {
                                     payload: { serverTime: now, periodMs, nextAt },
                                 });
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* no-op: broadcasting sync tick is best-effort */
+                        }
                     }, 500);
                 }
             } catch (e) {

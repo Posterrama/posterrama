@@ -1,112 +1,67 @@
 /* eslint-disable no-empty, prettier/prettier */
 /*
  * Posterrama Admin Panel - Version 2.2.0
- * Date: 2025-08-14
- * Scope: Cache stats functionality with clearer labeling.
  */
 
-// Explicitly surface errors in console during bootstrap
-try {
-    console.warn('[Admin] bootstrap starting');
-    window.addEventListener('error', ev => {
-        try {
-            console.error(
-                '[Admin] Uncaught error:',
-                ev.error || ev.message,
-                ev.filename,
-                ev.lineno,
-                ev.colno
-            );
-        } catch (_) {
-            // ignore
-        }
-    });
-    window.addEventListener('unhandledrejection', ev => {
-        try {
-            console.error('[Admin] Unhandled rejection:', ev.reason);
-        } catch (_) {
-            // ignore
-        }
-    });
-} catch (_) {
-    // ignore bootstrap wrapper errors
-}
-
-// Make version available globally (will be updated by server)
-window.POSTERRAMA_VERSION = 'Loading...';
-
-// Placeholder helpers to satisfy lint where optional chaining is used
-function updateSliderBackground() {}
-// positionSliderBubble intentionally unused; keep signature for future UI polish
-async function promptDialog(message, defaultValue = '', _anchor) {
-    // Simple fallback to window.prompt; can be replaced by a styled modal
-    // eslint-disable-next-line no-alert
-    return window.prompt(message, defaultValue);
-}
-
-// Fetch current version immediately
-fetch('/api/admin/version')
-    .then(response => response.json())
-    .then(data => {
-        window.POSTERRAMA_VERSION = data.version || 'Unknown';
-    })
-    .catch(_error => {
-        window.POSTERRAMA_VERSION = 'Unknown';
-    });
-
-// Ensure all API calls use the current host
-const API_BASE = window.location.origin;
-
-// Helper function to create API URLs - always use current host
+// --- Network helpers (restored) ---
 function apiUrl(path) {
-    // Ensure path starts with /
-    if (!path.startsWith('/')) {
-        path = '/' + path;
+    if (!path) return '/';
+    if (/^https?:\/\//i.test(path)) return path; // absolute URL passed through
+    return path.startsWith('/') ? path : '/' + path;
+}
+
+function apiUrlWithCacheBust(path) {
+    try {
+        const u = new URL(apiUrl(path), window.location.origin);
+        u.searchParams.set('cb', Date.now().toString());
+        return u.toString();
+    } catch (_) {
+        // Fallback: naive query param appending
+        const sep = String(path).includes('?') ? '&' : '?';
+        return apiUrl(path) + sep + 'cb=' + Date.now();
+    }
+}
+
+async function authenticatedFetch(url, options = {}) {
+    const { noRedirectOn401, headers = {}, ...rest } = options || {};
+
+    const defaultHeaders = { Accept: 'application/json' };
+    // Only set Content-Type automatically when a body is provided and no explicit Content-Type is set
+    if ('body' in rest && rest.body != null && !('Content-Type' in headers)) {
+        defaultHeaders['Content-Type'] = 'application/json';
     }
 
-    // Always use the current host - no hardcoded URLs or special cases
-    return `${API_BASE}${path}`;
-}
-
-// Cache busting helper for API calls that should always be fresh
-function apiUrlWithCacheBust(path) {
-    const url = apiUrl(path);
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}_t=${Date.now()}`;
-}
-
-// Helper for authenticated fetch calls with proper error handling
-async function authenticatedFetch(url, options = {}) {
-    const { noRedirectOn401, ...rest } = options || {};
     const defaultOptions = {
         credentials: 'include',
         headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-            Pragma: 'no-cache',
-            ...(rest.headers || {}),
+            ...defaultHeaders,
+            ...headers,
         },
     };
 
     try {
         const response = await fetch(url, { ...defaultOptions, ...rest });
-
-        // Handle authentication errors
         if (response.status === 401) {
             if (!noRedirectOn401) {
-                window.location.href = '/admin/login';
+                try {
+                    window.location.href = '/admin/login';
+                } catch (_) {}
             }
             const err = new Error('Authentication required');
             err.code = 'unauthorized';
             throw err;
         }
-
         return response;
     } catch (error) {
         console.error('🚨 Fetch error:', error.name, error.message);
         throw error;
     }
 }
+
+// Expose helpers globally (optional convenience)
+window.apiUrl = apiUrl;
+window.apiUrlWithCacheBust = apiUrlWithCacheBust;
+window.authenticatedFetch = authenticatedFetch;
 
 /**
  * Global setButtonState function - manages visual state of buttons during async operations
@@ -156,14 +111,14 @@ window.setButtonState = function (button, state, options = {}) {
                 if (textSpan) textSpan.textContent = msg;
                 else button.textContent = msg;
             }
-            if (icon)
+            if (icon) {
                 icon.className =
-                    options.iconClass || (state === 'success' ? 'fas fa-check' : 'fas fa-times');
-            button.className =
-                options.buttonClass ||
-                (state === 'success'
-                    ? button.dataset.originalButtonClass.replace('is-primary', 'is-success')
-                    : button.dataset.originalButtonClass.replace('is-primary', 'is-danger'));
+                    options.iconClass ||
+                    (state === 'success' ? 'fas fa-check' : 'fas fa-exclamation-triangle');
+            }
+            button.className = `${button.dataset.originalButtonClass} ${
+                options.buttonClass || (state === 'success' ? 'is-success' : 'is-danger')
+            }`;
             break;
         case 'revert':
             button.disabled = false;
@@ -172,221 +127,8 @@ window.setButtonState = function (button, state, options = {}) {
                 else button.textContent = button.dataset.originalText || '';
             }
             if (icon) icon.className = button.dataset.originalIconClass || '';
-            button.className = button.dataset.originalButtonClass;
+            button.className = button.dataset.originalButtonClass || button.className;
             break;
-    }
-};
-
-// Make it available as both global and local alias
-const setButtonState = window.setButtonState;
-
-// Global cache management functions for debugging
-window.clearBrowserCache = function () {
-    // Clear localStorage
-    localStorage.clear();
-
-    // Clear sessionStorage
-    sessionStorage.clear();
-
-    // Unregister service workers
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function (registrations) {
-            for (const registration of registrations) {
-                registration.unregister();
-            }
-        });
-    }
-
-    // Clear cache storage
-    if ('caches' in window) {
-        caches.keys().then(function (names) {
-            names.forEach(function (name) {
-                caches.delete(name);
-            });
-        });
-    }
-
-    return 'Cache cleared! Please refresh the page.';
-};
-
-window.hardRefresh = function () {
-    window.location.reload(true);
-};
-
-// DEBUGGING: Force show modal function
-window.forceShowModal = function () {
-    const modal = document.getElementById('update-confirmation-modal');
-
-    if (modal) {
-        // Try all possible ways to show it
-        modal.style.display = 'flex';
-        modal.style.visibility = 'visible';
-        modal.style.opacity = '1';
-        modal.style.zIndex = '99999';
-        modal.classList.remove('is-hidden');
-        modal.classList.add('force-visible');
-
-        // Add inline CSS as fallback
-        modal.setAttribute(
-            'style',
-            `
-            display: flex !important;
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            z-index: 999999 !important;
-            background: rgba(0,0,0,0.8) !important;
-            align-items: center !important;
-            justify-content: center !important;
-        `
-        );
-
-        const content = modal.querySelector('.modal-content');
-        if (content) {
-            content.innerHTML =
-                '<h2 style="color: white;">TEST MODAL - IF YOU SEE THIS, MODAL WORKS!</h2>';
-        }
-
-        return 'Modal force shown';
-    } else {
-        return 'Modal not found';
-    }
-};
-// DEBUGGING: Advanced modal debugging
-window.debugModal = function () {
-    const modal = document.getElementById('update-confirmation-modal');
-
-    if (modal) {
-        window.getComputedStyle(modal);
-        modal.getBoundingClientRect();
-
-        // Try to make it bright red and huge to see if it shows
-        modal.style.background = 'red !important';
-        modal.style.border = '10px solid yellow !important';
-
-        return 'Advanced debugging complete';
-    }
-
-    return 'Modal not found';
-};
-
-// DEBUGGING: Force call displayIdleUpdateStatus directly
-window.testUpdateStatus = function () {
-    displayIdleUpdateStatus({ isUpdating: false });
-    return 'Update status test initiated';
-};
-
-window.checkNetworkStatus = function () {
-    return {
-        currentDomain: window.location.hostname,
-        apiBase: API_BASE,
-    };
-};
-
-// Smoothly scroll to a subsection header by id (used by quick-nav links in Sources)
-window.scrollToSubsection = function (id) {
-    try {
-        const el = document.getElementById(id);
-        if (!el) {
-            console.warn('scrollToSubsection: element not found:', id);
-            return;
-        }
-
-        // Try to find the actual scrollable container
-        const possibleContainers = [
-            document.querySelector('.main-content'),
-            document.querySelector('.admin-main'),
-            document.getElementById('main-content'),
-            document.querySelector('.admin-layout'),
-            document.body,
-            document.documentElement,
-        ];
-
-        let scrollContainer = null;
-
-        // Find which container actually has scroll capability
-        for (const container of possibleContainers) {
-            if (container && container.scrollHeight > container.clientHeight) {
-                scrollContainer = container;
-                console.log(
-                    'Found scrollable container:',
-                    container.className || container.tagName,
-                    {
-                        scrollHeight: container.scrollHeight,
-                        clientHeight: container.clientHeight,
-                        scrollTop: container.scrollTop,
-                    }
-                );
-                break;
-            }
-        }
-
-        const offset = 80;
-
-        if (scrollContainer) {
-            // Calculate position relative to the scrollable container
-            const elRect = el.getBoundingClientRect();
-            const containerRect = scrollContainer.getBoundingClientRect();
-            const currentScrollTop = scrollContainer.scrollTop;
-
-            let targetY;
-            if (scrollContainer === document.body || scrollContainer === document.documentElement) {
-                // For body/html, use simpler calculation
-                targetY = elRect.top + window.pageYOffset - offset;
-            } else {
-                // For other containers, use container-relative calculation
-                targetY = elRect.top - containerRect.top + currentScrollTop - offset;
-            }
-
-            console.log(
-                `Scrolling to ${id} in ${scrollContainer.className || scrollContainer.tagName}:`,
-                {
-                    currentScrollTop,
-                    elRect: elRect.top,
-                    containerRect: containerRect.top,
-                    targetY,
-                    containerScrollHeight: scrollContainer.scrollHeight,
-                    containerClientHeight: scrollContainer.clientHeight,
-                }
-            );
-
-            const finalY = Math.max(
-                0,
-                Math.min(targetY, scrollContainer.scrollHeight - scrollContainer.clientHeight)
-            );
-
-            // Try scrollTo method
-            if (scrollContainer.scrollTo) {
-                scrollContainer.scrollTo({
-                    top: finalY,
-                    behavior: 'smooth',
-                });
-            } else {
-                // Fallback to direct scrollTop
-                scrollContainer.scrollTop = finalY;
-            }
-
-            // Check if scroll worked after a short delay
-            setTimeout(() => {
-                if (Math.abs(scrollContainer.scrollTop - finalY) > 10) {
-                    console.log('Smooth scroll failed, trying direct scrollTop');
-                    scrollContainer.scrollTop = finalY;
-                }
-            }, 100);
-        } else {
-            console.log('No scrollable container found, using window scroll');
-            // Ultimate fallback to window scroll
-            const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
-            window.scrollTo({ top: y, behavior: 'smooth' });
-        }
-
-        // Briefly highlight the target header for orientation
-        el.classList.add('pulse-highlight');
-        setTimeout(() => el.classList.remove('pulse-highlight'), 800);
-    } catch (e) {
-        // ignore
     }
 };
 
@@ -1095,305 +837,6 @@ async function fetchDevicesLight() {
         : [];
 }
 
-function renderGroupsTable(groups, devices) {
-    const tbody = document.querySelector('#groups-table tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    const esc = s => (s == null ? '' : String(s));
-    const devByGroup = Object.create(null);
-    (devices || []).forEach(d => {
-        (d.groups || []).forEach(gid => {
-            devByGroup[gid] = (devByGroup[gid] || 0) + 1;
-        });
-    });
-    (groups || []).forEach(g => {
-        const tr = document.createElement('tr');
-        tr.setAttribute('data-id', g.id);
-        tr.innerHTML = `
-            <td class="col-select"><input type="checkbox" class="row-select" data-id="${g.id}" aria-label="Select group"/></td>
-            <td class="col-name">
-                <div class="name">${esc(g.name || '(unnamed)')}</div>
-                <div class="muted small">${esc(g.description || '')}</div>
-                <div class="muted tiny">ID: ${esc(g.id)}</div>
-            </td>
-            <td class="col-order">
-                <div class="order-controls" data-id="${g.id}" style="display:flex;align-items:center;gap:.35rem;">
-                    <span class="drag-handle" draggable="true" title="Drag to reorder" style="cursor:grab;display:inline-flex;align-items:center;color:#aaa;">
-                        <i class="fas fa-grip-vertical"></i>
-                    </span>
-                    <button type="button" class="btn btn-compact" data-act="ord-dec" title="Move up"><i class="fas fa-chevron-up"></i></button>
-                    <input type="number" class="inline-order" value="${Number.isFinite(g.order) ? g.order : 0}" min="0" step="1" style="width:72px" />
-                    <button type="button" class="btn btn-compact" data-act="ord-inc" title="Move down"><i class="fas fa-chevron-down"></i></button>
-                </div>
-            </td>
-            <td class="col-members">
-                <span class="badge">${devByGroup[g.id] || 0} device(s)</span>
-            </td>
-            <td class="col-actions">
-                <div class="btn-row">
-                    <button type="button" class="btn" data-act="edit" data-id="${g.id}"><i class="fas fa-pen"></i> Edit</button>
-                    <button type="button" class="btn" data-act="cmd" data-id="${g.id}"><i class="fas fa-bolt"></i> Command</button>
-                    <button type="button" class="btn btn-danger" data-act="del" data-id="${g.id}"><i class="fas fa-trash"></i></button>
-                </div>
-            </td>`;
-        tbody.appendChild(tr);
-    });
-
-    // Enable drag-and-drop reordering
-    setupGroupDragAndDrop(tbody);
-}
-
-function openGroupEditor(group) {
-    const modal = document.getElementById('group-editor-modal');
-    if (!modal) return;
-    const title = document.getElementById('group-editor-title');
-    const nameEl = document.getElementById('group-name');
-    const descEl = document.getElementById('group-description');
-    const orderEl = document.getElementById('group-order');
-    const tplEl = document.getElementById('group-template');
-    const membersBox = document.getElementById('group-members');
-    title.textContent = group && group.id ? 'Edit Group' : 'New Group';
-    nameEl.value = group?.name || '';
-    descEl.value = group?.description || '';
-    orderEl.value = Number.isFinite(group?.order) ? group.order : __groupsCache.length || 0;
-    tplEl.value =
-        group && group.settingsTemplate ? JSON.stringify(group.settingsTemplate, null, 2) : '';
-    modal.classList.remove('is-hidden');
-    modal.style.display = 'flex';
-
-    const onCancel = () => {
-        modal.classList.add('is-hidden');
-        modal.style.display = 'none';
-        modal
-            .querySelectorAll('[data-group-cancel]')
-            .forEach(btn => btn.removeEventListener('click', onCancel));
-        form.removeEventListener('submit', onSubmit);
-    };
-    modal
-        .querySelectorAll('[data-group-cancel]')
-        .forEach(btn => btn.addEventListener('click', onCancel));
-    const form = document.getElementById('group-editor-form');
-    // Populate members list
-    (async () => {
-        try {
-            const devices = await fetchDevicesLight();
-            if (membersBox) {
-                const gid = group && group.id;
-                membersBox.innerHTML = devices
-                    .map(d => {
-                        const checked = gid && Array.isArray(d.groups) && d.groups.includes(gid);
-                        const safe = s => (s == null ? '' : String(s).replace(/</g, '&lt;'));
-                        return `<label class="checkbox-label" style="display:block;margin:.25rem 0;">
-                            <input type="checkbox" class="group-member" data-id="${safe(d.id)}" ${checked ? 'checked' : ''} />
-                            <span>${safe(d.name || d.id)}</span>
-                        </label>`;
-                    })
-                    .join('');
-            }
-        } catch (_) {}
-    })();
-    async function onSubmit(e) {
-        e.preventDefault();
-        const status = document.getElementById('groups-status');
-        try {
-            const payload = {
-                name: nameEl.value.trim(),
-                description: descEl.value.trim(),
-                order: Number(orderEl.value || 0),
-            };
-            const txt = tplEl.value.trim();
-            if (txt) {
-                try {
-                    payload.settingsTemplate = JSON.parse(txt);
-                } catch (err) {
-                    throw new Error('Invalid JSON in template');
-                }
-            } else {
-                payload.settingsTemplate = {};
-            }
-            let gid = group && group.id;
-            if (gid) await patchGroup(gid, payload);
-            else {
-                const created = await createGroup(payload);
-                gid = created && created.id;
-            }
-            // Save members if present
-            if (gid && membersBox) {
-                try {
-                    const devices = await fetchDevicesLight();
-                    const selected = Array.from(
-                        membersBox.querySelectorAll('.group-member:checked')
-                    ).map(el => el.getAttribute('data-id'));
-                    const selectedSet = new Set(selected);
-                    // Compute per-device desired groups
-                    for (const d of devices) {
-                        const has = Array.isArray(d.groups) && d.groups.includes(gid);
-                        const should = selectedSet.has(d.id);
-                        if (has === should) continue;
-                        const nextGroups = new Set(Array.isArray(d.groups) ? d.groups : []);
-                        if (should) nextGroups.add(gid);
-                        else nextGroups.delete(gid);
-                        await patchDeviceGroups(d.id, Array.from(nextGroups));
-                    }
-                } catch (e2) {
-                    // non-fatal
-                }
-            }
-            const [groups, devices] = await Promise.all([fetchGroups(), fetchDevicesLight()]);
-            renderGroupsTable(groups, devices);
-            status && (status.textContent = 'Saved.');
-            onCancel();
-        } catch (err) {
-            status && (status.textContent = err.message || 'Save failed');
-        }
-    }
-    form.addEventListener('submit', onSubmit);
-}
-
-function openGroupCommand(groupId) {
-    const modal = document.getElementById('group-command-modal');
-    if (!modal) return;
-    const typeEl = document.getElementById('group-command-type');
-    const payloadEl = document.getElementById('group-command-payload');
-    modal.classList.remove('is-hidden');
-    modal.style.display = 'flex';
-    const onCancel = () => {
-        modal.classList.add('is-hidden');
-        modal.style.display = 'none';
-        modal
-            .querySelectorAll('[data-gcmd-cancel]')
-            .forEach(btn => btn.removeEventListener('click', onCancel));
-        form.removeEventListener('submit', onSubmit);
-    };
-    modal
-        .querySelectorAll('[data-gcmd-cancel]')
-        .forEach(btn => btn.addEventListener('click', onCancel));
-    const form = document.getElementById('group-command-form');
-    async function onSubmit(e) {
-        e.preventDefault();
-        const status = document.getElementById('groups-status');
-        try {
-            let payload = undefined;
-            const txt = payloadEl.value.trim();
-            if (txt) payload = JSON.parse(txt);
-            await sendGroupCommand(groupId, typeEl.value, payload);
-            status && (status.textContent = 'Command sent.');
-            onCancel();
-        } catch (err) {
-            status && (status.textContent = err.message || 'Command failed');
-        }
-    }
-    form.addEventListener('submit', onSubmit);
-}
-
-async function initGroupsPanel() {
-    const container = document.getElementById('groups-subsection');
-    if (!container || container.__groupsInit) return;
-    container.__groupsInit = true;
-    const status = document.getElementById('groups-status');
-    const refreshBtn = document.getElementById('groups-refresh');
-    const createBtn = document.getElementById('group-create');
-    const deleteBtn = document.getElementById('groups-delete-selected');
-
-    async function reload() {
-        const [groups, devices] = await Promise.all([fetchGroups(), fetchDevicesLight()]);
-        renderGroupsTable(groups, devices);
-        status && (status.textContent = `${groups.length} group(s)`);
-    }
-
-    refreshBtn && refreshBtn.addEventListener('click', () => reload().catch(() => {}));
-    createBtn && createBtn.addEventListener('click', () => openGroupEditor(null));
-
-    const table = document.getElementById('groups-table');
-    if (table) {
-        table.addEventListener('click', async e => {
-            const actBtn = e.target.closest('[data-act]');
-            if (actBtn) {
-                const row = actBtn.closest('.order-controls');
-                const id = actBtn.dataset.id || (row && row.dataset.id);
-                if (!id) return;
-                try {
-                    if (actBtn.dataset.act === 'edit') {
-                        const group = (__groupsCache || []).find(g => g.id === id);
-                        openGroupEditor(group || { id });
-                    } else if (actBtn.dataset.act === 'cmd') {
-                        openGroupCommand(id);
-                    } else if (actBtn.dataset.act === 'del') {
-                        const ok = await confirmDialog('Delete this group?');
-                        if (!ok) return;
-                        await deleteGroup(id);
-                        await reload();
-                    } else if (
-                        actBtn.dataset.act === 'ord-dec' ||
-                        actBtn.dataset.act === 'ord-inc'
-                    ) {
-                        const g = (__groupsCache || []).find(x => x.id === id);
-                        if (!g) return;
-                        const delta = actBtn.dataset.act === 'ord-dec' ? -1 : 1;
-                        await patchGroup(id, { order: (Number(g.order) || 0) + delta });
-                        await reload();
-                    }
-                } catch (err) {
-                    status && (status.textContent = err.message || 'Action failed');
-                }
-                return;
-            }
-            // Inline order change
-            const input = e.target.closest('.inline-order');
-            if (input) {
-                const parent = input.closest('.order-controls');
-                const id = parent && parent.dataset.id;
-                if (!id) return;
-                const val = Number(input.value || 0);
-                try {
-                    await patchGroup(id, { order: val });
-                    await reload();
-                } catch (err) {
-                    status && (status.textContent = err.message || 'Order update failed');
-                }
-            }
-        });
-    }
-
-    // Bulk selection
-    const selectAll = document.getElementById('groups-select-all');
-    if (selectAll) {
-        selectAll.addEventListener('change', () => {
-            const rows = container.querySelectorAll('.row-select');
-            rows.forEach(cb => (cb.checked = selectAll.checked));
-            deleteBtn.disabled = !selectAll.checked;
-        });
-    }
-    container.addEventListener('change', e => {
-        if (e.target.classList.contains('row-select')) {
-            const any = !!container.querySelector('.row-select:checked');
-            deleteBtn.disabled = !any;
-        }
-    });
-    deleteBtn &&
-        deleteBtn.addEventListener('click', async () => {
-            const ids = Array.from(container.querySelectorAll('.row-select:checked')).map(
-                el => el.dataset.id
-            );
-            if (!ids.length) return;
-            const ok = await confirmDialog(`Delete ${ids.length} group(s)?`);
-            if (!ok) return;
-            for (const id of ids) {
-                try {
-                    await deleteGroup(id);
-                } catch (_) {}
-            }
-            await reload();
-        });
-
-    // Initial load
-    try {
-        await reload();
-    } catch (e) {
-        status && (status.textContent = 'Failed to load groups');
-    }
-}
-
 async function patchDeviceGroups(id, groups) {
     await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
         method: 'PATCH',
@@ -1401,95 +844,7 @@ async function patchDeviceGroups(id, groups) {
     });
 }
 
-// --- Drag & Drop helpers for Groups -------------------------------------------------
-function setupGroupDragAndDrop(tbody) {
-    if (!tbody || tbody.__groupsDndInit) return;
-    tbody.__groupsDndInit = true;
-    // Restrict drag start to the handle to avoid accidental drags
-    let draggingEl = null;
-    let dragStartIndex = -1;
-
-    // Mark rows as draggable only during handle drag
-    tbody.addEventListener('dragstart', e => {
-        const row = e.target.closest('tr');
-        const onHandle = e.target.closest('.drag-handle');
-        if (!row || !onHandle) {
-            e.preventDefault();
-            return;
-        }
-        draggingEl = row;
-        dragStartIndex = Array.from(tbody.children).indexOf(row);
-        row.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-        try {
-            e.dataTransfer.setData('text/plain', row.getAttribute('data-id') || '');
-        } catch (_) {}
-    });
-
-    tbody.addEventListener('dragend', async () => {
-        if (!draggingEl) return;
-        draggingEl.classList.remove('dragging');
-        const status = document.getElementById('groups-status');
-        try {
-            await persistGroupOrder(tbody);
-            status && (status.textContent = 'Order saved');
-        } catch (err) {
-            status && (status.textContent = err.message || 'Order save failed');
-        } finally {
-            draggingEl = null;
-            dragStartIndex = -1;
-        }
-    });
-
-    tbody.addEventListener('dragover', e => {
-        if (!draggingEl) return;
-        e.preventDefault();
-        const after = getDragAfterRow(tbody, e.clientY);
-        if (!after) {
-            tbody.appendChild(draggingEl);
-        } else {
-            tbody.insertBefore(draggingEl, after);
-        }
-    });
-
-    // Make handles focusable for accessibility (keyboard DnD could be added later)
-    tbody.querySelectorAll('.drag-handle').forEach(h => h.setAttribute('tabindex', '0'));
-}
-
-function getDragAfterRow(container, y) {
-    const rows = [...container.querySelectorAll('tr:not(.dragging)')];
-    return (
-        rows
-            .map(row => {
-                const rect = row.getBoundingClientRect();
-                const offset = y - rect.top - rect.height / 2;
-                return { row, offset };
-            })
-            .filter(x => x.offset < 0)
-            .sort((a, b) => b.offset - a.offset)[0]?.row || null
-    );
-}
-
-async function persistGroupOrder(tbody) {
-    // Recompute order based on current DOM order (0..n-1)
-    const ids = Array.from(tbody.querySelectorAll('tr')).map(tr => tr.getAttribute('data-id'));
-    const byId = new Map((__groupsCache || []).map(g => [g.id, g]));
-    const ops = [];
-    ids.forEach((id, index) => {
-        const g = byId.get(id);
-        const current = Number.isFinite(g?.order) ? g.order : -1;
-        if (current !== index) {
-            ops.push(patchGroup(id, { order: index }));
-            if (g) g.order = index;
-        }
-    });
-    if (ops.length) await Promise.all(ops);
-    // Update the inline order inputs to reflect new indices
-    Array.from(tbody.querySelectorAll('tr')).forEach((tr, index) => {
-        const input = tr.querySelector('.inline-order');
-        if (input) input.value = index;
-    });
-}
+// Groups creation is handled via the Devices toolbar menu only
 
 // Debug function to test config save with different methods
 window.testConfigSave = async function () {
@@ -2636,22 +1991,41 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 50);
         }
 
-        // Initialize Groups panel when Groups section is activated
-        if (targetSection === 'groups') {
-            setTimeout(() => {
-                try {
-                    initGroupsPanel();
-                } catch (e) {
-                    // ignore
-                }
-            }, 50);
-        }
+        // No standalone Groups section
 
         // Libraries are now loaded during config load, no need for lazy loading here
     }
 
     // Make activateSection globally available
     window.activateSection = activateSection;
+
+    // Smooth scroll to a subsection within the Content Sources section
+    function scrollToSubsection(id) {
+        const run = () => {
+            const target = document.getElementById(id);
+            if (!target) return;
+            // Scroll the nearest scrollable ancestor reliably
+            try {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+            } catch (_) {
+                target.scrollIntoView();
+            }
+        };
+
+        const media = document.getElementById('media-section');
+        if (!media || !media.classList.contains('active')) {
+            if (typeof window.activateSection === 'function') {
+                window.activateSection('media');
+                // Delay slightly to allow layout to update before measuring
+                setTimeout(run, 160);
+            } else {
+                run();
+            }
+        } else {
+            run();
+        }
+    }
+    window.scrollToSubsection = scrollToSubsection;
 
     navItems.forEach(item => {
         item.addEventListener('click', e => {
@@ -3059,10 +2433,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Escape to close modals
             if (e.key === 'Escape') {
-                const modals = document.querySelectorAll('.modal:not(.is-hidden)');
+                const modals = document.querySelectorAll('.modal');
                 modals.forEach(modal => {
                     modal.classList.add('is-hidden');
+                    modal.classList.remove('modal-open', 'force-show');
                 });
+                document.body.classList.remove('modal-open');
+                document.documentElement.classList.remove('modal-open');
             }
         });
 
@@ -11762,6 +11139,210 @@ ${escHtml(presets.length ? JSON.stringify(presets[0], null, 2) : '')}
         // Initial validation
         updateValidationUI();
     }
+}
+
+// Bind Groups menu in Devices toolbar
+(function bindGroupsMenu() {
+    try {
+        const container = document.getElementById('devices-subsection');
+        if (!container) return;
+        const btn = container.querySelector('#groups-menu-button');
+        const menu = container.querySelector('#groups-menu');
+        const manageBtn = container.querySelector('#menu-manage-groups');
+        if (!btn || !menu || !manageBtn) return;
+        const setOpen = open => {
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            menu.setAttribute('aria-hidden', open ? 'false' : 'true');
+            menu.style.display = open ? 'block' : 'none';
+        };
+        let open = false;
+        btn.addEventListener('click', ev => {
+            ev.stopPropagation();
+            open = !open;
+            setOpen(open);
+        });
+        manageBtn.addEventListener('click', ev => {
+            ev.stopPropagation();
+            setOpen(false);
+            showManageGroupsModal();
+        });
+        document.addEventListener('click', e => {
+            if (!open) return;
+            if (!menu.contains(e.target) && e.target !== btn) {
+                open = false;
+                setOpen(false);
+            }
+        });
+    } catch (_) {}
+})();
+
+// Manage Groups modal (under Devices section)
+function showManageGroupsModal() {
+    const existing = document.getElementById('manage-groups-modal');
+    if (existing) existing.remove();
+    const escHtml = s => (s == null ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'));
+    const buildHtml = (groups, devices) => `
+        <div id="manage-groups-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="groups-title">
+            <div class="modal-background" data-close></div>
+            <div class="modal-content" style="max-width: 1024px;">
+                <span class="close" data-close>&times;</span>
+                <h3 id="groups-title" class="section-title modal-section-title">
+                    <i class="fas fa-object-group"></i>
+                    <span>Device Groups</span>
+                </h3>
+                <div class="form-section unified-section">
+                    <div class="subsection-content">
+                        <div class="preset-manager-grid" style="display:grid;grid-template-columns: 300px 1fr;gap:12px;align-items:start;">
+                            <div class="left">
+                                <div class="field">
+                                    <div class="field-label">Groups</div>
+                                    <select id="groups-select-list" size="12" style="width:100%;min-height:280px;">
+                                        ${groups
+                                            .map(
+                                                g =>
+                                                    `<option value="${escHtml(g.id)}">${escHtml(
+                                                        g.name || g.id
+                                                    )}</option>`
+                                            )
+                                            .join('')}
+                                    </select>
+                                </div>
+                                <div class="form-actions" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+                                    <button type="button" id="group-create" class="btn is-primary"><span class="icon"><i class="fas fa-plus"></i></span><span>New</span></button>
+                                    <button type="button" id="group-rename" class="btn"><span class="icon"><i class="fas fa-pen"></i></span><span>Rename</span></button>
+                                    <button type="button" id="group-delete" class="btn btn-danger"><span class="icon"><i class="fas fa-trash"></i></span><span>Delete</span></button>
+                                    <button type="button" class="btn" data-close><span class="icon"><i class="fas fa-times"></i></span><span>Close</span></button>
+                                </div>
+                            </div>
+                            <div class="right">
+                                <div class="field">
+                                    <div class="field-label">Members</div>
+                                    <div id="group-members-box" style="border:1px solid rgba(255,255,255,0.1);padding:8px;border-radius:8px;max-height:360px;overflow:auto;">
+                                        <div class="hint">Select a group to manage its members.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hint" style="margin-top:6px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+    const loadAndRender = async () => {
+        const [groups, devices] = await Promise.all([fetchGroups(), fetchDevicesLight()]);
+        const wrap = document.createElement('div');
+        wrap.innerHTML = buildHtml(groups, devices);
+        const el = wrap.firstElementChild;
+        document.body.appendChild(el);
+        const status = el.querySelector('.hint');
+        const listEl = el.querySelector('#groups-select-list');
+        const membersBox = el.querySelector('#group-members-box');
+        el.classList.add('modal-open');
+        el.classList.remove('is-hidden');
+        // Close handlers
+        el.querySelectorAll('[data-close]').forEach(c =>
+            c.addEventListener('click', () => el.remove())
+        );
+
+        const renderMembers = gid => {
+            if (!gid) {
+                membersBox.innerHTML =
+                    '<div class="hint">Select a group to manage its members.</div>';
+                return;
+            }
+            const g = groups.find(x => x.id === gid);
+            const set = new Set(
+                devices
+                    .filter(d => Array.isArray(d.groups) && d.groups.includes(gid))
+                    .map(d => d.id)
+            );
+            membersBox.innerHTML = devices
+                .map(d => {
+                    const safe = s => (s == null ? '' : String(s).replace(/</g, '&lt;'));
+                    const checked = set.has(d.id) ? 'checked' : '';
+                    return `<label class="checkbox-label" style="display:block;margin:.25rem 0;">
+                        <input type="checkbox" data-did="${safe(d.id)}" ${checked} />
+                        <span>${safe(d.name || d.id)}</span>
+                    </label>`;
+                })
+                .join('');
+        };
+
+        listEl.addEventListener('change', () => {
+            renderMembers(listEl.value);
+        });
+
+        // Create group
+        el.querySelector('#group-create').addEventListener('click', async () => {
+            const name = prompt('New group name');
+            if (!name) return;
+            try {
+                await createGroup({ name });
+                if (status) status.textContent = 'Group created.';
+                el.remove();
+                loadAndRender();
+            } catch (e) {
+                if (status) status.textContent = 'Failed to create group.';
+            }
+        });
+
+        // Rename
+        el.querySelector('#group-rename').addEventListener('click', async () => {
+            const id = listEl.value;
+            if (!id) return;
+            const current = groups.find(g => g.id === id);
+            const name = prompt('Rename group', current && current.name ? current.name : id);
+            if (!name) return;
+            try {
+                await patchGroup(id, { name });
+                if (status) status.textContent = 'Group renamed.';
+                el.remove();
+                loadAndRender();
+            } catch (e) {
+                if (status) status.textContent = 'Failed to rename group.';
+            }
+        });
+
+        // Delete
+        el.querySelector('#group-delete').addEventListener('click', async () => {
+            const id = listEl.value;
+            if (!id) return;
+            if (!confirm('Delete this group?')) return;
+            try {
+                await deleteGroup(id);
+                if (status) status.textContent = 'Group deleted.';
+                el.remove();
+                loadAndRender();
+            } catch (e) {
+                if (status) status.textContent = 'Failed to delete group.';
+            }
+        });
+
+        // Toggle member assignment
+        membersBox.addEventListener('change', async ev => {
+            const cb = ev.target;
+            if (!(cb && cb.matches('input[type="checkbox"][data-did]'))) return;
+            const gid = listEl.value;
+            const did = cb.getAttribute('data-did');
+            try {
+                const d = devices.find(x => x.id === did) || { id: did, groups: [] };
+                const next = new Set(Array.isArray(d.groups) ? d.groups : []);
+                if (cb.checked) next.add(gid);
+                else next.delete(gid);
+                await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(did)}`), {
+                    method: 'PATCH',
+                    body: JSON.stringify({ groups: Array.from(next) }),
+                });
+                if (status) status.textContent = 'Updated group membership.';
+            } catch (_) {
+                if (status) status.textContent = 'Failed to update group membership.';
+                cb.checked = !cb.checked;
+            }
+        });
+    };
+
+    loadAndRender();
 }
 
 // Device Settings Override Modal

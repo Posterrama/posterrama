@@ -4638,6 +4638,9 @@ fieldset:focus-within {
 #devices-section .presets-menu {
     position: relative;
 }
+#devices-section .groups-menu {
+    position: relative;
+}
 #devices-section .btn.btn-compact {
     padding: 0.4rem 0.6rem; /* match select vertical rhythm */
     font-size: 0.9rem; /* match select font size */
@@ -6427,12 +6430,7 @@ div#devices-section.section-content.active .section-main-content {
     display: none;
 }
 
-/* Safety override: if JS detects the modal failed to render, this ensures it's visible */
-.modal.force-show {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
+/* Rescue modal overrides removed */
 
 .modal-background {
     position: absolute;

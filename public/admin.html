@@ -181,10 +181,6 @@
                     <i class="fas fa-tools nav-icon"></i>
                     <span class="nav-text">Management</span>
                 </button>
-                <button class="nav-item" data-section="groups" title="Groups" role="tab" id="groups-tab">
-                    <i class="fas fa-object-group nav-icon"></i>
-                    <span class="nav-text">Groups</span>
-                </button>
                 <button class="nav-item" data-section="devices" title="Devices" role="tab" id="devices-tab">
                     <i class="fas fa-mobile-alt nav-icon"></i>
                     <span class="nav-text">Devices</span>
@@ -541,52 +537,6 @@
                     
         
                     <!-- Devices Section -->
-                    <!-- Groups Section -->
-                    <section class="section-content" id="groups-section" role="tabpanel">
-                        <div class="section-main-content">
-                            <div class="section-title">
-                                <i class="fas fa-object-group"></i>
-                                Groups
-                            </div>
-                            <div class="form-section unified-section">
-                                <div class="subsection-content" id="groups-subsection">
-                                    <div class="devices-toolbar" role="toolbar" aria-label="Groups toolbar">
-                                        <div class="toolbar-left">
-                                            <button type="button" id="groups-refresh" class="btn">
-                                                <span class="icon"><i class="fas fa-sync"></i></span>
-                                                <span>Refresh</span>
-                                            </button>
-                                            <button type="button" id="group-create" class="btn btn-primary">
-                                                <span class="icon"><i class="fas fa-plus"></i></span>
-                                                <span>New Group</span>
-                                            </button>
-                                            <button type="button" id="groups-delete-selected" class="btn btn-danger" disabled>
-                                                <span class="icon"><i class="fas fa-trash"></i></span>
-                                                <span>Delete Selected</span>
-                                            </button>
-                                        </div>
-                                        <div class="toolbar-right">
-                                            <div id="groups-status" class="devices-count hint"></div>
-                                        </div>
-                                    </div>
-                                    <div class="table-wrapper">
-                                        <table class="table" id="groups-table" aria-label="Groups">
-                                            <thead>
-                                                <tr>
-                                                    <th class="col-select"></th>
-                                                    <th class="col-name"><span class="header-with-select"><input type="checkbox" id="groups-select-all" aria-label="Select all groups" /></span></th>
-                                                    <th class="col-order">Order</th>
-                                                    <th class="col-members">Members</th>
-                                                    <th class="col-actions">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
 
                     <!-- Devices Section -->
                     <section class="section-content" id="devices-section" role="tabpanel">
@@ -607,6 +557,19 @@
                                                 <span class="icon"><i class="fas fa-trash"></i></span>
                                                 <span>Delete Selected</span>
                                             </button>
+                                            <div class="menu groups-menu">
+                                                <button type="button" id="groups-menu-button" class="btn btn-compact" aria-haspopup="true" aria-expanded="false" aria-controls="groups-menu" title="Manage groups">
+                                                    <span class="icon"><i class="fas fa-object-group"></i></span>
+                                                    <span>Groups</span>
+                                                    <i class="fas fa-caret-down caret"></i>
+                                                </button>
+                                                <div id="groups-menu" class="dropdown-menu" role="menu" aria-hidden="true">
+                                                    <button type="button" class="menu-item" id="menu-manage-groups" role="menuitem">
+                                                        <i class="fas fa-cog"></i>
+                                                        <span>Manage Groups…</span>
+                                                    </button>
+                                                </div>
+                                            </div>
                                             <div class="menu presets-menu">
                                                 <button type="button" id="presets-menu-button" class="btn btn-compact" aria-haspopup="true" aria-expanded="false" aria-controls="presets-menu" title="Assign presets">
                                                     <span class="icon"><i class="fas fa-layer-group"></i></span>
@@ -1767,80 +1730,10 @@
         </div>
     </div>
 
-    <!-- Group Editor Modal -->
-    <div id="group-editor-modal" class="modal is-hidden" aria-hidden="true" role="dialog" aria-labelledby="group-editor-title">
-        <div class="modal-background" data-group-cancel></div>
-        <div class="modal-content">
-            <span class="close" data-group-cancel>&times;</span>
-            <h3 id="group-editor-title"><i class="fas fa-object-group"></i> Group</h3>
-            <form id="group-editor-form">
-                <div class="form-group">
-                    <label for="group-name">Name</label>
-                    <input type="text" id="group-name" required maxlength="256" />
-                </div>
-                <div class="form-group">
-                    <label for="group-description">Description</label>
-                    <input type="text" id="group-description" maxlength="1024" />
-                </div>
-                <div class="form-group">
-                    <label for="group-order">Order</label>
-                    <input type="number" id="group-order" min="0" step="1" />
-                </div>
-                <div class="form-group">
-                    <label>Members</label>
-                    <div id="group-members" class="group-members-list" style="max-height:220px; overflow:auto; border:1px solid rgba(255,255,255,0.1); padding:.5rem; border-radius:6px;">
-                        <div class="loading">Loading devices...</div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="group-template">Settings Template (JSON)</label>
-                    <textarea id="group-template" rows="8" placeholder='{"transitionIntervalSeconds": 12}'></textarea>
-                </div>
-                <div class="form-actions" style="display:flex; gap:.5rem; justify-content:flex-end;">
-                    <button type="button" class="btn btn-secondary" data-group-cancel>Cancel</button>
-                    <button type="submit" id="group-save" class="btn btn-primary">
-                        <i class="fas fa-save icon"></i>
-                        <span>Save Group</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Group Command Modal -->
-    <div id="group-command-modal" class="modal is-hidden" aria-hidden="true" role="dialog" aria-labelledby="group-command-title">
-        <div class="modal-background" data-gcmd-cancel></div>
-        <div class="modal-content">
-            <span class="close" data-gcmd-cancel>&times;</span>
-            <h3 id="group-command-title"><i class="fas fa-bolt"></i> Send Command to Group</h3>
-            <form id="group-command-form">
-                <div class="form-group">
-                    <label for="group-command-type">Command</label>
-                    <select id="group-command-type">
-                        <option value="power.on">Power On</option>
-                        <option value="power.off">Power Off</option>
-                        <option value="play.next">Next Poster</option>
-                        <option value="play.prev">Previous Poster</option>
-                        <option value="reload">Reload</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="group-command-payload">Payload (JSON, optional)</label>
-                    <textarea id="group-command-payload" rows="4" placeholder='{"foo": "bar"}'></textarea>
-                </div>
-                <div class="form-actions" style="display:flex; gap:.5rem; justify-content:flex-end;">
-                    <button type="button" class="btn btn-secondary" data-gcmd-cancel>Cancel</button>
-                    <button type="submit" id="group-command-send" class="btn btn-primary">
-                        <i class="fas fa-paper-plane icon"></i>
-                        <span>Send</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- Legacy Group modals removed; managed via Manage Groups modal under Devices -->
 
     <!-- Load admin JavaScript (freshness handled by Service Worker no-store rule) -->
-    <script src="/admin.js?v=20250830c" defer></script>
+    <script src="/admin.js?v=20250830d" defer></script>
     <!-- Bootstrap watchdog to surface early failures and ensure we see console output -->
     <script>
         (function () {

@@ -203,6 +203,12 @@ Go to http://your-posterrama-ip:4000/admin to:
 - Show or hide logos, ratings, and metadata
   Everything is managed through a clear dashboard—no coding required.
 
+### Device Groups
+
+- Manage groups from the Devices toolbar via the “Groups” menu.
+- Data is stored in a local JSON file (`groups.json` by default in the repo root).
+- To change the location, set GROUPS_STORE_PATH in your .env (absolute or project‑relative path).
+
 ### 📺 Platform Integration
 
 #### Android TV
