@@ -1316,6 +1316,14 @@
         } catch (_) {
             /* non-fatal */
         }
+
+        // Lazy-init Display section when it becomes visible
+        try {
+            if (id === 'section-display' && !window.__displayInit) {
+                window.__displayInit = true;
+                initDisplaySection();
+            }
+        } catch (_) {}
     }
 
     // Ensure a custom select UI (trigger + popup list) reflects the current value of the hidden <select>
@@ -1457,6 +1465,547 @@
             }
         } catch (_) {
             // ignore if CSS.escape not available or DOM not ready
+        }
+    }
+
+    // ---------- Display Section Wiring ----------
+    function getVal(id) {
+        return document.getElementById(id);
+    }
+
+    function setRadioGroupActive(val) {
+        const segs = [
+            { id: 'seg-saver', value: 'screensaver' },
+            { id: 'seg-wallart', value: 'wallart' },
+            { id: 'seg-cinema', value: 'cinema' },
+        ];
+        segs.forEach(s => {
+            const el = document.getElementById(s.id);
+            if (!el) return;
+            const active = s.value === val;
+            el.setAttribute('aria-checked', String(active));
+        });
+    }
+
+    function updateModeBadges(active) {
+        // Only show the active card; hide others entirely
+        const cs = document.getElementById('card-screensaver');
+        const cw = document.getElementById('card-wallart');
+        const cc = document.getElementById('card-cinema');
+        if (cs) cs.hidden = active !== 'screensaver';
+        if (cw) cw.hidden = active !== 'wallart';
+        if (cc) cc.hidden = active !== 'cinema';
+        // Ensure fieldsets are enabled for the active card
+        document
+            .getElementById('fs-screensaver')
+            ?.toggleAttribute('disabled', active !== 'screensaver');
+        document.getElementById('fs-wallart')?.toggleAttribute('disabled', active !== 'wallart');
+        document.getElementById('fs-cinema')?.toggleAttribute('disabled', active !== 'cinema');
+
+        // Update header pill with current mode
+        const pill = document.getElementById('display-mode-pill');
+        if (pill) {
+            const label =
+                active === 'screensaver'
+                    ? 'Screensaver'
+                    : active === 'wallart'
+                      ? 'Wallart'
+                      : 'Cinema';
+            pill.textContent = `Mode: ${label}`;
+        }
+
+        // Show/hide top sections per mode (mirror legacy admin)
+        // - Screensaver: Visual Elements, Clock, Scaling, Effects, Playback, Sync
+        // - Wallart: Visual Elements, Clock, Scaling, Effects (grid ignores Playback interval), Sync
+        // - Cinema: Visual Elements, Clock, Scaling (optional), Effects (transitions apply), Playback, Sync
+        const sec = id => document.getElementById(id);
+        const show = (el, on) => {
+            if (el) el.style.display = on ? '' : 'none';
+        };
+        const showCommon = on => {
+            show(sec('sec-visual'), on);
+            show(sec('sec-clock'), on);
+            show(sec('sec-scaling'), on);
+            show(sec('sec-effects'), on);
+            show(sec('sec-sync'), on);
+        };
+        if (active === 'screensaver') {
+            showCommon(true);
+            show(sec('sec-playback'), true);
+        } else if (active === 'wallart') {
+            showCommon(true);
+            // In legacy, grid timing uses its own interval; keep global Playback visible only if needed
+            show(sec('sec-playback'), false);
+        } else if (active === 'cinema') {
+            showCommon(true);
+            show(sec('sec-playback'), true);
+        }
+    }
+
+    async function loadAdminConfig() {
+        const r = await fetch('/api/admin/config', { credentials: 'include' });
+        if (!r.ok) throw new Error('Failed to load config');
+        return r.json();
+    }
+
+    function hydrateDisplayForm(cfg) {
+        const c = cfg?.config || cfg || {};
+        const w = c.wallartMode || {};
+        // Active mode rules: cinema > wallart > screensaver
+        const active = c.cinemaMode ? 'cinema' : w.enabled ? 'wallart' : 'screensaver';
+        setRadioGroupActive(active);
+        updateModeBadges(active);
+
+        // Global values
+        const setIf = (id, val) => {
+            const el = getVal(id);
+            if (!el || val === undefined || val === null) return;
+            if (el.type === 'checkbox') el.checked = !!val;
+            else el.value = String(val);
+        };
+        setIf('transitionIntervalSeconds', c.transitionIntervalSeconds);
+        setIf('transitionEffect', c.transitionEffect || 'kenburns');
+        setIf('effectPauseTime', c.effectPauseTime);
+        setIf('clockWidget', c.clockWidget !== false);
+        setIf('clockFormat', c.clockFormat || '24h');
+        setIf('clockTimezone', c.clockTimezone || 'auto');
+        setIf('showPoster', c.showPoster !== false);
+        setIf('showMetadata', c.showMetadata !== false);
+        setIf('showClearLogo', c.showClearLogo !== false);
+        setIf('showRottenTomatoes', c.showRottenTomatoes === true);
+        setIf('rottenTomatoesMinimumScore', c.rottenTomatoesMinimumScore ?? 0);
+        const us = c.uiScaling || {};
+        setIf('uiScaling.global', us.global ?? 100);
+        setIf('uiScaling.content', us.content ?? 100);
+        setIf('uiScaling.clearlogo', us.clearlogo ?? 100);
+        setIf('uiScaling.clock', us.clock ?? 100);
+        // Sync
+        setIf('syncEnabled', c.syncEnabled !== false);
+        if (typeof c.syncAlignMaxDelayMs !== 'undefined')
+            setIf('syncAlignMaxDelayMs', c.syncAlignMaxDelayMs);
+
+        // Screensaver: no screensaver-only numeric fields to hydrate here (refresh lives under Operations)
+
+        // Wallart
+        setIf('wallartMode.density', w.density || 'medium');
+        setIf('wallartMode.refreshRate', w.refreshRate ?? 6);
+        setIf('wallartMode.randomness', w.randomness ?? 3);
+        setIf('wallartMode.animationType', w.animationType || 'fade');
+        setIf('wallartMode.layoutVariant', w.layoutVariant || 'heroGrid');
+        setIf('wallartMode.ambientGradient', w.ambientGradient === true);
+        setIf('wallartMode.itemsPerScreen', w.itemsPerScreen ?? 30);
+        setIf('wallartMode.columns', w.columns ?? 6);
+        setIf('wallartMode.transitionInterval', w.transitionInterval ?? 30);
+        const hg = (w.layoutSettings && w.layoutSettings.heroGrid) || {};
+        setIf('wallartMode.layoutSettings.heroGrid.heroSide', hg.heroSide || 'left');
+        setIf(
+            'wallartMode.layoutSettings.heroGrid.heroRotationMinutes',
+            hg.heroRotationMinutes ?? 10
+        );
+        setIf(
+            'wallartMode.layoutSettings.heroGrid.biasAmbientToHero',
+            hg.biasAmbientToHero !== false
+        );
+
+        // Wallart: show hero settings only for heroGrid layout
+        try {
+            const layoutSel = document.getElementById('wallartMode.layoutVariant');
+            const heroSideRow = document
+                .getElementById('wallartMode.layoutSettings.heroGrid.heroSide')
+                ?.closest('.form-row');
+            const heroRotRow = document
+                .getElementById('wallartMode.layoutSettings.heroGrid.heroRotationMinutes')
+                ?.closest('.form-row');
+            const heroBiasRow = document
+                .getElementById('wallartMode.layoutSettings.heroGrid.biasAmbientToHero')
+                ?.closest('.form-row');
+            const applyHeroVis = () => {
+                const isHero = layoutSel?.value === 'heroGrid';
+                [heroSideRow, heroRotRow, heroBiasRow].forEach(row => {
+                    if (row) row.style.display = isHero ? '' : 'none';
+                });
+            };
+            layoutSel?.addEventListener('change', applyHeroVis);
+            applyHeroVis();
+        } catch (_) {}
+
+        // Cinema
+        setIf('cinemaOrientation', c.cinemaOrientation || 'auto');
+
+        // Wire radio changes after hydration to update UI states
+        const radios = document.querySelectorAll('input[name="display.mode"]');
+        radios.forEach(r =>
+            r.addEventListener('change', () => {
+                const value = document.querySelector('input[name="display.mode"]:checked')?.value;
+                if (value) {
+                    setRadioGroupActive(value);
+                    updateModeBadges(value);
+                }
+            })
+        );
+
+        // Update slider labels for modern sliders
+        try {
+            const labelFor = (id, val) => {
+                if (id === 'wallartMode.refreshRate') {
+                    const v = Number(val);
+                    const map = [
+                        'Very slow',
+                        'Slow',
+                        'Med‑slow',
+                        'Medium',
+                        'Med‑fast',
+                        'Fast',
+                        'Faster',
+                        'Very fast',
+                        'Ultra',
+                        'Ludicrous',
+                    ];
+                    return map[Math.min(Math.max(v, 1), 10) - 1] + ' refresh';
+                }
+                if (id === 'wallartMode.randomness') {
+                    const v = Number(val);
+                    if (v <= 2) return 'Low randomness';
+                    if (v <= 5) return 'Medium randomness';
+                    if (v <= 8) return 'High randomness';
+                    return 'Chaotic randomness';
+                }
+                if (id.startsWith('uiScaling.')) return `${val}%`;
+                return String(val);
+            };
+            const updateSliderLabel = id => {
+                const el = getVal(id);
+                const lab = document.querySelector(
+                    `#section-display .slider-percentage[data-target="${CSS.escape(id)}"]`
+                );
+                if (el && lab) lab.textContent = labelFor(id, el.value);
+            };
+            [
+                'uiScaling.global',
+                'uiScaling.content',
+                'uiScaling.clearlogo',
+                'uiScaling.clock',
+                'wallartMode.refreshRate',
+                'wallartMode.randomness',
+            ].forEach(id => {
+                const el = getVal(id);
+                if (!el) return;
+                el.addEventListener('input', () => updateSliderLabel(id));
+                updateSliderLabel(id);
+            });
+            // UI scaling preset buttons
+            const applyUIScaling = vals => {
+                const ids = ['global', 'content', 'clearlogo', 'clock'];
+                ids.forEach(key => {
+                    const el = getVal('uiScaling.' + key);
+                    if (el && vals[key] != null) {
+                        el.value = String(vals[key]);
+                        const lab = document.querySelector(
+                            `#section-display .slider-percentage[data-target="${CSS.escape('uiScaling.' + key)}"]`
+                        );
+                        if (lab) lab.textContent = `${vals[key]}%`;
+                    }
+                });
+            };
+            const p4k = document.getElementById('preset-4k-tv');
+            const pFhd = document.getElementById('preset-full-hd');
+            const pUw = document.getElementById('preset-ultrawide');
+            const pReset = document.getElementById('reset-ui-scaling');
+            p4k?.addEventListener('click', () =>
+                applyUIScaling({ global: 120, content: 120, clearlogo: 110, clock: 110 })
+            );
+            pFhd?.addEventListener('click', () =>
+                applyUIScaling({ global: 100, content: 100, clearlogo: 100, clock: 100 })
+            );
+            pUw?.addEventListener('click', () =>
+                applyUIScaling({ global: 95, content: 95, clearlogo: 95, clock: 95 })
+            );
+            pReset?.addEventListener('click', () =>
+                applyUIScaling({ global: 100, content: 100, clearlogo: 100, clock: 100 })
+            );
+        } catch (_) {}
+
+        // Poster → Metadata dependency: disable metadata when poster is off
+        try {
+            const posterEl = document.getElementById('showPoster');
+            const metaEl = document.getElementById('showMetadata');
+            const applyDep = () => {
+                const enabled = !!posterEl?.checked;
+                if (metaEl) {
+                    metaEl.disabled = !enabled;
+                    if (!enabled) metaEl.checked = false;
+                    const label = metaEl.closest('.form-row');
+                    if (label) label.style.opacity = enabled ? '' : '.7';
+                }
+            };
+            posterEl?.addEventListener('change', applyDep);
+            applyDep();
+        } catch (_) {}
+
+        // Clock visibility: show tz/format only when clockWidget is enabled
+        try {
+            const clockCb = document.getElementById('clockWidget');
+            const tzRow = document.getElementById('clockTimezone')?.closest('.form-row');
+            const fmtRow = document.getElementById('clockFormat')?.closest('.form-row');
+            const applyClock = () => {
+                const on = !!clockCb?.checked;
+                if (tzRow) tzRow.style.display = on ? '' : 'none';
+                if (fmtRow) fmtRow.style.display = on ? '' : 'none';
+            };
+            clockCb?.addEventListener('change', applyClock);
+            applyClock();
+        } catch (_) {}
+
+        // Number steppers: inc/dec handlers for all .number-input-wrapper blocks in Display section
+        try {
+            const panel = document.getElementById('section-display');
+            if (panel) {
+                panel.querySelectorAll('.number-input-wrapper').forEach(wrapper => {
+                    const input = wrapper.querySelector('input[type="number"]');
+                    const inc = wrapper.querySelector('.number-inc');
+                    const dec = wrapper.querySelector('.number-dec');
+                    const step = () => Number(input?.step || '1') || 1;
+                    const clamp = v => {
+                        let val = v;
+                        const min = input?.min === '' ? null : Number(input?.min);
+                        const max = input?.max === '' ? null : Number(input?.max);
+                        if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+                        if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+                        return val;
+                    };
+                    inc?.addEventListener('click', () => {
+                        if (!input) return;
+                        const cur = Number(input.value || '0') || 0;
+                        input.value = String(clamp(cur + step()));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    dec?.addEventListener('click', () => {
+                        if (!input) return;
+                        const cur = Number(input.value || '0') || 0;
+                        input.value = String(clamp(cur - step()));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                });
+            }
+        } catch (_) {}
+
+        // Screensaver: live summary + presets (affect global Effect/Playback/Clock)
+        try {
+            const elInterval = document.getElementById('transitionIntervalSeconds');
+            const elEffect = document.getElementById('transitionEffect');
+            const elPause = document.getElementById('effectPauseTime');
+            const elClock = document.getElementById('clockWidget');
+            const pillInt = document.getElementById('saver-summary-interval');
+            const pillEff = document.getElementById('saver-summary-effect');
+            const pillPause = document.getElementById('saver-summary-pause');
+            const pillClock = document.getElementById('saver-summary-clock');
+
+            const effLabel = val => {
+                switch (val) {
+                    case 'kenburns':
+                        return 'Ken Burns';
+                    case 'fade':
+                        return 'Fade In/Out';
+                    case 'slide':
+                        return 'Slide';
+                    default:
+                        return String(val || '—');
+                }
+            };
+            const applySummary = () => {
+                if (pillInt && elInterval)
+                    pillInt.textContent = `Every ${elInterval.value || '—'} s`;
+                if (pillEff && elEffect)
+                    pillEff.textContent = `Effect: ${effLabel(elEffect.value)}`;
+                if (pillPause && elPause)
+                    pillPause.textContent = `Pause: ${elPause.value != null && elPause.value !== '' ? elPause.value : '—'} s`;
+                if (pillClock && elClock)
+                    pillClock.textContent = `Clock: ${elClock.checked ? 'On' : 'Off'}`;
+            };
+            ['input', 'change'].forEach(ev => {
+                elInterval?.addEventListener(ev, applySummary);
+                elEffect?.addEventListener(ev, applySummary);
+                elPause?.addEventListener(ev, applySummary);
+                elClock?.addEventListener(ev, applySummary);
+            });
+            applySummary();
+
+            // Presets
+            const btnChill = document.getElementById('saver-preset-chill');
+            const btnStd = document.getElementById('saver-preset-standard');
+            const btnLively = document.getElementById('saver-preset-lively');
+            const btnReset = document.getElementById('saver-preset-reset');
+            const setVals = ({ interval, effect, pause }) => {
+                if (typeof interval === 'number' && elInterval) {
+                    elInterval.value = String(interval);
+                    elInterval.dispatchEvent(new Event('input', { bubbles: true }));
+                    elInterval.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                if (typeof effect === 'string' && elEffect) {
+                    elEffect.value = effect;
+                    elEffect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                if (typeof pause === 'number' && elPause) {
+                    elPause.value = String(pause);
+                    elPause.dispatchEvent(new Event('input', { bubbles: true }));
+                    elPause.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                applySummary();
+            };
+            btnChill?.addEventListener('click', () =>
+                setVals({ interval: 30, effect: 'kenburns', pause: 0 })
+            );
+            btnStd?.addEventListener('click', () =>
+                setVals({ interval: 15, effect: 'fade', pause: 2 })
+            );
+            btnLively?.addEventListener('click', () =>
+                setVals({ interval: 8, effect: 'slide', pause: 0.5 })
+            );
+            btnReset?.addEventListener('click', () =>
+                setVals({ interval: 12, effect: 'kenburns', pause: 1 })
+            );
+        } catch (_) {}
+    }
+
+    function collectDisplayFormPatch() {
+        const val = id => {
+            const el = getVal(id);
+            if (!el) return undefined;
+            if (el.type === 'checkbox') return !!el.checked;
+            if (el.type === 'number' || el.type === 'range') return Number(el.value);
+            return el.value;
+        };
+        const active = document.querySelector('input[name="display.mode"]:checked')?.value;
+        const wallartEnabled = active === 'wallart';
+        const cinemaEnabled = active === 'cinema';
+        // Build nested patch
+        const patch = {
+            // Global
+            transitionIntervalSeconds: val('transitionIntervalSeconds'),
+            transitionEffect: val('transitionEffect'),
+            effectPauseTime: val('effectPauseTime'),
+            clockWidget: val('clockWidget'),
+            clockFormat: val('clockFormat'),
+            clockTimezone: val('clockTimezone'),
+            showPoster: val('showPoster'),
+            showMetadata: val('showMetadata'),
+            showClearLogo: val('showClearLogo'),
+            showRottenTomatoes: val('showRottenTomatoes'),
+            rottenTomatoesMinimumScore: val('rottenTomatoesMinimumScore'),
+            uiScaling: {
+                global: val('uiScaling.global'),
+                content: val('uiScaling.content'),
+                clearlogo: val('uiScaling.clearlogo'),
+                clock: val('uiScaling.clock'),
+            },
+            // Sync
+            syncEnabled: val('syncEnabled'),
+            syncAlignMaxDelayMs: val('syncAlignMaxDelayMs'),
+            // Modes
+            cinemaMode: cinemaEnabled,
+            cinemaOrientation: val('cinemaOrientation'),
+            wallartMode: {
+                enabled: wallartEnabled,
+                density: val('wallartMode.density'),
+                refreshRate: val('wallartMode.refreshRate'),
+                randomness: val('wallartMode.randomness'),
+                animationType: val('wallartMode.animationType'),
+                layoutVariant: val('wallartMode.layoutVariant'),
+                ambientGradient: val('wallartMode.ambientGradient'),
+                itemsPerScreen: val('wallartMode.itemsPerScreen'),
+                columns: val('wallartMode.columns'),
+                transitionInterval: val('wallartMode.transitionInterval'),
+                layoutSettings: {
+                    heroGrid: {
+                        heroSide: val('wallartMode.layoutSettings.heroGrid.heroSide'),
+                        heroRotationMinutes: val(
+                            'wallartMode.layoutSettings.heroGrid.heroRotationMinutes'
+                        ),
+                        biasAmbientToHero: val(
+                            'wallartMode.layoutSettings.heroGrid.biasAmbientToHero'
+                        ),
+                    },
+                },
+            },
+            // Screensaver specific: none (backgroundRefreshMinutes managed in Operations)
+        };
+        // If screensaver active, ensure other modes disabled
+        if (active === 'screensaver') {
+            patch.cinemaMode = false;
+            patch.wallartMode.enabled = false;
+        }
+        return patch;
+    }
+
+    async function initDisplaySection() {
+        try {
+            // Prefill
+            const cfg = await loadAdminConfig();
+            hydrateDisplayForm(cfg);
+
+            // Default radio based on cfg
+            const w = (cfg?.config || cfg)?.wallartMode || {};
+            const mode = (cfg?.config || cfg)?.cinemaMode
+                ? 'cinema'
+                : w.enabled
+                  ? 'wallart'
+                  : 'screensaver';
+            const radio = document.getElementById(`mode-${mode}`);
+            if (radio && !radio.checked) {
+                radio.checked = true;
+            }
+            // Ensure badges/cards reflect the chosen mode immediately
+            setRadioGroupActive(mode);
+            updateModeBadges(mode);
+
+            // Save handler
+            const saveBtn = document.getElementById('btn-save-display');
+            saveBtn?.addEventListener('click', async () => {
+                try {
+                    saveBtn.classList.add('btn-loading');
+                    const patch = collectDisplayFormPatch();
+                    await (typeof saveConfigPatch === 'function'
+                        ? saveConfigPatch(patch, {})
+                        : (async () => {
+                              const r = await fetch('/api/admin/config', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  credentials: 'include',
+                                  body: JSON.stringify({ config: patch, env: {} }),
+                              });
+                              if (!r.ok) throw new Error('Save failed');
+                              try {
+                                  if (typeof miniCache?.delete === 'function')
+                                      miniCache.delete('/api/admin/config|GET');
+                                  if (typeof inflight?.delete === 'function')
+                                      inflight.delete('/api/admin/config|GET');
+                              } catch (_) {}
+                          })());
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'Display saved',
+                        message: 'Settings saved successfully',
+                        duration: 2000,
+                    });
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Save failed',
+                        message: e?.message || 'Could not save display settings',
+                        duration: 3500,
+                    });
+                } finally {
+                    saveBtn?.classList.remove('btn-loading');
+                }
+            });
+        } catch (e) {
+            window.notify?.toast({
+                type: 'error',
+                title: 'Load failed',
+                message: e?.message || 'Could not load display settings',
+            });
         }
     }
 
@@ -11385,7 +11934,7 @@
                     });
                 }
                 // Collect Background Refresh Minutes (Media)
-                const brmInput = document.getElementById('backgroundRefreshMinutes');
+                const brmInput = document.getElementById('ops.backgroundRefreshMinutes');
                 let backgroundRefreshMinutes = Number(brmInput?.value || 30);
                 if (!Number.isFinite(backgroundRefreshMinutes)) backgroundRefreshMinutes = 30;
                 backgroundRefreshMinutes = Math.max(
@@ -11525,7 +12074,7 @@
                 portElMain.dataset.originalPort = String(portElMain.value);
             }
             // Background Refresh Minutes (Media)
-            const brmEl = document.getElementById('backgroundRefreshMinutes');
+            const brmEl = document.getElementById('ops.backgroundRefreshMinutes');
             if (brmEl) {
                 const v = Number(cfg?.backgroundRefreshMinutes ?? 30);
                 brmEl.value = Number.isFinite(v) && v > 0 ? String(v) : '30';

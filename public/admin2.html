@@ -1465,15 +1465,359 @@
     </section>
     </section> <!-- /section-dashboard -->
 
-    <!-- Display Settings (placeholder) -->
+    <!-- Display Settings -->
     <section id="section-display" class="app-section" hidden>
-      <div class="panel" style="padding: 20px;">
-        <div class="panel-header" style="display:flex;align-items:center;gap:10px;">
-          <i class="fas fa-desktop" aria-hidden="true"></i>
-          <h2 style="margin:0;">Display Settings</h2>
+      <style>
+        /* Display section micro-styles */
+    #section-display .panel { background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); border:1px solid var(--color-border); border-radius: var(--border-radius-lg); box-shadow: var(--shadow-md); }
+    #section-display .panel-header { display:flex; align-items:center; justify-content:space-between; gap:10px; background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card)); border-bottom:1px solid var(--color-border); padding: 16px 20px; border-radius: 12px 12px 0 0; }
+        #section-display .panel-title { display:flex; align-items:center; gap:10px; }
+        #section-display .panel-content { padding: 16px 20px; }
+    /* Ops-like cards for Display sections */
+    #section-display .form-section { background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); margin-bottom: 12px; }
+    #section-display .section-title { margin: 0 0 10px 0; font-size: 0.95rem; opacity: 0.9; display: flex; align-items: center; gap: 8px; }
+    /* Tab bar styled like Operations aesthetics */
+    #section-display .segmented { display:flex; align-items:center; gap:4px; padding:4px; border-radius:12px; background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card)); border: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); width: fit-content; }
+    #section-display .segmented .seg { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; color: var(--color-text-secondary); border-radius: 8px; transition: background .15s ease, color .15s ease, border-color .15s ease; }
+    #section-display .segmented .seg:hover { background: rgba(255,255,255,0.05); }
+    #section-display .segmented input[type="radio"] { display:none; }
+    #section-display .segmented .seg[aria-checked="true"] { background: rgba(59,130,246,0.18); color:#bfdbfe; border: 1px solid rgba(59,130,246,0.35); }
+  /* Header status pill for current mode */
+  #section-display .status-pill { font-size: 0.8rem; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); }
+  #section-display .status-pill.status-info { background: rgba(59,130,246,0.18); color:#bfdbfe; border-color: rgba(59,130,246,0.35); }
+  /* Grids */
+  #section-display .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    #section-display .form-row { display:flex; flex-direction:column; gap:6px; }
+    #section-display .form-row.inline { flex-direction:row; align-items:center; gap:10px; }
+    #section-display .form-row label { font-size:.9rem; color: var(--color-text-secondary); }
+  /* Two-column container for Display sections (like Operations) */
+  #section-display .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  @media (max-width: 1200px) { #section-display .content-grid { grid-template-columns: 1fr; } }
+    /* Mode cards aligned with perf-card look */
+    #section-display .mode-card { position: relative; background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
+        #section-display .mode-card.inactive { opacity: .6; }
+        #section-display .card-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom: 10px; }
+  #section-display .card-title { display:flex; align-items:center; gap:8px; font-weight:700; }
+  #section-display .card-header .badge { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:999px; font-size:.75rem; border:1px solid var(--color-border); position: static; }
+        #section-display .badge.active { background: rgba(34,197,94,0.15); color:#86efac; border-color: rgba(34,197,94,0.35); }
+        #section-display .badge.inactive { background: rgba(100,116,139,0.15); color:#cbd5e1; border-color: rgba(100,116,139,0.35); }
+        #section-display fieldset:disabled { opacity:.6; }
+  /* Remove default fieldset border within Display to avoid inner white outlines */
+  #section-display fieldset { border: 0; padding: 0; margin: 0; }
+        /* Small, muted inline hints inside Display section */
+        #section-display .micro-hint { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--color-text-secondary); opacity: 0.8; }
+        #section-display .micro-hint i { font-size: 0.85em; color: var(--color-text-secondary); opacity: 0.7; }
+    /* Themed sliders for Display section */
+    #section-display .modern-slider { display:block; width:100%; }
+    #section-display .modern-slider input[type="range"] { width:100%; height: 28px; background: transparent; accent-color: var(--color-info); }
+    #section-display .slider-percentage { font-size: .8rem; color: var(--color-text-secondary); opacity: .85; margin-top: 4px; text-align: right; }
+
+    /* Themed number steppers (shared in Display) */
+    #section-display .number-input-wrapper { display:flex; align-items:stretch; border:1px solid var(--color-border); background: var(--color-bg-card); border-radius: 10px; overflow:hidden; width: 100%; }
+  #section-display .number-input-wrapper input[type="number"] { flex:1; min-width: 0; padding:8px 10px; background: transparent; color: var(--color-text-primary); border: none; outline: none; font: inherit; appearance: textfield; -moz-appearance: textfield; }
+    #section-display .number-input-wrapper input[type="number"]::-webkit-outer-spin-button,
+    #section-display .number-input-wrapper input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    #section-display .number-input-wrapper .number-controls { display:flex; flex-direction: column; border-left:1px solid var(--color-border); }
+    #section-display .number-input-wrapper .number-btn { width:34px; height:50%; display:flex; align-items:center; justify-content:center; background: var(--color-bg-tertiary); border: 0; color: var(--color-text-secondary); cursor: pointer; }
+    #section-display .number-input-wrapper .number-btn:hover { background: rgba(255,255,255,0.06); color: var(--color-text-primary); }
+    #section-display .number-input-wrapper .number-btn:active { transform: translateY(0); }
+    #section-display .form-help { margin-top: 6px; font-size: .82rem; color: var(--color-text-secondary); opacity: .9; }
+      </style>
+      <div class="panel" id="panel-display">
+        <div class="panel-header">
+          <div class="panel-title" style="flex-direction:column; align-items:flex-start; gap:4px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <i class="fas fa-desktop" aria-hidden="true"></i>
+              <h2 style="margin:0;">Display Settings</h2>
+            </div>
+            <div class="panel-subtitle">Customize posters for Screensaver, Wallart, Cinema: effects, timing, sync.</div>
+          </div>
+          <div class="panel-actions">
+            <span class="status-pill status-info" id="display-mode-pill" title="Current display mode">Mode: —</span>
+            <button class="btn btn-primary btn-sm" id="btn-save-display"><span class="spinner" style="display:none"></span><i class="fas fa-save"></i><span>Save Settings</span></button>
+          </div>
         </div>
-        <div class="panel-content" style="margin-top:12px;">
-          <p class="subtle">This section is under construction. Display presets and per-device display configuration will appear here.</p>
+        <div class="panel-content">
+          <!-- Active mode selector -->
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-layer-group"></i> Active Mode</div>
+            <div class="form-row">
+              <div class="segmented" role="tablist" aria-label="Display Mode">
+                <label class="seg" id="seg-saver" role="tab" aria-controls="card-screensaver" aria-checked="false">
+                  <input type="radio" name="display.mode" id="mode-screensaver" value="screensaver" />
+                  <i class="fas fa-image"></i> Screensaver
+                </label>
+                <label class="seg" id="seg-wallart" role="tab" aria-controls="card-wallart" aria-checked="false">
+                  <input type="radio" name="display.mode" id="mode-wallart" value="wallart" />
+                  <i class="fas fa-border-all"></i> Wallart
+                </label>
+                <label class="seg" id="seg-cinema" role="tab" aria-controls="card-cinema" aria-checked="false">
+                  <input type="radio" name="display.mode" id="mode-cinema" value="cinema" />
+                  <i class="fas fa-mobile-alt"></i> Cinema
+                </label>
+              </div>
+              <div class="card-subtext" style="margin-top:6px; color: var(--color-text-secondary);">Only one mode can be active at a time. Inactive modes remain visible but disabled.</div>
+            </div>
+          </div>
+          <!-- Mode-specific settings placed directly under Active Mode for better hierarchy -->
+          <div id="mode-cards-top">
+            <!-- Screensaver settings (active when mode = screensaver) -->
+            <div class="mode-card" id="card-screensaver" hidden>
+              <div class="card-header">
+                <div class="card-title"><i class="fas fa-image"></i> Screensaver</div>
+              </div>
+              <fieldset id="fs-screensaver">
+                <div class="card-subtext" style="margin-bottom:10px; color: var(--color-text-secondary);">
+                  A calm, full-screen slideshow of your posters. Use presets below or fine‑tune Effects & Playback above.
+                </div>
+                <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                  <!-- Presets card -->
+                  <div class="mode-card" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-sliders-h"></i> Presets</div>
+                    <div class="scaling-presets" style="display:flex; flex-wrap:wrap; gap:8px;">
+                      <button type="button" class="btn btn-secondary btn-sm" id="saver-preset-chill" title="Ken Burns, slower cadence"><i class="fas fa-wind"></i> <span>Chill</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="saver-preset-standard" title="Fade, balanced cadence"><i class="fas fa-balance-scale"></i> <span>Standard</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="saver-preset-lively" title="Slide, faster cadence"><i class="fas fa-bolt"></i> <span>Lively</span></button>
+                      <button type="button" class="btn btn-outline btn-sm" id="saver-preset-reset" title="Reset to sensible defaults"><i class="fas fa-undo"></i> <span>Reset</span></button>
+                    </div>
+                  </div>
+                  <!-- Summary card -->
+                  <div class="mode-card" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-info-circle"></i> Current Experience</div>
+                    <div id="saver-summary" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                      <span class="status-pill" id="saver-summary-interval" title="Poster change interval">Every — s</span>
+                      <span class="status-pill" id="saver-summary-effect" title="Visual transition">Effect: —</span>
+                      <span class="status-pill" id="saver-summary-pause" title="Pause after transition">Pause: —</span>
+                      <span class="status-pill" id="saver-summary-clock" title="Clock widget status">Clock: —</span>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+
+            <!-- Wallart settings -->
+            <div class="mode-card" id="card-wallart" style="margin-top:12px;" hidden>
+              <div class="card-header">
+                <div class="card-title"><i class="fas fa-border-all"></i> Wallart</div>
+              </div>
+              <fieldset id="fs-wallart">
+                <div class="form-grid">
+                  <div class="form-row">
+                    <label for="wallartMode.density">Density</label>
+                    <select id="wallartMode.density">
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="ludicrous">Ludicrous</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label for="wallartMode.refreshRate">Refresh tempo</label>
+                    <div class="modern-slider">
+                      <input type="range" min="1" max="10" step="1" id="wallartMode.refreshRate" value="5" />
+                      <div class="slider-percentage" data-target="wallartMode.refreshRate">Medium refresh rate</div>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label for="wallartMode.randomness">Randomness</label>
+                    <div class="modern-slider">
+                      <input type="range" min="0" max="10" step="1" id="wallartMode.randomness" value="3" />
+                      <div class="slider-percentage" data-target="wallartMode.randomness">Low randomness</div>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label for="wallartMode.animationType">Animation</label>
+                    <select id="wallartMode.animationType">
+                      <option value="random">Random</option>
+                      <option value="fade">Fade</option>
+                      <option value="slideLeft">Slide Left</option>
+                      <option value="slideUp">Slide Up</option>
+                      <option value="zoom">Zoom</option>
+                      <option value="flip">Flip</option>
+                      <option value="staggered">Staggered</option>
+                      <option value="ripple">Ripple</option>
+                      <option value="scanline">Scanline</option>
+                      <option value="parallax">Parallax</option>
+                      <option value="neonPulse">Neon Pulse</option>
+                      <option value="chromaticShift">Chromatic Shift</option>
+                      <option value="mosaicShatter">Mosaic Shatter</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label for="wallartMode.layoutVariant">Layout</label>
+                    <select id="wallartMode.layoutVariant">
+                      <option value="heroGrid">Hero Grid</option>
+                      <option value="classic">Classic</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label class="checkbox" for="wallartMode.ambientGradient">
+                      <input type="checkbox" id="wallartMode.ambientGradient" />
+                      <span class="checkmark"></span>
+                      <span>Ambient gradient</span>
+                    </label>
+                  </div>
+                  <div class="form-row">
+                    <label for="wallartMode.itemsPerScreen">Items per screen</label>
+                    <div class="number-input-wrapper"><input type="number" min="4" max="100" id="wallartMode.itemsPerScreen" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                  </div>
+                  <div class="form-row">
+                    <label for="wallartMode.columns">Columns</label>
+                    <div class="number-input-wrapper"><input type="number" min="2" max="12" id="wallartMode.columns" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                  </div>
+                  <div class="form-row">
+                    <label for="wallartMode.transitionInterval">Grid transition (s)</label>
+                    <div class="number-input-wrapper"><input type="number" min="5" max="300" id="wallartMode.transitionInterval" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                  </div>
+                  <div class="form-row">
+                    <label for="wallartMode.layoutSettings.heroGrid.heroSide">Hero side</label>
+                    <select id="wallartMode.layoutSettings.heroGrid.heroSide">
+                      <option value="left">Left</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label for="wallartMode.layoutSettings.heroGrid.heroRotationMinutes">Hero rotation (min)</label>
+                    <div class="number-input-wrapper"><input type="number" min="1" max="60" id="wallartMode.layoutSettings.heroGrid.heroRotationMinutes" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                  </div>
+                  <div class="form-row">
+                    <label class="checkbox" for="wallartMode.layoutSettings.heroGrid.biasAmbientToHero">
+                      <input type="checkbox" id="wallartMode.layoutSettings.heroGrid.biasAmbientToHero" />
+                      <span class="checkmark"></span>
+                      <span>Bias ambient to hero</span>
+                    </label>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+
+            <!-- Cinema settings -->
+            <div class="mode-card" id="card-cinema" style="margin-top:12px;" hidden>
+              <div class="card-header">
+                <div class="card-title"><i class="fas fa-mobile-alt"></i> Cinema</div>
+              </div>
+              <fieldset id="fs-cinema">
+                <div class="form-grid">
+                  <div class="form-row">
+                    <label for="cinemaOrientation">Orientation</label>
+                    <select id="cinemaOrientation">
+                      <option value="auto">Auto</option>
+                      <option value="portrait">Portrait</option>
+                      <option value="portrait-flipped">Portrait (flipped)</option>
+                    </select>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+
+          <div class="content-grid">
+          <!-- Visual Elements -->
+          <div class="form-section" id="sec-visual">
+            <div class="section-title"><i class="fas fa-eye"></i> Visual Elements</div>
+            <div class="form-grid">
+              <div class="form-row">
+                <label class="checkbox" for="showPoster">
+                  <input type="checkbox" id="showPoster" />
+                  <span class="checkmark"></span>
+                  <span>Show poster</span>
+                </label>
+              </div>
+              <div class="form-row">
+                <label class="checkbox" for="showMetadata" style="margin-bottom:4px;">
+                  <input type="checkbox" id="showMetadata" />
+                  <span class="checkmark"></span>
+                  <span>Show metadata</span>
+                </label>
+                <div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>Depends on “Show poster”. Turn that on to enable metadata.</span></div>
+              </div>
+              <div class="form-row">
+                <label class="checkbox" for="showClearLogo">
+                  <input type="checkbox" id="showClearLogo" />
+                  <span class="checkmark"></span>
+                  <span>Show clearlogo</span>
+                </label>
+              </div>
+              <div class="form-row">
+                <label class="checkbox" for="showRottenTomatoes">
+                  <input type="checkbox" id="showRottenTomatoes" />
+                  <span class="checkmark"></span>
+                  <span>Show Rotten Tomatoes</span>
+                </label>
+              </div>
+              <div class="form-row"><label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes (0–10)</label><div class="number-input-wrapper"><input type="number" min="0" max="10" step="0.1" id="rottenTomatoesMinimumScore" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div><div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>Set to 0 to disable this filter.</span></div></div>
+            </div>
+          </div>
+
+          <!-- Clock Widget -->
+          <div class="form-section" id="sec-clock">
+            <div class="section-title"><i class="fas fa-clock"></i> Clock Widget</div>
+            <div class="form-grid">
+              <div class="form-row">
+                <label class="checkbox" for="clockWidget">
+                  <input type="checkbox" id="clockWidget" />
+                  <span class="checkmark"></span>
+                  <span>Show clock</span>
+                </label>
+              </div>
+              <div class="form-row"><label for="clockTimezone">Clock timezone</label><select id="clockTimezone"><option value="auto">Auto (System Timezone)</option><optgroup label="Common Timezones"><option value="Europe/Amsterdam">Europe/Amsterdam (CET/CEST)</option><option value="Europe/London">Europe/London (GMT/BST)</option><option value="Europe/Berlin">Europe/Berlin (CET/CEST)</option><option value="Europe/Paris">Europe/Paris (CET/CEST)</option><option value="America/New_York">America/New_York (EST/EDT)</option><option value="America/Chicago">America/Chicago (CST/CDT)</option><option value="America/Denver">America/Denver (MST/MDT)</option><option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option><option value="Asia/Tokyo">Asia/Tokyo (JST)</option><option value="Asia/Shanghai">Asia/Shanghai (CST)</option><option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option></optgroup><optgroup label="Additional Timezones"><option value="UTC">UTC (Coordinated Universal Time)</option><option value="Africa/Cairo">Africa/Cairo (EET)</option><option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option><option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires (ART)</option><option value="America/Mexico_City">America/Mexico_City (CST/CDT)</option><option value="America/Sao_Paulo">America/Sao_Paulo (BRT/BRST)</option><option value="America/Toronto">America/Toronto (EST/EDT)</option><option value="America/Vancouver">America/Vancouver (PST/PDT)</option><option value="Asia/Bangkok">Asia/Bangkok (ICT)</option><option value="Asia/Dubai">Asia/Dubai (GST)</option><option value="Asia/Hong_Kong">Asia/Hong_Kong (HKT)</option><option value="Asia/Jakarta">Asia/Jakarta (WIB)</option><option value="Asia/Kolkata">Asia/Kolkata (IST)</option><option value="Asia/Seoul">Asia/Seoul (KST)</option><option value="Asia/Singapore">Asia/Singapore (SGT)</option><option value="Asia/Taipei">Asia/Taipei (CST)</option><option value="Australia/Brisbane">Australia/Brisbane (AEST)</option><option value="Australia/Melbourne">Australia/Melbourne (AEST/AEDT)</option><option value="Australia/Perth">Australia/Perth (AWST)</option><option value="Europe/Athens">Europe/Athens (EET/EEST)</option><option value="Europe/Istanbul">Europe/Istanbul (TRT)</option><option value="Europe/Moscow">Europe/Moscow (MSK)</option><option value="Europe/Rome">Europe/Rome (CET/CEST)</option><option value="Europe/Stockholm">Europe/Stockholm (CET/CEST)</option><option value="Europe/Zurich">Europe/Zurich (CET/CEST)</option><option value="Pacific/Auckland">Pacific/Auckland (NZST/NZDT)</option><option value="Pacific/Honolulu">Pacific/Honolulu (HST)</option></optgroup></select></div>
+              <div class="form-row"><label for="clockFormat">Clock format</label><select id="clockFormat"><option value="24h">24-hour</option><option value="12h">12-hour</option></select></div>
+            </div>
+          </div>
+
+          <!-- UI Element Scaling -->
+          <div class="form-section" id="sec-scaling">
+            <div class="section-title"><i class="fas fa-expand-arrows-alt"></i> UI Element Scaling</div>
+            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+              <div class="form-row"><label for="uiScaling.content">Content</label><div class="modern-slider"><input type="range" id="uiScaling.content" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.content">100%</div></div></div>
+              <div class="form-row"><label for="uiScaling.clearlogo">Clearlogo</label><div class="modern-slider"><input type="range" id="uiScaling.clearlogo" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.clearlogo">100%</div></div></div>
+              <div class="form-row"><label for="uiScaling.clock">Clock</label><div class="modern-slider"><input type="range" id="uiScaling.clock" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.clock">100%</div></div></div>
+              <div class="form-row"><label for="uiScaling.global">Global</label><div class="modern-slider"><input type="range" id="uiScaling.global" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.global">100%</div></div></div>
+            </div>
+            <!-- Presets -->
+            <div class="form-row" style="margin-top:8px;">
+              <div class="scaling-presets" style="display:flex; flex-wrap:wrap; gap:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="preset-4k-tv"><i class="fas fa-tv"></i> <span>4K TV</span></button>
+                <button type="button" class="btn btn-secondary btn-sm" id="preset-full-hd"><i class="fas fa-desktop"></i> <span>Full HD</span></button>
+                <button type="button" class="btn btn-secondary btn-sm" id="preset-ultrawide"><i class="fas fa-expand-arrows-alt"></i> <span>Ultrawide</span></button>
+                <button type="button" class="btn btn-outline btn-sm" id="reset-ui-scaling"><i class="fas fa-undo"></i> <span>Reset</span></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Effects & Transitions -->
+          <div class="form-section" id="sec-effects">
+            <div class="section-title"><i class="fas fa-magic"></i> Effects & Transitions</div>
+            <div class="form-grid">
+              <div class="form-row"><label for="transitionEffect">Transition effect</label><select id="transitionEffect"><option value="kenburns">Ken Burns</option><option value="fade">Fade In/Out</option><option value="slide">Slide Transition</option></select></div>
+              <div class="form-row"><label for="effectPauseTime">Effect pause (seconds)</label><div class="number-input-wrapper"><input type="number" min="0" max="10" step="0.5" id="effectPauseTime" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div><div class="micro-hint"><i class="fas fa-info-circle"></i><span>Not applied to Ken Burns effect.</span></div></div>
+            </div>
+          </div>
+
+          <!-- Playback Timing -->
+          <div class="form-section" id="sec-playback">
+            <div class="section-title"><i class="fas fa-cogs"></i> Playback Timing</div>
+            <div class="form-grid">
+              <div class="form-row"><label for="transitionIntervalSeconds">Transition interval (seconds)</label><div class="number-input-wrapper"><input type="number" min="1" max="300" step="1" id="transitionIntervalSeconds" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div><div class="form-help">Time in seconds between poster transitions (1-300). <strong>Note:</strong> Does not apply to Wallart Mode — use Wallart refresh instead.</div></div>
+            </div>
+          </div>
+
+          <!-- Sync -->
+          <div class="form-section" id="sec-sync">
+            <div class="section-title"><i class="fas fa-link"></i> Sync</div>
+            <div class="form-grid">
+              <div class="form-row">
+                <label class="checkbox" for="syncEnabled">
+                  <input type="checkbox" id="syncEnabled" />
+                  <span class="checkmark"></span>
+                  <span>Enable device sync</span>
+                </label>
+              </div>
+              <div class="form-row"><label for="syncAlignMaxDelayMs">Max align delay (ms)</label><div class="number-input-wrapper"><input type="number" id="syncAlignMaxDelayMs" min="0" step="50" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
+            </div>
+          </div>
+          </div>
+
         </div>
       </div>
     </section>
@@ -2447,8 +2791,8 @@
               <div class="card-subtext">Refresh media from configured sources.</div>
               <div class="metric-row mt-6">
                 <div class="form-group inline-field nowrap" style="display: block;">
-                  <label for="backgroundRefreshMinutes" style="margin:0;display:inline-flex;align-items:center;padding-right:12px; white-space:nowrap;">Background Refresh (minutes)</label>
-                  <input type="number" id="backgroundRefreshMinutes" min="5" max="1440" step="1" class="w-110" value="30" />
+                  <label for="ops.backgroundRefreshMinutes" style="margin:0;display:inline-flex;align-items:center;padding-right:12px; white-space:nowrap;">Background Refresh (minutes)</label>
+                  <input type="number" id="ops.backgroundRefreshMinutes" min="5" max="1440" step="1" class="w-110" value="30" />
                 </div>
               </div>
         <div class="actions main-actions">
