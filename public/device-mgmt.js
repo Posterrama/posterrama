@@ -644,6 +644,35 @@
                 }
                 break;
             }
+            case 'remote.key': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    const key = (payload && payload.key) || '';
+                    if (typeof api.remoteKey === 'function') {
+                        liveDbg('[Live] invoking remote.key (queued)', { key });
+                        return void api.remoteKey(key);
+                    }
+                    if (typeof api.navigate === 'function') {
+                        liveDbg('[Live] invoking navigate (queued)', { key });
+                        return void api.navigate(key);
+                    }
+                    // Fallbacks for common media keys
+                    if (key === 'playpause') {
+                        if (api.pause || api.resume) {
+                            const paused =
+                                typeof window !== 'undefined' && window.__posterramaPaused != null
+                                    ? !!window.__posterramaPaused
+                                    : null;
+                            if (paused === true && api.resume) return void api.resume();
+                            if (paused === false && api.pause) return void api.pause();
+                        }
+                    }
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
+                break;
+            }
             default:
                 // Unknown or unsupported command type
                 break;

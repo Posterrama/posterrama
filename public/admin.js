@@ -9720,7 +9720,7 @@ function __ensurePairingModal() {
     if (el) return el;
     const wrapper = document.createElement('div');
     wrapper.innerHTML =
-        '<div id="pairing-modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="pairing-modal-title" tabindex="-1"><div class="modal-background" data-pairing-close></div><div class="modal-content"><button type="button" class="close" data-pairing-close aria-label="Close dialog">&times;</button><h3 id="pairing-modal-title"><i class="fas fa-link"></i> Pairing code</h3><div class="pairing-body"><div class="pairing-code" data-pairing-code>—</div><div class="pairing-exp" data-pairing-exp></div><div class="pairing-qr"><img data-pairing-qr alt="QR"/></div><div class="pairing-actions"><button type="button" class="btn is-primary" data-pairing-copy>Copy claim URL</button><button type="button" class="btn" data-pairing-close>Close</button></div></div></div></div>';
+        '<div id="pairing-modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="pairing-modal-title" tabindex="-1"><div class="modal-background" data-pairing-close></div><div class="modal-content"><button type="button" class="close" data-pairing-close aria-label="Close dialog">&times;</button><h3 id="pairing-modal-title"><i class="fas fa-link"></i> Pairing code</h3><div class="pairing-body"><div class="pairing-code" data-pairing-code>—</div><div class="pairing-exp" data-pairing-exp></div><div class="pairing-qr"><img data-pairing-qr alt="QR"/></div><div class="pairing-actions"><button type="button" class="btn is-primary" data-pairing-copy>Copy claim URL</button><button type="button" class="btn" data-pairing-open>Open URL</button><button type="button" class="btn" data-pairing-close>Close</button></div></div></div></div>';
     el = wrapper.firstChild;
     document.body.appendChild(el);
     el.querySelectorAll('[data-pairing-close]').forEach(c =>
@@ -9757,6 +9757,15 @@ function showPairingModal({ code, expiresAt, claimUrl }) {
             window.prompt('Copy this URL', claimUrl);
         }
     };
+    const openBtn = el.querySelector('[data-pairing-open]');
+    if (openBtn)
+        openBtn.onclick = () => {
+            try {
+                window.open(claimUrl, '_blank', 'noopener,noreferrer');
+            } catch (_) {
+                // ignore
+            }
+        };
     try {
         // Remember current focused element to restore after close
         const active = document.activeElement;
@@ -9772,6 +9781,67 @@ function showPairingModal({ code, expiresAt, claimUrl }) {
     } catch (_) {
         // ignore focus get/set errors
     }
+}
+
+// Remote Control modal utilities
+function __ensureRemoteModal() {
+    let el = document.getElementById('remote-modal');
+    if (el) return el;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML =
+        '<div id="remote-modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="remote-modal-title" tabindex="-1"><div class="modal-background" data-remote-close></div><div class="modal-content"><button type="button" class="close" data-remote-close aria-label="Close dialog">&times;</button><h3 id="remote-modal-title"><i class="fas fa-gamepad"></i> Remote Control</h3><div class="remote-body"><div class="remote-grid"><button class="btn" data-remote="up" title="Up"><i class="fas fa-arrow-up"></i></button><div class="remote-center"><button class="btn is-primary" data-remote="select" title="Select"><i class="fas fa-dot-circle"></i></button></div><button class="btn" data-remote="right" title="Right"><i class="fas fa-arrow-right"></i></button><button class="btn" data-remote="left" title="Left"><i class="fas fa-arrow-left"></i></button><button class="btn" data-remote="down" title="Down"><i class="fas fa-arrow-down"></i></button></div><div class="remote-row"><button class="btn" data-remote="back" title="Back"><i class="fas fa-arrow-circle-left"></i></button><button class="btn" data-remote="home" title="Home"><i class="fas fa-home"></i></button><button class="btn" data-remote="menu" title="Menu"><i class="fas fa-bars"></i></button></div><div class="remote-media"><button class="btn" data-remote="playpause" title="Play/Pause"><i class="fas fa-play"></i>/<i class="fas fa-pause"></i></button><button class="btn" data-remote="prev" title="Previous"><i class="fas fa-step-backward"></i></button><button class="btn" data-remote="next" title="Next"><i class="fas fa-step-forward"></i></button></div></div></div></div>';
+    el = wrapper.firstChild;
+    document.body.appendChild(el);
+    el.querySelectorAll('[data-remote-close]').forEach(c =>
+        c.addEventListener('click', () => {
+            try {
+                el.classList.add('is-hidden');
+                el.classList.remove('modal-open');
+                const lastTrigger = el.__lastTrigger || null;
+                if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
+            } catch (_) {}
+        })
+    );
+    return el;
+}
+function showRemoteModal(deviceId) {
+    const el = __ensureRemoteModal();
+    try {
+        const active = document.activeElement;
+        if (active && active !== document.body) el.__lastTrigger = active;
+        el.classList.remove('is-hidden');
+        el.classList.add('modal-open');
+        const handler = async action => {
+            try {
+                switch (action) {
+                    case 'up':
+                    case 'down':
+                    case 'left':
+                    case 'right':
+                    case 'select':
+                    case 'back':
+                    case 'home':
+                    case 'menu':
+                        await sendDeviceCommand(deviceId, 'remote.key', { key: action });
+                        break;
+                    case 'playpause': {
+                        await sendDeviceCommand(deviceId, 'playback.toggle');
+                        break;
+                    }
+                    case 'prev':
+                        await sendDeviceCommand(deviceId, 'playback.prev');
+                        break;
+                    case 'next':
+                        await sendDeviceCommand(deviceId, 'playback.next');
+                        break;
+                }
+            } catch (_) {}
+        };
+        el.querySelectorAll('[data-remote]').forEach(btn => {
+            btn.onclick = () => handler(btn.getAttribute('data-remote'));
+        });
+        setTimeout(() => el.querySelector('[data-remote="select"]').focus(), 0);
+    } catch (_) {}
 }
 
 // Simple in-memory cache for presets loaded from admin config
@@ -9981,6 +10051,9 @@ function deviceRowHTML(d) {
                     <button type="button" class="btn" data-cmd="pair" data-id="${d.id}" title="Generate pairing code (admin)">
                         <span class="icon"><i class="fas fa-link"></i></span>
                     </button>
+                    <button type="button" class="btn" data-cmd="remote" data-id="${d.id}" title="Open Remote Control" ${isOffline || isPoweredOff ? 'disabled' : ''}>
+                        <span class="icon"><i class="fas fa-gamepad"></i></span>
+                    </button>
                     <button type="button" class="btn" data-cmd="overrides" data-id="${d.id}" title="Edit display settings override">
                         <span class="icon"><i class="fas fa-sliders-h"></i></span>
                     </button>
@@ -10110,9 +10183,11 @@ function reconcileDevicesTable(devices) {
             const sendBtn = tr.querySelector('button[data-cmd="send-command"]');
             const playBtn = tr.querySelector('button.playback-toggle');
             const pinBtn = tr.querySelector('button.pin-btn');
+            const remoteBtn = tr.querySelector('button[data-cmd="remote"]');
             if (sendBtn) sendBtn.disabled = disable;
             if (playBtn) playBtn.disabled = disable;
             if (pinBtn) pinBtn.disabled = disable;
+            if (remoteBtn) remoteBtn.disabled = disable;
             // Pin/play states
             if (playBtn) {
                 const isPlaying = d.currentState && d.currentState.paused === false;
@@ -10479,6 +10554,9 @@ function renderDevicesTable(devices) {
                         </button>
             <button type="button" class="btn" data-cmd="pair" data-id="${d.id}" title="Generate pairing code (admin)">
                             <span class="icon"><i class="fas fa-link"></i></span>
+                        </button>
+            <button type="button" class="btn" data-cmd="remote" data-id="${d.id}" title="Open Remote Control" ${isOffline || isPoweredOff ? 'disabled' : ''}>
+                            <span class="icon"><i class="fas fa-gamepad"></i></span>
                         </button>
             <button type="button" class="btn" data-cmd="overrides" data-id="${d.id}" title="Edit display settings override">
                             <span class="icon"><i class="fas fa-sliders-h"></i></span>
@@ -10869,6 +10947,10 @@ function renderDevicesTable(devices) {
                     showSendCommandPopover(btn, id);
                     return;
                 }
+                if (cmd === 'remote') {
+                    showRemoteModal(id);
+                    return;
+                }
                 if (cmd === 'delete') {
                     devLog('row delete: opening confirm');
                     const ok = await confirmDialog('Delete this device?', btn);
@@ -11129,6 +11211,10 @@ function initDevicesPanel() {
                     }
                     if (cmd === 'send-command') {
                         showSendCommandPopover(btn, id);
+                        return;
+                    }
+                    if (cmd === 'remote') {
+                        showRemoteModal(id);
                         return;
                     }
                     if (cmd === 'delete') {

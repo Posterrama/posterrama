@@ -6683,6 +6683,63 @@ div#devices-section.section-content.active .section-main-content {
     text-align: center;
 }
 
+/* Pairing modal */
+#pairing-modal .pairing-body {
+    text-align: center;
+}
+#pairing-modal .pairing-code {
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 0.25rem 0 0.5rem;
+}
+#pairing-modal .pairing-exp {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 0.75rem;
+}
+#pairing-modal .pairing-qr img {
+    display: block;
+    margin: 0 auto 1rem;
+    max-width: 260px;
+    width: 100%;
+    height: auto;
+}
+#pairing-modal .pairing-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+/* Remote control modal */
+#remote-modal .remote-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: center;
+}
+#remote-modal .remote-grid {
+    display: grid;
+    grid-template-columns: 64px 64px 64px;
+    grid-template-rows: 64px 64px 64px;
+    gap: 0.5rem;
+    align-items: center;
+    justify-items: center;
+}
+#remote-modal .remote-center {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+}
+#remote-modal .remote-row,
+#remote-modal .remote-media {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+#remote-modal .btn {
+    min-width: 48px;
+    min-height: 40px;
+}
+
 /* Modal close button */
 .modal-content .close {
     color: #aaa;

@@ -52,6 +52,7 @@ console.warn = (...args) => {
 };
 
 const path = require('path');
+const QRCode = require('qrcode');
 const fs = require('fs');
 require('dotenv').config();
 const crypto = require('crypto');
@@ -1688,6 +1689,47 @@ if (isDeviceMgmtEnabled()) {
             res.json({ deviceId: result.device.id, deviceSecret: result.secret });
         } catch (e) {
             res.status(500).json({ error: 'pair_claim_failed' });
+        }
+    });
+
+    // Public: Generate a QR code for arbitrary text (used by pairing modal)
+    // Supports format=svg|png, defaults to svg. Rate-limited and size-limited.
+    const qrLimiter = createRateLimiter(
+        60 * 1000,
+        120,
+        'Too many QR requests from this IP, please try again later.'
+    );
+    app.get('/api/qr', qrLimiter, async (req, res) => {
+        try {
+            const rawText = (req.query && (req.query.text || req.query.t)) || '';
+            const format = String(req.query && req.query.format ? req.query.format : 'svg')
+                .toLowerCase()
+                .trim();
+            const text = String(rawText);
+            // Basic validation: required and not excessive length
+            if (!text || !text.trim()) {
+                return res.status(400).json({ error: 'text_required' });
+            }
+            if (text.length > 2048) {
+                return res.status(400).json({ error: 'text_too_long' });
+            }
+            const options = {
+                errorCorrectionLevel: 'M',
+                margin: 1,
+            };
+            if (format === 'png') {
+                const buf = await QRCode.toBuffer(text, { ...options, type: 'png' });
+                res.setHeader('Content-Type', 'image/png');
+                res.setHeader('Cache-Control', 'no-store');
+                return res.status(200).send(buf);
+            }
+            // default: svg
+            const svg = await QRCode.toString(text, { ...options, type: 'svg' });
+            res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+            res.setHeader('Cache-Control', 'no-store');
+            return res.status(200).send(svg);
+        } catch (e) {
+            return res.status(500).json({ error: 'qr_failed' });
         }
     });
 
