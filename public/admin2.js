@@ -2550,11 +2550,7 @@
                 const ppCls =
                     pausedFlag === true ? ' is-paused' : pausedFlag === false ? ' is-playing' : '';
                 const ppIcon =
-                    pausedFlag === false
-                        ? 'fa-pause'
-                        : pausedFlag === true
-                          ? 'fa-play'
-                          : 'fa-play-pause';
+                    pausedFlag === false ? 'fa-pause' : pausedFlag === true ? 'fa-play' : 'fa-play';
                 return `
                                                                 <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
                                                                         <div class="device-card-header">
@@ -2586,7 +2582,7 @@
                                                 <button class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command"><i class="fas fa-terminal"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-playpause${ppCls}" title="Play/Pause"><i class="fas ${ppIcon}"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-pin card-secondary" title="Pin current poster"><i class="fas fa-thumbtack"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-pin card-secondary" title="Pin current poster"><i class="fas fa-map-pin"></i></button>
                                                 <div class="dropdown card-more" style="position:relative;display:none;">
                                                         <button class="btn btn-icon btn-sm" title="More"><i class="fas fa-ellipsis"></i></button>
                                                         <div class="dropdown-menu"></div>
@@ -2743,6 +2739,16 @@
                 });
                 card.querySelector('.btn-reload')?.addEventListener('click', async () => {
                     const id = card.getAttribute('data-id');
+                    // one-time spin animation on the icon
+                    try {
+                        const icon = card.querySelector('.btn-reload i');
+                        if (icon) {
+                            icon.classList.remove('icon-spin-once');
+                            // force reflow to restart animation if already applied
+                            void icon.offsetWidth;
+                            icon.classList.add('icon-spin-once');
+                        }
+                    } catch (_) {}
                     await sendCommand(id, 'core.mgmt.reload');
                     window.notify?.toast({
                         type: 'info',
@@ -2752,6 +2758,15 @@
                 });
                 card.querySelector('.btn-clearcache')?.addEventListener('click', async () => {
                     const id = card.getAttribute('data-id');
+                    // broom sweep animation
+                    try {
+                        const icon = card.querySelector('.btn-clearcache i');
+                        if (icon) {
+                            icon.classList.remove('broom-sweep');
+                            void icon.offsetWidth; // restart
+                            icon.classList.add('broom-sweep');
+                        }
+                    } catch (_) {}
                     await sendCommand(id, 'core.mgmt.clearCache');
                     window.notify?.toast({
                         type: 'success',
@@ -2811,7 +2826,15 @@
                 });
                 card.querySelector('.btn-pin')?.addEventListener('click', async () => {
                     const id = card.getAttribute('data-id');
-                    await sendCommand(id, 'playback.pinPoster');
+                    const btn = card.querySelector('.btn-pin');
+                    // optimistic UI: toggle pinned style immediately
+                    if (btn) btn.classList.toggle('is-pinned');
+                    try {
+                        await sendCommand(id, 'playback.pinPoster');
+                    } catch (_) {
+                        // revert on failure
+                        if (btn) btn.classList.toggle('is-pinned');
+                    }
                 });
                 // Support both inline header pencil and legacy rename button
                 const renameBtn = card.querySelector('.btn-rename, .btn-rename-inline');

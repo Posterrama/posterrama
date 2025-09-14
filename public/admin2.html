@@ -479,6 +479,21 @@
     .panel-actions .btn.btn-icon .spinner { margin-right: 0; }
     .btn[aria-busy="true"] { cursor: progress; opacity: .85; }
 
+    /* Device toolbar icon animations */
+    /* One-time quick spin for reload icon */
+    #section-devices .device-tools .btn-reload i.icon-spin-once { display:inline-block; animation: spin .6s linear 1; }
+    /* Broom sweep animation */
+    @keyframes broom-sweep { 0% { transform: rotate(0deg) translateX(0); } 25% { transform: rotate(-14deg) translateX(2px); } 50% { transform: rotate(14deg) translateX(-2px); } 75% { transform: rotate(-10deg) translateX(1px); } 100% { transform: rotate(0deg) translateX(0); } }
+    #section-devices .device-tools .btn-clearcache i.broom-sweep { display:inline-block; transform-origin: 50% 70%; animation: broom-sweep .8s ease-in-out 1; }
+
+    /* Pinned state for Pin button: only icon turns magenta */
+    #section-devices .device-tools .btn-pin.is-pinned {
+      background: transparent;
+      border-color: inherit;
+      color: inherit;
+    }
+    #section-devices .device-tools .btn-pin.is-pinned i { color: #ff00a7; }
+
   /* MODERN DASHBOARD - inspired by the screenshot */
   #panel-perf-dashboard {
     background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
@@ -782,17 +797,19 @@
     border: 1px solid var(--color-border);
     border-radius: 14px;
   padding: 22px 22px; /* larger, calmer cards */
-    box-shadow: 0 10px 24px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.04);
-    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, outline-color .16s ease;
+  /* Match device card shadow */
+  box-shadow: var(--shadow-md);
+  /* No motion/elevation on hover */
+  transition: border-color .16s ease, outline-color .16s ease;
   /* Make cards stretch to equal heights within grid rows */
   display: flex;
   flex-direction: column;
   height: 100%;
   }
   #section-media-sources .source-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 30px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05);
-    border-color: rgba(255,255,255,0.16);
+    transform: none;
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border);
   }
   /* Per-card accent color via CSS var */
   #section-media-sources .source-card { --sc-accent: var(--color-primary); }
