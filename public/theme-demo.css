@@ -2156,18 +2156,17 @@ input[type='range']::-moz-range-thumb {
     align-items: center;
     justify-content: center;
 }
-/* Selected: subtle indicator — a small dot and a tighter, stronger glow */
+/* Selected indicator: top line instead of bottom dot */
 .notify-filter .nf-btn[aria-checked='true'] .ring::after {
     content: '';
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: -1px;
-    width: 4px;
-    height: 4px;
+    top: 0; /* align at the top edge of the ring */
+    left: 4px; /* small inset so it looks like a short line */
+    right: 4px;
+    height: 2px; /* line thickness */
     background: currentColor;
-    opacity: 0.9;
-    border-radius: 9999px;
+    opacity: 0.95;
+    border-radius: 2px;
 }
 .notify-filter .nf-btn[aria-checked='true'] i {
     filter: none;
