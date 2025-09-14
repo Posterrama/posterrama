@@ -2211,6 +2211,7 @@
             const root = document.getElementById('plex-ms-genres');
             const control = root?.querySelector('.ms-control');
             const search = document.getElementById('plex-ms-genres-search');
+            const menu = document.getElementById('plex-ms-genres-menu');
             if (!chipsRoot || !optsEl || !root || !control || !search) return;
             chipsRoot.innerHTML = '<div class="subtle">Loading genres…</div>';
             try {
@@ -2287,9 +2288,50 @@
                         if (cb) cb.checked = selected.has(v);
                     });
                 };
+                // Portalize menu to body and position it near control to avoid clipping
+                if (menu && menu.parentElement !== document.body) {
+                    document.body.appendChild(menu);
+                    menu.style.position = 'fixed';
+                    menu.style.zIndex = '9999';
+                    menu.style.display = 'none';
+                    menu.style.maxHeight = '60vh';
+                    menu.style.overflow = 'auto';
+                    menu.style.minWidth = '240px';
+                }
+                let onReposition;
+                const positionMenu = () => {
+                    if (!control || !menu) return;
+                    const rect = control.getBoundingClientRect();
+                    const viewportH = window.innerHeight || document.documentElement.clientHeight;
+                    const belowSpace = viewportH - rect.bottom;
+                    const estHeight = Math.min(menu.scrollHeight || 320, viewportH * 0.6);
+                    const openUp = belowSpace < estHeight && rect.top > estHeight;
+                    const top = openUp ? Math.max(8, rect.top - estHeight) : rect.bottom + 4;
+                    const left = rect.left;
+                    const width = Math.max(rect.width, 240);
+                    menu.style.top = `${Math.round(top)}px`;
+                    menu.style.left = `${Math.round(left)}px`;
+                    menu.style.width = `${Math.round(width)}px`;
+                    menu.style.maxHeight = `${Math.round(estHeight)}px`;
+                };
                 const openMenu = open => {
                     root.classList.toggle('ms-open', !!open);
                     control.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    if (!menu) return;
+                    if (open) {
+                        menu.style.display = 'block';
+                        positionMenu();
+                        onReposition = () => positionMenu();
+                        window.addEventListener('resize', onReposition, { passive: true });
+                        window.addEventListener('scroll', onReposition, { passive: true });
+                    } else {
+                        menu.style.display = 'none';
+                        if (onReposition) {
+                            window.removeEventListener('resize', onReposition);
+                            window.removeEventListener('scroll', onReposition);
+                            onReposition = null;
+                        }
+                    }
                 };
                 // Wire interactions if not already
                 if (root && root.dataset.msWired !== 'true') {
@@ -2301,7 +2343,8 @@
                         if (willOpen) setTimeout(() => search.focus(), 0);
                     });
                     document.addEventListener('click', e => {
-                        if (!root.contains(e.target)) openMenu(false);
+                        if (!root.contains(e.target) && !(menu && menu.contains(e.target)))
+                            openMenu(false);
                     });
                     search.addEventListener('focus', () => openMenu(true));
                     search.addEventListener('keydown', e => {
