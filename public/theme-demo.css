@@ -2315,6 +2315,16 @@ input[type='range']::-moz-range-thumb {
     margin-bottom: 2px;
 }
 
+/* Toast icon container (for Font Awesome icons) */
+.toast .toast-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.toast .toast-icon i {
+    font-size: 1rem;
+}
+
 .toast .toast-message {
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);

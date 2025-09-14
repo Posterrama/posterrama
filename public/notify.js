@@ -5,11 +5,12 @@
  - Automatically creates containers if missing (toast: #toast-container, banner: #notification-area)
 */
 (function () {
+    // Font Awesome icon classes for each toast type
     const ICONS = {
-        success: '✔️',
-        info: 'ℹ️',
-        warning: '⚠️',
-        error: '❌',
+        success: 'fas fa-check-circle',
+        info: 'fas fa-info-circle',
+        warning: 'fas fa-exclamation-triangle',
+        error: 'fas fa-times-circle',
     };
 
     function ensureToastContainer() {
@@ -62,7 +63,11 @@
 
         const icon = document.createElement('span');
         icon.className = 'toast-icon';
-        icon.textContent = ICONS[type] || ICONS.info;
+        // Use Font Awesome icons; fall back to a generic info icon if type missing
+        const i = document.createElement('i');
+        i.className = ICONS[type] || ICONS.info;
+        i.setAttribute('aria-hidden', 'true');
+        icon.appendChild(i);
         el.appendChild(icon);
 
         const content = document.createElement('div');
@@ -90,6 +95,15 @@
         // trigger CSS transition
         void el.offsetWidth; // reflow
         el.classList.add('show');
+
+        // Match icon color to the left indicator (border-left color)
+        try {
+            const cs = getComputedStyle(el);
+            const c = cs && cs.borderLeftColor;
+            if (c) icon.style.color = c;
+        } catch (_) {
+            /* non-fatal */
+        }
 
         let dismissed = false;
         const dismiss = () => {

@@ -2307,7 +2307,7 @@
           </div>
         </header>
         <div class="panel-content">
-      <div class="content-grid" style="gap:12px;">
+  <div class="content-grid" style="gap:12px;">
         <div class="ops-col">
           <div class="ops-group">
             <div class="ops-group-title"><i class="fas fa-download"></i> Updates</div>
@@ -2350,77 +2350,31 @@
                 </div>
               </div>
       </section>
+            <!-- Media Group Title -->
+            <div class="ops-group">
+              <div class="ops-group-title"><i class="fas fa-photo-video"></i> Media</div>
+            </div>
             <!-- Media Operations -->
             <section class="perf-card" aria-label="Media Operations">
               <h3><i class="fas fa-sync-alt"></i> Media</h3>
               <div class="card-subtext">Refresh media from configured sources.</div>
+              <div class="metric-row mt-6">
+                <div class="form-group inline-field nowrap" style="display: block;">
+                  <label for="backgroundRefreshMinutes" style="margin:0;display:inline-flex;align-items:center;padding-right:12px; white-space:nowrap;">Background Refresh (minutes)</label>
+                  <input type="number" id="backgroundRefreshMinutes" min="5" max="1440" step="1" class="w-110" value="30" />
+                </div>
+              </div>
         <div class="actions main-actions">
                 <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
                   <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
                 </button>
               </div>
             </section>
-            <!-- Server Settings -->
-            <section class="perf-card" aria-label="Server Settings">
-              <h3><i class="fas fa-gear"></i> Server</h3>
-              <div class="card-subtext">Core server configuration.</div>
-              <div class="metric-row">
-                <div class="form-group inline-field nowrap" style="display: block;">
-                  <label for="SERVER_PORT" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
-                  <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" class="w-110" />
-                </div>
-              </div>
-            </section>
-        </div>
-  <div class="ops-col">
-      <div class="ops-group">
-        <div class="ops-group-title"><i class="fas fa-server"></i> Server & Access</div>
-      </div>
-      <!-- Debug & Logging -->
-            <section class="perf-card" aria-label="Debug & Logging">
-              <h3><i class="fas fa-bug"></i> Debug & Logging</h3>
-              <div class="card-pill-spot">
-                <span class="status-pill" id="debug-status-pill">Debug: Off</span>
-              </div>
-              <div class="card-subtext">Detailed logging for troubleshooting.</div>
-              <div class="metric-row mt-6">
-                <div class="form-group checkbox-group">
-                  <label class="checkbox" for="DEBUG">
-                    <input type="checkbox" id="DEBUG" />
-                    <span class="checkmark"></span>
-                    <span>Enable Debug Mode</span>
-                  </label>
-                </div>
-                <div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>Use temporarily; verbose logs can impact performance.</span></div>
-              </div>
-              <div class="actions mt-8">
-                <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
-              </div>
-            </section>
-  <!-- Promobox Site -->
-            <section class="perf-card" aria-label="Promobox Site">
-              <h3><i class="fas fa-bullhorn"></i> Promobox Site</h3>
-              <div class="card-pill-spot">
-                <span class="status-pill status-warning" id="siteServer-pill">Disabled</span>
-              </div>
-              <div class="card-subtext">Optional static poster showcase.</div>
-              <div class="metric-row mt-6">
-                <div class="form-group checkbox-group">
-                  <label class="checkbox" for="siteServer.enabled">
-                    <input type="checkbox" id="siteServer.enabled" />
-                    <span class="checkmark"></span>
-                    <span>Enable Promobox Site</span>
-                  </label>
-                </div>
-                <div class="form-group inline-field nowrap" id="siteServerPortGroup" style="display:none;">
-                  <label for="siteServer.port" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
-                  <input type="number" id="siteServer.port" min="1024" max="65535" value="4001" class="w-110" />
-                </div>
-                <div id="siteServerStatus" class="subtle" style="display:none;"></div>
-              </div>
-            </section>
-
-            <!-- API Access -->
+            <!-- API Group Title (moved to left column) -->
+            <div class="ops-group">
+              <div class="ops-group-title"><i class="fas fa-plug"></i> API</div>
+            </div>
+            <!-- API Access (moved to left column) -->
             <section class="perf-card" aria-label="API Access Management">
               <h3><i class="fas fa-code"></i> API Access</h3>
               <div class="card-pill-spot">
@@ -2447,6 +2401,70 @@
                 </button>
               </div>
             </section>
+        </div>
+  <div class="ops-col">
+      <div class="ops-group">
+        <div class="ops-group-title"><i class="fas fa-stethoscope"></i> Diagnostics</div>
+      </div>
+      <!-- Debug & Logging -->
+            <section class="perf-card" aria-label="Debug & Logging">
+              <h3><i class="fas fa-bug"></i> Debug & Logging</h3>
+              <div class="card-pill-spot">
+                <span class="status-pill" id="debug-status-pill">Debug: Off</span>
+              </div>
+              <div class="card-subtext">Detailed logging for troubleshooting.</div>
+              <div class="metric-row mt-6">
+                <div class="form-group checkbox-group">
+                  <label class="checkbox" for="DEBUG">
+                    <input type="checkbox" id="DEBUG" />
+                    <span class="checkmark"></span>
+                    <span>Enable Debug Mode</span>
+                  </label>
+                </div>
+                <div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>Use temporarily; verbose logs can impact performance.</span></div>
+              </div>
+              <div class="actions mt-8">
+                <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
+              </div>
+            </section>
+      <div class="ops-group">
+        <div class="ops-group-title"><i class="fas fa-server"></i> Server</div>
+      </div>
+            <!-- Server Settings (under Server) -->
+            <section class="perf-card" aria-label="Server Settings">
+              <h3><i class="fas fa-gear"></i> Server</h3>
+              <div class="card-subtext">Core server configuration.</div>
+              <div class="metric-row">
+                <div class="form-group inline-field nowrap" style="display: block;">
+                  <label for="SERVER_PORT" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
+                  <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" class="w-110" />
+                </div>
+              </div>
+            </section>
+  <!-- Promobox Site -->
+            <section class="perf-card" aria-label="Promobox Site">
+              <h3><i class="fas fa-bullhorn"></i> Promobox Site</h3>
+              <div class="card-pill-spot">
+                <span class="status-pill status-warning" id="siteServer-pill">Disabled</span>
+              </div>
+              <div class="card-subtext">Optional static poster showcase.</div>
+              <div class="metric-row mt-6">
+                <div class="form-group checkbox-group">
+                  <label class="checkbox" for="siteServer.enabled">
+                    <input type="checkbox" id="siteServer.enabled" />
+                    <span class="checkmark"></span>
+                    <span>Enable Promobox Site</span>
+                  </label>
+                </div>
+                <div class="form-group inline-field nowrap" id="siteServerPortGroup" style="display:none;">
+                  <label for="siteServer.port" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
+                  <input type="number" id="siteServer.port" min="1024" max="65535" value="4001" class="w-110" />
+                </div>
+                <div id="siteServerStatus" class="subtle" style="display:none;"></div>
+              </div>
+            </section>
+
+      
       
     </div>
           </div>

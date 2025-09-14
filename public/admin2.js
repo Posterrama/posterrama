@@ -10294,6 +10294,15 @@
                         duration: 4000,
                     });
                 }
+                // Collect Background Refresh Minutes (Media)
+                const brmInput = document.getElementById('backgroundRefreshMinutes');
+                let backgroundRefreshMinutes = Number(brmInput?.value || 30);
+                if (!Number.isFinite(backgroundRefreshMinutes)) backgroundRefreshMinutes = 30;
+                backgroundRefreshMinutes = Math.max(
+                    5,
+                    Math.min(1440, Math.round(backgroundRefreshMinutes))
+                );
+                if (brmInput) brmInput.value = String(backgroundRefreshMinutes);
                 if (!btn.querySelector('.spinner')) {
                     const sp = document.createElement('span');
                     sp.className = 'spinner';
@@ -10305,7 +10314,11 @@
                 const portVal = Number(document.getElementById('siteServer.port')?.value || 4001);
 
                 await saveConfigPatch(
-                    { serverPort: serverPort, siteServer: { enabled, port: portVal } },
+                    {
+                        serverPort: serverPort,
+                        backgroundRefreshMinutes,
+                        siteServer: { enabled, port: portVal },
+                    },
                     { DEBUG: String(DEBUG), SERVER_PORT: String(serverPort) }
                 );
 
@@ -10420,6 +10433,12 @@
                 portElMain.value = Number(v) || 4000;
                 // Snapshot original for restart detection in unified save
                 portElMain.dataset.originalPort = String(portElMain.value);
+            }
+            // Background Refresh Minutes (Media)
+            const brmEl = document.getElementById('backgroundRefreshMinutes');
+            if (brmEl) {
+                const v = Number(cfg?.backgroundRefreshMinutes ?? 30);
+                brmEl.value = Number.isFinite(v) && v > 0 ? String(v) : '30';
             }
             // Promobox
             const site = cfg.siteServer || {};

@@ -63,6 +63,12 @@
 }
 .toast .toast-icon {
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.toast .toast-icon i {
+    font-size: 1rem;
 }
 .toast .toast-content {
     display: flex;

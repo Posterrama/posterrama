@@ -3,128 +3,72 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Admin Login - posterrama</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <title>Control Center - posterrama</title>
+        
+    <!-- Theme styles (new theme) -->
+    <link rel="stylesheet" href="/theme-demo.css" />
+        <!-- Font Awesome (icons consistent with admin2) -->
         <link
-            href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap"
             rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+            integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
         />
-        <link rel="stylesheet" href="../admin.css" />
         <style>
-            body {
-                background: linear-gradient(
-                    135deg,
-                    #0f0f23 0%,
-                    #1a1a2e 25%,
-                    #16213e 50%,
-                    #0f3460 75%,
-                    #533483 100%
-                ) !important;
-                margin: 0;
-                padding: 0;
-                min-height: 100vh;
-            }
+            /* Keep login-specific layout tweaks; visuals come from theme-demo.css */
+            body { background-color: var(--color-bg-secondary); color: var(--color-text-primary); }
             .auth-container {
-                min-height: 100vh;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 2rem;
-                gap: 2rem;
+                min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; gap: 2rem;
             }
-            .auth-box {
-                background: rgba(255, 255, 255, 0.05) !important;
-                border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                border-radius: 16px !important;
-                padding: 2.5rem !important;
+            .auth-box { width: 100%; max-width: 420px; }
+            .panel-content { padding: var(--space-lg); }
+            .auth-title { text-align: center; margin: 0 0 1.25rem 0; letter-spacing: -0.02em; font-weight: var(--font-weight-semibold); }
+            .admin-text { font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: .08em; }
+            .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+            .form-group { margin-bottom: var(--space-md); }
+            .form-compact { max-width: 360px; margin: 0 auto; }
+            /* Ensure equal widths for username/password like admin2 fields */
+            .form-compact .form-group input,
+            .form-compact .form-group select {
                 width: 100%;
-                max-width: 420px;
-                backdrop-filter: blur(20px) !important;
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
             }
-            .auth-box h1 {
-                text-align: center !important;
-                margin-bottom: 2rem !important;
-                font-size: 1.875rem !important;
-                font-weight: 600 !important;
-                letter-spacing: -0.02em !important;
-                color: #e2e8f0 !important;
-                white-space: nowrap !important;
+            /* Minimal helpers for icons inside inputs */
+            .input-wrap { position: relative; }
+            .input-icon-btn { position: absolute; right: .5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--color-text-secondary); padding: .25rem; cursor: pointer; opacity: .85; }
+            .input-icon-btn:hover { opacity: 1; color: var(--color-info); }
+            /* Ensure input with icon stays full width */
+            .input-wrap input { width: 100%; display: block; }
+            /* Override autofill to match theme (avoid bright background) */
+            input:-webkit-autofill,
+            input:-webkit-autofill:hover,
+            input:-webkit-autofill:focus {
+                -webkit-text-fill-color: var(--color-text-primary);
+                box-shadow: 0 0 0px 1000px var(--color-bg-card) inset;
+                border: 1px solid var(--color-border);
+                transition: background-color 9999s ease-in-out 0s;
             }
-            .admin-text {
-                font-family: 'Orbitron', 'Courier New', monospace !important;
-                font-weight: 700 !important;
-                text-transform: uppercase !important;
-                letter-spacing: 0.1em !important;
-            }
-            .gradient-text {
-                background: linear-gradient(
-                    135deg,
-                    #667eea 0%,
-                    #764ba2 50%,
-                    #f093fb 100%
-                ) !important;
-                -webkit-background-clip: text !important;
-                -webkit-text-fill-color: transparent !important;
-                background-clip: text !important;
-            }
-            .form-group {
-                margin-bottom: 1.5rem !important;
-            }
-            .form-group label {
-                display: block !important;
-                margin-bottom: 0.5rem !important;
-                font-weight: 500 !important;
-                color: #e2e8f0 !important;
-                font-size: 0.875rem !important;
-            }
-            .form-group input {
-                width: 100% !important;
-                padding: 0.75rem 1rem !important;
-                border: 1px solid rgba(255, 255, 255, 0.2) !important;
-                border-radius: 8px !important;
-                background: rgba(255, 255, 255, 0.05) !important;
-                color: #e2e8f0 !important;
-                font-size: 1rem !important;
-                transition: all 0.2s ease !important;
-                box-sizing: border-box !important;
-            }
-            .form-group input:focus {
-                outline: none !important;
-                border-color: #667eea !important;
-                background: rgba(102, 126, 234, 0.1) !important;
-            }
-            .error-message,
-            .error-box {
-                background: rgba(239, 68, 68, 0.1) !important;
-                border: 1px solid rgba(239, 68, 68, 0.3) !important;
-                color: #fca5a5 !important;
-                padding: 0.75rem 1rem !important;
-                border-radius: 8px !important;
-                margin-bottom: 1rem !important;
-                font-size: 0.875rem !important;
-                text-align: center !important;
-                display: none;
-            }
-            .error-message.show,
-            .error-box.show {
-                display: block !important;
-            }
-            .form-group input::placeholder {
-                color: rgba(226, 232, 240, 0.5) !important;
-            }
+            /* Heading overrides: plain white, no forced uppercase */
+            .auth-title .admin-text { text-transform: none; letter-spacing: 0; }
+            /* Error message styled with theme vars */
+            .error-message { display: none; background: rgba(232,67,147,0.08); border: 1px solid rgba(232,67,147,0.35); color: var(--color-error-light); padding: .75rem 1rem; border-radius: var(--border-radius-md); text-align:center; font-size: var(--font-size-sm); }
+            .error-message.show { display:block; }
+            /* Smaller centered submit */
+            .auth-actions { display:flex; justify-content:center; margin-top: 1rem; }
+            .auth-footer { display:flex; gap:12px; align-items:center; justify-content:center; }
         </style>
     </head>
     <body>
         <div class="auth-container">
-            <div class="auth-box">
-                <h1>
-                    <span class="admin-text">Admin</span> <span class="gradient-text">Login</span>
+            <div class="auth-box panel">
+                <div class="panel-content">
+                <h1 class="auth-title">
+                    <i class="fas fa-shield-alt" aria-hidden="true" style="opacity:.9"></i>
+                    <span class="admin-text" style="color: var(--color-text-primary); font-weight: var(--font-weight-semibold);">Control Center</span>
+                    <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-regular);">posterrama</span>
                 </h1>
 
-                <form id="loginForm" method="POST" action="/admin/login">
+                <form id="loginForm" class="form-compact" method="POST" action="/admin/login">
                     <div class="form-group">
                         <label for="username">Username</label>
                         <input
@@ -134,32 +78,56 @@
                             required
                             placeholder="Enter your username"
                             autocomplete="username"
+                            autocapitalize="off"
+                            spellcheck="false"
                         />
                     </div>
 
                     <div class="form-group">
                         <label for="password">Password</label>
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            required
-                            placeholder="Enter your password"
-                            autocomplete="current-password"
-                        />
+                        <div class="input-wrap">
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                required
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                style="padding-right:2.2rem"
+                            />
+                            <button type="button" id="togglePwd" class="input-icon-btn" aria-label="Show/Hide password"><i class="fas fa-eye"></i></button>
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" id="submitBtn">Sign In</button>
+                    <div class="auth-actions">
+                        <button type="submit" class="btn btn-primary btn-sm" id="submitBtn">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Sign In</span>
+                        </button>
+                    </div>
 
-                    <div id="errorMessage" class="error-message"></div>
+                    <div id="errorMessage" class="error-message" role="alert" aria-live="assertive"></div>
                 </form>
+                </div>
             </div>
             <div class="auth-footer">
-                <a href="/" class="btn btn-secondary">← Back to Home</a>
+                <a href="/" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i><span>Back to Home</span></a>
             </div>
         </div>
 
         <script>
+            // Toggle password visibility
+            const togglePwd = document.getElementById('togglePwd');
+            togglePwd?.addEventListener('click', () => {
+                const pwd = document.getElementById('password');
+                const icon = togglePwd.querySelector('i');
+                if (!pwd) return;
+                const isPwd = pwd.type === 'password';
+                pwd.type = isPwd ? 'text' : 'password';
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            });
+
             document.getElementById('loginForm').addEventListener('submit', async e => {
                 e.preventDefault();
 
@@ -191,8 +159,7 @@
                                 window.location.href = result.redirectTo;
                             } else {
                                 // This shouldn't happen if response.ok is true, but handle it
-                                errorDiv.textContent =
-                                    result.error || 'Login failed for unknown reasons.';
+                                errorDiv.textContent = result.error || 'Login failed for unknown reasons.';
                                 errorDiv.classList.add('show');
                             }
                         } catch (jsonError) {
