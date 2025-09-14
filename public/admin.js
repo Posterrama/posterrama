@@ -10063,7 +10063,6 @@ function reconcileDevicesTable(devices) {
         } catch (_) {}
         return false;
     };
-    const container = document.getElementById('devices-subsection');
     const tbodyEl = document.querySelector('#devices-table tbody');
     const active = document.activeElement;
     // Consider "editing" only when focus is inside a row input/select, not when in header search
