@@ -10496,6 +10496,7 @@ function renderDevicesTable(devices) {
                 }
                 const list = Array.from(set);
                 if (!list.length) return '';
+                const listIds = list.map(x => x && x.id).filter(Boolean);
                 const tipList = list
                     .map(x => {
                         const nm = (x.name && String(x.name).slice(0, 40)) || '(unnamed)';
@@ -10504,7 +10505,7 @@ function renderDevicesTable(devices) {
                     })
                     .join('\n');
                 const title = `Likely duplicates on same machine or installId:\n${tipList}`;
-                return `<span class="badge badge-dup" title="${title.replace(/"/g, '&quot;')}">Dupes: ${list.length}</span>`;
+                return `<span class=\"badge badge-dup\" title=\"${title.replace(/\"/g, '&quot;')}\" data-dupes=\"${listIds.join(',').replace(/\"/g, '&quot;')}\" tabindex=\"0\" role=\"button\">Dupes: ${list.length}</span>`;
             } catch (_) {
                 return '';
             }
@@ -11279,7 +11280,83 @@ function initDevicesPanel() {
                 if (!mergeMenu.contains(e.target) && e.target !== mergeMenuBtn) closeMenu();
             });
 
-            mergeSelectedBtn.addEventListener('click', async ev => {
+            const openMergeModal = ids => {
+                if (!ids || ids.length < 2) return;
+                const existing = document.getElementById('merge-devices-modal');
+                if (existing) existing.remove();
+                const tbody = container.querySelector('#devices-table tbody');
+                const entries = ids.map(id => {
+                    const row = tbody.querySelector(`tr[data-id="${id}"]`);
+                    const nameEl = row && row.querySelector('.device-name');
+                    const name = nameEl ? nameEl.textContent.trim() : id;
+                    return { id, name };
+                });
+                const radios = entries
+                    .map(
+                        (e, idx) => `
+                        <label class="merge-target">
+                            <input type="radio" name="merge-target" value="${e.id}" ${idx === 0 ? 'checked' : ''} />
+                            <span class="merge-id">${e.id.slice(0, 8)}</span>
+                            <span class="merge-name">${(e.name || '').replace(/</g, '&lt;')}</span>
+                        </label>`
+                    )
+                    .join('');
+                const html = `
+                    <div id="merge-devices-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="merge-devices-title">
+                        <div class="modal-background" data-close></div>
+                        <div class="modal-content" style="max-width: 680px;">
+                            <span class="close" data-close>&times;</span>
+                            <h3 id="merge-devices-title" class="section-title modal-section-title">
+                                <i class="fas fa-compress-arrows-alt"></i>
+                                <span>Merge devices</span>
+                            </h3>
+                            <div class="form-section unified-section">
+                                <div class="subsection-content">
+                                    <p>Select the device to keep. Others will be merged into it and removed.</p>
+                                    <div class="merge-list">${radios}</div>
+                                    <div class="actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+                                        <button type="button" class="btn" data-close>Cancel</button>
+                                        <button type="button" class="btn is-primary" id="merge-do">Merge</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                const wrap = document.createElement('div');
+                wrap.innerHTML = html;
+                const modal = wrap.firstElementChild;
+                document.body.appendChild(modal);
+                const close = () => modal && modal.remove();
+                modal
+                    .querySelectorAll('[data-close]')
+                    .forEach(el => el.addEventListener('click', close));
+                modal.addEventListener('click', e => {
+                    if (e.target === modal) close();
+                });
+                const doBtn = modal.querySelector('#merge-do');
+                doBtn.addEventListener('click', async () => {
+                    try {
+                        const sel = modal.querySelector('input[name="merge-target"]:checked');
+                        const target = sel && sel.value;
+                        if (!target || !ids.includes(target)) return;
+                        const sources = ids.filter(id => id !== target);
+                        const res = await authenticatedFetch(
+                            apiUrl(`/api/devices/${encodeURIComponent(target)}/merge`),
+                            {
+                                method: 'POST',
+                                body: JSON.stringify({ sourceIds: sources }),
+                                noRedirectOn401: true,
+                            }
+                        );
+                        if (!res.ok) throw new Error('merge failed');
+                    } catch (_) {}
+                    close();
+                    const list = await fetchDevices();
+                    renderDevicesTable(list);
+                });
+            };
+
+            mergeSelectedBtn.addEventListener('click', ev => {
                 ev.preventDefault();
                 ev.stopPropagation();
                 closeMenu();
@@ -11287,51 +11364,22 @@ function initDevicesPanel() {
                 const ids = Array.from(tbody.querySelectorAll('.row-select:checked')).map(cb =>
                     cb.getAttribute('data-id')
                 );
-                if (ids.length < 2) return; // need at least two to merge
-                // Ask user to pick target id among selected
-                const target = await new Promise(resolve => {
-                    try {
-                        const names = ids
-                            .map(id => {
-                                const row = tbody.querySelector(`tr[data-id="${id}"]`);
-                                const name = row && row.querySelector('.device-name');
-                                return {
-                                    id,
-                                    name: name ? name.textContent.trim() : id.slice(0, 8),
-                                };
-                            })
-                            .map(x => `${x.id} — ${x.name}`)
-                            .join('\n');
-                        const pick = prompt(
-                            'Merge selected devices. Enter the ID of the target device:\n\n' +
-                                names,
-                            ids[0]
-                        );
-                        resolve(pick || '');
-                    } catch (_) {
-                        resolve(ids[0]);
-                    }
-                });
-                if (!target || !ids.includes(target)) return;
-                const sources = ids.filter(id => id !== target);
-                const ok = await confirmDialog(
-                    `Merge ${sources.length} device(s) into ${target.slice(0, 8)}…?`,
-                    mergeMenuBtn
-                );
-                if (!ok) return;
-                try {
-                    const res = await authenticatedFetch(
-                        apiUrl(`/api/devices/${encodeURIComponent(target)}/merge`),
-                        {
-                            method: 'POST',
-                            body: JSON.stringify({ sourceIds: sources }),
-                            noRedirectOn401: true,
-                        }
-                    );
-                    if (!res.ok) throw new Error('merge failed');
-                } catch (_) {}
-                const list = await fetchDevices();
-                renderDevicesTable(list);
+                if (ids.length < 2) return;
+                openMergeModal(ids);
+            });
+
+            // Allow clicking on Dupes badge to open modal with that set preselected
+            container.addEventListener('click', ev => {
+                const b = ev.target.closest && ev.target.closest('.badge.badge-dup');
+                if (!b) return;
+                ev.preventDefault();
+                ev.stopPropagation();
+                const list = (b.getAttribute('data-dupes') || '').split(',').filter(Boolean);
+                const selfRow = b.closest('tr');
+                const selfId = selfRow && selfRow.getAttribute('data-id');
+                const ids = selfId ? [selfId, ...list] : list;
+                if (ids.length < 2) return;
+                openMergeModal(Array.from(new Set(ids)));
             });
         }
     }
