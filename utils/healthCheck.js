@@ -864,6 +864,7 @@ async function performHealthChecks() {
 
     try {
         // Run all checks in parallel where possible
+        const includeCacheEfficiency = process.env.DASHBOARD_INCLUDE_CACHE_EFFICIENCY === 'true';
         const [
             configCheck,
             fsCheck,
@@ -885,7 +886,7 @@ async function performHealthChecks() {
             checkTMDBConnectivity(),
             checkTVDBConnectivity(),
             checkDeviceSLA(),
-            checkCacheEfficiency(),
+            includeCacheEfficiency ? checkCacheEfficiency() : null,
             checkPerformanceThresholds(),
             checkUpdateAvailability(),
         ]);
@@ -899,7 +900,8 @@ async function performHealthChecks() {
         if (tmdbCheck) checks.push(tmdbCheck);
         if (tvdbCheck) checks.push(tvdbCheck);
         if (deviceSla) checks.push(deviceSla);
-        if (cacheEff) checks.push(cacheEff);
+        // Only include cache efficiency if explicitly enabled via env
+        if (includeCacheEfficiency && cacheEff) checks.push(cacheEff);
         if (perf) checks.push(perf);
         if (updateAvail) checks.push(updateAvail);
 
