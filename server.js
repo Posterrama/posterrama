@@ -1468,6 +1468,8 @@ app.use(compressionMiddleware());
 app.use(securityMiddleware());
 app.use(corsMiddleware());
 app.use(requestLoggingMiddleware());
+// Admin guard alias (module-scope so routes outside feature blocks can use it)
+const adminAuth = isAuthenticated; // reuse existing admin guard
 // --- Feature flag: device management ---
 function isDeviceMgmtEnabled() {
     try {
@@ -1480,7 +1482,6 @@ function isDeviceMgmtEnabled() {
 }
 
 if (isDeviceMgmtEnabled()) {
-    const adminAuth = isAuthenticated; // reuse existing admin guard
     // Device endpoint rate limiters (per IP)
     // - Register: up to 10 per minute (burst)
     // - Heartbeat: up to 120 per minute to allow multiple devices behind one IP

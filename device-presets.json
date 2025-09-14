@@ -1,32 +1,62 @@
 [
     {
-        "key": "4k-tv",
-        "name": "4K TV",
-        "description": "Living-room 4K television: larger UI, bigger text/clock",
+        "key": "4k-living-room",
+        "name": "4K Living Room",
+        "description": "4K TV op zit-afstand; iets grotere UI en klok",
         "overrides": {
-            "uiScaling": { "content": 105, "clearlogo": 110, "clock": 120, "global": 110 },
+            "uiScaling": { "content": 106, "clearlogo": 110, "clock": 120, "global": 110 },
             "wallartMode": { "enabled": false },
             "cinemaMode": false
         }
     },
     {
-        "key": "full-hd",
-        "name": "Full HD",
-        "description": "1080p monitor balanced UI scaling",
+        "key": "1440p-desktop",
+        "name": "1440p Desktop",
+        "description": "27–32\" QHD monitor; gebalanceerde UI",
         "overrides": {
-            "uiScaling": { "content": 100, "clearlogo": 100, "clock": 108, "global": 102 },
+            "uiScaling": { "content": 100, "clearlogo": 102, "clock": 112, "global": 104 },
             "wallartMode": { "enabled": false },
             "cinemaMode": false
         }
     },
     {
-        "key": "ultrawide",
+        "key": "1080p-desktop",
+        "name": "1080p Desktop",
+        "description": "24–27\" Full HD; net iets groter voor leesbaarheid",
+        "overrides": {
+            "uiScaling": { "content": 102, "clearlogo": 104, "clock": 114, "global": 106 },
+            "wallartMode": { "enabled": false },
+            "cinemaMode": false
+        }
+    },
+    {
+        "key": "ultrawide-21-9",
         "name": "Ultrawide 21:9",
-        "description": "21:9 monitors; compact content, bigger clock",
+        "description": "21:9 schermen; compacter content, grotere klok",
         "overrides": {
             "uiScaling": { "content": 92, "clearlogo": 96, "clock": 118, "global": 100 },
             "wallartMode": { "enabled": false },
             "cinemaMode": false
+        }
+    },
+    {
+        "key": "wallart-gallery",
+        "name": "Wallart Gallery",
+        "description": "Wallart-modus aan met prettige snelheid en variatie",
+        "overrides": {
+            "wallartMode": { "enabled": true, "refreshRate": 6, "randomness": 5 },
+            "cinemaMode": false,
+            "uiScaling": { "content": 100, "clearlogo": 100, "clock": 112, "global": 104 }
+        }
+    },
+    {
+        "key": "cinema-mode",
+        "name": "Cinema Mode",
+        "description": "Cinema-modus aan; Wallart uit",
+        "overrides": {
+            "cinemaMode": true,
+            "wallartMode": { "enabled": false },
+            "uiScaling": { "content": 100, "clearlogo": 100, "clock": 110, "global": 102 }
         }
     }
 ]

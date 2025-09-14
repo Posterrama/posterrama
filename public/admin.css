@@ -2114,6 +2114,14 @@ div:nth-of-type(2).subsection-header i {
 
 #devices-subsection .bulk-preset-actions .btn {
     white-space: nowrap;
+    padding: 0.4rem 0.6rem; /* match select vertical rhythm */
+    font-size: 0.9rem; /* match select font size */
+    border-radius: 6px; /* match select radius */
+    line-height: 1.2;
+    min-height: 0; /* remove pill inflation from global .btn */
+}
+#devices-subsection .bulk-preset-actions .btn .icon {
+    margin-right: 0.45rem;
 }
 
 .section-header {
@@ -4611,6 +4619,110 @@ fieldset:focus-within {
 #devices-section .table-wrapper {
     overflow: visible;
 }
+#devices-section .devices-toolbar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.25rem 0.25rem 0.5rem 0.25rem;
+}
+/* Compact presets menu */
+#devices-section .presets-menu {
+    position: relative;
+}
+#devices-section .btn.btn-compact {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.9rem;
+    border-radius: 6px;
+}
+#devices-section .btn.btn-compact .caret {
+    margin-left: 0.4rem;
+    opacity: 0.8;
+}
+#devices-section .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 260px;
+    background: rgba(17, 24, 39, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    padding: 6px;
+    z-index: 30;
+    display: none;
+}
+#devices-section .dropdown-menu.open {
+    display: block;
+}
+#devices-section .menu-section {
+    max-height: 280px;
+    overflow: auto;
+    padding: 4px 0;
+}
+#devices-section .menu-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 6px 2px;
+}
+#devices-section .menu-item {
+    width: 100%;
+    text-align: left;
+    padding: 0.45rem 0.55rem;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+#devices-section .menu-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+#devices-section .menu-item .badge {
+    margin-left: auto;
+}
+#devices-section .devices-toolbar .toolbar-left {
+    display: inline-flex;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    align-items: center;
+}
+#devices-section .devices-toolbar .toolbar-middle {
+    display: inline-flex;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
+}
+#devices-section .devices-toolbar .toolbar-right {
+    display: inline-flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+#devices-section .devices-toolbar .devices-count {
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.15);
+    border: 1px solid rgba(37, 99, 235, 0.4);
+    color: #c7d2fe;
+}
+@media (max-width: 960px) {
+    #devices-section .devices-toolbar {
+        grid-template-columns: 1fr;
+    }
+    #devices-section .devices-toolbar .toolbar-left,
+    #devices-section .devices-toolbar .toolbar-middle,
+    #devices-section .devices-toolbar .toolbar-right {
+        justify-content: stretch;
+        flex-wrap: wrap;
+    }
+    #devices-section .devices-toolbar .toolbar-middle {
+        justify-content: flex-start;
+    }
+}
 #devices-section table.table {
     table-layout: fixed;
     width: 100%;
@@ -4632,10 +4744,10 @@ fieldset:focus-within {
     padding-right: 0;
 }
 #devices-section th.col-name {
-    width: 46%;
+    width: 44%;
 }
 #devices-section th.col-preset {
-    width: 18%;
+    width: 20%;
 }
 #devices-section th.col-mode {
     width: 10%;
@@ -4699,6 +4811,19 @@ fieldset:focus-within {
 /* slightly larger icon in tiny buttons for better legibility */
 #devices-section .actions-inline .btn-group.icon-only .btn .icon i {
     font-size: 0.85rem;
+}
+/* Device row inputs layout */
+#devices-section .inputs-line {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+    align-items: center;
+}
+#devices-section .inputs-line .field {
+    min-width: 0;
+}
+#devices-section .inputs-line input.inline-edit {
+    width: 100%;
 }
 /* Last Seen: unify date/time typography to match app text sizing */
 #devices-section td.cell-last .last-date,

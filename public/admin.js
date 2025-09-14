@@ -10380,13 +10380,103 @@ function initDevicesPanel() {
         }
         const bulkDeleteBtn = container.querySelector('#devices-delete-selected');
         const managePresetsBtn = container.querySelector('#manage-device-presets');
+        // Manage Presets access via menu item now; keep handler if present (back-compat)
         if (managePresetsBtn) {
             managePresetsBtn.addEventListener('click', ev => {
                 ev.preventDefault();
                 ev.stopPropagation();
                 showManagePresetsModal();
             });
-            devLog('initDevicesPanel: manage presets handler bound');
+        }
+        // Presets compact menu
+        const menuBtn = container.querySelector('#presets-menu-button');
+        const menu = container.querySelector('#presets-menu');
+        const menuList = container.querySelector('#presets-menu-list');
+        const menuManage = container.querySelector('#menu-manage-presets');
+        if (menuBtn && menu && menuList && menuManage) {
+            const closeMenu = () => {
+                menu.classList.remove('open');
+                menuBtn.setAttribute('aria-expanded', 'false');
+                menu.setAttribute('aria-hidden', 'true');
+            };
+            const openMenu = () => {
+                // Populate items
+                const presets = getDevicePresets();
+                menuList.innerHTML = '';
+                if (!presets.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'menu-item';
+                    empty.textContent = 'No presets defined';
+                    empty.setAttribute('role', 'menuitem');
+                    empty.disabled = true;
+                    menuList.appendChild(empty);
+                } else {
+                    // Add an item for "(none)" to clear preset key
+                    const clearBtn = document.createElement('button');
+                    clearBtn.className = 'menu-item';
+                    clearBtn.innerHTML =
+                        '<i class="fas fa-ban"></i><span>Assign (none) to selected</span>';
+                    clearBtn.addEventListener('click', async () => {
+                        await bulkAssignPreset('');
+                        closeMenu();
+                    });
+                    menuList.appendChild(clearBtn);
+                    // Divider
+                    const div = document.createElement('div');
+                    div.className = 'menu-divider';
+                    menuList.appendChild(div);
+                    presets.forEach(p => {
+                        const btn = document.createElement('button');
+                        btn.className = 'menu-item';
+                        btn.setAttribute('role', 'menuitem');
+                        btn.innerHTML = `<i class="fas fa-tag"></i><span>${(p.name || p.key || '').replace(/</g, '&lt;')}</span>`;
+                        btn.addEventListener('click', async () => {
+                            await bulkAssignPreset(p.key || '');
+                            closeMenu();
+                        });
+                        menuList.appendChild(btn);
+                    });
+                }
+                menu.classList.add('open');
+                menuBtn.setAttribute('aria-expanded', 'true');
+                menu.setAttribute('aria-hidden', 'false');
+            };
+            const bulkAssignPreset = async key => {
+                const tbody = container.querySelector('#devices-table tbody');
+                const ids = Array.from(tbody.querySelectorAll('.row-select:checked')).map(cb =>
+                    cb.getAttribute('data-id')
+                );
+                if (!ids.length) return;
+                const status = document.getElementById('devices-status');
+                if (status) status.textContent = 'Assigning preset...';
+                for (const id of ids) {
+                    try {
+                        await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
+                            method: 'PATCH',
+                            body: JSON.stringify({ preset: key }),
+                            noRedirectOn401: true,
+                        });
+                    } catch (_) {}
+                }
+                const list = await fetchDevices();
+                renderDevicesTable(list);
+                if (status) status.textContent = 'Preset assigned to selected device(s).';
+            };
+            menuBtn.addEventListener('click', ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (menu.classList.contains('open')) closeMenu();
+                else openMenu();
+            });
+            menuManage.addEventListener('click', ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                closeMenu();
+                showManagePresetsModal();
+            });
+            document.addEventListener('click', e => {
+                if (!menu.contains(e.target) && e.target !== menuBtn) closeMenu();
+            });
         }
         if (bulkDeleteBtn) {
             bulkDeleteBtn.addEventListener('click', async ev => {
