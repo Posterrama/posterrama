@@ -7078,6 +7078,18 @@ app.get(
                         case 'streaming_hbo':
                             streamingObject.hbo = true;
                             break;
+                        case 'streaming_hulu':
+                            streamingObject.hulu = true;
+                            break;
+                        case 'streaming_apple':
+                            streamingObject.apple = true;
+                            break;
+                        case 'streaming_paramount':
+                            streamingObject.paramount = true;
+                            break;
+                        case 'streaming_crunchyroll':
+                            streamingObject.crunchyroll = true;
+                            break;
                         case 'streaming_new_releases':
                             streamingObject.newReleases = true;
                             break;
@@ -8000,15 +8012,46 @@ app.post(
                         enabled: streamingConfig.hbo,
                     },
                     {
+                        name: 'Hulu Releases',
+                        category: 'streaming_hulu',
+                        enabled: streamingConfig.hulu,
+                    },
+                    {
+                        name: 'Apple TV+ Releases',
+                        category: 'streaming_apple',
+                        enabled: streamingConfig.apple,
+                    },
+                    {
+                        name: 'Paramount+ Releases',
+                        category: 'streaming_paramount',
+                        enabled: streamingConfig.paramount,
+                    },
+                    {
+                        name: 'Crunchyroll Releases',
+                        category: 'streaming_crunchyroll',
+                        enabled: streamingConfig.crunchyroll,
+                    },
+                    {
                         name: 'New Streaming Releases',
                         category: 'streaming_new_releases',
                         enabled: streamingConfig.newReleases,
                     },
                 ];
 
+                // Map provider flag keys to TMDB IDs for dynamic new releases
+                const PROVIDER_ID_MAP = {
+                    netflix: 8,
+                    disney: 337,
+                    prime: 119,
+                    hbo: 1899,
+                    hulu: 15,
+                    apple: 350,
+                    paramount: 531,
+                    crunchyroll: 283,
+                };
                 providers.forEach(provider => {
                     if (provider.enabled) {
-                        streamingArray.push({
+                        const entry = {
                             name: provider.name,
                             enabled: true,
                             apiKey: apiKey,
@@ -8019,7 +8062,15 @@ app.post(
                             minRating: streamingConfig.minRating || 0,
                             yearFilter: null,
                             genreFilter: '',
-                        });
+                        };
+                        if (provider.category === 'streaming_new_releases') {
+                            // collect selected providers' TMDB IDs
+                            const selected = Object.entries(streamingConfig)
+                                .filter(([k, v]) => v === true && PROVIDER_ID_MAP[k])
+                                .map(([k]) => PROVIDER_ID_MAP[k]);
+                            entry.withWatchProviders = selected;
+                        }
+                        streamingArray.push(entry);
                     }
                 });
             }

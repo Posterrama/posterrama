@@ -309,8 +309,8 @@ class TVDBSource {
                     break;
             }
 
-            // Add filters
-            if (this.yearFilter) {
+            // Add filters (when a single year is provided). TVDB API accepts a single year.
+            if (this.yearFilter && typeof this.yearFilter === 'number') {
                 params.year = this.yearFilter;
             }
 
@@ -321,7 +321,34 @@ class TVDBSource {
                 return [];
             }
 
-            const shows = await this.processShows(response.data);
+            let shows = await this.processShows(response.data);
+            // Apply year expression filtering if configured as string (lists/ranges)
+            if (this.yearFilter && typeof this.yearFilter === 'string') {
+                const expr = this.yearFilter;
+                const parts = expr
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean);
+                const ranges = [];
+                for (const p of parts) {
+                    const m1 = p.match(/^\d{4}$/);
+                    const m2 = p.match(/^(\d{4})\s*-\s*(\d{4})$/);
+                    if (m1) {
+                        const y = Number(m1[0]);
+                        if (y >= 1900) ranges.push([y, y]);
+                    } else if (m2) {
+                        const a = Number(m2[1]);
+                        const b = Number(m2[2]);
+                        if (a >= 1900 && b >= a) ranges.push([a, b]);
+                    }
+                }
+                if (ranges.length) {
+                    shows = shows.filter(itm => {
+                        const y = itm.year;
+                        return typeof y === 'number' && ranges.some(([a, b]) => y >= a && y <= b);
+                    });
+                }
+            }
 
             this.setCachedData(cacheKey, shows);
             return shows;
@@ -378,8 +405,8 @@ class TVDBSource {
                     break;
             }
 
-            // Add filters
-            if (this.yearFilter) {
+            // Add filters (when a single year is provided). TVDB API accepts a single year.
+            if (this.yearFilter && typeof this.yearFilter === 'number') {
                 params.year = this.yearFilter;
             }
 
@@ -390,7 +417,33 @@ class TVDBSource {
                 return [];
             }
 
-            const movies = await this.processMovies(response.data);
+            let movies = await this.processMovies(response.data);
+            if (this.yearFilter && typeof this.yearFilter === 'string') {
+                const expr = this.yearFilter;
+                const parts = expr
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean);
+                const ranges = [];
+                for (const p of parts) {
+                    const m1 = p.match(/^\d{4}$/);
+                    const m2 = p.match(/^(\d{4})\s*-\s*(\d{4})$/);
+                    if (m1) {
+                        const y = Number(m1[0]);
+                        if (y >= 1900) ranges.push([y, y]);
+                    } else if (m2) {
+                        const a = Number(m2[1]);
+                        const b = Number(m2[2]);
+                        if (a >= 1900 && b >= a) ranges.push([a, b]);
+                    }
+                }
+                if (ranges.length) {
+                    movies = movies.filter(itm => {
+                        const y = itm.year;
+                        return typeof y === 'number' && ranges.some(([a, b]) => y >= a && y <= b);
+                    });
+                }
+            }
 
             this.setCachedData(cacheKey, movies);
             return movies;

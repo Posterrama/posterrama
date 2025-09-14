@@ -6,10 +6,9 @@
         const el = typeof id === 'string' ? document.getElementById(id) : id;
         if (el) el.textContent = val;
     }
-
     function formatNumber(n) {
-        if (n == null || Number.isNaN(n)) return '—';
-        return new Intl.NumberFormat().format(n);
+        const num = Number(n);
+        return Number.isFinite(num) ? num.toLocaleString() : '—';
     }
 
     // Returns true when the given ISO date falls on the current local day
@@ -25,206 +24,23 @@
         );
     }
 
-    function clamp(n, min = 0, max = 100) {
-        n = Number(n);
-        if (Number.isNaN(n)) return 0;
-        return Math.max(min, Math.min(max, n));
-    }
-
-    function meterGradient(percent, scheme = 'cpu') {
-        const p = clamp(percent);
-        // Colors: success, warning, error
-        const green = 'linear-gradient(90deg,#22c55e,#16a34a)';
-        const blue = 'linear-gradient(90deg,#38bdf8,#0284c7)';
-        const yellow = 'linear-gradient(90deg,#f59e0b,#d97706)';
-        const red = 'linear-gradient(90deg,#ef4444,#dc2626)';
-        const base = scheme === 'mem' ? blue : green;
-        if (p >= 90) return red;
-        if (p >= 70) return yellow;
-        return base;
-    }
-
-    function setMeter(id, percent, scheme) {
-        const el = document.getElementById(id);
+    // Safe fallback meter renderer used by cache/perf panels
+    function setMeter(id, pct /* 0-100 */, kind = 'default') {
+        const el = typeof id === 'string' ? document.getElementById(id) : id;
         if (!el) return;
-        const p = clamp(percent);
-        el.style.width = `${p}%`;
-        el.style.background = meterGradient(p, scheme);
-    }
-
-    async function fetchJSON(url) {
-        const res = await fetch(url, { credentials: 'include' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-    }
-
-    async function refreshDevices() {
-        try {
-            const devices = await fetchJSON('/api/devices');
-            const active = devices.filter(
-                d => String(d.status || '').toLowerCase() !== 'offline'
-            ).length;
-            const offline = devices.filter(
-                d => String(d.status || '').toLowerCase() === 'offline'
-            ).length;
-            const createdToday = devices.filter(d => isToday(d.createdAt)).length;
-            setText('metric-active-devices', formatNumber(active));
-            setText('metric-offline-devices', formatNumber(offline));
-            // Trend shows "+N today" when new devices were added today; fallback to offline count
-            const trendEl = document.getElementById('metric-active-trend');
-            if (trendEl) {
-                trendEl.classList.remove('positive', 'negative');
-                if (createdToday > 0) {
-                    trendEl.textContent = `+${createdToday} today`;
-                    trendEl.classList.add('positive');
-                } else if (offline > 0) {
-                    trendEl.textContent = `${offline} offline`;
-                    trendEl.classList.add('negative');
-                } else {
-                    trendEl.textContent = 'all good';
-                }
-            }
-        } catch (e) {
-            console.warn('Failed to load devices', e);
-            setText('metric-active-devices', '—');
-            setText('metric-offline-devices', '—');
-            setText('metric-active-trend', '');
+        const v = Math.max(0, Math.min(100, Number(pct) || 0));
+        // Try a child .meter-fill bar first
+        const fill = el.querySelector?.('.meter-fill');
+        if (fill) {
+            fill.style.width = `${v}%`;
+            fill.setAttribute('aria-valuenow', String(v));
+        } else {
+            // Fallback: set CSS var or width directly on the element
+            el.style.setProperty('--value', v);
+            el.style.width = el.classList?.contains('meter') ? `${v}%` : el.style.width;
+            el.setAttribute?.('aria-valuenow', String(v));
         }
-    }
-
-    async function refreshDashboardMetrics() {
-        try {
-            const dash = await fetchJSON('/api/v1/metrics/dashboard');
-            // Prefer aggregated library totals over playlist size
-            const totals = dash?.media?.libraryTotals;
-            const media =
-                totals?.total ?? dash?.media?.playlistItems ?? dash?.summary?.mediaItems ?? null;
-            const sources = dash?.media?.sources ?? dash?.summary?.sources ?? null;
-            const warnings = (dash?.alerts || dash?.warnings || []).length;
-            setText('metric-media-items', formatNumber(media));
-            const movies = totals?.movies ?? null;
-            const shows = totals?.shows ?? null;
-            const parts = [`${formatNumber(sources ?? 0)} sources`];
-            if (movies != null) parts.push(`Movies ${formatNumber(movies)}`);
-            if (shows != null) parts.push(`Series ${formatNumber(shows)}`);
-            setText('metric-media-sub', parts.join(' • '));
-            setText('metric-warnings', formatNumber(warnings));
-            setText('metric-warn-sub', warnings > 0 ? 'needs review' : '');
-        } catch (e) {
-            console.warn('Failed to load dashboard metrics', e);
-            setText('metric-media-items', '—');
-            setText('metric-warnings', '—');
-        }
-    }
-
-    async function refreshPerfDashboard() {
-        try {
-            // Gather from both system status and metrics endpoints
-            const [status, sysMetrics, perfMetrics, cacheMetrics, errorMetrics, realtime] =
-                await Promise.all([
-                    fetchJSON('/api/admin/status').catch(() => null),
-                    fetchJSON('/api/v1/metrics/system').catch(() => null),
-                    fetchJSON('/api/v1/metrics/performance').catch(() => null),
-                    fetchJSON('/api/v1/metrics/cache').catch(() => null),
-                    fetchJSON('/api/v1/metrics/errors').catch(() => null),
-                    fetchJSON('/api/v1/metrics/realtime').catch(() => null),
-                ]);
-
-            // Status fields
-            const appStatus = status?.app?.status ?? 'unknown';
-            const dbStatus = status?.database?.status ?? 'unknown';
-            const cacheStatus = status?.cache?.status ?? 'unknown';
-            setText('perf-app-status', appStatus);
-            setText('perf-db-status', dbStatus);
-            setText('perf-cache-status', cacheStatus);
-
-            // Sidebar system online indicator removed
-
-            // Resources
-            const cpu = sysMetrics?.cpu?.usage ?? sysMetrics?.cpuUsage;
-            // System memory from Admin Status (same as legacy Performance Monitor)
-            let memPct =
-                typeof status?.memory?.percent === 'number' ? status.memory.percent : undefined;
-            // Fallback to legacy string percentage: memory.usage (e.g., "42%")
-            if (memPct == null && typeof status?.memory?.usage === 'string') {
-                const parsed = parseInt(status.memory.usage.replace('%', ''), 10);
-                if (!Number.isNaN(parsed)) memPct = parsed;
-            }
-            const memUsedGB = status?.memory?.usedGB;
-            const memTotalGB = status?.memory?.totalGB;
-            const memFreeGB = status?.memory?.freeGB;
-            const uptimeSec = sysMetrics?.uptime;
-            const diskLabel = status?.disk?.available ? `${status.disk.available}` : '—';
-            setText('perf-cpu', cpu != null ? `${Math.round(cpu)}%` : '—');
-            if (memUsedGB != null && memTotalGB != null) {
-                const pctStr = `${Math.round(memPct ?? 0)}%`;
-                const freeStr = memFreeGB != null ? `, free ${memFreeGB} GB` : '';
-                setText('perf-mem', `${pctStr} (${memUsedGB} GB / ${memTotalGB} GB${freeStr})`);
-            } else if (memPct != null) {
-                setText('perf-mem', `${Math.round(memPct)}%`);
-            } else {
-                setText('perf-mem', '—');
-            }
-            setText(
-                'perf-uptime',
-                uptimeSec != null ? formatUptime(uptimeSec) : status?.uptime || '—'
-            );
-            setText('perf-disk', diskLabel);
-
-            // meters
-            setMeter('meter-cpu', cpu, 'cpu');
-            setMeter('meter-mem', memPct, 'mem');
-
-            // Traffic & Reliability
-            const rpm = realtime?.requestsPerMinute;
-            const rtAvg =
-                perfMetrics?.responseTime?.average ??
-                perfMetrics?.responseTime?.avg ??
-                perfMetrics?.responseTime ??
-                null;
-            const errRate = errorMetrics?.errorRate; // already 0-100
-            const hitRate = cacheMetrics?.hitRate ?? cacheMetrics?.cacheHitRate; // already 0-100
-            setText('perf-rps', rpm != null ? `${formatNumber(Math.round(rpm))} /m` : '—');
-            setText('perf-rt', rtAvg != null ? `${Math.round(rtAvg)} ms` : '—');
-            setText('perf-error-rate', errRate != null ? `${Number(errRate).toFixed(1)}%` : '—');
-            setText('perf-cache-hit', hitRate != null ? `${Math.round(Number(hitRate))}%` : '—');
-
-            // Color status dots
-            const statusToClass = s => {
-                const v = String(s || '').toLowerCase();
-                if (v === 'running' || v === 'connected' || v === 'active' || v === 'success')
-                    return 'status-success';
-                if (v === 'warning' || v === 'degraded') return 'status-warning';
-                if (v === 'error' || v === 'disconnected' || v === 'inactive')
-                    return 'status-error';
-                return 'status-warning';
-            };
-            const appDot = document.getElementById('chip-app-dot');
-            const dbDot = document.getElementById('chip-db-dot');
-            const cacheDot = document.getElementById('chip-cache-dot');
-            [appDot, dbDot, cacheDot].forEach((dotEl, idx) => {
-                if (!dotEl) return;
-                dotEl.classList.remove('status-success', 'status-warning', 'status-error');
-                const statusVal = idx === 0 ? appStatus : idx === 1 ? dbStatus : cacheStatus;
-                dotEl.classList.add(statusToClass(statusVal));
-            });
-
-            // Badge styling for nicer status tiles
-            const appBadge = document.getElementById('perf-app-status');
-            const dbBadge = document.getElementById('perf-db-status');
-            const cacheBadge = document.getElementById('perf-cache-status');
-            [
-                [appBadge, appStatus],
-                [dbBadge, dbStatus],
-                [cacheBadge, cacheStatus],
-            ].forEach(([badgeEl, statusVal]) => {
-                if (!badgeEl) return;
-                badgeEl.classList.remove('status-success', 'status-warning', 'status-error');
-                badgeEl.classList.add(statusToClass(statusVal));
-            });
-        } catch (e) {
-            console.warn('Failed to load performance dashboard', e);
-        }
+        if (kind) el.setAttribute?.('data-kind', kind);
     }
 
     function formatBytes(bytes) {
@@ -237,6 +53,170 @@
             i++;
         }
         return `${b.toFixed(1)} ${units[i]}`;
+    }
+
+    // Small helper for JSON fetch with credentials and error propagation
+    async function fetchJSON(url, opts = {}) {
+        const res = await fetch(url, { credentials: 'include', ...opts });
+        const text = await res.text();
+        let json = null;
+        try {
+            json = text ? JSON.parse(text) : null;
+        } catch (_) {
+            /* ignore parse */
+        }
+        if (!res.ok) {
+            const err = new Error(json?.error || `HTTP ${res.status}`);
+            err.status = res.status;
+            err.data = json || text;
+            throw err;
+        }
+        return json;
+    }
+
+    // Minimal fallbacks so the page can load even if these panels are not needed
+    async function refreshDevices() {
+        // Fetch devices list and compute counts for Active/Offline tiles
+        try {
+            const list = await fetchJSON('/api/devices');
+            const devices = Array.isArray(list) ? list : [];
+            const isLive = d => {
+                try {
+                    const raw = String(d.status || '').toLowerCase();
+                    if (d?.currentState?.poweredOff) return false;
+                    if (d?.wsConnected) return true;
+                    return raw === 'online' || raw === 'live';
+                } catch (_) {
+                    return false;
+                }
+            };
+            const active = devices.filter(isLive).length;
+            const offline = Math.max(0, devices.length - active);
+            setText('metric-active-devices', formatNumber(active));
+            setText('metric-offline-devices', formatNumber(offline));
+            // simple trend/subtext
+            const activeTrend = document.getElementById('metric-active-trend');
+            if (activeTrend) activeTrend.textContent = active > 0 ? 'live now' : '';
+            const offlineSub = document.getElementById('metric-offline-sub');
+            if (offlineSub) offlineSub.textContent = offline > 0 ? 'needs attention' : 'all good';
+        } catch (e) {
+            // Silently ignore to avoid breaking dashboard on unauthenticated sessions
+        }
+    }
+
+    async function refreshDashboardMetrics() {
+        // Populate media totals and warnings for the top dashboard cards
+        try {
+            const data = await fetchJSON('/api/v1/metrics/dashboard').catch(() => null);
+            if (data) {
+                const totalMedia =
+                    Number(data?.media?.libraryTotals?.total) ||
+                    Number(data?.media?.playlistItems) ||
+                    0;
+                setText('metric-media-items', formatNumber(totalMedia));
+                const warns = Array.isArray(data?.alerts) ? data.alerts.length : 0;
+                setText('metric-warnings', formatNumber(warns));
+                const warnSub = document.getElementById('metric-warn-sub');
+                if (warnSub) warnSub.textContent = warns > 0 ? 'check system' : 'no alerts';
+            }
+        } catch (_) {
+            // non-fatal
+        }
+        // Also refresh devices counts shown on this dashboard row
+        await refreshDevices();
+    }
+
+    async function refreshPerfDashboard() {
+        // System status chips and resources
+        try {
+            const status = await fetchJSON('/api/admin/status');
+            const app = String(status?.app?.status || 'unknown');
+            const db = String(status?.database?.status || 'unknown');
+            const cache = String(status?.cache?.status || 'unknown');
+
+            const map = s => {
+                const v = String(s || '').toLowerCase();
+                if (v === 'running' || v === 'connected' || v === 'active' || v === 'ok')
+                    return 'success';
+                if (v === 'warning' || v === 'degraded' || v === 'idle') return 'warning';
+                return 'error';
+            };
+            const appCls = map(app);
+            const dbCls = map(db);
+            const cacheCls = map(cache);
+
+            const setChip = (dotId, badgeId, cls, textVal) => {
+                const dot = document.getElementById(dotId);
+                const badge = document.getElementById(badgeId);
+                if (dot) {
+                    dot.classList.remove('status-success', 'status-warning', 'status-error');
+                    dot.classList.add(`status-${cls}`);
+                }
+                if (badge) {
+                    badge.classList.remove('status-success', 'status-warning', 'status-error');
+                    badge.classList.add(`status-${cls}`);
+                    badge.textContent = String(textVal || '').toLowerCase();
+                }
+            };
+            setChip('chip-app-dot', 'perf-app-status', appCls, app);
+            setChip('chip-db-dot', 'perf-db-status', dbCls, db);
+            setChip('chip-cache-dot', 'perf-cache-status', cacheCls, cache);
+
+            // Uptime and memory percent (fallback from status)
+            const uptimeTxt = String(status?.uptime || '—');
+            setText('perf-uptime', uptimeTxt);
+            const memPct = Number(status?.memory?.percent);
+            if (Number.isFinite(memPct)) {
+                setText(
+                    'perf-mem',
+                    `${memPct}% (${status?.memory?.usedGB || '—'} GB / ${status?.memory?.totalGB || '—'} GB)`
+                );
+                setMeter('meter-mem', memPct, 'mem');
+            }
+        } catch (_) {
+            // ignore
+        }
+
+        // Detailed performance (CPU, Disk) and show meters
+        try {
+            const perf = await fetchJSON('/api/admin/performance');
+            const cpu = Math.max(0, Math.min(100, Number(perf?.cpu?.usage || 0)));
+            const mem = Math.max(0, Math.min(100, Number(perf?.memory?.usage || 0)));
+            const diskPct = Math.max(0, Math.min(100, Number(perf?.disk?.usage || 0)));
+            setText('perf-cpu', `${cpu}%`);
+            setMeter('meter-cpu', cpu, 'cpu');
+            setText(
+                'perf-mem',
+                `${mem}% (${perf?.memory?.used || '—'} / ${perf?.memory?.total || '—'})`
+            );
+            setMeter('meter-mem', mem, 'mem');
+            setText(
+                'perf-disk',
+                `${diskPct}% (${perf?.disk?.used || '—'} / ${perf?.disk?.total || '—'})`
+            );
+            setText('perf-uptime', perf?.uptime || '—');
+        } catch (_) {
+            // ignore
+        }
+
+        // Traffic and reliability KPIs
+        try {
+            const [rt, dash, cache] = await Promise.all([
+                fetchJSON('/api/v1/metrics/realtime').catch(() => null),
+                fetchJSON('/api/v1/metrics/dashboard').catch(() => null),
+                fetchJSON('/api/v1/metrics/cache').catch(() => null),
+            ]);
+            const rpm = Number(rt?.requestsPerMinute || 0);
+            setText('perf-rps', rpm ? `${rpm}/min` : '0/min');
+            const avgRt = Number(dash?.summary?.averageResponseTime || 0);
+            setText('perf-rt', `${Math.round(avgRt)} ms`);
+            const errRate = Number(dash?.summary?.errorRate || 0);
+            setText('perf-error-rate', `${errRate.toFixed(2)}%`);
+            const hitRate = Number(cache?.hitRate || 0);
+            setText('perf-cache-hit', `${hitRate.toFixed(1)}%`);
+        } catch (_) {
+            // ignore
+        }
     }
 
     async function refreshCacheStatsV2() {
@@ -292,6 +272,7 @@
                 btn.insertBefore(sp, btn.firstChild);
             }
         };
+        // (moved) TMDB custom dropdown wiring lives near TVDB wiring after iconFor()
         ensureSpinner(cleanupBtn);
         ensureSpinner(clearBtn);
         cleanupBtn?.addEventListener('click', async () => {
@@ -453,6 +434,148 @@
             }
         }
         dbg('showSection() applied', { activeId: id, sections: sections.length });
+    }
+
+    // Ensure a custom select UI (trigger + popup list) reflects the current value of the hidden <select>
+    function syncCustomSelect(selectEl) {
+        if (!selectEl) return;
+        const wrap = selectEl.closest?.('.select-wrap');
+        if (!wrap) return;
+        const custom = wrap.querySelector?.('.custom-select');
+        if (custom) {
+            // Update trigger icon + label
+            const trigger = custom.querySelector('.custom-select-trigger');
+            const icon = trigger?.querySelector('.left > i');
+            const label = trigger?.querySelector('.left > span:last-child');
+            const selectedText = selectEl.options[selectEl.selectedIndex]?.text || 'Select';
+            if (icon) {
+                // Local icon map covering TMDB and TVDB
+                const iconForFn = val => {
+                    switch (val) {
+                        // Shared ratings/popularity
+                        case 'top_rated':
+                        case 'tv_top_rated':
+                            return 'fas fa-star';
+                        case 'popular':
+                        case 'tv_popular':
+                            return 'fas fa-fire';
+                        // TMDB Movies
+                        case 'now_playing':
+                            return 'fas fa-ticket-alt';
+                        case 'upcoming':
+                            return 'fas fa-calendar-alt';
+                        case 'latest':
+                        case 'tv_latest':
+                            return 'fas fa-bolt';
+                        // TMDB TV-specific
+                        case 'tv_on_the_air':
+                            return 'fas fa-broadcast-tower';
+                        case 'tv_airing_today':
+                            return 'fas fa-tv';
+                        // TMDB Trending
+                        case 'trending_all_day':
+                        case 'trending_movie_day':
+                        case 'trending_tv_day':
+                        case 'trending_all_week':
+                        case 'trending_movie_week':
+                        case 'trending_tv_week':
+                            return 'fas fa-chart-line';
+                        // TMDB Discover/Collections
+                        case 'discover_movie':
+                        case 'discover_tv':
+                            return 'fas fa-compass';
+                        // TVDB-specific
+                        case 'recently_updated':
+                            return 'fas fa-sync-alt';
+                        case 'newest':
+                            return 'fas fa-film';
+                        case 'oldest':
+                            return 'fas fa-hourglass-half';
+                        case 'trending':
+                            return 'fas fa-chart-line';
+                        case 'recently_added':
+                            return 'fas fa-plus';
+                        case 'alphabetical':
+                            return 'fas fa-font';
+                        default:
+                            return 'fas fa-list';
+                    }
+                };
+                icon.className = iconForFn(selectEl.value);
+            }
+            if (label) label.textContent = selectedText;
+        }
+        // Update overlay icon (if present next to the native select)
+        const overlayIcon = wrap.querySelector?.('.select-icon i');
+        if (overlayIcon) {
+            const mapIcon = val => {
+                switch (val) {
+                    // Shared ratings/popularity
+                    case 'top_rated':
+                    case 'tv_top_rated':
+                        return 'fas fa-star';
+                    case 'popular':
+                    case 'tv_popular':
+                        return 'fas fa-fire';
+                    // TMDB Movies
+                    case 'now_playing':
+                        return 'fas fa-ticket-alt';
+                    case 'upcoming':
+                        return 'fas fa-calendar-alt';
+                    case 'latest':
+                    case 'tv_latest':
+                        return 'fas fa-bolt';
+                    // TMDB TV-specific
+                    case 'tv_on_the_air':
+                        return 'fas fa-broadcast-tower';
+                    case 'tv_airing_today':
+                        return 'fas fa-tv';
+                    // TMDB Trending
+                    case 'trending_all_day':
+                    case 'trending_movie_day':
+                    case 'trending_tv_day':
+                    case 'trending_all_week':
+                    case 'trending_movie_week':
+                    case 'trending_tv_week':
+                        return 'fas fa-chart-line';
+                    // TMDB Discover/Collections
+                    case 'discover_movie':
+                    case 'discover_tv':
+                        return 'fas fa-compass';
+                    // TVDB-specific
+                    case 'recently_updated':
+                        return 'fas fa-sync-alt';
+                    case 'newest':
+                        return 'fas fa-film';
+                    case 'oldest':
+                        return 'fas fa-hourglass-half';
+                    case 'trending':
+                        return 'fas fa-chart-line';
+                    case 'recently_added':
+                        return 'fas fa-plus';
+                    case 'alphabetical':
+                        return 'fas fa-font';
+                    default:
+                        return 'fas fa-list';
+                }
+            };
+            overlayIcon.className = mapIcon(selectEl.value);
+        }
+        // Update popup list selection if it exists (identified by data-select-id)
+        try {
+            const list = document.querySelector(
+                `.custom-options[data-select-id="${CSS.escape(selectEl.id)}"]`
+            );
+            if (list) {
+                list.querySelectorAll('.custom-option').forEach(optEl => {
+                    const on = optEl.dataset.value === selectEl.value;
+                    if (on) optEl.setAttribute('aria-selected', 'true');
+                    else optEl.removeAttribute('aria-selected');
+                });
+            }
+        } catch (_) {
+            // ignore if CSS.escape not available or DOM not ready
+        }
     }
 
     async function refreshSecurity() {
@@ -674,14 +797,18 @@
         toggleLink?.addEventListener('click', e => {
             e.preventDefault();
             mediaGroup.classList.toggle('open');
-            // Show section and the overview (unhide all panels) when header clicked
+            // Show section and ONLY the overview (hide all source panels)
             const section = document.getElementById('section-media-sources');
             if (section) {
                 const list = section.querySelectorAll('section.panel');
-                list.forEach(p => (p.hidden = false));
-                dbg('nav-toggle click -> overview shown', { panels: list.length });
+                list.forEach(p => (p.hidden = p.id !== 'panel-sources-overview'));
+                dbg('nav-toggle click -> overview help shown');
             }
             showSection('section-media-sources');
+            // Ensure configuration values are loaded once when opening the group
+            try {
+                window.admin2?.loadMediaSources?.();
+            } catch (_) {}
         });
         // Show only the selected source panel
         function showSourcePanel(panelId, title) {
@@ -691,6 +818,8 @@
             if (!section) return;
             const list = section.querySelectorAll('section.panel');
             dbg('showSourcePanel()', { panelId, title, panels: list.length });
+            // Put all panels into non-loading state first
+            list.forEach(p => p.classList.remove('is-loading'));
             list.forEach(p => {
                 if (
                     p.id === 'panel-plex' ||
@@ -734,14 +863,19 @@
                     contentHidden: content?.hidden,
                 });
                 el.scrollIntoView({ behavior: 'auto', block: 'start' });
+                // Show loading overlay while we ensure config is populated
+                el.classList.add('is-loading');
             } else {
                 dbg('panel not found', { panelId });
             }
-            // Ensure inputs are populated
-            try {
-                window.admin2?.loadMediaSources?.();
-            } catch (_) {}
-            dbg('showSourcePanel() applied', { panelId, visible: !el?.hidden });
+            // Ensure inputs are populated, then clear loading state only for the visible panel
+            Promise.resolve(window.admin2?.loadMediaSources?.())
+                .catch(() => {})
+                .finally(() => {
+                    const active = document.getElementById(panelId);
+                    active?.classList.remove('is-loading');
+                    dbg('showSourcePanel() applied', { panelId, visible: !active?.hidden });
+                });
         }
 
         mediaGroup?.querySelectorAll('.nav-subitem').forEach((sub, idx) => {
@@ -761,12 +895,65 @@
                 const id = panelIds[idx] || 'panel-plex';
                 const title = titles[idx] || 'Media Sources';
                 dbg('submenu click', { idx, id, title });
-                // Refresh config values then show the panel
-                Promise.resolve(window.admin2?.loadMediaSources?.())
-                    .catch(() => {})
-                    .finally(() => showSourcePanel(id, title));
+                // Update URL hash for direct linking and routing
+                const hashes = ['#plex', '#jellyfin', '#tmdb', '#tvdb'];
+                const h = hashes[idx] || '#plex';
+                if (location.hash !== h) location.hash = h;
+                // Just update the URL and let the hash router display the panel; avoid extra reloads
+                // The initial load happens on DOMContentLoaded and after saves.
             });
         });
+
+        // Lightweight hash router so /admin2.html#plex always opens Plex panel
+        // Debounced router to avoid rapid flicker when switching fast
+        let routeTimer = null;
+        function routeByHash() {
+            if (routeTimer) {
+                clearTimeout(routeTimer);
+                routeTimer = null;
+            }
+            routeTimer = setTimeout(() => {
+                routeTimer = null;
+                const h = (location.hash || '').toLowerCase();
+                if (h === '#plex' || h === '#media-sources/plex') {
+                    showSourcePanel('panel-plex', 'Plex');
+                    return;
+                }
+                if (h === '#jellyfin') {
+                    showSourcePanel('panel-jellyfin', 'Jellyfin');
+                    return;
+                }
+                if (h === '#tmdb') {
+                    showSourcePanel('panel-tmdb', 'TMDB');
+                    return;
+                }
+                if (h === '#tvdb') {
+                    showSourcePanel('panel-tvdb', 'TVDB');
+                    return;
+                }
+                if (h === '#media-sources' || h === '#media-sources/overview') {
+                    // Only show overview help panel
+                    showSection('section-media-sources');
+                    const section = document.getElementById('section-media-sources');
+                    if (section) {
+                        section
+                            .querySelectorAll('section.panel')
+                            .forEach(p => (p.hidden = p.id !== 'panel-sources-overview'));
+                    }
+                    // Update page title
+                    const h1 = document.querySelector('.page-header h1');
+                    const subtitle = document.querySelector('.page-header p');
+                    if (h1) h1.innerHTML = '<i class="fas fa-server"></i> Media Sources';
+                    if (subtitle)
+                        subtitle.textContent = 'Overview and guidance for source configuration';
+                    return;
+                }
+                // Default: keep current section or overview
+            }, 60); // small debounce to smooth rapid clicks
+        }
+        window.addEventListener('hashchange', routeByHash);
+        // Initial route on load
+        routeByHash();
 
         // Security panel auto-refresh handled on nav; no manual refresh button
 
@@ -1403,7 +1590,6 @@
     document.addEventListener('DOMContentLoaded', () => {
         const btnSaveServer = document.getElementById('btn-save-server-settings');
         const btnSavePromo = document.getElementById('btn-save-promobox');
-        const btnSaveSources = document.getElementById('btn-save-sources');
         // Helper to fetch config, patch minimal keys, and POST back
         async function saveConfigPatch(patchConfig, patchEnv) {
             const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
@@ -1429,6 +1615,36 @@
             const n = Number(v);
             return Number.isFinite(n) ? n : undefined;
         };
+        // Parse a year expression like "2010, 2011, 1998, 1910-1920" to a canonical string
+        function parseYearExpression(input) {
+            const raw = String(input || '').trim();
+            if (!raw) return undefined;
+            const parts = raw
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+            const tokens = [];
+            const yearRe = /^\d{4}$/;
+            const rangeRe = /^(\d{4})\s*-\s*(\d{4})$/;
+            for (const p of parts) {
+                const y = p.match(yearRe);
+                if (y) {
+                    const year = Number(y[0]);
+                    if (year >= 1900) tokens.push(String(year));
+                    continue;
+                }
+                const r = p.match(rangeRe);
+                if (r) {
+                    const a = Number(r[1]);
+                    const b = Number(r[2]);
+                    if (a >= 1900 && b >= 1900 && b >= a) tokens.push(`${a}-${b}`);
+                    continue;
+                }
+                // ignore invalid piece
+            }
+            if (!tokens.length) return undefined;
+            return tokens.join(', ');
+        }
         function setMultiSelect(id, options, selected) {
             const sel = getInput(id);
             if (!sel) return;
@@ -1454,6 +1670,149 @@
                 .split(',')
                 .map(s => s.trim())
                 .filter(Boolean);
+        }
+
+        // Generic theme-demo multiselect (chips + dropdown) for backing <select multiple>
+        function initMsForSelect(idBase, selectId) {
+            const sel = document.getElementById(selectId);
+            const root = document.getElementById(`${idBase}`);
+            if (!sel || !root) return;
+            if (root.dataset.msWired === 'true') return;
+            const control = root.querySelector('.ms-control');
+            const chipsEl = root.querySelector('.ms-chips');
+            const menu = document.getElementById(`${idBase}-menu`);
+            const optsEl = document.getElementById(`${idBase}-options`);
+            const search = document.getElementById(`${idBase}-search`);
+            const clear = document.getElementById(`${idBase}-clear`);
+            const selectAll = document.getElementById(`${idBase}-select-all`);
+            const clearAll = document.getElementById(`${idBase}-clear-all`);
+            if (!control || !chipsEl || !menu || !optsEl || !search || !selectAll || !clearAll)
+                return;
+
+            const getSelected = () => new Set(Array.from(sel.selectedOptions).map(o => o.value));
+            const setSelected = valsSet => {
+                const vals = new Set(valsSet);
+                Array.from(sel.options).forEach(o => {
+                    o.selected = vals.has(o.value);
+                });
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+            const renderChips = () => {
+                const selected = getSelected();
+                chipsEl.innerHTML = '';
+                selected.forEach(v => {
+                    const label =
+                        Array.from(sel.options).find(o => o.value === v)?.textContent || v;
+                    const chip = document.createElement('span');
+                    chip.className = 'ms-chip';
+                    chip.dataset.value = v;
+                    chip.innerHTML = `${label} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                    chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const s = getSelected();
+                        s.delete(v);
+                        setSelected(s);
+                        syncOptions();
+                        renderChips();
+                        control.classList.toggle('has-selection', s.size > 0);
+                    });
+                    chipsEl.appendChild(chip);
+                });
+                control.classList.toggle('has-selection', selected.size > 0);
+            };
+            const syncOptions = () => {
+                const selected = getSelected();
+                Array.from(optsEl.children).forEach(row => {
+                    const v = row.dataset.value;
+                    const cb = row.querySelector('input[type="checkbox"]');
+                    if (cb) cb.checked = selected.has(v);
+                });
+            };
+            const buildOptions = () => {
+                optsEl.innerHTML = '';
+                const items = Array.from(sel.options).map(o => ({
+                    value: o.value,
+                    label: o.textContent,
+                }));
+                items.forEach(it => {
+                    const row = document.createElement('div');
+                    row.className = 'ms-option';
+                    row.dataset.value = it.value;
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    const span = document.createElement('span');
+                    span.textContent = it.label;
+                    row.appendChild(cb);
+                    row.appendChild(span);
+                    optsEl.appendChild(row);
+                });
+                syncOptions();
+            };
+            const filterOptions = q => {
+                const qq = (q || '').toLowerCase();
+                Array.from(optsEl.children).forEach(child => {
+                    const label = child.querySelector('span')?.textContent?.toLowerCase() || '';
+                    child.style.display = label.includes(qq) ? '' : 'none';
+                });
+            };
+            const openMenu = open => {
+                root.classList.toggle('ms-open', !!open);
+                control.setAttribute('aria-expanded', open ? 'true' : 'false');
+            };
+            // Handlers
+            control.addEventListener('mousedown', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                const willOpen = !root.classList.contains('ms-open');
+                openMenu(willOpen);
+                if (willOpen) setTimeout(() => search.focus(), 0);
+            });
+            document.addEventListener('click', e => {
+                if (!root.contains(e.target)) openMenu(false);
+            });
+            search.addEventListener('focus', () => openMenu(true));
+            search.addEventListener('keydown', e => {
+                if (e.key === 'Escape') openMenu(false);
+            });
+            search.addEventListener('input', () => filterOptions(search.value));
+            selectAll.addEventListener('click', e => {
+                e.preventDefault();
+                const all = new Set(Array.from(sel.options).map(o => o.value));
+                setSelected(all);
+                syncOptions();
+                renderChips();
+            });
+            clearAll.addEventListener('click', e => {
+                e.preventDefault();
+                setSelected(new Set());
+                syncOptions();
+                renderChips();
+                search.value = '';
+                filterOptions('');
+            });
+            clear?.addEventListener('click', e => {
+                e.preventDefault();
+                setSelected(new Set());
+                syncOptions();
+                renderChips();
+                search.value = '';
+                filterOptions('');
+            });
+            optsEl.addEventListener('click', e => {
+                const row = e.target.closest('.ms-option');
+                if (!row) return;
+                const v = row.dataset.value;
+                const selected = getSelected();
+                if (selected.has(v)) selected.delete(v);
+                else selected.add(v);
+                setSelected(selected);
+                syncOptions();
+                renderChips();
+            });
+            // Initial paint
+            buildOptions();
+            renderChips();
+            root.dataset.msWired = 'true';
         }
 
         async function loadMediaSources() {
@@ -1486,6 +1845,13 @@
                 getInput('plex.recentDays').value = plex.recentlyAddedDays ?? 30;
             if (getInput('plex.ratingFilter'))
                 getInput('plex.ratingFilter').value = (plex.ratingFilter || []).join(', ');
+            // Quality filter (single-select string like "SD", "720p", "1080p", "4K")
+            if (getInput('plex.qualityFilter'))
+                getInput('plex.qualityFilter').value = plex.qualityFilter || '';
+            if (getInput('plex.yearFilter')) {
+                const v = plex.yearFilter;
+                getInput('plex.yearFilter').value = v == null ? '' : String(v);
+            }
             setMultiSelect(
                 'plex.movies',
                 (plex.movieLibraryNames || []).map(n => ({ value: n, label: n })),
@@ -1496,6 +1862,11 @@
                 (plex.showLibraryNames || []).map(n => ({ value: n, label: n })),
                 plex.showLibraryNames || []
             );
+            // Initialize theme-demo multiselects for Plex libraries
+            initMsForSelect('plex-ms-movies', 'plex.movies');
+            initMsForSelect('plex-ms-shows', 'plex.shows');
+            // Populate Plex genres with counts and apply selected values from config
+            await loadPlexGenres(plex.genreFilter || '');
             // Jellyfin
             const jfEnabled = !!jf.enabled;
             const jfHostVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
@@ -1515,6 +1886,10 @@
                 getInput('jf.recentOnly').checked = !!jf.recentlyAddedOnly;
             if (getInput('jf.recentDays'))
                 getInput('jf.recentDays').value = jf.recentlyAddedDays ?? 30;
+            if (getInput('jf.yearFilter')) {
+                const v = jf.yearFilter;
+                getInput('jf.yearFilter').value = v == null ? '' : String(v);
+            }
             setMultiSelect(
                 'jf.movies',
                 (jf.movieLibraryNames || []).map(n => ({ value: n, label: n })),
@@ -1525,20 +1900,94 @@
                 (jf.showLibraryNames || []).map(n => ({ value: n, label: n })),
                 jf.showLibraryNames || []
             );
+            // Initialize theme-demo multiselects for Jellyfin libraries
+            initMsForSelect('jf-ms-movies', 'jf.movies');
+            initMsForSelect('jf-ms-shows', 'jf.shows');
             // TMDB
             const tmdb = cfg.tmdbSource || {};
             if (getInput('tmdb.enabled')) getInput('tmdb.enabled').checked = !!tmdb.enabled;
             if (getInput('tmdb.apikey'))
                 getInput('tmdb.apikey').value = tmdb.apiKey ? '••••••••' : '';
-            if (getInput('tmdb.category'))
-                getInput('tmdb.category').value = tmdb.category || 'popular';
-            if (getInput('tmdb.minRating')) getInput('tmdb.minRating').value = tmdb.minRating ?? 0;
+            if (getInput('tmdb.category')) {
+                const el = getInput('tmdb.category');
+                el.value = tmdb.category || 'popular';
+                // Sync custom select UI/icon
+                try {
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch {}
+                syncCustomSelect(el);
+            }
+            if (getInput('tmdb.minRating')) {
+                const v = Number(tmdb.minRating);
+                getInput('tmdb.minRating').value = Number.isFinite(v) && v > 0 ? v : '';
+            }
+            if (getInput('tmdb.yearFilter')) {
+                const v = tmdb.yearFilter;
+                getInput('tmdb.yearFilter').value = v == null ? '' : String(v);
+            }
+            // Load TMDB genres with selection from config
+            try {
+                await loadTMDBGenres(tmdb.genreFilter || '');
+            } catch (_) {}
+            // Streaming Releases (TMDB-based)
+            try {
+                const streaming = cfg.streamingSources || {};
+                const setBool = (id, v) => {
+                    const el = getInput(id);
+                    if (el) el.checked = !!v;
+                };
+                const setVal = (id, v) => {
+                    const el = getInput(id);
+                    if (el) el.value = v ?? '';
+                };
+                setBool('streamingSources.enabled', streaming.enabled);
+                setVal('streamingSources.region', streaming.region || 'US');
+                if (getInput('streamingSources.minRating')) {
+                    const v = Number(streaming.minRating);
+                    getInput('streamingSources.minRating').value = Number.isFinite(v) ? v : '';
+                }
+                // Build provider multiselect options
+                const providerOpts = [
+                    { value: 'netflix', label: 'Netflix' },
+                    { value: 'disney', label: 'Disney+' },
+                    { value: 'prime', label: 'Prime Video' },
+                    { value: 'hbo', label: 'Max (HBO)' },
+                    { value: 'hulu', label: 'Hulu' },
+                    { value: 'apple', label: 'Apple TV+' },
+                    { value: 'paramount', label: 'Paramount+' },
+                    { value: 'crunchyroll', label: 'Crunchyroll' },
+                ];
+                setMultiSelect(
+                    'streaming.providers',
+                    providerOpts,
+                    Object.entries(streaming)
+                        .filter(([k, v]) => v && providerOpts.some(p => p.value === k))
+                        .map(([k]) => k)
+                );
+                initMsForSelect('streaming-ms-providers', 'streaming.providers');
+                // New Releases toggle remains a standalone flag
+                setBool('streamingSources.newReleases', streaming.newReleases);
+            } catch (_) {}
             // TVDB
             const tvdb = cfg.tvdbSource || {};
             if (getInput('tvdb.enabled')) getInput('tvdb.enabled').checked = !!tvdb.enabled;
-            if (getInput('tvdb.category'))
-                getInput('tvdb.category').value = tvdb.category || 'popular';
-            if (getInput('tvdb.minRating')) getInput('tvdb.minRating').value = tvdb.minRating ?? 0;
+            const tvdbCatEl = getInput('tvdb.category');
+            if (tvdbCatEl) {
+                tvdbCatEl.value = tvdb.category || 'popular';
+                // Sync custom select UI/icon
+                try {
+                    tvdbCatEl.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch {}
+                syncCustomSelect(tvdbCatEl);
+            }
+            const tvdbMinRatingEl = getInput('tvdb.minRating');
+            if (tvdbMinRatingEl) {
+                const v = Number(tvdb.minRating);
+                tvdbMinRatingEl.value = Number.isFinite(v) && v > 0 ? v : '';
+            }
+            if (getInput('tvdb.yearFilter'))
+                getInput('tvdb.yearFilter').value =
+                    tvdb.yearFilter == null ? '' : String(tvdb.yearFilter);
         }
         // Expose for reuse
         window.admin2 = window.admin2 || {};
@@ -1569,6 +2018,9 @@
                 const prevShows = new Set(getMultiSelectValues('plex.shows'));
                 setMultiSelect('plex.movies', movies, Array.from(prevMovies));
                 setMultiSelect('plex.shows', shows, Array.from(prevShows));
+                // Rebuild multiselect options
+                initMsForSelect('plex-ms-movies', 'plex.movies');
+                initMsForSelect('plex-ms-shows', 'plex.shows');
                 window.notify?.toast({
                     type: 'success',
                     title: 'Plex',
@@ -1582,6 +2034,273 @@
                     message: e?.message || 'Failed to fetch libraries',
                     duration: 4200,
                 });
+            }
+        }
+
+        // ------- Plex Genre Filter (chips with hidden input) -------
+        function setPlexGenreFilterHidden(val) {
+            const hidden = document.getElementById('plex.genreFilter-hidden');
+            if (hidden) hidden.value = val || '';
+        }
+        function getPlexGenreFilterHidden() {
+            const hidden = document.getElementById('plex.genreFilter-hidden');
+            return hidden ? hidden.value : '';
+        }
+        function renderChip(container, label, value, selectedValuesSet) {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'chip';
+            chip.setAttribute('data-value', value);
+            chip.setAttribute('aria-pressed', selectedValuesSet.has(value) ? 'true' : 'false');
+            const left = document.createElement('div');
+            left.className = 'left';
+            const icon = document.createElement('i');
+            icon.className = selectedValuesSet.has(value) ? 'fas fa-check-circle' : 'far fa-circle';
+            const span = document.createElement('span');
+            span.className = 'title';
+            span.textContent = label;
+            left.appendChild(icon);
+            left.appendChild(span);
+            chip.appendChild(left);
+            chip.addEventListener('click', () => {
+                const current = new Set(
+                    getPlexGenreFilterHidden()
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean)
+                );
+                if (current.has(value)) current.delete(value);
+                else current.add(value);
+                const newVal = Array.from(current).join(',');
+                setPlexGenreFilterHidden(newVal);
+                // toggle visual
+                const pressed = chip.getAttribute('aria-pressed') === 'true';
+                chip.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+                icon.className = pressed ? 'far fa-circle' : 'fas fa-check-circle';
+            });
+            container.appendChild(chip);
+        }
+        function populatePlexGenreChips(genres, selectedCsv) {
+            const container = document.getElementById('plex.genreFilter');
+            const select = document.getElementById('plex.genreFilter-select');
+            if (!container) return;
+            const selected = new Set(
+                String(selectedCsv || '')
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean)
+            );
+            container.innerHTML = '';
+            if (select) {
+                // Build dropdown with an "Add genre…" placeholder
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'Add genre…';
+                select.innerHTML = '';
+                select.appendChild(placeholder);
+            }
+            // Sort by count desc then name
+            const list = (genres || []).slice().sort((a, b) => {
+                const ac = Number(a.count || 0);
+                const bc = Number(b.count || 0);
+                if (bc !== ac) return bc - ac;
+                return String(a.name || a.value || '').localeCompare(
+                    String(b.name || b.value || '')
+                );
+            });
+            list.forEach(g => {
+                const name = g.name || g.value || String(g);
+                const label = g.count != null ? `${name} (${g.count})` : name;
+                renderChip(container, label, name, selected);
+                if (select) {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    select.appendChild(opt);
+                }
+            });
+            if (select) {
+                // When user picks a genre from dropdown, add to selection and re-render icon state
+                select.onchange = () => {
+                    const val = select.value;
+                    if (!val) return;
+                    const current = new Set(
+                        getPlexGenreFilterHidden()
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(Boolean)
+                    );
+                    current.add(val);
+                    const newVal = Array.from(current).join(',');
+                    setPlexGenreFilterHidden(newVal);
+                    // Update chip pressed state if it exists
+                    const chip = container.querySelector(`[data-value="${CSS.escape(val)}"]`);
+                    if (chip) {
+                        chip.setAttribute('aria-pressed', 'true');
+                        const icon = chip.querySelector('i');
+                        if (icon) icon.className = 'fas fa-check-circle';
+                    }
+                    // reset dropdown to placeholder
+                    select.value = '';
+                };
+            }
+        }
+        async function loadPlexGenres(currentValueCsv = '') {
+            const chipsRoot = document.getElementById('plex-ms-genres-chips');
+            const optsEl = document.getElementById('plex-ms-genres-options');
+            const root = document.getElementById('plex-ms-genres');
+            const control = root?.querySelector('.ms-control');
+            const search = document.getElementById('plex-ms-genres-search');
+            if (!chipsRoot || !optsEl || !root || !control || !search) return;
+            chipsRoot.innerHTML = '<div class="subtle">Loading genres…</div>';
+            try {
+                // Prefer test endpoint if user provided connection params
+                const hostname = getInput('plex.hostname')?.value;
+                const port = getInput('plex.port')?.value;
+                const token = getInput('plex.token')?.value;
+                let res;
+                if (hostname && port) {
+                    res = await fetch('/api/admin/plex-genres-with-counts-test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ hostname, port, token: token || undefined }),
+                    });
+                } else {
+                    res = await fetch('/api/admin/plex-genres-with-counts', {
+                        credentials: 'include',
+                    });
+                }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json().catch(() => ({}));
+                const genres = Array.isArray(data?.genres) ? data.genres : [];
+                // Build options and chips using theme-demo component
+                const names = genres
+                    .slice()
+                    .map(g => g.name || g.value || String(g))
+                    .sort((a, b) => a.localeCompare(b));
+                const selected = new Set(
+                    String(currentValueCsv || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean)
+                );
+                // Options
+                optsEl.innerHTML = '';
+                names.forEach(n => {
+                    const row = document.createElement('div');
+                    row.className = 'ms-option';
+                    row.dataset.value = n;
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.checked = selected.has(n);
+                    const span = document.createElement('span');
+                    span.textContent = n;
+                    row.appendChild(cb);
+                    row.appendChild(span);
+                    optsEl.appendChild(row);
+                });
+                // Chips render
+                const renderChips = () => {
+                    chipsRoot.innerHTML = '';
+                    selected.forEach(v => {
+                        const chip = document.createElement('span');
+                        chip.className = 'ms-chip';
+                        chip.dataset.value = v;
+                        chip.innerHTML = `${v} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                        chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                            e.stopPropagation();
+                            selected.delete(v);
+                            setPlexGenreFilterHidden(Array.from(selected).join(','));
+                            syncOptions();
+                            renderChips();
+                            control.classList.toggle('has-selection', selected.size > 0);
+                        });
+                        chipsRoot.appendChild(chip);
+                    });
+                    control.classList.toggle('has-selection', selected.size > 0);
+                };
+                const syncOptions = () => {
+                    document.querySelectorAll('#plex-ms-genres-options .ms-option').forEach(row => {
+                        const v = row.dataset.value;
+                        const cb = row.querySelector('input[type="checkbox"]');
+                        if (cb) cb.checked = selected.has(v);
+                    });
+                };
+                const openMenu = open => {
+                    root.classList.toggle('ms-open', !!open);
+                    control.setAttribute('aria-expanded', open ? 'true' : 'false');
+                };
+                // Wire interactions if not already
+                if (root && root.dataset.msWired !== 'true') {
+                    control.addEventListener('mousedown', e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const willOpen = !root.classList.contains('ms-open');
+                        openMenu(willOpen);
+                        if (willOpen) setTimeout(() => search.focus(), 0);
+                    });
+                    document.addEventListener('click', e => {
+                        if (!root.contains(e.target)) openMenu(false);
+                    });
+                    search.addEventListener('focus', () => openMenu(true));
+                    search.addEventListener('keydown', e => {
+                        if (e.key === 'Escape') openMenu(false);
+                    });
+                    search.addEventListener('input', () => {
+                        const q = search.value.toLowerCase();
+                        Array.from(optsEl.children).forEach(ch => {
+                            const label =
+                                ch.querySelector('span')?.textContent?.toLowerCase() || '';
+                            ch.style.display = label.includes(q) ? '' : 'none';
+                        });
+                    });
+                    document
+                        .getElementById('plex-ms-genres-select-all')
+                        ?.addEventListener('click', e => {
+                            e.preventDefault();
+                            names.forEach(n => selected.add(n));
+                            setPlexGenreFilterHidden(Array.from(selected).join(','));
+                            syncOptions();
+                            renderChips();
+                        });
+                    document
+                        .getElementById('plex-ms-genres-clear-all')
+                        ?.addEventListener('click', e => {
+                            e.preventDefault();
+                            selected.clear();
+                            setPlexGenreFilterHidden('');
+                            syncOptions();
+                            renderChips();
+                            search.value = '';
+                        });
+                    document
+                        .getElementById('plex-ms-genres-clear')
+                        ?.addEventListener('click', e => {
+                            e.preventDefault();
+                            selected.clear();
+                            setPlexGenreFilterHidden('');
+                            syncOptions();
+                            renderChips();
+                            search.value = '';
+                        });
+                    optsEl.addEventListener('click', e => {
+                        const row = e.target.closest('.ms-option');
+                        if (!row) return;
+                        const v = row.dataset.value;
+                        if (selected.has(v)) selected.delete(v);
+                        else selected.add(v);
+                        setPlexGenreFilterHidden(Array.from(selected).join(','));
+                        syncOptions();
+                        renderChips();
+                    });
+                    root.dataset.msWired = 'true';
+                }
+                // Initial paint and sync
+                setPlexGenreFilterHidden(Array.from(selected).join(','));
+                renderChips();
+            } catch (e) {
+                chipsRoot.innerHTML = '<div class="subtle">Failed to load genres</div>';
             }
         }
         async function fetchJellyfinLibraries() {
@@ -1608,6 +2327,9 @@
                 const prevShows = new Set(getMultiSelectValues('jf.shows'));
                 setMultiSelect('jf.movies', movies, Array.from(prevMovies));
                 setMultiSelect('jf.shows', shows, Array.from(prevShows));
+                // Rebuild multiselect options
+                initMsForSelect('jf-ms-movies', 'jf.movies');
+                initMsForSelect('jf-ms-shows', 'jf.shows');
                 window.notify?.toast({
                     type: 'success',
                     title: 'Jellyfin',
@@ -1625,9 +2347,29 @@
         }
 
         // Test connections
+        // Small helper to show a spinner on icon-only buttons
+        function startBtnSpinner(btn) {
+            if (!btn) return;
+            if (!btn.dataset.prevHtml) btn.dataset.prevHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.classList.add('btn-loading');
+            btn.setAttribute('aria-busy', 'true');
+            // Use a CSS spinner element (no <i> to avoid being hidden by loading styles)
+            btn.innerHTML =
+                '<span class="spinner" aria-hidden="true" style="display:inline-block"></span>' +
+                (btn.dataset.prevHtml || '');
+        }
+        function stopBtnSpinner(btn) {
+            if (!btn) return;
+            btn.innerHTML = btn.dataset.prevHtml || btn.innerHTML;
+            btn.classList.remove('btn-loading');
+            btn.disabled = false;
+            btn.removeAttribute('aria-busy');
+        }
+
         async function testPlex() {
             const btn = document.getElementById('btn-plex-test');
-            btn?.classList.add('btn-loading');
+            startBtnSpinner(btn);
             try {
                 const hostname = getInput('plex.hostname')?.value || '';
                 const port = getInput('plex.port')?.value || '';
@@ -1649,6 +2391,9 @@
                 });
                 // On success, offer to fetch libraries
                 fetchPlexLibraries();
+                // And refresh available genres list using the same connection context
+                const currentGenres = getPlexGenreFilterHidden();
+                loadPlexGenres(currentGenres).catch(() => {});
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -1657,12 +2402,12 @@
                     duration: 4200,
                 });
             } finally {
-                btn?.classList.remove('btn-loading');
+                stopBtnSpinner(btn);
             }
         }
         async function testJellyfin() {
             const btn = document.getElementById('btn-jf-test');
-            btn?.classList.add('btn-loading');
+            startBtnSpinner(btn);
             try {
                 const hostname = getInput('jf.hostname')?.value || '';
                 const port = getInput('jf.port')?.value || '';
@@ -1691,12 +2436,12 @@
                     duration: 4200,
                 });
             } finally {
-                btn?.classList.remove('btn-loading');
+                stopBtnSpinner(btn);
             }
         }
         async function testTMDB() {
             const btn = document.getElementById('btn-tmdb-test');
-            btn?.classList.add('btn-loading');
+            startBtnSpinner(btn);
             try {
                 let apiKey = getInput('tmdb.apikey')?.value || '';
                 // If no key provided, try stored key on server
@@ -1715,6 +2460,9 @@
                     message: 'Connection successful',
                     duration: 2200,
                 });
+                // On success, reload genres in case API key unlocks genre list
+                const curr = getTMDBGenreFilterHidden();
+                loadTMDBGenres(curr).catch(() => {});
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -1723,14 +2471,104 @@
                     duration: 4200,
                 });
             } finally {
-                btn?.classList.remove('btn-loading');
+                stopBtnSpinner(btn);
+            }
+        }
+        // Test Streaming (TMDB providers)
+        async function testStreaming() {
+            const btn = document.getElementById('test-streaming-button');
+            if (!btn) return;
+            startBtnSpinner(btn);
+            const status = document.getElementById('streaming-connection-status');
+            try {
+                const enabled = !!document.getElementById('streamingSources.enabled')?.checked;
+                if (!enabled) {
+                    window.notify?.toast({
+                        type: 'warning',
+                        title: 'Streaming',
+                        message: 'Streaming sources are disabled',
+                        duration: 3000,
+                    });
+                    return;
+                }
+                // No inline 'Testing…' status; use toasts only for disabled/failure/errors
+                const region = document.getElementById('streamingSources.region')?.value || 'US';
+                let apiKey = document.getElementById('tmdb.apikey')?.value?.trim() || '';
+                if (!apiKey) apiKey = 'stored_key';
+                const res = await fetch('/api/admin/test-tmdb', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ testType: 'streaming', region, apiKey }),
+                });
+                const j = await res.json().catch(() => ({}));
+                if (res.ok && j?.success) {
+                    if (status) {
+                        status.textContent = `Streaming API ready (Region: ${region})`;
+                        status.style.color = '#51cf66';
+                    }
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'Streaming',
+                        message: `Connection successful (Region: ${region})`,
+                        duration: 2400,
+                    });
+                } else {
+                    const err = j?.error || `HTTP ${res.status}`;
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Streaming',
+                        message: `Connection failed: ${err}`,
+                        duration: 4200,
+                    });
+                }
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Streaming',
+                    message: `Test error: ${e?.message || 'Unknown error'}`,
+                    duration: 4200,
+                });
+            } finally {
+                stopBtnSpinner(btn);
+            }
+        }
+        async function testTVDB() {
+            const btn = document.getElementById('btn-tvdb-test');
+            startBtnSpinner(btn);
+            try {
+                const res = await fetch('/api/admin/test-tvdb', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                });
+                const j = await res.json().catch(() => ({}));
+                if (!res.ok || !j?.success) throw new Error(j?.error || 'TVDB test failed');
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'TVDB',
+                    message: 'Connection successful',
+                    duration: 2200,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'TVDB',
+                    message: e?.message || 'Connection failed',
+                    duration: 4200,
+                });
+            } finally {
+                stopBtnSpinner(btn);
             }
         }
 
-        // Save Sources
-        btnSaveSources?.addEventListener('click', async () => {
+        // (deduped) Only one testTVDB implementation remains (spinner-based)
+
+        // Per-source save helpers
+        async function savePlex() {
+            const btn = document.getElementById('btn-save-plex');
+            btn?.classList.add('btn-loading');
             try {
-                btnSaveSources.classList.add('btn-loading');
                 const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
                 const base = cfgRes.ok ? await cfgRes.json() : {};
                 const currentCfg = base?.config || base || {};
@@ -1739,45 +2577,26 @@
                     ? [...currentCfg.mediaServers]
                     : [];
                 const plexIdx = servers.findIndex(s => s.type === 'plex');
-                const jfIdx = servers.findIndex(s => s.type === 'jellyfin');
                 const plex = plexIdx >= 0 ? { ...servers[plexIdx] } : { type: 'plex' };
-                const jf = jfIdx >= 0 ? { ...servers[jfIdx] } : { type: 'jellyfin' };
-                // Plex fields
+                // Update Plex fields
                 plex.enabled = !!getInput('plex.enabled')?.checked;
                 plex.recentlyAddedOnly = !!getInput('plex.recentOnly')?.checked;
                 plex.recentlyAddedDays = toInt(getInput('plex.recentDays')?.value) ?? 30;
                 plex.ratingFilter = parseCsvList(getInput('plex.ratingFilter')?.value);
+                plex.qualityFilter = (getInput('plex.qualityFilter')?.value || '').trim();
+                {
+                    const expr = parseYearExpression(getInput('plex.yearFilter')?.value);
+                    plex.yearFilter = expr;
+                }
+                plex.genreFilter = getPlexGenreFilterHidden();
                 plex.movieLibraryNames = getMultiSelectValues('plex.movies');
                 plex.showLibraryNames = getMultiSelectValues('plex.shows');
                 plex.hostnameEnvVar = plex.hostnameEnvVar || 'PLEX_HOSTNAME';
                 plex.portEnvVar = plex.portEnvVar || 'PLEX_PORT';
                 plex.tokenEnvVar = plex.tokenEnvVar || 'PLEX_TOKEN';
-                // Jellyfin fields
-                jf.enabled = !!getInput('jf.enabled')?.checked;
-                jf.recentlyAddedOnly = !!getInput('jf.recentOnly')?.checked;
-                jf.recentlyAddedDays = toInt(getInput('jf.recentDays')?.value) ?? 30;
-                jf.movieLibraryNames = getMultiSelectValues('jf.movies');
-                jf.showLibraryNames = getMultiSelectValues('jf.shows');
-                jf.hostnameEnvVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
-                jf.portEnvVar = jf.portEnvVar || 'JELLYFIN_PORT';
-                jf.tokenEnvVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
-                // Update array
                 if (plexIdx >= 0) servers[plexIdx] = plex;
                 else servers.push(plex);
-                if (jfIdx >= 0) servers[jfIdx] = jf;
-                else servers.push(jf);
-                // TMDB/TVDB
-                const tmdb = { ...(currentCfg.tmdbSource || {}) };
-                tmdb.enabled = !!getInput('tmdb.enabled')?.checked;
-                tmdb.category = getInput('tmdb.category')?.value || 'popular';
-                tmdb.minRating = toInt(getInput('tmdb.minRating')?.value) ?? 0;
-                const tmdbApiKeyVal = getInput('tmdb.apikey')?.value || '';
-                if (tmdbApiKeyVal && tmdbApiKeyVal !== '••••••••') tmdb.apiKey = tmdbApiKeyVal;
-                const tvdb = { ...(currentCfg.tvdbSource || {}) };
-                tvdb.enabled = !!getInput('tvdb.enabled')?.checked;
-                tvdb.category = getInput('tvdb.category')?.value || 'popular';
-                tvdb.minRating = toInt(getInput('tvdb.minRating')?.value) ?? 0;
-                // Env updates for servers
+                // Env updates (only if provided)
                 const envPatch = { ...currentEnv };
                 const setIfProvided = (key, val) => {
                     if (val != null && String(val).trim() !== '')
@@ -1785,40 +2604,365 @@
                 };
                 setIfProvided(plex.hostnameEnvVar, getInput('plex.hostname')?.value);
                 setIfProvided(plex.portEnvVar, getInput('plex.port')?.value);
-                // Only overwrite token if user typed something
                 const plexToken = getInput('plex.token')?.value;
                 if (plexToken && plexToken !== '••••••••')
                     setIfProvided(plex.tokenEnvVar, plexToken);
-                setIfProvided(jf.hostnameEnvVar, getInput('jf.hostname')?.value);
-                setIfProvided(jf.portEnvVar, getInput('jf.port')?.value);
-                const jfKey = getInput('jf.apikey')?.value;
-                if (jfKey && jfKey !== '••••••••') setIfProvided(jf.tokenEnvVar, jfKey);
-
-                const patch = {
-                    mediaServers: servers,
-                    tmdbSource: tmdb,
-                    tvdbSource: tvdb,
-                };
-                await saveConfigPatch(patch, envPatch);
+                await saveConfigPatch({ mediaServers: servers }, envPatch);
                 window.notify?.toast({
                     type: 'success',
                     title: 'Saved',
-                    message: 'Media sources updated',
+                    message: 'Plex settings updated',
                     duration: 2500,
                 });
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
                     title: 'Save failed',
-                    message: e?.message || 'Unable to save sources',
+                    message: e?.message || 'Unable to save Plex',
                     duration: 4500,
                 });
             } finally {
-                btnSaveSources?.classList.remove('btn-loading');
-                // Refresh fields after save
+                btn?.classList.remove('btn-loading');
+                loadMediaSources()
+                    .then(() => {
+                        const r = getPlexGenreFilterHidden();
+                        loadPlexGenres(r).catch(() => {});
+                    })
+                    .catch(() => {});
+            }
+        }
+
+        async function saveJellyfin() {
+            const btn = document.getElementById('btn-save-jellyfin');
+            btn?.classList.add('btn-loading');
+            try {
+                const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
+                const base = cfgRes.ok ? await cfgRes.json() : {};
+                const currentCfg = base?.config || base || {};
+                const currentEnv = base?.env || {};
+                const servers = Array.isArray(currentCfg.mediaServers)
+                    ? [...currentCfg.mediaServers]
+                    : [];
+                const jfIdx = servers.findIndex(s => s.type === 'jellyfin');
+                const jf = jfIdx >= 0 ? { ...servers[jfIdx] } : { type: 'jellyfin' };
+                jf.enabled = !!getInput('jf.enabled')?.checked;
+                jf.recentlyAddedOnly = !!getInput('jf.recentOnly')?.checked;
+                jf.recentlyAddedDays = toInt(getInput('jf.recentDays')?.value) ?? 30;
+                {
+                    const expr = parseYearExpression(getInput('jf.yearFilter')?.value);
+                    jf.yearFilter = expr;
+                }
+                jf.movieLibraryNames = getMultiSelectValues('jf.movies');
+                jf.showLibraryNames = getMultiSelectValues('jf.shows');
+                jf.hostnameEnvVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
+                jf.portEnvVar = jf.portEnvVar || 'JELLYFIN_PORT';
+                jf.tokenEnvVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
+                if (jfIdx >= 0) servers[jfIdx] = jf;
+                else servers.push(jf);
+                const envPatch = { ...currentEnv };
+                const setIfProvided = (key, val) => {
+                    if (val != null && String(val).trim() !== '')
+                        envPatch[key] = String(val).trim();
+                };
+                setIfProvided(jf.hostnameEnvVar, getInput('jf.hostname')?.value);
+                setIfProvided(jf.portEnvVar, getInput('jf.port')?.value);
+                const jfKey = getInput('jf.apikey')?.value;
+                if (jfKey && jfKey !== '••••••••') setIfProvided(jf.tokenEnvVar, jfKey);
+                await saveConfigPatch({ mediaServers: servers }, envPatch);
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Saved',
+                    message: 'Jellyfin settings updated',
+                    duration: 2500,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Unable to save Jellyfin',
+                    duration: 4500,
+                });
+            } finally {
+                btn?.classList.remove('btn-loading');
                 loadMediaSources().catch(() => {});
             }
-        });
+        }
+
+        async function saveTMDB() {
+            const btn = document.getElementById('btn-save-tmdb');
+            btn?.classList.add('btn-loading');
+            try {
+                const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
+                const base = cfgRes.ok ? await cfgRes.json() : {};
+                const currentCfg = base?.config || base || {};
+                const tmdb = { ...(currentCfg.tmdbSource || {}) };
+                tmdb.enabled = !!getInput('tmdb.enabled')?.checked;
+                tmdb.category = getInput('tmdb.category')?.value || 'popular';
+                {
+                    const mr = toInt(getInput('tmdb.minRating')?.value);
+                    tmdb.minRating = Number.isFinite(mr) && mr > 0 ? mr : undefined;
+                }
+                {
+                    const expr = parseYearExpression(getInput('tmdb.yearFilter')?.value);
+                    tmdb.yearFilter = expr;
+                }
+                // Selected genres as CSV from hidden field
+                tmdb.genreFilter = getTMDBGenreFilterHidden();
+                const tmdbApiKeyVal = getInput('tmdb.apikey')?.value || '';
+                if (tmdbApiKeyVal && tmdbApiKeyVal !== '••••••••') tmdb.apiKey = tmdbApiKeyVal;
+                // Include Streaming Releases selections (server converts object -> array)
+                const streaming = {
+                    enabled: !!document.getElementById('streamingSources.enabled')?.checked,
+                    region: document.getElementById('streamingSources.region')?.value || 'US',
+                    minRating:
+                        toInt(document.getElementById('streamingSources.minRating')?.value) ?? 0,
+                    // Map multiselect selections back to boolean flags
+                    ...(() => {
+                        const sel = new Set(getMultiSelectValues('streaming.providers'));
+                        return {
+                            netflix: sel.has('netflix'),
+                            disney: sel.has('disney'),
+                            prime: sel.has('prime'),
+                            hbo: sel.has('hbo'),
+                            hulu: sel.has('hulu'),
+                            apple: sel.has('apple'),
+                            paramount: sel.has('paramount'),
+                            crunchyroll: sel.has('crunchyroll'),
+                        };
+                    })(),
+                    newReleases: !!document.getElementById('streamingSources.newReleases')?.checked,
+                };
+                await saveConfigPatch({ tmdbSource: tmdb, streamingSources: streaming });
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Saved',
+                    message: 'TMDB settings updated',
+                    duration: 2500,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Unable to save TMDB',
+                    duration: 4500,
+                });
+            } finally {
+                btn?.classList.remove('btn-loading');
+                loadMediaSources().catch(() => {});
+            }
+        }
+
+        // ------- TMDB Genre Filter (theme-demo multiselect) -------
+        function setTMDBGenreFilterHidden(val) {
+            const hidden = document.getElementById('tmdb.genreFilter-hidden');
+            if (hidden) hidden.value = val || '';
+        }
+        function getTMDBGenreFilterHidden() {
+            const hidden = document.getElementById('tmdb.genreFilter-hidden');
+            return hidden ? hidden.value : '';
+        }
+        // Build option row
+        function tmdbMsOption(name, checked) {
+            const row = document.createElement('div');
+            row.className = 'ms-option';
+            row.setAttribute('role', 'option');
+            row.dataset.value = name;
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = !!checked;
+            const label = document.createElement('span');
+            label.textContent = name;
+            row.appendChild(cb);
+            row.appendChild(label);
+            return row;
+        }
+        function tmdbRenderChips(selected) {
+            const chipsEl = document.getElementById('tmdb-ms-genres-chips');
+            const control = document.querySelector('#tmdb-ms-genres .ms-control');
+            if (!chipsEl || !control) return;
+            chipsEl.innerHTML = '';
+            const vals = Array.from(selected);
+            vals.forEach(v => {
+                const chip = document.createElement('span');
+                chip.className = 'ms-chip';
+                chip.dataset.value = v;
+                chip.innerHTML = `${v} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                chip.querySelector('.ms-chip-remove').addEventListener('click', e => {
+                    e.stopPropagation();
+                    selected.delete(v);
+                    setTMDBGenreFilterHidden(Array.from(selected).join(','));
+                    tmdbSyncOptions(selected);
+                    tmdbRenderChips(selected);
+                    control.classList.toggle('has-selection', selected.size > 0);
+                });
+                chipsEl.appendChild(chip);
+            });
+            control.classList.toggle('has-selection', selected.size > 0);
+        }
+        function tmdbSyncOptions(selected) {
+            document.querySelectorAll('#tmdb-ms-genres-options .ms-option').forEach(opt => {
+                const v = opt.dataset.value;
+                const cb = opt.querySelector('input[type="checkbox"]');
+                if (cb) cb.checked = selected.has(v);
+            });
+        }
+        function tmdbOpenMenu(open) {
+            const root = document.getElementById('tmdb-ms-genres');
+            const control = root?.querySelector('.ms-control');
+            if (!root || !control) return;
+            root.classList.toggle('ms-open', !!open);
+            control.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        function tmdbAttachMsHandlers(options, selected) {
+            const root = document.getElementById('tmdb-ms-genres');
+            if (!root) return;
+            if (root.dataset.msWired === 'true') return; // avoid duplicate listeners
+            const control = root?.querySelector('.ms-control');
+            const input = null; // no top input; use search field inside menu
+            const menu = document.getElementById('tmdb-ms-genres-menu');
+            const search = document.getElementById('tmdb-ms-genres-search');
+            const selectAll = document.getElementById('tmdb-ms-genres-select-all');
+            const clearAll = document.getElementById('tmdb-ms-genres-clear-all');
+            const clearBtn = document.getElementById('tmdb-ms-genres-clear');
+            const optsEl = document.getElementById('tmdb-ms-genres-options');
+            if (!root || !control || !menu || !search || !selectAll || !clearAll || !optsEl) return;
+
+            const filterOptions = q => {
+                const qq = (q || '').toLowerCase();
+                Array.from(optsEl.children).forEach(child => {
+                    const match = child.dataset.value?.toLowerCase().includes(qq);
+                    child.style.display = match ? '' : 'none';
+                });
+            };
+            // Open/close on mousedown to avoid focus-before-click flicker.
+            // Ignore when user clicks directly in the input (typing should just open via focus).
+            control.addEventListener('mousedown', e => {
+                // No top input anymore
+                e.preventDefault();
+                e.stopPropagation();
+                const willOpen = !root.classList.contains('ms-open');
+                tmdbOpenMenu(willOpen);
+                if (willOpen) setTimeout(() => search.focus(), 0);
+            });
+            document.addEventListener('click', e => {
+                if (!root.contains(e.target)) tmdbOpenMenu(false);
+            });
+            // Focus/typing only in bottom search now
+            search.addEventListener('focus', () => tmdbOpenMenu(true));
+            search.addEventListener('keydown', e => {
+                if (e.key === 'Escape') tmdbOpenMenu(false);
+            });
+            // Search typing filters list
+            search.addEventListener('input', () => filterOptions(search.value));
+            // Select all
+            selectAll.addEventListener('click', e => {
+                e.preventDefault();
+                options.forEach(name => selected.add(name));
+                setTMDBGenreFilterHidden(Array.from(selected).join(','));
+                tmdbSyncOptions(selected);
+                tmdbRenderChips(selected);
+            });
+            // Clear all
+            clearAll.addEventListener('click', e => {
+                e.preventDefault();
+                selected.clear();
+                setTMDBGenreFilterHidden('');
+                tmdbSyncOptions(selected);
+                tmdbRenderChips(selected);
+            });
+            clearBtn?.addEventListener('click', e => {
+                e.preventDefault();
+                selected.clear();
+                setTMDBGenreFilterHidden('');
+                tmdbSyncOptions(selected);
+                tmdbRenderChips(selected);
+                // Also clear search
+                search.value = '';
+                filterOptions('');
+            });
+            // Option click
+            optsEl.addEventListener('click', e => {
+                const row = e.target.closest('.ms-option');
+                if (!row) return;
+                const v = row.dataset.value;
+                if (selected.has(v)) selected.delete(v);
+                else selected.add(v);
+                setTMDBGenreFilterHidden(Array.from(selected).join(','));
+                tmdbSyncOptions(selected);
+                tmdbRenderChips(selected);
+            });
+            root.dataset.msWired = 'true';
+        }
+        async function loadTMDBGenres(currentValueCsv = '') {
+            const chipsContainer = document.getElementById('tmdb-ms-genres-chips');
+            const optsEl = document.getElementById('tmdb-ms-genres-options');
+            const control = document.querySelector('#tmdb-ms-genres .ms-control');
+            if (!chipsContainer || !optsEl || !control) return;
+            chipsContainer.innerHTML = '<div class="subtle">Loading genres…</div>';
+            try {
+                // Try server-provided genre list
+                const r = await fetch('/api/admin/tmdb-genres', { credentials: 'include' });
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                const data = await r.json().catch(() => ({}));
+                const genres = Array.isArray(data?.genres) ? data.genres : [];
+                // Build sorted option list
+                const names = genres
+                    .slice()
+                    .map(g => g.name || g.value || String(g))
+                    .sort((a, b) => a.localeCompare(b));
+                optsEl.innerHTML = '';
+                const selected = new Set(
+                    String(currentValueCsv || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean)
+                );
+                names.forEach(n => optsEl.appendChild(tmdbMsOption(n, selected.has(n))));
+                setTMDBGenreFilterHidden(Array.from(selected).join(','));
+                tmdbRenderChips(selected);
+                tmdbAttachMsHandlers(names, selected);
+            } catch (e) {
+                chipsContainer.innerHTML = '<div class="subtle">Failed to load genres</div>';
+            }
+        }
+
+        async function saveTVDB() {
+            const btn = document.getElementById('btn-save-tvdb');
+            btn?.classList.add('btn-loading');
+            try {
+                const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
+                const base = cfgRes.ok ? await cfgRes.json() : {};
+                const currentCfg = base?.config || base || {};
+                const tvdb = { ...(currentCfg.tvdbSource || {}) };
+                tvdb.enabled = !!getInput('tvdb.enabled')?.checked;
+                tvdb.category = getInput('tvdb.category')?.value || 'popular';
+                {
+                    const mr = toInt(getInput('tvdb.minRating')?.value);
+                    tvdb.minRating = Number.isFinite(mr) ? mr : undefined;
+                }
+                {
+                    const expr = parseYearExpression(getInput('tvdb.yearFilter')?.value);
+                    tvdb.yearFilter = expr;
+                }
+                await saveConfigPatch({ tvdbSource: tvdb });
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Saved',
+                    message: 'TVDB settings updated',
+                    duration: 2500,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Unable to save TVDB',
+                    duration: 4500,
+                });
+            } finally {
+                btn?.classList.remove('btn-loading');
+                loadMediaSources().catch(() => {});
+            }
+        }
 
         // Wire buttons
         document
@@ -1830,6 +2974,426 @@
         document.getElementById('btn-plex-test')?.addEventListener('click', testPlex);
         document.getElementById('btn-jf-test')?.addEventListener('click', testJellyfin);
         document.getElementById('btn-tmdb-test')?.addEventListener('click', testTMDB);
+        document.getElementById('test-streaming-button')?.addEventListener('click', testStreaming);
+        // (deduped) listener already set above near other source listeners
+        // Update category icon based on selection
+        const tmdbCat = document.getElementById('tmdb.category');
+        const tmdbCatIcon = document.getElementById('tmdb-category-icon')?.querySelector('i');
+        const tvdbCat = document.getElementById('tvdb.category');
+        const tvdbCatIcon = document.getElementById('tvdb-category-icon')?.querySelector('i');
+        const iconFor = val => {
+            switch (val) {
+                // Shared
+                case 'top_rated':
+                case 'tv_top_rated':
+                    return 'fas fa-star';
+                case 'popular':
+                case 'tv_popular':
+                    return 'fas fa-fire';
+                // Movies
+                case 'now_playing':
+                    return 'fas fa-ticket-alt';
+                case 'upcoming':
+                    return 'fas fa-calendar-alt';
+                case 'latest':
+                case 'tv_latest':
+                    return 'fas fa-bolt';
+                // TV specific
+                case 'tv_on_the_air':
+                    return 'fas fa-broadcast-tower';
+                case 'tv_airing_today':
+                    return 'fas fa-tv';
+                // Trending
+                case 'trending_all_day':
+                case 'trending_movie_day':
+                case 'trending_tv_day':
+                case 'trending_all_week':
+                case 'trending_movie_week':
+                case 'trending_tv_week':
+                    return 'fas fa-chart-line';
+                // Discover/Collections
+                case 'discover_movie':
+                case 'discover_tv':
+                    return 'fas fa-compass';
+                // TVDB-specific fallbacks retained
+                case 'recently_updated':
+                    return 'fas fa-arrows-rotate';
+                case 'newest':
+                    return 'fas fa-film';
+                case 'oldest':
+                    return 'fas fa-hourglass-half';
+                case 'recently_added':
+                    return 'fas fa-plus';
+                case 'alphabetical':
+                    return 'fas fa-font';
+                default:
+                    return 'fas fa-list';
+            }
+        };
+        // TMDB custom select + overlay icon
+        if (tmdbCat && tmdbCatIcon) {
+            tmdbCatIcon.className = iconFor(tmdbCat.value);
+            tmdbCat.addEventListener('change', () => {
+                tmdbCatIcon.className = iconFor(tmdbCat.value);
+            });
+            const wrap = tmdbCat.closest('.select-wrap');
+            if (wrap) {
+                wrap.classList.add('has-custom-select');
+                tmdbCat.classList.add('enhanced');
+                const custom = document.createElement('div');
+                custom.className = 'custom-select';
+                const trigger = document.createElement('button');
+                trigger.type = 'button';
+                trigger.className = 'custom-select-trigger';
+                trigger.setAttribute('aria-haspopup', 'listbox');
+                trigger.setAttribute('aria-expanded', 'false');
+                const left = document.createElement('span');
+                left.className = 'left';
+                const ico = document.createElement('i');
+                ico.className = iconFor(tmdbCat.value);
+                const label = document.createElement('span');
+                label.textContent = tmdbCat.options[tmdbCat.selectedIndex]?.text || 'Select';
+                left.appendChild(ico);
+                left.appendChild(label);
+                const caret = document.createElement('i');
+                caret.className = 'fas fa-chevron-down caret';
+                trigger.appendChild(left);
+                trigger.appendChild(caret);
+                const list = document.createElement('div');
+                list.className = 'custom-options';
+                if (tmdbCat.id) list.setAttribute('data-select-id', tmdbCat.id);
+                list.setAttribute('role', 'listbox');
+                // Build options with optgroup headers to mirror legacy admin groups
+                Array.from(tmdbCat.children).forEach(child => {
+                    if (child.tagName === 'OPTGROUP') {
+                        const header = document.createElement('div');
+                        header.className = 'custom-optgroup';
+                        header.textContent = child.label;
+                        list.appendChild(header);
+                        Array.from(child.children).forEach(opt => {
+                            if (!opt.value) return;
+                            const row = document.createElement('div');
+                            row.className = 'custom-option';
+                            row.setAttribute('role', 'option');
+                            row.dataset.value = opt.value;
+                            if (opt.selected) row.setAttribute('aria-selected', 'true');
+                            const oi = document.createElement('i');
+                            oi.className = iconFor(opt.value);
+                            const ot = document.createElement('span');
+                            ot.textContent = opt.text;
+                            row.appendChild(oi);
+                            row.appendChild(ot);
+                            row.addEventListener('click', () => {
+                                tmdbCat.value = opt.value;
+                                tmdbCat.dispatchEvent(new Event('change', { bubbles: true }));
+                                ico.className = iconFor(opt.value);
+                                label.textContent = opt.text;
+                                list.querySelectorAll(
+                                    '.custom-option[aria-selected="true"]'
+                                ).forEach(el => el.removeAttribute('aria-selected'));
+                                row.setAttribute('aria-selected', 'true');
+                                custom.classList.remove('open');
+                                trigger.setAttribute('aria-expanded', 'false');
+                                list.style.display = 'none';
+                            });
+                            list.appendChild(row);
+                        });
+                    } else if (child.tagName === 'OPTION') {
+                        const opt = child;
+                        if (!opt.value) return;
+                        const row = document.createElement('div');
+                        row.className = 'custom-option';
+                        row.setAttribute('role', 'option');
+                        row.dataset.value = opt.value;
+                        if (opt.selected) row.setAttribute('aria-selected', 'true');
+                        const oi = document.createElement('i');
+                        oi.className = iconFor(opt.value);
+                        const ot = document.createElement('span');
+                        ot.textContent = opt.text;
+                        row.appendChild(oi);
+                        row.appendChild(ot);
+                        row.addEventListener('click', () => {
+                            tmdbCat.value = opt.value;
+                            tmdbCat.dispatchEvent(new Event('change', { bubbles: true }));
+                            ico.className = iconFor(opt.value);
+                            label.textContent = opt.text;
+                            list.querySelectorAll('.custom-option[aria-selected="true"]').forEach(
+                                el => el.removeAttribute('aria-selected')
+                            );
+                            row.setAttribute('aria-selected', 'true');
+                            custom.classList.remove('open');
+                            trigger.setAttribute('aria-expanded', 'false');
+                            list.style.display = 'none';
+                        });
+                        list.appendChild(row);
+                    }
+                });
+                custom.appendChild(trigger);
+                wrap.appendChild(custom);
+                const positionList = () => {
+                    const rect = trigger.getBoundingClientRect();
+                    const viewportH = window.innerHeight || document.documentElement.clientHeight;
+                    const belowSpace = viewportH - rect.bottom;
+                    const aboveSpace = rect.top;
+                    const desiredHeight = Math.min(260, Math.max(160, Math.floor(viewportH * 0.5)));
+                    let top;
+                    let maxHeight;
+                    if (belowSpace >= 180 || belowSpace >= aboveSpace) {
+                        top = rect.bottom + 6;
+                        maxHeight = Math.min(desiredHeight, belowSpace - 12);
+                    } else {
+                        maxHeight = Math.min(desiredHeight, aboveSpace - 12);
+                        top = Math.max(8, rect.top - maxHeight - 6);
+                    }
+                    Object.assign(list.style, {
+                        display: 'block',
+                        top: `${Math.round(top)}px`,
+                        left: `${Math.round(rect.left)}px`,
+                        width: `${Math.round(rect.width)}px`,
+                        maxHeight: `${Math.max(140, maxHeight)}px`,
+                    });
+                };
+                const openList = () => {
+                    if (!document.body.contains(list)) document.body.appendChild(list);
+                    positionList();
+                    custom.classList.add('open');
+                    trigger.setAttribute('aria-expanded', 'true');
+                };
+                const closeList = () => {
+                    custom.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                    list.style.display = 'none';
+                };
+                const toggleOpen = () => {
+                    if (custom.classList.contains('open')) closeList();
+                    else openList();
+                };
+                trigger.addEventListener('click', e => {
+                    e.stopPropagation();
+                    toggleOpen();
+                });
+                document.addEventListener('click', e => {
+                    if (
+                        !custom.contains(e.target) &&
+                        e.target !== list &&
+                        !list.contains(e.target)
+                    ) {
+                        closeList();
+                    }
+                });
+                window.addEventListener('resize', () => {
+                    if (custom.classList.contains('open')) positionList();
+                });
+                window.addEventListener(
+                    'scroll',
+                    () => {
+                        if (custom.classList.contains('open')) positionList();
+                    },
+                    { passive: true }
+                );
+                tmdbCat.addEventListener('change', () => {
+                    ico.className = iconFor(tmdbCat.value);
+                    label.textContent = tmdbCat.options[tmdbCat.selectedIndex]?.text || 'Select';
+                    list.querySelectorAll('.custom-option').forEach(el => {
+                        el.toggleAttribute('aria-selected', el.dataset.value === tmdbCat.value);
+                    });
+                });
+                // Initial sync for trigger and list selection
+                try {
+                    syncCustomSelect(tmdbCat);
+                } catch (_) {}
+            }
+        }
+
+        // TVDB custom select + overlay icon
+        if (tvdbCat && tvdbCatIcon) {
+            tvdbCatIcon.className = iconFor(tvdbCat.value);
+            tvdbCat.addEventListener('change', () => {
+                tvdbCatIcon.className = iconFor(tvdbCat.value);
+            });
+
+            // Build custom dropdown for iconized options
+            const wrap = tvdbCat.closest('.select-wrap');
+            if (wrap) {
+                wrap.classList.add('has-custom-select');
+                tvdbCat.classList.add('enhanced');
+                const custom = document.createElement('div');
+                custom.className = 'custom-select';
+                const trigger = document.createElement('button');
+                trigger.type = 'button';
+                trigger.className = 'custom-select-trigger';
+                trigger.setAttribute('aria-haspopup', 'listbox');
+                trigger.setAttribute('aria-expanded', 'false');
+                const left = document.createElement('span');
+                left.className = 'left';
+                const ico = document.createElement('i');
+                ico.className = iconFor(tvdbCat.value);
+                const label = document.createElement('span');
+                label.textContent = tvdbCat.options[tvdbCat.selectedIndex]?.text || 'Select';
+                left.appendChild(ico);
+                left.appendChild(label);
+                const caret = document.createElement('i');
+                caret.className = 'fas fa-chevron-down caret';
+                trigger.appendChild(left);
+                trigger.appendChild(caret);
+                const list = document.createElement('div');
+                list.className = 'custom-options';
+                if (tvdbCat.id) list.setAttribute('data-select-id', tvdbCat.id);
+                list.setAttribute('role', 'listbox');
+                // Build options with optgroup headers to mirror legacy admin
+                Array.from(tvdbCat.children).forEach(child => {
+                    if (child.tagName === 'OPTGROUP') {
+                        const header = document.createElement('div');
+                        header.className = 'custom-optgroup';
+                        header.textContent = child.label; // includes emojis
+                        list.appendChild(header);
+                        Array.from(child.children).forEach(opt => {
+                            if (!opt.value) return;
+                            const row = document.createElement('div');
+                            row.className = 'custom-option';
+                            row.setAttribute('role', 'option');
+                            row.dataset.value = opt.value;
+                            if (opt.selected) row.setAttribute('aria-selected', 'true');
+                            const oi = document.createElement('i');
+                            oi.className = iconFor(opt.value);
+                            const ot = document.createElement('span');
+                            ot.textContent = opt.text; // includes emojis
+                            row.appendChild(oi);
+                            row.appendChild(ot);
+                            row.addEventListener('click', () => {
+                                tvdbCat.value = opt.value;
+                                tvdbCat.dispatchEvent(new Event('change', { bubbles: true }));
+                                ico.className = iconFor(opt.value);
+                                label.textContent = opt.text;
+                                list.querySelectorAll(
+                                    '.custom-option[aria-selected="true"]'
+                                ).forEach(el => el.removeAttribute('aria-selected'));
+                                row.setAttribute('aria-selected', 'true');
+                                custom.classList.remove('open');
+                                trigger.setAttribute('aria-expanded', 'false');
+                                list.style.display = 'none';
+                            });
+                            list.appendChild(row);
+                        });
+                    } else if (child.tagName === 'OPTION') {
+                        const opt = child;
+                        if (!opt.value) return;
+                        const row = document.createElement('div');
+                        row.className = 'custom-option';
+                        row.setAttribute('role', 'option');
+                        row.dataset.value = opt.value;
+                        if (opt.selected) row.setAttribute('aria-selected', 'true');
+                        const oi = document.createElement('i');
+                        oi.className = iconFor(opt.value);
+                        const ot = document.createElement('span');
+                        ot.textContent = opt.text;
+                        row.appendChild(oi);
+                        row.appendChild(ot);
+                        row.addEventListener('click', () => {
+                            tvdbCat.value = opt.value;
+                            tvdbCat.dispatchEvent(new Event('change', { bubbles: true }));
+                            ico.className = iconFor(opt.value);
+                            label.textContent = opt.text;
+                            list.querySelectorAll('.custom-option[aria-selected="true"]').forEach(
+                                el => el.removeAttribute('aria-selected')
+                            );
+                            row.setAttribute('aria-selected', 'true');
+                            custom.classList.remove('open');
+                            trigger.setAttribute('aria-expanded', 'false');
+                            list.style.display = 'none';
+                        });
+                        list.appendChild(row);
+                    }
+                });
+                custom.appendChild(trigger);
+                // append custom container under wrap; list will be appended to body when opened
+                wrap.appendChild(custom);
+                // open/close handlers with viewport-aware positioning
+                const positionList = () => {
+                    const rect = trigger.getBoundingClientRect();
+                    const viewportH = window.innerHeight || document.documentElement.clientHeight;
+                    const belowSpace = viewportH - rect.bottom;
+                    const aboveSpace = rect.top;
+                    const desiredHeight = Math.min(260, Math.max(160, Math.floor(viewportH * 0.5)));
+                    let top;
+                    let maxHeight;
+                    if (belowSpace >= 180 || belowSpace >= aboveSpace) {
+                        top = rect.bottom + 6;
+                        maxHeight = Math.min(desiredHeight, belowSpace - 12);
+                    } else {
+                        maxHeight = Math.min(desiredHeight, aboveSpace - 12);
+                        top = Math.max(8, rect.top - maxHeight - 6);
+                    }
+                    Object.assign(list.style, {
+                        display: 'block',
+                        top: `${Math.round(top)}px`,
+                        left: `${Math.round(rect.left)}px`,
+                        width: `${Math.round(rect.width)}px`,
+                        maxHeight: `${Math.max(140, maxHeight)}px`,
+                    });
+                };
+                const openList = () => {
+                    if (!document.body.contains(list)) document.body.appendChild(list);
+                    positionList();
+                    custom.classList.add('open');
+                    trigger.setAttribute('aria-expanded', 'true');
+                };
+                const closeList = () => {
+                    custom.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                    list.style.display = 'none';
+                };
+                const toggleOpen = () => {
+                    if (custom.classList.contains('open')) closeList();
+                    else openList();
+                };
+                trigger.addEventListener('click', e => {
+                    e.stopPropagation();
+                    toggleOpen();
+                });
+                document.addEventListener('click', e => {
+                    if (
+                        !custom.contains(e.target) &&
+                        e.target !== list &&
+                        !list.contains(e.target)
+                    ) {
+                        closeList();
+                    }
+                });
+                window.addEventListener('resize', () => {
+                    if (custom.classList.contains('open')) positionList();
+                });
+                window.addEventListener(
+                    'scroll',
+                    () => {
+                        if (custom.classList.contains('open')) positionList();
+                    },
+                    { passive: true }
+                );
+                // keep external changes in sync
+                tvdbCat.addEventListener('change', () => {
+                    ico.className = iconFor(tvdbCat.value);
+                    label.textContent = tvdbCat.options[tvdbCat.selectedIndex]?.text || 'Select';
+                    list.querySelectorAll('.custom-option').forEach(el => {
+                        el.toggleAttribute('aria-selected', el.dataset.value === tvdbCat.value);
+                    });
+                });
+                // Initial sync for trigger and list selection
+                try {
+                    syncCustomSelect(tvdbCat);
+                } catch (_) {}
+            }
+        }
+        document.getElementById('btn-tvdb-test')?.addEventListener('click', testTVDB);
+        document.getElementById('btn-save-plex')?.addEventListener('click', savePlex);
+        document.getElementById('btn-save-jellyfin')?.addEventListener('click', saveJellyfin);
+        document.getElementById('btn-save-tmdb')?.addEventListener('click', saveTMDB);
+        document.getElementById('btn-save-tvdb')?.addEventListener('click', saveTVDB);
+        // Reload genres when user clicks Fetch Libraries (often indicates valid connection)
+        document.getElementById('btn-plex-libraries')?.addEventListener('click', () => {
+            const current = getPlexGenreFilterHidden();
+            loadPlexGenres(current).catch(() => {});
+        });
 
         // Initial population
         loadMediaSources()

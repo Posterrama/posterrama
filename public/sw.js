@@ -78,8 +78,8 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // Always fetch latest admin.js from network (no SW cache). Fallback to cache only if offline.
-    if (url.pathname === '/admin.js') {
+    // Always fetch latest admin scripts from network (no SW cache). Fallback to cache only if offline.
+    if (url.pathname === '/admin.js' || url.pathname === '/admin2.js') {
         event.respondWith(fetch(request, { cache: 'no-store' }).catch(() => caches.match(request)));
         return;
     }

@@ -7,9 +7,69 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Posterrama Admin — Dashboard</title>
+  <!-- PWA: basic meta + manifest so admin2 independently registers the Service Worker -->
+  <meta name="theme-color" content="#1a1d29" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="/theme-demo.css" />
   <style>
+  /* Themed dropdowns */
+  select { 
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 10px; 
+    padding: 8px 36px 8px 10px; 
+    outline: none; 
+    font: inherit; 
+    width: 100%;
+    appearance: none; 
+    -webkit-appearance: none; 
+    -moz-appearance: none;
+  }
+  select:hover { border-color: var(--color-border-light); }
+  select:focus { border-color: var(--color-info); box-shadow: 0 0 0 3px rgba(102,126,234,0.25); }
+  /* Add chevron to non-multiple selects */
+  select:not([multiple]) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23A3AED0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 14px;
+  }
+  /* Wrapper to support leading icon for special selects */
+  .select-wrap { position: relative; }
+  .select-wrap .select-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: .9; }
+  .select-wrap .select-icon i { color: var(--color-text-muted); }
+  .select-wrap select { padding-left: 34px; }
+  /* Custom select (for icon-in-list support) */
+  .select-wrap.has-custom-select { position: relative; }
+  .select-wrap.has-custom-select .select-icon { display: none; }
+  .select-wrap select.enhanced { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+  .custom-select { position: relative; width: 100%; }
+  .custom-select-trigger { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 36px 8px 10px; border-radius: 10px; background: var(--color-bg-card); color: var(--color-text-primary); border: 1px solid var(--color-border); cursor: pointer; font: inherit; }
+  .custom-select-trigger:hover { border-color: var(--color-border-light); }
+  .custom-select-trigger:focus { outline: none; border-color: var(--color-info); box-shadow: 0 0 0 3px rgba(102,126,234,0.25); }
+  .custom-select-trigger .left { display: inline-flex; align-items: center; gap: 8px; }
+  .custom-select-trigger .caret { color: var(--color-text-muted); }
+  .custom-options { position: fixed; z-index: 3002; margin-top: 0; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 10px; box-shadow: var(--shadow-lg); max-height: 260px; overflow: auto; padding: 6px; display: none; }
+  /* visibility toggled via inline styles/js when appended to body */
+  .custom-option { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+  .custom-option:hover { background: var(--color-bg-tertiary); }
+  .custom-option[aria-selected="true"] { background: var(--color-bg-tertiary); box-shadow: inset 3px 0 0 var(--color-info); }
+  .custom-option i { color: var(--color-text-muted); }
+  /* Custom select optgroup header */
+  .custom-optgroup { position: sticky; top: 0; background: var(--color-bg-card); color: var(--color-text-muted); font-size: 0.78rem; letter-spacing: .02em; text-transform: none; padding: 6px 10px; margin: 4px 0 2px; opacity: .9; }
+  @media (prefers-reduced-motion: no-preference) {
+    .custom-options { transition: opacity .12s ease, transform .12s ease; }
+    .custom-select.open .custom-options { opacity: 1; transform: translateY(0); }
+  }
     /* Status tiles styling */
     .status-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
     .status-tile { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
@@ -44,6 +104,16 @@
     .btn .spinner { display:none; }
     .btn.btn-loading .spinner { display:inline-block; }
     .btn.btn-loading i { display:none; }
+    /* Prevent header shift when icon buttons show spinner */
+    .panel-actions .btn.btn-icon.btn-sm {
+      width: 32px;
+      min-width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .panel-actions .btn.btn-icon .spinner { margin-right: 0; }
     .btn[aria-busy="true"] { cursor: progress; opacity: .85; }
 
   /* System Performance redesign (scoped) */
@@ -85,9 +155,11 @@
   #panel-perf-dashboard .accent-amber { background: linear-gradient(180deg, #fbbf24, #b45309); }
   #panel-perf-dashboard .accent-cyan { background: linear-gradient(180deg, #22d3ee, #0e7490); }
   #panel-perf-dashboard .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  /* Sections */
-  .app-section { display: none; }
-  .app-section.active { display: block; }
+  /* Sections: visible by default; hide only when [hidden] is set */
+  .app-section { display: block; }
+  .app-section[hidden] { display: none !important; }
+  /* Safety: ensure Plex panel content is visible */
+  #panel-plex .panel-content { display: block !important; visibility: visible !important; }
   /* Operations panel polish (align with theme-demo) */
   .operations-panel .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .operations-panel .main-actions { margin-top: 8px; }
@@ -135,6 +207,51 @@
   /* Utility */
   .is-hidden { display: none !important; }
 
+  /* Subheader inside panels (e.g., Streaming Releases under TMDB) */
+  .panel-header.panel-sub {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    margin: 8px 0;
+    border-top: 1px dashed rgba(255,255,255,0.08);
+    border-bottom: 1px dashed rgba(255,255,255,0.08);
+  }
+  .panel-header.panel-sub h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    opacity: .92;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* (clean) visibility uses [hidden] default styles in theme */
+  /* Panel loading overlay (prevents default-value flash) */
+  .panel .panel-content { position: relative; }
+  /* Subpanel styling (used inside TMDB for Streaming Releases) */
+  .subpanel { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,0.02); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
+  .subpanel + .subpanel { margin-top: 10px; }
+  .subpanel-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin: -2px 0 8px; }
+  .subpanel-header h3 { margin:0; font-size: 1rem; display:flex; align-items:center; gap:8px; opacity:.95; }
+  .subpanel-body .subtle { opacity:.8; margin-bottom: 8px; }
+  .loading-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2; opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+  .loading-overlay .glass { position: absolute; inset: 0; background: transparent; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-radius: 12px; }
+  .loading-overlay .loader { position: relative; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; box-shadow: none; color: var(--color-text-primary); }
+  .loading-overlay .loader .spinner { margin: 0; width: 20px; height: 20px; border-width: 2px; filter: drop-shadow(0 0 10px rgba(96,165,250,0.35)); }
+  .panel.is-loading .loading-overlay { opacity: 1; pointer-events: auto; }
+  /* Blur/dim content while loading, then fade to sharp */
+  .panel .panel-content > *:not(.loading-overlay) { opacity: 1; transform: none; filter: none; transition: opacity .18s ease, transform .18s ease, filter .18s ease; }
+  .panel.is-loading .panel-content > *:not(.loading-overlay) { opacity: 1; filter: blur(4px); }
+  @media (prefers-reduced-motion: reduce) {
+    .loading-overlay,
+    .panel .panel-content > *:not(.loading-overlay) {
+      transition: none !important;
+    }
+  }
+  
   </style>
 </head>
 <body>
@@ -165,11 +282,47 @@
           </a>
           <a class="dropdown-item" href="https://github.com/Posterrama/posterrama#readme" target="_blank" rel="noopener">
             <i class="fas fa-circle-question"></i>
-            <span>Help</span>
+              <select id="plex.movies" multiple style="display:none"></select>
+              <div class="multiselect" id="plex-ms-movies">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="plex-ms-movies-chips"></div>
+                  <button class="ms-clear" id="plex-ms-movies-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="plex-ms-movies-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="plex-ms-movies-search" type="text" placeholder="Search libraries…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="plex-ms-movies-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="plex-ms-movies-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="plex-ms-movies-options"></div>
+                </div>
+              </div>
           </a>
           <a class="dropdown-item" href="/api-docs" target="_blank" rel="noopener">
             <i class="fas fa-book"></i>
-            <span>API Docs</span>
+              <select id="plex.shows" multiple style="display:none"></select>
+              <div class="multiselect" id="plex-ms-shows">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="plex-ms-shows-chips"></div>
+                  <button class="ms-clear" id="plex-ms-shows-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="plex-ms-shows-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="plex-ms-shows-search" type="text" placeholder="Search libraries…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="plex-ms-shows-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="plex-ms-shows-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="plex-ms-shows-options"></div>
+                </div>
+              </div>
           </a>
           <a class="dropdown-item" href="https://github.com/Posterrama/posterrama" target="_blank" rel="noopener">
             <i class="fab fa-github"></i>
@@ -177,11 +330,47 @@
           </a>
           <a class="dropdown-item" href="https://github.com/Posterrama/posterrama/issues/new/choose" target="_blank" rel="noopener">
             <i class="fas fa-bug"></i>
-            <span>Report an Issue</span>
+              <select id="jf.movies" multiple style="display:none"></select>
+              <div class="multiselect" id="jf-ms-movies">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="jf-ms-movies-chips"></div>
+                  <button class="ms-clear" id="jf-ms-movies-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="jf-ms-movies-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="jf-ms-movies-search" type="text" placeholder="Search libraries…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="jf-ms-movies-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="jf-ms-movies-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="jf-ms-movies-options"></div>
+                </div>
+              </div>
           </a>
           <div class="dropdown-divider"></div>
           <div class="dropdown-heading">Server</div>
-          <a class="dropdown-item" href="#" id="menu-restart" role="button" title="Restart the Posterrama service">
+              <select id="jf.shows" multiple style="display:none"></select>
+              <div class="multiselect" id="jf-ms-shows">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="jf-ms-shows-chips"></div>
+                  <button class="ms-clear" id="jf-ms-shows-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="jf-ms-shows-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="jf-ms-shows-search" type="text" placeholder="Search libraries…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="jf-ms-shows-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="jf-ms-shows-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="jf-ms-shows-options"></div>
+                </div>
+              </div>
             <i class="fas fa-rotate"></i>
             <span>Restart Posterrama</span>
           </a>
@@ -212,10 +401,10 @@
           <i class="fas fa-chevron-down nav-arrow"></i>
         </a>
         <div class="nav-submenu">
-          <a href="#" class="nav-subitem"><i class="fas fa-film"></i><span>Plex</span></a>
-          <a href="#" class="nav-subitem"><i class="fas fa-play"></i><span>Jellyfin</span></a>
-          <a href="#" class="nav-subitem"><i class="fas fa-database"></i><span>TMDB</span></a>
-          <a href="#" class="nav-subitem"><i class="fas fa-tv"></i><span>TVDB</span></a>
+          <a href="#" class="nav-subitem" data-sub="plex"><i class="fas fa-film"></i><span>Plex</span></a>
+          <a href="#" class="nav-subitem" data-sub="jellyfin"><i class="fas fa-play"></i><span>Jellyfin</span></a>
+          <a href="#" class="nav-subitem" data-sub="tmdb"><i class="fas fa-database"></i><span>TMDB</span></a>
+          <a href="#" class="nav-subitem" data-sub="tvdb"><i class="fas fa-tv"></i><span>TVDB</span></a>
         </div>
       </div>
       <a href="#" class="nav-item" data-nav="devices">
@@ -281,188 +470,7 @@
       </div>
     </section>
 
-    <!-- Media Sources Section -->
-    <section id="section-media-sources" class="app-section" hidden>
-      <section class="panel">
-        <header class="panel-header">
-          <h2><i class="fas fa-database"></i> Media Sources</h2>
-          <div class="panel-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="btn-save-sources">
-              <i class="fas fa-save"></i><span>Save Sources</span>
-            </button>
-          </div>
-        </header>
-        <div class="panel-content">
-          <div class="subtle">Configure Plex, Jellyfin, TMDB, and TVDB exactly like the current admin. Test connections and select libraries.</div>
-        </div>
-      </section>
-
-      <!-- Plex Panel -->
-      <section class="panel" id="panel-plex">
-        <header class="panel-header">
-          <h2><i class="fas fa-film"></i> Plex</h2>
-          <div class="panel-actions">
-            <button class="btn btn-icon btn-sm" id="btn-plex-test" title="Test connection"><i class="fas fa-vial"></i></button>
-            <button class="btn btn-icon btn-sm" id="btn-plex-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
-          </div>
-        </header>
-        <div class="panel-content">
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="plex.enabled"><span class="checkmark"></span><span>Enabled</span></label>
-            </div>
-            <div class="form-group">
-              <label for="plex.hostname">Hostname</label>
-              <input type="text" id="plex.hostname" placeholder="e.g. 192.168.1.10">
-            </div>
-            <div class="form-group">
-              <label for="plex.port">Port</label>
-              <input type="number" id="plex.port" min="1" max="65535" placeholder="32400">
-            </div>
-            <div class="form-group">
-              <label for="plex.token">Token</label>
-              <input type="password" id="plex.token" placeholder="X-Plex-Token">
-              <small class="form-help">Stored in environment. Not shown after save.</small>
-            </div>
-          </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="plex.movies">Movie Libraries</label>
-              <select id="plex.movies" multiple></select>
-            </div>
-            <div class="form-group">
-              <label for="plex.shows">Show Libraries</label>
-              <select id="plex.shows" multiple></select>
-            </div>
-          </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="plex.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
-            </div>
-            <div class="form-group">
-              <label for="plex.recentDays">Recently added days</label>
-              <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
-            </div>
-            <div class="form-group">
-              <label for="plex.ratingFilter">Rating filter</label>
-              <input type="text" id="plex.ratingFilter" placeholder="e.g. PG-13, R">
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Jellyfin Panel -->
-      <section class="panel" id="panel-jellyfin">
-        <header class="panel-header">
-          <h2><i class="fas fa-play"></i> Jellyfin</h2>
-          <div class="panel-actions">
-            <button class="btn btn-icon btn-sm" id="btn-jf-test" title="Test connection"><i class="fas fa-vial"></i></button>
-            <button class="btn btn-icon btn-sm" id="btn-jf-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
-          </div>
-        </header>
-        <div class="panel-content">
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="jf.enabled"><span class="checkmark"></span><span>Enabled</span></label>
-            </div>
-            <div class="form-group">
-              <label for="jf.hostname">Hostname</label>
-              <input type="text" id="jf.hostname" placeholder="e.g. 192.168.1.20">
-            </div>
-            <div class="form-group">
-              <label for="jf.port">Port</label>
-              <input type="number" id="jf.port" min="1" max="65535" placeholder="8096">
-            </div>
-            <div class="form-group">
-              <label for="jf.apikey">API Key</label>
-              <input type="password" id="jf.apikey" placeholder="Jellyfin API Key">
-              <small class="form-help">Stored in environment. Not shown after save.</small>
-            </div>
-          </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="jf.movies">Movie Libraries</label>
-              <select id="jf.movies" multiple></select>
-            </div>
-            <div class="form-group">
-              <label for="jf.shows">Show Libraries</label>
-              <select id="jf.shows" multiple></select>
-            </div>
-          </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="jf.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
-            </div>
-            <div class="form-group">
-              <label for="jf.recentDays">Recently added days</label>
-              <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- TMDB Panel -->
-      <section class="panel" id="panel-tmdb">
-        <header class="panel-header">
-          <h2><i class="fas fa-database"></i> TMDB</h2>
-          <div class="panel-actions">
-            <button class="btn btn-icon btn-sm" id="btn-tmdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
-          </div>
-        </header>
-        <div class="panel-content">
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="tmdb.enabled"><span class="checkmark"></span><span>Enabled</span></label>
-            </div>
-            <div class="form-group">
-              <label for="tmdb.apikey">API Key</label>
-              <input type="password" id="tmdb.apikey" placeholder="TMDB API Key">
-            </div>
-            <div class="form-group">
-              <label for="tmdb.category">Category</label>
-              <select id="tmdb.category">
-                <option value="popular">Popular</option>
-                <option value="top_rated">Top Rated</option>
-                <option value="trending">Trending</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="tmdb.minRating">Min Rating</label>
-              <input type="number" id="tmdb.minRating" min="0" max="10" step="0.1" placeholder="0">
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- TVDB Panel -->
-      <section class="panel" id="panel-tvdb">
-        <header class="panel-header">
-          <h2><i class="fas fa-tv"></i> TVDB</h2>
-          <div class="panel-actions">
-            <button class="btn btn-icon btn-sm" id="btn-tvdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
-          </div>
-        </header>
-        <div class="panel-content">
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="tvdb.enabled"><span class="checkmark"></span><span>Enabled</span></label>
-            </div>
-            <div class="form-group">
-              <label for="tvdb.category">Category</label>
-              <select id="tvdb.category">
-                <option value="popular">Popular</option>
-                <option value="trending">Trending</option>
-                <option value="top">Top</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="tvdb.minRating">Min Rating</label>
-              <input type="number" id="tvdb.minRating" min="0" max="10" step="0.1" placeholder="0">
-            </div>
-          </div>
-        </div>
-      </section>
-    </section>
+    
     
 
   <section class="content-grid" style="margin-top: 16px;">
@@ -576,8 +584,455 @@
     </section>
     </section> <!-- /section-dashboard -->
 
+    <!-- Media Sources Section (top-level sibling, not nested under dashboard) -->
+    <section id="section-media-sources" class="app-section" hidden>
+      <section class="panel" id="panel-sources-overview">
+        <header class="panel-header">
+          <h2><i class="fas fa-database"></i> Media Sources</h2>
+          <div class="panel-actions"></div>
+        </header>
+        <div class="panel-content">
+          <div class="subtle">This section explains how Media Sources work. Use the submenu (Plex, Jellyfin, TMDB, TVDB) to configure each source. You can test connections, select libraries, and apply filters within each specific source panel.</div>
+        </div>
+      </section>
+
+      <!-- Plex Panel -->
+      <section class="panel" id="panel-plex">
+        <header class="panel-header">
+          <h2><i class="fas fa-film"></i> Plex</h2>
+          <div class="panel-actions">
+            <button class="btn btn-icon btn-sm" id="btn-plex-test" title="Test connection"><i class="fas fa-vial"></i></button>
+            <button class="btn btn-icon btn-sm" id="btn-plex-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
+            <button class="btn btn-primary btn-sm" id="btn-save-plex" title="Save Plex settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="loading-overlay" aria-hidden="true">
+            <div class="glass"></div>
+            <div class="loader"><span class="spinner"></span></div>
+          </div>
+          <div class="status-line" id="plex-status-line" aria-live="polite" style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+            <span class="status-pill" id="plex-status-pill">Not tested</span>
+            <a href="#" class="url-chip" id="plex-url-chip" hidden target="_blank" rel="noopener">
+              <i class="fas fa-link"></i>
+              <span id="plex-url-text"></span>
+            </a>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="plex.enabled"><span class="checkmark"></span><span>Enabled</span></label>
+            </div>
+            <div class="form-group">
+              <label for="plex.hostname">Hostname</label>
+              <input type="text" id="plex.hostname" placeholder="e.g. 192.168.1.10">
+            </div>
+            <div class="form-group">
+              <label for="plex.port">Port</label>
+              <input type="number" id="plex.port" min="1" max="65535" placeholder="32400">
+            </div>
+            <div class="form-group">
+              <label for="plex.token">Token</label>
+              <input type="password" id="plex.token" placeholder="X-Plex-Token">
+              <small class="form-help">Stored in environment. Not shown after save.</small>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="plex.movies">Movie Libraries</label>
+              <select id="plex.movies" multiple></select>
+            </div>
+            <div class="form-group">
+              <label for="plex.shows">Show Libraries</label>
+              <select id="plex.shows" multiple></select>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="plex.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
+            </div>
+            <div class="form-group">
+              <label for="plex.recentDays">Recently added days</label>
+              <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
+            </div>
+            <div class="form-group">
+              <label for="plex.ratingFilter">Rating filter</label>
+              <input type="text" id="plex.ratingFilter" placeholder="e.g. PG-13, R">
+            </div>
+            <div class="form-group">
+              <label for="plex.qualityFilter">Quality filter</label>
+              <select id="plex.qualityFilter">
+                <option value="">Any</option>
+                <option value="SD">SD</option>
+                <option value="720p">720p</option>
+                <option value="1080p">1080p</option>
+                <option value="4K">4K</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="plex.yearFilter">Release Years</label>
+              <input type="text" id="plex.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
+            </div>
+          </div>
+            <div class="form-grid">
+              <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Genre filter</label>
+                <input type="hidden" id="plex.genreFilter-hidden" value="">
+                <div class="multiselect" id="plex-ms-genres">
+                  <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                    <div class="ms-chips" id="plex-ms-genres-chips"></div>
+                    <button class="ms-clear" id="plex-ms-genres-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                    <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                  </div>
+                  <div class="ms-menu" id="plex-ms-genres-menu" role="listbox">
+                    <div class="ms-search">
+                      <i class="fas fa-search"></i>
+                      <input id="plex-ms-genres-search" type="text" placeholder="Search genres…">
+                    </div>
+                    <div class="ms-actions">
+                      <button class="btn btn-outline btn-sm" id="plex-ms-genres-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                      <button class="btn btn-outline btn-sm" id="plex-ms-genres-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                    </div>
+                    <div class="ms-options" id="plex-ms-genres-options"></div>
+                  </div>
+                </div>
+                <small id="plex-genre-help" class="form-help">Select one or more genres. Populated from Plex.</small>
+              </div>
+            </div>
+        </div>
+      </section>
+
+      <!-- Jellyfin Panel -->
+      <section class="panel" id="panel-jellyfin" hidden>
+        <header class="panel-header">
+          <h2><i class="fas fa-play"></i> Jellyfin</h2>
+          <div class="panel-actions">
+            <button class="btn btn-icon btn-sm" id="btn-jf-test" title="Test connection"><i class="fas fa-vial"></i></button>
+            <button class="btn btn-icon btn-sm" id="btn-jf-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
+            <button class="btn btn-primary btn-sm" id="btn-save-jellyfin" title="Save Jellyfin settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="loading-overlay" aria-hidden="true">
+            <div class="glass"></div>
+            <div class="loader"><span class="spinner"></span></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="jf.enabled"><span class="checkmark"></span><span>Enabled</span></label>
+            </div>
+            <div class="form-group">
+              <label for="jf.hostname">Hostname</label>
+              <input type="text" id="jf.hostname" placeholder="e.g. 192.168.1.20">
+            </div>
+            <div class="form-group">
+              <label for="jf.port">Port</label>
+              <input type="number" id="jf.port" min="1" max="65535" placeholder="8096">
+            </div>
+            <div class="form-group">
+              <label for="jf.apikey">API Key</label>
+              <input type="password" id="jf.apikey" placeholder="Jellyfin API Key">
+              <small class="form-help">Stored in environment. Not shown after save.</small>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="jf.movies">Movie Libraries</label>
+              <select id="jf.movies" multiple></select>
+            </div>
+            <div class="form-group">
+              <label for="jf.shows">Show Libraries</label>
+              <select id="jf.shows" multiple></select>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="jf.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
+            </div>
+            <div class="form-group">
+              <label for="jf.recentDays">Recently added days</label>
+              <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="jf.yearFilter">Release Years</label>
+              <input type="text" id="jf.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TMDB Panel -->
+      <section class="panel" id="panel-tmdb">
+        <header class="panel-header">
+          <h2><i class="fas fa-database"></i> TMDB</h2>
+          <div class="panel-actions">
+            <button class="btn btn-icon btn-sm" id="btn-tmdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
+            <button class="btn btn-primary btn-sm" id="btn-save-tmdb" title="Save TMDB settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="loading-overlay" aria-hidden="true">
+            <div class="glass"></div>
+            <div class="loader"><span class="spinner"></span></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="tmdb.enabled"><span class="checkmark"></span><span>Enabled</span></label>
+            </div>
+            <div class="form-group">
+              <label for="tmdb.apikey">API Key</label>
+              <input type="password" id="tmdb.apikey" placeholder="TMDB API Key">
+            </div>
+            <div class="form-group">
+              <label for="tmdb.category">Category</label>
+              <div class="select-wrap">
+                <span class="select-icon" id="tmdb-category-icon"><i class="fas fa-fire"></i></span>
+                <select id="tmdb.category">
+                  <optgroup label="Movies">
+                    <option value="popular">Popular Movies</option>
+                    <option value="top_rated">Top Rated Movies</option>
+                    <option value="now_playing">Now Playing</option>
+                    <option value="upcoming">Upcoming Movies</option>
+                    <option value="latest">Latest Movies</option>
+                  </optgroup>
+                  <optgroup label="TV Shows">
+                    <option value="tv_popular">Popular TV Shows</option>
+                    <option value="tv_top_rated">Top Rated TV Shows</option>
+                    <option value="tv_on_the_air">Currently Airing</option>
+                    <option value="tv_airing_today">Airing Today</option>
+                    <option value="tv_latest">Latest TV Shows</option>
+                  </optgroup>
+                  <optgroup label="Trending">
+                    <option value="trending_all_day">Trending Today (All)</option>
+                    <option value="trending_movie_day">Trending Movies (Day)</option>
+                    <option value="trending_tv_day">Trending TV (Day)</option>
+                    <option value="trending_all_week">Trending Week (All)</option>
+                    <option value="trending_movie_week">Trending Movies (Week)</option>
+                    <option value="trending_tv_week">Trending TV (Week)</option>
+                  </optgroup>
+                  <optgroup label="Collections">
+                    <option value="discover_movie">Discover Movies</option>
+                    <option value="discover_tv">Discover TV Shows</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="tmdb.minRating">Min Rating</label>
+              <input type="number" id="tmdb.minRating" min="0" max="10" step="0.1" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label for="tmdb.yearFilter">Release Years</label>
+              <input type="text" id="tmdb.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
+              
+            </div>
+          </div>
+            <div class="form-grid">
+              <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Genre filter</label>
+                <input type="hidden" id="tmdb.genreFilter-hidden" value="">
+                <div class="multiselect" id="tmdb-ms-genres">
+                  <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                    <div class="ms-chips" id="tmdb-ms-genres-chips"></div>
+                    <button class="ms-clear" id="tmdb-ms-genres-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                    <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                  </div>
+                  <div class="ms-menu" id="tmdb-ms-genres-menu" role="listbox">
+                    <div class="ms-search">
+                      <i class="fas fa-search"></i>
+                      <input id="tmdb-ms-genres-search" type="text" placeholder="Search genres…">
+                    </div>
+                    <div class="ms-actions">
+                      <button class="btn btn-outline btn-sm" id="tmdb-ms-genres-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                      <button class="btn btn-outline btn-sm" id="tmdb-ms-genres-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                    </div>
+                    <div class="ms-options" id="tmdb-ms-genres-options"></div>
+                  </div>
+                </div>
+                <small id="tmdb-genre-help" class="form-help">Select one or more genres. Populated from TMDB.</small>
+              </div>
+            </div>
+
+          <!-- Streaming Releases (TMDB-based) -->
+          <div class="form-divider" aria-hidden="true"></div>
+          <section class="subpanel" id="subpanel-streaming">
+            <header class="subpanel-header">
+              <h3>
+                <i class="fas fa-stream" aria-hidden="true"></i>
+                <span>Streaming Releases</span>
+              </h3>
+              <div class="panel-actions">
+                <button class="btn btn-icon btn-sm" id="test-streaming-button" title="Test Streaming"><i class="fas fa-vial"></i></button>
+              </div>
+            </header>
+            <div class="subpanel-body">
+              <div class="subtle">Add latest releases from popular streaming platforms using TMDB's provider data.</div>
+              <small id="streaming-connection-status" class="form-help"></small>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="streamingSources.enabled"><span class="checkmark"></span><span>Enabled</span></label>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label>Streaming Providers</label>
+              <select id="streaming.providers" multiple style="display:none"></select>
+              <div class="multiselect" id="streaming-ms-providers">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="streaming-ms-providers-chips"></div>
+                  <div class="placeholder">Select streaming providers</div>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="streaming-ms-providers-menu" role="listbox">
+                  <div class="ms-actions">
+                    <input type="text" id="streaming-ms-providers-search" placeholder="Search providers" aria-label="Search providers">
+                    <div class="ms-actions-buttons">
+                      <button class="btn btn-outline btn-sm" id="streaming-ms-providers-select-all"><i class="fas fa-plus"></i> Select all</button>
+                      <button class="btn btn-outline btn-sm" id="streaming-ms-providers-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                    </div>
+                  </div>
+                  <div class="ms-options" id="streaming-ms-providers-options"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="streamingSources.newReleases"><span class="checkmark"></span><span>New Releases (Selected)</span></label>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="streamingSources.region">Region</label>
+              <select id="streamingSources.region">
+                <option value="US">🇺🇸 United States</option>
+                <option value="NL">🇳🇱 Netherlands</option>
+                <option value="GB">🇬🇧 United Kingdom</option>
+                <option value="DE">🇩🇪 Germany</option>
+                <option value="FR">🇫🇷 France</option>
+                <option value="CA">🇨🇦 Canada</option>
+                <option value="AU">🇦🇺 Australia</option>
+                <option value="ES">🇪🇸 Spain</option>
+                <option value="IT">🇮🇹 Italy</option>
+                <option value="BR">🇧🇷 Brazil</option>
+                <option value="MX">🇲🇽 Mexico</option>
+                <option value="AR">🇦🇷 Argentina</option>
+                <option value="JP">🇯🇵 Japan</option>
+                <option value="KR">🇰🇷 South Korea</option>
+                <option value="IN">🇮🇳 India</option>
+                <option value="CN">🇨🇳 China</option>
+                <option value="RU">🇷🇺 Russia</option>
+                <option value="BE">🇧🇪 Belgium</option>
+                <option value="AT">🇦🇹 Austria</option>
+                <option value="CH">🇨🇭 Switzerland</option>
+                <option value="SE">🇸🇪 Sweden</option>
+                <option value="NO">🇳🇴 Norway</option>
+                <option value="DK">🇩🇰 Denmark</option>
+                <option value="FI">🇫🇮 Finland</option>
+                <option value="PL">🇵🇱 Poland</option>
+                <option value="CZ">🇨🇿 Czech Republic</option>
+                <option value="HU">🇭🇺 Hungary</option>
+                <option value="PT">🇵🇹 Portugal</option>
+                <option value="GR">🇬🇷 Greece</option>
+                <option value="TR">🇹🇷 Turkey</option>
+                <option value="IL">🇮🇱 Israel</option>
+                <option value="ZA">🇿🇦 South Africa</option>
+                <option value="EG">🇪🇬 Egypt</option>
+                <option value="SA">🇸🇦 Saudi Arabia</option>
+                <option value="AE">🇦🇪 United Arab Emirates</option>
+                <option value="TH">🇹🇭 Thailand</option>
+                <option value="SG">🇸🇬 Singapore</option>
+                <option value="MY">🇲🇾 Malaysia</option>
+                <option value="ID">🇮🇩 Indonesia</option>
+                <option value="PH">🇵🇭 Philippines</option>
+                <option value="VN">🇻🇳 Vietnam</option>
+                <option value="TW">🇹🇼 Taiwan</option>
+                <option value="HK">🇭🇰 Hong Kong</option>
+                <option value="NZ">🇳🇿 New Zealand</option>
+                <option value="CL">🇨🇱 Chile</option>
+                <option value="CO">🇨🇴 Colombia</option>
+                <option value="PE">🇵🇪 Peru</option>
+                <option value="VE">🇻🇪 Venezuela</option>
+                <option value="UY">🇺🇾 Uruguay</option>
+                <option value="EC">🇪🇨 Ecuador</option>
+                <option value="BO">🇧🇴 Bolivia</option>
+                <option value="PY">🇵🇾 Paraguay</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="streamingSources.minRating">Minimum Rating (0-10)</label>
+              <input type="number" id="streamingSources.minRating" min="0" max="10" step="0.1" placeholder="6.0">
+            </div>
+          </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- TVDB Panel -->
+      <section class="panel" id="panel-tvdb">
+        <header class="panel-header">
+          <h2><i class="fas fa-tv"></i> TVDB</h2>
+          <div class="panel-actions">
+            <button class="btn btn-icon btn-sm" id="btn-tvdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
+            <button class="btn btn-primary btn-sm" id="btn-save-tvdb" title="Save TVDB settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="loading-overlay" aria-hidden="true">
+            <div class="glass"></div>
+            <div class="loader"><span class="spinner"></span></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="tvdb.enabled"><span class="checkmark"></span><span>Enabled</span></label>
+            </div>
+            <div class="form-group">
+              <label for="tvdb.category">Category</label>
+              <div class="select-wrap">
+                <span class="select-icon" id="tvdb-category-icon"><i class="fas fa-fire"></i></span>
+                <select id="tvdb.category">
+                <optgroup label="By Rating & Popularity">
+                  <option value="top_rated">Top Rated</option>
+                  <option value="popular">Most Popular</option>
+                </optgroup>
+                <optgroup label="By Date">
+                  <option value="recently_updated">Recently Updated</option>
+                  <option value="newest">Newest Releases</option>
+                  <option value="oldest">Classic Content</option>
+                </optgroup>
+                <optgroup label="By Activity">
+                  <option value="trending">Trending Now</option>
+                  <option value="recently_added">Recently Added to TVDB</option>
+                </optgroup>
+                <optgroup label="Alphabetical">
+                  <option value="alphabetical">A-Z Order</option>
+                </optgroup>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="tvdb.minRating">Min Rating</label>
+              <input type="number" id="tvdb.minRating" min="0" max="10" step="0.1" placeholder="e.g. 7.0">
+            </div>
+            <div class="form-group">
+              <label for="tvdb.yearFilter">Release Years</label>
+              <input type="text" id="tvdb.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
+              
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
     <!-- Operations Section (top-level sibling) -->
-  <section id="section-operations" class="app-section">
+  <section id="section-operations" class="app-section" hidden>
     <section class="panel operations-panel">
         <header class="panel-header">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;">
@@ -703,8 +1158,8 @@
       </section>
     </section>
 
-    <!-- Security Section -->
-    <section id="section-security" class="app-section">
+  <!-- Security Section -->
+  <section id="section-security" class="app-section" hidden>
       <section class="panel security-panel">
         <header class="panel-header">
           <h2><i class="fas fa-shield-alt"></i> Security</h2>
@@ -862,6 +1317,14 @@
 
   <script src="/notify.js"></script>
   <script src="/admin2.js"></script>
+  <!-- PWA Service Worker Registration (admin2) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => { /* silent */ });
+      });
+    }
+  </script>
 </body>
 </html>
 

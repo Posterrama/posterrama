@@ -437,8 +437,22 @@ class TMDBSource {
                     return `/discover/tv?page=${page}&with_watch_providers=119&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
                 case 'streaming_hbo':
                     return `/discover/tv?page=${page}&with_watch_providers=1899&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
-                case 'streaming_new_releases':
-                    return `/discover/tv?page=${page}&with_watch_providers=8|337|119|1899&watch_region=${this.getWatchRegion()}&sort_by=release_date.desc&first_air_date.gte=${this.getRecentDate()}`;
+                case 'streaming_hulu':
+                    return `/discover/tv?page=${page}&with_watch_providers=15&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+                case 'streaming_apple':
+                    return `/discover/tv?page=${page}&with_watch_providers=350&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+                case 'streaming_paramount':
+                    return `/discover/tv?page=${page}&with_watch_providers=531&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+                case 'streaming_crunchyroll':
+                    return `/discover/tv?page=${page}&with_watch_providers=283&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+                case 'streaming_new_releases': {
+                    const ids =
+                        Array.isArray(this.source.withWatchProviders) &&
+                        this.source.withWatchProviders.length
+                            ? this.source.withWatchProviders.join('|')
+                            : '8|337|119|1899|15|350|531|283';
+                    return `/discover/tv?page=${page}&with_watch_providers=${ids}&watch_region=${this.getWatchRegion()}&sort_by=release_date.desc&first_air_date.gte=${this.getRecentDate()}`;
+                }
                 default:
                     // If category doesn't start with tv_ but type is tv, map movie categories to tv
                     switch (category) {
@@ -461,8 +475,22 @@ class TMDBSource {
                             return `/discover/tv?page=${page}&with_watch_providers=119&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
                         case 'streaming_hbo':
                             return `/discover/tv?page=${page}&with_watch_providers=1899&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
-                        case 'streaming_new_releases':
-                            return `/discover/tv?page=${page}&with_watch_providers=8|337|119|1899&watch_region=${this.getWatchRegion()}&sort_by=first_air_date.desc&first_air_date.gte=${this.getRecentDate()}`;
+                        case 'streaming_hulu':
+                            return `/discover/tv?page=${page}&with_watch_providers=15&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+                        case 'streaming_apple':
+                            return `/discover/tv?page=${page}&with_watch_providers=350&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+                        case 'streaming_paramount':
+                            return `/discover/tv?page=${page}&with_watch_providers=531&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+                        case 'streaming_crunchyroll':
+                            return `/discover/tv?page=${page}&with_watch_providers=283&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+                        case 'streaming_new_releases': {
+                            const ids =
+                                Array.isArray(this.source.withWatchProviders) &&
+                                this.source.withWatchProviders.length
+                                    ? this.source.withWatchProviders.join('|')
+                                    : '8|337|119|1899|15|350|531|283';
+                            return `/discover/tv?page=${page}&with_watch_providers=${ids}&watch_region=${this.getWatchRegion()}&sort_by=first_air_date.desc&first_air_date.gte=${this.getRecentDate()}`;
+                        }
                         default:
                             return `/tv/popular?page=${page}`;
                     }
@@ -490,8 +518,22 @@ class TMDBSource {
                 return `/discover/movie?page=${page}&with_watch_providers=119&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
             case 'streaming_hbo':
                 return `/discover/movie?page=${page}&with_watch_providers=1899&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
-            case 'streaming_new_releases':
-                return `/discover/movie?page=${page}&with_watch_providers=8|337|119|1899&watch_region=${this.getWatchRegion()}&sort_by=release_date.desc&primary_release_date.gte=${this.getRecentDate()}`;
+            case 'streaming_hulu':
+                return `/discover/movie?page=${page}&with_watch_providers=15&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+            case 'streaming_apple':
+                return `/discover/movie?page=${page}&with_watch_providers=350&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+            case 'streaming_paramount':
+                return `/discover/movie?page=${page}&with_watch_providers=531&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+            case 'streaming_crunchyroll':
+                return `/discover/movie?page=${page}&with_watch_providers=283&watch_region=${this.getWatchRegion()}&sort_by=popularity.desc`;
+            case 'streaming_new_releases': {
+                const ids =
+                    Array.isArray(this.source.withWatchProviders) &&
+                    this.source.withWatchProviders.length
+                        ? this.source.withWatchProviders.join('|')
+                        : '8|337|119|1899|15|350|531|283';
+                return `/discover/movie?page=${page}&with_watch_providers=${ids}&watch_region=${this.getWatchRegion()}&sort_by=release_date.desc&primary_release_date.gte=${this.getRecentDate()}`;
+            }
             default:
                 return `/movie/popular?page=${page}`;
         }
@@ -689,18 +731,47 @@ class TMDBSource {
             }
         }
 
-        // Year filter
+        // Year filter: supports single number (>=) or string lists/ranges (e.g., "2010, 2011, 1910-1920")
         if (this.source.yearFilter) {
-            filteredItems = filteredItems.filter(item => {
-                const releaseDate = type === 'movie' ? item.release_date : item.first_air_date;
-                if (!releaseDate) return false;
-                const year = new Date(releaseDate).getFullYear();
-                return year >= this.source.yearFilter;
-            });
-            if (this.isDebug) {
-                logger.debug(
-                    `[TMDBSource:${this.source.name}] Year filter (>=${this.source.yearFilter}): ${filteredItems.length} items.`
-                );
+            const expr = this.source.yearFilter;
+            let allow;
+            if (typeof expr === 'number') {
+                const minY = expr;
+                allow = y => y >= minY;
+            } else if (typeof expr === 'string') {
+                const parts = expr
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean);
+                const ranges = [];
+                for (const p of parts) {
+                    const m1 = p.match(/^\d{4}$/);
+                    const m2 = p.match(/^(\d{4})\s*-\s*(\d{4})$/);
+                    if (m1) {
+                        const y = Number(m1[0]);
+                        if (y >= 1900) ranges.push([y, y]);
+                    } else if (m2) {
+                        const a = Number(m2[1]);
+                        const b = Number(m2[2]);
+                        if (a >= 1900 && b >= a) ranges.push([a, b]);
+                    }
+                }
+                if (ranges.length) {
+                    allow = y => ranges.some(([a, b]) => y >= a && y <= b);
+                }
+            }
+            if (allow) {
+                filteredItems = filteredItems.filter(item => {
+                    const releaseDate = type === 'movie' ? item.release_date : item.first_air_date;
+                    if (!releaseDate) return false;
+                    const year = new Date(releaseDate).getFullYear();
+                    return allow(year);
+                });
+                if (this.isDebug) {
+                    logger.debug(
+                        `[TMDBSource:${this.source.name}] Year filter (${typeof expr === 'number' ? `>=${expr}` : expr}): ${filteredItems.length} items.`
+                    );
+                }
             }
         }
 

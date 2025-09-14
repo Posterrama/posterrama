@@ -188,23 +188,56 @@ class JellyfinSource {
                 );
             }
 
-            // Filter items based on ratings (CommunityRating, OfficialRating, UserData.Rating)
+            // First stage: Year and Genre filters (apply early for performance)
             let filteredItems = allItems.filter(item => {
-                // Apply Rotten Tomatoes minimum score filter using CommunityRating
-                if (this.rtMinScore > 0 && item.CommunityRating) {
-                    // CommunityRating is typically 0-10, convert RT percentage to 0-10 scale for comparison
-                    const rtScoreAsRating = this.rtMinScore / 10; // Convert percentage to 0-10 scale
-                    if (item.CommunityRating < rtScoreAsRating) {
-                        if (this.isDebug) {
-                            logger.debug(
-                                `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - CommunityRating ${item.CommunityRating} below threshold ${rtScoreAsRating}`
-                            );
+                // Release Years filter
+                if (this.server.yearFilter) {
+                    const expr = this.server.yearFilter;
+                    let allow;
+                    if (typeof expr === 'number') {
+                        const minY = expr;
+                        allow = y => y >= minY;
+                    } else if (typeof expr === 'string') {
+                        const parts = expr
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(Boolean);
+                        const ranges = [];
+                        for (const p of parts) {
+                            const m1 = p.match(/^\d{4}$/);
+                            const m2 = p.match(/^(\d{4})\s*-\s*(\d{4})$/);
+                            if (m1) {
+                                const y = Number(m1[0]);
+                                if (y >= 1900) ranges.push([y, y]);
+                            } else if (m2) {
+                                const a = Number(m2[1]);
+                                const b = Number(m2[2]);
+                                if (a >= 1900 && b >= a) ranges.push([a, b]);
+                            }
                         }
-                        return false;
+                        if (ranges.length) {
+                            allow = y => ranges.some(([a, b]) => y >= a && y <= b);
+                        }
+                    }
+                    if (allow) {
+                        let year = undefined;
+                        if (item.ProductionYear != null) {
+                            const y = Number(item.ProductionYear);
+                            year = Number.isFinite(y) ? y : undefined;
+                        }
+                        if (year == null && item.PremiereDate) {
+                            const d = new Date(item.PremiereDate);
+                            if (!Number.isNaN(d.getTime())) year = d.getFullYear();
+                        }
+                        if (year == null && item.DateCreated) {
+                            const d = new Date(item.DateCreated);
+                            if (!Number.isNaN(d.getTime())) year = d.getFullYear();
+                        }
+                        if (year == null || !allow(year)) return false;
                     }
                 }
 
-                // Apply genre filter if configured
+                // Genre filter if configured
                 if (this.server.genreFilter && this.server.genreFilter.trim() !== '') {
                     const genreList = this.server.genreFilter
                         .split(',')
@@ -232,6 +265,27 @@ class JellyfinSource {
                         return false;
                     }
                 }
+
+                return true;
+            });
+
+            // Next stage: rating/quality/RT filters
+            filteredItems = filteredItems.filter(item => {
+                // Apply Rotten Tomatoes minimum score filter using CommunityRating
+                if (this.rtMinScore > 0 && item.CommunityRating) {
+                    // CommunityRating is typically 0-10, convert RT percentage to 0-10 scale for comparison
+                    const rtScoreAsRating = this.rtMinScore / 10; // Convert percentage to 0-10 scale
+                    if (item.CommunityRating < rtScoreAsRating) {
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - CommunityRating ${item.CommunityRating} below threshold ${rtScoreAsRating}`
+                            );
+                        }
+                        return false;
+                    }
+                }
+
+                // genre already applied above
 
                 // Apply quality filter if configured
                 if (this.server.qualityFilter && this.server.qualityFilter.trim() !== '') {
@@ -392,6 +446,8 @@ class JellyfinSource {
                     );
                 }
             }
+
+            // Year filter already applied above
 
             if (this.isDebug) {
                 console.log(

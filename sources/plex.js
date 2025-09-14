@@ -186,6 +186,61 @@ class PlexSource {
     applyContentFiltering(items) {
         let filteredItems = [...items];
 
+        // Release Years filter (apply early for performance)
+        if (this.server.yearFilter) {
+            const expr = this.server.yearFilter;
+            let allow;
+            if (typeof expr === 'number') {
+                const minY = expr;
+                allow = y => y >= minY;
+            } else if (typeof expr === 'string') {
+                const parts = expr
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean);
+                const ranges = [];
+                for (const p of parts) {
+                    const m1 = p.match(/^\d{4}$/);
+                    const m2 = p.match(/^(\d{4})\s*-\s*(\d{4})$/);
+                    if (m1) {
+                        const y = Number(m1[0]);
+                        if (y >= 1900) ranges.push([y, y]);
+                    } else if (m2) {
+                        const a = Number(m2[1]);
+                        const b = Number(m2[2]);
+                        if (a >= 1900 && b >= a) ranges.push([a, b]);
+                    }
+                }
+                if (ranges.length) {
+                    allow = y => ranges.some(([a, b]) => y >= a && y <= b);
+                }
+            }
+            if (allow) {
+                filteredItems = filteredItems.filter(item => {
+                    // Plex provides year as item.year (number) or originallyAvailableAt (date string)
+                    let year = undefined;
+                    if (item.year != null) {
+                        const y = Number(item.year);
+                        year = Number.isFinite(y) ? y : undefined;
+                    }
+                    if (year == null && item.originallyAvailableAt) {
+                        const d = new Date(item.originallyAvailableAt);
+                        if (!Number.isNaN(d.getTime())) year = d.getFullYear();
+                    }
+                    if (year == null && item.firstAired) {
+                        const d = new Date(item.firstAired);
+                        if (!Number.isNaN(d.getTime())) year = d.getFullYear();
+                    }
+                    if (year == null) return false;
+                    return allow(year);
+                });
+                if (this.isDebug)
+                    logger.debug(
+                        `[PlexSource:${this.server.name}] Year filter (${this.server.yearFilter}): ${filteredItems.length} items.`
+                    );
+            }
+        }
+
         // Rating filter (support both string and array formats)
         if (this.server.ratingFilter) {
             let hasValidRatingFilter = false;
