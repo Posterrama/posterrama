@@ -462,7 +462,11 @@
                     const el = document.getElementById(id);
                     if (!el) return;
                     const num = Number(val);
-                    el.textContent = val || '—';
+                    const displayVal = Number.isFinite(num) ? String(val) : '—';
+                    // include the small label inside the chip
+                    el.innerHTML = label
+                        ? `<span style="opacity:.8;font-size:.75em;margin-right:6px;">${label}</span><span>${displayVal}</span>`
+                        : displayVal;
                     // tooltip for clarity
                     if (label) el.setAttribute('title', `${label} load average: ${val || '—'}`);
                     // simple thresholds: <1 good, 1-2 busy, >2 overloaded
