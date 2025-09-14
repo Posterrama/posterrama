@@ -18,7 +18,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="/theme-demo.css" />
+  <link rel="stylesheet" href="/theme-demo.css?v=20250906-8" />
   <style>
   /* Themed dropdowns */
   select { 
@@ -84,6 +84,258 @@
   .dropdown-menu a.dropdown-item:hover,
     .dropdown-menu a.dropdown-item:focus { text-decoration: none; }
   .dropdown-menu .dropdown-divider { height:1px; background: rgba(255,255,255,0.08); margin:6px 0; }
+  
+  /* Modern Dropdown Menu Styling */
+  .dropdown-menu {
+    position: absolute !important;
+    top: calc(100% + 8px) !important; /* Position below header with 8px gap */
+    min-width: 240px !important;
+    max-width: 280px !important;
+    padding: 8px !important;
+    margin: 0 !important;
+    z-index: 2000 !important;
+    display: block !important; /* Override any display: none */
+    
+    /* Modern glassmorphism design using theme colors */
+    background: linear-gradient(135deg, 
+      var(--color-bg-card) 0%,
+      var(--color-bg-tertiary) 50%,
+      var(--color-bg-card) 100%) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--border-radius-lg) !important;
+    
+    box-shadow: var(--shadow-lg) !important;
+    
+    /* Animation */
+    opacity: 0 !important;
+    transform: translateY(-8px) scale(0.98) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    pointer-events: none !important;
+  }
+  
+  .dropdown-menu.show {
+    opacity: 1 !important;
+    transform: translateY(0) scale(1) !important;
+    pointer-events: auto !important;
+  }
+  
+  /* Settings menu (left) positioning - MORE SPECIFIC */
+  #settings-dropdown #settings-menu,
+  #settings-menu {
+    left: 12px !important;
+    right: auto !important;
+    transform-origin: left top !important;
+  }
+  
+  /* User menu (right) positioning - MORE SPECIFIC */
+  #user-dropdown #user-menu,
+  #user-menu {
+    right: 12px !important;
+    left: auto !important;
+    transform-origin: right top !important;
+  }
+  
+  /* Force settings menu to left with extreme specificity */
+  body .dropdown #settings-menu,
+  body #settings-dropdown #settings-menu {
+    left: auto !important;
+    right: -20px !important;
+    margin-top: 4px !important;
+    margin-right: 0px !important;
+    transform: none !important;
+    top: calc(100% + 8px) !important;
+    position: absolute !important;
+  }
+  
+  /* Force user menu to right with extreme specificity */  
+  body .dropdown #user-menu,
+  body #user-dropdown #user-menu,
+  body .dropdown-menu.dropdown-right#user-menu,
+  body #user-dropdown .dropdown-menu.dropdown-right#user-menu {
+    right: 0px !important;
+    left: unset !important;
+    margin-top: -30px !important;
+    margin-right: 12px !important;
+    transform: none !important;
+    top: calc(100% + 8px) !important;
+    position: absolute !important;
+  }
+  
+  /* Dropdown items */
+  .dropdown-menu .dropdown-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 12px 14px !important;
+    margin: 2px 0 !important;
+    border-radius: var(--border-radius-md) !important;
+    color: var(--color-text-primary) !important;
+    text-decoration: none !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    border: 1px solid transparent !important;
+    transition: all 0.15s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+  
+  .dropdown-menu .dropdown-item:before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.03) 0%,
+      rgba(255, 255, 255, 0.06) 50%,
+      rgba(255, 255, 255, 0.03) 100%) !important;
+    opacity: 0 !important;
+    transition: opacity 0.15s ease !important;
+    z-index: -1 !important;
+  }
+  
+  .dropdown-menu .dropdown-item:hover:before {
+    opacity: 1 !important;
+  }
+  
+  .dropdown-menu .dropdown-item:hover {
+    background: var(--color-bg-hover) !important;
+    border-color: var(--color-border-hover) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--shadow-sm) !important;
+  }
+  
+  .dropdown-menu .dropdown-item i {
+    width: 18px !important;
+    height: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 14px !important;
+    opacity: 0.8 !important;
+    transition: opacity 0.15s ease !important;
+    color: var(--color-text-secondary) !important;
+  }
+  
+  .dropdown-menu .dropdown-item:hover i {
+    opacity: 1 !important;
+    color: var(--color-text-primary) !important;
+  }
+  
+  /* Special styling for danger items */
+  .dropdown-menu .dropdown-item.text-danger:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+    color: #fca5a5 !important;
+  }
+  
+  /* Dropdown divider */
+  .dropdown-menu .dropdown-divider {
+    height: 1px !important;
+    background: linear-gradient(90deg, 
+      transparent 0%,
+      var(--color-border) 20%,
+      var(--color-border-hover) 50%,
+      var(--color-border) 80%,
+      transparent 100%) !important;
+    margin: 8px 6px !important;
+    border: none !important;
+  }
+  
+  /* Dropdown heading */
+  .dropdown-menu .dropdown-heading {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: var(--color-text-secondary) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    padding: 8px 14px 4px !important;
+    margin-bottom: 4px !important;
+  }
+  
+  /* Dropdown items */
+  .dropdown-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    margin: 2px 0;
+    border-radius: 12px;
+    color: var(--color-text-primary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .dropdown-menu .dropdown-item:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.03) 0%,
+      rgba(255, 255, 255, 0.06) 50%,
+      rgba(255, 255, 255, 0.03) 100%);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: -1;
+  }
+  
+  .dropdown-menu .dropdown-item:hover:before {
+    opacity: 1;
+  }
+  
+  .dropdown-menu .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .dropdown-menu .dropdown-item i {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    opacity: 0.8;
+    transition: opacity 0.15s ease;
+  }
+  
+  .dropdown-menu .dropdown-item:hover i {
+    opacity: 1;
+  }
+  
+  /* Special styling for danger items */
+  .dropdown-menu .dropdown-item.text-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+  }
+  
+  /* Dropdown divider */
+  .dropdown-menu .dropdown-divider {
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 20%,
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0.08) 80%,
+      transparent 100%);
+    margin: 8px 6px;
+    border: none;
+  }
     /* Toasts – theme alignment, bottom-right placement */
   .toast-container { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 3001; }
     .toast { display: flex; align-items: flex-start; gap: 10px; min-width: 260px; max-width: 360px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(20,20,28,0.95); color: var(--color-text-primary, #E5E7EB); box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05); opacity: 0; transform: translateY(8px); transition: opacity .18s ease, transform .18s ease; }
@@ -160,16 +412,14 @@
   /* Safety: ensure Plex panel content is visible */
   #panel-plex .panel-content { display: block !important; visibility: visible !important; }
   /* Operations panel polish (align with theme-demo) */
-  /* Ensure Operations/Security panels use the same panel background as theme-demo */
-  .operations-panel,
-  .security-panel {
+  /* Ensure Operations panel uses the same panel background as theme-demo */
+  .operations-panel {
     background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
     border: 1px solid var(--color-border) !important;
     border-radius: var(--border-radius-lg) !important;
     box-shadow: var(--shadow-md) !important;
   }
-  .operations-panel > .panel-header,
-  .security-panel > .panel-header {
+  .operations-panel > .panel-header {
     background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card)) !important;
     border-bottom: 1px solid var(--color-border) !important;
   }
@@ -208,34 +458,15 @@
   #backups-display { border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 10px; }
   #backups-content { display: grid; gap: 8px; }
   #backups-content .backup-item { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); border-radius:10px; }
-  /* Security panel – compact layout */
-  /* Match inner card backgrounds to theme across both panels */
-  .operations-panel .perf-card,
-  .security-panel .perf-card {
+  /* Operations panel – compact layout */
+  /* Match inner card backgrounds to theme across panels */
+  .operations-panel .perf-card {
     background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04);
   }
-  .security-panel .perf-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px 12px; }
   .operations-panel .perf-card { position: relative; background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
-  .security-panel .perf-card h3 { margin: 0 0 8px 0; font-weight: 700; opacity: .92; display:flex; align-items:center; gap:8px; }
-  .security-panel .metric-row { gap: 8px; }
-  .security-panel .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-  .security-panel .subtle { opacity: .8; }
-  .security-panel .input-row { display:flex; gap:8px; align-items:center; }
-  .security-panel .input-row .btn.btn-icon { min-width: 36px; height: 36px; display:flex; align-items:center; justify-content:center; }
-  .security-panel .input-row input { flex: 1; min-width: 0; }
-  .security-panel .note { font-size:.85rem; opacity:.75; }
-  .security-panel .perf-columns { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
-  .security-panel .sec-col { display: flex; flex-direction: column; gap: 10px; }
-  .security-panel .perf-card + .perf-card { margin-top: 0; }
-  .security-panel .perf-card { margin-bottom: 0; }
-  @media (max-width: 900px) {
-    .security-panel .perf-columns { grid-template-columns: 1fr !important; }
-  }
-  /* Single-column grid helper for stacked fields */
-  .security-panel .form-grid.form-single-col { grid-template-columns: 1fr; gap: 8px; }
   /* Utility */
   .is-hidden { display: none !important; }
 
@@ -284,6 +515,86 @@
     .panel .panel-content > *:not(.loading-overlay) {
       transition: none !important;
     }
+  }
+  
+  /* Media Sources Help Cards */
+  .card-description {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 12px;
+  }
+  .card-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .card-features li {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-bottom: 6px;
+    padding-left: 12px;
+    position: relative;
+  }
+  .card-features li:before {
+    content: "•";
+    color: rgba(255,255,255,0.6);
+    position: absolute;
+    left: 0;
+  }
+  .card-steps {
+    margin-top: 8px;
+  }
+  .card-steps .step {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-bottom: 6px;
+    padding-left: 0;
+  }
+  .card-tips {
+    margin-top: 8px;
+  }
+  .card-tips .tip {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  /* Force correct icon colors for Media Sources cards */
+  #section-media-sources .status-card.status-info .card-icon i {
+    color: var(--color-info) !important;
+  }
+  #section-media-sources .status-card.status-success .card-icon i {
+    color: var(--color-success) !important;
+  }
+  #section-media-sources .status-card.status-warning .card-icon i {
+    color: var(--color-warning) !important;
+  }
+  #section-media-sources .status-card.status-error .card-icon i {
+    color: var(--color-error) !important;
+  }
+  #section-media-sources .status-card.status-primary .card-icon i {
+    color: var(--color-primary) !important;
+  }
+  #section-media-sources .status-card.status-secondary .card-icon i {
+    color: var(--color-secondary) !important;
+  }
+  #section-media-sources .status-card.status-accent .card-icon i {
+    color: var(--color-accent) !important;
+  }
+
+  /* Border-left colors for all status types */
+  #section-media-sources .status-card.status-primary {
+    border-left-color: var(--color-primary) !important;
+  }
+  #section-media-sources .status-card.status-secondary {
+    border-left-color: var(--color-secondary) !important;
+  }
+  #section-media-sources .status-card.status-accent {
+    border-left-color: var(--color-accent) !important;
+  }
+  #section-media-sources .status-card.status-error {
+    border-left-color: var(--color-error) !important;
   }
   
   </style>
@@ -375,7 +686,7 @@
         <i class="fas fa-desktop"></i>
         <span>Display Settings</span>
       </a>
-      <div class="nav-group open">
+      <div class="nav-group">
         <a href="#" class="nav-item nav-toggle">
           <i class="fas fa-server"></i>
           <span>Media Sources</span>
@@ -395,7 +706,6 @@
           <span class="nav-badge">BETA</span>
         </span>
       </a>
-      <a href="#" class="nav-item" data-nav="security"><i class="fas fa-shield-alt"></i><span>Security</span></a>
       <a href="#" class="nav-item" data-nav="operations"><i class="fas fa-screwdriver-wrench"></i><span>Operations</span></a>
     </nav>
   <div class="sidebar-footer"></div>
@@ -559,7 +869,139 @@
           <div class="panel-actions"></div>
         </header>
         <div class="panel-content">
-          <div class="subtle">This section explains how Media Sources work. Use the submenu (Plex, Jellyfin, TMDB, TVDB) to configure each source. You can test connections, select libraries, and apply filters within each specific source panel.</div>
+          <div class="help-content">
+
+            <!-- Sources Card Grid -->
+            <section class="card-grid" style="margin-bottom: 24px;">
+              <!-- Plex Card -->
+              <div class="status-card status-primary">
+                <div class="card-icon">
+                  <i class="fas fa-film"></i>
+                </div>
+                <div class="card-content">
+                  <h3>Plex Media Server</h3>
+                  <div class="card-description">Your personal media library</div>
+                  <ul class="card-features">
+                    <li>Server URL and authentication token</li>
+                    <li>Select specific movie/TV libraries</li>
+                    <li>Quality filters (4K, 1080p, 720p, SD)</li>
+                    <li>Genre and content rating filters</li>
+                    <li>Real-time sync with collections</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Jellyfin Card -->
+              <div class="status-card status-accent">
+                <div class="card-icon">
+                  <i class="fas fa-play"></i>
+                </div>
+                <div class="card-content">
+                  <h3>Jellyfin Server</h3>
+                  <div class="card-description">Open-source media system</div>
+                  <ul class="card-features">
+                    <li>Server connection and credentials</li>
+                    <li>Choose from available libraries</li>
+                    <li>Quality-based content filtering</li>
+                    <li>Genre and metadata organization</li>
+                    <li>User permission integration</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- TMDB Card -->
+              <div class="status-card status-success">
+                <div class="card-icon">
+                  <i class="fas fa-database"></i>
+                </div>
+                <div class="card-content">
+                  <h3>The Movie Database</h3>
+                  <div class="card-description">Comprehensive movie metadata</div>
+                  <ul class="card-features">
+                    <li>Millions of movie titles and data</li>
+                    <li>API key for enhanced rate limits</li>
+                    <li>Multi-language support</li>
+                    <li>Discovery features for trending</li>
+                    <li>Rich poster artwork and details</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- TVDB Card -->
+              <div class="status-card status-info">
+                <div class="card-icon">
+                  <i class="fas fa-tv"></i>
+                </div>
+                <div class="card-content">
+                  <h3>TheTVDB</h3>
+                  <div class="card-description">Television series database</div>
+                  <ul class="card-features">
+                    <li>Detailed TV show and episodes</li>
+                    <li>Series artwork and thumbnails</li>
+                    <li>Season and episode metadata</li>
+                    <li>Air dates, cast, and crew info</li>
+                    <li>Multi-language series support</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <!-- Getting Started and Pro Tips Grid -->
+            <section class="card-grid">
+              <!-- Getting Started Card -->
+              <div class="status-card status-secondary">
+                <div class="card-icon">
+                  <i class="fas fa-rocket"></i>
+                </div>
+                <div class="card-content">
+                  <h3>Getting Started</h3>
+                  <div class="card-description">Quick setup guide</div>
+                  <div class="card-steps">
+                    <div class="step">1. Click on a source in the submenu above</div>
+                    <div class="step">2. Enable the source with the toggle</div>
+                    <div class="step">3. Configure connection settings</div>
+                    <div class="step">4. Test the connection</div>
+                    <div class="step">5. Select libraries and apply filters</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Advanced Features Card -->
+              <div class="status-card status-error">
+                <div class="card-icon">
+                  <i class="fas fa-tools"></i>
+                </div>
+                <div class="card-content">
+                  <h3>Advanced Features</h3>
+                  <div class="card-description">Powerful capabilities</div>
+                  <ul class="card-features">
+                    <li>Library-specific filtering and organization</li>
+                    <li>Quality-based content curation</li>
+                    <li>Multi-source content aggregation</li>
+                    <li>Real-time status monitoring</li>
+                    <li>Automated metadata synchronization</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Pro Tips Card -->
+              <div class="status-card status-warning">
+                <div class="card-icon">
+                  <i class="fas fa-lightbulb"></i>
+                </div>
+                <div class="card-content">
+                  <h3>Pro Tips</h3>
+                  <div class="card-description">Best practices</div>
+                  <div class="card-tips">
+                    <div class="tip"><strong>Performance:</strong> Enable only the sources you actively use to optimize loading times.</div>
+                    <div class="tip"><strong>Organization:</strong> Use library filters to create focused collections.</div>
+                    <div class="tip"><strong>Discovery:</strong> Combine personal libraries (Plex/Jellyfin) with public databases (TMDB/TVDB).</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+          </div>
         </div>
       </section>
 
@@ -1308,55 +1750,6 @@
                 <div id="siteServerStatus" class="subtle" style="display:none;"></div>
               </div>
             </section>
-    </div>
-          </div>
-        </div>
-      </section>
-    </section>
-
-  <!-- Security Section -->
-  <section id="section-security" class="app-section" hidden>
-      <section class="panel security-panel">
-        <header class="panel-header">
-          <h2><i class="fas fa-shield-alt"></i> Security</h2>
-        </header>
-        <div class="panel-content">
-          <div class="perf-columns" style="grid-template-columns: 1fr 1fr;">
-            <div class="sec-col">
-            <!-- Password Management -->
-            <section class="perf-card" aria-label="Password Management">
-              <h3><i class="fas fa-key"></i> Password Management</h3>
-              <div class="form-grid form-single-col">
-                <div class="form-group">
-                  <label for="sec-current-pw">Current Password</label>
-                  <input type="password" id="sec-current-pw" autocomplete="current-password" />
-                </div>
-                <div class="form-group">
-                  <label for="sec-new-pw">New Password</label>
-                  <input type="password" id="sec-new-pw" autocomplete="new-password" minlength="8" />
-                </div>
-                <div class="form-group">
-                  <label for="sec-confirm-pw">Confirm New Password</label>
-                  <input type="password" id="sec-confirm-pw" autocomplete="new-password" />
-                </div>
-              </div>
-              <div class="actions" style="margin-top:6px;">
-                <button type="button" id="btn-change-password" class="btn btn-success btn-sm">
-                  <i class="fas fa-lock"></i><span>Change Password</span>
-                </button>
-              </div>
-            </section>
-            </div>
-            <div class="sec-col">
-            <!-- Two-Factor Authentication -->
-            <section class="perf-card" aria-label="Two-Factor Authentication">
-              <h3><i class="fas fa-mobile-alt"></i> Two-Factor Authentication</h3>
-              <div id="sec-2fa-status" class="subtle">Loading…</div>
-              <div class="actions" style="margin-top:6px;">
-                <button type="button" id="btn-2fa-enable" class="btn btn-secondary btn-sm"><i class="fas fa-qrcode"></i><span>Enable 2FA</span></button>
-                <button type="button" id="btn-2fa-disable" class="btn btn-error btn-sm" disabled><i class="fas fa-user-lock"></i><span>Disable 2FA</span></button>
-              </div>
-            </section>
 
             <!-- API Access -->
             <section class="perf-card" aria-label="API Access Management">
@@ -1367,7 +1760,7 @@
                   <div class="form-group">
                     <label for="api-key-input">Current API Key</label>
           <div class="input-row">
-                      <input id="api-key-input" type="password" readonly />
+                      <input id="api-key-input" type="password" readonly style="min-width:280px;flex:1;" />
                       <button id="toggle-api-key-visibility-button" type="button" class="btn btn-icon btn-sm" title="Show/hide key"><i class="fas fa-eye"></i></button>
                       <button id="copy-api-key-button" type="button" class="btn btn-icon btn-sm" title="Copy to clipboard"><i class="fas fa-copy"></i></button>
                     </div>
@@ -1385,54 +1778,352 @@
                 </button>
               </div>
             </section>
-            </div>
+    </div>
           </div>
         </div>
       </section>
     </section>
+
   </main>
+
+  <!-- Change Password Modal -->
+  <div class="modal-overlay" id="modal-change-password">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-change-password-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-change-password-title"><i class="fas fa-key"></i> Change Password</div>
+        <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="text-align: center; padding: 24px;">
+        
+        <!-- Security icon and intro -->
+        <div style="margin-bottom: 24px;">
+          <div style="
+            width: 64px; 
+            height: 64px; 
+            margin: 0 auto 16px auto; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+          ">
+            <i class="fas fa-key" style="font-size: 24px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></i>
+          </div>
+          <h3 style="margin: 0 0 6px 0; font-size: 1.1rem; font-weight: 600;">Update Your Password</h3>
+          <p style="margin: 0; font-size: 0.85rem; color: rgba(255,255,255,0.7); line-height: 1.4;">
+            Choose a strong password to keep your account secure
+          </p>
+        </div>
+
+        <!-- Password form section -->
+        <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.06);">
+          
+          <!-- Current password -->
+          <div style="margin-bottom: 16px; text-align: left;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <i class="fas fa-unlock" style="color: var(--color-warning); font-size: 0.8rem;"></i>
+              <span style="font-weight: 600; font-size: 0.85rem;">Current Password</span>
+            </div>
+            <input 
+              type="password" 
+              id="input-current-password" 
+              autocomplete="current-password" 
+              placeholder="Enter your current password"
+              style="
+                width: 100%;
+                padding: 10px 12px;
+                border-radius: 6px;
+                border: 2px solid rgba(255,255,255,0.1);
+                background: rgba(255,255,255,0.05);
+                color: white;
+                font-size: 0.9rem;
+                transition: border-color 0.2s ease;
+              "
+            />
+          </div>
+          
+          <!-- New password -->
+          <div style="margin-bottom: 16px; text-align: left;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <i class="fas fa-lock" style="color: var(--color-success); font-size: 0.8rem;"></i>
+              <span style="font-weight: 600; font-size: 0.85rem;">New Password</span>
+            </div>
+            <input 
+              type="password" 
+              id="input-new-password" 
+              autocomplete="new-password" 
+              placeholder="Enter a strong new password"
+              style="
+                width: 100%;
+                padding: 10px 12px;
+                border-radius: 6px;
+                border: 2px solid rgba(255,255,255,0.1);
+                background: rgba(255,255,255,0.05);
+                color: white;
+                font-size: 0.9rem;
+                transition: border-color 0.2s ease;
+              "
+            />
+          </div>
+          
+          <!-- Confirm password -->
+          <div style="margin-bottom: 16px; text-align: left;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <i class="fas fa-check-circle" style="color: var(--color-accent); font-size: 0.8rem;"></i>
+              <span style="font-weight: 600; font-size: 0.85rem;">Confirm Password</span>
+            </div>
+            <input 
+              type="password" 
+              id="input-confirm-password" 
+              autocomplete="new-password" 
+              placeholder="Confirm your new password"
+              style="
+                width: 100%;
+                padding: 10px 12px;
+                border-radius: 6px;
+                border: 2px solid rgba(255,255,255,0.1);
+                background: rgba(255,255,255,0.05);
+                color: white;
+                font-size: 0.9rem;
+                transition: border-color 0.2s ease;
+              "
+            />
+          </div>
+
+          <!-- Password strength indicator -->
+          <div id="password-strength" style="margin-bottom: 12px; text-align: left; display: none;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <i class="fas fa-shield-alt" style="font-size: 0.75rem; color: rgba(255,255,255,0.6);"></i>
+              <span style="font-size: 0.75rem; font-weight: 600; color: rgba(255,255,255,0.8);">Password Strength</span>
+            </div>
+            <div style="display: flex; gap: 2px; margin-bottom: 6px;">
+              <div class="strength-bar" style="height: 4px; flex: 1; background: rgba(255,255,255,0.1); border-radius: 2px;"></div>
+              <div class="strength-bar" style="height: 4px; flex: 1; background: rgba(255,255,255,0.1); border-radius: 2px;"></div>
+              <div class="strength-bar" style="height: 4px; flex: 1; background: rgba(255,255,255,0.1); border-radius: 2px;"></div>
+              <div class="strength-bar" style="height: 4px; flex: 1; background: rgba(255,255,255,0.1); border-radius: 2px;"></div>
+            </div>
+            <div id="strength-text" style="font-size: 0.7rem; color: rgba(255,255,255,0.6);"></div>
+          </div>
+
+          <!-- Status message -->
+          <div id="password-status" class="status-message" style="display: none; margin-top: 12px;"></div>
+        </div>
+      </div>
+      
+      <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 24px;">
+        <button type="button" class="btn btn-outline" data-close-modal style="min-width: 80px;">Cancel</button>
+        <button type="button" id="btn-change-password" class="btn btn-primary" style="min-width: 140px;">
+          <i class="fas fa-key"></i><span>Change Password</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- 2FA Enable Modal (theme-demo structure) -->
   <div class="modal-overlay" id="modal-2fa">
-    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-title">
+    <div class="modal modal-md" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-title">
       <div class="modal-header">
-  <div class="modal-title" id="modal-2fa-title"><i class="fas fa-qrcode"></i> Enable Two-Factor</div>
+        <div class="modal-title" id="modal-2fa-title"><i class="fas fa-shield-alt"></i> Enable Two-Factor Authentication</div>
         <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
       </div>
-      <div class="modal-body">
-        <div>Scan this QR code with your authenticator app, then enter the 6-digit code.</div>
-        <div id="qr-code-container" style="display:flex; justify-content:center; margin: 10px 0;">
-          <div class="subtle">Loading QR…</div>
+      <div class="modal-body" style="text-align: center; padding: 24px;">
+        
+        <!-- Compact security icon and intro -->
+        <div style="margin-bottom: 24px;">
+          <div style="
+            width: 60px; 
+            height: 60px; 
+            margin: 0 auto 16px auto; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            background: linear-gradient(135deg, var(--color-success), var(--color-primary));
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+          ">
+            <i class="fas fa-shield-alt" style="font-size: 24px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></i>
+          </div>
+          <h3 style="margin: 0 0 6px 0; font-size: 1.1rem; font-weight: 600;">Secure Your Account</h3>
+          <p style="margin: 0; font-size: 0.85rem; color: rgba(255,255,255,0.7); line-height: 1.4;">
+            Add an extra layer of security with 2FA
+          </p>
         </div>
-        <div class="form-group">
-          <label for="input-2fa-token">Verification Code</label>
-          <input id="input-2fa-token" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" />
+
+        <!-- Compact steps in horizontal layout -->
+        <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.06);">
+          
+          <!-- Two-column layout for steps -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+            
+            <!-- Step 1: QR Code -->
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; justify-content: center;">
+                <div style="
+                  width: 24px; 
+                  height: 24px; 
+                  border-radius: 50%; 
+                  background: var(--color-primary); 
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center;
+                  font-size: 0.75rem;
+                  font-weight: 700;
+                  color: white;
+                ">1</div>
+                <span style="font-weight: 600; font-size: 0.9rem;">Scan QR Code</span>
+              </div>
+              
+              <div id="qr-code-container" style="
+                background: white; 
+                border-radius: 8px; 
+                padding: 12px; 
+                margin: 0 auto 8px auto; 
+                display: inline-block;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+              ">
+                <div class="subtle" style="color: #666; font-size: 0.85rem;">Loading QR...</div>
+              </div>
+              
+              <p style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin: 0; line-height: 1.3;">
+                Use any TOTP app
+              </p>
+            </div>
+
+            <!-- Step 2: Verification -->
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; justify-content: center;">
+                <div style="
+                  width: 24px; 
+                  height: 24px; 
+                  border-radius: 50%; 
+                  background: var(--color-accent); 
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center;
+                  font-size: 0.75rem;
+                  font-weight: 700;
+                  color: white;
+                ">2</div>
+                <span style="font-weight: 600; font-size: 0.9rem;">Enter Code</span>
+              </div>
+              
+              <div style="margin-top: 8px;">
+                <input 
+                  id="input-2fa-token" 
+                  inputmode="numeric" 
+                  autocomplete="one-time-code" 
+                  placeholder="000 000" 
+                  maxlength="7"
+                  style="
+                    width: 140px;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    text-align: center;
+                    letter-spacing: 0.4em;
+                    padding: 10px 12px;
+                    border-radius: 6px;
+                    border: 2px solid rgba(255,255,255,0.1);
+                    background: rgba(255,255,255,0.05);
+                    color: white;
+                  " 
+                />
+              </div>
+              
+              <p style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin: 8px 0 0 0; line-height: 1.3;">
+                6-digit verification code
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
-        <button type="button" id="btn-2fa-verify" class="btn btn-primary"><i class="fas fa-check"></i><span>Verify & Enable</span></button>
+      
+      <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 24px;">
+        <button type="button" class="btn btn-outline" data-close-modal style="min-width: 80px;">Cancel</button>
+        <button type="button" id="btn-2fa-verify" class="btn btn-success" style="min-width: 140px;">
+          <i class="fas fa-check-circle"></i><span>Verify & Enable</span>
+        </button>
       </div>
     </div>
   </div>
 
   <!-- 2FA Disable Modal (theme-demo structure) -->
   <div class="modal-overlay" id="modal-2fa-disable">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-disable-title">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-disable-title">
       <div class="modal-header">
-        <div class="modal-title" id="modal-2fa-disable-title"><i class="fas fa-user-lock"></i> Disable Two-Factor Authentication</div>
+        <div class="modal-title" id="modal-2fa-disable-title"><i class="fas fa-shield-alt"></i> Disable Two-Factor Authentication</div>
         <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
       </div>
-      <div class="modal-body">
-        <div>Enter your current password to disable 2FA.</div>
-        <div class="form-group">
-          <label for="input-2fa-disable-password">Current Password</label>
-          <input type="password" id="input-2fa-disable-password" autocomplete="current-password" />
+      <div class="modal-body" style="text-align: center; padding: 20px;">
+        
+        <!-- Compact warning icon and message -->
+        <div style="margin-bottom: 20px;">
+          <div style="
+            width: 60px; 
+            height: 60px; 
+            margin: 0 auto 12px auto; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            background: linear-gradient(135deg, var(--color-warning), var(--color-error));
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+          ">
+            <i class="fas fa-exclamation-triangle" style="font-size: 24px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></i>
+          </div>
+          <h3 style="margin: 0 0 6px 0; font-size: 1.1rem; font-weight: 600;">Disable Two-Factor Auth</h3>
+          <p style="margin: 0; font-size: 0.85rem; color: rgba(255,255,255,0.7); line-height: 1.4;">
+            This will reduce your account security
+          </p>
+        </div>
+
+        <!-- Compact password input section -->
+        <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="margin-bottom: 12px; text-align: left;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <i class="fas fa-key" style="color: var(--color-warning); font-size: 0.8rem;"></i>
+              <span style="font-weight: 600; font-size: 0.85rem;">Confirm with password</span>
+            </div>
+            <input 
+              type="password" 
+              id="input-2fa-disable-password" 
+              autocomplete="current-password" 
+              placeholder="Current password"
+              style="
+                width: 100%;
+                padding: 10px 12px;
+                border-radius: 6px;
+                border: 2px solid rgba(255,255,255,0.1);
+                background: rgba(255,255,255,0.05);
+                color: white;
+                font-size: 0.95rem;
+              "
+            />
+          </div>
+          
+          <!-- Compact security warning -->
+          <div style="
+            background: rgba(var(--color-warning-rgb, 251, 191, 36), 0.1); 
+            border: 1px solid rgba(var(--color-warning-rgb, 251, 191, 36), 0.2);
+            border-radius: 6px; 
+            padding: 8px; 
+            text-align: left;
+          ">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <i class="fas fa-info-circle" style="color: var(--color-warning); font-size: 0.75rem; flex-shrink: 0;"></i>
+              <div style="font-size: 0.75rem; color: var(--color-warning); line-height: 1.3;">
+                Your account will only be protected by password
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
-        <button type="button" id="btn-2fa-disable-confirm" class="btn btn-error"><i class="fas fa-unlock"></i><span>Disable 2FA</span></button>
+      
+      <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px;">
+        <button type="button" class="btn btn-outline" data-close-modal style="min-width: 80px;">Cancel</button>
+        <button type="button" id="btn-2fa-disable-confirm" class="btn btn-error" style="min-width: 120px;">
+          <i class="fas fa-shield-alt"></i><span>Disable 2FA</span>
+        </button>
       </div>
     </div>
   </div>
@@ -1503,31 +2194,94 @@
         <div class="modal-title" id="modal-avatar-title"><i class="fas fa-image"></i> Profile Photo</div>
         <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
       </div>
-      <div class="modal-body">
-        <div class="avatar-preview" id="avatar-preview" aria-live="polite">
-          <div class="avatar-initials" id="avatar-initials-fallback">AD</div>
-          <img id="avatar-image-preview" alt="Current profile photo" />
-        </div>
-        <div class="form-group" style="margin-top:10px;">
-          <label for="avatar-file">Upload image</label>
-          <div class="file-row" id="avatar-file-row">
-            <button type="button" class="btn btn-outline btn-sm" id="avatar-file-trigger"><i class="fas fa-file-upload"></i><span>Choose image</span></button>
-            <span class="muted" id="avatar-file-name">No file selected</span>
-            <input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp" style="position:absolute;left:-9999px;opacity:0;pointer-events:none;" />
+      <div class="modal-body" style="text-align: center; padding: 24px;">
+        
+        <!-- Large centered avatar preview -->
+        <div style="margin-bottom: 32px;">
+          <div class="avatar-preview" id="avatar-preview" aria-live="polite" style="
+            width: 120px; 
+            height: 120px; 
+            margin: 0 auto 16px auto; 
+            border-radius: 50%; 
+            overflow: hidden; 
+            border: 4px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            position: relative;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+          ">
+            <div class="avatar-initials" id="avatar-initials-fallback" style="
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              font-size: 36px;
+              font-weight: 700;
+              color: white;
+              text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            ">AD</div>
+            <img id="avatar-image-preview" alt="Current profile photo" style="
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              position: absolute;
+              top: 0;
+              left: 0;
+            " />
           </div>
-          <div class="subtle">PNG, JPG, or WebP — up to 2 MB</div>
+        </div>
+
+        <!-- Upload section with modern design -->
+        <div style="background: rgba(255,255,255,0.02); border-radius: 16px; padding: 24px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="margin-bottom: 20px;">
+            <div class="file-upload-area" style="
+              border: 2px dashed rgba(255,255,255,0.2);
+              border-radius: 12px;
+              padding: 32px 16px;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              position: relative;
+              background: rgba(255,255,255,0.01);
+            " id="upload-drop-zone">
+              <div style="margin-bottom: 16px;">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: var(--color-primary); opacity: 0.8;"></i>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" id="avatar-file-trigger" style="margin-bottom: 12px;">
+                <i class="fas fa-file-upload"></i><span>Choose Image</span>
+              </button>
+              <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-bottom: 8px;">
+                or drag and drop your image here
+              </div>
+              <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+                PNG, JPG, or WebP — up to 2 MB
+              </div>
+              <input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp" style="position:absolute;left:-9999px;opacity:0;pointer-events:none;" />
+            </div>
+            
+            <!-- Selected file display -->
+            <div id="selected-file-display" style="display: none; margin-top: 16px; padding: 12px; background: rgba(var(--color-success-rgb, 16, 185, 129), 0.1); border-radius: 8px; border: 1px solid rgba(var(--color-success-rgb, 16, 185, 129), 0.2);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-check-circle" style="color: var(--color-success);"></i>
+                <span id="avatar-file-name" style="font-size: 0.9rem; color: var(--color-success);">No file selected</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-  <div class="modal-footer">
-  <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
-  <button type="button" class="btn btn-error" id="avatar-remove-btn"><i class="fas fa-trash"></i><span>Remove</span></button>
-    <button type="button" class="btn btn-primary" id="avatar-upload-btn"><i class="fas fa-upload"></i><span>Upload</span></button>
-  </div>
+      
+      <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 20px 24px;">
+        <button type="button" class="btn btn-outline" data-close-modal style="min-width: 80px;">Cancel</button>
+        <button type="button" class="btn btn-error" id="avatar-remove-btn" style="min-width: 90px;">
+          <i class="fas fa-trash"></i><span>Remove</span>
+        </button>
+        <button type="button" class="btn btn-primary" id="avatar-upload-btn" style="min-width: 90px;">
+          <i class="fas fa-upload"></i><span>Upload</span>
+        </button>
+      </div>
     </div>
   </div>
 
-  <script src="/notify.js"></script>
-  <script src="/admin2.js"></script>
+  <script src="/notify.js?v=20250906-1"></script>
+  <script src="/admin2.js?v=20250906-35"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
     if ('serviceWorker' in navigator) {

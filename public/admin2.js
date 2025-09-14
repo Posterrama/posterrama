@@ -123,6 +123,7 @@
                     Number(data?.media?.playlistItems) ||
                     0;
                 setText('metric-media-items', formatNumber(totalMedia));
+
                 const warns = Array.isArray(data?.alerts) ? data.alerts.length : 0;
                 setText('metric-warnings', formatNumber(warns));
                 const warnSub = document.getElementById('metric-warn-sub');
@@ -131,6 +132,41 @@
         } catch (_) {
             // non-fatal
         }
+
+        // Count enabled sources from the actual config
+        try {
+            const configData = await fetchJSON('/api/admin/config').catch(() => null);
+            if (configData) {
+                const config = configData.config || {};
+                let enabledSources = 0;
+
+                // Check each source type
+                const mediaServers = config.mediaServers || [];
+                const plex = mediaServers.find(s => s.type === 'plex');
+                const jf = mediaServers.find(s => s.type === 'jellyfin');
+
+                if (plex?.enabled) enabledSources++;
+                if (jf?.enabled) enabledSources++;
+                if (config.tmdbSource?.enabled) enabledSources++;
+                if (config.tvdbSource?.enabled) enabledSources++;
+
+                const mediaSub = document.getElementById('metric-media-sub');
+                if (mediaSub) {
+                    if (enabledSources === 0) {
+                        mediaSub.textContent = 'no sources configured';
+                    } else if (enabledSources === 1) {
+                        mediaSub.textContent = 'from 1 source';
+                    } else {
+                        mediaSub.textContent = `from ${enabledSources} sources`;
+                    }
+                }
+            }
+        } catch (_) {
+            // fallback to static text
+            const mediaSub = document.getElementById('metric-media-sub');
+            if (mediaSub) mediaSub.textContent = 'from sources';
+        }
+
         // Also refresh devices counts shown on this dashboard row
         await refreshDevices();
     }
@@ -671,12 +707,11 @@
         const h1 = document.querySelector('.page-header h1');
         const subtitle = document.querySelector('.page-header p');
         if (h1) {
-            if (id === 'section-security') {
-                h1.innerHTML = '<i class="fas fa-shield-alt"></i> Security';
-                if (subtitle) subtitle.textContent = 'Manage password, 2FA, and API access';
-            } else if (id === 'section-media-sources') {
+            if (id === 'section-media-sources') {
                 h1.innerHTML = '<i class="fas fa-server"></i> Media Sources';
-                if (subtitle) subtitle.textContent = 'Configure Plex, Jellyfin, TMDB, and TVDB';
+                if (subtitle)
+                    subtitle.textContent =
+                        'Configure your media sources to aggregate content from multiple platforms into a unified poster gallery';
             } else if (id === 'section-operations') {
                 h1.innerHTML = '<i class="fas fa-screwdriver-wrench"></i> Operations';
                 if (subtitle) subtitle.textContent = 'Run media refresh and manage auto-updates';
@@ -686,6 +721,16 @@
             }
         }
         dbg('showSection() applied', { activeId: id, sections: sections.length });
+
+        // Show/hide Activity pill - only show on dashboard
+        const activityPill = document.getElementById('perf-activity');
+        if (activityPill) {
+            if (id === 'section-dashboard') {
+                activityPill.style.display = '';
+            } else {
+                activityPill.style.display = 'none';
+            }
+        }
 
         // Live dashboard KPIs: start/stop polling based on active section
         try {
@@ -843,31 +888,8 @@
         }
     }
 
-    async function refreshSecurity() {
+    async function refreshApiKeyStatus() {
         try {
-            // 2FA status piggybacks on /api/admin/config
-            const cfg = await fetchJSON('/api/admin/config');
-            const is2FA = !!cfg?.security?.is2FAEnabled;
-            const txt = document.getElementById('sec-2fa-status');
-            const btnEnable = document.getElementById('btn-2fa-enable');
-            const btnDisable = document.getElementById('btn-2fa-disable');
-            if (txt)
-                txt.textContent = is2FA
-                    ? 'Two-Factor Authentication is enabled'
-                    : 'Two-Factor Authentication is disabled';
-            if (btnEnable) {
-                btnEnable.disabled = !!is2FA;
-                btnEnable.classList.remove('btn-primary', 'btn-error', 'btn-secondary');
-                // Keep enable button as secondary when available, muted when disabled
-                btnEnable.classList.add('btn-secondary');
-            }
-            if (btnDisable) {
-                const active = !!is2FA;
-                btnDisable.disabled = !active;
-                btnDisable.classList.remove('btn-primary', 'btn-secondary', 'btn-error');
-                btnDisable.classList.add(active ? 'btn-error' : 'btn-secondary');
-            }
-
             // API key status
             const statusRes = await fetch('/api/admin/api-key/status', { credentials: 'include' });
             const status = statusRes.ok ? await statusRes.json() : { hasKey: false };
@@ -886,8 +908,14 @@
                 if (input) input.value = keyData.apiKey || '';
             }
         } catch (e) {
-            console.warn('Security refresh failed', e);
+            console.warn('API key status refresh failed', e);
         }
+    }
+
+    async function refreshSecurity() {
+        // Note: Security panel has been removed, this function is kept for compatibility
+        // with existing 2FA handlers in the user menu
+        console.log('Security panel refresh requested (panel removed, skipping)');
     }
 
     function openModal(id) {
@@ -921,98 +949,141 @@
         // Settings dropdown
         const settingsBtn = document.getElementById('settings-btn');
         const settingsMenu = document.getElementById('settings-menu');
-        const dropdown = document.getElementById('settings-dropdown');
+
+        console.log('Dropdown setup - Settings:', {
+            settingsBtn: !!settingsBtn,
+            settingsMenu: !!settingsMenu,
+        });
+
         function closeMenu() {
+            console.log('closeMenu called');
             if (!settingsMenu) return;
             settingsBtn?.setAttribute('aria-expanded', 'false');
             settingsMenu?.setAttribute('aria-hidden', 'true');
-            dropdown?.classList.remove('open');
+            settingsMenu?.classList.remove('show');
+            // Hide the menu properly
+            settingsMenu.style.display = 'none';
+            settingsMenu.style.opacity = '0';
+            settingsMenu.style.pointerEvents = 'none';
         }
+
         settingsBtn?.addEventListener('click', e => {
+            console.log('Settings button clicked!');
             e.stopPropagation();
             if (!settingsMenu) return;
-            const willOpen = !dropdown?.classList.contains('open');
-            if (willOpen) dropdown?.classList.add('open');
-            else dropdown?.classList.remove('open');
+            const willOpen = !settingsMenu?.classList.contains('show');
+            console.log('Settings menu will open:', willOpen);
+            if (willOpen) {
+                settingsMenu?.classList.add('show');
+                // Simple, reliable positioning with negative margin trick
+                settingsMenu.style.display = 'block';
+                settingsMenu.style.position = 'absolute';
+                settingsMenu.style.top = 'calc(100% + 8px)';
+                settingsMenu.style.zIndex = '2000';
+                settingsMenu.style.opacity = '1';
+                settingsMenu.style.pointerEvents = 'auto';
+                console.log('Settings menu opened');
+            } else {
+                closeMenu();
+            }
             settingsBtn.setAttribute('aria-expanded', String(willOpen));
             settingsMenu?.setAttribute('aria-hidden', String(!willOpen));
         });
         document.addEventListener('click', e => {
-            if (!dropdown || !settingsMenu) return;
-            if (!dropdown.contains(e.target)) closeMenu();
+            if (!settingsMenu) return;
+            if (!e.target.closest('#settings-dropdown')) closeMenu();
         });
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closeMenu();
         });
 
         // User dropdown (Account)
-        const userDropdown = document.getElementById('user-dropdown');
         const userBtn = document.getElementById('user-btn');
         const userMenu = document.getElementById('user-menu');
+
+        console.log('Dropdown setup - User:', {
+            userBtn: !!userBtn,
+            userMenu: !!userMenu,
+        });
+
         function closeUserMenu() {
+            console.log('closeUserMenu called');
             if (!userMenu) return;
             userBtn?.setAttribute('aria-expanded', 'false');
             userMenu?.setAttribute('aria-hidden', 'true');
-            userDropdown?.classList.remove('open');
+            userMenu?.classList.remove('show');
         }
         userBtn?.addEventListener('click', e => {
+            console.log('User button clicked!');
             e.stopPropagation();
             if (!userMenu) return;
-            const willOpen = !userDropdown?.classList.contains('open');
-            if (willOpen) userDropdown?.classList.add('open');
-            else userDropdown?.classList.remove('open');
+            const willOpen = !userMenu?.classList.contains('show');
+            console.log('User menu will open:', willOpen);
+            if (willOpen) {
+                userMenu.classList.add('show');
+                // Add same inline styles as settings menu
+                userMenu.style.display = 'block';
+                userMenu.style.position = 'absolute';
+                userMenu.style.top = 'calc(100% + 8px)';
+                userMenu.style.zIndex = '2000';
+                userMenu.style.opacity = '1';
+                userMenu.style.pointerEvents = 'auto';
+                console.log('User menu opened');
+            } else {
+                userMenu.classList.remove('show');
+            }
             userBtn.setAttribute('aria-expanded', String(willOpen));
             userMenu?.setAttribute('aria-hidden', String(!willOpen));
         });
         document.addEventListener('click', e => {
-            if (!userDropdown || !userMenu) return;
-            if (!userDropdown.contains(e.target)) closeUserMenu();
+            if (!userMenu) return;
+            if (!e.target.closest('#user-dropdown')) closeUserMenu();
         });
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closeUserMenu();
         });
-        // Route account actions to existing flows
+        // Route account actions to modals
         document.getElementById('user-change-password')?.addEventListener('click', e => {
             e.preventDefault();
             closeUserMenu();
-            // Focus password inputs if present in Security section
-            const el = document.getElementById('sec-current-pw');
-            if (el) el.focus();
-            else {
-                window.notify?.toast({
-                    type: 'info',
-                    title: 'Security',
-                    message: 'Use the Change Password form below',
-                    duration: 2500,
-                });
-            }
+            openModal('modal-change-password');
         });
         document.getElementById('user-two-fa')?.addEventListener('click', e => {
             e.preventDefault();
             closeUserMenu();
-            // When opened from user menu, proactively generate QR if not already enabled
+            // Open the appropriate modal based on current 2FA status
             (async () => {
                 try {
                     const cfg = await fetch('/api/admin/config', { credentials: 'include' })
                         .then(r => r.json())
                         .catch(() => ({}));
-                    const is2FA = !!cfg?.env?.ADMIN_2FA_SECRET || !!cfg?.ADMIN_2FA_SECRET;
-                    if (!is2FA) {
+                    const is2FA = !!cfg?.security?.is2FAEnabled;
+
+                    if (is2FA) {
+                        // 2FA is enabled, open disable modal
+                        openModal('modal-2fa-disable');
+                    } else {
+                        // 2FA is disabled, generate QR and open enable modal
                         const r = await fetch('/api/admin/2fa/generate', {
                             method: 'POST',
                             credentials: 'include',
                         });
-                        const j = await r.json().catch(() => ({}));
-                        const qr = document.getElementById('qr-code-container');
-                        if (qr)
-                            qr.innerHTML = j.qrCodeDataUrl
-                                ? `<img src="${j.qrCodeDataUrl}" alt="Scan QR code" style="background:#fff;padding:8px;border-radius:8px;" />`
-                                : '<span>QR unavailable</span>';
+                        if (r.ok) {
+                            const j = await r.json().catch(() => ({}));
+                            const qr = document.getElementById('qr-code-container');
+                            if (qr) {
+                                qr.innerHTML = j.qrCodeDataUrl
+                                    ? `<img src="${j.qrCodeDataUrl}" alt="Scan QR code" style="background:#fff;padding:8px;border-radius:8px;" />`
+                                    : '<span>QR unavailable</span>';
+                            }
+                        }
+                        openModal('modal-2fa');
                     }
-                } catch (_) {
-                    /* ignore */
+                } catch (e) {
+                    console.warn('2FA menu action failed:', e);
+                    // Fallback: just open settings section
+                    showSection('settings');
                 }
-                openModal('modal-2fa');
             })();
         });
 
@@ -1122,22 +1193,91 @@
         const fileNameEl = document.getElementById('avatar-file-name');
         const previewImg = document.getElementById('avatar-image-preview');
         const previewFallback = document.getElementById('avatar-initials-fallback');
+        const uploadDropZone = document.getElementById('upload-drop-zone');
+        const selectedFileDisplay = document.getElementById('selected-file-display');
 
         // Open native file picker from themed button
         fileTrigger?.addEventListener('click', () => fileInput?.click());
 
-        // Live preview when selecting a file
+        // Drag and drop functionality
+        uploadDropZone?.addEventListener('dragover', e => {
+            e.preventDefault();
+            uploadDropZone.style.borderColor = 'var(--color-primary)';
+            uploadDropZone.style.background = 'rgba(var(--color-primary-rgb, 99, 102, 241), 0.05)';
+            uploadDropZone.style.transform = 'scale(1.02)';
+        });
+
+        uploadDropZone?.addEventListener('dragleave', e => {
+            e.preventDefault();
+            uploadDropZone.style.borderColor = 'rgba(255,255,255,0.2)';
+            uploadDropZone.style.background = 'rgba(255,255,255,0.01)';
+            uploadDropZone.style.transform = 'scale(1)';
+        });
+
+        uploadDropZone?.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadDropZone.style.borderColor = 'rgba(255,255,255,0.2)';
+            uploadDropZone.style.background = 'rgba(255,255,255,0.01)';
+            uploadDropZone.style.transform = 'scale(1)';
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    handleFileSelection(file);
+                } else {
+                    window.notify?.toast({
+                        type: 'warning',
+                        title: 'Invalid File',
+                        message: 'Please select an image file (PNG, JPG, or WebP)',
+                        duration: 3000,
+                    });
+                }
+            }
+        });
+
+        // Click to upload on drop zone
+        uploadDropZone?.addEventListener('click', () => fileInput?.click());
+
+        // File input change handler
         fileInput?.addEventListener('change', () => {
             const f = fileInput.files?.[0];
-            if (!f) return;
-            const url = URL.createObjectURL(f);
+            if (f) {
+                handleFileSelection(f);
+            }
+        });
+
+        function handleFileSelection(file) {
+            // Check file size (2MB limit)
+            if (file.size > 2 * 1024 * 1024) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'File Too Large',
+                    message: 'File size must be less than 2 MB',
+                    duration: 3000,
+                });
+                return;
+            }
+
+            // Update file name display
+            if (fileNameEl) fileNameEl.textContent = file.name;
+            if (selectedFileDisplay) selectedFileDisplay.style.display = 'block';
+
+            // Show preview
+            const url = URL.createObjectURL(file);
             if (previewImg) {
                 previewImg.src = url;
                 previewImg.style.display = 'block';
             }
             if (previewFallback) previewFallback.style.display = 'none';
-            if (fileNameEl) fileNameEl.textContent = f.name;
-        });
+
+            // Set the file input for later upload
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+        }
+
+        // Live preview when selecting a file
         uploadBtn?.addEventListener('click', async () => {
             const fileInput = document.getElementById('avatar-file');
             const files = fileInput?.files;
@@ -1153,6 +1293,8 @@
             const form = new FormData();
             form.append('avatar', files[0]);
             uploadBtn.setAttribute('aria-busy', 'true');
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Uploading...</span>';
             try {
                 const r = await fetch('/api/admin/profile/photo', {
                     method: 'POST',
@@ -1193,8 +1335,8 @@
                 window.notify?.toast({
                     type: 'success',
                     title: 'Profile',
-                    message: 'Photo updated',
-                    duration: 1800,
+                    message: 'Photo updated successfully',
+                    duration: 2500,
                 });
                 closeModal('modal-avatar');
             } catch (e) {
@@ -1206,10 +1348,18 @@
                 });
             } finally {
                 uploadBtn.removeAttribute('aria-busy');
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i><span>Upload</span>';
             }
         });
         removeBtn?.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to remove your profile photo?')) {
+                return;
+            }
+
             removeBtn.setAttribute('aria-busy', 'true');
+            removeBtn.disabled = true;
+            removeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Removing...</span>';
             try {
                 const r = await fetch('/api/admin/profile/photo', {
                     method: 'DELETE',
@@ -1255,8 +1405,8 @@
                 window.notify?.toast({
                     type: 'success',
                     title: 'Profile',
-                    message: 'Photo removed',
-                    duration: 1800,
+                    message: 'Photo removed successfully',
+                    duration: 2000,
                 });
                 closeModal('modal-avatar');
             } catch (e) {
@@ -1268,6 +1418,8 @@
                 });
             } finally {
                 removeBtn.removeAttribute('aria-busy');
+                removeBtn.disabled = false;
+                removeBtn.innerHTML = '<i class="fas fa-trash"></i><span>Remove</span>';
             }
         });
 
@@ -1356,16 +1508,15 @@
                     .querySelectorAll('.sidebar-nav .nav-subitem')
                     .forEach(s => s.classList.remove('active'));
                 item.classList.add('active');
-                if (nav === 'security') {
-                    showSection('section-security');
-                    refreshSecurity();
-                } else if (nav === 'dashboard') {
+                if (nav === 'dashboard') {
                     showSection('section-dashboard');
                 } else if (nav === 'operations') {
                     showSection('section-operations');
                     // ensure latest status/backups when entering
                     refreshUpdateStatusUI();
                     refreshOperationsPanels();
+                    // refresh API key status since API Access is now in Operations
+                    refreshApiKeyStatus();
                 } else if (nav === 'media-sources') {
                     showSection('section-media-sources');
                 }
@@ -1474,10 +1625,15 @@
                 el.classList.add('is-loading');
                 // Ensure auto-fetch runs when panel becomes visible (covers all routes)
                 try {
-                    if (panelId === 'panel-plex') window.admin2?.maybeFetchPlexOnOpen?.();
-                    else if (panelId === 'panel-jellyfin')
+                    if (panelId === 'panel-plex') {
+                        // Reset the auto-fetch flag so libraries are re-fetched each time panel opens
+                        if (window.__autoFetchedLibs) window.__autoFetchedLibs.plex = false;
+                        window.admin2?.maybeFetchPlexOnOpen?.();
+                    } else if (panelId === 'panel-jellyfin') {
+                        // Reset the auto-fetch flag so libraries are re-fetched each time panel opens
+                        if (window.__autoFetchedLibs) window.__autoFetchedLibs.jf = false;
                         window.admin2?.maybeFetchJellyfinOnOpen?.();
-                    else if (panelId === 'panel-tmdb') window.admin2?.maybeFetchTmdbOnOpen?.();
+                    } else if (panelId === 'panel-tmdb') window.admin2?.maybeFetchTmdbOnOpen?.();
                 } catch (_) {
                     /* no-op */
                 }
@@ -1803,19 +1959,48 @@
             });
         });
         const btn2faVerify = document.getElementById('btn-2fa-verify');
+        const input2faToken = document.getElementById('input-2fa-token');
+
+        // Auto-format 2FA token input (123 456 format)
+        input2faToken?.addEventListener('input', e => {
+            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+            if (value.length > 6) value = value.slice(0, 6); // Max 6 digits
+
+            // Format as "123 456"
+            if (value.length > 3) {
+                value = value.slice(0, 3) + ' ' + value.slice(3);
+            }
+
+            e.target.value = value;
+
+            // Auto-focus to verify button when 6 digits entered
+            if (value.replace(/\s/g, '').length === 6) {
+                btn2faVerify?.focus();
+            }
+        });
+
+        // Allow Enter key to submit
+        input2faToken?.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && input2faToken.value.replace(/\s/g, '').length === 6) {
+                btn2faVerify?.click();
+            }
+        });
+
         ensureSpinner(btn2faVerify);
         btn2faVerify?.addEventListener('click', async () => {
             const input = document.getElementById('input-2fa-token');
-            const token = (input?.value || '').trim();
-            if (!token)
+            const token = (input?.value || '').replace(/\s/g, '').trim(); // Remove spaces
+            if (!token || token.length !== 6) {
                 return window.notify?.toast({
                     type: 'warning',
-                    title: 'Missing code',
-                    message: 'Enter the 6-digit code from your app',
+                    title: 'Invalid Code',
+                    message: 'Enter the complete 6-digit code from your authenticator app',
                     duration: 3500,
                 });
+            }
             try {
                 btn2faVerify.classList.add('btn-loading');
+                btn2faVerify.disabled = true;
                 const r = await fetch('/api/admin/2fa/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1826,40 +2011,57 @@
                 if (!r.ok) throw new Error(j?.error || j?.message || 'Verification failed');
                 window.notify?.toast({
                     type: 'success',
-                    title: '2FA enabled',
-                    message: 'Two-Factor Authentication is now active.',
-                    duration: 3500,
+                    title: '2FA Enabled Successfully',
+                    message: 'Two-Factor Authentication is now protecting your account.',
+                    duration: 4000,
                 });
                 closeModal('modal-2fa');
                 refreshSecurity();
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
-                    title: 'Verification failed',
-                    message: e?.message || 'Invalid code',
+                    title: 'Verification Failed',
+                    message: e?.message || 'Invalid or expired code. Please try again.',
                     duration: 5000,
                 });
+                // Clear input on error
+                if (input) {
+                    input.value = '';
+                    input.focus();
+                }
             } finally {
                 btn2faVerify?.classList.remove('btn-loading');
+                btn2faVerify.disabled = false;
             }
         });
 
         // 2FA disable flow
         btn2faDisable?.addEventListener('click', () => openModal('modal-2fa-disable'));
         const btn2faDisableConfirm = document.getElementById('btn-2fa-disable-confirm');
+        const input2faDisablePassword = document.getElementById('input-2fa-disable-password');
+
+        // Allow Enter key to submit disable form
+        input2faDisablePassword?.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && input2faDisablePassword.value.trim()) {
+                btn2faDisableConfirm?.click();
+            }
+        });
+
         ensureSpinner(btn2faDisableConfirm);
         btn2faDisableConfirm?.addEventListener('click', async () => {
             const pw = document.getElementById('input-2fa-disable-password');
             const password = pw?.value || '';
-            if (!password)
+            if (!password) {
                 return window.notify?.toast({
                     type: 'warning',
-                    title: 'Password required',
-                    message: 'Enter current password to disable 2FA',
+                    title: 'Password Required',
+                    message: 'Enter your current password to disable two-factor authentication',
                     duration: 3500,
                 });
+            }
             try {
                 btn2faDisableConfirm.classList.add('btn-loading');
+                btn2faDisableConfirm.disabled = true;
                 const r = await fetch('/api/admin/2fa/disable', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1870,23 +2072,397 @@
                 if (!r.ok) throw new Error(j?.error || j?.message || 'Failed to disable 2FA');
                 window.notify?.toast({
                     type: 'success',
-                    title: '2FA disabled',
-                    message: 'Two-Factor Authentication has been disabled.',
+                    title: '2FA Disabled',
+                    message: 'Two-Factor Authentication has been disabled for your account.',
                     duration: 3500,
                 });
                 closeModal('modal-2fa-disable');
                 refreshSecurity();
+                // Clear password field
+                if (pw) pw.value = '';
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
-                    title: 'Disable failed',
-                    message: e?.message || 'Unable to disable 2FA',
+                    title: 'Disable Failed',
+                    message: e?.message || 'Invalid password or failed to disable 2FA',
                     duration: 5000,
                 });
+                // Focus password field for retry
+                if (pw) {
+                    pw.focus();
+                    pw.select();
+                }
             } finally {
-                btn2faDisableConfirm.classList.remove('btn-loading');
+                btn2faDisableConfirm?.classList.remove('btn-loading');
+                btn2faDisableConfirm.disabled = false;
             }
         });
+
+        // Change Password Modal
+        console.log('Setting up Change Password Modal...');
+        const btnChangePasswordModal = document.getElementById('btn-change-password');
+        const currentPwInput = document.getElementById('input-current-password');
+        const newPwInput = document.getElementById('input-new-password');
+        const confirmPwInput = document.getElementById('input-confirm-password');
+        const strengthIndicator = document.getElementById('password-strength');
+        const strengthBars = document.querySelectorAll('.strength-bar');
+        const strengthText = document.getElementById('strength-text');
+
+        console.log('Change Password elements found:', {
+            button: !!btnChangePasswordModal,
+            currentInput: !!currentPwInput,
+            newInput: !!newPwInput,
+            confirmInput: !!confirmPwInput,
+            strengthIndicator: !!strengthIndicator,
+            strengthBars: strengthBars.length,
+            strengthText: !!strengthText,
+        });
+
+        if (!btnChangePasswordModal) {
+            console.error('Change password button not found! ID: btn-change-password');
+            return;
+        }
+
+        // Password strength checker
+        function checkPasswordStrength(password) {
+            if (!password) return { score: 0, text: '', color: '' };
+
+            let score = 0;
+            const feedback = [];
+
+            // Length check
+            if (password.length >= 8) score++;
+            else feedback.push('8+ characters');
+
+            // Uppercase check
+            if (/[A-Z]/.test(password)) score++;
+            else feedback.push('uppercase letter');
+
+            // Lowercase check
+            if (/[a-z]/.test(password)) score++;
+            else feedback.push('lowercase letter');
+
+            // Number check
+            if (/\d/.test(password)) score++;
+            else feedback.push('number');
+
+            // Special character check
+            if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
+            else feedback.push('special character');
+
+            const strength = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][Math.min(score, 4)];
+            const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981'];
+
+            return {
+                score,
+                text: feedback.length ? `Add: ${feedback.join(', ')}` : strength,
+                color: colors[Math.min(score, 4)],
+                strength,
+            };
+        }
+
+        // Real-time password strength checking
+        newPwInput?.addEventListener('input', e => {
+            const password = e.target.value;
+
+            if (password) {
+                strengthIndicator.style.display = 'block';
+                const result = checkPasswordStrength(password);
+
+                // Update strength bars
+                strengthBars.forEach((bar, index) => {
+                    if (index < result.score) {
+                        bar.style.background = result.color;
+                    } else {
+                        bar.style.background = 'rgba(255,255,255,0.1)';
+                    }
+                });
+
+                // Update text
+                strengthText.textContent = result.text;
+                strengthText.style.color = result.color;
+
+                // Update input border
+                e.target.style.borderColor =
+                    result.score >= 3
+                        ? 'var(--color-success)'
+                        : result.score >= 2
+                          ? 'var(--color-warning)'
+                          : 'var(--color-error)';
+            } else {
+                strengthIndicator.style.display = 'none';
+                e.target.style.borderColor = 'rgba(255,255,255,0.1)';
+            }
+
+            // Also check password matching when new password changes
+            checkPasswordMatch();
+        });
+
+        // Function to check password matching
+        function checkPasswordMatch() {
+            const newPassword = newPwInput?.value || '';
+            const confirmPassword = confirmPwInput?.value || '';
+
+            if (confirmPassword) {
+                if (newPassword === confirmPassword) {
+                    confirmPwInput.style.borderColor = 'var(--color-success)';
+                    // Add a small checkmark indicator
+                    if (
+                        !confirmPwInput.nextElementSibling ||
+                        !confirmPwInput.nextElementSibling.classList.contains(
+                            'password-match-indicator'
+                        )
+                    ) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'password-match-indicator';
+                        indicator.style.cssText = `
+                            position: absolute;
+                            right: 12px;
+                            top: 50%;
+                            transform: translateY(-50%);
+                            color: var(--color-success);
+                            font-size: 14px;
+                            pointer-events: none;
+                        `;
+                        indicator.innerHTML = '<i class="fas fa-check-circle"></i>';
+                        confirmPwInput.parentElement.style.position = 'relative';
+                        confirmPwInput.parentElement.appendChild(indicator);
+                    }
+                } else {
+                    confirmPwInput.style.borderColor = 'var(--color-error)';
+                    // Remove checkmark if it exists
+                    const indicator = confirmPwInput.parentElement.querySelector(
+                        '.password-match-indicator'
+                    );
+                    if (indicator) indicator.remove();
+                }
+            } else {
+                confirmPwInput.style.borderColor = 'rgba(255,255,255,0.1)';
+                // Remove checkmark if it exists
+                const indicator = confirmPwInput.parentElement.querySelector(
+                    '.password-match-indicator'
+                );
+                if (indicator) indicator.remove();
+            }
+        }
+
+        // Real-time confirm password checking
+        confirmPwInput?.addEventListener('input', e => {
+            checkPasswordMatch();
+        });
+
+        // Enter key support
+        [currentPwInput, newPwInput, confirmPwInput].forEach(input => {
+            input?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    btnChangePasswordModal?.click();
+                }
+            });
+        });
+
+        ensureSpinner(btnChangePasswordModal);
+
+        // Remove any existing event listeners to prevent duplicates
+        const newButton = btnChangePasswordModal.cloneNode(true);
+        btnChangePasswordModal.parentNode.replaceChild(newButton, btnChangePasswordModal);
+        const btnChangePasswordModalClean = document.getElementById('btn-change-password');
+        ensureSpinner(btnChangePasswordModalClean);
+
+        console.log('Adding click event listener to change password button...');
+        btnChangePasswordModalClean.addEventListener('click', async event => {
+            try {
+                // Prevent multiple submissions
+                if (btnChangePasswordModalClean.disabled) {
+                    console.log('Button already disabled, ignoring click');
+                    return;
+                }
+
+                console.log('=== CHANGE PASSWORD BUTTON CLICKED ===');
+                console.log('Event object:', event);
+
+                const statusEl = document.getElementById('password-status');
+                console.log('Status element found:', !!statusEl);
+
+                const currentPassword = currentPwInput?.value || '';
+                const newPassword = newPwInput?.value || '';
+                const confirmPassword = confirmPwInput?.value || '';
+
+                console.log('Password values:', {
+                    current: currentPassword
+                        ? `has value (${currentPassword.length} chars)`
+                        : 'empty',
+                    new: newPassword ? `has value (${newPassword.length} chars)` : 'empty',
+                    confirm: confirmPassword
+                        ? `has value (${confirmPassword.length} chars)`
+                        : 'empty',
+                });
+
+                // Clear status
+                if (statusEl) {
+                    statusEl.style.display = 'none';
+                    statusEl.className = 'status-message';
+                }
+
+                // Validate inputs
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    console.log('Validation failed: missing fields');
+                    if (statusEl) {
+                        statusEl.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-exclamation-triangle" style="color: var(--color-error);"></i>
+                                <span>Please fill in all password fields</span>
+                            </div>
+                        `;
+                        statusEl.className = 'status-message error';
+                        statusEl.style.display = 'block';
+                    }
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    console.log('Validation failed: passwords do not match');
+                    if (statusEl) {
+                        statusEl.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-times-circle" style="color: var(--color-error);"></i>
+                                <span>New passwords do not match</span>
+                            </div>
+                        `;
+                        statusEl.className = 'status-message error';
+                        statusEl.style.display = 'block';
+                    }
+                    return;
+                }
+
+                const strengthResult = checkPasswordStrength(newPassword);
+                console.log('Password strength check result:', strengthResult);
+                if (strengthResult.score < 2) {
+                    console.log('Validation failed: password too weak');
+                    if (statusEl) {
+                        statusEl.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-shield-alt" style="color: var(--color-warning);"></i>
+                                <span>Please choose a stronger password</span>
+                            </div>
+                        `;
+                        statusEl.className = 'status-message error';
+                        statusEl.style.display = 'block';
+                    }
+                    return;
+                }
+
+                console.log('All validations passed, making API call...');
+                btnChangePasswordModalClean.classList.add('btn-loading');
+                btnChangePasswordModalClean.disabled = true;
+
+                const requestBody = {
+                    currentPassword,
+                    newPassword,
+                    confirmPassword: confirmPassword,
+                };
+                console.log('Request body (passwords masked):', {
+                    currentPassword: currentPassword
+                        ? `*** (${currentPassword.length} chars)`
+                        : 'EMPTY',
+                    newPassword: newPassword ? `*** (${newPassword.length} chars)` : 'EMPTY',
+                    confirmPassword: confirmPassword
+                        ? `*** (${confirmPassword.length} chars)`
+                        : 'EMPTY',
+                });
+
+                const response = await fetch('/api/admin/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(requestBody),
+                });
+
+                console.log('API response status:', response.status);
+                const result = await response.json();
+                console.log('API response data:', result);
+
+                if (response.ok) {
+                    console.log('Password change successful');
+                    if (statusEl) {
+                        statusEl.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-check-circle" style="color: var(--color-success);"></i>
+                                <span>Password changed successfully! You will be logged out for security.</span>
+                            </div>
+                        `;
+                        statusEl.className = 'status-message success';
+                        statusEl.style.display = 'block';
+                    }
+
+                    // Clear form
+                    if (currentPwInput) currentPwInput.value = '';
+                    if (newPwInput) newPwInput.value = '';
+                    if (confirmPwInput) confirmPwInput.value = '';
+                    if (strengthIndicator) strengthIndicator.style.display = 'none';
+
+                    // Reset input borders
+                    [currentPwInput, newPwInput, confirmPwInput].forEach(input => {
+                        if (input) input.style.borderColor = 'rgba(255,255,255,0.1)';
+                    });
+
+                    // Show success message longer and redirect to login
+                    setTimeout(() => {
+                        closeModal('modal-change-password');
+                        if (statusEl) statusEl.style.display = 'none';
+                        // Redirect to login page since user is logged out
+                        window.location.href = '/admin';
+                    }, 3000); // Increased to 3 seconds
+
+                    if (window.notify?.toast) {
+                        window.notify.toast({
+                            type: 'success',
+                            title: 'Password Changed',
+                            message: 'Your password has been updated successfully',
+                            duration: 3000,
+                        });
+                    }
+                } else {
+                    console.log('Password change failed:', result);
+                    if (statusEl) {
+                        statusEl.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-exclamation-circle" style="color: var(--color-error);"></i>
+                                <span>${result.error || 'Failed to change password'}</span>
+                            </div>
+                        `;
+                        statusEl.className = 'status-message error';
+                        statusEl.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('MAJOR ERROR in change password handler:', error);
+                console.error('Error stack:', error.stack);
+
+                const statusEl = document.getElementById('password-status');
+                if (statusEl) {
+                    statusEl.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-wifi" style="color: var(--color-error);"></i>
+                            <span>An error occurred: ${error.message}</span>
+                        </div>
+                    `;
+                    statusEl.className = 'status-message error';
+                    statusEl.style.display = 'block';
+                }
+            } finally {
+                btnChangePasswordModalClean.classList.remove('btn-loading');
+                btnChangePasswordModalClean.disabled = false;
+            }
+        });
+
+        // Test if this code runs
+        console.log('Change Password Modal setup completed at:', new Date().toISOString());
+
+        // Also add a manual test button click
+        if (btnChangePasswordModal) {
+            btnChangePasswordModal.setAttribute('data-debug', 'ready');
+            console.log('Change password button is ready for testing');
+        }
 
         // API key management
         const btnApiGenerate = document.getElementById('generate-api-key-button');
@@ -1913,6 +2489,7 @@
                     duration: 5000,
                 });
                 await refreshSecurity();
+                await refreshApiKeyStatus(); // Also refresh in Operations section
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -1943,6 +2520,7 @@
                 });
                 closeModal('modal-revoke-api-key');
                 await refreshSecurity();
+                await refreshApiKeyStatus(); // Also refresh in Operations section
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -3011,9 +3589,13 @@
                         plex: false,
                         jf: false,
                     };
-                    if (window.__autoFetchedLibs.plex) return;
-                    window.__autoFetchedLibs.plex = true;
-                    await fetchPlexLibraries(true);
+
+                    // Always fetch libraries when opening the panel to ensure we have the full list
+                    // This fixes the issue where only pre-selected libraries show as options
+                    if (!window.__autoFetchedLibs.plex) {
+                        window.__autoFetchedLibs.plex = true;
+                        await fetchPlexLibraries(true);
+                    }
                 })();
             } catch (_) {
                 /* ignore */
@@ -3027,9 +3609,13 @@
                         plex: false,
                         jf: false,
                     };
-                    if (window.__autoFetchedLibs.jf) return;
-                    window.__autoFetchedLibs.jf = true;
-                    await fetchJellyfinLibraries(true);
+
+                    // Always fetch libraries when opening the panel to ensure we have the full list
+                    // This fixes the issue where only pre-selected libraries show as options
+                    if (!window.__autoFetchedLibs.jf) {
+                        window.__autoFetchedLibs.jf = true;
+                        await fetchJellyfinLibraries(true);
+                    }
                 })();
             } catch (_) {
                 /* ignore */
