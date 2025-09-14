@@ -1660,6 +1660,11 @@
                     refreshOperationsPanels();
                     // refresh API key status since API Access is now in Operations
                     refreshApiKeyStatus();
+                } else if (nav === 'devices') {
+                    showSection('section-devices');
+                    try {
+                        window.admin2?.initDevices?.();
+                    } catch (_) {}
                 } else if (nav === 'media-sources') {
                     showSection('section-media-sources');
                 }
@@ -2197,6 +2202,379 @@
                 btn2faVerify.disabled = false;
             }
         });
+
+        // Devices UI: initialize interactions when section is shown
+        window.admin2 = window.admin2 || {};
+        window.admin2.initDevices = function initDevices() {
+            const section = document.getElementById('section-devices');
+            if (!section || section.dataset.inited === '1') return; // guard against double init
+            section.dataset.inited = '1';
+            // Dropdown toggles within device toolbar and cards
+            document.querySelectorAll('#section-devices .dropdown-toggle').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const dd = btn.closest('.dropdown');
+                    const willOpen = !dd.classList.contains('open');
+                    document.querySelectorAll('#section-devices .dropdown').forEach(x => {
+                        if (x !== dd) x.classList.remove('open');
+                    });
+                    dd.classList.toggle('open', willOpen);
+                });
+            });
+            document.addEventListener('click', () => {
+                document
+                    .querySelectorAll('#section-devices .dropdown')
+                    .forEach(x => x.classList.remove('open'));
+            });
+
+            // Device search + pagination
+            const deviceSearch = document.getElementById('device-search');
+            const deviceCards = Array.from(document.querySelectorAll('#device-grid .device-card'));
+            const pageInfo = document.getElementById('device-page-info');
+            const pageNumbers = document.getElementById('device-page-numbers');
+            const pagePrev = document.getElementById('device-page-prev');
+            const pageNext = document.getElementById('device-page-next');
+            const perPageSel = document.getElementById('device-per-page');
+            const state = {
+                currentPage: 1,
+                perPage: perPageSel ? parseInt(perPageSel.value, 10) : 9,
+                query: '',
+                filterStatus: null,
+                filterRoom: null,
+            };
+            function getFiltered() {
+                const q = state.query;
+                const fs = state.filterStatus;
+                const fr = state.filterRoom;
+                return deviceCards.filter(card => {
+                    const name =
+                        card.querySelector('.device-title .name')?.textContent.toLowerCase() || '';
+                    const meta =
+                        card.querySelector('.device-title .meta')?.textContent.toLowerCase() || '';
+                    const matchesText = !q || name.includes(q) || meta.includes(q);
+                    const statusAttr = card.getAttribute('data-status');
+                    const roomAttr = card.getAttribute('data-room');
+                    const matchesStatus = !fs || statusAttr === fs;
+                    const matchesRoom = !fr || roomAttr === fr;
+                    return matchesText && matchesStatus && matchesRoom;
+                });
+            }
+            function renderPage() {
+                const filtered = getFiltered();
+                const total = filtered.length;
+                const perPage = Math.max(1, state.perPage | 0);
+                const maxPage = Math.max(1, Math.ceil(total / perPage));
+                if (state.currentPage > maxPage) state.currentPage = maxPage;
+                const start = (state.currentPage - 1) * perPage;
+                const end = start + perPage;
+                deviceCards.forEach(c => (c.style.display = 'none'));
+                filtered.slice(start, end).forEach(c => (c.style.display = ''));
+                const showing = Math.min(perPage, Math.max(0, total - start));
+                if (pageInfo) pageInfo.textContent = `Showing ${showing} of ${total} devices`;
+                if (pagePrev) pagePrev.disabled = state.currentPage <= 1;
+                if (pageNext) pageNext.disabled = state.currentPage >= maxPage;
+                if (pageNumbers) {
+                    pageNumbers.innerHTML = '';
+                    const maxButtons = 7;
+                    let startPage = Math.max(1, state.currentPage - 3);
+                    const endPage = Math.min(maxPage, startPage + maxButtons - 1);
+                    startPage = Math.max(1, Math.min(startPage, endPage - maxButtons + 1));
+                    for (let p = startPage; p <= endPage; p++) {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn btn-sm' + (p === state.currentPage ? ' active' : '');
+                        btn.textContent = String(p);
+                        btn.addEventListener('click', () => {
+                            state.currentPage = p;
+                            renderPage();
+                        });
+                        pageNumbers.appendChild(btn);
+                    }
+                }
+            }
+            deviceSearch?.addEventListener('input', () => {
+                state.query = (deviceSearch.value || '').toLowerCase();
+                state.currentPage = 1;
+                renderPage();
+            });
+            perPageSel?.addEventListener('change', () => {
+                state.perPage = parseInt(perPageSel.value, 10) || 9;
+                state.currentPage = 1;
+                renderPage();
+            });
+            pagePrev?.addEventListener('click', () => {
+                if (state.currentPage > 1) {
+                    state.currentPage--;
+                    renderPage();
+                }
+            });
+            pageNext?.addEventListener('click', () => {
+                const total = getFiltered().length;
+                const maxPage = Math.max(1, Math.ceil(total / Math.max(1, state.perPage | 0)));
+                if (state.currentPage < maxPage) {
+                    state.currentPage++;
+                    renderPage();
+                }
+            });
+            renderPage();
+
+            // Hovercards (status, dupes)
+            function createHovercard(id, html) {
+                let el = document.getElementById(id);
+                if (!el) {
+                    el = document.createElement('div');
+                    el.className = 'hovercard';
+                    el.id = id;
+                    el.innerHTML = html;
+                    document.body.appendChild(el);
+                }
+                return el;
+            }
+            const statusHoverHTML =
+                '\n                <div class="hc-title">Status details</div>\n                <div class="hc-list">\n                    <div class="hc-row"><i class="fas fa-wave-square"></i><span>Uptime</span><span class="mono">3d 12h</span></div>\n                    <div class="hc-row"><i class="fas fa-gauge-high"></i><span>Load</span><span class="mono">27%</span></div>\n                    <div class="hc-row"><i class="fas fa-wifi"></i><span>Signal</span><span class="mono">Good</span></div>\n                </div>\n                <div class="hc-actions">\n                    <button class="btn btn-outline btn-sm"><i class="fas fa-rotate-right"></i> Restart</button>\n                    <button class="btn btn-outline btn-sm"><i class="fas fa-plug"></i> Reconnect</button>\n                </div>';
+            const dupesHoverHTML =
+                '\n                <div class="hc-title">Duplicates found</div>\n                <div class="hc-list">\n                    <div class="hc-row"><i class="fas fa-clone"></i><span>Living Room TV (old)</span><button class="btn btn-outline btn-sm"><i class="fas fa-object-group"></i> Merge</button></div>\n                    <div class="hc-row"><i class="fas fa-clone"></i><span>Bedroom TV</span><button class="btn btn-outline btn-sm"><i class="fas fa-object-group"></i> Merge</button></div>\n                </div>';
+            const statusCard = createHovercard('hc-status', statusHoverHTML);
+            const dupesCard = createHovercard('hc-dupes', dupesHoverHTML);
+            function positionHover(el, trigger) {
+                const r = trigger.getBoundingClientRect();
+                const margin = 8;
+                const top = window.scrollY + r.top + r.height + margin;
+                const left = Math.min(
+                    window.scrollX + r.left,
+                    window.scrollX + window.innerWidth - el.offsetWidth - margin
+                );
+                el.style.top = top + 'px';
+                el.style.left = left + 'px';
+            }
+            function bindHover(selector, card) {
+                document.querySelectorAll(selector).forEach(tr => {
+                    let hideTimer;
+                    const clearHide = () => {
+                        if (hideTimer) {
+                            clearTimeout(hideTimer);
+                            hideTimer = null;
+                        }
+                    };
+                    const show = () => {
+                        clearHide();
+                        positionHover(card, tr);
+                        card.classList.add('open');
+                    };
+                    const hide = () => {
+                        clearHide();
+                        card.classList.remove('open');
+                    };
+                    tr.addEventListener('mouseenter', show);
+                    tr.addEventListener('focus', show);
+                    tr.addEventListener('mouseleave', e => {
+                        if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+                        clearHide();
+                        hideTimer = setTimeout(hide, 350);
+                    });
+                    tr.addEventListener('blur', () => {
+                        setTimeout(() => {
+                            if (!tr.matches(':hover') && !card.matches(':hover')) hide();
+                        }, 200);
+                    });
+                    card.addEventListener('mouseenter', clearHide);
+                    card.addEventListener('mousedown', clearHide);
+                    card.addEventListener('mouseleave', e => {
+                        if (e.relatedTarget && tr.contains(e.relatedTarget)) return;
+                        hide();
+                    });
+                });
+            }
+            bindHover('.js-status-hover', statusCard);
+            bindHover('.js-dupes-hover', dupesCard);
+
+            // Presets dropdowns (toolbar + card-level)
+            document
+                .querySelectorAll(
+                    '#device-presets-menu .dropdown-item, #device-ui .device-actions .dropdown .dropdown-item'
+                )
+                .forEach(item => {
+                    item.addEventListener('click', () => {
+                        const preset = item.getAttribute('data-device-preset');
+                        const labels = {
+                            default: 'Default',
+                            maintenance: 'Maintenance',
+                            showroom: 'Showroom',
+                        };
+                        window.notify?.toast({
+                            type: 'info',
+                            title: 'Preset applied',
+                            message: `${labels[preset] || 'Preset'} loaded`,
+                        });
+                        document
+                            .querySelectorAll('#section-devices .dropdown')
+                            .forEach(x => x.classList.remove('open'));
+                    });
+                });
+
+            // Toolbar actions menu (merge, group, select-all, clear-selection, preset)
+            document.querySelectorAll('#device-actions-menu .dropdown-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const act = item.getAttribute('data-device-action');
+                    if (act === 'select-all') {
+                        document.querySelectorAll('#device-grid .device-card').forEach(card => {
+                            if (card.style.display === 'none') return; // page filtered out
+                            const cb = card.querySelector('.device-select');
+                            if (cb) {
+                                cb.checked = true;
+                                card.classList.add('selected');
+                            }
+                        });
+                        updateBulkUI();
+                        window.notify?.toast({
+                            type: 'info',
+                            title: 'Selection',
+                            message: 'All visible devices selected',
+                        });
+                    } else if (act === 'clear-selection') {
+                        document.querySelectorAll('#device-grid .device-select').forEach(cb => {
+                            cb.checked = false;
+                            cb.closest('.device-card')?.classList.remove('selected');
+                        });
+                        updateBulkUI();
+                        window.notify?.toast({
+                            type: 'info',
+                            title: 'Selection',
+                            message: 'Selection cleared',
+                        });
+                    } else if (act === 'merge') {
+                        const n = document.querySelectorAll(
+                            '#device-grid .device-card.selected'
+                        ).length;
+                        window.notify?.toast({
+                            type: 'info',
+                            title: 'Merge devices',
+                            message: `${n} selected`,
+                        });
+                    } else if (act === 'group') {
+                        const n = document.querySelectorAll(
+                            '#device-grid .device-card.selected'
+                        ).length;
+                        window.notify?.toast({
+                            type: 'info',
+                            title: 'Add to group',
+                            message: `${n} selected`,
+                        });
+                    } else if (act === 'preset') {
+                        // Open the presets dropdown in the toolbar
+                        const dd = document.querySelector(
+                            '#device-ui .device-toolbar > .dropdown:nth-child(3)'
+                        );
+                        if (dd) {
+                            // Close others first, then open presets
+                            document.querySelectorAll('#section-devices .dropdown').forEach(x => {
+                                if (x !== dd) x.classList.remove('open');
+                            });
+                            dd.classList.add('open');
+                            return; // don't close all
+                        }
+                    }
+                    document
+                        .querySelectorAll('#section-devices .dropdown')
+                        .forEach(x => x.classList.remove('open'));
+                });
+            });
+
+            // Filter menu (toolbar)
+            function updateFilterMenuUI() {
+                document.querySelectorAll('#device-filter-menu .dropdown-item').forEach(it => {
+                    const val = it.getAttribute('data-device-filter') || '';
+                    const [type, v] = val.split(':');
+                    const active =
+                        (type === 'status' && state.filterStatus === v) ||
+                        (type === 'room' && state.filterRoom === v);
+                    it.classList.toggle('active', !!active);
+                });
+            }
+            document.querySelectorAll('#device-filter-menu .dropdown-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const val = item.getAttribute('data-device-filter');
+                    const label = item.textContent.trim();
+                    const [type, v] = (val || '').split(':');
+                    if (type === 'status') {
+                        state.filterStatus = state.filterStatus === v ? null : v;
+                    } else if (type === 'room') {
+                        state.filterRoom = state.filterRoom === v ? null : v;
+                    }
+                    state.currentPage = 1;
+                    updateFilterMenuUI();
+                    renderPage();
+                    window.notify?.toast({
+                        type: 'info',
+                        title: 'Filter',
+                        message: `${type} → ${label}`,
+                    });
+                    document
+                        .querySelectorAll('#section-devices .dropdown')
+                        .forEach(x => x.classList.remove('open'));
+                });
+            });
+            updateFilterMenuUI();
+
+            // Bulk selection bar
+            const bulkBar = document.getElementById('bulk-bar');
+            const bulkCount = document.getElementById('bulk-count');
+            function updateBulkUI() {
+                const total = document.querySelectorAll('#device-grid .device-card').length;
+                const selected = document.querySelectorAll(
+                    '#device-grid .device-card.selected'
+                ).length;
+                if (bulkCount) bulkCount.textContent = String(selected);
+                if (bulkBar) bulkBar.classList.toggle('open', selected > 0);
+            }
+            document.querySelectorAll('#device-grid .device-select').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    cb.closest('.device-card')?.classList.toggle('selected', cb.checked);
+                    updateBulkUI();
+                });
+            });
+            document.getElementById('bulk-clear')?.addEventListener('click', () => {
+                document.querySelectorAll('#device-grid .device-select').forEach(cb => {
+                    cb.checked = false;
+                    cb.closest('.device-card')?.classList.remove('selected');
+                });
+                updateBulkUI();
+            });
+            document.getElementById('bulk-restart')?.addEventListener('click', () => {
+                const n = document.querySelectorAll('#device-grid .device-card.selected').length;
+                window.notify?.toast({
+                    type: 'info',
+                    title: 'Restart requested',
+                    message: `Restarting ${n} device${n !== 1 ? 's' : ''}...`,
+                });
+            });
+            document.getElementById('bulk-poweroff')?.addEventListener('click', () => {
+                const n = document.querySelectorAll('#device-grid .device-card.selected').length;
+                window.notify?.toast({
+                    type: 'warning',
+                    title: 'Power off',
+                    message: `Powering off ${n} device${n !== 1 ? 's' : ''}...`,
+                });
+            });
+            document.getElementById('bulk-update')?.addEventListener('click', () => {
+                const n = document.querySelectorAll('#device-grid .device-card.selected').length;
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Updates queued',
+                    message: `${n} device${n !== 1 ? 's' : ''} scheduled for update`,
+                });
+            });
+            updateBulkUI();
+
+            // Modal open buttons in device cards
+            document.querySelectorAll('#section-devices [data-open-modal]')?.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sel = btn.getAttribute('data-open-modal');
+                    if (!sel) return;
+                    const overlay = document.querySelector(sel);
+                    if (overlay) overlay.classList.add('open');
+                });
+            });
+        };
 
         // 2FA disable flow
         btn2faDisable?.addEventListener('click', () => openModal('modal-2fa-disable'));

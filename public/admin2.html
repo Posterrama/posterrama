@@ -1963,6 +1963,223 @@
       </section>
     </section>
 
+    <!-- Devices Section (top-level sibling) -->
+    <section id="section-devices" class="app-section" hidden>
+      <section class="panel" id="device-ui">
+        <header class="panel-header">
+          <h2><i class="fas fa-laptop"></i> Device Management <span class="badge badge-beta">BETA</span></h2>
+          <div class="panel-actions device-toolbar">
+            <div class="dropdown">
+              <button class="btn btn-outline btn-sm dropdown-toggle" id="device-filter-toggle">
+                <i class="fas fa-filter"></i>
+                Filter
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="dropdown-menu" id="device-filter-menu">
+                <div class="dropdown-heading">Status</div>
+                <div class="dropdown-item" data-device-filter="status:live"><i class="fas fa-bolt"></i> Live</div>
+                <div class="dropdown-item" data-device-filter="status:online"><i class="fas fa-signal"></i> Online</div>
+                <div class="dropdown-item" data-device-filter="status:offline"><i class="fas fa-plug-circle-xmark"></i> Offline</div>
+                <div class="dropdown-heading">Room</div>
+                <div class="dropdown-item" data-device-filter="room:living-room"><i class="fas fa-tv"></i> Living Room</div>
+                <div class="dropdown-item" data-device-filter="room:office"><i class="fas fa-briefcase"></i> Office</div>
+              </div>
+            </div>
+            <div class="dropdown">
+              <button class="btn btn-outline btn-sm dropdown-toggle" id="device-actions-toggle">
+                <i class="fas fa-gear"></i>
+                Actions
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="dropdown-menu" id="device-actions-menu">
+                <div class="dropdown-item" data-device-action="merge"><i class="fas fa-object-group"></i> Merge selected</div>
+                <div class="dropdown-item" data-device-action="group"><i class="fas fa-layer-group"></i> Add to group</div>
+                <div class="dropdown-item" data-device-action="preset"><i class="fas fa-star"></i> Assign preset</div>
+                <div class="dropdown-heading">Selection</div>
+                <div class="dropdown-item" data-device-action="select-all"><i class="fas fa-check-double"></i> Select all</div>
+                <div class="dropdown-item" data-device-action="clear-selection"><i class="fas fa-eraser"></i> Clear selection</div>
+              </div>
+            </div>
+            <div class="dropdown">
+              <button class="btn btn-outline btn-sm dropdown-toggle" id="device-presets-toggle">
+                <i class="fas fa-star"></i>
+                Presets
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="dropdown-menu" id="device-presets-menu">
+                <div class="dropdown-item" data-device-preset="default"><i class="fas fa-rotate"></i> Default</div>
+                <div class="dropdown-item" data-device-preset="maintenance"><i class="fas fa-wrench"></i> Maintenance</div>
+                <div class="dropdown-item" data-device-preset="showroom"><i class="fas fa-store"></i> Showroom</div>
+              </div>
+            </div>
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input id="device-search" type="text" placeholder="Search devices…">
+            </div>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="device-grid" id="device-grid">
+            <!-- Sample device cards reflecting statuses and dupes -->
+            <div class="device-card" data-status="live" data-room="living-room">
+              <div class="device-card-header">
+                <div class="device-select-wrap"><input type="checkbox" class="device-select" aria-label="Select device: Living Room TV"></div>
+                <div class="device-id">
+                  <div class="device-avatar"><i class="fas fa-tv"></i></div>
+                  <div class="device-title">
+                    <span class="name">Living Room TV</span>
+                    <span class="meta">Android TV • v2.0.3</span>
+                  </div>
+                </div>
+                <div class="action-buttons">
+                  <button class="btn btn-icon btn-sm" title="Power"><i class="fas fa-power-off"></i></button>
+                  <button class="btn btn-icon btn-sm" title="Settings"><i class="fas fa-cog"></i></button>
+                </div>
+              </div>
+              <div class="device-card-body">
+                <div class="device-badges">
+                  <span class="status-badge status-live js-status-hover" tabindex="0">
+                    <i class="fas fa-circle"></i> Live
+                  </span>
+                  <span class="pill pill-room">Living Room</span>
+                  <span class="pill pill-type">Android TV</span>
+                  <span class="pill pill-dupes js-dupes-hover" tabindex="0"><i class="fas fa-clone"></i> 2 dupes</span>
+                </div>
+                <div class="pill-grid">
+                  <span class="pill pill-quality">4K</span>
+                  <span class="pill pill-rating">9.1</span>
+                </div>
+              </div>
+              <div class="device-actions">
+                <div class="btn-group">
+                  <button class="btn btn-outline btn-sm" data-open-modal="#modal-merge"><i class="fas fa-object-group"></i> Merge</button>
+                  <button class="btn btn-outline btn-sm"><i class="fas fa-layer-group"></i> Group</button>
+                </div>
+                <div class="dropdown">
+                  <button class="btn btn-secondary btn-sm dropdown-toggle">
+                    <i class="fas fa-star"></i> Preset <i class="fas fa-chevron-down"></i>
+                  </button>
+                  <div class="dropdown-menu">
+                    <div class="dropdown-item" data-device-preset="default">Default</div>
+                    <div class="dropdown-item" data-device-preset="maintenance">Maintenance</div>
+                    <div class="dropdown-item" data-device-preset="showroom">Showroom</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="device-card" data-status="online" data-room="office">
+              <div class="device-card-header">
+                <div class="device-select-wrap"><input type="checkbox" class="device-select" aria-label="Select device: Office Monitor"></div>
+                <div class="device-id">
+                  <div class="device-avatar"><i class="fas fa-desktop"></i></div>
+                  <div class="device-title">
+                    <span class="name">Office Monitor</span>
+                    <span class="meta">Chrome • v2.0.3</span>
+                  </div>
+                </div>
+                <div class="action-buttons">
+                  <button class="btn btn-icon btn-sm" title="Power"><i class="fas fa-power-off"></i></button>
+                  <button class="btn btn-icon btn-sm" title="Settings"><i class="fas fa-cog"></i></button>
+                </div>
+              </div>
+              <div class="device-card-body">
+                <div class="device-badges">
+                  <span class="status-badge status-online js-status-hover" tabindex="0">
+                    <i class="fas fa-circle"></i> Online
+                  </span>
+                  <span class="pill pill-room">Office</span>
+                  <span class="pill pill-type">Browser</span>
+                </div>
+                <div class="pill-grid">
+                  <span class="pill pill-quality">HD</span>
+                  <span class="pill pill-rating">8.4</span>
+                </div>
+              </div>
+              <div class="device-actions">
+                <div class="btn-group">
+                  <button class="btn btn-outline btn-sm"><i class="fas fa-layer-group"></i> Group</button>
+                </div>
+                <div class="dropdown">
+                  <button class="btn btn-secondary btn-sm dropdown-toggle">
+                    <i class="fas fa-star"></i> Preset <i class="fas fa-chevron-down"></i>
+                  </button>
+                  <div class="dropdown-menu">
+                    <div class="dropdown-item" data-device-preset="default">Default</div>
+                    <div class="dropdown-item" data-device-preset="maintenance">Maintenance</div>
+                    <div class="dropdown-item" data-device-preset="showroom">Showroom</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="device-card" data-status="offline" data-room="kitchen">
+              <div class="device-card-header">
+                <div class="device-select-wrap"><input type="checkbox" class="device-select" aria-label="Select device: Kitchen Tablet"></div>
+                <div class="device-id">
+                  <div class="device-avatar"><i class="fas fa-tablet"></i></div>
+                  <div class="device-title">
+                    <span class="name">Kitchen Tablet</span>
+                    <span class="meta">Safari • v2.0.3</span>
+                  </div>
+                </div>
+                <div class="action-buttons">
+                  <button class="btn btn-icon btn-sm" title="Power" disabled><i class="fas fa-power-off"></i></button>
+                  <button class="btn btn-icon btn-sm" title="Settings"><i class="fas fa-cog"></i></button>
+                </div>
+              </div>
+              <div class="device-card-body">
+                <div class="device-badges">
+                  <span class="status-badge status-offline js-status-hover" tabindex="0">
+                    <i class="fas fa-circle"></i> Offline
+                  </span>
+                  <span class="pill pill-room">Kitchen</span>
+                  <span class="pill pill-type">Tablet</span>
+                </div>
+                <div class="pill-grid">
+                  <span class="pill pill-quality">HD</span>
+                  <span class="pill pill-rating">7.2</span>
+                </div>
+              </div>
+              <div class="device-actions">
+                <div class="btn-group">
+                  <button class="btn btn-outline btn-sm" data-open-modal="#modal-merge"><i class="fas fa-object-group"></i> Merge</button>
+                </div>
+                <div class="dropdown">
+                  <button class="btn btn-secondary btn-sm dropdown-toggle">
+                    <i class="fas fa-star"></i> Preset <i class="fas fa-chevron-down"></i>
+                  </button>
+                  <div class="dropdown-menu">
+                    <div class="dropdown-item" data-device-preset="default">Default</div>
+                    <div class="dropdown-item" data-device-preset="maintenance">Maintenance</div>
+                    <div class="dropdown-item" data-device-preset="showroom">Showroom</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-footer device-pagination">
+            <div class="table-info" id="device-page-info">Showing 0 of 0 devices</div>
+            <div class="pagination">
+              <button class="btn btn-icon btn-sm" id="device-page-prev" aria-label="Previous page"><i class="fas fa-chevron-left"></i></button>
+              <span class="page-numbers" id="device-page-numbers"></span>
+              <button class="btn btn-icon btn-sm" id="device-page-next" aria-label="Next page"><i class="fas fa-chevron-right"></i></button>
+              <div class="per-page">
+                <label for="device-per-page" class="sr-only">Per page</label>
+                <select id="device-per-page">
+                  <option value="6">6 / page</option>
+                  <option value="9" selected>9 / page</option>
+                  <option value="12">12 / page</option>
+                  <option value="24">24 / page</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
     <!-- Operations Section (top-level sibling) -->
   <section id="section-operations" class="app-section" hidden>
     <section class="panel operations-panel">
@@ -2467,6 +2684,57 @@
         <button type="button" id="btn-2fa-disable-confirm" class="btn btn-error" style="min-width: 120px;">
           <i class="fas fa-shield-alt"></i><span>Disable 2FA</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Device Merge Modal (from theme-demo) -->
+  <div class="modal-overlay" id="modal-merge">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-merge-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-merge-title">
+          <i class="fas fa-object-group"></i>
+          Merge Devices
+        </div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Select the source and target devices to merge histories and preferences. This cannot be undone.</p>
+        <div class="form-grid" style="margin-top: var(--space-lg);">
+          <div class="form-group">
+            <label>Source Device</label>
+            <select>
+              <option>Living Room TV</option>
+              <option>Office Monitor</option>
+              <option>Kitchen Tablet</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Target Device</label>
+            <select>
+              <option>Office Monitor</option>
+              <option>Living Room TV</option>
+              <option>Kitchen Tablet</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close-modal>Cancel</button>
+        <button class="btn btn-error">Merge</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Selection Bar (from theme-demo) -->
+  <div class="bulk-bar" id="bulk-bar" aria-live="polite">
+    <div class="bulk-inner">
+      <div class="bulk-count"><strong id="bulk-count">0</strong> selected</div>
+      <div class="bulk-actions">
+        <button class="btn btn-secondary btn-sm" id="bulk-restart"><i class="fas fa-rotate-right"></i> Restart</button>
+        <button class="btn btn-warning btn-sm" id="bulk-poweroff"><i class="fas fa-power-off"></i> Power off</button>
+        <button class="btn btn-primary btn-sm" id="bulk-update"><i class="fas fa-download"></i> Update</button>
+        <button class="btn btn-outline btn-sm" id="bulk-clear"><i class="fas fa-xmark"></i> Clear</button>
       </div>
     </div>
   </div>
