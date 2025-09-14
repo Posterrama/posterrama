@@ -8067,7 +8067,13 @@
 
         async function saveTMDB() {
             const btn = document.getElementById('btn-save-tmdb');
-            btn?.classList.add('btn-loading');
+            await saveConfigPatch({ tvdbSource: tvdb });
+            // Refresh header pills and counts to reflect new TVDB enabled state
+            try {
+                await loadMediaSources(true);
+            } catch (_) {
+                /* non-fatal */
+            }
             try {
                 const cfgRes = await window.dedupJSON('/api/admin/config', {
                     credentials: 'include',
