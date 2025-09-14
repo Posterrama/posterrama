@@ -2298,6 +2298,8 @@
                         container.style.left = curLeft + fixDx + 'px';
                         container.style.top = curTop + fixDy + 'px';
                     }
+                    // Ensure final position respects header and Display content bounds
+                    clampWithinViewport(0);
                 } catch (_) {}
             });
         }
@@ -2321,25 +2323,43 @@
             const crect = container.getBoundingClientRect?.() || { left: 0, top: 0 };
             const Vw = srect.width || Lw; // visual width after scale
             const Vh = srect.height || Lh; // visual height after scale
-            // Offset of the shell box inside the container (chrome like drag handle, padding)
-            const chromeX = srect.left - crect.left || 0;
-            const chromeY = srect.top - crect.top || 0;
-            // Offset of visual box within shell due to center-origin scale, plus chrome offset
-            const offsetX = chromeX + (Lw - Vw) / 2;
-            const offsetY = chromeY + (Lh - Vh) / 2;
+            // With transform-origin set to 'top right', the visual box's top-right corner anchors
+            // to the shell's top-right. The offset between the visual box and the container is
+            // fully represented by the shell's boundingClientRect vs container rect.
+            const offsetX = srect.left - crect.left || 0;
+            const offsetY = srect.top - crect.top || 0;
             return { Vw, Vh, offsetX, offsetY };
         }
 
-        // Clamp the current container position so the visual box stays within viewport margins
+        // Clamp the current container position so the visual box stays below the navbar
+        // and within the left/right edges of the Display Settings content. Bottom is
+        // still clamped to the viewport as before.
         function clampWithinViewport(margin = 0) {
             try {
                 const { Vw, Vh, offsetX, offsetY } = getVisualShellMetrics();
                 const vw = window.innerWidth;
                 const vh = window.innerHeight;
-                const minLeft = margin - offsetX;
-                const maxLeft = Math.max(minLeft, vw - margin - offsetX - Vw);
-                const minTop = margin - offsetY;
-                const maxTop = Math.max(minTop, vh - margin - offsetY - Vh);
+
+                // Top bound: below the fixed navbar plus a small inset
+                const nav = document.querySelector('.navbar');
+                const navRect = nav?.getBoundingClientRect?.();
+                const headerBottom = navRect ? navRect.bottom : 0;
+                const topInset = 8; // visual breathing room from navbar
+
+                // Horizontal bounds: constrain to Display Settings content outer border
+                const contentEl =
+                    document.querySelector('#panel-display .panel-content') ||
+                    document.querySelector('#section-display .panel-content') ||
+                    document.getElementById('section-display');
+                const contentRect = contentEl?.getBoundingClientRect?.();
+
+                const boundLeft = contentRect ? contentRect.left : 0;
+                const boundRight = contentRect ? contentRect.right : vw;
+
+                const minLeft = boundLeft - offsetX; // keep visual box's left >= content left
+                const maxLeft = Math.max(minLeft, boundRight - offsetX - Vw); // keep right <= content right
+                const minTop = Math.max(0, headerBottom + topInset - offsetY); // below navbar
+                const maxTop = Math.max(minTop, vh - margin - offsetY - Vh); // bottom to viewport
                 const rect = container.getBoundingClientRect();
                 const left = Math.min(Math.max(rect.left, minLeft), maxLeft);
                 const top = Math.min(Math.max(rect.top, minTop), maxTop);
@@ -2666,20 +2686,29 @@
             function computeBounds() {
                 const vw = window.innerWidth;
                 const vh = window.innerHeight;
-                const shell = container.querySelector('.preview-shell');
-                const Lw = shell?.clientWidth || container.offsetWidth || 420;
-                const Lh = shell?.clientHeight || container.offsetHeight || 250;
-                const srect = shell?.getBoundingClientRect?.() || { width: Lw, height: Lh };
-                const Vw = srect.width || Lw;
-                const Vh = srect.height || Lh;
-                const offsetX = (Lw - Vw) / 2;
-                const offsetY = (Lh - Vh) / 2;
-                const margin = 8;
-                // Bounds for container so the visual box remains inside margins
-                minTop = margin - offsetY;
-                maxTop = Math.max(minTop, vh - margin - offsetY - Vh);
-                minLeft = margin - offsetX;
-                maxLeft = Math.max(minLeft, vw - margin - offsetX - Vw);
+                // Use the same visual metrics helper to account for scale and chrome offsets
+                const { Vw, Vh, offsetX, offsetY } = getVisualShellMetrics();
+
+                // Top bound: below navbar
+                const nav = document.querySelector('.navbar');
+                const navRect = nav?.getBoundingClientRect?.();
+                const headerBottom = navRect ? navRect.bottom : 0;
+                const topInset = 8;
+
+                // Left/right bounds: Display Settings content area
+                const contentEl =
+                    document.querySelector('#panel-display .panel-content') ||
+                    document.querySelector('#section-display .panel-content') ||
+                    document.getElementById('section-display');
+                const contentRect = contentEl?.getBoundingClientRect?.();
+
+                const boundLeft = contentRect ? contentRect.left : 0;
+                const boundRight = contentRect ? contentRect.right : vw;
+
+                minTop = Math.max(0, headerBottom + topInset - offsetY);
+                maxTop = Math.max(minTop, vh - 8 - offsetY - Vh); // keep existing bottom clamp to viewport
+                minLeft = boundLeft - offsetX;
+                maxLeft = Math.max(minLeft, boundRight - offsetX - Vw);
             }
 
             function setPos(left, top) {
