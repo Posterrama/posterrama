@@ -1618,12 +1618,12 @@
       background: #000;
       transform-origin: bottom right;
       transition: transform 160ms ease, width 160ms ease, height 160ms ease;
+      /* Default visual scale ~1.2x */
+      transform: scale(1.2);
     }
     /* Simulate device aspect: landscape vs portrait */
     #display-preview-container.landscape .preview-shell { aspect-ratio: 16 / 9; }
     #display-preview-container.portrait .preview-shell { aspect-ratio: 9 / 16; }
-    #display-preview-container.zoom-150 .preview-shell { transform: scale(1.5); }
-    #display-preview-container.zoom-200 .preview-shell { transform: scale(2); }
     #display-preview-container .preview-frame {
       position: absolute;
       border: 0;
@@ -1665,6 +1665,9 @@
     }
     #display-preview-container .preview-tools .pip-button:hover { background: rgba(30,30,40,0.75); }
     #display-preview-container .preview-tools .pip-button i { font-size: .9em; opacity: .9; }
+  /* Orientation icon reflects current aspect: portrait (upright), landscape (rotated) */
+  #display-preview-container .preview-tools #toggle-preview-orientation i { transition: transform 160ms ease; }
+  #display-preview-container.landscape .preview-tools #toggle-preview-orientation i { transform: rotate(90deg); }
     </style>
     <style>
   #section-display .modern-slider input[type="range"] { width:100%; height: 28px; background: transparent; accent-color: var(--color-info); position: relative; z-index: 1; }
@@ -1713,11 +1716,8 @@
           <div id="display-preview-container" class="pip-mode screensaver-mode">
             <div class="preview-shell">
               <div class="preview-tools">
-                <button type="button" id="toggle-preview-zoom" class="pip-button preview-zoom-btn" title="Toggle Preview Size (1.5x)">
-                  <i class="fas fa-expand"></i>
-                </button>
                 <button type="button" id="toggle-preview-orientation" class="pip-button" title="Toggle Orientation">
-                  <i class="fas fa-rotate-right"></i>
+                  <i class="fas fa-mobile-alt"></i>
                 </button>
               </div>
               <iframe id="display-preview-frame" class="preview-frame" title="Display Settings Live Preview" src="/preview"></iframe>

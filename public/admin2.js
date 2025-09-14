@@ -2329,7 +2329,7 @@
     function initDisplayPreviewV2() {
         const container = document.getElementById('display-preview-container');
         const frame = document.getElementById('display-preview-frame');
-        const zoomBtn = document.getElementById('toggle-preview-zoom');
+        // Zoom removed per request
         const orientBtn = document.getElementById('toggle-preview-orientation');
         if (!container || !frame) return; // HTML not present, nothing to do
 
@@ -2377,11 +2377,10 @@
         }
 
         function updateFrameScale() {
-            const isCinema = container.classList.contains('cinema-mode');
             const isPortrait = container.classList.contains('portrait');
-            // Simulate device resolution base for correct proportions
-            const baseW = isCinema ? (isPortrait ? 1080 : 1920) : 1920;
-            const baseH = isCinema ? (isPortrait ? 1920 : 1080) : 1080;
+            // Simulate device resolution base for correct proportions in all modes
+            const baseW = isPortrait ? 1080 : 1920;
+            const baseH = isPortrait ? 1920 : 1080;
             const shell = container.querySelector('.preview-shell');
             const frameEl = container.querySelector('.preview-frame');
             if (!shell || !frameEl) return;
@@ -2482,11 +2481,7 @@
             }
         });
 
-        // Zoom toggle (cycle between default and 1.5x)
-        zoomBtn?.addEventListener('click', () => {
-            const on = container.classList.toggle('zoom-150');
-            if (on) container.classList.remove('zoom-200'); // keep single zoom class
-        });
+        // (No zoom toggle)
 
         // Orientation toggle for non-cinema modes: landscape <-> portrait
         orientBtn?.addEventListener('click', () => {

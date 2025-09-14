@@ -1168,7 +1168,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }, 100);
 
             // In preview mode, simulate device orientation by rotating the content area
-            // so the admin can see the difference between landscape and portrait.
+            // only when the preview viewport is landscape. If the preview iframe already
+            // uses a portrait viewport (innerHeight > innerWidth), no extra rotation needed.
             if (typeof window !== 'undefined' && window.IS_PREVIEW) {
                 const container = document.getElementById('info-container');
                 const poster = document.getElementById('poster');
@@ -1200,6 +1201,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (container) {
                     if (orientation === 'portrait' || orientation === 'portrait-flipped') {
+                        const vw = window.innerWidth || document.documentElement.clientWidth;
+                        const vh = window.innerHeight || document.documentElement.clientHeight;
+                        const viewportIsLandscape = vw >= vh;
+                        if (!viewportIsLandscape) {
+                            // Already portrait viewport: no extra rotation
+                            clearPreviewOrientation();
+                            return;
+                        }
                         // Apply rotation and swap width/height for the container
                         container.style.position = 'fixed';
                         container.style.top = '0';
