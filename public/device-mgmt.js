@@ -81,6 +81,14 @@
             } catch (_) {
                 // ignore inability to persist installId
             }
+        } else if (msg && msg.kind === 'sync-tick') {
+            try {
+                if (typeof window.__posterramaOnSyncTick === 'function') {
+                    window.__posterramaOnSyncTick(msg.payload || {});
+                }
+            } catch (_) {
+                // ignore sync-tick handler errors
+            }
         }
         return iid;
     }
@@ -254,6 +262,14 @@
             }
             const data = await res.json();
             if (Array.isArray(data.commandsQueued) && data.commandsQueued.length) {
+                try {
+                    liveDbg('[Live] heartbeat delivered commands', {
+                        count: data.commandsQueued.length,
+                        types: data.commandsQueued.map(c => c && c.type).filter(Boolean),
+                    });
+                } catch (_) {
+                    /* ignore debug errors */
+                }
                 for (const cmd of data.commandsQueued) {
                     await handleCommand(cmd);
                 }
@@ -436,8 +452,10 @@
 
     async function handleCommand(cmd) {
         const type = cmd?.type || '';
+        const payload = cmd?.payload;
         liveDbg('[Live] queued command received', { type });
         switch (type) {
+            // Core management commands
             case 'core.mgmt.reload':
                 forceReload();
                 break;
@@ -464,7 +482,147 @@
                 // optional reload after cache clear
                 forceReload();
                 break;
+            // Playback and power commands (mirror WS behavior)
+            case 'playback.prev': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    if (api.prev) {
+                        liveDbg('[Live] invoking playback.prev (queued)');
+                        return void api.prev();
+                    }
+                } catch (_) {}
+                break;
+            }
+            case 'playback.next': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    if (api.next) {
+                        liveDbg('[Live] invoking playback.next (queued)');
+                        return void api.next();
+                    }
+                } catch (_) {}
+                break;
+            }
+            case 'playback.pause': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    if (api.pause) {
+                        liveDbg('[Live] invoking playback.pause (queued)');
+                        return void api.pause();
+                    }
+                } catch (_) {}
+                break;
+            }
+            case 'playback.resume': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    if (api.resume) {
+                        liveDbg('[Live] invoking playback.resume (queued)');
+                        return void api.resume();
+                    }
+                } catch (_) {}
+                break;
+            }
+            case 'playback.toggle': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    // If explicit toggle is provided, base decision on runtime paused flag when available
+                    const paused =
+                        typeof window !== 'undefined' && window.__posterramaPaused != null
+                            ? !!window.__posterramaPaused
+                            : null;
+                    if (paused === true && api.resume) {
+                        liveDbg('[Live] invoking playback.resume (queued via toggle)');
+                        return void api.resume();
+                    }
+                    if (paused === false && api.pause) {
+                        liveDbg('[Live] invoking playback.pause (queued via toggle)');
+                        return void api.pause();
+                    }
+                    // Fallback: if pause available prefer pause; else try resume
+                    if (api.pause) {
+                        liveDbg('[Live] invoking playback.pause (queued via toggle,fallback)');
+                        return void api.pause();
+                    }
+                    if (api.resume) {
+                        liveDbg('[Live] invoking playback.resume (queued via toggle,fallback)');
+                        return void api.resume();
+                    }
+                } catch (_) {}
+                break;
+            }
+            case 'playback.pinPoster': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    if (api.pinPoster) {
+                        liveDbg('[Live] invoking playback.pinPoster (queued)', { payload });
+                        try {
+                            const mediaIdHint =
+                                (typeof window !== 'undefined' &&
+                                    window.__posterramaCurrentMediaId) ||
+                                undefined;
+                            return void api.pinPoster({ mediaId: mediaIdHint });
+                        } catch (_) {
+                            return void api.pinPoster(payload);
+                        }
+                    }
+                } catch (_) {}
+                break;
+            }
+            case 'source.switch': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    if (api.switchSource) {
+                        liveDbg('[Live] invoking source.switch (queued)', {
+                            sourceKey: payload && payload.sourceKey,
+                        });
+                        return void api.switchSource(payload && payload.sourceKey);
+                    }
+                } catch (_) {}
+                break;
+            }
+            case 'power.off': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    if (api.powerOff) {
+                        liveDbg('[Live] invoking power.off (queued)');
+                        return void api.powerOff();
+                    }
+                } catch (_) {}
+                break;
+            }
+            case 'power.on': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    if (api.powerOn) {
+                        liveDbg('[Live] invoking power.on (queued)');
+                        return void api.powerOn();
+                    }
+                } catch (_) {}
+                break;
+            }
+            case 'power.toggle': {
+                try {
+                    const api =
+                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
+                    if (api.powerToggle) {
+                        liveDbg('[Live] invoking power.toggle (queued)');
+                        return void api.powerToggle();
+                    }
+                } catch (_) {}
+                break;
+            }
             default:
+                // Unknown or unsupported command type
                 break;
         }
     }

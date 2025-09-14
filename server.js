@@ -59,6 +59,7 @@ const { PassThrough } = require('stream');
 const fsp = fs.promises;
 const deviceStore = require('./utils/deviceStore');
 const wsHub = require('./utils/wsHub');
+const groupsStore = require('./utils/groupsStore');
 const dns = require('dns').promises;
 
 // --- Auto Cache Busting ---
@@ -1748,6 +1749,16 @@ if (isDeviceMgmtEnabled()) {
                     /* ignore cache clear errors */
                 }
             }
+            // If groups changed, invalidate /get-config so group templates apply immediately
+            if ('groups' in patch) {
+                try {
+                    if (cacheManager && typeof cacheManager.clear === 'function') {
+                        cacheManager.clear('GET:/get-config');
+                    }
+                } catch (_) {
+                    /* ignore cache clear errors */
+                }
+            }
             res.json(d);
         } catch (e) {
             res.status(500).json({ error: 'patch_failed' });
@@ -1768,6 +1779,86 @@ if (isDeviceMgmtEnabled()) {
             res.json({ queued: true, live: false, command: cmd });
         } catch (e) {
             res.status(500).json({ error: 'queue_failed' });
+        }
+    });
+
+    // --- Groups Admin API (minimal) ---
+    app.get('/api/groups', adminAuth, async (_req, res) => {
+        try {
+            const list = await groupsStore.getAll();
+            res.json(list);
+        } catch (e) {
+            res.status(500).json({ error: 'groups_list_failed' });
+        }
+    });
+    app.post('/api/groups', adminAuth, express.json(), async (req, res) => {
+        try {
+            const { id, name, description, settingsTemplate } = req.body || {};
+            const g = await groupsStore.createGroup({ id, name, description, settingsTemplate });
+            // Invalidate cached /get-config so group templates take effect
+            try {
+                if (cacheManager && typeof cacheManager.clear === 'function') {
+                    cacheManager.clear('GET:/get-config');
+                }
+            } catch (_) {}
+            res.status(201).json(g);
+        } catch (e) {
+            if (e && e.message === 'group_exists')
+                return res.status(409).json({ error: 'group_exists' });
+            res.status(500).json({ error: 'group_create_failed' });
+        }
+    });
+    app.patch('/api/groups/:id', adminAuth, express.json(), async (req, res) => {
+        try {
+            const g = await groupsStore.patchGroup(req.params.id, req.body || {});
+            if (!g) return res.status(404).json({ error: 'not_found' });
+            try {
+                if (cacheManager && typeof cacheManager.clear === 'function') {
+                    cacheManager.clear('GET:/get-config');
+                }
+            } catch (_) {}
+            res.json(g);
+        } catch (e) {
+            res.status(500).json({ error: 'group_patch_failed' });
+        }
+    });
+    app.delete('/api/groups/:id', adminAuth, async (req, res) => {
+        try {
+            const ok = await groupsStore.deleteGroup(req.params.id);
+            if (!ok) return res.status(404).json({ error: 'not_found' });
+            try {
+                if (cacheManager && typeof cacheManager.clear === 'function') {
+                    cacheManager.clear('GET:/get-config');
+                }
+            } catch (_) {}
+            res.json({ ok: true });
+        } catch (e) {
+            res.status(500).json({ error: 'group_delete_failed' });
+        }
+    });
+    // Admin: send command to all devices in a group
+    app.post('/api/groups/:id/command', adminAuth, express.json(), async (req, res) => {
+        try {
+            const { type, payload } = req.body || {};
+            if (!type) return res.status(400).json({ error: 'type_required' });
+            const g = await groupsStore.getById(req.params.id);
+            if (!g) return res.status(404).json({ error: 'not_found' });
+            // Find devices that belong to this group
+            const all = await deviceStore.getAll();
+            const members = all.filter(d => Array.isArray(d.groups) && d.groups.includes(g.id));
+            let live = 0;
+            let queued = 0;
+            for (const d of members) {
+                const sent = wsHub.sendCommand(d.id, { type, payload });
+                if (sent) live++;
+                else {
+                    deviceStore.queueCommand(d.id, { type, payload });
+                    queued++;
+                }
+            }
+            res.json({ ok: true, live, queued, total: members.length });
+        } catch (e) {
+            res.status(500).json({ error: 'group_command_failed' });
         }
     });
 }
@@ -3909,7 +4000,7 @@ app.get(
             },
         };
 
-        // Try to identify device and merge settingsOverride if present
+        // Try to identify device and merge settings from groups and device (Global < Group < Device)
         let merged = baseConfig;
         try {
             const deviceId = req.get('X-Device-Id');
@@ -3928,22 +4019,45 @@ app.get(
                 device = await deviceStore.findByHardwareId(hardwareId);
             }
 
-            const overrides =
+            // Accumulate group templates in order, then apply device overrides
+            let fromGroups = {};
+            try {
+                if (device && Array.isArray(device.groups) && device.groups.length) {
+                    const allGroups = await groupsStore.getAll();
+                    for (const gid of device.groups) {
+                        const g = allGroups.find(x => x.id === gid);
+                        if (g && g.settingsTemplate && typeof g.settingsTemplate === 'object') {
+                            fromGroups = deepMerge({}, fromGroups, g.settingsTemplate);
+                        }
+                    }
+                }
+            } catch (ge) {
+                if (isDebug)
+                    logger.debug('[get-config] Group template merge failed', {
+                        error: ge?.message,
+                    });
+            }
+
+            const devOverrides =
                 device && device.settingsOverride && typeof device.settingsOverride === 'object'
                     ? device.settingsOverride
                     : null;
-            if (overrides && Object.keys(overrides).length) {
-                merged = deepMerge({}, baseConfig, overrides);
-                if (isDebug) {
-                    logger.debug('[get-config] Applied device overrides', {
+
+            merged = deepMerge({}, baseConfig, fromGroups || {}, devOverrides || {});
+            if (isDebug) {
+                const gKeys = Object.keys(fromGroups || {});
+                const dKeys = Object.keys(devOverrides || {});
+                if (gKeys.length || dKeys.length) {
+                    logger.debug('[get-config] Applied group/device overrides', {
                         deviceId: device?.id,
-                        keys: Object.keys(overrides),
+                        groupKeys: gKeys,
+                        deviceKeys: dKeys,
                     });
                 }
             }
         } catch (e) {
             if (isDebug) {
-                logger.debug('[get-config] Device override merge failed', { error: e?.message });
+                logger.debug('[get-config] Override merge failed', { error: e?.message });
             }
         }
 
@@ -9817,6 +9931,38 @@ if (require.main === module) {
             } catch (e) {
                 logger.warn('[WS] init failed', e);
             }
+            // Start sync-tick broadcaster to align client transitions (Global cadence)
+            try {
+                if (!global.__posterramaSyncTicker) {
+                    const minMs = 2000; // Avoid too-fast ticks
+                    global.__posterramaSyncTicker = setInterval(() => {
+                        try {
+                            const periodMs = Math.max(
+                                minMs,
+                                Number(config.transitionIntervalSeconds || 15) * 1000
+                            );
+                            const now = Date.now();
+                            const nextAt = Math.ceil(now / periodMs) * periodMs;
+                            const msToNext = nextAt - now;
+                            // Broadcast when close to the next boundary so clients can align
+                            if (msToNext <= 800) {
+                                wsHub.broadcast({
+                                    kind: 'sync-tick',
+                                    payload: {
+                                        serverTime: now,
+                                        periodMs,
+                                        nextAt,
+                                    },
+                                });
+                            }
+                        } catch (_) {
+                            // ignore tick errors
+                        }
+                    }, 500); // check twice per second for near-boundary
+                }
+            } catch (e) {
+                logger.warn('[SyncTick] scheduler init failed', e);
+            }
         })
         .catch(err => {
             logger.error('Initial playlist fetch failed during startup:', err);
@@ -9889,6 +10035,31 @@ if (require.main === module) {
                 });
             } catch (e2) {
                 logger.warn('[WS] init failed', e2);
+            }
+            // Start sync-tick broadcaster even if initial fetch failed
+            try {
+                if (!global.__posterramaSyncTicker) {
+                    const minMs = 2000;
+                    global.__posterramaSyncTicker = setInterval(() => {
+                        try {
+                            const periodMs = Math.max(
+                                minMs,
+                                Number(config.transitionIntervalSeconds || 15) * 1000
+                            );
+                            const now = Date.now();
+                            const nextAt = Math.ceil(now / periodMs) * periodMs;
+                            const msToNext = nextAt - now;
+                            if (msToNext <= 800) {
+                                wsHub.broadcast({
+                                    kind: 'sync-tick',
+                                    payload: { serverTime: now, periodMs, nextAt },
+                                });
+                            }
+                        } catch (_) {}
+                    }, 500);
+                }
+            } catch (e) {
+                logger.warn('[SyncTick] scheduler init failed', e);
             }
         });
 

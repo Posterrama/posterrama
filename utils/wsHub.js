@@ -68,6 +68,17 @@ function sendApplySettings(deviceId, settingsOverride) {
     });
 }
 
+function broadcast(message) {
+    try {
+        for (const [, ws] of deviceToSocket) {
+            if (ws && ws.readyState === WebSocket.OPEN) sendJson(ws, message);
+        }
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
 function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
     if (wss) return wss;
     wss = new WebSocket.Server({ server: httpServer, path });
@@ -126,4 +137,5 @@ module.exports = {
     sendToDevice,
     sendCommand,
     sendApplySettings,
+    broadcast,
 };

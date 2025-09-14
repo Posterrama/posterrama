@@ -9699,7 +9699,24 @@ async function sendDeviceCommand(id, type, payload = undefined) {
         throw err;
     }
     if (!res.ok) throw new Error('Failed to queue command');
-    return res.json();
+    // Some commands (notably power.toggle when queued) may return 202/204 with no body
+    // Be tolerant to empty responses and treat them as a generic queued result
+    const ct = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
+    if (res.status === 204) return { ok: true, live: false };
+    try {
+        if (ct.includes('application/json')) return await res.json();
+        const txt = await res.text();
+        if (!txt) return { ok: true, live: false };
+        try {
+            return JSON.parse(txt);
+        } catch (_) {
+            // Non-JSON body; fallback to a generic ok response
+            return { ok: true, live: false };
+        }
+    } catch (_) {
+        // If parsing fails, still consider it queued
+        return { ok: true, live: false };
+    }
 }
 
 // Small popover to send ad-hoc device commands (e.g., source.switch)
@@ -10412,6 +10429,24 @@ function renderDevicesTable(devices) {
                     setTimeout(() => setButtonState(btn, 'revert'), 1500);
                 } else if (type) {
                     setButtonState(btn, 'loading', { text: 'Queuing…' });
+                    // Power toggle: flip UI immediately so Online (no-WS) devices show feedback
+                    if (type === 'power.toggle') {
+                        try {
+                            await sendDeviceCommand(id, 'power.toggle');
+                            // Flip UI state
+                            btn.classList.toggle('is-off');
+                            const isNowOff = btn.classList.contains('is-off');
+                            btn.classList.toggle('is-success', !isNowOff);
+                            btn.classList.toggle('is-danger', isNowOff);
+                            btn.classList.toggle('is-on', !isNowOff);
+                            setButtonState(btn, 'success', { text: 'OK' });
+                            setTimeout(() => setButtonState(btn, 'revert'), 900);
+                        } catch (e) {
+                            setButtonState(btn, 'error', { text: 'Failed' });
+                            setTimeout(() => setButtonState(btn, 'revert'), 1200);
+                        }
+                        return;
+                    }
                     // Special handling for toggle: infer from button state
                     if (type === 'playback.toggle') {
                         const isPlaying = btn.classList.contains('is-playing');
@@ -12680,7 +12715,7 @@ function showDeviceSettingsModal(device) {
     const getStatusEl = () => document.getElementById('devices-status');
     devLog('bindDevicesDelegatedHandlersOnce: binding global handlers');
 
-    // Capture-phase to intercept before any form submits, restricted to Devices section
+    // Capture-phase: only consume the event if we actually handle the command here.
     document.addEventListener(
         'click',
         async ev => {
@@ -12689,8 +12724,6 @@ function showDeviceSettingsModal(device) {
             if (!withinDevices) return;
             const btn = ev.target.closest && ev.target.closest('button[data-cmd]');
             if (!btn) return;
-            ev.preventDefault();
-            ev.stopPropagation();
             if (btn.disabled) return;
             try {
                 btn.blur?.();
@@ -12700,10 +12733,13 @@ function showDeviceSettingsModal(device) {
             const id = btn.getAttribute('data-id');
             const cmd = btn.getAttribute('data-cmd');
             const status = getStatusEl();
-            devLog('global: action click', { cmd, id });
+            try {
+                (window.devLog || console.debug).call(console, 'global: action click', { cmd, id });
+            } catch (_) {}
             const commandMap = {
                 reload: 'core.mgmt.reload',
                 reset: 'core.mgmt.reset',
+                'power.toggle': 'power.toggle',
                 'playback.prev': 'playback.prev',
                 'playback.next': 'playback.next',
                 'playback.pause': 'playback.pause',
@@ -12715,6 +12751,8 @@ function showDeviceSettingsModal(device) {
             const type = commandMap[cmd] || null;
             try {
                 if (cmd === 'overrides') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
                     // Open overrides modal with fresh device data
                     try {
                         const res = await authenticatedFetch(
@@ -12730,10 +12768,14 @@ function showDeviceSettingsModal(device) {
                     return;
                 }
                 if (cmd === 'send-command') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
                     showSendCommandPopover(btn, id);
                     return;
                 }
                 if (cmd === 'delete') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
                     devLog('global: delete confirm open');
                     const ok = await confirmDialog('Delete this device?', btn);
                     devLog('global: delete confirm result', ok);
@@ -12751,6 +12793,8 @@ function showDeviceSettingsModal(device) {
                     return;
                 }
                 if (cmd === 'pair') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
                     setButtonState(btn, 'loading', { text: 'Pairing…' });
                     const res = await authenticatedFetch(
                         apiUrl(`/api/devices/${encodeURIComponent(id)}/pairing-code`),
@@ -12774,6 +12818,8 @@ function showDeviceSettingsModal(device) {
                     showPairingModal({ code: data.code, expiresAt: data.expiresAt, claimUrl });
                     setTimeout(() => setButtonState(btn, 'revert'), 1500);
                 } else if (type) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
                     setButtonState(btn, 'loading', { text: 'Queuing…' });
                     let payload;
                     if (type === 'source.switch') {
@@ -12804,7 +12850,13 @@ function showDeviceSettingsModal(device) {
                             ? 'Live: command delivered via WebSocket.'
                             : 'Queued: will run on next heartbeat.';
                     setTimeout(() => setButtonState(btn, 'revert'), 1200);
-                    devLog('global: command queued', { cmd, id, type });
+                    try {
+                        (window.devLog || console.debug).call(console, 'global: command queued', {
+                            cmd,
+                            id,
+                            type,
+                        });
+                    } catch (_) {}
                 }
             } catch (err) {
                 setButtonState(btn, 'error', { text: 'Failed' });

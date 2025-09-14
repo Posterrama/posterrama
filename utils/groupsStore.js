@@ -1,0 +1,101 @@
+const fs = require('fs');
+const fsp = fs.promises;
+const path = require('path');
+const crypto = require('crypto');
+
+const storePath = process.env.GROUPS_STORE_PATH
+    ? path.isAbsolute(process.env.GROUPS_STORE_PATH)
+        ? process.env.GROUPS_STORE_PATH
+        : path.join(__dirname, '..', process.env.GROUPS_STORE_PATH)
+    : path.join(__dirname, '..', 'groups.json');
+
+let writeQueue = Promise.resolve();
+let cache = null; // in-memory cache of groups
+
+async function ensureStore() {
+    try {
+        await fsp.access(storePath);
+    } catch (e) {
+        await fsp.writeFile(storePath, '[]', 'utf8');
+    }
+}
+
+async function readAll() {
+    if (cache) return cache;
+    await ensureStore();
+    const raw = await fsp.readFile(storePath, 'utf8');
+    try {
+        cache = JSON.parse(raw);
+    } catch (e) {
+        cache = [];
+    }
+    return cache;
+}
+
+async function writeAll(groups) {
+    cache = groups;
+    writeQueue = writeQueue.then(async () => {
+        const tmp = storePath + '.tmp';
+        await fsp.writeFile(tmp, JSON.stringify(groups, null, 2), 'utf8');
+        await fsp.rename(tmp, storePath);
+    });
+    return writeQueue;
+}
+
+async function getAll() {
+    return readAll();
+}
+
+async function getById(id) {
+    const all = await readAll();
+    return all.find(g => g.id === id) || null;
+}
+
+async function createGroup({ id, name = '', description = '', settingsTemplate = {} } = {}) {
+    const all = await readAll();
+    const now = new Date().toISOString();
+    const gid = (id || '').toString().trim() || crypto.randomUUID();
+    if (all.some(g => g.id === gid)) throw new Error('group_exists');
+    const g = {
+        id: gid,
+        name: name.toString().slice(0, 256),
+        description: description.toString().slice(0, 1024),
+        settingsTemplate:
+            settingsTemplate && typeof settingsTemplate === 'object' ? settingsTemplate : {},
+        createdAt: now,
+        updatedAt: now,
+    };
+    all.push(g);
+    await writeAll(all);
+    return g;
+}
+
+async function patchGroup(id, patch = {}) {
+    const all = await readAll();
+    const idx = all.findIndex(g => g.id === id);
+    if (idx === -1) return null;
+    const now = new Date().toISOString();
+    const allowed = ['name', 'description', 'settingsTemplate'];
+    const update = {};
+    for (const k of allowed) if (k in patch) update[k] = patch[k];
+    all[idx] = { ...all[idx], ...update, updatedAt: now };
+    await writeAll(all);
+    return all[idx];
+}
+
+async function deleteGroup(id) {
+    const all = await readAll();
+    const next = all.filter(g => g.id !== id);
+    if (next.length === all.length) return false;
+    await writeAll(next);
+    return true;
+}
+
+module.exports = {
+    storePath,
+    getAll,
+    getById,
+    createGroup,
+    patchGroup,
+    deleteGroup,
+};

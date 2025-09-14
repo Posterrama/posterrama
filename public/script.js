@@ -5290,6 +5290,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Removed verbose timer logs to keep console clean
     }
 
+    // Sync-tick alignment: called by device-mgmt when server broadcasts a tick
+    window.__posterramaOnSyncTick = payload => {
+        try {
+            if (!payload) return;
+            const periodMs = Number(payload.periodMs || 0);
+            const nextAt = Number(payload.nextAt || 0);
+            if (!periodMs || !nextAt) return;
+            // Only sync in standard screensaver mode
+            if (document.body.classList.contains('wallart-mode')) return;
+            if (appConfig.cinemaMode) return;
+            // If we're paused or powered off, don't realign
+            if (isPaused || window.__posterramaPoweredOff) return;
+
+            const now = Date.now();
+            const delay = Math.max(0, nextAt - now);
+            // Realign only when we're reasonably near the boundary to avoid jitter
+            if (delay <= 1200) {
+                // Debounce frequent ticks
+                if (window.__posterramaSyncTimer) clearTimeout(window.__posterramaSyncTimer);
+                window.__posterramaSyncTimer = setTimeout(() => {
+                    try {
+                        // Trigger next change exactly at boundary and restart cadence
+                        changeMedia('next');
+                        restartTimer();
+                    } catch (_) {}
+                }, delay);
+            }
+        } catch (_) {
+            // ignore sync errors
+        }
+    };
+
     function updateClock() {
         // Check if clock elements exist
         if (!timeHours || !timeMinutes) {
