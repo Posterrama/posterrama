@@ -1561,7 +1561,71 @@
         #section-display .micro-hint i { font-size: 0.85em; color: var(--color-text-secondary); opacity: 0.7; }
     /* Themed sliders for Display section */
     #section-display .modern-slider { display:block; width:100%; }
-    #section-display .modern-slider input[type="range"] { width:100%; height: 28px; background: transparent; accent-color: var(--color-info); }
+    #section-display .modern-slider input[type="range"] {
+      width:100%; height: 28px; background: transparent; accent-color: var(--color-info);
+      appearance: none; -webkit-appearance: none; /* ensure custom styling applies */
+    }
+    /* WebKit/Blink track */
+    #section-display .modern-slider input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px; border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    /* WebKit/Blink thumb */
+    #section-display .modern-slider input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--color-info, #60a5fa), #2563eb);
+      border: 2px solid rgba(255,255,255,0.9);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      margin-top: -6px; /* center thumb on 6px track */
+      cursor: pointer;
+    }
+    #section-display .modern-slider input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.06); }
+    #section-display .modern-slider input[type="range"]:focus-visible::-webkit-slider-thumb { outline: none; box-shadow: 0 0 0 4px rgba(102,126,234,0.25), 0 2px 8px rgba(0,0,0,0.35); }
+    /* Firefox track */
+    #section-display .modern-slider input[type="range"]::-moz-range-track {
+      height: 6px; border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    /* Firefox filled progress (before thumb) */
+    #section-display .modern-slider input[type="range"]::-moz-range-progress {
+      height: 6px; border-radius: 999px;
+      background: linear-gradient(90deg, rgba(59,130,246,0.35), rgba(59,130,246,0.15));
+      border: 1px solid rgba(59,130,246,0.35);
+    }
+    /* Firefox thumb */
+    #section-display .modern-slider input[type="range"]::-moz-range-thumb {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--color-info, #60a5fa), #2563eb);
+      border: 2px solid rgba(255,255,255,0.9);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      cursor: pointer;
+    }
+    /* Edge/IE (legacy) */
+    #section-display .modern-slider input[type="range"]::-ms-track {
+      height: 6px; border-radius: 999px;
+      background: transparent; border-color: transparent; color: transparent;
+    }
+    #section-display .modern-slider input[type="range"]::-ms-fill-lower {
+      background: linear-gradient(90deg, rgba(59,130,246,0.35), rgba(59,130,246,0.15));
+      border: 1px solid rgba(59,130,246,0.35);
+      border-radius: 999px;
+    }
+    #section-display .modern-slider input[type="range"]::-ms-fill-upper {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 999px;
+    }
+    #section-display .modern-slider input[type="range"]::-ms-thumb {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--color-info, #60a5fa), #2563eb);
+      border: 2px solid rgba(255,255,255,0.9);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      cursor: pointer;
+      margin-top: 0; /* MS centers by default */
+    }
     #section-display .slider-percentage { font-size: .8rem; color: var(--color-text-secondary); opacity: .85; margin-top: 4px; text-align: right; }
 
     /* Themed number steppers (shared in Display) */
