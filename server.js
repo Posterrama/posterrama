@@ -1575,6 +1575,7 @@ if (isDeviceMgmtEnabled()) {
             const mode = b.mode;
             const mediaId = b.mediaId;
             const paused = b.paused;
+            const poweredOff = b.poweredOff; // optional powered off state (blackout)
             // Support pinned state from clients (accept several aliases for compatibility)
             const pinned =
                 typeof b.pinned === 'boolean'
@@ -1604,6 +1605,7 @@ if (isDeviceMgmtEnabled()) {
             if (paused != null) currentState.paused = !!paused;
             if (pinned != null) currentState.pinned = !!pinned;
             if (pinMediaId != null) currentState.pinMediaId = pinMediaId;
+            if (poweredOff != null) currentState.poweredOff = !!poweredOff;
             await deviceStore.updateHeartbeat(deviceId, {
                 clientInfo: { userAgent, screen, mode },
                 currentState,

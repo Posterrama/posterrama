@@ -9734,6 +9734,9 @@ function showSendCommandPopover(anchorEl, deviceId) {
                         <option value="playback.pause">playback.pause</option>
                         <option value="playback.resume">playback.resume</option>
                         <option value="playback.pinPoster">playback.pinPoster</option>
+                        <option value="power.on">power.on</option>
+                        <option value="power.off">power.off</option>
+                        <option value="power.toggle">power.toggle</option>
                         <option value="source.switch">source.switch</option>
                         <option disabled>──────────</option>
                         <option value="core.mgmt.reload">core.mgmt.reload</option>
@@ -10055,6 +10058,7 @@ function renderDevicesTable(devices) {
         const rawStatus = (d.status || 'unknown').toLowerCase();
         const isOffline = rawStatus === 'offline';
         const isPaused = !!(d.currentState && d.currentState.paused === true);
+        const isPoweredOff = !!(d.currentState && d.currentState.poweredOff === true);
         // Local UI-pinned memory (decoupled from paused)
         window.__devicesPinned = window.__devicesPinned || Object.create(null);
         const isPinnedFromState = !!(
@@ -10069,6 +10073,11 @@ function renderDevicesTable(devices) {
             <td class="cell-name">
                 <div class="actions-inline">
                     <div class="btn-group icon-only">
+            <button type="button" class="btn power-toggle${
+                isPoweredOff ? ' is-danger is-off' : isOffline ? ' is-danger' : ' is-success is-on'
+            }" data-cmd="power.toggle" data-id="${d.id}" title="Power on/off (black screen)">
+                            <span class="icon"><i class="fas fa-power-off"></i></span>
+                        </button>
             <button type="button" class="btn is-primary" data-cmd="reload" data-id="${d.id}" title="Reload this device">
                             <span class="icon"><i class="fas fa-redo"></i></span>
                         </button>
@@ -10134,10 +10143,13 @@ function renderDevicesTable(devices) {
                 let label = 'Unknown';
                 let cls = 'is-unknown';
                 let explain = 'Device status is unknown.';
-                if (raw === 'offline') {
+                if (raw === 'offline' || (d.currentState && d.currentState.poweredOff === true)) {
                     label = 'Offline';
                     cls = 'is-unknown'; // gray
-                    explain = 'Device is not connected. No recent heartbeat detected.';
+                    explain =
+                        d.currentState && d.currentState.poweredOff
+                            ? 'Device is powered off (blackout mode).'
+                            : 'Device is not connected. No recent heartbeat detected.';
                 } else if (raw === 'online' && hasWs) {
                     label = 'Live';
                     cls = 'is-online'; // green
@@ -10528,6 +10540,7 @@ function initDevicesPanel() {
                 const commandMap = {
                     reload: 'core.mgmt.reload',
                     reset: 'core.mgmt.reset',
+                    'power.toggle': 'power.toggle',
                     'playback.prev': 'playback.prev',
                     'playback.next': 'playback.next',
                     'playback.pause': 'playback.pause',
@@ -10567,6 +10580,19 @@ function initDevicesPanel() {
                         const list = await fetchDevices();
                         renderDevicesTable(list);
                         setButtonState(btn, 'revert');
+                        return;
+                    }
+                    if (type === 'power.toggle') {
+                        setButtonState(btn, 'loading', { text: 'Power…' });
+                        await sendDeviceCommand(id, 'power.toggle');
+                        // Flip UI state
+                        btn.classList.toggle('is-off');
+                        const isNowOff = btn.classList.contains('is-off');
+                        btn.classList.toggle('is-success', !isNowOff);
+                        btn.classList.toggle('is-danger', isNowOff);
+                        btn.classList.toggle('is-on', !isNowOff);
+                        setButtonState(btn, 'success', { text: 'OK' });
+                        setTimeout(() => setButtonState(btn, 'revert'), 900);
                         return;
                     }
                     if (cmd === 'pair') {

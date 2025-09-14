@@ -188,10 +188,11 @@
 
     async function sendHeartbeat() {
         if (!state.enabled || !state.deviceId || !state.deviceSecret) return;
-        // Try to collect mediaId and pinned state from the main app runtime (if available)
+        // Try to collect mediaId, pin, and power state from the main app runtime (if available)
         let mediaId;
         let pinned;
         let pinMediaId;
+        let poweredOff;
         try {
             if (typeof window !== 'undefined') {
                 // Current media identifier exposed by script.js
@@ -201,6 +202,8 @@
                 if (window.__posterramaPinned != null) pinned = !!window.__posterramaPinned;
                 if (window.__posterramaPinnedMediaId != null)
                     pinMediaId = window.__posterramaPinnedMediaId;
+                if (window.__posterramaPoweredOff != null)
+                    poweredOff = !!window.__posterramaPoweredOff;
             }
         } catch (_) {
             // ignore inability to read runtime media state
@@ -221,6 +224,7 @@
             mediaId,
             pinned,
             pinMediaId,
+            poweredOff,
         };
         try {
             const res = await fetch('/api/devices/heartbeat', {
@@ -356,6 +360,18 @@
                                     sourceKey: msg.payload?.sourceKey,
                                 });
                                 return void api.switchSource(msg.payload?.sourceKey);
+                            }
+                            if (t === 'power.off' && api.powerOff) {
+                                liveDbg('[Live] invoking power.off');
+                                return void api.powerOff();
+                            }
+                            if (t === 'power.on' && api.powerOn) {
+                                liveDbg('[Live] invoking power.on');
+                                return void api.powerOn();
+                            }
+                            if (t === 'power.toggle' && api.powerToggle) {
+                                liveDbg('[Live] invoking power.toggle');
+                                return void api.powerToggle();
                             }
                         } catch (_) {
                             /* ignore playback hook errors */

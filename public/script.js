@@ -396,6 +396,53 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.PosterramaDevice.beat();
         } catch (_) {}
     }
+    // --- Power (blackout) overlay ---
+    let blackoutEl = null;
+    function ensureBlackoutEl() {
+        if (blackoutEl && document.body.contains(blackoutEl)) return blackoutEl;
+        blackoutEl = document.createElement('div');
+        blackoutEl.id = 'posterrama-blackout';
+        Object.assign(blackoutEl.style, {
+            position: 'fixed',
+            inset: '0',
+            background: '#000',
+            zIndex: '1000000',
+            display: 'none',
+        });
+        document.body.appendChild(blackoutEl);
+        return blackoutEl;
+    }
+    function powerOff() {
+        try {
+            ensureBlackoutEl().style.display = 'block';
+            // Pause any playback timers
+            setPaused(true);
+            // Notify heartbeat of poweredOff state (best effort)
+            try {
+                window.__posterramaPoweredOff = true;
+                window.PosterramaDevice &&
+                    window.PosterramaDevice.beat &&
+                    window.PosterramaDevice.beat();
+            } catch (_) {}
+        } catch (_) {}
+    }
+    function powerOn() {
+        try {
+            ensureBlackoutEl().style.display = 'none';
+            setPaused(false);
+            try {
+                window.__posterramaPoweredOff = false;
+                window.PosterramaDevice &&
+                    window.PosterramaDevice.beat &&
+                    window.PosterramaDevice.beat();
+            } catch (_) {}
+        } catch (_) {}
+    }
+    function powerToggle() {
+        const off = !!window.__posterramaPoweredOff;
+        if (off) powerOn();
+        else powerOff();
+    }
     function pinCurrentPoster(payload) {
         try {
             (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
@@ -511,6 +558,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         resume: playbackResume,
         pinPoster: pinCurrentPoster,
         switchSource,
+        powerOff,
+        powerOn,
+        powerToggle,
     };
     let timerId = null;
     let controlsTimer = null;
