@@ -103,7 +103,7 @@
   /* Modern Dropdown Menu Styling */
   .dropdown-menu {
     position: absolute !important;
-    top: calc(100% + 8px) !important; /* Position below header with 8px gap */
+    top: calc(100% + 4px) !important; /* Reduced gap to improve hover */
     min-width: 240px !important;
     max-width: 280px !important;
     padding: 8px !important;
@@ -130,11 +130,85 @@
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
     pointer-events: none !important;
   }
+  /* Hover bridge above menu */
+  #settings-menu::before, #user-menu::before {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important; right: 0 !important;
+    top: -10px !important; height: 10px !important;
+    background: transparent !important;
+    pointer-events: auto !important;
+  }
+  /* Remove arrow/anchor notch above dropdowns */
+  #settings-menu::after, #user-menu::after,
+  .dropdown.dropdown-left .dropdown-menu::after,
+  .dropdown.dropdown-right .dropdown-menu::after {
+    content: none !important;
+  }
   
   .dropdown-menu.show {
     opacity: 1 !important;
     transform: translateY(0) scale(1) !important;
     pointer-events: auto !important;
+  }
+  /* Hover-to-open behavior on pointer devices */
+  @media (hover: hover) {
+    #settings-dropdown:hover #settings-menu,
+    #user-dropdown:hover #user-menu,
+    #settings-menu:hover,
+    #user-menu:hover {
+      opacity: 1 !important;
+      transform: translateY(0) scale(1) !important;
+      pointer-events: auto !important;
+    }
+  }
+
+  /* Trigger buttons: modern hover/active visuals */
+  .nav-actions .dropdown .btn.btn-icon {
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+  }
+  .nav-actions .dropdown .btn.btn-icon:hover,
+  .nav-actions .dropdown .btn.btn-icon:focus-visible {
+    outline: none;
+  }
+  /* (removed empty rules for aria-expanded and icon hover to keep CSS tidy) */
+  /* Minimal hover/active for settings and user buttons (slightly darker bg + dark border, no shadow) */
+  #settings-btn.btn.btn-icon,
+  #user-btn.btn.btn-icon {
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    transition: background .12s ease, border-color .12s ease !important;
+  }
+  #settings-btn.btn.btn-icon:hover,
+  #settings-btn.btn.btn-icon:focus-visible,
+  #settings-btn.btn.btn-icon[aria-expanded="true"],
+  #user-btn.btn.btn-icon:hover,
+  #user-btn.btn.btn-icon:focus-visible,
+  #user-btn.btn.btn-icon[aria-expanded="true"] {
+    background: rgba(0,0,0,0.18) !important;
+    border-color: rgba(0,0,0,0.7) !important;
+    box-shadow: none !important;
+  }
+  #settings-btn.btn.btn-icon:hover i,
+  #settings-btn.btn.btn-icon[aria-expanded="true"] i,
+  #user-btn.btn.btn-icon:hover i,
+  #user-btn.btn.btn-icon[aria-expanded="true"] i {
+    filter: none !important;
+    transform: none !important;
+  }
+  /* Fix: user button shouldn’t be a square when it has text; keep within navbar height */
+  .nav-user .btn.btn-icon,
+  #user-btn.btn.btn-icon {
+    aspect-ratio: auto !important;
+    height: auto !important;
+    max-height: calc(var(--navbar-height) - 12px) !important;
+    padding: 8px 10px !important;
+    line-height: 1 !important;
+    align-self: center !important;
   }
   
   /* Settings menu (left) positioning - MORE SPECIFIC */
@@ -144,6 +218,13 @@
     right: auto !important;
     transform-origin: left top !important;
   }
+  /* Limit dropdown container size to its contents (avoid oversized hitbox) */
+  .nav-actions .dropdown,
+  #user-dropdown.dropdown.nav-user {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: var(--navbar-height) !important;
+  }
   
   /* User menu (right) positioning - MORE SPECIFIC */
   #user-dropdown #user-menu,
@@ -152,16 +233,34 @@
     left: auto !important;
     transform-origin: right top !important;
   }
+  /* Utility classes for explicit dropdown alignment */
+  .dropdown.dropdown-left .dropdown-menu {
+    left: 0 !important;
+    right: auto !important;
+    transform-origin: left top !important;
+  }
+  .dropdown.dropdown-right .dropdown-menu {
+    right: 0 !important;
+    left: auto !important;
+    transform-origin: right top !important;
+  }
+  .dropdown.dropdown-left .dropdown-menu::after {
+    left: 22px !important;
+    right: auto !important;
+  }
+  .dropdown.dropdown-right .dropdown-menu::after {
+    right: 22px !important;
+    left: auto !important;
+  }
   
   /* Force settings menu to left with extreme specificity */
   body .dropdown #settings-menu,
   body #settings-dropdown #settings-menu {
-    left: auto !important;
-    right: -20px !important;
-    margin-top: 4px !important;
-    margin-right: 0px !important;
-    transform: none !important;
-    top: calc(100% + 8px) !important;
+    left: 0 !important;
+    right: auto !important;
+    margin-top: 0 !important;
+    margin-right: 0 !important;
+    top: calc(100% + 4px) !important;
     position: absolute !important;
   }
   
@@ -170,12 +269,11 @@
   body #user-dropdown #user-menu,
   body .dropdown-menu.dropdown-right#user-menu,
   body #user-dropdown .dropdown-menu.dropdown-right#user-menu {
-    right: 0px !important;
-    left: unset !important;
-    margin-top: -30px !important;
-    margin-right: 12px !important;
-    transform: none !important;
-    top: calc(100% + 8px) !important;
+  right: 0 !important;
+    left: auto !important;
+  margin-top: 0 !important;
+    margin-right: 0 !important;
+  top: calc(100% + 4px) !important; /* small gap from button */
     position: absolute !important;
   }
   
@@ -213,16 +311,14 @@
     z-index: -1 !important;
   }
   
-  .dropdown-menu .dropdown-item:hover:before {
-    opacity: 1 !important;
-  }
+  .dropdown-menu .dropdown-item:hover:before { opacity: 0 !important; }
   
   .dropdown-menu .dropdown-item:hover {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03)) !important;
-    border-color: rgba(255, 255, 255, 0.08) !important;
+    background: rgba(0,0,0,0.18) !important;
+    border-color: rgba(0,0,0,0.7) !important;
     transform: none !important;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.03) !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: none !important;
+    transition: background .12s ease, border-color .12s ease !important;
   }
   
   .dropdown-menu .dropdown-item i {
@@ -233,16 +329,31 @@
     justify-content: center !important;
     font-size: 14px !important;
     opacity: 0.8 !important;
-    transition: opacity 0.15s ease !important;
     color: var(--color-text-secondary) !important;
+    will-change: transform !important;
+    transition: transform .12s ease, color .12s ease, opacity .12s ease !important;
   }
   
   .dropdown-menu .dropdown-item:hover i {
     opacity: 1 !important;
     color: var(--color-text-primary) !important;
-    transform: scale(1.05) !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform: translateY(-1px) scale(1.06) !important;
+    transition: transform .12s ease, color .12s ease, opacity .12s ease !important;
   }
+  /* Keyboard focus parity */
+  .dropdown-menu .dropdown-item:focus-visible i {
+    opacity: 1 !important;
+    color: var(--color-text-primary) !important;
+    transform: translateY(-1px) scale(1.06) !important;
+  }
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .dropdown-menu .dropdown-item i { transition: none !important; }
+    .dropdown-menu .dropdown-item:hover i,
+    .dropdown-menu .dropdown-item:focus-visible i { transform: none !important; }
+  }
+  /* Clean hover without accents/shadows */
+  .dropdown-menu .dropdown-item:hover { box-shadow: none !important; }
   
   /* Special styling for danger items */
   .dropdown-menu .dropdown-item.text-danger:hover {
@@ -309,34 +420,7 @@
     z-index: -1;
   }
   
-  .dropdown-menu .dropdown-item:hover:before {
-    opacity: 1;
-  }
-  
-  .dropdown-menu .dropdown-item:hover {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
-    border-color: rgba(255, 255, 255, 0.08);
-    transform: none;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.03);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .dropdown-menu .dropdown-item i {
-    width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    opacity: 0.8;
-    transition: opacity 0.15s ease;
-  }
-  
-  .dropdown-menu .dropdown-item:hover i {
-    opacity: 1;
-    transform: scale(1.05);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
+  /* (removed duplicate legacy hover rules to avoid conflicts) */
   
   /* Special styling for danger items */
   .dropdown-menu .dropdown-item.text-danger:hover {
@@ -639,7 +723,7 @@
         <i class="fas fa-bell"></i>
         <span class="badge" id="notif-count" hidden>0</span>
       </button>
-      <div class="dropdown" id="settings-dropdown">
+  <div class="dropdown dropdown-left" id="settings-dropdown">
         <button class="btn btn-icon dropdown-toggle" id="settings-btn" title="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">
           <i class="fas fa-cog"></i>
         </button>

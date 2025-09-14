@@ -1010,6 +1010,9 @@
                 settingsMenu.style.display = 'block';
                 settingsMenu.style.position = 'absolute';
                 settingsMenu.style.top = 'calc(100% + 8px)';
+                // Force left anchoring for settings menu
+                settingsMenu.style.left = '0';
+                settingsMenu.style.right = 'auto';
                 settingsMenu.style.zIndex = '2000';
                 settingsMenu.style.opacity = '1';
                 settingsMenu.style.pointerEvents = 'auto';
