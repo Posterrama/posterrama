@@ -784,6 +784,10 @@
   padding: 22px 22px; /* larger, calmer cards */
     box-shadow: 0 10px 24px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.04);
     transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, outline-color .16s ease;
+  /* Make cards stretch to equal heights within grid rows */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   }
   #section-media-sources .source-card:hover {
     transform: translateY(-2px);
@@ -813,7 +817,19 @@
   @keyframes pulse-dot { 0%{ box-shadow: 0 0 0 0 rgba(255,255,255,.0);} 70%{ box-shadow: 0 0 0 6px rgba(255,255,255,.05);} 100%{ box-shadow: 0 0 0 0 rgba(255,255,255,.0);} }
   #section-media-sources .sc-status .status-pill { font-size:.75rem; padding: 3px 10px; border-radius:999px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
   #section-media-sources .sc-status .header-toggle { margin-left:auto; }
-  #section-media-sources .sc-meta { display:flex; align-items:center; flex-wrap: wrap; gap: 10px 10px; font-size:.85rem; color: var(--color-text-secondary); margin: 10px 0 16px; }
+  #section-media-sources .sc-meta { display:flex; align-items:center; align-content: flex-start; flex-wrap: wrap; gap: 10px 10px; font-size:.85rem; color: var(--color-text-secondary); margin: 10px 0 16px; }
+  /* Ensure consistent pill area height so cards line up evenly */
+  /* Very wide screens: allow up to two chip lines comfortably */
+  @media (min-width: 1400px) {
+    #section-media-sources .sc-meta { height: 92px; }
+  }
+  /* Medium and small screens: allow up to two chip lines comfortably */
+  @media (min-width: 900px) and (max-width: 1399.98px) {
+    #section-media-sources .sc-meta { height: 88px; }
+  }
+  @media (max-width: 899.98px) {
+    #section-media-sources .sc-meta { height: 88px; }
+  }
   #section-media-sources .sc-meta > span:not(.sep) { white-space: nowrap; }
   #section-media-sources .sc-meta .sep { display:none; opacity:.35; }
   #section-media-sources .sc-meta i { opacity:.8; margin-right: 6px; color: var(--color-text-secondary); }
@@ -823,15 +839,12 @@
   #section-media-sources .sc-chip:hover { border-color: rgba(255,255,255,0.18); }
   #section-media-sources .sc-header { display:flex; align-items:center; gap:14px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
   #section-media-sources .sc-icon {
-  width: 38px; height: 38px; border-radius: 50%; display:flex; align-items:center; justify-content:center;
-  /* Keep a fixed visual size; do not shrink under tight layouts */
-  flex: 0 0 38px; min-width: 38px; min-height: 38px; flex-shrink: 0;
-  background: radial-gradient(120% 120% at 30% 30%, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  /* Softer inner ring and a lighter outer shadow; remove heavy outline */
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.18);
-  outline: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: auto; height: auto; flex: 0 0 auto; min-width: 0; min-height: 0; flex-shrink: 0;
+    border-radius: 0; background: none; box-shadow: none; outline: none;
+    color: inherit;
   }
-  #section-media-sources .sc-icon i { color: var(--sc-accent) !important; }
+  #section-media-sources .sc-icon i { color: inherit; opacity: 1; }
   #section-media-sources .sc-title { font-size: 1.12rem; font-weight: 700; color: var(--color-text-primary); letter-spacing: .01em; }
   #section-media-sources .sc-desc { font-size: .9rem; color: var(--color-text-secondary); margin: 0 0 12px; }
   /* subtle divider under meta */
@@ -1202,9 +1215,10 @@
                 </div>
                 <p class="sc-desc">Your personal media server for movies and TV.</p>
                 <ul class="sc-points">
-                  <li>Pick libraries and connect securely</li>
-                  <li>Filter by genre, rating, and quality</li>
-                  <li>Fast updates with cached playlists</li>
+                  <li>Connection: Hostname, Port, Token</li>
+                  <li>Libraries: select Movies and Shows</li>
+                  <li>Filters: Years, Ratings, Genres, Qualities</li>
+                  <li>Recently added only (+ days)</li>
                 </ul>
                 <div class="sc-actions">
                   <a class="btn btn-primary btn-sm" href="#plex"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
@@ -1234,9 +1248,10 @@
                 </div>
                 <p class="sc-desc">Open‑source media server with flexible libraries.</p>
                 <ul class="sc-points">
-                  <li>Connect and authenticate</li>
-                  <li>Select movie and TV libraries</li>
-                  <li>Filter by genres and metadata</li>
+                  <li>Connection: Hostname, Port, API Key</li>
+                  <li>Libraries: select Movies and Shows</li>
+                  <li>Filters: Years, Ratings, Genres</li>
+                  <li>Recently added only (+ days)</li>
                 </ul>
                 <div class="sc-actions">
                   <a class="btn btn-primary btn-sm" href="#jellyfin"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
@@ -1266,9 +1281,9 @@
                 </div>
                 <p class="sc-desc">Comprehensive metadata and discovery.</p>
                 <ul class="sc-points">
-                  <li>API key support</li>
-                  <li>Multi‑language data</li>
-                  <li>Trending & discovery</li>
+                  <li>API Key</li>
+                  <li>Category (popular, top rated, etc.)</li>
+                  <li>Filters: Min rating, Years, Genres</li>
                 </ul>
                 <div class="sc-actions">
                   <a class="btn btn-primary btn-sm" href="#tmdb"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
@@ -1297,9 +1312,9 @@
                 </div>
                 <p class="sc-desc">Series and episode metadata with artwork.</p>
                 <ul class="sc-points">
-                  <li>Shows, seasons, episodes</li>
-                  <li>Artwork and thumbs</li>
-                  <li>Multi‑language</li>
+                  <li>Category (popular, top rated, etc.)</li>
+                  <li>Filter: Min rating</li>
+                  <li>Filter: Year</li>
                 </ul>
                 <div class="sc-actions">
                   <a class="btn btn-primary btn-sm" href="#tvdb"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
