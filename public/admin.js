@@ -2337,8 +2337,9 @@
             const isCinema = !!payload.cinemaMode;
             container.classList.toggle('cinema-mode', isCinema);
             container.classList.toggle('screensaver-mode', !isCinema);
-            // In Cinema preview, orientation is fixed to portrait and button hidden
+            // In Cinema preview, orientation follows the form selection; the toggle button is hidden
             if (orientBtn) orientBtn.style.display = isCinema ? 'none' : '';
+            // Cinema preview MUST always be portrait (window and content), regardless of form selection
             const portrait = isCinema ? true : previewOrientation === 'portrait';
             container.classList.toggle('portrait', portrait);
             container.classList.toggle('landscape', !portrait);
@@ -2376,8 +2377,6 @@
                 return hardReset();
             }
             lastPayload = payload;
-            // For Cinema preview, force portrait orientation regardless of form select
-            if (payload.cinemaMode) payload.cinemaOrientation = 'portrait';
             // Reflect mode/orientation on the container so aspect and scale update smoothly
             applyContainerMode(payload);
             // Wait a frame then rescale to accommodate CSS transitions
@@ -2387,8 +2386,16 @@
                 positionAtActiveMode();
             });
             try {
+                // Force portrait for Cinema in the preview content regardless of form value
+                const postPayload =
+                    typeof structuredClone === 'function'
+                        ? structuredClone(payload)
+                        : JSON.parse(JSON.stringify(payload));
+                if (postPayload.cinemaMode) {
+                    postPayload.cinemaOrientation = 'portrait';
+                }
                 previewWin.postMessage(
-                    { type: 'posterrama.preview.update', payload },
+                    { type: 'posterrama.preview.update', payload: postPayload },
                     window.location.origin
                 );
             } catch (_) {}
