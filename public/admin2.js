@@ -1782,7 +1782,9 @@
                     try {
                         if (menu) menu.scrollTop = 0;
                         if (optsEl) optsEl.scrollTop = 0;
-                    } catch (e) {}
+                    } catch (e) {
+                        dbg('ms scroll reset failed', e);
+                    }
                 }
             };
             // Handlers
@@ -2329,7 +2331,9 @@
                         try {
                             menu.scrollTop = 0;
                             if (optsEl) optsEl.scrollTop = 0;
-                        } catch (e) {}
+                        } catch (e) {
+                            dbg('ms scroll reset failed (plex genres)', e);
+                        }
                         positionMenu();
                         onReposition = () => positionMenu();
                         window.addEventListener('resize', onReposition, { passive: true });
@@ -2557,7 +2561,9 @@
                     try {
                         menu.scrollTop = 0;
                         if (optsEl) optsEl.scrollTop = 0;
-                    } catch (e) {}
+                    } catch (e) {
+                        dbg('ms scroll reset failed (jf)', e);
+                    }
                     positionMenu();
                     onReposition = () => positionMenu();
                     window.addEventListener('resize', onReposition, { passive: true });
@@ -3472,7 +3478,9 @@
                     try {
                         menu.scrollTop = 0;
                         if (optsEl) optsEl.scrollTop = 0;
-                    } catch (e) {}
+                    } catch (e) {
+                        dbg('ms scroll reset failed (plex)', e);
+                    }
                     positionMenu();
                     onReposition = () => positionMenu();
                     window.addEventListener('resize', onReposition, { passive: true });
