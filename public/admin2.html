@@ -515,6 +515,10 @@
     background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card)) !important;
     border-bottom: 1px solid var(--color-border) !important;
   }
+  /* Operations grouping */
+  .ops-group { margin: 6px 0 10px; padding: 0; }
+  .ops-group-title { display:flex; align-items:center; gap:8px; margin: 8px 0 10px; padding-left: 10px; border-left: 3px solid var(--color-border); color: var(--color-text-primary); font-size: 0.95rem; font-weight: 700; letter-spacing: .01em; opacity:.95; }
+  .ops-group-title i { color: var(--color-text-secondary); }
   .operations-panel .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .operations-panel .main-actions { margin-top: 8px; }
   .operations-panel .sub-actions { margin-top: 8px; }
@@ -1960,6 +1964,9 @@
         <div class="panel-content">
       <div class="content-grid" style="gap:12px;">
         <div class="ops-col">
+          <div class="ops-group">
+            <div class="ops-group-title"><i class="fas fa-download"></i> Updates</div>
+          </div>
             <!-- Auto-Update Operations (moved to top-left) -->
             <section class="perf-card" aria-label="Automatic Updates">
               <h3><i class="fas fa-download"></i> Automatic Updates</h3>
@@ -2022,6 +2029,9 @@
             </section>
         </div>
   <div class="ops-col">
+      <div class="ops-group">
+        <div class="ops-group-title"><i class="fas fa-server"></i> Server & Access</div>
+      </div>
       <!-- Debug & Logging -->
             <section class="perf-card" aria-label="Debug & Logging">
               <h3><i class="fas fa-bug"></i> Debug & Logging</h3>
@@ -2040,7 +2050,7 @@
                 <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
               </div>
             </section>
-      <!-- Promobox Site -->
+  <!-- Promobox Site -->
             <section class="perf-card" aria-label="Promobox Site">
               <h3><i class="fas fa-bullhorn"></i> Promobox Site</h3>
               <div class="metric-row">
@@ -2086,6 +2096,18 @@
                 </button>
               </div>
             </section>
+      <div class="ops-group">
+        <div class="ops-group-title"><i class="fas fa-toolbox"></i> Tools & Logs</div>
+      </div>
+      <section class="perf-card" aria-label="Logs Quick Access">
+        <h3><i class="fas fa-scroll"></i> Logs</h3>
+        <div class="metric-row">
+          <div class="subtle">Quick access to server logs for troubleshooting.</div>
+        </div>
+        <div class="actions" style="margin-top:8px;">
+          <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
+        </div>
+      </section>
     </div>
           </div>
         </div>
