@@ -4090,17 +4090,23 @@
         navigator.serviceWorker
           .register('/sw.js')
           .then(reg => {
+            const QUIET_UNTIL = Date.now() + 90000; // 90s post-load quiet period
+            const swToast = (opts) => {
+              try {
+                if (Date.now() < QUIET_UNTIL) return; // suppress early toasts after refresh
+                if (window.__suppressSwUpdateToasts) return; // allow runtime suppression around actions
+                window.notify?.toast?.(opts);
+              } catch (_) {}
+            };
             // If there's already a waiting worker, do NOT force-activate.
             // We'll surface an unobtrusive update hint and let the user refresh.
             if (reg.waiting && navigator.serviceWorker.controller) {
-              try {
-                window.notify?.toast?.({
-                  type: 'info',
-                  title: 'Update ready',
-                  message: 'A new version is available. Refresh when convenient.',
-                  duration: 6000,
-                });
-              } catch (_) {}
+              swToast({
+                type: 'info',
+                title: 'Update ready',
+                message: 'A new version is available. Refresh when convenient.',
+                duration: 6000,
+              });
             }
 
             // When a new SW is found, wait until it installs, then hint the user.
@@ -4109,14 +4115,12 @@
               if (!sw) return;
               sw.addEventListener('statechange', () => {
                 if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-                  try {
-                    window.notify?.toast?.({
-                      type: 'info',
-                      title: 'Update installed',
-                      message: 'Refresh to apply the latest Admin updates.',
-                      duration: 6000,
-                    });
-                  } catch (_) {}
+                  swToast({
+                    type: 'info',
+                    title: 'Update installed',
+                    message: 'Refresh to apply the latest Admin updates.',
+                    duration: 6000,
+                  });
                 }
               });
             });

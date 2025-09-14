@@ -4753,6 +4753,11 @@
                         e.stopPropagation();
                     } catch (_) {}
                     const id = card.getAttribute('data-id');
+                    // Suppress SW update toasts briefly around action
+                    try {
+                        window.__suppressSwUpdateToasts = true;
+                        setTimeout(() => (window.__suppressSwUpdateToasts = false), 8000);
+                    } catch (_) {}
                     // one-time spin animation on the icon
                     try {
                         const icon = card.querySelector('.btn-reload i');
@@ -4781,6 +4786,11 @@
                         e.stopPropagation();
                     } catch (_) {}
                     const id = card.getAttribute('data-id');
+                    // Suppress SW update toasts briefly around action
+                    try {
+                        window.__suppressSwUpdateToasts = true;
+                        setTimeout(() => (window.__suppressSwUpdateToasts = false), 8000);
+                    } catch (_) {}
                     // broom sweep animation
                     try {
                         const icon = card.querySelector('.btn-clearcache i');
