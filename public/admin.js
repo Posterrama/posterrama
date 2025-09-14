@@ -10996,7 +10996,9 @@ function renderDevicesTable(devices) {
                     if (!res.ok) throw new Error('Failed to get code');
                     const data = await res.json();
                     setButtonState(btn, 'success', { text: 'Code' });
-                    const claimUrl = `${location.origin}/?pair=${encodeURIComponent(data.code)}`;
+                    const claimUrl = `${location.origin}/?pair=${encodeURIComponent(data.code)}${
+                        data.token ? `&pairToken=${encodeURIComponent(data.token)}` : ''
+                    }`;
                     showPairingModal({ code: data.code, expiresAt: data.expiresAt, claimUrl });
                     setTimeout(() => setButtonState(btn, 'revert'), 1500);
                 } else if (type) {
@@ -11270,7 +11272,7 @@ function initDevicesPanel() {
                         setButtonState(btn, 'success', { text: 'Code' });
                         const claimUrl = `${location.origin}/?pair=${encodeURIComponent(
                             data.code
-                        )}`;
+                        )}${data.token ? `&pairToken=${encodeURIComponent(data.token)}` : ''}`;
                         showPairingModal({ code: data.code, expiresAt: data.expiresAt, claimUrl });
                         setTimeout(() => setButtonState(btn, 'revert'), 1500);
                     } else if (type) {
@@ -14295,7 +14297,9 @@ function showDeviceSettingsModal(device) {
                     if (!res.ok) throw new Error('Failed to get code');
                     const data = await res.json();
                     setButtonState(btn, 'success', { text: 'Code' });
-                    const claimUrl = `${location.origin}/?pair=${encodeURIComponent(data.code)}`;
+                    const claimUrl = `${location.origin}/?pair=${encodeURIComponent(data.code)}${
+                        data.token ? `&pairToken=${encodeURIComponent(data.token)}` : ''
+                    }`;
                     showPairingModal({ code: data.code, expiresAt: data.expiresAt, claimUrl });
                     setTimeout(() => setButtonState(btn, 'revert'), 1500);
                 } else if (type) {

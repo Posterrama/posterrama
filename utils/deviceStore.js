@@ -161,13 +161,17 @@ async function generatePairingCode(id, { ttlMs = 10 * 60 * 1000 } = {}) {
     const now = Date.now();
     const code = genPairCode(6);
     const expiresAt = new Date(now + ttlMs).toISOString();
-    all[idx].pairing = { ...(all[idx].pairing || {}), code, expiresAt };
+    // Minimal shared-secret to complement short numeric code
+    const token = crypto.randomBytes(16).toString('hex');
+    const tokenHash = hashSecret(token);
+    all[idx].pairing = { ...(all[idx].pairing || {}), code, tokenHash, expiresAt };
     all[idx].updatedAt = new Date(now).toISOString();
     await writeAll(all);
-    return { code, expiresAt };
+    // Return token directly; only store its hash server-side
+    return { code, token, expiresAt };
 }
 
-async function claimByPairingCode({ code, name, location } = {}) {
+async function claimByPairingCode({ code, token, name, location } = {}) {
     if (!code) return null;
     const all = await readAll();
     const now = Date.now();
@@ -175,6 +179,13 @@ async function claimByPairingCode({ code, name, location } = {}) {
     if (idx === -1) return null;
     const exp = Date.parse(all[idx].pairing.expiresAt || 0) || 0;
     if (!exp || exp < now) return null;
+    // If a tokenHash exists (newer codes), require matching token
+    const storedTokenHash = all[idx].pairing && all[idx].pairing.tokenHash;
+    if (storedTokenHash) {
+        if (!token) return null;
+        const providedHash = hashSecret(String(token));
+        if (providedHash !== storedTokenHash) return null;
+    }
     // rotate secret and (optionally) update name/location
     const newSecret = crypto.randomBytes(32).toString('hex');
     all[idx] = {

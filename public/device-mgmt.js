@@ -772,12 +772,16 @@
             const sp = new URLSearchParams(window.location.search);
             // Pairing claim: allow ?pair=CODE or ?pairCode=CODE to adopt an existing device
             const pairCode = sp.get('pairCode') || sp.get('pair');
+            const pairToken = sp.get('pairToken') || sp.get('token');
             if (pairCode && pairCode.trim()) {
                 try {
                     const res = await fetch('/api/devices/pair', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ code: pairCode.trim() }),
+                        body: JSON.stringify({
+                            code: pairCode.trim(),
+                            token: pairToken || undefined,
+                        }),
                     });
                     if (res.ok) {
                         const data = await res.json();
@@ -790,6 +794,7 @@
                             const url = new URL(window.location.href);
                             url.searchParams.delete('pair');
                             url.searchParams.delete('pairCode');
+                            url.searchParams.delete('pairToken');
                             window.history.replaceState({}, document.title, url.toString());
                         } catch (_) {
                             // ignore URL cleanup errors
@@ -803,6 +808,7 @@
                             const url = new URL(window.location.href);
                             url.searchParams.delete('pair');
                             url.searchParams.delete('pairCode');
+                            url.searchParams.delete('pairToken');
                             window.history.replaceState({}, document.title, url.toString());
                         } catch (_) {
                             // ignore URL cleanup errors (pairing failed)

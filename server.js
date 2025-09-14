@@ -1683,8 +1683,8 @@ if (isDeviceMgmtEnabled()) {
     );
     app.post('/api/devices/pair', devicePairClaimLimiter, express.json(), async (req, res) => {
         try {
-            const { code, name = '', location = '' } = req.body || {};
-            const result = await deviceStore.claimByPairingCode({ code, name, location });
+            const { code, token, name = '', location = '' } = req.body || {};
+            const result = await deviceStore.claimByPairingCode({ code, token, name, location });
             if (!result) return res.status(400).json({ error: 'invalid_or_expired' });
             res.json({ deviceId: result.device.id, deviceSecret: result.secret });
         } catch (e) {
