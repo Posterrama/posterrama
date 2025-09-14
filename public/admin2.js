@@ -1869,10 +1869,14 @@
                     ? plex.ratingFilter.join(',')
                     : plex.ratingFilter || '';
                 await loadPlexRatings(ratingsCsv);
-            } catch (_) {}
+            } catch (e) {
+                dbg('loadPlexRatings failed', e);
+            }
             try {
                 await loadPlexQualities(plex.qualityFilter || '');
-            } catch (_) {}
+            } catch (e) {
+                dbg('loadPlexQualities failed', e);
+            }
             if (getInput('plex.yearFilter')) {
                 const v = plex.yearFilter;
                 getInput('plex.yearFilter').value = v == null ? '' : String(v);
@@ -1922,13 +1926,19 @@
                         ? jf.ratingFilter.join(',')
                         : jf.ratingFilter || ''
                 );
-            } catch (_) {}
+            } catch (e) {
+                dbg('loadJellyfinRatings failed', e);
+            }
             try {
                 await loadJellyfinGenres(jf.genreFilter || '');
-            } catch (_) {}
+            } catch (e) {
+                dbg('loadJellyfinGenres failed', e);
+            }
             try {
                 await loadJellyfinQualities(jf.qualityFilter || '');
-            } catch (_) {}
+            } catch (e) {
+                dbg('loadJellyfinQualities failed', e);
+            }
             setMultiSelect(
                 'jf.movies',
                 (jf.movieLibraryNames || []).map(n => ({ value: n, label: n })),
