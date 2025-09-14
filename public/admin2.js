@@ -369,6 +369,83 @@
         return `${m}m`;
     }
 
+    function showSection(id) {
+        const sections = document.querySelectorAll('.app-section');
+        sections.forEach(s => s.classList.remove('active'));
+        const target = document.getElementById(id);
+        if (target) target.classList.add('active');
+        // Update header title for basic context switch
+        const h1 = document.querySelector('.page-header h1');
+        const subtitle = document.querySelector('.page-header p');
+        if (h1) {
+            if (id === 'section-security') {
+                h1.innerHTML = '<i class="fas fa-shield-alt"></i> Security';
+                if (subtitle) subtitle.textContent = 'Manage password, 2FA, and API access';
+            } else {
+                h1.innerHTML = '<i class="fas fa-gauge-high"></i> Dashboard';
+                if (subtitle) subtitle.textContent = 'Overview of devices, media and system health';
+            }
+        }
+    }
+
+    async function refreshSecurity() {
+        try {
+            // 2FA status piggybacks on /api/admin/config
+            const cfg = await fetchJSON('/api/admin/config');
+            const is2FA = !!cfg?.security?.is2FAEnabled;
+            const txt = document.getElementById('sec-2fa-status');
+            const btnEnable = document.getElementById('btn-2fa-enable');
+            const btnDisable = document.getElementById('btn-2fa-disable');
+            if (txt)
+                txt.textContent = is2FA
+                    ? 'Two-Factor Authentication is enabled'
+                    : 'Two-Factor Authentication is disabled';
+            if (btnEnable) {
+                btnEnable.disabled = !!is2FA;
+                btnEnable.classList.remove('btn-primary', 'btn-error', 'btn-secondary');
+                // Keep enable button as secondary when available, muted when disabled
+                btnEnable.classList.add('btn-secondary');
+            }
+            if (btnDisable) {
+                const active = !!is2FA;
+                btnDisable.disabled = !active;
+                btnDisable.classList.remove('btn-primary', 'btn-secondary', 'btn-error');
+                btnDisable.classList.add(active ? 'btn-error' : 'btn-secondary');
+            }
+
+            // API key status
+            const statusRes = await fetch('/api/admin/api-key/status', { credentials: 'include' });
+            const status = statusRes.ok ? await statusRes.json() : { hasKey: false };
+            const hasKey = !!status?.hasKey;
+            const statusText = document.getElementById('api-key-status-text');
+            const display = document.getElementById('api-key-display');
+            const revokeBtn = document.getElementById('revoke-api-key-button');
+            if (statusText) statusText.textContent = hasKey ? 'Present' : 'None';
+            if (display) display.classList.toggle('is-hidden', !hasKey);
+            if (revokeBtn) revokeBtn.disabled = !hasKey;
+            if (hasKey) {
+                // Fetch the masked value (we'll still show as password field)
+                const keyRes = await fetch('/api/admin/api-key', { credentials: 'include' });
+                const keyData = keyRes.ok ? await keyRes.json() : { apiKey: '' };
+                const input = document.getElementById('api-key-input');
+                if (input) input.value = keyData.apiKey || '';
+            }
+        } catch (e) {
+            console.warn('Security refresh failed', e);
+        }
+    }
+
+    function openModal(id) {
+        const m = document.getElementById(id);
+        if (!m) return;
+        m.classList.add('open');
+    }
+    function closeModal(id) {
+        const m = document.getElementById(id);
+        if (!m) return;
+        m.classList.remove('open');
+    }
+
     function wireEvents() {
         const perfRefreshBtn = $('#btn-perf-refresh');
         // Ensure a spinner on the refresh icon button as well
@@ -496,6 +573,312 @@
             } finally {
                 el.classList.remove('disabled');
             }
+        });
+
+        // Sidebar section switching (ignore group toggles)
+        document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+            item.addEventListener('click', e => {
+                e.preventDefault();
+                const nav = item.getAttribute('data-nav');
+                if (!nav) return; // skip toggles without target section
+                document
+                    .querySelectorAll('.sidebar-nav .nav-item')
+                    .forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                if (nav === 'security') {
+                    showSection('section-security');
+                    refreshSecurity();
+                } else if (nav === 'dashboard') {
+                    showSection('section-dashboard');
+                }
+            });
+        });
+
+        // Security panel auto-refresh handled on nav; no manual refresh button
+
+        // helper: ensure button spinner exists
+        const ensureSpinner = btn => {
+            if (!btn) return;
+            if (!btn.querySelector('.spinner')) {
+                const sp = document.createElement('span');
+                sp.className = 'spinner';
+                btn.insertBefore(sp, btn.firstChild);
+            }
+        };
+
+        // Security: change password
+        const btnChangePw = document.getElementById('btn-change-password');
+        ensureSpinner(btnChangePw);
+        btnChangePw?.addEventListener('click', async () => {
+            const cur = document.getElementById('sec-current-pw');
+            const nw = document.getElementById('sec-new-pw');
+            const conf = document.getElementById('sec-confirm-pw');
+            const currentPassword = cur?.value || '';
+            const newPassword = nw?.value || '';
+            const confirmPassword = conf?.value || '';
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                return window.notify?.toast({
+                    type: 'warning',
+                    title: 'Missing fields',
+                    message: 'Please fill in all password fields',
+                    duration: 3500,
+                });
+            }
+            if (newPassword.length < 8) {
+                return window.notify?.toast({
+                    type: 'warning',
+                    title: 'Weak password',
+                    message: 'New password must be at least 8 characters',
+                    duration: 3500,
+                });
+            }
+            if (newPassword !== confirmPassword) {
+                return window.notify?.toast({
+                    type: 'warning',
+                    title: 'Mismatch',
+                    message: 'New password and confirmation do not match',
+                    duration: 3500,
+                });
+            }
+            try {
+                btnChangePw.classList.add('btn-loading');
+                const res = await fetch('/api/admin/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok)
+                    throw new Error(data?.error || data?.message || 'Failed to change password');
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Password changed',
+                    message: 'You will need to log in again.',
+                    duration: 4500,
+                });
+                setTimeout(() => {
+                    location.href = '/admin/login';
+                }, 1500);
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Change failed',
+                    message: e?.message || 'Unable to change password',
+                    duration: 5000,
+                });
+            } finally {
+                btnChangePw.classList.remove('btn-loading');
+            }
+        });
+
+        // Security: 2FA enable flow
+        const btn2faEnable = document.getElementById('btn-2fa-enable');
+        const btn2faDisable = document.getElementById('btn-2fa-disable');
+        ensureSpinner(btn2faEnable);
+        ensureSpinner(btn2faDisable);
+        btn2faEnable?.addEventListener('click', async () => {
+            try {
+                btn2faEnable.classList.add('btn-loading');
+                const r = await fetch('/api/admin/2fa/generate', {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(j?.error || 'Failed to start 2FA setup');
+                const qr = document.getElementById('qr-code-container');
+                if (qr)
+                    qr.innerHTML = j.qrCodeDataUrl
+                        ? `<img src="${j.qrCodeDataUrl}" alt="Scan QR code" style="background:#fff;padding:8px;border-radius:8px;" />`
+                        : '<span>QR unavailable</span>';
+                openModal('modal-2fa');
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: '2FA setup failed',
+                    message: e?.message || 'Unable to generate QR code',
+                    duration: 5000,
+                });
+            } finally {
+                btn2faEnable.classList.remove('btn-loading');
+            }
+        });
+        // Theme-demo modal close buttons just have data-close-modal and close nearest overlay
+        document.querySelectorAll('[data-close-modal]')?.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const overlay = btn.closest('.modal-overlay');
+                if (overlay) overlay.classList.remove('open');
+            });
+        });
+        const btn2faVerify = document.getElementById('btn-2fa-verify');
+        ensureSpinner(btn2faVerify);
+        btn2faVerify?.addEventListener('click', async () => {
+            const input = document.getElementById('input-2fa-token');
+            const token = (input?.value || '').trim();
+            if (!token)
+                return window.notify?.toast({
+                    type: 'warning',
+                    title: 'Missing code',
+                    message: 'Enter the 6-digit code from your app',
+                    duration: 3500,
+                });
+            try {
+                btn2faVerify.classList.add('btn-loading');
+                const r = await fetch('/api/admin/2fa/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ token }),
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(j?.error || j?.message || 'Verification failed');
+                window.notify?.toast({
+                    type: 'success',
+                    title: '2FA enabled',
+                    message: 'Two-Factor Authentication is now active.',
+                    duration: 3500,
+                });
+                closeModal('modal-2fa');
+                refreshSecurity();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Verification failed',
+                    message: e?.message || 'Invalid code',
+                    duration: 5000,
+                });
+            } finally {
+                btn2faVerify?.classList.remove('btn-loading');
+            }
+        });
+
+        // 2FA disable flow
+        btn2faDisable?.addEventListener('click', () => openModal('modal-2fa-disable'));
+        const btn2faDisableConfirm = document.getElementById('btn-2fa-disable-confirm');
+        ensureSpinner(btn2faDisableConfirm);
+        btn2faDisableConfirm?.addEventListener('click', async () => {
+            const pw = document.getElementById('input-2fa-disable-password');
+            const password = pw?.value || '';
+            if (!password)
+                return window.notify?.toast({
+                    type: 'warning',
+                    title: 'Password required',
+                    message: 'Enter current password to disable 2FA',
+                    duration: 3500,
+                });
+            try {
+                btn2faDisableConfirm.classList.add('btn-loading');
+                const r = await fetch('/api/admin/2fa/disable', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ password }),
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(j?.error || j?.message || 'Failed to disable 2FA');
+                window.notify?.toast({
+                    type: 'success',
+                    title: '2FA disabled',
+                    message: 'Two-Factor Authentication has been disabled.',
+                    duration: 3500,
+                });
+                closeModal('modal-2fa-disable');
+                refreshSecurity();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Disable failed',
+                    message: e?.message || 'Unable to disable 2FA',
+                    duration: 5000,
+                });
+            } finally {
+                btn2faDisableConfirm.classList.remove('btn-loading');
+            }
+        });
+
+        // API key management
+        const btnApiGenerate = document.getElementById('generate-api-key-button');
+        const btnApiRevoke = document.getElementById('revoke-api-key-button');
+        ensureSpinner(btnApiGenerate);
+        ensureSpinner(btnApiRevoke);
+        const btnApiToggle = document.getElementById('toggle-api-key-visibility-button');
+        const btnApiCopy = document.getElementById('copy-api-key-button');
+        btnApiGenerate?.addEventListener('click', async () => {
+            try {
+                btnApiGenerate.classList.add('btn-loading');
+                const r = await fetch('/api/admin/api-key/generate', {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(j?.error || 'Failed to generate API key');
+                const input = document.getElementById('api-key-input');
+                if (input) input.value = j.apiKey || '';
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'API key generated',
+                    message: 'Copy and store this key securely.',
+                    duration: 5000,
+                });
+                await refreshSecurity();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Generate failed',
+                    message: e?.message || 'Unable to generate key',
+                    duration: 5000,
+                });
+            } finally {
+                btnApiGenerate.classList.remove('btn-loading');
+            }
+        });
+        btnApiRevoke?.addEventListener('click', () => openModal('modal-revoke-api-key'));
+        const btnApiRevokeConfirm = document.getElementById('btn-revoke-api-key-confirm');
+        btnApiRevokeConfirm?.addEventListener('click', async () => {
+            try {
+                btnApiRevokeConfirm.classList.add('btn-loading');
+                const r = await fetch('/api/admin/api-key/revoke', {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(j?.error || 'Failed to revoke API key');
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'API key revoked',
+                    message: 'Key has been removed.',
+                    duration: 3500,
+                });
+                closeModal('modal-revoke-api-key');
+                await refreshSecurity();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Revoke failed',
+                    message: e?.message || 'Unable to revoke key',
+                    duration: 5000,
+                });
+            } finally {
+                btnApiRevokeConfirm.classList.remove('btn-loading');
+            }
+        });
+        btnApiToggle?.addEventListener('click', () => {
+            const input = document.getElementById('api-key-input');
+            if (!input) return;
+            input.type = input.type === 'password' ? 'text' : 'password';
+        });
+        btnApiCopy?.addEventListener('click', async () => {
+            const input = document.getElementById('api-key-input');
+            if (!input || !input.value) return;
+            try {
+                await navigator.clipboard.writeText(input.value);
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Copied',
+                    message: 'API key copied to clipboard',
+                    duration: 2000,
+                });
+            } catch (_) {}
         });
     }
 
