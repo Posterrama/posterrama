@@ -472,7 +472,7 @@ class JellyfinSource {
             // Year filter already applied above
 
             if (this.isDebug) {
-                console.log(
+                logger.debug(
                     `[JellyfinSource:${this.server.name}] After filtering: ${filteredItems.length} items remaining.`
                 );
             }

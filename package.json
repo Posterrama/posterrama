@@ -28,6 +28,7 @@
         "test": "jest --json --outputFile=jest-results.json",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage --json --outputFile=jest-results.json",
+        "coverage:table": "node scripts/generate-coverage-table.js",
         "badges:update": "node scripts/update-badges.js",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",

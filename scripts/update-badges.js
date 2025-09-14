@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 /**
- * Update README badges for tests count and coverage percentage.
- * - Reads coverage from coverage/coverage-final.json (lines.pct)
- * - Reads tests/suites from jest-results.json (numTotalTests/numTotalTestSuites)
- * - Replaces badges in README.md:
- *    Tests badge: tests-<num>%20tests%20in%20<suited>%20suites
- *    Coverage badge: coverage-<pct>%25
+ * Update README badges:
+ *  - Coverage badge (from coverage-final.json total.lines.pct) with dynamic color
+ *  - Tests badge (from jest-results.json)
+ *  - Version badge (from package.json)
  */
 const fs = require('fs');
 const path = require('path');
@@ -22,9 +20,20 @@ function formatPct(n) {
     return (Math.round(n * 100) / 100).toFixed(2);
 }
 
+function colorFor(pct) {
+    const n = typeof pct === 'string' ? parseFloat(pct) : pct;
+    if (n >= 90) return 'brightgreen';
+    if (n >= 80) return 'green';
+    if (n >= 70) return 'yellowgreen';
+    if (n >= 60) return 'yellow';
+    if (n >= 50) return 'orange';
+    return 'red';
+}
+
 function run() {
     const repoRoot = path.resolve(__dirname, '..');
     const coveragePath = path.resolve(repoRoot, 'coverage', 'coverage-final.json');
+    const lcovPath = path.resolve(repoRoot, 'coverage', 'lcov.info');
     const jestResultsPath = path.resolve(repoRoot, 'jest-results.json');
     const pkgPath = path.resolve(repoRoot, 'package.json');
     const readmePath = path.resolve(repoRoot, 'README.md');
@@ -41,20 +50,37 @@ function run() {
     let readme = fs.readFileSync(readmePath, 'utf8');
     let changed = false;
 
-    // Update coverage badge
+    // Update coverage badge (number and color). Prefer JSON total if available, otherwise fallback to LCOV.
+    let pct = null;
     if (
         coverageJson &&
         coverageJson.total &&
         coverageJson.total.lines &&
         typeof coverageJson.total.lines.pct === 'number'
     ) {
-        const pct = formatPct(coverageJson.total.lines.pct);
-        const covRe = /(coverage-)\d+(?:\.\d+)?%25/;
-        const newStr = `coverage-${pct}%25`;
-        if (covRe.test(readme)) {
-            readme = readme.replace(covRe, newStr);
+        pct = formatPct(coverageJson.total.lines.pct);
+    } else if (fs.existsSync(lcovPath)) {
+        // Compute from LCOV (sum LH/LF across all records)
+        const content = fs.readFileSync(lcovPath, 'utf8');
+        let total = 0;
+        let covered = 0;
+        for (const line of content.split(/\r?\n/)) {
+            if (line.startsWith('LF:')) total += Number(line.slice(3)) || 0;
+            if (line.startsWith('LH:')) covered += Number(line.slice(3)) || 0;
+        }
+        if (total > 0) pct = formatPct((covered / total) * 100);
+    }
+
+    if (pct !== null) {
+        const color = colorFor(pct);
+        // Replace full shields URL segment for coverage (handles HTML <img> src attributes)
+        const covUrlRe =
+            /(https:\/\/img\.shields\.io\/badge\/coverage-)\d+(?:\.\d+)?%25-[a-z]+(\.svg)/i;
+        const newSeg = `$1${pct}%25-${color}$2`;
+        if (covUrlRe.test(readme)) {
+            readme = readme.replace(covUrlRe, newSeg);
             changed = true;
-            console.log(`Updated coverage badge to ${pct}%`);
+            console.log(`Updated coverage badge to ${pct}% (${color})`);
         }
     } else {
         console.warn('coverage-final.json missing or malformed; skipping coverage badge update');

@@ -24,7 +24,7 @@ async function readConfig() {
         return { mediaServers: [] }; // fallback to prevent crashes
     }
 }
-const CACHE_DURATION = 30000; // 30 seconds
+let CACHE_DURATION = 30000; // 30 seconds (mutable for tests)
 
 /**
  * Basic health check for simple monitoring
@@ -955,8 +955,20 @@ module.exports = {
     checkCacheEfficiency,
     checkPerformanceThresholds,
     checkUpdateAvailability,
+    __performHealthChecks: performHealthChecks,
     __resetCache: () => {
         healthCheckCache = null;
         cacheTimestamp = 0;
+    },
+    __setCacheDuration: ms => {
+        // For tests only: override cache duration in-process
+        if (Number.isFinite(Number(ms))) {
+            module.exports.__resetCache();
+            // eslint-disable-next-line no-global-assign
+            CACHE_DURATION = Number(ms);
+        }
+    },
+    __setGitHubService: svc => {
+        GitHubService = svc;
     },
 };

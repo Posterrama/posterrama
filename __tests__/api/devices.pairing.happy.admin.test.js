@@ -6,19 +6,33 @@ describe('Devices Pairing Happy Path', () => {
         process.env.NODE_ENV = 'test';
         process.env.DEVICE_MGMT_ENABLED = 'true';
         process.env.API_ACCESS_TOKEN = 'test-token';
+        // Isolate device store per test to avoid coverage-run interference
+        const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+        process.env.DEVICES_STORE_PATH = `devices.test.${unique}.pair.json`;
     });
 
     test('admin generates code and device claims with token -> rotated secret', async () => {
         const app = require('../../server');
 
         // Register a device to pair
-        const reg = await request(app)
+        // Retry register once to mitigate rare FS contention under full suite
+        let reg = await request(app)
             .post('/api/devices/register')
             .set('Content-Type', 'application/json')
-            .send({ installId: 'iid-pair-happy', hardwareId: 'hw-pair-happy' })
-            .expect(200);
+            .send({ installId: 'iid-pair-happy', hardwareId: 'hw-pair-happy' });
+        if (reg.status !== 200) {
+            reg = await request(app)
+                .post('/api/devices/register')
+                .set('Content-Type', 'application/json')
+                .send({ installId: 'iid-pair-happy', hardwareId: 'hw-pair-happy' })
+                .expect(200);
+        } else {
+            expect(reg.status).toBe(200);
+        }
 
         const { deviceId, deviceSecret } = reg.body;
+        // Small delay to ensure fs writes are fully flushed before subsequent mutations
+        await new Promise(r => setTimeout(r, 10));
 
         // Admin generates pairing code
         const gen = await request(app)

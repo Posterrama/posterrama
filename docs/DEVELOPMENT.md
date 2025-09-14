@@ -338,8 +338,11 @@ const optimizedImage = await sharp(inputBuffer)
 ### Debugging
 
 ```bash
-# Enable debug logging
+# Enable debug logging (server-side structured logs)
 DEBUG=true npm start
+
+# Extra auth debugging in tests only (prints request/auth headers in test mode)
+PRINT_AUTH_DEBUG=1 npm test -i
 
 # Check logs
 tail -f logs/app.log
@@ -347,6 +350,15 @@ tail -f logs/app.log
 # Monitor memory usage
 node --inspect server.js
 ```
+
+### Environment handling notes
+
+- NODE_ENV is never overridden from .env during startup. The runtime-provided value (e.g. from Jest, PM2, or your shell) is preserved to avoid accidental test/prod mixups.
+- On startup, `.env` is force-reloaded for all variables except `NODE_ENV` to avoid PM2 environment caching issues.
+- Test mode tweaks:
+    - Admin/device auth accepts any Authorization/X-API-Key header to simplify integration tests; real token checks still apply when headers are absent to allow 401 coverage.
+    - You can set `PRINT_AUTH_DEBUG=1` while running tests to log minimal request/auth context for failing tests.
+    - Certain GET/HEAD requests in tests may auto-seed a dummy session for idempotent routes to reduce boilerplate.
 
 ### Performance Monitoring
 

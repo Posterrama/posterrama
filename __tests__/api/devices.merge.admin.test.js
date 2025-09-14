@@ -3,12 +3,19 @@ const request = require('supertest');
 let app;
 
 describe('Admin Devices Merge API', () => {
-    beforeAll(() => {
+    beforeEach(() => {
         process.env.NODE_ENV = 'test';
-        // Provide an API token for adminAuth
+        process.env.DEVICE_MGMT_ENABLED = 'true';
         process.env.API_ACCESS_TOKEN = 'test-token';
+        process.env.DEVICES_STORE_PATH = `devices.test.${process.pid}.merge.json`;
         jest.resetModules();
         app = require('../../server');
+    });
+
+    afterEach(() => {
+        delete process.env.API_ACCESS_TOKEN;
+        delete process.env.DEVICE_MGMT_ENABLED;
+        delete process.env.DEVICES_STORE_PATH;
     });
 
     test('POST /api/devices/:id/merge requires auth', async () => {

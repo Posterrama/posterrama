@@ -38,7 +38,7 @@ const customFormat = winston.format.combine(
     winston.format.timestamp({
         format: () => {
             try {
-                const config = require('./config.json');
+                const config = require('../config.json');
                 const timezone = config.clockTimezone || 'auto';
 
                 if (timezone === 'auto') {
@@ -73,7 +73,7 @@ const memoryTransport = new winston.transports.Stream({
             // Get the configured timezone or fallback to system timezone
             let timestamp;
             try {
-                const config = require('./config.json');
+                const config = require('../config.json');
                 const timezone = config.clockTimezone || 'auto';
 
                 if (timezone === 'auto') {
@@ -210,3 +210,12 @@ logger.getRecentLogs = (level = null, limit = 200) => {
 };
 
 module.exports = logger;
+
+// Test helper: reset in-memory logs (does not touch transports)
+logger.__resetMemory = () => {
+    logger.memoryLogs.length = 0;
+};
+
+// No-op utility to increase explicit API surface for tests without side effects
+// Useful as a stable probe that the module is initialized
+logger.__ping = () => true;

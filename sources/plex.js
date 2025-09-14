@@ -95,6 +95,9 @@ class PlexSource {
             return [];
         }
 
+        const reqStart = Date.now();
+        this.metrics.requestCount++;
+
         if (this.isDebug) {
             logger.info(`Fetching media from Plex`, {
                 server: this.server.name,
@@ -151,6 +154,8 @@ class PlexSource {
 
             // Apply content filtering
             const filteredItems = this.applyContentFiltering(allItems);
+            this.metrics.itemsProcessed += allItems.length;
+            this.metrics.itemsFiltered += Math.max(0, allItems.length - filteredItems.length);
             if (this.isDebug) {
                 logger.debug(
                     `[PlexSource:${this.server.name}] After filtering: ${filteredItems.length} items remaining.`
@@ -170,7 +175,19 @@ class PlexSource {
             const selectedItems = count > 0 ? shuffledItems.slice(0, count) : shuffledItems;
 
             const processedItems = await Promise.all(
-                selectedItems.map(item => this.processPlexItem(item, this.server, this.plex))
+                selectedItems.map(async item => {
+                    try {
+                        return await this.processPlexItem(item, this.server, this.plex);
+                    } catch (e) {
+                        this.metrics.errorCount++;
+                        if (this.isDebug) {
+                            logger.warn(
+                                `[PlexSource:${this.server.name}] Failed to process item ${item.key || item.ratingKey || item.title || 'unknown'}: ${e.message}`
+                            );
+                        }
+                        return null;
+                    }
+                })
             );
 
             const finalItems = processedItems.filter(item => {
@@ -183,6 +200,14 @@ class PlexSource {
 
             // Mark successful fetch time
             this.lastFetch = Date.now();
+            this.cachedMedia = finalItems;
+
+            // Update average processing time (EMA to smooth)
+            const duration = Date.now() - reqStart;
+            const prev = this.metrics.averageProcessingTime || 0;
+            this.metrics.averageProcessingTime =
+                prev === 0 ? duration : Math.round(prev * 0.8 + duration * 0.2);
+            this.metrics.lastRequestTime = duration;
 
             if (this.isDebug)
                 logger.debug(
@@ -190,9 +215,20 @@ class PlexSource {
                 );
             return finalItems;
         } catch (error) {
+            this.metrics.errorCount++;
+            // Preserve console.error for backward compatibility with existing tests/spies
+            // server.js wraps console.error to forward to logger as well
             console.error(
                 `[PlexSource:${this.server.name}] Error fetching media: ${error.message}`
             );
+            // Also emit via logger for file/memory transports
+            try {
+                logger.error(
+                    `[PlexSource:${this.server.name}] Error fetching media: ${error.message}`
+                );
+            } catch (_) {
+                /* ignore */
+            }
             return [];
         }
     }
@@ -260,7 +296,7 @@ class PlexSource {
             }
         }
 
-        // Rating filter (support both string and array formats)
+        // Rating filter (support both string and array formats, with comma-delimited values)
         if (this.server.ratingFilter) {
             let hasValidRatingFilter = false;
 
@@ -271,14 +307,18 @@ class PlexSource {
             }
 
             if (hasValidRatingFilter) {
-                // Convert string to array for consistent handling
+                // Normalize to individual tokens (split by commas), trim and upper-case
+                const toTokens = v =>
+                    String(v)
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean);
                 const allowedRatings = (
                     Array.isArray(this.server.ratingFilter)
-                        ? this.server.ratingFilter
-                        : [this.server.ratingFilter]
-                )
-                    .filter(Boolean)
-                    .map(r => String(r).trim().toUpperCase());
+                        ? this.server.ratingFilter.flatMap(toTokens)
+                        : toTokens(this.server.ratingFilter)
+                ).map(r => String(r).toUpperCase());
+                const allowedSet = new Set(allowedRatings);
 
                 filteredItems = filteredItems.filter(item => {
                     const itemRating = item.contentRating
@@ -286,7 +326,7 @@ class PlexSource {
                         : null;
 
                     // If item has a rating and it's not in the list, exclude; if unrated, allow
-                    if (itemRating && !allowedRatings.includes(itemRating)) {
+                    if (itemRating && !allowedSet.has(itemRating)) {
                         if (this.isDebug) {
                             logger.debug(
                                 `[PlexSource:${this.server.name}] Filtered out "${item.title}" - contentRating "${item.contentRating}" not in allowed list: ${allowedRatings.join(', ')}`
@@ -303,9 +343,12 @@ class PlexSource {
             }
         }
 
-        // Genre filter
+        // Genre filter (comma-separated allowed values)
         if (this.server.genreFilter && this.server.genreFilter.trim() !== '') {
-            const genreList = this.server.genreFilter.split(',').map(g => g.trim().toLowerCase());
+            const genreList = this.server.genreFilter
+                .split(',')
+                .map(g => g.trim().toLowerCase())
+                .filter(Boolean);
             filteredItems = filteredItems.filter(item => {
                 if (!item.Genre || !Array.isArray(item.Genre)) return false;
                 return item.Genre.some(genre =>
@@ -338,7 +381,16 @@ class PlexSource {
                 .split(',')
                 .map(s => s.trim())
                 .filter(Boolean);
-            const allowed = new Set(rawList);
+            // Normalize allowed values to canonical labels to match mapping logic
+            const normalizeAllowed = v => {
+                const r = String(v || '').toLowerCase();
+                if (!r || r === 'sd') return 'SD';
+                if (r === '720' || r === 'hd' || r === '720p') return '720p';
+                if (r === '1080' || r === '1080p' || r === 'fullhd') return '1080p';
+                if (r === '4k' || r === '2160' || r === '2160p' || r === 'uhd') return '4K';
+                return v;
+            };
+            const allowed = new Set(rawList.map(normalizeAllowed));
             const known = new Set(['SD', '720p', '1080p', '4K']);
             const hasUnknown = rawList.some(v => !known.has(v));
 

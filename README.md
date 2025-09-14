@@ -7,10 +7,10 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 <div align="center">
 
 <p style="margin: 0; line-height: 1.1;">
-  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-XXX-blue.svg"></a>
+  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.0.3-blue.svg"></a>
   <a href="https://github.com/Posterrama/posterrama/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Posterrama/posterrama/total.svg"></a>
   <a href="https://github.com/Posterrama/posterrama/actions/workflows/ci.yml"><img alt="Tests" src="https://github.com/Posterrama/posterrama/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="./coverage/lcov-report/index.html"><img alt="Coverage" src="https://img.shields.io/badge/coverage-76%25-yellowgreen.svg"></a>
+  <a href="./coverage/lcov-report/index.html"><img alt="Coverage" src="https://img.shields.io/badge/coverage-80.20%25-green.svg"></a>
   <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/node.js-%E2%89%A518.0.0-blue"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
 </p>
@@ -31,6 +31,8 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 </div>
 
 ---
+
+For a per-file coverage breakdown with thresholds, see docs/COVERAGE.md.
 
 ## What you can do with Posterrama
 

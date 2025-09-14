@@ -42,3 +42,4 @@ npm-debug.log*
 
 # Test outputs / generated artifacts
 jest-results.json
+devices.test.*.json

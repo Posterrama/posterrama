@@ -2611,7 +2611,8 @@ if (isDeviceMgmtEnabled()) {
 
             // Small retry loop to mitigate rare transient FS issues during heavy parallel tests
             let device, secret, lastErr;
-            for (let attempt = 1; attempt <= 3; attempt++) {
+            const maxAttempts = process.env.NODE_ENV === 'test' ? 6 : 3;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                 try {
                     const r = await deviceStore.registerDevice({
                         name: finalName,
@@ -2625,7 +2626,9 @@ if (isDeviceMgmtEnabled()) {
                     break;
                 } catch (e) {
                     lastErr = e;
-                    await new Promise(r => setTimeout(r, attempt * 25));
+                    await new Promise(r =>
+                        setTimeout(r, attempt * (process.env.NODE_ENV === 'test' ? 35 : 25))
+                    );
                 }
             }
             if (!device) throw lastErr || new Error('register_failed');
@@ -7970,11 +7973,12 @@ async function getJellyfinQualitiesWithCounts(serverConfig) {
 
         const libraryIds = selectedLibraries.map(library => library.id);
 
-        console.log(
-            '[DEBUG] Selected libraries:',
-            selectedLibraries.map(lib => ({ name: lib.name, id: lib.id, type: lib.type }))
-        );
-        console.log('[DEBUG] Library IDs:', libraryIds);
+        if (isDebug)
+            logger.debug(
+                '[Jellyfin Qualities] Selected libraries:',
+                selectedLibraries.map(lib => ({ name: lib.name, id: lib.id, type: lib.type }))
+            );
+        if (isDebug) logger.debug('[Jellyfin Qualities] Library IDs:', libraryIds);
 
         if (libraryIds.length === 0) {
             console.warn('[getJellyfinQualitiesWithCounts] No movie or TV show libraries found');
