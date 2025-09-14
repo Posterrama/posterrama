@@ -397,6 +397,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 appConfig = { ...appConfig, ...window.CONFIG_OVERRIDE };
             }
 
+            // Initialize device management (register + heartbeat) after config is loaded
+            try {
+                if (window.PosterramaDevice && typeof window.PosterramaDevice.init === 'function') {
+                    window.PosterramaDevice.init(appConfig);
+                }
+            } catch (_) {
+                // silent
+            }
+
             // Logic for the public site promo box.
             // The server injects `isPublicSite: true` into the config for the public-facing server.
             if (appConfig.isPublicSite) {
