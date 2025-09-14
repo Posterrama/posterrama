@@ -2,7 +2,6 @@
 /**
  * Update README badges:
  *  - Coverage badge (from coverage-final.json total.lines.pct) with dynamic color
- *  - Tests badge (from jest-results.json)
  *  - Version badge (from package.json)
  */
 const fs = require('fs');
@@ -31,15 +30,23 @@ function colorFor(pct) {
 }
 
 function run() {
+    // Only update badges in CI on the main branch to avoid local README churn
+    const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+    const refName = process.env.GITHUB_REF_NAME || '';
+    const ref = process.env.GITHUB_REF || '';
+    const branch = refName || (ref.startsWith('refs/heads/') ? ref.replace('refs/heads/', '') : '');
+    if (!isCI || (branch && branch !== 'main')) {
+        console.log('Skipping badge update (not CI on main)');
+        return;
+    }
+
     const repoRoot = path.resolve(__dirname, '..');
     const coveragePath = path.resolve(repoRoot, 'coverage', 'coverage-final.json');
     const lcovPath = path.resolve(repoRoot, 'coverage', 'lcov.info');
-    const jestResultsPath = path.resolve(repoRoot, 'jest-results.json');
     const pkgPath = path.resolve(repoRoot, 'package.json');
     const readmePath = path.resolve(repoRoot, 'README.md');
 
     const coverageJson = readJSON(coveragePath);
-    const jestJson = readJSON(jestResultsPath);
     const pkgJson = readJSON(pkgPath);
 
     if (!fs.existsSync(readmePath)) {
@@ -86,27 +93,7 @@ function run() {
         console.warn('coverage-final.json missing or malformed; skipping coverage badge update');
     }
 
-    // Update tests badge
-    if (jestJson && typeof jestJson.numTotalTests === 'number') {
-        const tests = jestJson.numTotalTests;
-        const suites =
-            typeof jestJson.numTotalTestSuites === 'number'
-                ? jestJson.numTotalTestSuites
-                : Array.isArray(jestJson.testResults)
-                  ? jestJson.testResults.length
-                  : undefined;
-        if (typeof suites === 'number') {
-            const testsRe = /(tests-)\d+%20tests%20in%20\d+%20suites/;
-            const newTestsStr = `tests-${tests}%20tests%20in%20${suites}%20suites`;
-            if (testsRe.test(readme)) {
-                readme = readme.replace(testsRe, newTestsStr);
-                changed = true;
-                console.log(`Updated tests badge to ${tests} tests in ${suites} suites`);
-            }
-        }
-    } else {
-        console.warn('jest-results.json missing; skipping tests badge update');
-    }
+    // Tests badge removed by request; no longer updated
 
     // Update version badge (from package.json)
     if (pkgJson && typeof pkgJson.version === 'string') {

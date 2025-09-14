@@ -51,6 +51,7 @@ Thumbs.db
 # Test coverage reports
 coverage/
 *.lcov
+jest-results.json
 
 # Development/test files
 test-*.html

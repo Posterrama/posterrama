@@ -1,6 +1,6 @@
 {
     "name": "posterrama-app",
-    "version": "2.0.3",
+    "version": "2.5.0",
     "private": true,
     "description": "An elegant, full-screen screensaver that acts as a digital art frame for your media.",
     "license": "GPL-3.0-or-later",
@@ -25,9 +25,9 @@
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
-        "test": "jest --json --outputFile=jest-results.json",
+        "test": "jest",
         "test:watch": "jest --watch",
-        "test:coverage": "jest --coverage --json --outputFile=jest-results.json",
+        "test:coverage": "jest --coverage",
         "coverage:table": "node scripts/generate-coverage-table.js",
         "badges:update": "node scripts/update-badges.js",
         "lint": "eslint .",
