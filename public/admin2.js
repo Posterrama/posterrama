@@ -161,22 +161,53 @@
 
     async function refreshDashboardMetrics() {
         // Populate media totals and warnings for the top dashboard cards
+        // Apply client-side dedupe and 429 backoff to avoid hammering the server
+        if (!window.__metricsCooldownUntil) window.__metricsCooldownUntil = 0;
+        if (!window.__metricsInFlight) window.__metricsInFlight = null;
         try {
-            const data = await fetchJSON('/api/v1/metrics/dashboard').catch(() => null);
-            if (data) {
-                const totalMedia =
-                    Number(data?.media?.libraryTotals?.total) ||
-                    Number(data?.media?.playlistItems) ||
-                    0;
-                setText('metric-media-items', formatNumber(totalMedia));
-
-                const warns = Array.isArray(data?.alerts) ? data.alerts.length : 0;
-                setText('metric-warnings', formatNumber(warns));
-                const warnSub = document.getElementById('metric-warn-sub');
-                if (warnSub) warnSub.textContent = warns > 0 ? 'check system' : 'no alerts';
+            const now = Date.now();
+            if (now < window.__metricsCooldownUntil) {
+                // Respect cooldown after server rate-limited us
+                throw new Error('metrics:cooldown');
             }
+            if (window.__metricsInFlight) {
+                // Share a single in-flight request among callers
+                await window.__metricsInFlight;
+            }
+            const p = (async () => {
+                let data = null;
+                if (typeof window.dedupJSON === 'function') {
+                    const res = await window.dedupJSON('/api/v1/metrics/dashboard');
+                    if (res && res.status === 429) {
+                        // Exponential backoff-lite: fixed cool-down window
+                        window.__metricsCooldownUntil = Date.now() + 30_000; // 30s
+                        return null;
+                    }
+                    data = (res && res.ok && (await res.json())) || null;
+                } else {
+                    // Fallback
+                    data = await fetchJSON('/api/v1/metrics/dashboard').catch(() => null);
+                }
+                if (data) {
+                    const totalMedia =
+                        Number(data?.media?.libraryTotals?.total) ||
+                        Number(data?.media?.playlistItems) ||
+                        0;
+                    setText('metric-media-items', formatNumber(totalMedia));
+
+                    const warns = Array.isArray(data?.alerts) ? data.alerts.length : 0;
+                    setText('metric-warnings', formatNumber(warns));
+                    const warnSub = document.getElementById('metric-warn-sub');
+                    if (warnSub) warnSub.textContent = warns > 0 ? 'check system' : 'no alerts';
+                }
+                return data;
+            })();
+            window.__metricsInFlight = p;
+            await p;
         } catch (_) {
             // non-fatal
+        } finally {
+            window.__metricsInFlight = null;
         }
 
         // Count enabled sources from the actual config
@@ -220,7 +251,7 @@
     // --- Live Dashboard KPIs ---
     let dashTimer = null;
     let dashLastRun = 0;
-    const DASH_MIN_INTERVAL = 5000; // 5s between refreshes
+    const DASH_MIN_INTERVAL = 10000; // 10s between refreshes (aligned with mini cache TTL)
     function stopDashboardLive() {
         if (dashTimer) {
             clearTimeout(dashTimer);
@@ -1094,7 +1125,7 @@
                             refreshBadge();
                         }
                     } catch (_) {}
-                }, 500);
+                }, 2000);
                 src.addEventListener('log', () => pump());
                 src.addEventListener('hello', () => pump());
                 src.onerror = () => {
@@ -1252,6 +1283,10 @@
             const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
             const CLEAR_SUPPRESS_KEY = 'admin2:notifClearedUntil';
             const CLEAR_SUPPRESS_MS = 15000; // 15s grace to avoid racey repaints
+            // Notification data cache to avoid hammering endpoints
+            const FETCH_TTL_MS = 10000; // 10s TTL for alerts/logs
+            let __notifCache = { data: null, ts: 0 };
+            let __notifInflight = null;
             // Unified badge updater to avoid lingering empty badge visuals
             function setBadge(count) {
                 try {
@@ -1328,29 +1363,73 @@
                 setBadge(unread);
             }
 
-            async function fetchAlertsAndLogs() {
-                let alerts = [];
-                let logs = [];
+            async function fetchAlertsAndLogs(opts = {}) {
+                const force = !!opts.force;
+                const now = Date.now();
                 try {
-                    const d = await fetchJSON('/api/v1/metrics/dashboard').catch(() => null);
-                    alerts = Array.isArray(d?.alerts) ? d.alerts : [];
-                } catch (_) {}
-                try {
-                    const r = await fetch(`/api/admin/logs?level=warn&limit=20`, {
-                        credentials: 'include',
-                    });
-                    if (r.ok) {
-                        const jr = (await r.json()) || [];
-                        logs = Array.isArray(jr)
-                            ? jr
-                            : Array.isArray(jr.logs)
-                              ? jr.logs
-                              : Array.isArray(jr.items)
-                                ? jr.items
-                                : [];
+                    if (!force) {
+                        if (__notifInflight) return __notifInflight;
+                        if (__notifCache.data && now - __notifCache.ts < FETCH_TTL_MS) {
+                            return __notifCache.data;
+                        }
                     }
                 } catch (_) {}
-                return { alerts, logs };
+
+                // Build a single-flight promise for both alerts and logs
+                __notifInflight = (async () => {
+                    // Dedup + backoff for dashboard metrics inside notifications too
+                    if (!window.__metricsCooldownUntil) window.__metricsCooldownUntil = 0;
+                    const nowInner = Date.now();
+                    const useCooldown = nowInner < window.__metricsCooldownUntil;
+                    let alerts = [];
+                    let logs = [];
+                    try {
+                        let data = null;
+                        if (!useCooldown) {
+                            if (typeof window.dedupJSON === 'function') {
+                                const res = await window.dedupJSON('/api/v1/metrics/dashboard');
+                                if (res && res.status === 429) {
+                                    window.__metricsCooldownUntil = Date.now() + 30_000; // 30s
+                                } else if (res && res.ok) {
+                                    data = await res.json();
+                                }
+                            } else {
+                                data = await fetchJSON('/api/v1/metrics/dashboard').catch(
+                                    () => null
+                                );
+                            }
+                        }
+                        alerts = Array.isArray(data?.alerts) ? data.alerts : [];
+                    } catch (_) {}
+                    try {
+                        const r = await fetch(`/api/admin/logs?level=warn&limit=20`, {
+                            credentials: 'include',
+                        });
+                        if (r.ok) {
+                            const jr = (await r.json()) || [];
+                            logs = Array.isArray(jr)
+                                ? jr
+                                : Array.isArray(jr?.logs)
+                                  ? jr.logs
+                                  : Array.isArray(jr?.items)
+                                    ? jr.items
+                                    : [];
+                        }
+                    } catch (_) {}
+                    return { alerts, logs };
+                })();
+
+                try {
+                    const res = await __notifInflight;
+                    __notifInflight = null;
+                    if (res) {
+                        __notifCache = { data: res, ts: Date.now() };
+                    }
+                    return res || { alerts: [], logs: [] };
+                } catch (e) {
+                    __notifInflight = null;
+                    return { alerts: [], logs: [] };
+                }
             }
 
             function renderPanel({ alerts, logs }) {
@@ -1410,7 +1489,7 @@
                 }
             }
 
-            async function refreshBadge() {
+            async function refreshBadge(force = false) {
                 try {
                     // Suppression window after user clears notifications (avoid bounce-back)
                     try {
@@ -1424,7 +1503,7 @@
                             return;
                         }
                     } catch (_) {}
-                    let { alerts, logs } = await fetchAlertsAndLogs();
+                    let { alerts, logs } = await fetchAlertsAndLogs({ force });
                     // Apply session dismissals so cleared items don't bounce back immediately
                     ({ alerts, logs } = applyDismissedFilter(alerts, logs));
                     const shownAlerts = Math.min(Array.isArray(alerts) ? alerts.length : 0, 10);
@@ -1464,7 +1543,8 @@
                     const notifBtn = e.target.closest?.('#notif-btn');
                     if (notifBtn) {
                         e.stopPropagation();
-                        await refreshBadge();
+                        // Force bypass TTL when the user explicitly opens the panel
+                        await refreshBadge(true);
                         openPanel();
                         return;
                     }
@@ -1578,15 +1658,18 @@
             });
             // The delegated handler above covers mark-all; avoid double-binding here
 
-            // Periodically refresh the badge while on the dashboard
-            setInterval(() => {
+            // Periodically refresh the badge while on the dashboard (debounced)
+            const badgeTick = debounce(() => {
                 try {
                     const active = document.getElementById('section-dashboard');
                     const visible =
                         !!active && active.classList.contains('active') && !active.hidden;
-                    if (visible) refreshBadge();
+                    if (!visible) return;
+                    if (typeof window.refreshAdminBadge === 'function') window.refreshAdminBadge();
+                    else refreshBadge();
                 } catch (_) {}
-            }, 30000);
+            }, 500);
+            setInterval(badgeTick, 30000);
 
             // Initial paint so users see counts without clicking
             try {
