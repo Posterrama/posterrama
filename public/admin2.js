@@ -2679,12 +2679,51 @@
 
             function renderPanel({ alerts, logs }) {
                 const items = [];
+                // Local time formatter for this panel
+                function fmtAgoLite(ms) {
+                    if (!ms || Number.isNaN(ms)) return '';
+                    const now = Date.now();
+                    const diff = Math.max(0, now - ms);
+                    const sec = Math.floor(diff / 1000);
+                    if (sec < 5) return 'Just now';
+                    if (sec < 60) return `${sec}s ago`;
+                    const min = Math.floor(sec / 60);
+                    if (min < 60) return `${min}m ago`;
+                    const hr = Math.floor(min / 60);
+                    if (hr < 24) return `${hr}h ago`;
+                    const day = Math.floor(hr / 24);
+                    return `${day}d ago`;
+                }
+                function formatWhen(ts) {
+                    if (!ts) return '';
+                    const ms = typeof ts === 'number' ? ts : Date.parse(String(ts));
+                    if (!Number.isFinite(ms)) return '';
+                    try {
+                        return `${fmtAgoLite(ms)} • ${new Date(ms).toLocaleString()}`;
+                    } catch (_) {
+                        return new Date(ms).toISOString();
+                    }
+                }
+                function iconForLevel(st) {
+                    switch (st) {
+                        case 'error':
+                            return 'fa-circle-exclamation';
+                        case 'info':
+                            return 'fa-circle-info';
+                        case 'warning':
+                        default:
+                            return 'fa-triangle-exclamation';
+                    }
+                }
                 if (Array.isArray(alerts) && alerts.length) {
                     for (const a of alerts.slice(0, 10)) {
-                        const st = String(a?.status || 'warn').toLowerCase();
-                        const icon = st === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-info';
+                        const raw = String(a?.status || 'warn').toLowerCase();
+                        const st = raw === 'error' ? 'error' : raw === 'info' ? 'info' : 'warning';
+                        const icon = iconForLevel(st);
                         const title = escapeHtml(String(a?.name || a?.id || 'Alert'));
                         const msg = escapeHtml(String(a?.message || a?.description || ''));
+                        const when = formatWhen(a?.timestamp || a?.time || a?.date);
+                        const meta = [when, msg].filter(Boolean).join(' • ');
                         const rawKey = makeAlertKey(a);
                         const key = encodeURIComponent(rawKey);
                         items.push(
@@ -2692,7 +2731,7 @@
                                 <i class="fas ${icon}" aria-hidden="true"></i>
                                 <div>
                                     <div class="notify-title">${title}</div>
-                                    ${msg ? `<div class=\"notify-meta\">${msg}</div>` : ''}
+                                    ${meta ? `<div class="notify-meta">${meta}</div>` : ''}
                                 </div>
                                 <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
                              </div>`
@@ -2701,20 +2740,19 @@
                 }
                 if (Array.isArray(logs) && logs.length) {
                     for (const l of logs.slice(0, 10)) {
+                        const raw = String(l?.level || l?.severity || 'warn').toLowerCase();
+                        const st = raw === 'error' ? 'error' : raw === 'info' ? 'info' : 'warning';
+                        const icon = iconForLevel(st);
                         const msg = escapeHtml(String(l?.message || ''));
-                        const when = escapeHtml(
-                            String(l?.timestamp || '')
-                                .replace('T', ' ')
-                                .replace('Z', '')
-                        );
+                        const when = formatWhen(l?.timestamp);
                         const rawKey = makeLogKey(l);
                         const key = encodeURIComponent(rawKey);
                         items.push(
-                            `<div class="notify-item notify-warning" data-unread="true" data-key="${key}">
-                                <i class="fas fa-scroll" aria-hidden="true"></i>
+                            `<div class="notify-item notify-${st}" data-unread="true" data-key="${key}">
+                                <i class="fas ${icon}" aria-hidden="true"></i>
                                 <div>
-                                    <div class="notify-title">${msg || 'Warning'}</div>
-                                    ${when ? `<div class=\"notify-meta\">${when}</div>` : ''}
+                                    <div class="notify-title">${msg || 'Log'}</div>
+                                    ${when ? `<div class="notify-meta">${when}</div>` : ''}
                                 </div>
                                 <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
                              </div>`

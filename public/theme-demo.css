@@ -2204,6 +2204,18 @@ input[type='range']::-moz-range-thumb {
     padding: var(--space-md) var(--space-lg);
     border-bottom: 1px solid var(--color-border);
 }
+.notify-item.notify-info {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.04), rgba(59, 130, 246, 0.02));
+    border-left: 4px solid color-mix(in srgb, var(--color-info) 65%, transparent);
+}
+.notify-item.notify-warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
+    border-left: 4px solid color-mix(in srgb, var(--color-warning) 65%, transparent);
+}
+.notify-item.notify-error {
+    background: linear-gradient(135deg, rgba(244, 63, 94, 0.05), rgba(244, 63, 94, 0.02));
+    border-left: 4px solid color-mix(in srgb, var(--color-error) 65%, transparent);
+}
 .notify-item:last-child {
     border-bottom: none;
 }
@@ -2219,6 +2231,15 @@ input[type='range']::-moz-range-thumb {
     border: none;
     color: var(--color-text-secondary);
     cursor: pointer;
+}
+.notify-item.notify-info .notify-close {
+    color: color-mix(in srgb, var(--color-info) 70%, var(--color-text-secondary));
+}
+.notify-item.notify-warning .notify-close {
+    color: color-mix(in srgb, var(--color-warning) 70%, var(--color-text-secondary));
+}
+.notify-item.notify-error .notify-close {
+    color: color-mix(in srgb, var(--color-error) 70%, var(--color-text-secondary));
 }
 
 .notify-success i {
