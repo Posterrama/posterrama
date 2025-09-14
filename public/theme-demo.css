@@ -2216,6 +2216,10 @@ input[type='range']::-moz-range-thumb {
     background: linear-gradient(135deg, rgba(244, 63, 94, 0.05), rgba(244, 63, 94, 0.02));
     border-left: 4px solid color-mix(in srgb, var(--color-error) 65%, transparent);
 }
+.notify-item.notify-success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.02));
+    border-left: 4px solid color-mix(in srgb, var(--color-success) 65%, transparent);
+}
 .notify-item:last-child {
     border-bottom: none;
 }
@@ -2240,6 +2244,9 @@ input[type='range']::-moz-range-thumb {
 }
 .notify-item.notify-error .notify-close {
     color: color-mix(in srgb, var(--color-error) 70%, var(--color-text-secondary));
+}
+.notify-item.notify-success .notify-close {
+    color: color-mix(in srgb, var(--color-success) 70%, var(--color-text-secondary));
 }
 
 .notify-success i {

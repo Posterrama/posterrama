@@ -2699,13 +2699,15 @@
                     const ms = typeof ts === 'number' ? ts : Date.parse(String(ts));
                     if (!Number.isFinite(ms)) return '';
                     try {
-                        return `${fmtAgoLite(ms)} • ${new Date(ms).toLocaleString()}`;
+                        return `${fmtAgoLite(ms)} \u00B7 ${new Date(ms).toLocaleString()}`;
                     } catch (_) {
                         return new Date(ms).toISOString();
                     }
                 }
                 function iconForLevel(st) {
                     switch (st) {
+                        case 'success':
+                            return 'fa-circle-check';
                         case 'error':
                             return 'fa-circle-exclamation';
                         case 'info':
@@ -2718,12 +2720,19 @@
                 if (Array.isArray(alerts) && alerts.length) {
                     for (const a of alerts.slice(0, 10)) {
                         const raw = String(a?.status || 'warn').toLowerCase();
-                        const st = raw === 'error' ? 'error' : raw === 'info' ? 'info' : 'warning';
+                        const st =
+                            raw === 'error'
+                                ? 'error'
+                                : raw === 'info'
+                                  ? 'info'
+                                  : raw === 'success' || raw === 'ok' || raw === 'done'
+                                    ? 'success'
+                                    : 'warning';
                         const icon = iconForLevel(st);
                         const title = escapeHtml(String(a?.name || a?.id || 'Alert'));
                         const msg = escapeHtml(String(a?.message || a?.description || ''));
                         const when = formatWhen(a?.timestamp || a?.time || a?.date);
-                        const meta = [when, msg].filter(Boolean).join(' • ');
+                        const meta = [when, msg].filter(Boolean).join(' \u00B7 ');
                         const rawKey = makeAlertKey(a);
                         const key = encodeURIComponent(rawKey);
                         items.push(
