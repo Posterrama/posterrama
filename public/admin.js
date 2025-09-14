@@ -1395,6 +1395,14 @@
             const pvc = document.getElementById('display-preview-container');
             if (pvc) {
                 pvc.style.display = id === 'section-display' ? 'block' : 'none';
+                // When returning to Display, nudge the preview to its proper anchor
+                if (id === 'section-display') {
+                    try {
+                        // Do it twice across frames to allow layout to settle
+                        window.__previewReanchor?.();
+                        requestAnimationFrame(() => window.__previewReanchor?.());
+                    } catch (_) {}
+                }
             }
         } catch (_) {}
 
@@ -2229,6 +2237,9 @@
         const zoomBtn = document.getElementById('toggle-preview-zoom');
         if (!container || !frame) return; // HTML not present, nothing to do
 
+        // Debug instrumentation was temporary; keep a no-op to avoid edits elsewhere
+        const dlog = () => {};
+
         let previewWin = null;
         let lastPayload = null;
         let debounceTimer = null;
@@ -2238,6 +2249,8 @@
         let previewOrientation = 'landscape'; // 'landscape' | 'portrait'
         // Remember user's custom anchor after drag so we can preserve it across changes
         let lastUserAnchor = null; // { ax, ay }
+        // Remember the last precise auto-anchor we placed to (when not user-moved)
+        let lastAutoAnchor = null; // { ax, ay }
         // Anchor padding inside the Active Mode section (top-right inset)
         const ANCHOR_INSET = 8;
 
@@ -2273,12 +2286,20 @@
             const currentAy = srect.top;
             const dx = anchor.ax - currentAx;
             const dy = anchor.ay - currentAy;
-            const baseLeft = isFinite(parseFloat(container.style.left))
-                ? parseFloat(container.style.left)
-                : crect.left;
-            const baseTop = isFinite(parseFloat(container.style.top))
-                ? parseFloat(container.style.top)
-                : crect.top;
+            // Prefer existing computed left/top if available to avoid snapping relative to 0,0
+            const cs = window.getComputedStyle(container);
+            const parsedLeft = parseFloat(cs.left);
+            const parsedTop = parseFloat(cs.top);
+            const baseLeft = isFinite(parsedLeft)
+                ? parsedLeft
+                : isFinite(parseFloat(container.style.left))
+                  ? parseFloat(container.style.left)
+                  : crect.left;
+            const baseTop = isFinite(parsedTop)
+                ? parsedTop
+                : isFinite(parseFloat(container.style.top))
+                  ? parseFloat(container.style.top)
+                  : crect.top;
             const l = baseLeft + dx;
             const t = baseTop + dy;
             container.style.left = l + 'px';
@@ -2382,6 +2403,7 @@
                 }
                 const anchor = getActiveModeAnchorPoint(ANCHOR_INSET);
                 setPositionFromTopRightAnchor(anchor);
+                lastAutoAnchor = anchor;
             } catch (_) {}
         }
 
@@ -2392,8 +2414,129 @@
                     ? lastUserAnchor || getTopRightAnchorPoint()
                     : getActiveModeAnchorPoint(ANCHOR_INSET);
                 setPositionFromTopRightAnchor(anchor);
+                if (!userHasMovedPreview) lastAutoAnchor = anchor;
             } catch (_) {}
         }
+
+        // Expose a safe global nudge for re-anchoring after section navigation.
+        // Waits for the Active Mode card to be measurable to avoid anchoring to a fallback.
+        window.__previewReanchor = () => {
+            try {
+                // Make sure Display section is actually active and fully visible
+                const section = document.getElementById('section-display');
+                if (!section || !section.classList.contains('active')) return;
+
+                // Ensure container reflects the current form mode and scale before measuring
+                try {
+                    const payload = collectPreviewPayload();
+                    applyContainerMode(payload);
+                    updateFrameScale();
+                } catch (_) {}
+
+                // Disable transitions briefly to avoid visual drift when snapping
+                container.classList.add('no-transition');
+                setTimeout(() => container.classList.remove('no-transition'), 80);
+
+                // If we have a remembered precise auto-anchor and the user hasn't moved it,
+                // apply it immediately while we wait for the card to stabilize.
+                if (!userHasMovedPreview && lastAutoAnchor) {
+                    try {
+                        setPositionFromTopRightAnchor(lastAutoAnchor);
+                        clampWithinViewport(0);
+                    } catch (_) {}
+                }
+
+                let tries = 0;
+                const maxTries = 24; // allow a few frames for layout/transition
+                let lastRect = null;
+                const tol = 0.5; // px tolerance for rect stability
+
+                const isStable = (a, b) => {
+                    if (!a || !b) return false;
+                    return (
+                        Math.abs(a.left - b.left) < tol &&
+                        Math.abs(a.top - b.top) < tol &&
+                        Math.abs(a.right - b.right) < tol &&
+                        Math.abs(a.bottom - b.bottom) < tol
+                    );
+                };
+
+                const tryAnchor = () => {
+                    try {
+                        // Wait for the section to be fully opaque (avoid measuring mid-transition)
+                        const st = window.getComputedStyle(section);
+                        if (parseFloat(st.opacity || '1') < 0.99) {
+                            return requestAnimationFrame(tryAnchor);
+                        }
+
+                        const card = document.getElementById('card-active-mode');
+                        const rect = card?.getBoundingClientRect?.();
+                        const cardReady = !!rect && rect.width > 1 && rect.height > 1;
+
+                        if (!userHasMovedPreview && cardReady) {
+                            // Check stability across frames
+                            if (lastRect && isStable(lastRect, rect)) {
+                                const anchor = {
+                                    ax: rect.right - ANCHOR_INSET,
+                                    ay: rect.top + ANCHOR_INSET,
+                                };
+                                setPositionFromTopRightAnchor(anchor);
+                                clampWithinViewport(0);
+                                lastAutoAnchor = anchor;
+                                return; // done
+                            }
+                            lastRect = rect;
+                        } else if (userHasMovedPreview) {
+                            // Preserve user anchor immediately, but ignore invalid/zero anchors
+                            let anchor = lastUserAnchor;
+                            const valid =
+                                !!anchor &&
+                                isFinite(anchor.ax) &&
+                                isFinite(anchor.ay) &&
+                                (anchor.ax !== 0 || anchor.ay !== 0);
+                            if (!valid) {
+                                // Try to measure current shell; if not valid yet, retry next frame
+                                const p = getTopRightAnchorPoint();
+                                const ok =
+                                    !!p &&
+                                    isFinite(p.ax) &&
+                                    isFinite(p.ay) &&
+                                    (p.ax !== 0 || p.ay !== 0);
+                                if (ok) anchor = p;
+                            }
+                            if (anchor) {
+                                setPositionFromTopRightAnchor(anchor);
+                                clampWithinViewport(0);
+                                return; // done
+                            }
+                            if (tries++ < maxTries) return requestAnimationFrame(tryAnchor);
+                        }
+
+                        if (tries++ < maxTries) {
+                            requestAnimationFrame(() => {
+                                // Keep scale updated in case layout changed
+                                try {
+                                    updateFrameScale();
+                                } catch (_) {}
+                                tryAnchor();
+                            });
+                        } else {
+                            // Final fallback: if we have a remembered anchor, use it; else standard re-anchor
+                            if (!userHasMovedPreview && lastAutoAnchor) {
+                                setPositionFromTopRightAnchor(lastAutoAnchor);
+                                clampWithinViewport(0);
+                            } else {
+                                reanchorToCorrectPoint();
+                                clampWithinViewport(0);
+                            }
+                        }
+                    } catch (_) {}
+                };
+
+                // Kick off the retry loop on the next frame
+                requestAnimationFrame(tryAnchor);
+            } catch (_) {}
+        };
 
         function collectPreviewPayload() {
             // Reuse existing patch builder; it produces the shape expected by /preview runtime
@@ -2657,6 +2800,8 @@
             container.classList.add('no-transition');
             setTimeout(() => container.classList.remove('no-transition'), 80);
             positionAtActiveMode();
+            // One more nudge next frame for absolute parity
+            requestAnimationFrame(() => reanchorToCorrectPoint());
         }
         // Initialize container classes based on current form for correct aspect immediately
         try {
@@ -2761,17 +2906,20 @@
             }
 
             function onPointerUp(e) {
+                const wasDragging = dragging;
                 dragging = false;
                 container.classList.remove('dragging');
-                // Mark that the user has intentionally moved the PiP; suppress future auto-reanchors
-                userHasMovedPreview = true;
-                try {
-                    // Snap to integer pixel positions before storing anchor
-                    const rect = container.getBoundingClientRect();
-                    container.style.left = Math.round(rect.left) + 'px';
-                    container.style.top = Math.round(rect.top) + 'px';
-                    lastUserAnchor = getTopRightAnchorPoint();
-                } catch (_) {}
+                if (wasDragging) {
+                    // Mark that the user has intentionally moved the PiP; suppress future auto-reanchors
+                    userHasMovedPreview = true;
+                    try {
+                        // Snap to integer pixel positions before storing anchor
+                        const rect = container.getBoundingClientRect();
+                        container.style.left = Math.round(rect.left) + 'px';
+                        container.style.top = Math.round(rect.top) + 'px';
+                        lastUserAnchor = getTopRightAnchorPoint();
+                    } catch (_) {}
+                }
                 try {
                     grip.releasePointerCapture?.(e.pointerId);
                 } catch (_) {}
@@ -2817,9 +2965,10 @@
                     if (ev.cancelable) ev.preventDefault();
                 };
                 const onUp = () => {
+                    const wasDragging = dragging;
                     dragging = false;
                     container.classList.remove('dragging');
-                    userHasMovedPreview = true;
+                    if (wasDragging) userHasMovedPreview = true;
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
                     document.removeEventListener('touchmove', onMove);
