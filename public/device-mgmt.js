@@ -282,6 +282,42 @@
         // If URL contains a reset hint, force identity reset and re-register.
         try {
             const sp = new URLSearchParams(window.location.search);
+            // Pairing claim: allow ?pair=CODE or ?pairCode=CODE to adopt an existing device
+            const pairCode = sp.get('pairCode') || sp.get('pair');
+            if (pairCode && pairCode.trim()) {
+                try {
+                    const res = await fetch('/api/devices/pair', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: pairCode.trim() }),
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        // Save new identity and reload
+                        saveIdentity(data.deviceId, data.deviceSecret);
+                        state.deviceId = data.deviceId;
+                        state.deviceSecret = data.deviceSecret;
+                        // Clean the URL to avoid repeating
+                        try {
+                            const url = new URL(window.location.href);
+                            url.searchParams.delete('pair');
+                            url.searchParams.delete('pairCode');
+                            window.history.replaceState({}, document.title, url.toString());
+                        } catch (_) {}
+                        // Reload to pick up the new identity cleanly
+                        forceReload();
+                        return;
+                    } else {
+                        // Pairing failed; remove params and continue normally
+                        try {
+                            const url = new URL(window.location.href);
+                            url.searchParams.delete('pair');
+                            url.searchParams.delete('pairCode');
+                            window.history.replaceState({}, document.title, url.toString());
+                        } catch (_) {}
+                    }
+                } catch (_) {}
+            }
             const shouldReset =
                 sp.get('deviceReset') === '1' ||
                 sp.get('device') === 'reset' ||
