@@ -4084,29 +4084,50 @@
   <script src="/admin2.js?v=20250913-03"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
+    // Register SW without forcing immediate reloads. We'll prompt the user instead.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker
           .register('/sw.js')
           .then(reg => {
-            // Listen for new SW installing and force refresh on activation
-            if (reg.waiting) {
-              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            // If there's already a waiting worker, do NOT force-activate.
+            // We'll surface an unobtrusive update hint and let the user refresh.
+            if (reg.waiting && navigator.serviceWorker.controller) {
+              try {
+                window.notify?.toast?.({
+                  type: 'info',
+                  title: 'Update ready',
+                  message: 'A new version is available. Refresh when convenient.',
+                  duration: 6000,
+                });
+              } catch (_) {}
             }
+
+            // When a new SW is found, wait until it installs, then hint the user.
             reg.addEventListener('updatefound', () => {
               const sw = reg.installing;
               if (!sw) return;
               sw.addEventListener('statechange', () => {
-                if (sw.state === 'installed') {
-                  if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                  try {
+                    window.notify?.toast?.({
+                      type: 'info',
+                      title: 'Update installed',
+                      message: 'Refresh to apply the latest Admin updates.',
+                      duration: 6000,
+                    });
+                  } catch (_) {}
                 }
               });
             });
-            let refreshing = false;
+
+            // Avoid auto-refresh on controller changes; only refresh if explicitly requested elsewhere.
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-              if (refreshing) return;
-              refreshing = true;
-              try { window.location.reload(); } catch (_) { /* ignore */ }
+              // Intentionally no automatic reload here to prevent disruptive bounces.
+              // Advanced: if a future flow sets window.__swAllowReload = true, we can honor it.
+              if (window.__swAllowReload) {
+                try { window.location.reload(); } catch (_) { /* ignore */ }
+              }
             });
           })
           .catch(() => { /* silent */ });
