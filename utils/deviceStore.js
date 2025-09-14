@@ -3,6 +3,7 @@ const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('./logger');
+const deepMerge = require('lodash.merge');
 
 const storePath = process.env.DEVICES_STORE_PATH
     ? path.isAbsolute(process.env.DEVICES_STORE_PATH)
@@ -246,6 +247,92 @@ async function deleteDevice(id) {
     return removed;
 }
 
+/**
+ * Merge multiple devices into a target device record.
+ * - Keeps target id and secretHash intact
+ * - Merges name/location if target fields are empty
+ * - Unions tags/groups (unique)
+ * - Deep merges settingsOverride (target takes precedence)
+ * - Copies non-null installId/hardwareId if target missing
+ * - Preserves the newest timestamps (createdAt lowest, updatedAt/lastSeenAt highest)
+ * - Deletes source device records after merge
+ */
+async function mergeDevices(targetId, sourceIds = []) {
+    if (!targetId || !Array.isArray(sourceIds) || sourceIds.length === 0)
+        return { ok: false, merged: 0 };
+    const all = await readAll();
+    const tIdx = all.findIndex(d => d.id === targetId);
+    if (tIdx === -1) return { ok: false, merged: 0 };
+    const nowIso = new Date().toISOString();
+    const target = { ...all[tIdx] };
+    let mergedCount = 0;
+
+    const uniq = arr => Array.from(new Set((arr || []).filter(Boolean)));
+    const toTs = s => Date.parse(s || 0) || 0;
+
+    for (const sid of sourceIds) {
+        if (!sid || sid === targetId) continue;
+        const sIdx = all.findIndex(d => d.id === sid);
+        if (sIdx === -1) continue;
+        const src = all[sIdx];
+
+        // Merge simple fields
+        if (!target.name && src.name) target.name = src.name;
+        if (!target.location && src.location) target.location = src.location;
+
+        // Merge identifiers conservatively: only fill missing
+        if (!target.installId && src.installId) target.installId = src.installId;
+        if (!target.hardwareId && src.hardwareId) target.hardwareId = src.hardwareId;
+
+        // Union arrays
+        target.tags = uniq([...(target.tags || []), ...(src.tags || [])]);
+        target.groups = uniq([...(target.groups || []), ...(src.groups || [])]);
+
+        // Merge overrides: target wins on conflict
+        try {
+            target.settingsOverride = deepMerge(
+                {},
+                src.settingsOverride || {},
+                target.settingsOverride || {}
+            );
+        } catch (_) {
+            // fallback: keep target
+            target.settingsOverride = target.settingsOverride || src.settingsOverride || {};
+        }
+
+        // Prefer most recent currentState data
+        try {
+            const a = target.currentState || {};
+            const b = src.currentState || {};
+            // If src is more recent, take its fields when target is missing
+            const ta = Math.max(toTs(target.updatedAt), toTs(target.lastSeenAt));
+            const tb = Math.max(toTs(src.updatedAt), toTs(src.lastSeenAt));
+            if (tb > ta) target.currentState = { ...a, ...b };
+            else target.currentState = { ...b, ...a };
+        } catch (_) {
+            // keep target state
+        }
+
+        // Timestamps
+        target.createdAt = new Date(
+            Math.min(toTs(target.createdAt), toTs(src.createdAt) || Date.now())
+        ).toISOString();
+        target.updatedAt = new Date(
+            Math.max(toTs(target.updatedAt), toTs(src.updatedAt) || 0)
+        ).toISOString();
+        if (toTs(src.lastSeenAt) > toTs(target.lastSeenAt)) target.lastSeenAt = src.lastSeenAt;
+
+        // Delete src from list
+        all.splice(sIdx, 1);
+        mergedCount++;
+    }
+
+    target.updatedAt = nowIso;
+    all[tIdx] = target;
+    await writeAll(all);
+    return { ok: true, merged: mergedCount, target };
+}
+
 async function findByInstallId(installId) {
     if (!installId) return null;
     const all = await readAll();
@@ -363,4 +450,5 @@ module.exports = {
     popCommands,
     generatePairingCode,
     claimByPairingCode,
+    mergeDevices,
 };

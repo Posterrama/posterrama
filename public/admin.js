@@ -11210,6 +11210,87 @@ function initDevicesPanel() {
             });
             devLog('initDevicesPanel: bulk delete handler bound');
         }
+
+        // Merge compact menu
+        const mergeMenuBtn = container.querySelector('#merge-menu-button');
+        const mergeMenu = container.querySelector('#merge-menu');
+        const mergeSelectedBtn = container.querySelector('#menu-merge-selected');
+        if (mergeMenuBtn && mergeMenu && mergeSelectedBtn) {
+            const closeMenu = () => {
+                mergeMenu.classList.remove('open');
+                mergeMenuBtn.setAttribute('aria-expanded', 'false');
+                mergeMenu.setAttribute('aria-hidden', 'true');
+            };
+            const openMenu = () => {
+                mergeMenu.classList.add('open');
+                mergeMenuBtn.setAttribute('aria-expanded', 'true');
+                mergeMenu.setAttribute('aria-hidden', 'false');
+            };
+            mergeMenuBtn.addEventListener('click', ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (mergeMenu.classList.contains('open')) closeMenu();
+                else openMenu();
+            });
+            document.addEventListener('click', e => {
+                if (!mergeMenu.contains(e.target) && e.target !== mergeMenuBtn) closeMenu();
+            });
+
+            mergeSelectedBtn.addEventListener('click', async ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                closeMenu();
+                const tbody = container.querySelector('#devices-table tbody');
+                const ids = Array.from(tbody.querySelectorAll('.row-select:checked')).map(cb =>
+                    cb.getAttribute('data-id')
+                );
+                if (ids.length < 2) return; // need at least two to merge
+                // Ask user to pick target id among selected
+                const target = await new Promise(resolve => {
+                    try {
+                        const names = ids
+                            .map(id => {
+                                const row = tbody.querySelector(`tr[data-id="${id}"]`);
+                                const name = row && row.querySelector('.device-name');
+                                return {
+                                    id,
+                                    name: name ? name.textContent.trim() : id.slice(0, 8),
+                                };
+                            })
+                            .map(x => `${x.id} — ${x.name}`)
+                            .join('\n');
+                        const pick = prompt(
+                            'Merge selected devices. Enter the ID of the target device:\n\n' +
+                                names,
+                            ids[0]
+                        );
+                        resolve(pick || '');
+                    } catch (_) {
+                        resolve(ids[0]);
+                    }
+                });
+                if (!target || !ids.includes(target)) return;
+                const sources = ids.filter(id => id !== target);
+                const ok = await confirmDialog(
+                    `Merge ${sources.length} device(s) into ${target.slice(0, 8)}…?`,
+                    mergeMenuBtn
+                );
+                if (!ok) return;
+                try {
+                    const res = await authenticatedFetch(
+                        apiUrl(`/api/devices/${encodeURIComponent(target)}/merge`),
+                        {
+                            method: 'POST',
+                            body: JSON.stringify({ sourceIds: sources }),
+                            noRedirectOn401: true,
+                        }
+                    );
+                    if (!res.ok) throw new Error('merge failed');
+                } catch (_) {}
+                const list = await fetchDevices();
+                renderDevicesTable(list);
+            });
+        }
     }
 
     let __devicesRefreshInhibitUntil = 0;

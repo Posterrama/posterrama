@@ -86,13 +86,14 @@
     }
 
     // Best-effort hardwareId across browsers on the same machine:
-    // - Use persistentStorage API to request durability
-    // - Combine userAgent, platform, screen metrics, timezone, and language
+    // - Combine platform, screen metrics, timezone, language, cpu/mem hints, and touch
+    // - Include timezone offset to differentiate DST/locale changes less
     // - Store in localStorage when available to keep stable per browser profile
     function computeHardwareId() {
         try {
             const nav = navigator || {};
             const scr = window.screen || {};
+            const tzOffset = new Date().getTimezoneOffset();
             const hints = [
                 nav.platform || '',
                 (scr.width || 0) + 'x' + (scr.height || 0) + '@' + (window.devicePixelRatio || 1),
@@ -103,6 +104,7 @@
                 (scr.colorDepth || 0) + 'cd',
                 (scr.pixelDepth || 0) + 'pd',
                 (nav.maxTouchPoints || 0) + 'tp',
+                tzOffset + 'tz',
             ].join('|');
             // Simple, stable hash (FNV-1a)
             let hash = 2166136261;

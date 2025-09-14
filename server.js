@@ -1812,6 +1812,29 @@ if (isDeviceMgmtEnabled()) {
         }
     });
 
+    // Admin: merge devices (sourceIds into target :id)
+    app.post('/api/devices/:id/merge', adminAuth, express.json(), async (req, res) => {
+        try {
+            const targetId = req.params.id;
+            const sourceIds = Array.isArray(req.body?.sourceIds) ? req.body.sourceIds : [];
+            if (!sourceIds.length) return res.status(400).json({ error: 'sourceIds_required' });
+            const result = await deviceStore.mergeDevices(targetId, sourceIds);
+            if (!result || result.ok !== true)
+                return res.status(400).json({ error: 'merge_failed' });
+            // Best-effort: clear any cached device config so target gets fresh merged overrides
+            try {
+                if (cacheManager && typeof cacheManager.clear === 'function') {
+                    cacheManager.clear('GET:/get-config');
+                }
+            } catch (_) {
+                /* ignore cache clear errors */
+            }
+            res.json({ ok: true, merged: result.merged, target: result.target });
+        } catch (e) {
+            res.status(500).json({ error: 'merge_failed' });
+        }
+    });
+
     // Admin: queue or live-send command to device
     app.post('/api/devices/:id/command', adminAuth, express.json(), async (req, res) => {
         try {
