@@ -2548,6 +2548,8 @@
                 applyContainerMode(payload);
             } catch (_) {}
             requestAnimationFrame(updateFrameScale);
+            // After dimensions settle, snap back to the Active Mode corner with padding
+            requestAnimationFrame(() => positionAtActiveMode());
             // No config change needed; just update the preview
             sendUpdate();
         });
