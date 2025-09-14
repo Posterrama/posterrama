@@ -1778,6 +1778,12 @@
             const openMenu = open => {
                 root.classList.toggle('ms-open', !!open);
                 control.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (open) {
+                    try {
+                        if (menu) menu.scrollTop = 0;
+                        if (optsEl) optsEl.scrollTop = 0;
+                    } catch (e) {}
+                }
             };
             // Handlers
             control.addEventListener('mousedown', e => {
@@ -2320,6 +2326,10 @@
                     if (!menu) return;
                     if (open) {
                         menu.style.display = 'block';
+                        try {
+                            menu.scrollTop = 0;
+                            if (optsEl) optsEl.scrollTop = 0;
+                        } catch (e) {}
                         positionMenu();
                         onReposition = () => positionMenu();
                         window.addEventListener('resize', onReposition, { passive: true });
@@ -2544,6 +2554,10 @@
                 if (!menu) return;
                 if (open) {
                     menu.style.display = 'block';
+                    try {
+                        menu.scrollTop = 0;
+                        if (optsEl) optsEl.scrollTop = 0;
+                    } catch (e) {}
                     positionMenu();
                     onReposition = () => positionMenu();
                     window.addEventListener('resize', onReposition, { passive: true });
@@ -3455,6 +3469,10 @@
                 if (!menu) return;
                 if (open) {
                     menu.style.display = 'block';
+                    try {
+                        menu.scrollTop = 0;
+                        if (optsEl) optsEl.scrollTop = 0;
+                    } catch (e) {}
                     positionMenu();
                     onReposition = () => positionMenu();
                     window.addEventListener('resize', onReposition, { passive: true });
