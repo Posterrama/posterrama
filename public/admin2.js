@@ -596,6 +596,7 @@
                     showSection('section-operations');
                     // ensure latest status/backups when entering
                     refreshUpdateStatusUI();
+                    refreshOperationsPanels();
                 }
             });
         });
@@ -1005,33 +1006,8 @@
         }
 
         btnStartUpdate?.addEventListener('click', async () => {
-            try {
-                btnStartUpdate.classList.add('btn-loading');
-                const r = await fetch('/api/admin/update/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({}),
-                    credentials: 'include',
-                });
-                const j = await r.json().catch(() => ({}));
-                if (!r.ok) throw new Error(j?.error || 'Failed to start update');
-                window.notify?.toast({
-                    type: 'info',
-                    title: 'Updating…',
-                    message: j?.message || 'Auto-update started',
-                    duration: 0,
-                });
-                await refreshUpdateStatusUI();
-            } catch (e) {
-                window.notify?.toast({
-                    type: 'error',
-                    title: 'Update failed',
-                    message: e?.message || 'Unable to start update',
-                    duration: 5000,
-                });
-            } finally {
-                btnStartUpdate.classList.remove('btn-loading');
-            }
+            // Open confirmation modal like legacy Management
+            await openUpdateModal();
         });
 
         btnRollbackUpdate?.addEventListener('click', async () => {
@@ -1119,6 +1095,11 @@
                 btnCleanupBackups.classList.remove('btn-loading');
             }
         });
+
+        // Initial population if Operations is default later
+        if (document.getElementById('section-operations')?.classList.contains('active')) {
+            refreshOperationsPanels();
+        }
     }
 
     // exportMetrics removed with header Export button
@@ -1139,6 +1120,250 @@
         wireCacheActions();
         refreshAll();
     });
+
+    // Update confirmation modal (theme-demo style)
+    async function openUpdateModal() {
+        const overlay = document.getElementById('modal-update');
+        const content = document.getElementById('modal-update-content');
+        const btnConfirm = document.getElementById('btn-update-confirm');
+        const btnForce = document.getElementById('btn-update-force');
+        if (!overlay || !content || !btnConfirm) return;
+        btnConfirm.disabled = true;
+        btnForce.style.display = 'none';
+        content.innerHTML = '<div class="subtle">Loading update information…</div>';
+        overlay.classList.add('open');
+
+        try {
+            const r = await fetch('/api/admin/update-check', { credentials: 'include' });
+            const j = r.ok ? await r.json() : null;
+            const hasUpdate = !!j?.hasUpdate;
+            const current = j?.currentVersion || '—';
+            const latest = j?.latestVersion || '—';
+            const notes = j?.releaseNotes;
+            if (!hasUpdate) {
+                content.innerHTML = `
+                    <div style="text-align:center;">
+                      <i class="fas fa-check-circle" style="color:#34d399;font-size:2rem;margin-bottom:8px;"></i>
+                      <div>Already up to date (v${current})</div>
+                    </div>
+                    <div style="margin-top:10px; padding:10px; border:1px solid rgba(255,193,7,0.25); background:rgba(255,193,7,0.08); border-radius:8px;">
+                      <div style="color:#fbbf24; font-weight:600; margin-bottom:6px;"><i class="fas fa-hammer"></i> Repair / Force Reinstall</div>
+                      <div class="subtle">Use Force Update to repair your installation even if you're on the latest version.</div>
+                    </div>`;
+                btnConfirm.disabled = true;
+                btnConfirm.querySelector('span').textContent = 'No Update Needed';
+                btnForce.style.display = '';
+            } else {
+                content.innerHTML = `
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div style="text-align:center; padding:10px; background: rgba(255,255,255,0.05); border-radius:8px;">
+                      <div class="subtle">Current</div>
+                      <div style="font-weight:700;">v${current}</div>
+                    </div>
+                    <div style="text-align:center; padding:10px; background: rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); border-radius:8px;">
+                      <div style="color:#34d399;">Available</div>
+                      <div style="font-weight:700;">v${latest}</div>
+                    </div>
+                  </div>
+                  ${notes ? `<div style="max-height:160px;overflow:auto; padding:10px; border:1px solid rgba(255,255,255,0.1); border-radius:8px;"><div class="subtle" style="margin-bottom:6px;">Release notes</div><div style="white-space:pre-wrap;">${notes}</div></div>` : ''}
+                `;
+                btnConfirm.disabled = false;
+                btnConfirm.querySelector('span').textContent = `Update to v${latest}`;
+                btnForce.style.display = '';
+            }
+
+            // Wire buttons one-time per open
+            const cleanup = () => {
+                btnConfirm.replaceWith(btnConfirm.cloneNode(true));
+                btnForce.replaceWith(btnForce.cloneNode(true));
+            };
+            const freshConfirm = document.getElementById('btn-update-confirm');
+            const freshForce = document.getElementById('btn-update-force');
+            freshConfirm?.addEventListener(
+                'click',
+                async () => {
+                    await startUpdate(false);
+                },
+                { once: true }
+            );
+            freshForce?.addEventListener(
+                'click',
+                async () => {
+                    await startUpdate(true);
+                },
+                { once: true }
+            );
+        } catch (e) {
+            content.innerHTML = '<div class="subtle">Failed to load update info</div>';
+            btnConfirm.disabled = true;
+        }
+    }
+
+    async function startUpdate(force = false) {
+        const btn = document.getElementById(force ? 'btn-update-force' : 'btn-update-confirm');
+        const overlay = document.getElementById('modal-update');
+        try {
+            btn?.classList.add('btn-loading');
+            const r = await fetch('/api/admin/update/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ force }),
+                credentials: 'include',
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j?.error || 'Failed to start update');
+            overlay?.classList.remove('open');
+            window.notify?.toast({
+                type: 'info',
+                title: 'Updating…',
+                message: j?.message || 'Auto-update started',
+                duration: 0,
+            });
+            await refreshUpdateStatusUI();
+        } catch (e) {
+            window.notify?.toast({
+                type: 'error',
+                title: 'Update failed',
+                message: e?.message || 'Unable to start update',
+                duration: 5000,
+            });
+        } finally {
+            btn?.classList.remove('btn-loading');
+        }
+    }
+
+    // Server Settings + Promobox save
+    document.addEventListener('DOMContentLoaded', () => {
+        const btnSaveServer = document.getElementById('btn-save-server-settings');
+        const btnSavePromo = document.getElementById('btn-save-promobox');
+        // Helper to fetch config, patch minimal keys, and POST back
+        async function saveConfigPatch(patchConfig, patchEnv) {
+            const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
+            const cfg = cfgRes.ok ? await cfgRes.json() : {};
+            const body = {
+                config: { ...(cfg?.config || cfg || {}), ...(patchConfig || {}) },
+                env: { ...(cfg?.env || {}), ...(patchEnv || {}) },
+            };
+            const r = await fetch('/api/admin/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(body),
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j?.error || j?.message || 'Save failed');
+            return j;
+        }
+
+        btnSaveServer?.addEventListener('click', async () => {
+            const debugEl = document.getElementById('DEBUG');
+            const DEBUG = !!debugEl?.checked;
+            const portEl = document.getElementById('SERVER_PORT');
+            const serverPort = Math.max(1024, Math.min(65535, Number(portEl?.value || 4000)));
+            if (!Number.isFinite(serverPort) || serverPort < 1024 || serverPort > 65535) {
+                return window.notify?.toast({
+                    type: 'warning',
+                    title: 'Invalid Port',
+                    message: 'Port must be between 1024 and 65535',
+                    duration: 4000,
+                });
+            }
+            try {
+                btnSaveServer.classList.add('btn-loading');
+                await saveConfigPatch(
+                    { serverPort },
+                    { DEBUG: String(DEBUG), SERVER_PORT: String(serverPort) }
+                );
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Saved',
+                    message: 'Server settings updated',
+                    duration: 2500,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Unable to save',
+                    duration: 4500,
+                });
+            } finally {
+                btnSaveServer.classList.remove('btn-loading');
+            }
+        });
+
+        btnSavePromo?.addEventListener('click', async () => {
+            const enabled = !!document.getElementById('siteServer.enabled')?.checked;
+            const portVal = Number(document.getElementById('siteServer.port')?.value || 4001);
+            try {
+                btnSavePromo.classList.add('btn-loading');
+                await saveConfigPatch({ siteServer: { enabled, port: portVal } }, {});
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Saved',
+                    message: 'Promobox settings updated',
+                    duration: 2500,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Unable to save',
+                    duration: 4500,
+                });
+            } finally {
+                btnSavePromo.classList.remove('btn-loading');
+            }
+        });
+
+        // Toggle port/status visibility
+        const promoEnabled = document.getElementById('siteServer.enabled');
+        promoEnabled?.addEventListener('change', () => {
+            const show = promoEnabled.checked;
+            const portGroup = document.getElementById('siteServerPortGroup');
+            const status = document.getElementById('siteServerStatus');
+            if (portGroup) portGroup.style.display = show ? 'block' : 'none';
+            if (status) status.style.display = show ? 'block' : 'none';
+        });
+    });
+
+    async function refreshOperationsPanels() {
+        try {
+            const r = await fetch('/api/admin/config', { credentials: 'include' });
+            const j = r.ok ? await r.json() : null;
+            const env = j?.env || {};
+            const cfg = j?.config || {};
+            // DEBUG
+            const debugEl = document.getElementById('DEBUG');
+            if (debugEl) debugEl.checked = env.DEBUG === true || env.DEBUG === 'true';
+            // SERVER_PORT
+            const portElMain = document.getElementById('SERVER_PORT');
+            if (portElMain) {
+                const v = j?.env?.SERVER_PORT || cfg?.serverPort || 4000;
+                portElMain.value = Number(v) || 4000;
+            }
+            // Promobox
+            const site = cfg.siteServer || {};
+            const enabledEl = document.getElementById('siteServer.enabled');
+            const portEl = document.getElementById('siteServer.port');
+            const portGroup = document.getElementById('siteServerPortGroup');
+            const status = document.getElementById('siteServerStatus');
+            if (enabledEl) enabledEl.checked = !!site.enabled;
+            if (portEl) portEl.value = site.port || 4001;
+            if (portGroup) portGroup.style.display = site.enabled ? 'block' : 'none';
+            if (status) {
+                status.style.display = site.enabled ? 'block' : 'none';
+                if (site.enabled) {
+                    const ip = j?.server?.ipAddress || 'localhost';
+                    const port = site.port || 4001;
+                    const url = `http://${ip}:${port}`;
+                    status.innerHTML = `<i class="fas fa-globe"></i> Running at <a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+                }
+            }
+        } catch (e) {
+            // non-fatal
+        }
+    }
 
     // Version + update pill
     async function refreshVersionAndUpdate() {

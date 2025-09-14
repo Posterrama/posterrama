@@ -88,6 +88,13 @@
   /* Sections */
   .app-section { display: none; }
   .app-section.active { display: block; }
+  /* Operations panel polish (align with theme-demo) */
+  .operations-panel .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .operations-panel .main-actions { margin-top: 8px; }
+  .operations-panel .sub-actions { margin-top: 8px; }
+  .operations-panel .input-row { display:flex; gap:8px; align-items:center; }
+  .operations-panel .status-pill { font-size: 0.8rem; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); }
+  .operations-panel .status-pill.status-success { background: rgba(34,197,94,0.15); color: #86efac; }
   /* Security panel polish */
   .security-panel .perf-card { background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: var(--space-lg); }
   .security-panel .perf-card h3 { margin: 0 0 12px 0; font-weight: 700; opacity: .92; display:flex; align-items:center; gap:8px; }
@@ -98,16 +105,17 @@
   .security-panel .input-row .btn.btn-icon { min-width: 36px; height: 36px; display:flex; align-items:center; justify-content:center; }
   .security-panel .input-row input { flex: 1; min-width: 0; }
   .security-panel .note { font-size:.85rem; opacity:.75; }
-  .security-panel .perf-columns { display:grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); }
+  .security-panel .perf-columns { display:grid; grid-template-columns: 1fr 1fr; gap: var(--space-md, 12px); }
   .security-panel .perf-card + .perf-card { margin-top: 0; }
   .security-panel .perf-card { margin-bottom: 0; }
   @media (max-width: 900px) {
     .security-panel .perf-columns { grid-template-columns: 1fr !important; }
   }
   /* Single-column grid helper for stacked fields */
-  .security-panel .form-grid.form-single-col { grid-template-columns: 1fr; gap: var(--space-lg); }
+  .security-panel .form-grid.form-single-col { grid-template-columns: 1fr; gap: var(--space-md, 12px); }
   /* Utility */
   .is-hidden { display: none !important; }
+
   </style>
 </head>
 <body>
@@ -143,6 +151,14 @@
           <a class="dropdown-item" href="/api-docs" target="_blank" rel="noopener">
             <i class="fas fa-book"></i>
             <span>API Docs</span>
+          </a>
+          <a class="dropdown-item" href="https://github.com/Posterrama/posterrama" target="_blank" rel="noopener">
+            <i class="fab fa-github"></i>
+            <span>GitHub Repository</span>
+          </a>
+          <a class="dropdown-item" href="https://github.com/Posterrama/posterrama/issues/new/choose" target="_blank" rel="noopener">
+            <i class="fas fa-bug"></i>
+            <span>Report an Issue</span>
           </a>
           <div class="dropdown-divider"></div>
           <div class="dropdown-heading">Server</div>
@@ -359,20 +375,20 @@
     </section> <!-- /section-dashboard -->
 
     <!-- Operations Section (top-level sibling) -->
-    <section id="section-operations" class="app-section">
-      <section class="panel">
+  <section id="section-operations" class="app-section">
+    <section class="panel operations-panel">
         <header class="panel-header">
           <h2><i class="fas fa-screwdriver-wrench"></i> Operations</h2>
         </header>
         <div class="panel-content">
-          <div class="content-grid" style="gap:16px;">
+      <div class="content-grid" style="gap:12px;">
             <!-- Media Operations -->
             <section class="perf-card" aria-label="Media Operations">
               <h3><i class="fas fa-sync-alt"></i> Media</h3>
               <div class="metric-row">
                 <div class="subtle">Manually refresh media from configured sources.</div>
               </div>
-              <div class="actions" style="margin-top:10px;">
+        <div class="actions main-actions">
                 <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
                   <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
                 </button>
@@ -384,7 +400,7 @@
               <h3><i class="fas fa-download"></i> Automatic Updates</h3>
               <div id="ops-update-status" class="status-display">
                 <div id="update-idle-state">
-                  <div class="subtle">Status: <span class="status-success">Ready for Updates</span></div>
+                  <div class="subtle">Status: <span class="status-pill status-success">Ready for Updates</span></div>
                 </div>
                 <div id="update-progress-state" style="display:none; margin-top:8px;">
                   <div class="update-progress-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
@@ -397,10 +413,12 @@
                   <div id="update-message" class="subtle" style="margin-top:6px;">Preparing…</div>
                 </div>
               </div>
-              <div class="actions" style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+              <div class="actions main-actions">
                 <button type="button" id="btn-start-update" class="btn btn-success btn-sm"><i class="fas fa-download"></i><span>Start Auto-Update</span></button>
                 <button type="button" id="btn-rollback-update" class="btn btn-secondary btn-sm"><i class="fas fa-undo"></i><span>Rollback</span></button>
                 <button type="button" id="btn-list-backups" class="btn btn-secondary btn-sm"><i class="fas fa-archive"></i><span>View Backups</span></button>
+              </div>
+              <div class="actions sub-actions">
                 <div class="input-row">
                   <input type="number" id="input-keep-backups" min="1" max="20" value="5" style="width:90px;" />
                   <button type="button" id="btn-cleanup-backups" class="btn btn-secondary btn-sm"><i class="fas fa-trash"></i><span>Cleanup Old</span></button>
@@ -411,6 +429,61 @@
                 <div id="backups-content" class="metric-row" style="margin-top:6px;">
                   <div class="subtle">Loading…</div>
                 </div>
+              </div>
+            </section>
+
+            <!-- Server Settings -->
+            <section class="perf-card" aria-label="Server Settings">
+              <h3><i class="fas fa-gear"></i> Server Settings</h3>
+              <div class="metric-row">
+                <div class="form-group">
+                  <label for="SERVER_PORT">Port Number</label>
+                  <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" style="width:120px;" />
+                  <div class="subtle">Application port (default 4000). Changing this requires a restart.</div>
+                </div>
+                <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+                  <input type="checkbox" id="DEBUG" />
+                  <label for="DEBUG" style="margin:0;">Enable Debug Mode</label>
+                </div>
+                <div class="subtle">Debug mode increases logging detail. Use temporarily for troubleshooting.</div>
+              </div>
+              <div class="actions" style="margin-top:8px;">
+                <button type="button" id="btn-save-server-settings" class="btn btn-primary btn-sm">
+                  <i class="fas fa-save"></i><span>Save Settings</span>
+                </button>
+              </div>
+            </section>
+
+            <!-- Debug & Logging -->
+            <section class="perf-card" aria-label="Debug & Logging">
+              <h3><i class="fas fa-bug"></i> Debug & Logging</h3>
+              <div class="metric-row">
+                <div class="subtle">View recent logs and monitor server activity.</div>
+              </div>
+              <div class="actions" style="margin-top:8px;">
+                <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
+                <a href="/api/admin/logs" target="_blank" rel="noopener" class="btn btn-outline btn-sm"><i class="fas fa-download"></i><span>Download JSON</span></a>
+              </div>
+            </section>
+
+            <!-- Promobox Site -->
+            <section class="perf-card" aria-label="Promobox Site">
+              <h3><i class="fas fa-bullhorn"></i> Promobox Site</h3>
+              <div class="metric-row">
+                <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+                  <input type="checkbox" id="siteServer.enabled" />
+                  <label for="siteServer.enabled" style="margin:0;">Enable Promobox Site</label>
+                </div>
+                <div class="form-group" id="siteServerPortGroup" style="display:none;">
+                  <label for="siteServer.port">Port</label>
+                  <input type="number" id="siteServer.port" min="1024" max="65535" value="4001" style="width:110px;" />
+                </div>
+                <div id="siteServerStatus" class="subtle" style="display:none;">—</div>
+              </div>
+              <div class="actions" style="margin-top:8px;">
+                <button type="button" id="btn-save-promobox" class="btn btn-primary btn-sm">
+                  <i class="fas fa-save"></i><span>Save Promobox</span>
+                </button>
               </div>
             </section>
           </div>
@@ -427,7 +500,7 @@
         <div class="panel-content">
           <div class="perf-columns" style="grid-template-columns: 1fr 1fr;">
             <!-- Password Management -->
-            <section class="perf-card" aria-label="Password Management" style="margin-bottom: var(--space-lg);">
+            <section class="perf-card" aria-label="Password Management" style="margin-bottom: var(--space-md, 12px);">
               <h3><i class="fas fa-key"></i> Password Management</h3>
               <div class="form-grid form-single-col">
                 <div class="form-group">
@@ -443,7 +516,7 @@
                   <input type="password" id="sec-confirm-pw" autocomplete="new-password" />
                 </div>
               </div>
-              <div class="actions" style="margin-top:10px;">
+              <div class="actions" style="margin-top:8px;">
                 <button type="button" id="btn-change-password" class="btn btn-success btn-sm">
                   <i class="fas fa-lock"></i><span>Change Password</span>
                 </button>
@@ -453,10 +526,10 @@
             
 
             <!-- Two-Factor Authentication -->
-            <section class="perf-card" aria-label="Two-Factor Authentication" style="margin-bottom: var(--space-lg);">
+            <section class="perf-card" aria-label="Two-Factor Authentication" style="margin-bottom: var(--space-md, 12px);">
               <h3><i class="fas fa-mobile-alt"></i> Two-Factor Authentication</h3>
               <div id="sec-2fa-status" class="subtle">Loading…</div>
-              <div class="actions" style="margin-top:10px;">
+              <div class="actions" style="margin-top:8px;">
                 <button type="button" id="btn-2fa-enable" class="btn btn-secondary btn-sm"><i class="fas fa-qrcode"></i><span>Enable 2FA</span></button>
                 <button type="button" id="btn-2fa-disable" class="btn btn-error btn-sm" disabled><i class="fas fa-user-lock"></i><span>Disable 2FA</span></button>
               </div>
@@ -478,7 +551,7 @@
                   </div>
                 </div>
               </div>
-              <div class="actions" style="margin-top:10px;">
+              <div class="actions" style="margin-top:8px;">
         <button id="generate-api-key-button" type="button" class="btn btn-success btn-sm">
                   <i class="fas fa-key"></i>
                   <span>Generate New Key</span>
@@ -553,6 +626,24 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
         <button type="button" id="btn-revoke-api-key-confirm" class="btn btn-error"><i class="fas fa-trash-alt"></i><span>Revoke Key</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Confirmation Modal (theme-demo structure) -->
+  <div class="modal-overlay" id="modal-update">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-update-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-update-title"><i class="fas fa-download"></i> Confirm Auto-Update</div>
+        <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" id="modal-update-content">
+        <div class="subtle">Loading update information…</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
+        <button type="button" id="btn-update-force" class="btn btn-warning" style="display:none;"><i class="fas fa-hammer"></i><span>Force Update</span></button>
+        <button type="button" id="btn-update-confirm" class="btn btn-primary" disabled><i class="fas fa-check"></i><span>Start Update</span></button>
       </div>
     </div>
   </div>
