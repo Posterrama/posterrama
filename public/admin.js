@@ -10485,6 +10485,7 @@ function renderDevicesTable(devices) {
             window.currentConfig &&
             window.currentConfig.syncEnabled !== false
         );
+        let __dupeIdsCache = [];
         const dupesBadge = (() => {
             try {
                 const set = new Set();
@@ -10497,6 +10498,7 @@ function renderDevicesTable(devices) {
                 const list = Array.from(set);
                 if (!list.length) return '';
                 const listIds = list.map(x => x && x.id).filter(Boolean);
+                __dupeIdsCache = listIds.slice();
                 const tipList = list
                     .map(x => {
                         const nm = (x.name && String(x.name).slice(0, 40)) || '(unnamed)';
@@ -10512,6 +10514,16 @@ function renderDevicesTable(devices) {
                 return '';
             }
         })();
+        const mergeSuggestBtn = (() => {
+            try {
+                if (!Array.isArray(__dupeIdsCache) || __dupeIdsCache.length === 0) return '';
+                const ids = [d.id].concat(__dupeIdsCache);
+                const safe = ids.join(',').replace(/"/g, '&quot;');
+                return `<button type="button" class="btn btn-compact btn-merge-suggest" data-merge-suggest="${safe}" title="Merge this device with its duplicates">Merge suggested</button>`;
+            } catch (_) {
+                return '';
+            }
+        })();
         const syncedBadge = synced
             ? '<span class="badge is-online badge-synced" title="Device will align to sync ticks">Synced</span>'
             : '';
@@ -10521,6 +10533,7 @@ function renderDevicesTable(devices) {
             overridesBadge,
             groupsBadge,
             dupesBadge,
+            mergeSuggestBtn,
             syncedBadge,
         ]
             .filter(Boolean)
@@ -11282,6 +11295,36 @@ function initDevicesPanel() {
                 if (!mergeMenu.contains(e.target) && e.target !== mergeMenuBtn) closeMenu();
             });
 
+            // Lightweight toast helper for status feedback
+            const showToast = (message, type = 'info', timeout = 3500) => {
+                try {
+                    let container = document.getElementById('toast-container');
+                    if (!container) {
+                        container = document.createElement('div');
+                        container.id = 'toast-container';
+                        container.setAttribute('aria-live', 'polite');
+                        container.setAttribute('role', 'status');
+                        document.body.appendChild(container);
+                    }
+                    const t = document.createElement('div');
+                    t.className = `toast toast-${type}`;
+                    t.textContent = message;
+                    container.appendChild(t);
+                    // Force reflow to enable CSS animation on insert
+                    // eslint-disable-next-line no-unused-expressions
+                    t.offsetHeight;
+                    t.classList.add('show');
+                    const remove = () => {
+                        t.classList.remove('show');
+                        t.addEventListener('transitionend', () => t.remove(), { once: true });
+                        setTimeout(() => t.remove(), 500);
+                    };
+                    setTimeout(remove, Math.max(1500, timeout | 0));
+                } catch (_) {
+                    /* no-op */
+                }
+            };
+
             const openMergeModal = ids => {
                 if (!ids || ids.length < 2) return;
                 const existing = document.getElementById('merge-devices-modal');
@@ -11342,6 +11385,10 @@ function initDevicesPanel() {
                         const target = sel && sel.value;
                         if (!target || !ids.includes(target)) return;
                         const sources = ids.filter(id => id !== target);
+                        // Loading state
+                        doBtn.disabled = true;
+                        doBtn.textContent = 'Merging…';
+                        doBtn.classList.add('is-loading');
                         const res = await authenticatedFetch(
                             apiUrl(`/api/devices/${encodeURIComponent(target)}/merge`),
                             {
@@ -11351,10 +11398,17 @@ function initDevicesPanel() {
                             }
                         );
                         if (!res.ok) throw new Error('merge failed');
-                    } catch (_) {}
-                    close();
-                    const list = await fetchDevices();
-                    renderDevicesTable(list);
+                        showToast(`Merged ${sources.length} device(s)`, 'success');
+                    } catch (e) {
+                        showToast('Merge failed. Try again.', 'error');
+                    } finally {
+                        doBtn.disabled = false;
+                        doBtn.textContent = 'Merge';
+                        doBtn.classList.remove('is-loading');
+                        close();
+                        const list = await fetchDevices();
+                        renderDevicesTable(list);
+                    }
                 });
             };
 
@@ -11382,6 +11436,19 @@ function initDevicesPanel() {
                 const ids = selfId ? [selfId, ...list] : list;
                 if (ids.length < 2) return;
                 openMergeModal(Array.from(new Set(ids)));
+            });
+
+            // Delegated: Merge suggested button
+            container.addEventListener('click', ev => {
+                const btn = ev.target.closest && ev.target.closest('.btn-merge-suggest');
+                if (!btn) return;
+                ev.preventDefault();
+                ev.stopPropagation();
+                const list = (btn.getAttribute('data-merge-suggest') || '')
+                    .split(',')
+                    .filter(Boolean);
+                if (list.length < 2) return;
+                openMergeModal(Array.from(new Set(list)));
             });
         }
     }

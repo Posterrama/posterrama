@@ -1,3 +1,78 @@
+/* --- Toast notifications (admin devices) --- */
+#toast-container {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
+}
+.toast {
+    background: rgba(20, 20, 20, 0.95);
+    color: #fff;
+    border-radius: 6px;
+    padding: 10px 12px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+        opacity 160ms ease,
+        transform 160ms ease;
+    font-size: 13px;
+    border-left: 3px solid #888;
+}
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+.toast-success {
+    border-left-color: #2ecc71;
+}
+.toast-error {
+    border-left-color: #e74c3c;
+}
+.toast-info {
+    border-left-color: #3498db;
+}
+
+/* Loading state for buttons */
+.btn.is-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.8;
+}
+.btn.is-loading::after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Narrower widths for Groups, Presets and Merge dropdowns/buttons */
+#devices-section #groups-menu-button.btn-compact,
+#devices-section #presets-menu-button.btn-compact,
+#devices-section #merge-menu-button.btn-compact {
+    min-width: 120px; /* was 160px via generic .btn-compact */
+}
+
+#devices-section #groups-menu.dropdown-menu,
+#devices-section #presets-menu.dropdown-menu,
+#devices-section #merge-menu.dropdown-menu {
+    min-width: 200px; /* was 260px generic; keep readable but tighter */
+}
 #devices-section .field-mode-inline .mode-inline {
     display: inline-flex;
     align-items: center;
@@ -4748,6 +4823,12 @@ fieldset:focus-within {
     }
 }
 #devices-section .groups-menu {
+    position: relative;
+}
+#devices-section .presets-menu {
+    position: relative;
+}
+#devices-section .merge-menu {
     position: relative;
 }
 #devices-section .btn.btn-compact {
