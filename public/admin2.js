@@ -2500,7 +2500,6 @@
         const settingsMenu = document.getElementById('settings-menu');
 
         function closeMenu() {
-            console.log('closeMenu called');
             if (!settingsMenu) return;
             settingsBtn?.setAttribute('aria-expanded', 'false');
             settingsMenu?.setAttribute('aria-hidden', 'true');
@@ -3203,7 +3202,6 @@
         const userMenu = document.getElementById('user-menu');
 
         function closeUserMenu() {
-            console.log('closeUserMenu called');
             if (!userMenu) return;
             userBtn?.setAttribute('aria-expanded', 'false');
             userMenu?.setAttribute('aria-hidden', 'true');
