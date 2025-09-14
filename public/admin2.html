@@ -1601,91 +1601,125 @@
                 <div class="card-title"><i class="fas fa-border-all"></i> Wallart</div>
               </div>
               <fieldset id="fs-wallart">
-                <div class="form-grid">
-                  <div class="form-row">
-                    <label for="wallartMode.density">Density</label>
-                    <select id="wallartMode.density">
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="ludicrous">Ludicrous</option>
-                    </select>
-                  </div>
-                  <div class="form-row">
-                    <label for="wallartMode.refreshRate">Refresh tempo</label>
-                    <div class="modern-slider">
-                      <input type="range" min="1" max="10" step="1" id="wallartMode.refreshRate" value="5" />
-                      <div class="slider-percentage" data-target="wallartMode.refreshRate">Medium refresh rate</div>
+                <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                  <!-- Tempo card -->
+                  <div class="mode-card" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-tachometer-alt"></i> Tempo</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label for="wallartMode.refreshRate">Refresh tempo</label>
+                        <div class="modern-slider">
+                          <input type="range" min="1" max="10" step="1" id="wallartMode.refreshRate" value="5" />
+                          <div class="slider-percentage" data-target="wallartMode.refreshRate">Medium refresh rate</div>
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <label for="wallartMode.randomness">Randomness</label>
+                        <div class="modern-slider">
+                          <input type="range" min="0" max="10" step="1" id="wallartMode.randomness" value="3" />
+                          <div class="slider-percentage" data-target="wallartMode.randomness">Low randomness</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div class="form-row">
-                    <label for="wallartMode.randomness">Randomness</label>
-                    <div class="modern-slider">
-                      <input type="range" min="0" max="10" step="1" id="wallartMode.randomness" value="3" />
-                      <div class="slider-percentage" data-target="wallartMode.randomness">Low randomness</div>
+
+                  <!-- Animation card -->
+                  <div class="mode-card" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-magic"></i> Animation</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label for="wallartMode.animationType">Animation</label>
+                        <select id="wallartMode.animationType">
+                          <option value="random">Random</option>
+                          <option value="fade">Fade</option>
+                          <option value="slideLeft">Slide Left</option>
+                          <option value="slideUp">Slide Up</option>
+                          <option value="zoom">Zoom</option>
+                          <option value="flip">Flip</option>
+                          <option value="staggered">Staggered</option>
+                          <option value="ripple">Ripple</option>
+                          <option value="scanline">Scanline</option>
+                          <option value="parallax">Parallax</option>
+                          <option value="neonPulse">Neon Pulse</option>
+                          <option value="chromaticShift">Chromatic Shift</option>
+                          <option value="mosaicShatter">Mosaic Shatter</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                  <div class="form-row">
-                    <label for="wallartMode.animationType">Animation</label>
-                    <select id="wallartMode.animationType">
-                      <option value="random">Random</option>
-                      <option value="fade">Fade</option>
-                      <option value="slideLeft">Slide Left</option>
-                      <option value="slideUp">Slide Up</option>
-                      <option value="zoom">Zoom</option>
-                      <option value="flip">Flip</option>
-                      <option value="staggered">Staggered</option>
-                      <option value="ripple">Ripple</option>
-                      <option value="scanline">Scanline</option>
-                      <option value="parallax">Parallax</option>
-                      <option value="neonPulse">Neon Pulse</option>
-                      <option value="chromaticShift">Chromatic Shift</option>
-                      <option value="mosaicShatter">Mosaic Shatter</option>
-                    </select>
+
+                  <!-- Layout card -->
+                  <div class="mode-card" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-th-large"></i> Layout</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label for="wallartMode.density">Density</label>
+                        <select id="wallartMode.density">
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                          <option value="ludicrous">Ludicrous</option>
+                        </select>
+                      </div>
+                      <div class="form-row">
+                        <label for="wallartMode.layoutVariant">Layout</label>
+                        <select id="wallartMode.layoutVariant">
+                          <option value="heroGrid">Hero Grid</option>
+                          <option value="classic">Classic</option>
+                        </select>
+                      </div>
+                      <div class="form-row">
+                        <label for="wallartMode.columns">Columns</label>
+                        <div class="number-input-wrapper"><input type="number" min="2" max="12" id="wallartMode.columns" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                      </div>
+                      <div class="form-row">
+                        <label for="wallartMode.itemsPerScreen">Items per screen</label>
+                        <div class="number-input-wrapper"><input type="number" min="4" max="100" id="wallartMode.itemsPerScreen" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                      </div>
+                      <div class="form-row">
+                        <label for="wallartMode.transitionInterval">Grid transition (s)</label>
+                        <div class="number-input-wrapper"><input type="number" min="5" max="300" id="wallartMode.transitionInterval" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                      </div>
+                    </div>
                   </div>
-                  <div class="form-row">
-                    <label for="wallartMode.layoutVariant">Layout</label>
-                    <select id="wallartMode.layoutVariant">
-                      <option value="heroGrid">Hero Grid</option>
-                      <option value="classic">Classic</option>
-                    </select>
+
+                  <!-- Ambience card -->
+                  <div class="mode-card" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-lightbulb"></i> Ambience</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label class="checkbox" for="wallartMode.ambientGradient">
+                          <input type="checkbox" id="wallartMode.ambientGradient" />
+                          <span class="checkmark"></span>
+                          <span>Ambient gradient</span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                  <div class="form-row">
-                    <label class="checkbox" for="wallartMode.ambientGradient">
-                      <input type="checkbox" id="wallartMode.ambientGradient" />
-                      <span class="checkmark"></span>
-                      <span>Ambient gradient</span>
-                    </label>
-                  </div>
-                  <div class="form-row">
-                    <label for="wallartMode.itemsPerScreen">Items per screen</label>
-                    <div class="number-input-wrapper"><input type="number" min="4" max="100" id="wallartMode.itemsPerScreen" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
-                  </div>
-                  <div class="form-row">
-                    <label for="wallartMode.columns">Columns</label>
-                    <div class="number-input-wrapper"><input type="number" min="2" max="12" id="wallartMode.columns" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
-                  </div>
-                  <div class="form-row">
-                    <label for="wallartMode.transitionInterval">Grid transition (s)</label>
-                    <div class="number-input-wrapper"><input type="number" min="5" max="300" id="wallartMode.transitionInterval" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
-                  </div>
-                  <div class="form-row">
-                    <label for="wallartMode.layoutSettings.heroGrid.heroSide">Hero side</label>
-                    <select id="wallartMode.layoutSettings.heroGrid.heroSide">
-                      <option value="left">Left</option>
-                      <option value="right">Right</option>
-                    </select>
-                  </div>
-                  <div class="form-row">
-                    <label for="wallartMode.layoutSettings.heroGrid.heroRotationMinutes">Hero rotation (min)</label>
-                    <div class="number-input-wrapper"><input type="number" min="1" max="60" id="wallartMode.layoutSettings.heroGrid.heroRotationMinutes" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
-                  </div>
-                  <div class="form-row">
-                    <label class="checkbox" for="wallartMode.layoutSettings.heroGrid.biasAmbientToHero">
-                      <input type="checkbox" id="wallartMode.layoutSettings.heroGrid.biasAmbientToHero" />
-                      <span class="checkmark"></span>
-                      <span>Bias ambient to hero</span>
-                    </label>
+
+                  <!-- Hero settings card (shown for Hero Grid) -->
+                  <div class="mode-card" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-user-astronaut"></i> Hero Settings</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label for="wallartMode.layoutSettings.heroGrid.heroSide">Hero side</label>
+                        <select id="wallartMode.layoutSettings.heroGrid.heroSide">
+                          <option value="left">Left</option>
+                          <option value="right">Right</option>
+                        </select>
+                      </div>
+                      <div class="form-row">
+                        <label for="wallartMode.layoutSettings.heroGrid.heroRotationMinutes">Hero rotation (min)</label>
+                        <div class="number-input-wrapper"><input type="number" min="1" max="60" id="wallartMode.layoutSettings.heroGrid.heroRotationMinutes" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                      </div>
+                      <div class="form-row">
+                        <label class="checkbox" for="wallartMode.layoutSettings.heroGrid.biasAmbientToHero">
+                          <input type="checkbox" id="wallartMode.layoutSettings.heroGrid.biasAmbientToHero" />
+                          <span class="checkmark"></span>
+                          <span>Bias ambient to hero</span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </fieldset>
@@ -1697,14 +1731,20 @@
                 <div class="card-title"><i class="fas fa-mobile-alt"></i> Cinema</div>
               </div>
               <fieldset id="fs-cinema">
-                <div class="form-grid">
-                  <div class="form-row">
-                    <label for="cinemaOrientation">Orientation</label>
-                    <select id="cinemaOrientation">
-                      <option value="auto">Auto</option>
-                      <option value="portrait">Portrait</option>
-                      <option value="portrait-flipped">Portrait (flipped)</option>
-                    </select>
+                <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                  <!-- Orientation card -->
+                  <div class="mode-card" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Orientation</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label for="cinemaOrientation">Orientation</label>
+                        <select id="cinemaOrientation">
+                          <option value="auto">Auto</option>
+                          <option value="portrait">Portrait</option>
+                          <option value="portrait-flipped">Portrait (flipped)</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </fieldset>
@@ -1745,7 +1785,7 @@
                   <span>Show Rotten Tomatoes</span>
                 </label>
               </div>
-              <div class="form-row"><label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes (0–10)</label><div class="number-input-wrapper"><input type="number" min="0" max="10" step="0.1" id="rottenTomatoesMinimumScore" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div><div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>Set to 0 to disable this filter.</span></div></div>
+              <div class="form-row"><label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes (0–10)</label><div class="number-input-wrapper"><input type="number" min="0" max="10" step="0.1" id="rottenTomatoesMinimumScore" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div><div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>UI is 0–10; saved as 0–100 in config. Set to 0 to disable.</span></div></div>
             </div>
           </div>
 

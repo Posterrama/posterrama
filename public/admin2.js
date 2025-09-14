@@ -1573,7 +1573,15 @@
         setIf('showMetadata', c.showMetadata !== false);
         setIf('showClearLogo', c.showClearLogo !== false);
         setIf('showRottenTomatoes', c.showRottenTomatoes === true);
-        setIf('rottenTomatoesMinimumScore', c.rottenTomatoesMinimumScore ?? 0);
+        // Map 0–100 schema -> 0–10 UI (one decimal). If value looks like 0–10 already, keep it.
+        (function () {
+            const raw = c.rottenTomatoesMinimumScore;
+            if (raw == null) return setIf('rottenTomatoesMinimumScore', 0);
+            const num = Number(raw);
+            if (!Number.isFinite(num)) return setIf('rottenTomatoesMinimumScore', 0);
+            const uiVal = num > 10 ? Math.round((num / 10) * 10) / 10 : num;
+            setIf('rottenTomatoesMinimumScore', uiVal);
+        })();
         const us = c.uiScaling || {};
         setIf('uiScaling.global', us.global ?? 100);
         setIf('uiScaling.content', us.content ?? 100);
@@ -1893,7 +1901,14 @@
             showMetadata: val('showMetadata'),
             showClearLogo: val('showClearLogo'),
             showRottenTomatoes: val('showRottenTomatoes'),
-            rottenTomatoesMinimumScore: val('rottenTomatoesMinimumScore'),
+            // Map 0–10 UI -> 0–100 schema; tolerate already-100 scale
+            rottenTomatoesMinimumScore: (function () {
+                const v = val('rottenTomatoesMinimumScore');
+                if (v == null) return 0;
+                const n = Number(v);
+                if (!Number.isFinite(n)) return 0;
+                return n <= 10 ? Math.round(n * 10) : Math.round(n);
+            })(),
             uiScaling: {
                 global: val('uiScaling.global'),
                 content: val('uiScaling.content'),
