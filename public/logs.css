@@ -1,0 +1,277 @@
+/* Logs Viewer (logs.html) - isolated styles */
+
+/* Base page styles for logs */
+body.page-logs {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header aligned with Admin navbar look but simpler */
+.logs-header {
+    height: var(--navbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-xl);
+    border-bottom: 1px solid var(--color-border);
+    background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* Neutralize generic 'live' animation/styles inside logs header */
+.logs-header .status-pill.status-live {
+    animation: none !important;
+}
+.logs-header .status-pill.status-live.sp-screensaver {
+    /* Exact styling from Display Mode: Screensaver */
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.22), rgba(139, 92, 246, 0.16));
+    color: #e0e7ff;
+    border-color: rgba(139, 92, 246, 0.45);
+    animation: none !important;
+    box-shadow:
+        0 0 0 2px rgba(139, 92, 246, 0.08),
+        0 6px 22px rgba(139, 92, 246, 0.28);
+}
+
+.logs-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+}
+.logs-title .brand {
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+.logs-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* Content */
+.logs-container {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: var(--space-xl);
+    overflow: hidden;
+}
+
+.logs-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: var(--space-md);
+}
+.logs-toolbar .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-secondary);
+    margin-right: auto;
+}
+.logs-toolbar .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-warning);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15) inset;
+}
+.logs-toolbar .status-dot.connected {
+    background: var(--color-success);
+}
+.logs-toolbar .status-dot.disconnected {
+    background: var(--color-error);
+}
+
+.logs-toolbar label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+/* Styled search input with leading magnifier */
+#textFilter {
+    min-width: 220px;
+    padding: var(--space-sm) var(--space-md) var(--space-sm) calc(var(--space-md) * 2 + 14px);
+    background-color: var(--color-bg-dark);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    color: var(--color-text-primary);
+    outline: none;
+    transition:
+        border-color var(--anim-duration-fast) var(--anim-ease-emph),
+        box-shadow var(--anim-duration-fast) var(--anim-ease-emph);
+    background-repeat: no-repeat;
+    background-position: var(--space-md) 50%;
+    background-size: 14px 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a3aed0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+}
+#textFilter::placeholder {
+    color: var(--color-text-muted);
+}
+#textFilter:focus {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+}
+
+/* Themed checkbox without extra markup */
+.logs-toolbar input[type='checkbox'] {
+    accent-color: var(--color-secondary);
+    width: 18px;
+    height: 18px;
+}
+
+.logs-viewer {
+    flex: 1 1 auto;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    overflow: auto;
+    padding: var(--space-md);
+    font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+        monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+.logs-output {
+    display: grid;
+    gap: 2px;
+}
+.log-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 6px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    transition:
+        background 120ms var(--anim-ease-emph),
+        border-color 120ms var(--anim-ease-emph);
+}
+.logs-output .log-row:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.025);
+}
+.log-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+.log-row .timestamp {
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.log-row .level {
+    min-width: 64px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--color-bg-tertiary);
+}
+.log-row .level.level-trace {
+    background: #6b7280;
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.log-row .level.level-debug {
+    background: #3b82f6;
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.log-row .level.level-info {
+    background: #10b981;
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.log-row .level.level-warn {
+    background: #f59e0b;
+    color: #111827;
+    border-color: rgba(0, 0, 0, 0.2);
+}
+.log-row .level.level-warn {
+    color: #111827;
+}
+.log-row .level.level-error {
+    background: #ef4444;
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+.log-row .level.level-fatal {
+    background: #8b5cf6;
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+.log-row .message {
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+/* Defensively ensure row text uses the default foreground,
+   only the small badge carries the level color */
+.log-row {
+    color: var(--color-text-primary);
+}
+
+/* If old JS added level-* classes on the entire row, keep text readable */
+.logs-output .log-row.level-trace,
+.logs-output .log-row.level-debug,
+.logs-output .log-row.level-info,
+.logs-output .log-row.level-warn,
+.logs-output .log-row.level-error,
+.logs-output .log-row.level-fatal {
+    color: var(--color-text-primary) !important;
+}
+
+/* Mobile tweaks */
+@media (max-width: 768px) {
+    .logs-header {
+        padding: 0 var(--space-md);
+        height: 60px;
+    }
+    .logs-title {
+        font-size: var(--font-size-lg);
+    }
+    .logs-container {
+        padding: var(--space-md);
+    }
+    .logs-toolbar {
+        gap: var(--space-sm);
+    }
+    #textFilter {
+        min-width: 0;
+        width: 100%;
+    }
+    .logs-toolbar > * {
+        flex: 1 1 100%;
+    }
+}

@@ -3,12 +3,13 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Live Logs - Posterrama</title>
+    <title>Live Logs - Posterrama</title>
         <link
             href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap"
             rel="stylesheet"
         />
-    <link rel="stylesheet" href="/admin.css?v=20250819a" />
+        <link rel="stylesheet" href="/admin.css?v=20250819a" />
+    <link rel="stylesheet" href="/logs.css?v=20250915e" />
         <link
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
@@ -17,12 +18,12 @@
     <body class="page-logs">
         <header class="logs-header">
             <div class="logs-title">
-                <span class="brand">Live Logs</span>
-                <span class="status-pill"><i class="fas fa-stream"></i> Live</span>
+                <span class="brand">Logs</span>
+                <span class="status-pill status-live sp-screensaver"><i class="fas fa-stream"></i> Live</span>
             </div>
             <div class="logs-actions">
-                <a href="/admin" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Back</a>
-                <a href="/admin/logout" class="btn btn-error"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <a href="/admin" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+                <a href="/admin/logout" class="btn btn-error btn-sm"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
         </header>
 
@@ -45,15 +46,15 @@
                     </select>
                 </label>
 
-                <input type="text" id="textFilter" placeholder="Filter logs by text..." />
+                <input type="text" id="textFilter" placeholder="Search logs..." />
 
-                <button class="btn btn-outline" id="clearFilter"><i class="fas fa-times"></i> Clear</button>
+                <button class="btn btn-outline btn-sm" id="clearFilter"><i class="fas fa-times"></i> Clear</button>
 
                 <label>
                     <input type="checkbox" id="autoScroll" checked /> Auto-scroll
                 </label>
 
-                <button class="btn btn-secondary" id="pauseButton"><i class="fas fa-pause"></i> Pause</button>
+                <button class="btn btn-secondary btn-sm" id="pauseButton"><i class="fas fa-pause"></i> Pause</button>
             </div>
 
             <div class="logs-viewer">
@@ -62,5 +63,28 @@
         </main>
 
         <script src="/logs.js?v=1.2.6" defer></script>
+        <script>
+            // Ensure latest Service Worker is activated so normal refresh picks new CSS/JS
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration?.().then(reg => {
+                    // Attempt to fetch and activate a newer SW
+                    reg?.update?.();
+                });
+                // Ask the active SW (if any) to skip waiting
+                if (navigator.serviceWorker.controller) {
+                    try {
+                        navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                    } catch (_) {}
+                }
+                // When the controller changes, reload once to use fresh caches/assets
+                let reloaded = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (!reloaded) {
+                        reloaded = true;
+                        location.reload();
+                    }
+                });
+            }
+        </script>
     </body>
 </html>

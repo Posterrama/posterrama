@@ -37,8 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listeners for controls
     pauseButton.addEventListener('click', () => {
         isPaused = !isPaused;
-        pauseButton.textContent = isPaused ? 'Resume Updates' : 'Pause Updates';
-        if (!isPaused) fetchLogs();
+        if (isPaused) {
+            pauseButton.innerHTML = '<i class="fas fa-play"></i> Resume';
+        } else {
+            pauseButton.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            fetchLogs();
+        }
     });
 
     logLevelSelect.addEventListener('change', e => {
@@ -66,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const levelClass = `level-${level.toLowerCase()}`;
 
         const logEntry = document.createElement('div');
-        logEntry.className = `log-entry ${levelClass}`;
+        logEntry.className = 'log-row';
 
         const timestampSpan = document.createElement('span');
         timestampSpan.className = 'timestamp';
@@ -97,14 +101,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderLogs(logs) {
-        logOutput.innerHTML = '';
-        const filteredLogs = logs.filter(log => shouldShowLog(log));
-        filteredLogs.forEach(log => {
-            logOutput.appendChild(formatLog(log));
-        });
+        // Newest-first rendering: reverse order without mutating original array
+        const filteredLogs = logs
+            .filter(log => shouldShowLog(log))
+            .slice()
+            .reverse();
 
-        if (autoScrollCheckbox.checked && isScrolledToBottom) {
-            logOutput.parentElement.scrollTop = logOutput.parentElement.scrollHeight;
+        const container = logOutput.parentElement;
+        const atTop = container.scrollTop === 0; // when newest-first, top is the latest
+
+        logOutput.innerHTML = '';
+        for (const log of filteredLogs) {
+            logOutput.appendChild(formatLog(log));
+        }
+
+        // Auto-scroll behavior: if user was at top (viewing the latest), keep them at top
+        if (autoScrollCheckbox.checked) {
+            if (atTop) {
+                container.scrollTop = 0;
+            }
         }
     }
 
