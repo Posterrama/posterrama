@@ -4462,8 +4462,10 @@ async function testServerConnection(serverConfig) {
             const [seconds, nanoseconds] = process.hrtime(startTime);
             const responseTime = seconds * 1000 + nanoseconds / 1000000;
 
-            // Log success with metrics
-            logger.info('Jellyfin server connection test successful', {
+            // Log success with metrics (demoted by default to reduce noise)
+            const jfLogLevel = (process.env.JELLYFIN_TEST_LOG_LEVEL || 'debug').toLowerCase(); // info|debug|warn
+            const jfLog = logger[jfLogLevel] || logger.debug;
+            jfLog('Jellyfin server connection test successful', {
                 action: 'jellyfin_connection_success',
                 server: {
                     name: serverConfig.name,
