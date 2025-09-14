@@ -93,6 +93,9 @@
   }
   /* Pairing modal layout */
   #modal-pairing .modal-body { padding-top: 12px; }
+  /* Name bar shown at top of modal content when a single device is paired */
+  .pairing-namebar { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--color-border); background: rgba(255,255,255,0.03); border-radius: 12px; font-weight: 700; margin-bottom: 10px; }
+  .pairing-namebar i { color: var(--color-text-muted); }
   .pairing-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--color-border); background: rgba(255,255,255,0.03); }
   .pairing-meta { flex: 1; min-width: 0; }
   /* Header: device name + pills on one line (wraps gracefully) */
@@ -104,13 +107,16 @@
   /* Align values and copy buttons to a clean right edge */
   .pairing-copy .btn { margin-left: auto; min-width: 84px; }
   .pairing-code, .pairing-input { height: 36px; display: flex; align-items: center; }
-  .pairing-code { flex: 1; background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--color-border); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 700; letter-spacing: .04em; }
-  .pairing-input { flex: 1; width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-card); color: var(--color-text-primary); }
+  .pairing-code { flex: 1; background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--color-border); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 600; font-size: .9rem; letter-spacing: .02em; user-select: none; -webkit-user-select: none; }
+  .pairing-code.pairing-url { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; font-family: var(--font-sans, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"); font-weight: 500; letter-spacing: 0; font-size: .9rem; }
+  .pairing-input { flex: 1; width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--color-border); background: rgba(255,255,255,0.06); color: var(--color-text-primary); }
   .pairing-input:focus { outline: none; border-color: var(--color-info); box-shadow: 0 0 0 3px rgba(102,126,234,0.25); }
   .pairing-exp { margin-top: 6px; opacity: .85; }
-  .pairing-qr img { width: 176px; height: 176px; background: #fff; padding: 10px; border-radius: 14px; box-shadow: 0 3px 14px rgba(0,0,0,0.3); }
+  /* QR removed per UX: keep modal focused on code + claim URL */
   .pill { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; border:1px solid var(--color-border); background: rgba(255,255,255,0.04); font-size: .85rem; }
   .pill i { color: var(--color-text-muted); }
+  /* Footer layout: expiry left, Close right */
+  .pairing-footer { display:flex; align-items:center; justify-content: space-between; }
     /* Status tiles styling */
     .status-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
     .status-tile { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
@@ -508,6 +514,59 @@
 
   /* Pinned state for Pin button: only icon turns magenta (strong specificity) */
   #section-devices .device-card .device-tools .btn-pin.is-pinned > i { color: #ff00a7 !important; }
+
+  /* Synced indicator: top-right pulsing green dot with tooltip */
+  #section-devices .device-card { position: relative; }
+  #section-devices .device-card .device-corner { position: absolute; top: 10px; right: 10px; z-index: 2; pointer-events: auto; }
+  #section-devices .device-card .device-corner .synced-dot {
+    width: 10px; height: 10px; display: inline-block; border-radius: 50%;
+    background: #22c55e; box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
+    position: relative;
+  }
+  @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); } 70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+  @media (prefers-reduced-motion: no-preference) {
+    #section-devices .device-card .device-corner .synced-dot { animation: pulse-green 1.8s ease-out infinite; }
+  }
+
+  /* Live status pill: green theme with outward ripple rings from the edge */
+  #section-devices .device-badges .status-pill.status-live {
+    position: relative;
+    overflow: visible;
+    background: rgba(34,197,94,0.12) !important;
+    border: 1px solid rgba(34,197,94,0.35) !important;
+    color: #86efac !important;
+  }
+  #section-devices .device-badges .status-pill.status-live i { color: #86efac !important; }
+  #section-devices .device-badges .status-pill.status-live::before,
+  #section-devices .device-badges .status-pill.status-live::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    pointer-events: none;
+    border: 1px solid rgba(34,197,94,0.28);
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+  @keyframes live-ripple {
+    0%   { transform: translate(-50%, -50%) scale(1);    opacity: .16; }
+    70%  {                                            opacity: .04; }
+    100% { transform: translate(-50%, -50%) scale(1.5);  opacity: 0; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    #section-devices .device-badges .status-pill.status-live::before {
+      animation: live-ripple 6.8s ease-out infinite;
+      will-change: transform, opacity;
+    }
+    #section-devices .device-badges .status-pill.status-live::after {
+      animation: live-ripple 6.8s ease-out infinite;
+      animation-delay: 3.4s; /* stagger second ring */
+      will-change: transform, opacity;
+    }
+  }
 
   /* MODERN DASHBOARD - inspired by the screenshot */
   #panel-perf-dashboard {
@@ -2722,10 +2781,16 @@
         <div class="modal-title" id="pairing-title"><i class="fas fa-qrcode"></i> Pairing Codes</div>
         <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
       </div>
-  <div class="modal-body" id="pairing-list" style="display:grid; gap:12px;">
+  <div class="modal-body" style="display:grid; gap:12px;">
+        <div id="pairing-namebar" class="pairing-namebar" hidden>
+          <i class="fas fa-desktop" aria-hidden="true"></i>
+          <span id="pairing-namebar-text">—</span>
+        </div>
+        <div id="pairing-list" style="display:grid; gap:12px;"></div>
         <!-- dynamically filled: per device code + QR image -->
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer pairing-footer">
+        <div class="pairing-exp subtle" id="pairing-exp-footer"></div>
         <button class="btn btn-outline" data-close-modal>Close</button>
       </div>
     </div>

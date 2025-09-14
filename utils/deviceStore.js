@@ -168,12 +168,15 @@ async function generatePairingCode(id, { ttlMs = 10 * 60 * 1000, requireToken = 
         token = crypto.randomBytes(16).toString('hex');
         tokenHash = hashSecret(token);
     }
-    all[idx].pairing = {
-        ...(all[idx].pairing || {}),
-        code,
-        ...(tokenHash ? { tokenHash } : {}),
-        expiresAt,
-    };
+    const prev = all[idx].pairing || {};
+    const nextPairing = { ...prev, code: String(code), expiresAt, requireToken: !!requireToken };
+    if (requireToken && tokenHash) {
+        nextPairing.tokenHash = tokenHash;
+    } else {
+        // Ensure old tokenHash is removed so code-only claims succeed
+        if ('tokenHash' in nextPairing) delete nextPairing.tokenHash;
+    }
+    all[idx].pairing = nextPairing;
     all[idx].updatedAt = new Date(now).toISOString();
     await writeAll(all);
     // Return token directly; only store its hash server-side
@@ -184,13 +187,15 @@ async function claimByPairingCode({ code, token, name, location } = {}) {
     if (!code) return null;
     const all = await readAll();
     const now = Date.now();
-    const idx = all.findIndex(d => d.pairing && d.pairing.code === code);
+    const codeStr = String(code).trim();
+    const idx = all.findIndex(d => d.pairing && String(d.pairing.code) === codeStr);
     if (idx === -1) return null;
     const exp = Date.parse(all[idx].pairing.expiresAt || 0) || 0;
     if (!exp || exp < now) return null;
     // If a tokenHash exists (newer codes), require matching token
     const storedTokenHash = all[idx].pairing && all[idx].pairing.tokenHash;
-    if (storedTokenHash) {
+    const mustRequireToken = !!(all[idx].pairing && all[idx].pairing.requireToken);
+    if (storedTokenHash && mustRequireToken) {
         if (!token) return null;
         const providedHash = hashSecret(String(token));
         if (providedHash !== storedTokenHash) return null;

@@ -2597,7 +2597,8 @@
                 const pinTitle = initiallyPinned ? 'Unpin poster' : 'Pin current poster';
                 const pinPressed = initiallyPinned ? 'true' : 'false';
                 return `
-                                                                <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
+                                <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
+                                    ${d.wsConnected && state.syncEnabled !== false ? '<div class="device-corner"><span class="synced-dot" role="status" aria-label="Device will align to sync ticks" title="Device will align to sync ticks"></span></div>' : ''}
                                                                         <div class="device-card-header">
                                                                                 <div class="device-select-wrap">
                                                                                         <label class="checkbox" aria-label="Select device: ${escapeHtml(d.name || d.id)}">
@@ -2666,7 +2667,7 @@
                                                                                               ? `<span class="status-pill ${mClass.replace('pill-', 'sp-')}"><i class="${iconForMode(mode)}"></i> ${escapeHtml(modeLabel(mode))}</span>`
                                                                                               : '';
                                                                                       })()}
-                                                                                     ${d.wsConnected && state.syncEnabled !== false ? `<span class="status-pill sp-synced" title="Device will align to sync ticks">Synced</span>` : ''}
+                                                                                     
                                                                                 </div>
                                         <div class="pill-grid">
                                             ${Number.isFinite(Number(d?.currentState?.rating)) ? `<span class="pill pill-rating">${Number(d.currentState.rating).toFixed(1)}</span>` : ''}
@@ -3123,6 +3124,26 @@
                 if (!Array.isArray(ids) || !ids.length) return;
                 const container = document.getElementById('pairing-list');
                 if (container) container.innerHTML = '';
+                // Keep title static; show device name inside content name bar if single selection
+                try {
+                    const bar = document.getElementById('pairing-namebar');
+                    const text = document.getElementById('pairing-namebar-text');
+                    if (bar && text) {
+                        if (ids.length === 1) {
+                            const firstId = ids[0];
+                            const dev = (state.all || []).find(d => d.id === firstId);
+                            const meta = (overrides && overrides[firstId]) || {};
+                            const name = meta.name || dev?.name || firstId;
+                            text.textContent = String(name);
+                            bar.hidden = false;
+                        } else {
+                            bar.hidden = true;
+                            text.textContent = '—';
+                        }
+                    }
+                } catch (_) {
+                    /* non-fatal */
+                }
                 const fmtExp = ms => {
                     const s = Math.max(0, Math.round(ms / 1000));
                     const m = Math.floor(s / 60);
@@ -3135,6 +3156,7 @@
                             `/api/devices/${encodeURIComponent(id)}/pairing-code`,
                             {
                                 method: 'POST',
+                                // Requires admin session; allow cookies (default in fetchJSON)
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ ttlMs: 600000, requireToken: false }),
                             }
@@ -3190,7 +3212,6 @@
                             <div class="pairing-item" data-expires-at="${String(expAt)}">
                                 <div class="pairing-meta">
                                     <div class="pairing-header">
-                                        <div class="pairing-name">${escapeHtml(name)}</div>
                                         ${tagHtml}
                                     </div>
                                     <div class="pairing-row">
@@ -3205,15 +3226,14 @@
                                     <div class="pairing-row">
                                         <div class="pairing-label">Claim URL</div>
                                         <div class="pairing-copy">
-                                            <input type="text" readonly value="${escapeHtml(claimUrl)}" class="pairing-input" />
+                                            <code class="pairing-code pairing-url">${escapeHtml(claimUrl)}</code>
                                             <button class="btn btn-outline btn-sm" data-copy="${escapeHtml(
                                                 claimUrl
                                             )}"><i class="fas fa-copy"></i> Copy</button>
                                         </div>
                                     </div>
-                                    <div class="pairing-exp subtle">Expires in ${fmtExp(expMs)}</div>
+                                    
                                 </div>
-                                <div class="pairing-qr"><img src="${qrUrl}" alt="QR"/></div>
                             </div>`;
                         if (container) container.insertAdjacentHTML('beforeend', html);
                     } catch (e) {
@@ -3233,30 +3253,56 @@
                             await navigator.clipboard.writeText(val);
                             window.notify?.toast({ type: 'success', title: 'Copied to clipboard' });
                         } catch (_) {
-                            // Fallback: select the adjacent input if any
-                            const inp = btn.parentElement?.querySelector('input');
-                            if (inp) {
-                                inp.select();
+                            // Fallback: create a temporary textarea to copy from
+                            const ta = document.createElement('textarea');
+                            ta.value = val;
+                            ta.setAttribute('readonly', '');
+                            ta.style.position = 'fixed';
+                            ta.style.opacity = '0';
+                            ta.style.pointerEvents = 'none';
+                            document.body.appendChild(ta);
+                            ta.select();
+                            try {
                                 document.execCommand?.('copy');
-                                window.getSelection()?.removeAllRanges?.();
-                            }
+                            } catch (_) {}
+                            window.getSelection()?.removeAllRanges?.();
+                            document.body.removeChild(ta);
                         }
                     });
                     container._copyBound = true;
                 }
-                // Start ticking countdown for all items in this container
-                if (container && !container._tickTimer) {
-                    container._tickTimer = setInterval(() => {
-                        container.querySelectorAll('.pairing-item').forEach(item => {
+                // Start ticking countdown in modal footer (earliest expiry across items)
+                if (container) {
+                    const footerEl = document.getElementById('pairing-exp-footer');
+                    // Reset previous timer if any
+                    if (container._tickTimer) {
+                        try {
+                            clearInterval(container._tickTimer);
+                        } catch (_) {}
+                        container._tickTimer = null;
+                    }
+                    const tick = () => {
+                        const items = Array.from(container.querySelectorAll('.pairing-item'));
+                        if (!items.length) {
+                            if (footerEl) footerEl.textContent = '';
+                            return;
+                        }
+                        const now = Date.now();
+                        let minLeft = Infinity;
+                        for (const item of items) {
                             const expAt = Number(item.getAttribute('data-expires-at') || '0');
-                            const left = Math.max(0, expAt - Date.now());
-                            const el = item.querySelector('.pairing-exp');
-                            if (el)
-                                el.textContent =
-                                    left > 0 ? `Expires in ${fmtExp(left)}` : 'Expired';
-                        });
-                    }, 1000);
+                            const left = Math.max(0, expAt - now);
+                            if (left < minLeft) minLeft = left;
+                        }
+                        if (footerEl) {
+                            footerEl.textContent =
+                                minLeft > 0 ? `Expires in ${fmtExp(minLeft)}` : 'Expired';
+                        }
+                    };
+                    tick();
+                    container._tickTimer = setInterval(tick, 1000);
                 }
+                // QR removed per UX
                 document.getElementById('modal-pairing')?.classList.add('open');
             }
             function openRemoteFor(id) {
@@ -3956,10 +4002,33 @@
                                     if (v === '__new__') location = (locNew?.value || '').trim();
                                     else location = v;
                                 }
+                                // Generate a unique installId to force a new device record
+                                const iid =
+                                    self.crypto && self.crypto.randomUUID
+                                        ? self.crypto.randomUUID()
+                                        : 'iid-' +
+                                          Math.random().toString(36).slice(2) +
+                                          Date.now().toString(36);
+                                const hwid =
+                                    'hw-' +
+                                    Math.random().toString(36).slice(2) +
+                                    '-' +
+                                    Date.now().toString(36);
                                 const r = await fetchJSON('/api/devices/register', {
                                     method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ name, location }),
+                                    // Avoid sending cookies so server doesn't reuse pr_iid and upsert previous device
+                                    credentials: 'omit',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'x-install-id': iid,
+                                        'x-hardware-id': hwid,
+                                    },
+                                    body: JSON.stringify({
+                                        name,
+                                        location,
+                                        installId: iid,
+                                        hardwareId: hwid,
+                                    }),
                                 });
                                 await loadDevices();
                                 const newId = r?.deviceId || r?.device?.id || r?.id;
