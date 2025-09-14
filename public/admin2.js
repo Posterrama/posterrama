@@ -365,9 +365,34 @@
                     // Update the value span inside the pill
                     const valueSpan = badge.querySelector('.value');
                     if (valueSpan) {
-                        valueSpan.textContent = String(textVal || '').toLowerCase();
+                        let displayText = String(textVal || '');
+                        // For storage pill, map to Healthy/Unhealthy wording
+                        if (badgeId === 'perf-db-status') {
+                            const v = displayText.toLowerCase();
+                            const healthyVals = ['connected', 'ok', 'running', 'active'];
+                            if (cls === 'success' || healthyVals.includes(v)) {
+                                displayText = 'Healthy';
+                            } else if (cls === 'warning') {
+                                displayText = 'Degraded';
+                            } else {
+                                displayText = 'Unhealthy';
+                            }
+                        }
+                        valueSpan.textContent = displayText;
                     } else {
-                        badge.textContent = String(textVal || '').toLowerCase();
+                        let displayText = String(textVal || '');
+                        if (badgeId === 'perf-db-status') {
+                            const v = displayText.toLowerCase();
+                            const healthyVals = ['connected', 'ok', 'running', 'active'];
+                            if (cls === 'success' || healthyVals.includes(v)) {
+                                displayText = 'Healthy';
+                            } else if (cls === 'warning') {
+                                displayText = 'Degraded';
+                            } else {
+                                displayText = 'Unhealthy';
+                            }
+                        }
+                        badge.textContent = displayText;
                     }
                 }
             };
