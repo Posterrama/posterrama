@@ -1830,20 +1830,24 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
         return value;
     };
 
-    // Build response; compute library totals and health alerts asynchronously
+    // Decide whether to include detailed health (expensive: may probe Plex/Jellyfin)
+    const includeDetailedHealth = process.env.DASHBOARD_INCLUDE_DETAILED_HEALTH === 'true';
+
+    // Build response; compute library totals and optionally health alerts asynchronously
     Promise.all([
         getTotals(),
-        // require inline to avoid top-of-file ordering concerns
-        Promise.resolve()
-            .then(() => {
-                try {
-                    const { getDetailedHealth } = require('./utils/healthCheck');
-                    return getDetailedHealth();
-                } catch (_) {
-                    return null;
-                }
-            })
-            .catch(() => null),
+        includeDetailedHealth
+            ? Promise.resolve()
+                  .then(() => {
+                      try {
+                          const { getDetailedHealth } = require('./utils/healthCheck');
+                          return getDetailedHealth();
+                      } catch (_) {
+                          return null;
+                      }
+                  })
+                  .catch(() => null)
+            : Promise.resolve(null),
     ])
         .then(([totals, health]) => {
             // Extract alerts from health checks (warnings/errors)
