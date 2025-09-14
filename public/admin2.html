@@ -4090,38 +4090,19 @@
         navigator.serviceWorker
           .register('/sw.js')
           .then(reg => {
-            const QUIET_UNTIL = Date.now() + 90000; // 90s post-load quiet period
-            const swToast = (opts) => {
-              try {
-                if (Date.now() < QUIET_UNTIL) return; // suppress early toasts after refresh
-                if (window.__suppressSwUpdateToasts) return; // allow runtime suppression around actions
-                window.notify?.toast?.(opts);
-              } catch (_) {}
-            };
+            // Disable SW update toasts in Admin: end-users don't receive admin-only updates.
+            // Keep registration for caching/offline benefits, but don't surface update messages.
+            const swToast = () => {};
             // If there's already a waiting worker, do NOT force-activate.
             // We'll surface an unobtrusive update hint and let the user refresh.
-            if (reg.waiting && navigator.serviceWorker.controller) {
-              swToast({
-                type: 'info',
-                title: 'Update ready',
-                message: 'A new version is available. Refresh when convenient.',
-                duration: 6000,
-              });
-            }
+            // Intentionally no notification when a waiting worker exists
 
             // When a new SW is found, wait until it installs, then hint the user.
             reg.addEventListener('updatefound', () => {
               const sw = reg.installing;
               if (!sw) return;
               sw.addEventListener('statechange', () => {
-                if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-                  swToast({
-                    type: 'info',
-                    title: 'Update installed',
-                    message: 'Refresh to apply the latest Admin updates.',
-                    duration: 6000,
-                  });
-                }
+                // Intentionally suppress 'Update installed' notifications
               });
             });
 
