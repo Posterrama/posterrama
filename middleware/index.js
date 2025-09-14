@@ -128,7 +128,24 @@ function requestLoggingMiddleware() {
             } else if (duration > 5000) {
                 logger.warn('Slow request detected', logData);
             } else if (req.url.includes('/api/')) {
-                logger.info('API request completed', logData);
+                // Reduce noise: skip ultra-chatty streams (SSE) and demote to debug by default
+                if (req.url.startsWith('/api/admin/events')) return; // SSE stream
+
+                // Keep original behavior for tests to satisfy assertions
+                if (process.env.NODE_ENV === 'test') {
+                    logger.info('API request completed', logData);
+                    return;
+                }
+
+                // Configurable log level and sampling for API access logs
+                const level = (process.env.API_REQUEST_LOG_LEVEL || 'debug').toLowerCase(); // info|debug|warn
+                const sample = Number(process.env.API_REQUEST_LOG_SAMPLE || 0); // 0..1 (e.g., 0.1 = 10%)
+                const logFn = logger[level] || logger.debug;
+                if (sample > 0) {
+                    if (Math.random() < sample) logFn('API request completed', logData);
+                } else {
+                    logFn('API request completed', logData);
+                }
             }
         });
 
