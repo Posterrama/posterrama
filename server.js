@@ -793,9 +793,14 @@ app.get(['/admin', '/admin.html'], (req, res, next) => {
             .replace(
                 /admin\.css\?v=[^"&\s]+/g,
                 `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
-            );
+            )
+            // Ensure service worker registration always fetches latest sw.js
+            .replace(/\/sw\.js(\?v=[^"'\s>]+)?/g, `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`);
 
-        res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
+        // Always fetch latest HTML shell (and prevent intermediaries from caching)
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         res.send(stamped);
     });
 });

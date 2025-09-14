@@ -2235,6 +2235,71 @@
         let userHasMovedPreview = false;
         // Preview-only orientation state for non-cinema modes
         let previewOrientation = 'landscape'; // 'landscape' | 'portrait'
+        // Remember user's custom anchor after drag so we can preserve it across changes
+        let lastUserAnchor = null; // { ax, ay }
+        // Anchor padding inside the Active Mode section (top-right inset)
+        const ANCHOR_INSET = 8;
+
+        // Compute the current visual top-right anchor point of the preview shell (window content)
+        function getTopRightAnchorPoint() {
+            const shell = container.querySelector('.preview-shell');
+            const srect = shell?.getBoundingClientRect?.();
+            if (!srect) {
+                const crect = container.getBoundingClientRect();
+                return { ax: crect.right, ay: crect.top };
+            }
+            return { ax: srect.right, ay: srect.top };
+        }
+
+        // Compute the desired anchor at the Active Mode card (top-right with padding)
+        function getActiveModeAnchorPoint(inset = ANCHOR_INSET) {
+            const card =
+                document.getElementById('card-active-mode') ||
+                document.getElementById('section-display');
+            if (!card) return getTopRightAnchorPoint();
+            const r = card.getBoundingClientRect();
+            return { ax: r.right - inset, ay: r.top + inset };
+        }
+
+        // Position the container so that its visual top-right corner sits at the given anchor
+        function setPositionFromTopRightAnchor(anchor) {
+            if (!anchor) return;
+            // Measure current visual top-right of the preview shell, then correct by the delta to target
+            const crect = container.getBoundingClientRect();
+            const shell = container.querySelector('.preview-shell');
+            const srect = shell?.getBoundingClientRect?.() || crect;
+            const currentAx = srect.right;
+            const currentAy = srect.top;
+            const dx = anchor.ax - currentAx;
+            const dy = anchor.ay - currentAy;
+            const baseLeft = isFinite(parseFloat(container.style.left))
+                ? parseFloat(container.style.left)
+                : crect.left;
+            const baseTop = isFinite(parseFloat(container.style.top))
+                ? parseFloat(container.style.top)
+                : crect.top;
+            const l = baseLeft + dx;
+            const t = baseTop + dy;
+            container.style.left = l + 'px';
+            container.style.top = t + 'px';
+            container.style.right = 'auto';
+            container.style.bottom = 'auto';
+            // Post-set micro-correction to eliminate any fractional drift after layout settles
+            requestAnimationFrame(() => {
+                try {
+                    const s2 = shell?.getBoundingClientRect?.();
+                    if (!s2) return;
+                    const fixDx = anchor.ax - s2.right;
+                    const fixDy = anchor.ay - s2.top;
+                    if (Math.abs(fixDx) > 0.1 || Math.abs(fixDy) > 0.1) {
+                        const curLeft = parseFloat(container.style.left) || 0;
+                        const curTop = parseFloat(container.style.top) || 0;
+                        container.style.left = curLeft + fixDx + 'px';
+                        container.style.top = curTop + fixDy + 'px';
+                    }
+                } catch (_) {}
+            });
+        }
 
         function setVisible(on) {
             container.style.display = on ? 'block' : 'none';
@@ -2244,19 +2309,28 @@
         // Compute visual metrics for the preview shell (accounts for CSS transform scale)
         function getVisualShellMetrics() {
             const shell = container.querySelector('.preview-shell');
-            const Lw = shell?.clientWidth || container.offsetWidth || 420; // layout width
-            const Lh = shell?.clientHeight || container.offsetHeight || 250; // layout height
-            const srect = shell?.getBoundingClientRect?.() || { width: Lw, height: Lh };
-            const Vw = srect.width || Lw;
-            const Vh = srect.height || Lh;
-            // Offset of visual box within layout box due to center-origin scale
-            const offsetX = (Lw - Vw) / 2;
-            const offsetY = (Lh - Vh) / 2;
+            const Lw = shell?.clientWidth || container.offsetWidth || 420; // layout width (shell)
+            const Lh = shell?.clientHeight || container.offsetHeight || 250; // layout height (shell)
+            const srect = shell?.getBoundingClientRect?.() || {
+                width: Lw,
+                height: Lh,
+                left: 0,
+                top: 0,
+            };
+            const crect = container.getBoundingClientRect?.() || { left: 0, top: 0 };
+            const Vw = srect.width || Lw; // visual width after scale
+            const Vh = srect.height || Lh; // visual height after scale
+            // Offset of the shell box inside the container (chrome like drag handle, padding)
+            const chromeX = srect.left - crect.left || 0;
+            const chromeY = srect.top - crect.top || 0;
+            // Offset of visual box within shell due to center-origin scale, plus chrome offset
+            const offsetX = chromeX + (Lw - Vw) / 2;
+            const offsetY = chromeY + (Lh - Vh) / 2;
             return { Vw, Vh, offsetX, offsetY };
         }
 
         // Clamp the current container position so the visual box stays within viewport margins
-        function clampWithinViewport(margin = 8) {
+        function clampWithinViewport(margin = 0) {
             try {
                 const { Vw, Vh, offsetX, offsetY } = getVisualShellMetrics();
                 const vw = window.innerWidth;
@@ -2268,8 +2342,10 @@
                 const rect = container.getBoundingClientRect();
                 const left = Math.min(Math.max(rect.left, minLeft), maxLeft);
                 const top = Math.min(Math.max(rect.top, minTop), maxTop);
-                container.style.top = top + 'px';
-                container.style.left = left + 'px';
+                const l = Math.round(left);
+                const t = Math.round(top);
+                container.style.top = t + 'px';
+                container.style.left = l + 'px';
                 container.style.right = 'auto';
                 container.style.bottom = 'auto';
             } catch (_) {}
@@ -2280,34 +2356,21 @@
             try {
                 // If the user has manually moved the preview, do not re-anchor; just ensure it's clamped
                 if (userHasMovedPreview) {
-                    clampWithinViewport(8);
+                    clampWithinViewport(0);
                     return;
                 }
-                const activeCard =
-                    document.getElementById('card-active-mode') ||
-                    document.getElementById('section-display');
-                if (!activeCard) return;
-                const r = activeCard.getBoundingClientRect();
-                const inset = 8; // slightly tighter padding top/right
-                const { Vw, Vh, offsetX, offsetY } = getVisualShellMetrics();
-                // Place so the visual top aligns with card top+inset, and visual right aligns with card right-inset
-                const top = r.top + inset - offsetY;
-                const left = r.right - Vw - inset - offsetX;
-                // Clamp within viewport with a small margin
-                const vw = window.innerWidth;
-                const vh = window.innerHeight;
-                const margin = 8;
-                // Clamp based on the visual box so it never goes outside
-                const minLeft = margin - offsetX;
-                const maxLeft = vw - margin - offsetX - Vw;
-                const minTop = margin - offsetY;
-                const maxTop = vh - margin - offsetY - Vh;
-                const clampedTop = Math.min(Math.max(top, minTop), maxTop);
-                const clampedLeft = Math.min(Math.max(left, minLeft), maxLeft);
-                container.style.top = clampedTop + 'px';
-                container.style.left = clampedLeft + 'px';
-                container.style.right = 'auto';
-                container.style.bottom = 'auto';
+                const anchor = getActiveModeAnchorPoint(ANCHOR_INSET);
+                setPositionFromTopRightAnchor(anchor);
+            } catch (_) {}
+        }
+
+        // Unified re-anchor helper used by resize/transition handlers
+        function reanchorToCorrectPoint() {
+            try {
+                const anchor = userHasMovedPreview
+                    ? lastUserAnchor || getTopRightAnchorPoint()
+                    : getActiveModeAnchorPoint(ANCHOR_INSET);
+                setPositionFromTopRightAnchor(anchor);
             } catch (_) {}
         }
 
@@ -2419,13 +2482,31 @@
             positionAtActiveMode();
             // Listen to container/shell size changes for smooth updates
             try {
+                const onResizeOrShell = () => {
+                    updateFrameScale();
+                    reanchorToCorrectPoint();
+                };
                 if (window.ResizeObserver) {
                     const shell = container.querySelector('.preview-shell');
-                    const ro = new ResizeObserver(() => updateFrameScale());
+                    const ro = new ResizeObserver(onResizeOrShell);
                     if (shell) ro.observe(shell);
-                } else {
-                    window.addEventListener('resize', updateFrameScale);
+                    // Also re-anchor precisely after width/height/transform transitions settle
+                    shell?.addEventListener('transitionend', e => {
+                        if (
+                            e &&
+                            (e.propertyName === 'width' ||
+                                e.propertyName === 'height' ||
+                                e.propertyName === 'transform')
+                        ) {
+                            // Allow final style to apply, then rescale and re-anchor
+                            requestAnimationFrame(() => {
+                                updateFrameScale();
+                                reanchorToCorrectPoint();
+                            });
+                        }
+                    });
                 }
+                window.addEventListener('resize', onResizeOrShell);
             } catch (_) {}
         });
 
@@ -2465,6 +2546,13 @@
                 lastPayload = next;
                 hardReset();
             } else {
+                // Orientation change: maintain anchor
+                try {
+                    const anchor = userHasMovedPreview
+                        ? lastUserAnchor || getTopRightAnchorPoint()
+                        : getActiveModeAnchorPoint(ANCHOR_INSET);
+                    setPositionFromTopRightAnchor(anchor);
+                } catch (_) {}
                 debouncedSend();
             }
         });
@@ -2474,15 +2562,27 @@
         // Orientation toggle for non-cinema modes: landscape <-> portrait
         orientBtn?.addEventListener('click', () => {
             // Only applies in Screensaver/Wallart; hidden in Cinema
+            // Capture the current anchor before changing orientation; if we're
+            // in landscape now, remember it for exact restoration
+            // Capture user anchor only if they had previously dragged
+            if (userHasMovedPreview) {
+                try {
+                    lastUserAnchor = getTopRightAnchorPoint();
+                } catch (_) {}
+            }
             previewOrientation = previewOrientation === 'portrait' ? 'landscape' : 'portrait';
             // Update container immediately for visual aspect switch
             try {
                 const payload = collectPreviewPayload();
                 applyContainerMode(payload);
             } catch (_) {}
-            requestAnimationFrame(updateFrameScale);
-            // After dimensions settle, snap back to the Active Mode corner with padding
-            requestAnimationFrame(() => positionAtActiveMode());
+            requestAnimationFrame(() => {
+                updateFrameScale();
+                // After dimensions settle, keep the same visual top-right anchor
+                reanchorToCorrectPoint();
+                // Extra nudge on next frame in case transform finishes one frame later
+                requestAnimationFrame(reanchorToCorrectPoint);
+            });
             // No config change needed; just update the preview
             sendUpdate();
         });
@@ -2498,7 +2598,9 @@
                 } catch (_) {}
                 requestAnimationFrame(() => {
                     updateFrameScale();
-                    positionAtActiveMode();
+                    // Maintain the anchor across mode switches
+                    reanchorToCorrectPoint();
+                    requestAnimationFrame(reanchorToCorrectPoint);
                 });
                 // Update the preview content too
                 sendUpdate();
@@ -2614,6 +2716,13 @@
                 container.classList.remove('dragging');
                 // Mark that the user has intentionally moved the PiP; suppress future auto-reanchors
                 userHasMovedPreview = true;
+                try {
+                    // Snap to integer pixel positions before storing anchor
+                    const rect = container.getBoundingClientRect();
+                    container.style.left = Math.round(rect.left) + 'px';
+                    container.style.top = Math.round(rect.top) + 'px';
+                    lastUserAnchor = getTopRightAnchorPoint();
+                } catch (_) {}
                 try {
                     grip.releasePointerCapture?.(e.pointerId);
                 } catch (_) {}
