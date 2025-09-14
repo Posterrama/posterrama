@@ -9400,7 +9400,7 @@ function confirmDialog(message, triggerEl = null) {
         }
         const div = document.createElement('div');
         div.innerHTML =
-            '<div id="confirm-modal" class="modal is-hidden" aria-hidden="true" role="dialog" aria-labelledby="confirm-modal-title" tabindex="-1"><div class="modal-background" data-confirm-cancel></div><div class="modal-content"><span class="close" data-confirm-cancel>&times;</span><h3 id="confirm-modal-title"><i class="fas fa-question-circle"></i> Bevestigen</h3><p data-confirm-message></p><div class="form-actions" style="margin-top: 1rem; display:flex; gap:.5rem; justify-content:flex-end;"><button type="button" class="btn btn-secondary" data-confirm-cancel>Annuleren</button><button type="button" class="btn btn-danger" data-confirm-ok>Verwijderen</button></div></div></div>';
+            '<div id="confirm-modal" class="modal is-hidden" aria-hidden="true" role="dialog" aria-labelledby="confirm-modal-title" tabindex="-1"><div class="modal-background" data-confirm-cancel></div><div class="modal-content"><span class="close" data-confirm-cancel>&times;</span><h3 id="confirm-modal-title"><i class="fas fa-question-circle"></i> Confirm</h3><p data-confirm-message></p><div class="form-actions" style="margin-top: 1rem; display:flex; gap:.5rem; justify-content:flex-end;"><button type="button" class="btn btn-secondary" data-confirm-cancel>Cancel</button><button type="button" class="btn btn-danger" data-confirm-ok>Delete</button></div></div></div>';
         const injected = div.firstChild;
         document.body.appendChild(injected);
         devLog('confirmDialog: injected fresh modal');
@@ -9551,7 +9551,7 @@ function confirmDialog(message, triggerEl = null) {
                             // Visual banner to indicate fallback
                             const banner = document.createElement('div');
                             banner.textContent =
-                                'Kon bevestigingsvenster niet openen; val terug op systeembevestiging.';
+                                'Could not open confirmation dialog; falling back to system confirm.';
                             banner.style.cssText =
                                 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#c53030;color:#fff;padding:8px 12px;border-radius:6px;z-index:10000002;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.3)';
                             document.body.appendChild(banner);
