@@ -1552,6 +1552,10 @@
   /* Custom layout mode for Wallart & Cinema removed */
     /* Mode cards aligned with perf-card look */
   #section-display .mode-card { position: relative; background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); align-self: start; height: auto; }
+  /* Ensure bottom spacing equals top by trimming trailing inner margins */
+  #section-display .mode-card > :last-child { margin-bottom: 0 !important; }
+  #section-display .mode-card .form-grid > .form-row:last-child { margin-bottom: 0 !important; }
+  #section-display .form-section > :last-child { margin-bottom: 0 !important; }
         #section-display .mode-card.inactive { opacity: .6; }
         #section-display .card-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom: 10px; }
   #section-display .card-title { display:flex; align-items:center; gap:8px; font-weight:700; }
