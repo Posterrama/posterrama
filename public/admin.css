@@ -4673,6 +4673,11 @@ fieldset:focus-within {
     color: rgba(232, 213, 255, 0.95);
     position: relative;
 }
+#devices-section td.cell-status .status-badges .badge.badge-dup {
+    background: rgba(255, 165, 0, 0.1); /* amber */
+    border-color: rgba(255, 165, 0, 0.35);
+    color: rgba(255, 193, 7, 0.95);
+}
 #devices-section td.cell-status .status-badges .badge.badge-groups::before {
     content: '\f0c0'; /* fa-users */
     font-family: 'Font Awesome 6 Free';

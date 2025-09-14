@@ -10248,6 +10248,18 @@ function renderDevicesTable(devices) {
         /* ignore debug log errors */ void 0;
     }
 
+    // Precompute duplicate candidates by hardwareId and installId
+    const hwMap = Object.create(null);
+    const iidMap = Object.create(null);
+    try {
+        (devices || []).forEach(d => {
+            const hw = d && d.hardwareId;
+            if (hw) (hwMap[hw] = hwMap[hw] || []).push(d);
+            const iid = d && d.installId;
+            if (iid) (iidMap[iid] = iidMap[iid] || []).push(d);
+        });
+    } catch (_) {}
+
     // Format last-seen into separate date/time lines for compact layout
     const fmtParts = ts => {
         if (!ts) return null;
@@ -10473,10 +10485,41 @@ function renderDevicesTable(devices) {
             window.currentConfig &&
             window.currentConfig.syncEnabled !== false
         );
+        const dupesBadge = (() => {
+            try {
+                const set = new Set();
+                if (d.hardwareId && hwMap[d.hardwareId] && hwMap[d.hardwareId].length > 1) {
+                    for (const x of hwMap[d.hardwareId]) if (x && x.id !== d.id) set.add(x);
+                }
+                if (d.installId && iidMap[d.installId] && iidMap[d.installId].length > 1) {
+                    for (const x of iidMap[d.installId]) if (x && x.id !== d.id) set.add(x);
+                }
+                const list = Array.from(set);
+                if (!list.length) return '';
+                const tipList = list
+                    .map(x => {
+                        const nm = (x.name && String(x.name).slice(0, 40)) || '(unnamed)';
+                        const sid = (x.id || '').slice(0, 8);
+                        return `${nm} — ${sid}`;
+                    })
+                    .join('\n');
+                const title = `Likely duplicates on same machine or installId:\n${tipList}`;
+                return `<span class="badge badge-dup" title="${title.replace(/"/g, '&quot;')}">Dupes: ${list.length}</span>`;
+            } catch (_) {
+                return '';
+            }
+        })();
         const syncedBadge = synced
             ? '<span class="badge is-online badge-synced" title="Device will align to sync ticks">Synced</span>'
             : '';
-        const together = [statusBadge, modeBadge, overridesBadge, groupsBadge, syncedBadge]
+        const together = [
+            statusBadge,
+            modeBadge,
+            overridesBadge,
+            groupsBadge,
+            dupesBadge,
+            syncedBadge,
+        ]
             .filter(Boolean)
             .join(' ');
         return `<div class="status-badges">${together}</div>`;
