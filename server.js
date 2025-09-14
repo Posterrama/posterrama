@@ -1462,6 +1462,19 @@ function isDeviceMgmtEnabled() {
 
 if (isDeviceMgmtEnabled()) {
     const adminAuth = isAuthenticated; // reuse existing admin guard
+    // Device endpoint rate limiters (per IP)
+    // - Register: up to 10 per minute (burst)
+    // - Heartbeat: up to 120 per minute to allow multiple devices behind one IP
+    const deviceRegisterLimiter = createRateLimiter(
+        60 * 1000,
+        10,
+        'Too many device registrations from this IP, please try again later.'
+    );
+    const deviceHeartbeatLimiter = createRateLimiter(
+        60 * 1000,
+        120,
+        'Too many device heartbeats from this IP, please slow down.'
+    );
     // Lightweight cookie parsing to bind an install identifier across tabs
     function parseCookies(header) {
         const out = {};
@@ -1487,7 +1500,7 @@ if (isDeviceMgmtEnabled()) {
     }
 
     // Device register (MVP)
-    app.post('/api/devices/register', express.json(), async (req, res) => {
+    app.post('/api/devices/register', deviceRegisterLimiter, express.json(), async (req, res) => {
         try {
             const { name = '', location = '', installId = null } = req.body || {};
             const cookies = parseCookies(req.headers['cookie']);
@@ -1523,7 +1536,7 @@ if (isDeviceMgmtEnabled()) {
     });
 
     // Device heartbeat + poll commands
-    app.post('/api/devices/heartbeat', express.json(), async (req, res) => {
+    app.post('/api/devices/heartbeat', deviceHeartbeatLimiter, express.json(), async (req, res) => {
         try {
             const b = req.body || {};
             const deviceId = b.deviceId;
