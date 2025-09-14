@@ -4719,28 +4719,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Reset transform after the opacity transition actually ends
                 const handler = ev => {
                     if (!ev || ev.propertyName === 'opacity') {
-                        try {
-                            oldLayer.removeEventListener('transitionend', handler);
-                        } catch (_) {}
-                        try {
-                            oldLayer.style.transform = 'none';
-                            // Clear transition after fade is done to avoid lingering style
-                            if (!preserveOldFade) oldLayer.style.transition = 'none';
-                        } catch (_) {}
+                        oldLayer.removeEventListener('transitionend', handler);
+                        oldLayer.style.transform = 'none';
+                        // Clear transition after fade is done to avoid lingering style
+                        if (!preserveOldFade) oldLayer.style.transition = 'none';
                     }
                 };
-                try {
-                    oldLayer.addEventListener('transitionend', handler);
-                } catch (_) {}
+                oldLayer.addEventListener('transitionend', handler);
                 // Fallback in case transitionend is missed
                 setTimeout(() => {
-                    try {
-                        oldLayer.removeEventListener('transitionend', handler);
-                    } catch (_) {}
-                    try {
-                        oldLayer.style.transform = 'none';
-                        if (!preserveOldFade) oldLayer.style.transition = 'none';
-                    } catch (_) {}
+                    oldLayer.removeEventListener('transitionend', handler);
+                    oldLayer.style.transform = 'none';
+                    if (!preserveOldFade) oldLayer.style.transition = 'none';
                 }, oldFadeMs + 50);
             }
             oldLayer.removeAttribute('data-ken-burns'); // Clean up Ken Burns marker

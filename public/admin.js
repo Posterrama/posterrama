@@ -2553,11 +2553,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('effectPauseTime').value =
             config.effectPauseTime ?? defaults.effectPauseTime;
         // If Ken Burns is selected at load time, force the visible value to 0 and hide the control
-        try {
-            if (transitionEffect === 'kenburns') {
-                document.getElementById('effectPauseTime').value = '0';
-            }
-        } catch (_) {}
+        if (transitionEffect === 'kenburns') {
+            // Force visible pause to 0 when Ken Burns is selected
+            const ept = document.getElementById('effectPauseTime');
+            if (ept) ept.value = '0';
+        }
         document.getElementById('cinemaMode').checked = config.cinemaMode ?? defaults.cinemaMode;
         document.getElementById('cinemaOrientation').value =
             config.cinemaOrientation ?? defaults.cinemaOrientation;
@@ -10252,13 +10252,11 @@ function initSourceConditionalVisibility() {
         plexEnabledCheckbox.addEventListener('change', () => {
             togglePlexConfig();
             // Show restart banner when toggling content sources
-            try {
-                showRestartButton();
-                clearTimeout(plexNotifyTimer);
-                plexNotifyTimer = setTimeout(() => {
-                    showNotification('Restart required to apply Plex source change.', 'warning');
-                }, 50);
-            } catch (_) {}
+            showRestartButton();
+            clearTimeout(plexNotifyTimer);
+            plexNotifyTimer = setTimeout(() => {
+                showNotification('Restart required to apply Plex source change.', 'warning');
+            }, 50);
         });
 
         console.log('Plex conditional visibility initialized');
@@ -10287,16 +10285,11 @@ function initSourceConditionalVisibility() {
         let jellyfinNotifyTimer;
         jellyfinEnabledCheckbox.addEventListener('change', () => {
             toggleJellyfinConfig();
-            try {
-                showRestartButton();
-                clearTimeout(jellyfinNotifyTimer);
-                jellyfinNotifyTimer = setTimeout(() => {
-                    showNotification(
-                        'Restart required to apply Jellyfin source change.',
-                        'warning'
-                    );
-                }, 50);
-            } catch (_) {}
+            showRestartButton();
+            clearTimeout(jellyfinNotifyTimer);
+            jellyfinNotifyTimer = setTimeout(() => {
+                showNotification('Restart required to apply Jellyfin source change.', 'warning');
+            }, 50);
         });
 
         console.log('Jellyfin conditional visibility initialized');
@@ -10325,13 +10318,11 @@ function initSourceConditionalVisibility() {
         let tmdbNotifyTimer;
         tmdbEnabledCheckbox.addEventListener('change', () => {
             toggleTmdbConfig();
-            try {
-                showRestartButton();
-                clearTimeout(tmdbNotifyTimer);
-                tmdbNotifyTimer = setTimeout(() => {
-                    showNotification('Restart required to apply TMDB source change.', 'warning');
-                }, 50);
-            } catch (_) {}
+            showRestartButton();
+            clearTimeout(tmdbNotifyTimer);
+            tmdbNotifyTimer = setTimeout(() => {
+                showNotification('Restart required to apply TMDB source change.', 'warning');
+            }, 50);
         });
 
         console.log('TMDB conditional visibility initialized');
@@ -10360,13 +10351,11 @@ function initSourceConditionalVisibility() {
         let tvdbNotifyTimer;
         tvdbEnabledCheckbox.addEventListener('change', () => {
             toggleTvdbConfig();
-            try {
-                showRestartButton();
-                clearTimeout(tvdbNotifyTimer);
-                tvdbNotifyTimer = setTimeout(() => {
-                    showNotification('Restart required to apply TVDB source change.', 'warning');
-                }, 50);
-            } catch (_) {}
+            showRestartButton();
+            clearTimeout(tvdbNotifyTimer);
+            tvdbNotifyTimer = setTimeout(() => {
+                showNotification('Restart required to apply TVDB source change.', 'warning');
+            }, 50);
         });
 
         console.log('TVDB conditional visibility initialized');
@@ -10387,16 +10376,11 @@ function initSourceConditionalVisibility() {
 
         let streamingNotifyTimer;
         streamingEnabledCheckbox.addEventListener('change', () => {
-            try {
-                showRestartButton();
-                clearTimeout(streamingNotifyTimer);
-                streamingNotifyTimer = setTimeout(() => {
-                    showNotification(
-                        'Restart required to apply Streaming Sources change.',
-                        'warning'
-                    );
-                }, 50);
-            } catch (_) {}
+            showRestartButton();
+            clearTimeout(streamingNotifyTimer);
+            streamingNotifyTimer = setTimeout(() => {
+                showNotification('Restart required to apply Streaming Sources change.', 'warning');
+            }, 50);
         });
 
         console.log('Streaming Sources restart requirement initialized');
