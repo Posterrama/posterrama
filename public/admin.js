@@ -1331,6 +1331,39 @@
             target.classList.add('active');
             target.hidden = false;
         }
+        // Keep sidebar nav indicator in sync with active section
+        try {
+            // Clear previous active states
+            document
+                .querySelectorAll('.sidebar-nav .nav-item, .sidebar-nav .nav-subitem')
+                .forEach(n => n.classList.remove('active'));
+
+            if (id === 'section-media-sources') {
+                // Open the media sources group and highlight its header toggle
+                const group = document.querySelector('.sidebar .nav-group');
+                group?.classList.add('open');
+                group?.querySelector('.nav-item.nav-toggle')?.classList.add('active');
+            } else {
+                const map = {
+                    'section-dashboard': 'dashboard',
+                    'section-display': 'display',
+                    'section-operations': 'operations',
+                    'section-devices': 'devices',
+                };
+                const key = map[id];
+                if (key) {
+                    const item = document.querySelector(
+                        `.sidebar-nav .nav-item[data-nav="${key}"]`
+                    );
+                    item?.classList.add('active');
+                }
+                // Collapse media sources group when leaving it
+                const group = document.querySelector('.sidebar .nav-group');
+                group?.classList.remove('open');
+            }
+        } catch (_) {
+            /* non-fatal */
+        }
         // Update header title for basic context switch
         const pageHeader = document.querySelector('.page-header');
         const h1 = pageHeader?.querySelector('h1');
