@@ -565,6 +565,14 @@
                             </div>
                             <div class="form-section unified-section">
                                 <div class="subsection-content" id="devices-subsection">
+                                    <!-- Mobile-only notice: Devices management on desktop -->
+                                    <div id="devices-mobile-note" class="mobile-only-note" aria-live="polite" aria-atomic="true" role="status">
+                                        <div class="note-icon" aria-hidden="true"><i class="fas fa-desktop"></i></div>
+                                        <div class="note-text">
+                                            <strong>Desktop-only feature</strong><br>
+                                            Device management is available on desktop only. Please use a desktop browser to manage devices.
+                                        </div>
+                                    </div>
                                     <div class="devices-toolbar" role="toolbar" aria-label="Devices toolbar">
                                         <div class="toolbar-left">
                                             <button type="button" id="devices-refresh" class="btn">
@@ -1624,13 +1632,13 @@
                 <span>Security</span>
             </button>
             
-            <button class="mobile-nav-item" data-section="groups">
-                <i class="fas fa-object-group nav-icon"></i>
-                <span>Groups</span>
-            </button>
             <button class="mobile-nav-item" data-section="management">
                 <i class="fas fa-tools nav-icon"></i>
                 <span>Management</span>
+            </button>
+            <button class="mobile-nav-item" data-section="devices">
+                <i class="fas fa-mobile-alt nav-icon"></i>
+                <span>Devices</span>
             </button>
         </nav>
     </aside>
@@ -1693,6 +1701,16 @@
                     <li>Recently Added: show only new content from the last N days.</li>
                 </ul>
                 <p><em>Tip:</em> Start with one source first, verify posters load, then enable others.</p>
+            </div>
+            <div class="help-section">
+                <h4>Devices (Basics)</h4>
+                <ul>
+                    <li>Status: Offline (grey), Online (green), Live (blue)</li>
+                    <li>Controls: Previous/Next, Play/Pause, Pin poster, Reload</li>
+                    <li>Overrides: Apply a preset or JSON override per device</li>
+                    <li>Sync: Devices align on a global tick for smooth changes</li>
+                </ul>
+                <p>Device management is desktop‑only; on mobile you’ll see a short notice.</p>
             </div>
         </div>
     </div>

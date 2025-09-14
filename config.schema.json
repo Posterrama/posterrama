@@ -353,6 +353,69 @@
             },
             "required": ["enabled", "port"]
         },
+        "deviceMgmt": {
+            "description": "Feature flag for device management UI and APIs.",
+            "type": "object",
+            "properties": {
+                "enabled": { "type": "boolean", "default": true }
+            }
+        },
+        "tmdbSource": {
+            "description": "Optional TMDB source configuration.",
+            "type": "object",
+            "properties": {
+                "enabled": { "type": "boolean", "default": false },
+                "category": { "type": "string", "default": "popular" },
+                "minRating": { "type": "number", "minimum": 0, "maximum": 10, "default": 0 },
+                "apiKey": { "type": "string", "default": "" },
+                "yearFilter": { "type": ["integer", "null"], "default": null },
+                "genreFilter": { "type": "string", "default": "" }
+            }
+        },
+        "tvdbSource": {
+            "description": "Optional TVDB source configuration.",
+            "type": "object",
+            "properties": {
+                "enabled": { "type": "boolean", "default": false },
+                "category": { "type": "string", "default": "popular" },
+                "minRating": { "type": "number", "minimum": 0, "maximum": 10, "default": 0 },
+                "yearFilter": { "type": ["integer", "null"], "default": null },
+                "genreFilter": { "type": "string", "default": "" },
+                "showCount": { "type": "integer", "minimum": 1, "default": 25 },
+                "movieCount": { "type": "integer", "minimum": 1, "default": 25 }
+            }
+        },
+        "streamingSources": {
+            "description": "List of additional streaming sources (reserved for future use).",
+            "type": "array",
+            "items": { "type": "object" },
+            "default": []
+        },
+        "cache": {
+            "description": "Cache tuning parameters.",
+            "type": "object",
+            "properties": {
+                "maxSizeGB": { "type": "number", "minimum": 0, "default": 1.5 },
+                "minFreeDiskSpaceMB": { "type": "integer", "minimum": 0, "default": 750 },
+                "autoCleanup": { "type": "boolean", "default": true },
+                "cleanupIntervalMinutes": { "type": "integer", "minimum": 1, "default": 15 },
+                "maxAgeHours": { "type": "integer", "minimum": 1, "default": 168 }
+            }
+        },
+        "serverName": {
+            "description": "Friendly name for this Posterrama instance.",
+            "type": "string"
+        },
+        "baseUrl": {
+            "description": "Base URL where this instance is reachable (for links/tooling).",
+            "type": "string"
+        },
+        "port": {
+            "description": "Optional explicit port override for integrations/tests.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+        },
         "plexClientOptions": {
             "description": "Advanced options to pass to the plex-api client.",
             "type": "object"

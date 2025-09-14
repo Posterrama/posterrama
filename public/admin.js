@@ -951,9 +951,6 @@ function toggleHelpPanel() {
     if (helpPanel.classList.contains('open')) {
         updateHelpContent(sectionName);
     }
-    if (helpPanel.classList.contains('open')) {
-        updateHelpContent(sectionName);
-    }
 }
 
 function updateHelpContent(sectionId) {
@@ -1023,6 +1020,7 @@ function updateHelpContentForced(sectionId) {
         media: 'media-section',
         authentication: 'authentication-section',
         management: 'management-section',
+        devices: 'devices-section',
     };
 
     const mappedSectionId = sectionMap[sectionId] || 'general-section';
@@ -1544,6 +1542,53 @@ function getHelpContentForSection(sectionId) {
                         'Access via "API Docs" button in the top navigation bar',
                         'Covers all public and admin endpoints with full technical specifications',
                     ],
+                },
+            ],
+        },
+
+        'devices-section': {
+            title: '<i class="fas fa-mobile-alt"></i>&nbsp;&nbsp;Devices (Basics)',
+            sections: [
+                {
+                    title: 'Status Badges',
+                    description: 'Understand device connectivity states at a glance.',
+                    details: [
+                        'Offline: Device not currently reachable (grey)',
+                        'Online: Device has checked in recently (green)',
+                        'Live: Active websocket session (blue) for real-time control',
+                    ],
+                },
+                {
+                    title: 'Controls',
+                    description: 'Quick actions available per device row.',
+                    details: [
+                        'Previous / Next: Step posters manually',
+                        'Play / Pause: Control slideshow playback',
+                        'Pin: Keep current poster on screen until unpinned',
+                        'Reload: Force client to reload and apply settings',
+                    ],
+                },
+                {
+                    title: 'Overrides & Presets',
+                    description: 'Apply configuration per device without changing global settings.',
+                    details: [
+                        'Assign preset: Quickly apply a saved configuration profile',
+                        'JSON override: Fine-tune individual keys for a single device',
+                        'Merge devices: Combine duplicate entries that represent the same screen',
+                    ],
+                },
+                {
+                    title: 'Sync',
+                    description: 'Keep devices aligned for synchronized transitions.',
+                    details: [
+                        'Devices align on a global tick for smooth, simultaneous changes',
+                        'Best results when all clients have accurate system time',
+                    ],
+                },
+                {
+                    title: 'Platform note',
+                    description: 'Where device management is available.',
+                    details: ['Device management is desktop-only; on mobile you will see a notice'],
                 },
             ],
         },

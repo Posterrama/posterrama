@@ -2624,6 +2624,40 @@ async function writePresets(presets) {
     await fs.promises.rename(tmp, PRESETS_FILE);
 }
 
+/**
+ * @swagger
+ * /api/admin/device-presets:
+ *   get:
+ *     summary: Get device presets
+ *     description: Returns the list of saved device presets for quick per-device overrides.
+ *     tags: ['Admin', 'Devices']
+ *     security:
+ *       - sessionAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Array of device presets
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   key:
+ *                     type: string
+ *                     description: Preset identifier
+ *                   label:
+ *                     type: string
+ *                     description: Human-friendly name
+ *                   settings:
+ *                     type: object
+ *                     description: Settings override payload applied when preset is used
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Failed to read presets
+ */
 // Admin: get device presets (JSON)
 app.get('/api/admin/device-presets', adminAuth, async (req, res) => {
     try {
@@ -2634,6 +2668,50 @@ app.get('/api/admin/device-presets', adminAuth, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/admin/device-presets:
+ *   put:
+ *     summary: Replace device presets
+ *     description: Replaces the entire device presets list. Provide an array of presets with unique keys.
+ *     tags: ['Admin', 'Devices']
+ *     security:
+ *       - sessionAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *               required: [key]
+ *               properties:
+ *                 key:
+ *                   type: string
+ *                   description: Preset identifier (must be unique)
+ *                 label:
+ *                   type: string
+ *                 settings:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Presets replaced
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *                 count: { type: integer }
+ *       400:
+ *         description: Validation error (array required or invalid entries)
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Failed to write presets
+ */
 // Admin: replace device presets (JSON)
 app.put(
     '/api/admin/device-presets',
@@ -2655,6 +2733,44 @@ app.put(
 );
 
 // Lightweight QR code rendering for admin UI (optional). Requires 'qrcode' package.
+/**
+ * @swagger
+ * /api/qr:
+ *   get:
+ *     summary: Generate a QR code
+ *     description: Generates a QR code from a provided text. Returns SVG by default, or PNG if format=png.
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: text
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Text to encode in the QR code
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [svg, png]
+ *           default: svg
+ *         required: false
+ *         description: Output image format
+ *     responses:
+ *       200:
+ *         description: QR code image
+ *         content:
+ *           image/svg+xml: {}
+ *           image/png: {}
+ *       400:
+ *         description: Missing or invalid text parameter
+ *       401:
+ *         description: Unauthorized
+ *       501:
+ *         description: QR code generation not available (module missing)
+ */
 app.get('/api/qr', isAuthenticated, async (req, res) => {
     try {
         const text = (req.query && req.query.text) || '';

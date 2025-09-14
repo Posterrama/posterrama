@@ -1,4 +1,6 @@
 {
+    "syncEnabled": true,
+    "syncAlignMaxDelayMs": 1200,
     "transitionIntervalSeconds": 15,
     "backgroundRefreshMinutes": 60,
     "showClearLogo": true,
@@ -22,8 +24,7 @@
                 "heroRotationMinutes": 10
             }
         },
-        "ambientGradient": false,
-        "autoRefresh": true
+        "ambientGradient": false
     },
     "cinemaMode": false,
     "cinemaOrientation": "auto",
@@ -34,6 +35,9 @@
         "clearlogo": 100,
         "clock": 100,
         "global": 100
+    },
+    "deviceMgmt": {
+        "enabled": true
     },
     "mediaServers": [
         {

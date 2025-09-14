@@ -1,3 +1,39 @@
+/* Mobile-only notice for Devices management */
+#devices-mobile-note {
+    display: none;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    margin: 0.75rem 0 0.5rem 0;
+    border: 1px dashed rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.08);
+    color: #cfe1ff;
+}
+#devices-mobile-note .note-icon i {
+    color: #93c5fd;
+    font-size: 1.1rem;
+}
+#devices-mobile-note .note-text strong {
+    color: #e5edff;
+}
+
+/* On small screens, show the note and hide the actual devices UI */
+@media (max-width: 768px) {
+    #devices-mobile-note {
+        display: flex;
+    }
+    #devices-subsection .devices-toolbar,
+    #devices-subsection .form-actions,
+    #devices-subsection table,
+    #devices-subsection .devices-table,
+    #devices-subsection .section-filters,
+    #devices-subsection .pagination,
+    #devices-subsection .devices-status,
+    #devices-subsection .devices-grid {
+        display: none !important;
+    }
+}
 /* --- Toast notifications (admin devices) --- */
 #toast-container {
     position: fixed;
