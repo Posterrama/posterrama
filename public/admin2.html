@@ -2698,6 +2698,36 @@
     </div>
   </div>
 
+  <!-- Create Device Modal -->
+  <div class="modal-overlay" id="modal-create-device">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="create-device-title">
+      <div class="modal-header">
+        <div class="modal-title" id="create-device-title"><i class="fas fa-plus"></i> New Device</div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="create-device-name">Name</label>
+            <input id="create-device-name" type="text" placeholder="Optional" />
+          </div>
+          <div class="form-group">
+            <label for="create-device-location">Location</label>
+            <input id="create-device-location" type="text" placeholder="Optional" />
+          </div>
+          <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+            <input id="create-generate-pair" type="checkbox" checked />
+            <label for="create-generate-pair" style="margin:0;">Generate pairing code after creation</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close-modal>Cancel</button>
+        <button class="btn btn-primary" id="btn-create-device-confirm"><i class="fas fa-check"></i> Create</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Group Assign Modal -->
   <div class="modal-overlay" id="modal-group-assign">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-group-title">

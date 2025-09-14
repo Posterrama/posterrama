@@ -3383,7 +3383,6 @@
                 dbg('buildActionsMenu()');
                 menu.innerHTML = `
                     <div class="dropdown-item" data-device-action="create-device"><i class="fas fa-plus"></i> New device…</div>
-                    <div class="dropdown-item" data-device-action="pair-new"><i class="fas fa-qrcode"></i> New device with pairing code…</div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-item" data-device-action="merge"><i class="fas fa-object-group"></i> Merge selected</div>
                     <div class="dropdown-item" data-device-action="groups"><i class="fas fa-layer-group"></i> Groups…</div>
@@ -3747,34 +3746,50 @@
                     if (!item || !actionsMenuEl.contains(item)) return;
                     ev.stopPropagation();
                     const act = item.getAttribute('data-device-action');
-                    if (act === 'create-device' || act === 'pair-new') {
-                        const name = prompt('Device name (optional)') || '';
-                        const location = prompt('Location (optional)') || '';
-                        try {
-                            const r = await fetchJSON('/api/devices/register', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ name, location }),
-                            });
-                            await loadDevices();
-                            const newId = r?.deviceId || r?.device?.id || r?.id;
-                            if (!newId) throw new Error('No device id returned');
-                            if (act === 'pair-new') {
-                                await openPairingFor([newId]);
-                            } else {
+                    if (act === 'create-device') {
+                        const overlay = document.getElementById('modal-create-device');
+                        const close = () => overlay?.classList.remove('open');
+                        overlay?.classList.add('open');
+                        const confirmBtn = document.getElementById('btn-create-device-confirm');
+                        const onConfirm = async () => {
+                            confirmBtn?.setAttribute('disabled', 'disabled');
+                            try {
+                                const name =
+                                    document.getElementById('create-device-name')?.value || '';
+                                const location =
+                                    document.getElementById('create-device-location')?.value || '';
+                                const genPair =
+                                    document.getElementById('create-generate-pair')?.checked;
+                                const r = await fetchJSON('/api/devices/register', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ name, location }),
+                                });
+                                await loadDevices();
+                                const newId = r?.deviceId || r?.device?.id || r?.id;
+                                if (!newId) throw new Error('No device id returned');
+                                close();
+                                if (genPair) await openPairingFor([newId]);
                                 window.notify?.toast({
                                     type: 'success',
                                     title: 'Device created',
                                     message: `Device ${newId} created`,
                                 });
+                            } catch (e) {
+                                window.notify?.toast({
+                                    type: 'error',
+                                    title: 'Create device failed',
+                                    message: e?.message || 'Failed to create device',
+                                });
+                            } finally {
+                                confirmBtn?.removeAttribute('disabled');
+                                confirmBtn?.removeEventListener('click', onConfirm);
                             }
-                        } catch (e) {
-                            window.notify?.toast({
-                                type: 'error',
-                                title: 'Create device failed',
-                                message: e?.message || 'Failed to create device',
-                            });
-                        }
+                        };
+                        confirmBtn?.addEventListener('click', onConfirm);
+                        overlay
+                            ?.querySelectorAll('[data-close-modal]')
+                            ?.forEach(btn => btn.addEventListener('click', close, { once: true }));
                         return;
                     }
                     if (act === 'select-all') {
