@@ -24,7 +24,7 @@
     crossorigin="anonymous"
     referrerpolicy="no-referrer"
   />
-  <link rel="stylesheet" href="/theme-demo.css?v=20250909-1" />
+  <link rel="stylesheet" href="/theme-demo.css?v=20250913-1" />
   <style>
   /* Themed dropdowns */
   select { 
@@ -4038,13 +4038,13 @@
     <div class="notify-subheader">
       <div class="notify-filter" id="notify-min-level-icons" role="radiogroup" aria-label="Minimum level">
         <button class="nf-btn" data-level="info" role="radio" aria-checked="false" title="Info" aria-label="Info">
-          <i class="fas fa-info-circle"></i>
+          <span class="ring"><i class="fas fa-circle-info" aria-hidden="true"></i></span>
         </button>
         <button class="nf-btn" data-level="warn" role="radio" aria-checked="false" title="Warn" aria-label="Warn">
-          <i class="fas fa-exclamation-triangle"></i>
+          <span class="ring"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></span>
         </button>
         <button class="nf-btn" data-level="error" role="radio" aria-checked="true" title="Error" aria-label="Error">
-          <i class="fas fa-circle-exclamation"></i>
+          <span class="ring"><i class="fas fa-circle-exclamation" aria-hidden="true"></i></span>
         </button>
       </div>
       <!-- SR-only fallback select for accessibility and legacy binding -->

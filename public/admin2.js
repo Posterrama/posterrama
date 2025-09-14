@@ -2678,7 +2678,7 @@
             }
 
             function renderPanel({ alerts, logs }) {
-                const items = [];
+                const parts = [];
                 // Local time formatter for this panel
                 function fmtAgoLite(ms) {
                     if (!ms || Number.isNaN(ms)) return '';
@@ -2694,10 +2694,13 @@
                     const day = Math.floor(hr / 24);
                     return `${day}d ago`;
                 }
-                function formatWhen(ts) {
-                    if (!ts) return '';
+                function toMs(ts) {
+                    if (!ts && ts !== 0) return 0;
                     const ms = typeof ts === 'number' ? ts : Date.parse(String(ts));
-                    if (!Number.isFinite(ms)) return '';
+                    return Number.isFinite(ms) ? ms : 0;
+                }
+                function formatWhenMs(ms) {
+                    if (!Number.isFinite(ms) || ms <= 0) return '';
                     return fmtAgoLite(ms);
                 }
                 function iconForLevel(st) {
@@ -2707,7 +2710,7 @@
                         case 'error':
                             return 'fa-exclamation';
                         case 'info':
-                            return 'fa-info';
+                            return 'fa-circle-info';
                         case 'warning':
                         default:
                             return 'fa-triangle-exclamation';
@@ -2727,20 +2730,22 @@
                         const icon = iconForLevel(st);
                         const title = escapeHtml(String(a?.name || a?.id || 'Alert'));
                         const msg = escapeHtml(String(a?.message || a?.description || ''));
-                        const when = formatWhen(a?.timestamp || a?.time || a?.date);
+                        const ms = toMs(a?.timestamp || a?.time || a?.date);
+                        const when = formatWhenMs(ms);
                         const meta = [when, msg].filter(Boolean).join(' \u00B7 ');
                         const rawKey = makeAlertKey(a);
                         const key = encodeURIComponent(rawKey);
-                        items.push(
-                            `<div class="notify-item notify-${st}" data-unread="true" data-key="${key}">
-                                <i class="fas ${icon}" aria-hidden="true"></i>
-                                <div>
-                                    <div class="notify-title">${title}</div>
-                                    ${meta ? `<div class="notify-meta">${meta}</div>` : ''}
-                                </div>
-                                <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
-                             </div>`
-                        );
+                        parts.push({
+                            ts: ms,
+                            html: `<div class="notify-item notify-${st}" data-unread="true" data-key="${key}">
+                                    <i class="fas ${icon}" aria-hidden="true"></i>
+                                    <div>
+                                        <div class="notify-title">${title}</div>
+                                        ${meta ? `<div class="notify-meta">${meta}</div>` : ''}
+                                    </div>
+                                    <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
+                                 </div>`,
+                        });
                     }
                 }
                 if (Array.isArray(logs) && logs.length) {
@@ -2749,25 +2754,31 @@
                         const st = raw === 'error' ? 'error' : raw === 'info' ? 'info' : 'warning';
                         const icon = iconForLevel(st);
                         const msg = escapeHtml(String(l?.message || ''));
-                        const when = formatWhen(l?.timestamp);
+                        const ms = toMs(l?.timestamp);
+                        const when = formatWhenMs(ms);
                         const rawKey = makeLogKey(l);
                         const key = encodeURIComponent(rawKey);
-                        items.push(
-                            `<div class="notify-item notify-${st}" data-unread="true" data-key="${key}">
-                                <i class="fas ${icon}" aria-hidden="true"></i>
-                                <div>
-                                    <div class="notify-title">${msg || 'Log'}</div>
-                                    ${when ? `<div class="notify-meta">${when}</div>` : ''}
-                                </div>
-                                <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
-                             </div>`
-                        );
+                        parts.push({
+                            ts: ms,
+                            html: `<div class="notify-item notify-${st}" data-unread="true" data-key="${key}">
+                                    <i class="fas ${icon}" aria-hidden="true"></i>
+                                    <div>
+                                        <div class="notify-title">${msg || 'Log'}</div>
+                                        ${when ? `<div class="notify-meta">${when}</div>` : ''}
+                                    </div>
+                                    <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
+                                 </div>`,
+                        });
                     }
                 }
                 const { list } = getRefs();
                 if (list) {
-                    if (items.length) {
-                        list.innerHTML = items.join('');
+                    if (parts.length) {
+                        const html = parts
+                            .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+                            .map(p => p.html)
+                            .join('');
+                        list.innerHTML = html;
                     } else {
                         list.innerHTML =
                             '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
