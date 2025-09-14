@@ -120,10 +120,9 @@
   #panel-perf-dashboard .perf-layout { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 16px; align-items: start; }
   @media (max-width: 1280px) { #panel-perf-dashboard .perf-layout { grid-template-columns: repeat(2, minmax(220px, 1fr)); } }
   @media (max-width: 700px) { #panel-perf-dashboard .perf-layout { grid-template-columns: 1fr; } }
-  /* New unified three-column layout */
-  #panel-perf-dashboard .perf-columns { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 16px; align-items: start; }
+  /* Unified two-column layout (Activity moved to header) */
+  #panel-perf-dashboard .perf-columns { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
   @media (max-width: 1280px) { #panel-perf-dashboard .perf-columns { grid-template-columns: 1fr; } }
-  @media (min-width: 1281px) and (max-width: 1500px) { #panel-perf-dashboard .perf-columns { grid-template-columns: 1.1fr 1fr 1fr; } }
   #panel-perf-dashboard .perf-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
   #panel-perf-dashboard .perf-card h3 { margin: 0 0 10px 0; font-size: 0.95rem; opacity: 0.85; display: flex; align-items: center; gap: 8px; }
   #panel-perf-dashboard .perf-card .subtle { opacity: 0.7; font-size: 0.8rem; }
@@ -389,7 +388,13 @@
         <h1><i class="fas fa-gauge-high"></i> Dashboard</h1>
         <p>Overview of devices, media and system health</p>
       </div>
-      
+      <div class="page-actions">
+        <span class="header-pill" id="perf-activity" title="Overall system activity (CPU and memory)">
+          <i class="fas fa-wave-square"></i>
+          <span class="label">Activity</span>
+          <span class="value">—</span>
+        </span>
+      </div>
     </header>
 
   <!-- Dashboard Section -->
@@ -438,9 +443,6 @@
       <section class="panel" id="panel-perf-dashboard">
         <header class="panel-header">
           <h2><i class="fas fa-gauge-high"></i> System Performance</h2>
-          <div class="panel-actions">
-            <button class="btn btn-icon btn-sm" id="btn-perf-refresh" title="Refresh performance"><i class="fas fa-rotate"></i></button>
-          </div>
         </header>
         <div class="panel-content">
           <div class="perf-columns">
@@ -486,36 +488,19 @@
               </div>
             </section>
 
-            <!-- Column 2: Traffic & Reliability -->
-            <section class="perf-card" aria-label="Traffic and Reliability">
-              <h3><i class="fas fa-wave-square"></i> Traffic & Reliability</h3>
-              <div class="kpi-grid">
-                <div class="kpi" title="Requests handled by Posterrama per minute (server-wide, last 60s)">
-                  <span class="accent-left accent-blue"></span>
-                  <div class="kpi-title"><span>Requests</span><span id="perf-rps">—</span></div>
-                  <small>per minute</small>
-                </div>
-                <div class="kpi" title="Average HTTP response time of Posterrama API (last hour)">
-                  <span class="accent-left accent-cyan"></span>
-                  <div class="kpi-title"><span>Resp. Time</span><span id="perf-rt">—</span></div>
-                  <small>average</small>
-                </div>
-                <div class="kpi" title="Percentage van requests met HTTP status >=400 (laatste uur)">
-                  <span class="accent-left accent-amber"></span>
-                  <div class="kpi-title"><span>Error Rate</span><span id="perf-error-rate">—</span></div>
-                  <small>last hour</small>
-                </div>
-                <div class="kpi" title="Cache hit rate (gemiddeld) van Posterrama responses)">
-                  <span class="accent-left accent-green"></span>
-                  <div class="kpi-title"><span>Cache Hit</span><span id="perf-cache-hit">—</span></div>
-                  <small>overall</small>
-                </div>
-              </div>
-            </section>
+            <!-- Activity pill moved to header -->
+
 
             <!-- Column 3: Cache Management -->
             <section class="perf-card" aria-label="Cache Management">
-              <h3><i class="fas fa-database"></i> Cache Management</h3>
+              <h3>
+                <i class="fas fa-database"></i> Cache Management
+                <span style="float:right">
+                  <button type="button" class="btn btn-icon btn-sm" id="btn-edit-cache-size" title="Edit cache size (GB)" aria-label="Edit cache size">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                </span>
+              </h3>
               <div class="metric-row" style="margin-bottom:8px;">
                 <div>
                   <div class="metric-line"><span class="metric-label"><i class="fas fa-hdd"></i> Cache Storage</span></div>
@@ -1461,6 +1446,30 @@
         <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
         <button type="button" id="btn-update-force" class="btn btn-warning" style="display:none;"><i class="fas fa-hammer"></i><span>Force Update</span></button>
         <button type="button" id="btn-update-confirm" class="btn btn-primary" disabled><i class="fas fa-check"></i><span>Start Update</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cache Size Edit Modal -->
+  <div class="modal-overlay" id="modal-cache-size">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-cache-size-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-cache-size-title"><i class="fas fa-sliders-h"></i> Edit Cache Size</div>
+        <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-cache-size-gb">Max image cache size (GB)</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input id="input-cache-size-gb" type="number" inputmode="decimal" step="0.1" min="0.1" placeholder="e.g. 1.5" style="flex:1;" />
+            <span class="subtle">GB</span>
+          </div>
+          <div id="cache-size-help" class="subtle">Recommended: 1.0–5.0 GB (must be > 0)</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
+        <button type="button" id="btn-cache-size-save" class="btn btn-primary"><i class="fas fa-save"></i><span>Save</span></button>
       </div>
     </div>
   </div>

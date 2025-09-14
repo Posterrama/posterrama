@@ -245,6 +245,28 @@
                 );
                 setMeter('meter-mem', memPct, 'mem');
             }
+            // Simple activity level for end users (Low/Medium/High) — now shown in header pill
+            try {
+                const cpuPct = Number(status?.cpu?.percent ?? status?.cpu?.usage ?? 0);
+                const mPct = Number.isFinite(memPct) ? memPct : 0;
+                const load = Math.max(0, Math.min(100, Math.round((cpuPct + mPct) / 2)));
+                const level = load < 30 ? 'Low' : load < 70 ? 'Medium' : 'High';
+                const pill = document.getElementById('perf-activity');
+                if (pill) {
+                    const valueEl = pill.querySelector('.value');
+                    if (valueEl) valueEl.textContent = level;
+                    pill.classList.remove('status-success', 'status-warning', 'status-error');
+                    if (level === 'Low') pill.classList.add('status-success');
+                    else if (level === 'Medium') pill.classList.add('status-warning');
+                    else pill.classList.add('status-error');
+                    pill.setAttribute(
+                        'title',
+                        `Overall system activity (CPU and memory): ${level}`
+                    );
+                }
+            } catch (_) {
+                /* non-fatal */
+            }
         } catch (_) {
             // ignore
         }
@@ -271,32 +293,30 @@
             // ignore
         }
 
-        // Traffic and reliability KPIs
-        try {
-            const [rt, dash, cache] = await Promise.all([
-                fetchJSON('/api/v1/metrics/realtime').catch(() => null),
-                fetchJSON('/api/v1/metrics/dashboard').catch(() => null),
-                fetchJSON('/api/v1/metrics/cache').catch(() => null),
-            ]);
-            const rpm = Number(rt?.requestsPerMinute || 0);
-            setText('perf-rps', rpm ? `${rpm}/min` : '0/min');
-            const avgRt = Number(dash?.summary?.averageResponseTime || 0);
-            setText('perf-rt', `${Math.round(avgRt)} ms`);
-            const errRate = Number(dash?.summary?.errorRate || 0);
-            setText('perf-error-rate', `${errRate.toFixed(2)}%`);
-            const hitRate = Number(cache?.hitRate || 0);
-            setText('perf-cache-hit', `${hitRate.toFixed(1)}%`);
-        } catch (_) {
-            // ignore
-        }
+        // Traffic & Reliability panel removed
     }
 
     async function refreshCacheStatsV2() {
         try {
-            const res = await fetch('/api/admin/cache-stats', { credentials: 'include' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            updateCacheStatsDisplayV2(data);
+            // Always get fresh stats; also fetch config to derive current maxSizeGB
+            const [statsRes, cfgRes] = await Promise.all([
+                fetch('/api/admin/cache-stats', { credentials: 'include' }),
+                fetch('/api/admin/config', { credentials: 'include' }).catch(() => null),
+            ]);
+            if (!statsRes.ok) throw new Error(`HTTP ${statsRes.status}`);
+            const stats = await statsRes.json();
+            let cfg = {};
+            try {
+                cfg = cfgRes && cfgRes.ok ? await cfgRes.json() : {};
+            } catch (_) {
+                /* ignore */
+            }
+            const fromCfg = cfg?.config?.cache?.maxSizeGB ?? cfg?.cache?.maxSizeGB;
+            if (fromCfg != null) {
+                stats.cacheConfig = stats.cacheConfig || {};
+                stats.cacheConfig.maxSizeGB = Number(fromCfg);
+            }
+            updateCacheStatsDisplayV2(stats);
         } catch (e) {
             console.warn('Cache stats failed', e);
             updateCacheStatsDisplayV2({ diskUsage: { total: 0 }, itemCount: { total: 0 } }, true);
@@ -335,6 +355,7 @@
     function wireCacheActions() {
         const cleanupBtn = document.getElementById('cleanup-cache-button');
         const clearBtn = document.getElementById('clear-cache-button');
+        const editBtn = document.getElementById('btn-edit-cache-size');
         // Ensure spinner spans exist
         const ensureSpinner = btn => {
             if (!btn) return;
@@ -347,6 +368,127 @@
         // (moved) TMDB custom dropdown wiring lives near TVDB wiring after iconFor()
         ensureSpinner(cleanupBtn);
         ensureSpinner(clearBtn);
+        ensureSpinner(editBtn);
+        // Open modal and preload current value
+        editBtn?.addEventListener('click', async () => {
+            try {
+                editBtn.classList.add('btn-loading');
+                // Prefer config endpoint for source of truth; fallback to cache-stats if needed
+                let maxSizeGB = 2;
+                try {
+                    const r = await window.dedupJSON('/api/admin/config', {
+                        credentials: 'include',
+                    });
+                    const j = r?.ok ? await r.json() : null;
+                    maxSizeGB = Number(
+                        j?.config?.cache?.maxSizeGB ?? j?.cache?.maxSizeGB ?? maxSizeGB
+                    );
+                } catch (_) {
+                    // fallback to cache-stats
+                    try {
+                        const rs = await window.dedupJSON('/api/admin/cache-stats', {
+                            credentials: 'include',
+                        });
+                        const dj = rs?.ok ? await rs.json() : null;
+                        maxSizeGB = Number(dj?.cacheConfig?.maxSizeGB ?? maxSizeGB);
+                    } catch (_) {
+                        /* ignore */
+                    }
+                }
+                const input = document.getElementById('input-cache-size-gb');
+                if (input)
+                    input.value = String(
+                        Number.isFinite(maxSizeGB) && maxSizeGB > 0 ? maxSizeGB : 2
+                    );
+                openModal('modal-cache-size');
+            } finally {
+                editBtn.classList.remove('btn-loading');
+            }
+        });
+        // Save from modal
+        const btnSaveSize = document.getElementById('btn-cache-size-save');
+        ensureSpinner(btnSaveSize);
+        btnSaveSize?.addEventListener('click', async () => {
+            const input = document.getElementById('input-cache-size-gb');
+            const raw = (input?.value || '').trim();
+            const val = Number(raw);
+            if (!Number.isFinite(val) || val <= 0) {
+                return window.notify?.toast({
+                    type: 'warning',
+                    title: 'Invalid size',
+                    message: 'Enter a number greater than 0 (e.g., 1.5)',
+                    duration: 3500,
+                });
+            }
+            if (val > 50) {
+                // Hard sanity guard
+                const proceed = confirm(
+                    'Set cache size above 50GB? This may use significant disk space.'
+                );
+                if (!proceed) return;
+            }
+            try {
+                btnSaveSize.classList.add('btn-loading');
+                // Persist via config patch helper; ensure nested path
+                await (typeof saveConfigPatch === 'function'
+                    ? saveConfigPatch({ cache: { maxSizeGB: val } })
+                    : (async () => {
+                          const r = await fetch('/api/admin/config', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              credentials: 'include',
+                              body: JSON.stringify({
+                                  config: { cache: { maxSizeGB: val } },
+                                  env: {},
+                              }),
+                          });
+                          if (!r.ok) throw new Error('Save failed');
+                          try {
+                              // Manually invalidate cached GET for config in dedup cache if present
+                              if (typeof miniCache?.delete === 'function')
+                                  miniCache.delete('/api/admin/config|GET');
+                              if (typeof inflight?.delete === 'function')
+                                  inflight.delete('/api/admin/config|GET');
+                          } catch (_) {
+                              /* ignore */
+                          }
+                      })());
+                closeModal('modal-cache-size');
+                // Optimistically update displayed limit immediately
+                try {
+                    const diskEl = document.getElementById('cache-disk-usage');
+                    if (diskEl) {
+                        const txt = diskEl.innerHTML || '';
+                        // Replace the "/ XXX" part to reflect new GB value; fallback to full refresh afterwards
+                        const gbBytes = val * 1024 * 1024 * 1024;
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = `\n      <div>${(function () {
+                            return txt.replace(/\/\s*([\d\.]+\s*(?:B|KB|MB|GB|TB))\)/, '');
+                        })()}</div>`;
+                        // Not robust to parse; rely on refresh below primarily
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Saved',
+                    message: `Cache size set to ${val} GB`,
+                    duration: 3000,
+                });
+                // Refresh displayed stats and meter
+                await refreshCacheStatsV2();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Unable to save cache size',
+                    duration: 5000,
+                });
+            } finally {
+                btnSaveSize.classList.remove('btn-loading');
+            }
+        });
         cleanupBtn?.addEventListener('click', async () => {
             try {
                 // Persistent progress toast
@@ -395,13 +537,37 @@
             const confirmOnce = clearBtn.getAttribute('data-confirm') === '1';
             if (!confirmOnce) {
                 clearBtn.setAttribute('data-confirm', '1');
-                clearBtn.querySelector('span') &&
-                    (clearBtn.querySelector('span').textContent = 'Click again to confirm');
+                const label = clearBtn.querySelector('span:not(.spinner)');
+                if (label) label.textContent = 'Click again to confirm';
+                // Visual confirm state: warning style + warning icon + title
+                clearBtn.classList.remove('btn-primary');
+                clearBtn.classList.add('btn-warning');
+                clearBtn.setAttribute('title', 'Click again to confirm');
+                const icon = clearBtn.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-broom');
+                    icon.classList.add('fa-exclamation-triangle');
+                }
+                // Always show a toast so users on compact layouts see the confirmation
+                window.notify?.toast({
+                    type: 'warning',
+                    title: 'Confirm',
+                    message: 'Click Clear Cache again to confirm',
+                    duration: 3500,
+                });
                 setTimeout(() => {
                     clearBtn.removeAttribute('data-confirm');
-                    const span = clearBtn.querySelector('span');
-                    if (span) span.textContent = 'Clear Cache';
-                }, 2000);
+                    const s = clearBtn.querySelector('span:not(.spinner)');
+                    if (s) s.textContent = 'Clear Cache';
+                    clearBtn.classList.remove('btn-warning');
+                    clearBtn.classList.add('btn-primary');
+                    clearBtn.setAttribute('title', 'Clear image cache from disk');
+                    const ic = clearBtn.querySelector('i');
+                    if (ic) {
+                        ic.classList.remove('fa-exclamation-triangle');
+                        ic.classList.add('fa-broom');
+                    }
+                }, 5000);
                 return;
             }
             try {
@@ -440,9 +606,17 @@
                 clearBtn.disabled = false;
                 clearBtn.removeAttribute('aria-busy');
                 clearBtn.classList.remove('btn-loading');
-                // Ensure button label returns to default state after action
-                const span = clearBtn.querySelector('span');
+                // Ensure button label and style return to default state after action
+                const span = clearBtn.querySelector('span:not(.spinner)');
                 if (span) span.textContent = 'Clear Cache';
+                clearBtn.classList.remove('btn-warning');
+                clearBtn.classList.add('btn-primary');
+                clearBtn.setAttribute('title', 'Clear image cache from disk');
+                const icon = clearBtn.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-exclamation-triangle');
+                    icon.classList.add('fa-broom');
+                }
                 clearBtn.removeAttribute('data-confirm');
                 refreshCacheStatsV2();
             }
@@ -728,21 +902,7 @@
     }
 
     function wireEvents() {
-        const perfRefreshBtn = $('#btn-perf-refresh');
-        // Ensure a spinner on the refresh icon button as well
-        if (perfRefreshBtn && !perfRefreshBtn.querySelector('.spinner')) {
-            const sp = document.createElement('span');
-            sp.className = 'spinner';
-            perfRefreshBtn.appendChild(sp);
-        }
-        perfRefreshBtn?.addEventListener('click', () => {
-            // Refresh the entire System Performance section: status/resources/traffic + cache
-            perfRefreshBtn.classList.add('btn-loading');
-            refreshPerfDashboard();
-            refreshCacheStatsV2().finally(() => {
-                setTimeout(() => perfRefreshBtn.classList.remove('btn-loading'), 400);
-            });
-        });
+        // No manual performance refresh: updates are automatic
         // Mobile sidebar toggle demo behavior
         const toggle = $('#mobile-nav-toggle');
         const overlay = $('#sidebar-overlay');
@@ -865,6 +1025,10 @@
                 document
                     .querySelectorAll('.sidebar-nav .nav-item')
                     .forEach(n => n.classList.remove('active'));
+                // Also clear any active submenu indicators when navigating to a top-level section
+                document
+                    .querySelectorAll('.sidebar-nav .nav-subitem')
+                    .forEach(s => s.classList.remove('active'));
                 item.classList.add('active');
                 if (nav === 'security') {
                     showSection('section-security');
@@ -888,6 +1052,10 @@
         toggleLink?.addEventListener('click', e => {
             e.preventDefault();
             mediaGroup.classList.toggle('open');
+            // Clear subitem active states when toggling the group
+            mediaGroup
+                ?.querySelectorAll('.nav-subitem')
+                ?.forEach(s => s.classList.remove('active'));
             // Show section and ONLY the overview (hide all source panels)
             const section = document.getElementById('section-media-sources');
             if (section) {
@@ -978,6 +1146,15 @@
                 }
                 // Show loading overlay while we ensure config is populated
                 el.classList.add('is-loading');
+                // Ensure auto-fetch runs when panel becomes visible (covers all routes)
+                try {
+                    if (panelId === 'panel-plex') window.admin2?.maybeFetchPlexOnOpen?.();
+                    else if (panelId === 'panel-jellyfin')
+                        window.admin2?.maybeFetchJellyfinOnOpen?.();
+                    else if (panelId === 'panel-tmdb') window.admin2?.maybeFetchTmdbOnOpen?.();
+                } catch (_) {
+                    /* no-op */
+                }
             } else {
                 dbg('panel not found', { panelId });
             }
@@ -1017,6 +1194,10 @@
                 if (location.hash !== t.hash) location.hash = t.hash;
                 // Also show immediately to avoid any race conditions with routing
                 showSourcePanel(t.id, t.title);
+                // Lazy-load libraries when opening specific panels (non-blocking)
+                if (t.id === 'panel-plex') window.admin2?.maybeFetchPlexOnOpen?.();
+                else if (t.id === 'panel-jellyfin') window.admin2?.maybeFetchJellyfinOnOpen?.();
+                else if (t.id === 'panel-tmdb') window.admin2?.maybeFetchTmdbOnOpen?.();
             });
         });
 
@@ -1062,6 +1243,8 @@
                 const h = (location.hash || '').toLowerCase();
                 if (h === '#plex' || h === '#media-sources/plex') {
                     showSourcePanel('panel-plex', 'Plex');
+                    // Lazy-load on routed open
+                    window.admin2?.maybeFetchPlexOnOpen?.();
                     mediaGroup?.classList.add('open');
                     mediaGroup
                         ?.querySelectorAll('.nav-subitem')
@@ -1073,6 +1256,8 @@
                 }
                 if (h === '#jellyfin') {
                     showSourcePanel('panel-jellyfin', 'Jellyfin');
+                    // Lazy-load on routed open
+                    window.admin2?.maybeFetchJellyfinOnOpen?.();
                     mediaGroup?.classList.add('open');
                     mediaGroup
                         ?.querySelectorAll('.nav-subitem')
@@ -1084,6 +1269,8 @@
                 }
                 if (h === '#tmdb') {
                     showSourcePanel('panel-tmdb', 'TMDB');
+                    // Lazy-load on routed open
+                    window.admin2?.maybeFetchTmdbOnOpen?.();
                     mediaGroup?.classList.add('open');
                     mediaGroup
                         ?.querySelectorAll('.nav-subitem')
@@ -1095,6 +1282,8 @@
                 }
                 if (h === '#tvdb') {
                     showSourcePanel('panel-tvdb', 'TVDB');
+                    // Lazy-load on routed open
+                    window.admin2?.maybeFetchTmdbOnOpen?.();
                     mediaGroup?.classList.add('open');
                     mediaGroup
                         ?.querySelectorAll('.nav-subitem')
@@ -1127,6 +1316,22 @@
         window.addEventListener('hashchange', routeByHash);
         // Initial route on load
         routeByHash();
+        // If hash on load points to a top-level section (none currently), ensure submenu is cleared
+        try {
+            const h0 = (location.hash || '').toLowerCase();
+            if (
+                !h0.startsWith('#plex') &&
+                !h0.startsWith('#jellyfin') &&
+                !h0.startsWith('#tmdb') &&
+                !h0.startsWith('#tvdb')
+            ) {
+                document
+                    .querySelectorAll('.sidebar-nav .nav-subitem')
+                    ?.forEach(s => s.classList.remove('active'));
+            }
+        } catch (_) {
+            /* no-op */
+        }
 
         // Security panel auto-refresh handled on nav; no manual refresh button
 
@@ -1728,14 +1933,14 @@
             const notes = j?.releaseNotes;
             if (!hasUpdate) {
                 content.innerHTML = `
-                    <div style="text-align:center;">
-                      <i class="fas fa-check-circle" style="color:#34d399;font-size:2rem;margin-bottom:8px;"></i>
-                      <div>Already up to date (v${current})</div>
-                    </div>
-                    <div style="margin-top:10px; padding:10px; border:1px solid rgba(255,193,7,0.25); background:rgba(255,193,7,0.08); border-radius:8px;">
-                      <div style="color:#fbbf24; font-weight:600; margin-bottom:6px;"><i class="fas fa-hammer"></i> Repair / Force Reinstall</div>
-                      <div class="subtle">Use Force Update to repair your installation even if you're on the latest version.</div>
-                    </div>`;
+                                        <div style="text-align:center;">
+                                            <i class="fas fa-check-circle" style="color:#34d399;font-size:2rem;margin-bottom:8px;"></i>
+                                            <div>Already up to date (v${current})</div>
+                                        </div>
+                                        <div style="margin-top:10px; padding:10px; border:1px solid rgba(255,193,7,0.25); background:rgba(255,193,7,0.08); border-radius:8px;">
+                                            <div style="color:#fbbf24; font-weight:600; margin-bottom:6px;"><i class="fas fa-hammer"></i> Repair / Force Reinstall</div>
+                                            <div class="subtle">Use Force Update to repair your installation even if you're on the latest version.</div>
+                                        </div>`;
                 btnConfirm.disabled = true;
                 btnConfirm.querySelector('span').textContent = 'No Update Needed';
                 btnForce.style.display = '';
@@ -2247,17 +2452,7 @@
             initMsForSelect('plex-ms-shows', 'plex.shows');
             // Populate Plex genres with counts and apply selected values from config
             await loadPlexGenres(plex.genreFilter || '');
-            // Auto-fetch full Plex libraries on load when enabled and host/port are available
-            try {
-                const hostEnv = env[plexHostVar] || '';
-                const portEnv = env[plexPortVar] || '';
-                if (!window.__autoFetchedLibs.plex && plexEnabled && hostEnv && portEnv) {
-                    window.__autoFetchedLibs.plex = true;
-                    await fetchPlexLibraries(true);
-                }
-            } catch (_) {
-                /* silent */
-            }
+            // Defer fetching Plex libraries until the Plex panel is opened
             // Jellyfin
             const jfEnabled = !!jf.enabled;
             const jfHostVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
@@ -2364,17 +2559,7 @@
             } catch (e) {
                 dbg('loadJellyfinQualities failed', e);
             }
-            // Auto-fetch full Jellyfin libraries on load when enabled and host/port are available
-            try {
-                const hostEnv = env[jfHostVar] || '';
-                const portEnv = env[jfPortVar] || '';
-                if (!window.__autoFetchedLibs.jf && jfEnabled && hostEnv && portEnv) {
-                    window.__autoFetchedLibs.jf = true;
-                    await fetchJellyfinLibraries(true);
-                }
-            } catch (_) {
-                /* silent */
-            }
+            // Defer fetching Jellyfin libraries until the Jellyfin panel is opened
             // TMDB
             const tmdb = cfg.tmdbSource || {};
             if (getInput('tmdb.enabled')) getInput('tmdb.enabled').checked = !!tmdb.enabled;
@@ -2423,12 +2608,7 @@
                 const v = tmdb.yearFilter;
                 getInput('tmdb.yearFilter').value = v == null ? '' : String(v);
             }
-            // Load TMDB genres with selection from config
-            try {
-                await loadTMDBGenres(tmdb.genreFilter || '');
-            } catch (_) {
-                // ignore (initial genre load is optional)
-            }
+            // Defer loading TMDB genres until the TMDB panel is opened
             // Streaming Releases (TMDB-based)
             try {
                 const streaming = cfg.streamingSources || {};
@@ -2496,6 +2676,72 @@
         // Expose for reuse
         window.admin2 = window.admin2 || {};
         window.admin2.loadMediaSources = loadMediaSources;
+
+        // Lazy fetch helpers: fire-and-forget conditional loads on panel open
+        function maybeFetchPlexOnOpen() {
+            try {
+                (async () => {
+                    window.__autoFetchedLibs = window.__autoFetchedLibs || {
+                        plex: false,
+                        jf: false,
+                    };
+                    if (window.__autoFetchedLibs.plex) return;
+                    window.__autoFetchedLibs.plex = true;
+                    await fetchPlexLibraries(true);
+                })();
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
+        function maybeFetchJellyfinOnOpen() {
+            try {
+                (async () => {
+                    window.__autoFetchedLibs = window.__autoFetchedLibs || {
+                        plex: false,
+                        jf: false,
+                    };
+                    if (window.__autoFetchedLibs.jf) return;
+                    window.__autoFetchedLibs.jf = true;
+                    await fetchJellyfinLibraries(true);
+                })();
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
+        function maybeFetchTmdbOnOpen() {
+            try {
+                (async () => {
+                    // Only load the TMDB genres once on first open
+                    window.__autoFetchedLibs = window.__autoFetchedLibs || {
+                        plex: false,
+                        jf: false,
+                    };
+                    if (!window.__autoFetchedLibs.tmdb) {
+                        window.__autoFetchedLibs.tmdb = true;
+                        try {
+                            // Use stored selection if any
+                            const cfgRes = await window.dedupJSON('/api/admin/config', {
+                                credentials: 'include',
+                            });
+                            const base = cfgRes?.config || cfgRes || {};
+                            const tmdb = base.tmdbSource || {};
+                            await loadTMDBGenres(tmdb.genreFilter || '');
+                        } catch (_) {
+                            // best-effort; keep UI responsive
+                        }
+                    }
+                })();
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
+        // attach helpers to admin2 namespace
+        window.admin2.maybeFetchPlexOnOpen = maybeFetchPlexOnOpen;
+        window.admin2.maybeFetchJellyfinOnOpen = maybeFetchJellyfinOnOpen;
+        window.admin2.maybeFetchTmdbOnOpen = maybeFetchTmdbOnOpen;
 
         // Fetch libraries
         async function fetchPlexLibraries(refreshFilters = false) {
@@ -3889,7 +4135,17 @@
                 });
             } finally {
                 btn?.classList.remove('btn-loading');
-                loadMediaSources().catch(() => {});
+                loadMediaSources()
+                    .then(() => {
+                        // Ensure TMDB genres UI stays hydrated after save
+                        try {
+                            const curr = getTMDBGenreFilterHidden();
+                            loadTMDBGenres(curr).catch(() => {});
+                        } catch (_) {
+                            /* no-op */
+                        }
+                    })
+                    .catch(() => {});
             }
         }
 
