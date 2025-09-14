@@ -3797,10 +3797,11 @@
                     if (act === 'create-device') {
                         const overlay = document.getElementById('modal-create-device');
                         const close = () => overlay?.classList.remove('open');
-                        // Prepare fields: suggested name + location dropdown
+                        // Prepare fields: suggested name + location dropdown + groups
                         const nameEl = document.getElementById('create-device-name');
                         const locSel = document.getElementById('create-device-location-select');
                         const locNew = document.getElementById('create-device-location-new');
+                        const groupsSel = document.getElementById('create-device-groups');
                         const devices = state.all || [];
                         const rooms = Array.from(
                             new Set(
@@ -3848,9 +3849,9 @@
                                 locNew.value = '';
                             }
                         }
-                        // Suggest a friendly default name
-                        const suggestName = loc => {
-                            const base = (loc ? `${loc} Screen` : 'Screen').trim();
+                        // Suggest a friendly default name: "Screen N"
+                        const suggestName = () => {
+                            const base = 'Screen';
                             let maxN = 0;
                             for (const d of devices) {
                                 const nm = (d?.name || '').trim();
@@ -3865,12 +3866,23 @@
                             }
                             return `${base} ${maxN + 1}`.trim();
                         };
-                        if (nameEl)
-                            nameEl.value = suggestName(
-                                locSel?.value && locSel.value !== '__new__'
-                                    ? locSel.value
-                                    : defaultLoc
+                        if (nameEl) nameEl.value = suggestName();
+
+                        // Populate groups selector alphabetically
+                        if (groupsSel) {
+                            const gs = Array.isArray(state.groups) ? state.groups.slice() : [];
+                            gs.sort((a, b) =>
+                                (a?.name || '').localeCompare(b?.name || '', undefined, {
+                                    sensitivity: 'base',
+                                })
                             );
+                            groupsSel.innerHTML = gs
+                                .map(
+                                    g =>
+                                        `<option value="${String(g.id)}">${escapeHtml(g.name || g.id)}</option>`
+                                )
+                                .join('');
+                        }
                         overlay?.classList.add('open');
                         const confirmBtn = document.getElementById('btn-create-device-confirm');
                         const onConfirm = async () => {
@@ -3884,8 +3896,6 @@
                                     if (v === '__new__') location = (locNew?.value || '').trim();
                                     else location = v;
                                 }
-                                const genPair =
-                                    document.getElementById('create-generate-pair')?.checked;
                                 const r = await fetchJSON('/api/devices/register', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -3894,10 +3904,33 @@
                                 await loadDevices();
                                 const newId = r?.deviceId || r?.device?.id || r?.id;
                                 if (!newId) throw new Error('No device id returned');
+                                // Assign groups if any selected
+                                if (
+                                    groupsSel &&
+                                    groupsSel.selectedOptions &&
+                                    groupsSel.selectedOptions.length
+                                ) {
+                                    const selected = Array.from(groupsSel.selectedOptions).map(
+                                        o => o.value
+                                    );
+                                    try {
+                                        await fetchJSON(
+                                            `/api/devices/${encodeURIComponent(newId)}`,
+                                            {
+                                                method: 'PATCH',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ groups: selected }),
+                                            }
+                                        );
+                                    } catch (_) {
+                                        /* noop */
+                                    }
+                                }
                                 close();
                                 if (location)
                                     localStorage.setItem('admin2:last-location', location);
-                                if (genPair) await openPairingFor([newId]);
+                                // Always show pairing right after creating
+                                await openPairingFor([newId]);
                                 window.notify?.toast({
                                     type: 'success',
                                     title: 'Device created',
