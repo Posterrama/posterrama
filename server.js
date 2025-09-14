@@ -1235,8 +1235,177 @@ app.get('/api/v1/metrics/history', (req, res) => {
  *                   description: Active alerts or warnings
  */
 app.get('/api/v1/metrics/dashboard', (req, res) => {
+    // Base system/dashboard summary from metrics manager
     const summary = metricsManager.getDashboardSummary();
-    res.json(summary);
+
+    // Total playlist items currently in cache (for reference)
+    const playlistItems = Array.isArray(playlistCache) ? playlistCache.length : 0;
+    // Count enabled media servers as "sources"
+    const sourcesCount = Array.isArray(config?.mediaServers)
+        ? config.mediaServers.filter(s => s && s.enabled === true).length
+        : 0;
+
+    // Compute aggregated library totals (movies/series) with a short in-memory cache
+    // to avoid expensive calls on every request.
+    if (!global.__libraryTotalsCache) {
+        global.__libraryTotalsCache = { value: null, ts: 0 };
+    }
+    const now = Date.now();
+    const TTL = 10 * 60 * 1000; // 10 minutes
+
+    const getTotals = async () => {
+        // If cache is fresh, return it
+        if (global.__libraryTotalsCache.value && now - global.__libraryTotalsCache.ts < TTL) {
+            return global.__libraryTotalsCache.value;
+        }
+
+        let movies = 0;
+        let shows = 0;
+
+        const servers = Array.isArray(config?.mediaServers) ? config.mediaServers : [];
+        for (const s of servers) {
+            if (!s || s.enabled !== true) continue;
+            try {
+                if (s.type === 'plex') {
+                    const hostname = process.env[s.hostnameEnvVar];
+                    const port = process.env[s.portEnvVar];
+                    const token = process.env[s.tokenEnvVar];
+                    if (!hostname || !port || !token) continue;
+                    const client = createPlexClient({ hostname, port, token, timeout: 8000 });
+                    const sectionsResponse = await client.query('/library/sections');
+                    const dirs = sectionsResponse?.MediaContainer?.Directory || [];
+                    for (const dir of dirs) {
+                        if (dir.type === 'movie' || dir.type === 'show') {
+                            try {
+                                const sectionResponse = await client.query(
+                                    `/library/sections/${dir.key}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=1`
+                                );
+                                const count = parseInt(
+                                    sectionResponse?.MediaContainer?.totalSize || 0
+                                );
+                                if (dir.type === 'movie') movies += count;
+                                else shows += count;
+                            } catch (_) {
+                                // skip count errors per section
+                            }
+                        }
+                    }
+                } else if (s.type === 'jellyfin') {
+                    const hostname = process.env[s.hostnameEnvVar];
+                    const port = process.env[s.portEnvVar];
+                    const apiKey = process.env[s.tokenEnvVar];
+                    if (!hostname || !port || !apiKey) continue;
+                    const jf = await createJellyfinClient({
+                        hostname,
+                        port,
+                        apiKey,
+                        timeout: 8000,
+                    });
+                    let views = [];
+                    try {
+                        const viewsResp = await jf.http.get('/Library/Views');
+                        views = viewsResp?.data?.Items || [];
+                    } catch (_) {
+                        try {
+                            const usersResp = await jf.http.get('/Users');
+                            const users = usersResp?.data || [];
+                            if (users.length > 0) {
+                                const userViewsResp = await jf.http.get(
+                                    `/Users/${users[0].Id}/Views`
+                                );
+                                views = userViewsResp?.data?.Items || [];
+                            }
+                        } catch (__) {
+                            views = [];
+                        }
+                    }
+                    for (const v of views) {
+                        const libType =
+                            v.CollectionType === 'movies'
+                                ? 'movie'
+                                : v.CollectionType === 'tvshows'
+                                  ? 'show'
+                                  : v.CollectionType;
+                        if (libType !== 'movie' && libType !== 'show') continue;
+                        try {
+                            const itemTypes = libType === 'movie' ? ['Movie'] : ['Series'];
+                            const resp = await jf.getItems({
+                                parentId: v.Id,
+                                includeItemTypes: itemTypes,
+                                recursive: true,
+                                limit: 1,
+                                startIndex: 0,
+                            });
+                            const count = parseInt(resp?.TotalRecordCount || 0);
+                            if (libType === 'movie') movies += count;
+                            else shows += count;
+                        } catch (_) {
+                            // skip library errors
+                        }
+                    }
+                }
+                // TMDB/TVDB are not finite libraries; omit from totals to avoid misleading numbers.
+            } catch (e) {
+                // Continue on per-server errors without failing the endpoint
+                if (isDebug)
+                    logger.debug('[Dashboard Totals] Failed for server', {
+                        name: s?.name,
+                        type: s?.type,
+                        error: e?.message,
+                    });
+            }
+        }
+
+        const value = { movies, shows, total: movies + shows };
+        global.__libraryTotalsCache = { value, ts: Date.now() };
+        return value;
+    };
+
+    // Build response; compute library totals and health alerts asynchronously
+    Promise.all([
+        getTotals(),
+        // require inline to avoid top-of-file ordering concerns
+        Promise.resolve()
+            .then(() => {
+                try {
+                    const { getDetailedHealth } = require('./utils/healthCheck');
+                    return getDetailedHealth();
+                } catch (_) {
+                    return null;
+                }
+            })
+            .catch(() => null),
+    ])
+        .then(([totals, health]) => {
+            // Extract alerts from health checks (warnings/errors)
+            const alerts = Array.isArray(health?.checks)
+                ? health.checks.filter(c => c && c.status && c.status !== 'ok')
+                : [];
+            const payload = {
+                ...summary,
+                media: {
+                    // Keep existing field for compatibility, but distinguish the meaning
+                    playlistItems,
+                    sources: sourcesCount,
+                    libraryTotals: totals,
+                },
+                alerts,
+            };
+            res.json(payload);
+        })
+        .catch(() => {
+            // If totals computation fails entirely, still return base payload
+            const payload = {
+                ...summary,
+                media: {
+                    playlistItems,
+                    sources: sourcesCount,
+                    libraryTotals: { movies: 0, shows: 0, total: 0 },
+                },
+                alerts: Array.isArray(summary?.alerts) ? summary.alerts : [],
+            };
+            res.json(payload);
+        });
 });
 
 /**

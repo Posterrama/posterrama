@@ -12,6 +12,19 @@
         return new Intl.NumberFormat().format(n);
     }
 
+    // Returns true when the given ISO date falls on the current local day
+    function isToday(iso) {
+        if (!iso) return false;
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return false;
+        const now = new Date();
+        return (
+            d.getFullYear() === now.getFullYear() &&
+            d.getMonth() === now.getMonth() &&
+            d.getDate() === now.getDate()
+        );
+    }
+
     function clamp(n, min = 0, max = 100) {
         n = Number(n);
         if (Number.isNaN(n)) return 0;
@@ -54,24 +67,47 @@
             const offline = devices.filter(
                 d => String(d.status || '').toLowerCase() === 'offline'
             ).length;
+            const createdToday = devices.filter(d => isToday(d.createdAt)).length;
             setText('metric-active-devices', formatNumber(active));
             setText('metric-offline-devices', formatNumber(offline));
-            setText('metric-active-trend', offline > 0 ? `${offline} offline` : 'all good');
+            // Trend shows "+N today" when new devices were added today; fallback to offline count
+            const trendEl = document.getElementById('metric-active-trend');
+            if (trendEl) {
+                trendEl.classList.remove('positive', 'negative');
+                if (createdToday > 0) {
+                    trendEl.textContent = `+${createdToday} today`;
+                    trendEl.classList.add('positive');
+                } else if (offline > 0) {
+                    trendEl.textContent = `${offline} offline`;
+                    trendEl.classList.add('negative');
+                } else {
+                    trendEl.textContent = 'all good';
+                }
+            }
         } catch (e) {
             console.warn('Failed to load devices', e);
             setText('metric-active-devices', '—');
             setText('metric-offline-devices', '—');
+            setText('metric-active-trend', '');
         }
     }
 
     async function refreshDashboardMetrics() {
         try {
             const dash = await fetchJSON('/api/v1/metrics/dashboard');
-            const media = dash?.media?.totalItems ?? dash?.summary?.mediaItems ?? null;
+            // Prefer aggregated library totals over playlist size
+            const totals = dash?.media?.libraryTotals;
+            const media =
+                totals?.total ?? dash?.media?.playlistItems ?? dash?.summary?.mediaItems ?? null;
             const sources = dash?.media?.sources ?? dash?.summary?.sources ?? null;
             const warnings = (dash?.alerts || dash?.warnings || []).length;
             setText('metric-media-items', formatNumber(media));
-            setText('metric-media-sub', sources ? `from ${formatNumber(sources)} sources` : '');
+            const movies = totals?.movies ?? null;
+            const shows = totals?.shows ?? null;
+            const parts = [`${formatNumber(sources ?? 0)} sources`];
+            if (movies != null) parts.push(`Movies ${formatNumber(movies)}`);
+            if (shows != null) parts.push(`Series ${formatNumber(shows)}`);
+            setText('metric-media-sub', parts.join(' • '));
             setText('metric-warnings', formatNumber(warnings));
             setText('metric-warn-sub', warnings > 0 ? 'needs review' : '');
         } catch (e) {
