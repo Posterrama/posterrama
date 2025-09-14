@@ -8,354 +8,33 @@
             href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap"
             rel="stylesheet"
         />
-        <link rel="stylesheet" href="/admin.css?v=20250819a" />
+    <link rel="stylesheet" href="/admin.css?v=20250819a" />
         <link
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
         />
-        <style>
-            body {
-                display: flex;
-                flex-direction: column;
-                height: 100vh;
-                margin: 0;
-                background-color: #1a1a1a;
-                color: #e0e0e0;
-            }
-
-            /* Use admin header styling exactly */
-            .admin-header {
-                /* Glass effect - no background, only blur */
-                background: transparent;
-                backdrop-filter: blur(20px);
-                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-                padding: 0 2rem;
-                height: 70px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                z-index: 1000;
-                box-shadow: 2px 4px 20px rgba(0, 0, 0, 0.6);
-                width: 100%;
-                position: relative; /* Override fixed for logs page */
-                top: 0;
-                left: 0;
-                right: 0;
-                flex-shrink: 0;
-            }
-
-            .admin-header h1 {
-                margin: 0;
-                font-size: 1.5rem;
-                font-weight: 600;
-                color: #ffffff;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .admin-header nav,
-            .header-nav {
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-            }
-
-            .admin-header nav a {
-                display: inline-flex !important;
-                align-items: center !important;
-                gap: 0.5rem !important;
-                padding: 0.6rem 1rem !important;
-                border: none !important;
-                border-radius: 8px !important;
-                color: #ffffff !important;
-                font-size: 0.85rem !important;
-                font-weight: 500 !important;
-                text-decoration: none !important;
-                cursor: pointer !important;
-                transition: all 0.3s ease !important;
-                position: relative !important;
-                backdrop-filter: none !important;
-                overflow: visible !important;
-                height: auto !important;
-                min-height: auto !important;
-                line-height: normal !important;
-                box-sizing: border-box !important;
-            }
-
-            .log-container {
-                flex-grow: 1;
-                display: flex;
-                flex-direction: column;
-                padding: 1rem;
-                overflow: hidden;
-            }
-
-            .log-controls {
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-                margin-bottom: 1rem;
-                flex-wrap: wrap;
-            }
-
-            .log-controls label {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                color: #e0e6ed;
-                font-weight: 400;
-                font-family: inherit;
-            }
-
-            .log-controls input[type='text'],
-            .log-controls select {
-                padding: 0.6rem 0.75rem;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 8px;
-                color: #ffffff;
-                font-size: 16px; /* Prevent mobile zoom */
-                transition: all 0.3s ease;
-                backdrop-filter: blur(10px);
-            }
-
-            .log-controls input[type='text']:focus,
-            .log-controls select:focus {
-                outline: none;
-                border-color: rgba(102, 126, 234, 0.5);
-                background: rgba(255, 255, 255, 0.08);
-                box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-            }
-
-            .log-controls button {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                padding: 0.6rem 1rem;
-                background: rgba(255, 255, 255, 0.08);
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                border-radius: 8px;
-                color: #ffffff;
-                font-size: 0.85rem;
-                font-weight: 500;
-                text-decoration: none;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                backdrop-filter: blur(10px);
-            }
-
-            .log-controls button:hover {
-                background: rgba(255, 255, 255, 0.12);
-                border-color: rgba(255, 255, 255, 0.25);
-                transform: translateY(-1px);
-            }
-
-            .log-status {
-                display: flex;
-                align-items: center;
-                margin-right: auto;
-            }
-
-            .status-dot {
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                margin-right: 8px;
-                background-color: #feca57;
-                transition: background-color 0.3s ease;
-            }
-            .status-dot.connected {
-                background-color: #28a745;
-            }
-            .status-dot.disconnected {
-                background-color: #dc3545;
-            }
-
-            .log-text-filter {
-                min-width: 200px;
-            }
-
-            .log-text-filter::placeholder {
-                color: rgba(255, 255, 255, 0.4);
-            }
-
-            .log-viewer {
-                flex-grow: 1;
-                background-color: #111;
-                border: 1px solid #555;
-                border-radius: 8px;
-                padding: 15px;
-                overflow-y: auto;
-                font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-                font-size: 0.85rem;
-                line-height: 1.5;
-            }
-
-            .log-entry {
-                padding: 4px 8px;
-                border-bottom: 1px solid #2c2c2c;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-
-            .timestamp {
-                color: #666;
-                font-size: 0.9em;
-                white-space: nowrap;
-            }
-
-            .level {
-                padding: 2px 6px;
-                border-radius: 3px;
-                font-size: 0.8em;
-                min-width: 50px;
-                text-align: center;
-                font-weight: bold;
-            }
-
-            .level-trace {
-                background: #6c757d;
-                color: white;
-            }
-            .level-debug {
-                background: #007bff;
-                color: white;
-            }
-            .level-info {
-                background: #28a745;
-                color: white;
-            }
-            .level-warn {
-                background: #ffc107;
-                color: black;
-            }
-            .level-error {
-                background: #dc3545;
-                color: white;
-            }
-            .level-fatal {
-                background: #6f42c1;
-                color: white;
-            }
-
-            .message {
-                flex: 1;
-                word-break: break-word;
-            }
-
-            /* Mobile responsive styling - match admin interface */
-            @media (max-width: 768px) {
-                .admin-header {
-                    padding: 0 1rem;
-                    height: 60px;
-                    justify-content: space-between;
-                    background: transparent !important;
-                    backdrop-filter: blur(20px) !important;
-                }
-
-                .admin-header h1 {
-                    font-size: 1.25rem;
-                    position: absolute;
-                    left: 50%;
-                    transform: translateX(-50%);
-                }
-
-                /* Hide "Live Logs" text on mobile to save space */
-                .admin-header h1 .admin-text {
-                    display: none;
-                }
-
-                /* Mobile navigation - compact buttons */
-                .admin-header nav {
-                    gap: 0.25rem;
-                    margin-left: auto;
-                }
-
-                .admin-header nav a {
-                    padding: 0.5rem !important;
-                    font-size: 0.8rem !important;
-                    min-width: auto !important;
-                }
-
-                /* Hide text in header buttons on mobile, show icons only */
-                .admin-header nav a {
-                    font-size: 0 !important; /* Hide all text */
-                    line-height: 0 !important;
-                }
-
-                .admin-header nav a i {
-                    font-size: 1.1rem !important; /* Show icons */
-                    margin: 0 !important;
-                    line-height: normal !important;
-                    display: block !important;
-                }
-
-                .log-container {
-                    padding: 0.5rem;
-                }
-
-                .log-controls {
-                    flex-direction: column;
-                    align-items: stretch;
-                    gap: 0.75rem;
-                }
-
-                .log-controls > div,
-                .log-controls > label,
-                .log-controls > button {
-                    width: 100%;
-                }
-
-                .log-controls input[type='text'],
-                .log-controls select {
-                    width: 100%;
-                    font-size: 16px !important; /* Prevent zoom on mobile */
-                }
-
-                .log-status {
-                    margin-right: 0;
-                    margin-bottom: 0.5rem;
-                }
-            }
-
-            .auto-scroll-label input[type='checkbox'] {
-                margin-right: 0.5rem;
-            }
-
-            .auto-scroll-label {
-                user-select: none;
-            }
-        </style>
     </head>
-    <body>
-        <header class="admin-header">
-            <h1 class="logo-text">
-                <span class="admin-text">Live Logs</span>
-                <span class="gradient-text">posterrama</span>
-            </h1>
-            <nav class="header-nav">
-                <a href="/admin" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                    Back to Admin
-                </a>
-                <a href="/admin/logout" class="btn btn-danger">
-                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
-                    Logout
-                </a>
-            </nav>
+    <body class="page-logs">
+        <header class="logs-header">
+            <div class="logs-title">
+                <span class="brand">Live Logs</span>
+                <span class="status-pill"><i class="fas fa-stream"></i> Live</span>
+            </div>
+            <div class="logs-actions">
+                <a href="/admin" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Back</a>
+                <a href="/admin/logout" class="btn btn-error"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
         </header>
 
-        <main class="log-container">
-            <div class="log-controls">
-                <div class="log-status">
+        <main class="logs-container">
+            <div class="logs-toolbar">
+                <div class="status">
                     <span id="status-dot" class="status-dot"></span>
                     <span id="status-text">Connecting...</span>
                 </div>
 
                 <label>
-                    Filter Level:
+                    Level
                     <select id="logLevel">
                         <option value="trace">TRACE</option>
                         <option value="debug">DEBUG</option>
@@ -366,25 +45,19 @@
                     </select>
                 </label>
 
-                <input
-                    type="text"
-                    id="textFilter"
-                    class="log-text-filter"
-                    placeholder="Filter logs by text..."
-                />
+                <input type="text" id="textFilter" placeholder="Filter logs by text..." />
 
-                <button id="clearFilter">Clear Filters</button>
+                <button class="btn btn-outline" id="clearFilter"><i class="fas fa-times"></i> Clear</button>
 
-                <label class="auto-scroll-label">
-                    <input type="checkbox" id="autoScroll" checked />
-                    Auto-scroll
+                <label>
+                    <input type="checkbox" id="autoScroll" checked /> Auto-scroll
                 </label>
 
-                <button id="pauseButton">Pause Updates</button>
+                <button class="btn btn-secondary" id="pauseButton"><i class="fas fa-pause"></i> Pause</button>
             </div>
 
-            <div class="log-viewer">
-                <div id="log-output"></div>
+            <div class="logs-viewer">
+                <div id="log-output" class="logs-output"></div>
             </div>
         </main>
 

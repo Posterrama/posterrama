@@ -135,7 +135,6 @@ body {
 .navbar > * {
     transform: translateY(var(--navbar-inner-shift));
 }
-
 .nav-brand {
     display: flex;
     align-items: center;
@@ -4128,6 +4127,190 @@ select:not([multiple]) {
     opacity: 0;
     transition: opacity 0.15s ease;
     z-index: -1;
+}
+
+/* ============================
+   Logs Viewer (logs.html)
+   Standalone page themed to Admin v2
+   ============================ */
+body.page-logs {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header aligned with Admin navbar look but simpler */
+.logs-header {
+    height: var(--navbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-xl);
+    border-bottom: 1px solid var(--color-border);
+    background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.logs-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+}
+.logs-title .brand {
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+.logs-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* Content */
+.logs-container {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: var(--space-xl);
+    overflow: hidden;
+}
+
+.logs-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: var(--space-md);
+}
+.logs-toolbar .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-secondary);
+    margin-right: auto;
+}
+.logs-toolbar .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-warning);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15) inset;
+}
+.logs-toolbar .status-dot.connected {
+    background: var(--color-success);
+}
+.logs-toolbar .status-dot.disconnected {
+    background: var(--color-error);
+}
+
+.logs-toolbar label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+.logs-toolbar input[type='text'] {
+    min-width: 220px;
+}
+
+.logs-viewer {
+    flex: 1 1 auto;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    overflow: auto;
+    padding: var(--space-md);
+    font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+        monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+.logs-output {
+    display: grid;
+    gap: 4px;
+}
+.log-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--color-bg-tertiary);
+}
+.log-row .timestamp {
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+.log-row .level {
+    min-width: 64px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+.level-trace {
+    background: #6b7280; /* slate-500 */
+    color: #fff;
+}
+.level-debug {
+    background: #3b82f6; /* blue-500 */
+    color: #fff;
+}
+.level-info {
+    background: #10b981; /* green-500 */
+    color: #fff;
+}
+.level-warn {
+    background: #f59e0b; /* amber-500 */
+    color: #111827;
+}
+.level-error {
+    background: #ef4444; /* red-500 */
+    color: #fff;
+}
+.level-fatal {
+    background: #8b5cf6; /* violet-500 */
+    color: #fff;
+}
+.log-row .message {
+    word-break: break-word;
+}
+
+/* Mobile tweaks */
+@media (max-width: 768px) {
+    .logs-header {
+        padding: 0 var(--space-md);
+        height: 60px;
+    }
+    .logs-title {
+        font-size: var(--font-size-lg);
+    }
+    .logs-container {
+        padding: var(--space-md);
+    }
+    .logs-toolbar {
+        gap: var(--space-sm);
+    }
+    .logs-toolbar input[type='text'] {
+        min-width: 0;
+        width: 100%;
+    }
+    .logs-toolbar > * {
+        flex: 1 1 100%;
+    }
 }
 
 /* (removed duplicate legacy hover rules to avoid conflicts) */
