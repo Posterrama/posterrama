@@ -91,6 +91,8 @@ function getAssetVersions() {
             'sw.js',
             'client-logger.js',
             'manifest.json',
+            'device-mgmt.js',
+            'lazy-loading.js',
         ];
 
         criticalAssets.forEach(asset => {
@@ -645,6 +647,41 @@ app.use('/image', apiLimiter);
  *               type: string
  */
 app.get(['/admin', '/admin.html'], (req, res, next) => {
+    // Check for auto-register parameters from QR code
+    const autoRegister = req.query['auto-register'];
+    const deviceId = req.query['device-id'];
+    const deviceName = req.query['device-name'];
+
+    if (autoRegister === 'true' && deviceId) {
+        logger.info(
+            `[Auto-Register] QR code scan detected: device-id=${deviceId}, device-name=${deviceName}`
+        );
+
+        // Store auto-register parameters in session for after login
+        req.session.pendingAutoRegister = {
+            deviceId,
+            deviceName,
+            timestamp: Date.now(),
+        };
+
+        // If user is already authenticated, continue to serve admin panel with parameters
+        if (req.session.user) {
+            logger.info(
+                `[Auto-Register] User authenticated, serving admin panel with auto-register parameters`
+            );
+            // Continue to serve admin panel below, parameters will be available in URL for frontend
+        } else {
+            // If not authenticated, redirect to login (parameters are saved in session)
+            logger.info(`[Auto-Register] User not authenticated, redirecting to login`);
+            return res.redirect('/admin/login');
+        }
+    }
+
+    // Normal authentication check for non-auto-register requests
+    if (!autoRegister && !req.session.user) {
+        return res.redirect('/admin/login');
+    }
+
     const filePath = path.join(__dirname, 'public', 'admin.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) return next(err);
@@ -718,6 +755,14 @@ app.get(['/', '/index.html'], (req, res, next) => {
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}`
+            )
+            .replace(
+                /device-mgmt\.js\?v=[^"&\s]+/g,
+                `device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /lazy-loading\.js\?v=[^"&\s]+/g,
+                `lazy-loading.js?v=${versions['lazy-loading.js'] || ASSET_VERSION}`
             )
             // Stamp client-side logger
             .replace(
@@ -1492,6 +1537,11 @@ if (isDeviceMgmtEnabled()) {
         10,
         'Too many device registrations from this IP, please try again later.'
     );
+    const deviceCheckLimiter = createRateLimiter(
+        60 * 1000,
+        30,
+        'Too many device check requests from this IP, please slow down.'
+    );
     const deviceHeartbeatLimiter = createRateLimiter(
         60 * 1000,
         120,
@@ -1588,6 +1638,66 @@ if (isDeviceMgmtEnabled()) {
         } catch (e) {
             logger.error('[Devices] register failed', e);
             res.status(500).json({ error: 'register_failed' });
+        }
+    });
+
+    /**
+     * @swagger
+     * /api/devices/check:
+     *   post:
+     *     summary: Check if device is registered
+     *     description: Check if a device with given ID is already registered (for QR registration polling)
+     *     tags: ['Devices']
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               deviceId:
+     *                 type: string
+     *                 description: Device ID to check
+     *             required:
+     *               - deviceId
+     *     responses:
+     *       200:
+     *         description: Check result
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 isRegistered:
+     *                   type: boolean
+     *                 deviceName:
+     *                   type: string
+     *       400:
+     *         description: Bad request
+     */
+    app.post('/api/devices/check', deviceCheckLimiter, express.json(), async (req, res) => {
+        try {
+            const { deviceId } = req.body;
+            if (!deviceId || typeof deviceId !== 'string') {
+                return res.status(400).json({ error: 'deviceId required' });
+            }
+
+            // Check if device exists in store - check by ID first, then by hardwareId
+            let device = await deviceStore.getById(deviceId);
+            if (!device) {
+                // If not found by ID, try to find by hardwareId
+                const allDevices = await deviceStore.getAll();
+                device = allDevices.find(d => d.hardwareId === deviceId);
+            }
+            const isRegistered = !!device;
+
+            res.json({
+                isRegistered,
+                deviceName: device?.name || null,
+            });
+        } catch (e) {
+            logger.error('[Devices] check failed', e);
+            res.status(500).json({ error: 'check_failed' });
         }
     });
 
@@ -5693,6 +5803,13 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
                 .json({ success: true, requires2FA: true, redirectTo: '/admin/2fa-verify' });
         } else {
             // No 2FA, log the user in directly. Regenerate session to prevent fixation.
+
+            // SAVE auto-register data BEFORE session regeneration
+            const pendingAutoRegister = req.session.pendingAutoRegister;
+            logger.info(
+                `[Auto-Register] Saving auto-register data before session regeneration: ${JSON.stringify(pendingAutoRegister)}`
+            );
+
             return req.session.regenerate(err => {
                 if (err) {
                     logger.error('[Admin Login] Error regenerating session:', err);
@@ -5700,6 +5817,21 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
                 }
                 req.session.user = { username };
                 if (isDebug) logger.debug(`[Admin Login] Login successful for user "${username}".`);
+
+                // Check for saved auto-register parameters
+                if (pendingAutoRegister && pendingAutoRegister.deviceId) {
+                    logger.info(
+                        `[Auto-Register] Restoring auto-register parameters after login: ${JSON.stringify(pendingAutoRegister)}`
+                    );
+                    const autoRegisterUrl = `/admin?auto-register=true&device-id=${encodeURIComponent(pendingAutoRegister.deviceId)}&device-name=${encodeURIComponent(pendingAutoRegister.deviceName || pendingAutoRegister.deviceId)}`;
+                    // No need to clear data since we regenerated the session
+                    return res.status(200).json({
+                        success: true,
+                        requires2FA: false,
+                        redirectTo: autoRegisterUrl,
+                    });
+                }
+
                 return res.status(200).json({
                     success: true,
                     requires2FA: false,
@@ -5850,6 +5982,19 @@ app.post(
                 logger.debug(
                     `[Admin 2FA Verify] 2FA verification successful for user "${username}".`
                 );
+
+            // Check for pending auto-register parameters
+            const pendingAutoRegister = req.session.pendingAutoRegister;
+            if (pendingAutoRegister && pendingAutoRegister.deviceId) {
+                logger.info(
+                    `[Auto-Register] Restoring auto-register parameters after 2FA: ${JSON.stringify(pendingAutoRegister)}`
+                );
+                const autoRegisterUrl = `/admin?auto-register=true&device-id=${encodeURIComponent(pendingAutoRegister.deviceId)}&device-name=${encodeURIComponent(pendingAutoRegister.deviceName || pendingAutoRegister.deviceId)}`;
+                // Clear the pending data
+                delete req.session.pendingAutoRegister;
+                return res.redirect(autoRegisterUrl);
+            }
+
             res.redirect('/admin');
         } else {
             if (isDebug)

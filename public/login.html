@@ -185,6 +185,7 @@
                     if (response.ok) {
                         try {
                             const result = await response.json();
+                            
                             if (result.success) {
                                 // Login successful, redirect as instructed
                                 window.location.href = result.redirectTo;

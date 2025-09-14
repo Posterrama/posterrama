@@ -382,68 +382,142 @@
             overlay.id = 'pr-welcome-overlay';
             overlay.innerHTML = `
 <style>
-#pr-welcome-overlay{position:fixed;inset:0;background:radial-gradient(1200px 600px at 50% -10%, rgba(255,255,255,.08), rgba(0,0,0,.9)), rgba(0,0,0,.85);color:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
-#pr-welcome-card{width:min(96vw,960px);max-width:960px;background:rgba(20,20,20,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px 24px;box-shadow:0 24px 60px rgba(0,0,0,.55);display:grid;grid-template-columns:1.2fr .9fr;gap:18px}
-#pr-welcome-card h2{margin:0 0 6px;font-size:24px;letter-spacing:.2px}
-#pr-sub{margin:0 0 10px;color:#cfd6e4;font-size:14px}
-.pr-field{margin:10px 0}
-.pr-field label{display:block;margin-bottom:6px;font-size:12px;color:#aab3c2}
-.pr-field input{width:100%;padding:12px;border-radius:10px;border:1px solid #2f3642;background:#14161a;color:#fff;outline:none}
-.pr-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
-.pr-btn{appearance:none;border:0;border-radius:10px;padding:11px 16px;background:#2d6cdf;color:#fff;cursor:pointer;font-weight:600}
-.pr-btn.sec{background:#2b2f36;color:#e6e8eb;border:1px solid #3a414d}
-.pr-btn.warn{background:#3a414d;color:#e6e8eb}
-.pr-msg{min-height:18px;color:#f88;font-size:13px;margin-top:8px}
-.pr-qr{display:flex;flex-direction:column;align-items:center;justify-content:center}
-.pr-qr img{max-width:320px;width:100%;height:auto;background:#fff;border-radius:12px;border:1px solid #2f3642;padding:10px}
-.pr-qr .qr-caption{margin-top:8px;font-size:12px;color:#cfd6e4;text-align:center}
-.pr-video{width:100%;max-height:240px;border-radius:10px;background:#000}
-.pr-note{font-size:12px;color:#aab3c2;margin-top:8px}
-.pr-topbar{display:flex;gap:10px;align-items:center;justify-content:space-between}
-.pr-count{font-size:12px;color:#cfd6e4}
-@media (max-width: 720px){#pr-welcome-card{grid-template-columns:1fr;}}
+#pr-welcome-overlay{position:fixed;inset:0;background:linear-gradient(135deg, rgba(0,0,0,.92) 0%, rgba(20,20,30,.95) 100%);color:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;padding:20px;box-sizing:border-box}
+#pr-welcome-card{width:min(85vw,680px);background:linear-gradient(145deg, rgba(25,25,35,.9) 0%, rgba(15,15,25,.95) 100%);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:0;box-shadow:0 25px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.05);overflow:hidden;position:relative}
+.pr-header{background:linear-gradient(90deg, #1e293b 0%, #334155 100%);padding:24px 32px;border-bottom:1px solid rgba(255,255,255,.08);position:relative}
+.pr-header h2{margin:0;font-size:24px;font-weight:600;color:#ffffff;letter-spacing:-.2px}
+.pr-header .pr-subtitle{margin:6px 0 0;color:#94a3b8;font-size:14px;font-weight:400}
+.pr-countdown{position:absolute;top:24px;right:32px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#60a5fa;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;font-mono}
+.pr-body{padding:32px;display:grid;grid-template-columns:1fr 240px;gap:40px;align-items:start}
+.pr-main{display:flex;flex-direction:column;gap:24px}
+.pr-field{display:flex;flex-direction:column;gap:8px}
+.pr-field label{font-size:13px;color:#94a3b8;font-weight:500;margin-bottom:4px}
+.pr-code-input{width:220px;padding:16px;background:rgba(15,23,42,.8);border:2px solid rgba(71,85,105,.4);border-radius:12px;color:#fff;font-size:20px;text-align:center;letter-spacing:8px;font-family:ui-monospace,monospace;outline:none;transition:all 0.2s ease}
+.pr-code-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1);background:rgba(15,23,42,.95)}
+.pr-code-input::placeholder{color:#475569;letter-spacing:6px}
+.pr-primary-actions{display:flex;gap:12px;margin-top:8px;width:256px}
+.pr-btn{border:0;border-radius:10px;padding:12px 8px;font-weight:600;font-size:14px;cursor:pointer;transition:all 0.15s ease;position:relative;z-index:20;display:inline-block !important;visibility:visible !important;opacity:1 !important;outline:none;flex:1;text-align:center}
+.pr-btn.primary{background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:#fff;box-shadow:0 4px 12px rgba(59,130,246,.25)}
+.pr-btn.primary:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(59,130,246,.3)}
+.pr-btn.secondary{background:rgba(71,85,105,.6);color:#e2e8f0;border:1px solid rgba(100,116,139,.5)}
+.pr-btn.secondary:hover{background:rgba(71,85,105,.8);border-color:rgba(100,116,139,.8)}
+.pr-secondary-section{display:flex;flex-direction:column;gap:16px;margin-top:-8px}
+.pr-footer{padding:20px 32px;background:rgba(15,23,42,.3);border-top:1px solid rgba(255,255,255,.05)}
+.pr-footer-btn{width:100%;background:rgba(71,85,105,.25);border:1px solid rgba(100,116,139,.4);color:#cbd5e1;padding:16px 20px;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s ease;display:flex;align-items:center;justify-content:center}
+.pr-footer-btn:hover{background:rgba(71,85,105,.4);border-color:rgba(100,116,139,.6);color:#e2e8f0;transform:translateY(-1px)}
+.pr-btn.tertiary{background:rgba(100,116,139,.3);color:#cbd5e1;border:1px solid rgba(100,116,139,.4)}
+.pr-btn.tertiary:hover{background:rgba(100,116,139,.5)}
+.pr-qr-section{display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px;background:rgba(255,255,255,.02);border-radius:16px;border:1px solid rgba(255,255,255,.05)}
+.pr-qr-code{width:180px;height:180px;background:#fff;border-radius:12px;padding:12px;box-shadow:0 8px 25px rgba(0,0,0,.2)}
+.pr-qr-caption{font-size:12px;color:#94a3b8;text-align:center;font-weight:500}
+.pr-msg{color:#ef4444;font-size:13px;font-weight:500;min-height:18px;padding:8px 0}
+/* Ultra-aggressive button visibility rules */
+#pr-do-pair, #pr-close, #pr-skip-setup {display: inline-block !important; visibility: visible !important; opacity: 1 !important;}
+button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block !important; visibility: visible !important; opacity: 1 !important;}
+.pr-btn#pr-do-pair, .pr-btn#pr-close, .pr-footer-btn#pr-skip-setup {display: inline-block !important; visibility: visible !important; opacity: 1 !important;}
+@media (max-width: 768px){.pr-body{grid-template-columns:1fr;gap:24px}.pr-qr-section{order:-1}.pr-header{padding:20px 24px}.pr-countdown{position:static;margin-top:12px;align-self:flex-start}.pr-body{padding:24px}}
 </style>
 <div id="pr-welcome-card" role="dialog" aria-modal="true" aria-labelledby="pr-welcome-title">
-  <div class="pr-left">
-    <div class="pr-topbar">
-      <div>
-        <h2 id="pr-welcome-title">Set up this screen</h2>
-    <p id="pr-sub">Register this device for management, or skip to use without admin control.</p>
-      </div>
-      <div class="pr-count"><span id="pr-countdown">02:00</span></div>
-    </div>
-    <div class="pr-field">
-      <label for="pr-pair-code">Pairing code (from admin)</label>
-      <input id="pr-pair-code" placeholder="e.g. 123456" inputmode="numeric" autocomplete="one-time-code" />
-    </div>
-    <div class="pr-actions">
-      <button class="pr-btn" id="pr-do-pair">Pair with admin</button>
-      <button class="pr-btn sec" id="pr-register">Register as new</button>
-    </div>
-    <div class="pr-field" style="margin-top: 1rem;">
-      <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #aab3c2;">
-        <input type="checkbox" id="pr-skip-setup" style="margin: 0;">
-        Skip device management (use without admin control)
-      </label>
-    </div>
-    <div class="pr-actions" style="margin-top: 0.5rem;">
-      <button class="pr-btn warn" id="pr-close">Skip & Continue</button>
-    </div>
-    <div class="pr-msg" id="pr-msg"></div>
+  <div class="pr-header">
+    <h2 id="pr-welcome-title">Set up this screen</h2>
+    <p class="pr-subtitle">Connect with admin panel to manage this display</p>
+    <div class="pr-countdown"><span id="pr-countdown">02:00</span></div>
   </div>
-  <div class="pr-qr">
-    <img id="pr-qr-img" alt="Auto-registration QR code"/>
-    <div class="qr-caption">Scan to auto-register in Admin</div>
+  
+  <div class="pr-body">
+    <div class="pr-main">
+      <div class="pr-field">
+        <label for="pr-pair-code">Enter pairing code</label>
+        <input id="pr-pair-code" class="pr-code-input" placeholder="● ● ● ● ● ●" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+      </div>
+      
+      <div class="pr-primary-actions">
+        <button class="pr-btn primary" id="pr-do-pair" type="button">Connect</button>
+        <button class="pr-btn tertiary" id="pr-close" type="button">Skip setup</button>
+      </div>
+      
+      <div class="pr-msg" id="pr-msg"></div>
+    </div>
+    
+    <div class="pr-qr-section">
+      <img id="pr-qr-img" class="pr-qr-code" alt="QR code for device registration"/>
+      <div class="pr-qr-caption">Scan with mobile device</div>
+    </div>
+  </div>
+  
+  <div class="pr-footer">
+    <button class="pr-footer-btn" id="pr-skip-setup" type="button">
+      Don't show this again
+    </button>
   </div>
 </div>`;
             document.body.appendChild(overlay);
 
+            // IMMEDIATE button protection - before any other scripts can interfere
+            const immediateProtection = () => {
+                const buttons = ['pr-do-pair', 'pr-close', 'pr-skip-setup'];
+                buttons.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        btn.style.cssText +=
+                            '; display: inline-block !important; visibility: visible !important; opacity: 1 !important;';
+                        // Also add to the element's style attribute directly
+                        btn.setAttribute(
+                            'style',
+                            btn.getAttribute('style') +
+                                '; display: inline-block !important; visibility: visible !important; opacity: 1 !important;'
+                        );
+                    }
+                });
+            };
+
+            // Run immediately multiple times
+            immediateProtection();
+            setTimeout(immediateProtection, 1);
+            setTimeout(immediateProtection, 10);
+            setTimeout(immediateProtection, 50);
+
             const msg = $('#pr-msg');
             const codeEl = $('#pr-pair-code');
-            const skipCheckbox = $('#pr-skip-setup');
+            const skipButton = $('#pr-skip-setup');
             const countdownEl = $('#pr-countdown');
             let countTimer = null;
             let remaining = 120; // seconds
+
+            // Interactive placeholder for pairing code
+            function updatePlaceholder() {
+                const value = codeEl.value;
+                const maxLength = 6;
+                let placeholder = '';
+                for (let i = 0; i < maxLength; i++) {
+                    if (i < value.length) {
+                        placeholder += value[i] + ' ';
+                    } else {
+                        placeholder += '● ';
+                    }
+                }
+                codeEl.placeholder = placeholder.trim();
+            }
+
+            // Prevent form submission
+            const form = $('#pr-setup-form');
+            if (form) {
+                form.addEventListener('submit', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                });
+            }
+
+            codeEl.addEventListener('input', updatePlaceholder);
+            codeEl.addEventListener('focus', updatePlaceholder);
+            codeEl.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    tryPair();
+                }
+            });
+            updatePlaceholder(); // Initial call
 
             function setMsg(t, ok) {
                 msg.style.color = ok ? '#7ad97a' : '#f88';
@@ -465,15 +539,6 @@
                     clearInterval(countTimer);
                 } catch (_) {
                     /* noop: ignore clearInterval */
-                }
-
-                // Check if user wants to skip setup permanently
-                if (skipCheckbox && skipCheckbox.checked) {
-                    try {
-                        localStorage.setItem('posterrama-skip-device-setup', 'true');
-                    } catch (_) {
-                        /* noop: localStorage failed */
-                    }
                 }
 
                 try {
@@ -523,42 +588,245 @@
                     e.stopPropagation();
                 }
             });
-            $('#pr-do-pair').addEventListener('click', tryPair);
-            $('#pr-register').addEventListener('click', async () => {
-                setMsg('Registering...', true);
-                try {
-                    const ok = await registerIfNeeded();
-                    if (ok) {
-                        setMsg('Registered. Loading...', true);
-                        setTimeout(() => {
-                            try {
-                                document.body.removeChild(overlay);
-                            } catch (_) {
-                                /* noop: overlay removal failed */
-                            }
-                            resolve(true);
-                        }, 200);
-                    } else {
-                        setMsg('Registration not available.', false);
-                    }
-                } catch (_) {
-                    setMsg('Registration failed.', false);
-                }
+
+            $('#pr-do-pair').addEventListener('click', async e => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Connect button clicked');
+                await tryPair();
             });
-            $('#pr-close').addEventListener('click', doClose);
+
+            $('#pr-close').addEventListener('click', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Close button clicked');
+                doClose();
+            });
+
+            // Footer skip button
+            skipButton.addEventListener('click', e => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Visual feedback
+                skipButton.style.opacity = '0.6';
+                skipButton.textContent = 'Saving preference...';
+
+                try {
+                    localStorage.setItem('posterrama-skip-device-setup', 'true');
+                } catch (_) {
+                    /* noop: localStorage failed */
+                }
+
+                // Small delay for user feedback
+                setTimeout(() => {
+                    doClose();
+                }, 800);
+            });
+
+            // Force button visibility
+            function ensureButtonsVisible() {
+                const buttons = ['#pr-do-pair', '#pr-close', '#pr-skip-setup'];
+                buttons.forEach(id => {
+                    const btn = $(id);
+                    if (btn) {
+                        btn.style.setProperty('display', 'inline-block', 'important');
+                        btn.style.setProperty('visibility', 'visible', 'important');
+                        btn.style.setProperty('opacity', '1', 'important');
+                        btn.style.pointerEvents = 'auto';
+                    }
+                });
+            }
+
+            // Watch for DOM changes that might hide buttons
+            const observer = new MutationObserver(mutations => {
+                mutations.forEach(mutation => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const target = mutation.target;
+                        if (
+                            target.id &&
+                            ['pr-do-pair', 'pr-close', 'pr-skip-setup'].includes(target.id)
+                        ) {
+                            console.log(`Button ${target.id} style changed, forcing visibility`);
+                            ensureButtonsVisible();
+                        }
+                    }
+                });
+            });
+
+            // Start observing the card for changes
+            const card = $('#pr-welcome-card');
+            if (card) {
+                observer.observe(card, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['style', 'class'],
+                });
+            }
+
+            // Ensure buttons stay visible
+            setInterval(ensureButtonsVisible, 200);
+            ensureButtonsVisible();
+
+            // Debug: Log button visibility
+            function checkButtons() {
+                // Silent check for button visibility
+            }
 
             // Auto-registration QR: link to Admin with device info for auto-registration
-            try {
-                const iid = state.installId || getInstallId();
-                const hw = state.hardwareId || getHardwareId();
-                const autoRegisterUrl = `${window.location.origin}/admin#devices?auto-register=1${iid ? `&iid=${encodeURIComponent(iid)}` : ''}${hw ? `&hw=${encodeURIComponent(hw)}` : ''}`;
-                const qrImg = $('#pr-qr-img');
-                if (qrImg) {
-                    qrImg.src = `/api/qr?format=svg&text=${encodeURIComponent(autoRegisterUrl)}`;
+            // Delay QR loading to prevent interference with buttons
+            let registrationPollTimer = null;
+            setTimeout(() => {
+                try {
+                    const iid = state.installId || getInstallId();
+                    const hw = state.hardwareId || getHardwareId();
+                    const deviceId = state.deviceId || hw || iid || `device-${Date.now()}`;
+                    const deviceName = `Screen ${deviceId.substring(0, 8)}`;
+
+                    // IMPORTANT: No hash fragment to avoid interfering with query parameters
+                    const autoRegisterUrl = `${window.location.origin}/admin?auto-register=true&device-id=${encodeURIComponent(deviceId)}&device-name=${encodeURIComponent(deviceName)}`;
+                    const qrImg = $('#pr-qr-img');
+                    if (qrImg) {
+                        qrImg.onload = () => {
+                            setTimeout(() => {
+                                checkButtons();
+                                ensureButtonsVisible();
+                            }, 100);
+                        };
+                        qrImg.onerror = () => {
+                            setTimeout(checkButtons, 100);
+                        };
+                        qrImg.src = `/api/qr?format=svg&text=${encodeURIComponent(autoRegisterUrl)}`;
+                    }
+
+                    // Start polling for successful registration
+                    registrationPollTimer = setInterval(async () => {
+                        try {
+                            // Check if this device was registered
+                            const response = await fetch('/api/devices/check', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ deviceId }),
+                            });
+
+                            if (response.ok) {
+                                const result = await response.json();
+                                if (result.isRegistered) {
+                                    clearInterval(registrationPollTimer);
+                                    showRegistrationSuccess(deviceName);
+                                }
+                            }
+                        } catch (error) {
+                            // Silent retry on error
+                        }
+                    }, 5000); // Check every 5 seconds instead of 2
+                } catch (_) {
+                    /* noop: building auto-register link failed */
                 }
-            } catch (_) {
-                /* noop: building auto-register link failed */
+            }, 300);
+
+            // Function to show success in the modal
+            function showRegistrationSuccess(deviceName) {
+                const welcomeCard = $('#pr-welcome-card');
+                if (!welcomeCard) return;
+
+                // Replace the entire content with success message using same styling as setup modal
+                welcomeCard.innerHTML = `
+                    <div class="pr-header">
+                        <h2 id="pr-success-title">🎉 Device Connected!</h2>
+                        <p class="pr-subtitle">Your screen is now ready for remote control</p>
+                    </div>
+                    
+                    <div class="pr-body" style="grid-template-columns: 1fr; text-align: center;">
+                        <div class="pr-main">
+                            <div style="
+                                background: rgba(34, 197, 94, 0.1);
+                                border: 1px solid rgba(34, 197, 94, 0.3);
+                                border-radius: 16px;
+                                padding: 32px 24px;
+                                margin: 16px 0;
+                            ">
+                                <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
+                                <h3 style="
+                                    margin: 0 0 12px 0;
+                                    font-size: 20px;
+                                    font-weight: 600;
+                                    color: #22c55e;
+                                ">"${deviceName}" is registered</h3>
+                                <p style="
+                                    margin: 0;
+                                    font-size: 14px;
+                                    color: #94a3b8;
+                                    line-height: 1.5;
+                                ">This screen can now be controlled remotely from the admin panel</p>
+                            </div>
+                            
+                            <div style="
+                                background: rgba(255, 255, 255, 0.02);
+                                border: 1px solid rgba(255, 255, 255, 0.08);
+                                border-radius: 12px;
+                                padding: 20px;
+                                text-align: left;
+                                margin: 24px 0;
+                            ">
+                                <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                                    <span style="font-size: 20px; margin-right: 12px;">🎮</span>
+                                    <span style="font-size: 14px; color: #e2e8f0;">Remote control enabled</span>
+                                </div>
+                                <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                                    <span style="font-size: 20px; margin-right: 12px;">📱</span>
+                                    <span style="font-size: 14px; color: #e2e8f0;">Commands sync automatically</span>
+                                </div>
+                                <div style="display: flex; align-items: center;">
+                                    <span style="font-size: 20px; margin-right: 12px;">⚡</span>
+                                    <span style="font-size: 14px; color: #e2e8f0;">Live monitoring active</span>
+                                </div>
+                            </div>
+                            
+                            <button class="pr-btn primary" id="pr-success-continue" style="width: 200px; margin: 0 auto;">
+                                Continue
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                // Handle continue button
+                const continueBtn = $('#pr-success-continue');
+                if (continueBtn) {
+                    continueBtn.addEventListener('click', () => {
+                        // Clean up
+                        clearInterval(countTimer);
+                        if (registrationPollTimer) {
+                            clearInterval(registrationPollTimer);
+                        }
+
+                        // Remove the modal after a short delay
+                        setTimeout(() => {
+                            doClose();
+                        }, 500);
+                    });
+                }
+
+                // Auto-close after 8 seconds
+                setTimeout(() => {
+                    if (continueBtn) {
+                        continueBtn.click();
+                    }
+                }, 8000);
             }
+
+            // Clean up polling timer when modal closes
+            const originalDoClose = doClose;
+            doClose = function () {
+                if (registrationPollTimer) {
+                    clearInterval(registrationPollTimer);
+                }
+                return originalDoClose();
+            };
+
+            // Initial button check
+            setTimeout(checkButtons, 50);
 
             // Start countdown
             try {
@@ -583,13 +851,13 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border: none;
             border-radius: 50%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(45, 108, 223, 0.8);
             color: white;
-            font-size: 16px;
+            font-size: 18px;
             cursor: pointer;
             z-index: 9999;
             backdrop-filter: blur(5px);
@@ -597,16 +865,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         `;
 
         btn.addEventListener('mouseenter', () => {
-            btn.style.background = 'rgba(0,0,0,0.7)';
+            btn.style.background = 'rgba(45, 108, 223, 1)';
             btn.style.transform = 'scale(1.1)';
+            btn.style.boxShadow = '0 6px 20px rgba(45, 108, 223, 0.4)';
         });
 
         btn.addEventListener('mouseleave', () => {
-            btn.style.background = 'rgba(0,0,0,0.5)';
+            btn.style.background = 'rgba(45, 108, 223, 0.8)';
             btn.style.transform = 'scale(1)';
+            btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
         });
 
         btn.addEventListener('click', async () => {

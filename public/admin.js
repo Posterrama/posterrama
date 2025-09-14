@@ -3,6 +3,293 @@
  * Posterrama Admin Panel - Version 2.2.0
  */
 
+// 🚨 CRITICAL: Capture URL parameters IMMEDIATELY before any other code can modify them
+(function captureURLParamsEarly() {
+    console.log('🔥 IMMEDIATE URL CAPTURE:', window.location.href);
+
+    // Store the original URL components immediately
+    window.CAPTURED_URL_DATA = {
+        fullUrl: window.location.href,
+        search: window.location.search,
+        hash: window.location.hash,
+        pathname: window.location.pathname,
+        timestamp: Date.now(),
+    };
+
+    // Parse and store the parameters immediately
+    if (window.location.search) {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            window.CAPTURED_AUTO_REGISTER = {
+                autoRegister: urlParams.get('auto-register'),
+                deviceId: urlParams.get('device-id'),
+                deviceName: urlParams.get('device-name'),
+                allParams: Array.from(urlParams.entries()),
+            };
+            console.log('🎯 CAPTURED AUTO-REGISTER PARAMS:', window.CAPTURED_AUTO_REGISTER);
+        } catch (e) {
+            console.error('Failed to parse URL params early:', e);
+        }
+    }
+
+    // ALSO TRY TO CAPTURE FROM DOCUMENT.URL as backup
+    try {
+        if (document.URL && document.URL !== window.location.href) {
+            console.log('🔍 Document.URL differs from location.href:', document.URL);
+            const docUrl = new URL(document.URL);
+            if (docUrl.search) {
+                const docParams = new URLSearchParams(docUrl.search);
+                window.CAPTURED_DOC_AUTO_REGISTER = {
+                    autoRegister: docParams.get('auto-register'),
+                    deviceId: docParams.get('device-id'),
+                    deviceName: docParams.get('device-name'),
+                    source: 'document.URL',
+                };
+                console.log('🎯 CAPTURED FROM DOCUMENT.URL:', window.CAPTURED_DOC_AUTO_REGISTER);
+            }
+        }
+    } catch (e) {
+        console.error('Failed to parse document.URL:', e);
+    }
+})();
+
+// 🚨 IMMEDIATE AUTO-REGISTER PROCESSING - Before anything else can interfere
+(function processAutoRegisterImmediately() {
+    try {
+        // MULTIPLE SOURCES PARSING
+        const urlParams = new URLSearchParams(window.location.search);
+        let autoRegister = urlParams.get('auto-register');
+        let deviceId = urlParams.get('device-id');
+        let deviceName = urlParams.get('device-name');
+        let source = 'current_url';
+
+        // Try captured data from window.location
+        if (!autoRegister && window.CAPTURED_AUTO_REGISTER) {
+            autoRegister = window.CAPTURED_AUTO_REGISTER.autoRegister;
+            deviceId = window.CAPTURED_AUTO_REGISTER.deviceId;
+            deviceName = window.CAPTURED_AUTO_REGISTER.deviceName;
+            source = 'captured_location';
+        }
+
+        // Try captured data from document.URL
+        if (!autoRegister && window.CAPTURED_DOC_AUTO_REGISTER) {
+            autoRegister = window.CAPTURED_DOC_AUTO_REGISTER.autoRegister;
+            deviceId = window.CAPTURED_DOC_AUTO_REGISTER.deviceId;
+            deviceName = window.CAPTURED_DOC_AUTO_REGISTER.deviceName;
+            source = 'captured_document';
+        }
+
+        // LAST RESORT: Try parsing document.URL again right now
+        if (!autoRegister) {
+            try {
+                const docUrl = new URL(document.URL);
+                const docParams = new URLSearchParams(docUrl.search);
+                const docAutoRegister = docParams.get('auto-register');
+                const docDeviceId = docParams.get('device-id');
+                const docDeviceName = docParams.get('device-name');
+
+                if (docAutoRegister) {
+                    autoRegister = docAutoRegister;
+                    deviceId = docDeviceId;
+                    deviceName = docDeviceName;
+                    source = 'fresh_document_parse';
+                    console.log('🔄 Using fresh document.URL parse:', {
+                        autoRegister,
+                        deviceId,
+                        deviceName,
+                    });
+                }
+            } catch (e) {
+                console.error('Fresh document.URL parse failed:', e);
+            }
+        }
+
+        if (autoRegister === 'true' && deviceId) {
+            // Mark as processed to avoid double processing
+            window.autoRegisterProcessed = true;
+
+            // Create clean status div
+            const debugDiv = document.createElement('div');
+            debugDiv.style.cssText = `
+                position: fixed !important; 
+                top: 20px !important; 
+                left: 20px !important; 
+                right: 20px !important; 
+                background: #1a1a2e !important; 
+                color: #ffffff !important; 
+                padding: 20px !important; 
+                font-size: 16px !important; 
+                font-weight: normal !important; 
+                text-align: center !important; 
+                z-index: 999999 !important;
+                border: 2px solid #3b82f6 !important;
+                border-radius: 8px !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+            `;
+            debugDiv.innerHTML = `
+                <h4 style="margin: 0 0 10px; color: #3b82f6;">� Registering Device</h4>
+                <div id="status">Connecting to server...</div>
+                <div style="margin-top: 10px; font-size: 14px; opacity: 0.8;">
+                    ${deviceName || deviceId}
+                </div>
+            `;
+            document.body.appendChild(debugDiv);
+
+            // Clear URL parameters to avoid re-processing
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete('auto-register');
+            cleanUrl.searchParams.delete('device-id');
+            cleanUrl.searchParams.delete('device-name');
+            window.history.replaceState({}, document.title, cleanUrl.toString());
+
+            // Perform registration
+            fetch('/api/devices/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: deviceName || deviceId,
+                    hardwareId: deviceId, // Pass deviceId as hardwareId for proper matching
+                }),
+            })
+                .then(response => {
+                    const status = document.getElementById('status');
+                    if (response.ok) {
+                        // Hide the registration dialog
+                        debugDiv.remove();
+
+                        // Create beautiful success modal
+                        const successModal = document.createElement('div');
+                        successModal.style.cssText = `
+                        position: fixed !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        bottom: 0 !important;
+                        background: rgba(0, 0, 0, 0.8) !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        z-index: 999999 !important;
+                        backdrop-filter: blur(10px) !important;
+                    `;
+
+                        successModal.innerHTML = `
+                        <div style="
+                            background: linear-gradient(135deg, #0f5132, #198754) !important;
+                            border: 2px solid #20c997 !important;
+                            border-radius: 20px !important;
+                            padding: 40px 30px !important;
+                            text-align: center !important;
+                            color: white !important;
+                            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+                            max-width: 90% !important;
+                            max-height: 90% !important;
+                            min-width: 300px !important;
+                            animation: modalPulse 0.5s ease-out !important;
+                        ">
+                            <div style="font-size: 60px; margin-bottom: 20px;">✅</div>
+                            <h2 style="
+                                margin: 0 0 15px 0 !important;
+                                font-size: 24px !important;
+                                font-weight: bold !important;
+                                color: white !important;
+                            ">Device Registered!</h2>
+                            <p style="
+                                margin: 0 0 20px 0 !important;
+                                font-size: 16px !important;
+                                opacity: 0.9 !important;
+                                line-height: 1.4 !important;
+                            ">"${deviceName || deviceId}" is now connected</p>
+                            <div style="
+                                background: rgba(255, 255, 255, 0.1) !important;
+                                border-radius: 10px !important;
+                                padding: 15px !important;
+                                margin: 20px 0 !important;
+                                font-size: 14px !important;
+                                opacity: 0.8 !important;
+                            ">
+                                🎉 You can now control this device remotely
+                            </div>
+                        </div>
+                    `;
+
+                        // Add CSS animation
+                        const style = document.createElement('style');
+                        style.textContent = `
+                        @keyframes modalPulse {
+                            0% { transform: scale(0.8); opacity: 0; }
+                            50% { transform: scale(1.05); }
+                            100% { transform: scale(1); opacity: 1; }
+                        }
+                    `;
+                        document.head.appendChild(style);
+
+                        document.body.appendChild(successModal);
+
+                        // Show success toast if available
+                        if (typeof showToast === 'function') {
+                            showToast(
+                                `Device "${deviceName || deviceId}" registered successfully`,
+                                'success'
+                            );
+                        }
+
+                        // Auto-close after longer delay (8 seconds)
+                        setTimeout(() => {
+                            successModal.style.opacity = '0';
+                            successModal.style.transition = 'opacity 0.5s ease-out';
+                            setTimeout(() => {
+                                successModal.remove();
+                                style.remove();
+                            }, 500);
+                        }, 8000);
+
+                        // Allow manual close by tapping anywhere
+                        successModal.addEventListener('click', () => {
+                            successModal.style.opacity = '0';
+                            successModal.style.transition = 'opacity 0.3s ease-out';
+                            setTimeout(() => {
+                                successModal.remove();
+                                style.remove();
+                            }, 300);
+                        });
+
+                        // Navigate to devices tab automatically after a short delay
+                        setTimeout(() => {
+                            if (typeof activateSection === 'function') {
+                                activateSection('devices');
+                            }
+                        }, 2000);
+                    } else {
+                        return response.text().then(text => {
+                            if (status) status.innerHTML = `❌ Registration failed: ${text}`;
+                            debugDiv.style.background = '#842029';
+                            debugDiv.style.borderColor = '#dc3545';
+
+                            if (typeof showToast === 'function') {
+                                showToast(`Failed to register device: ${text}`, 'error');
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    const status = document.getElementById('status');
+                    if (status) status.innerHTML = `💥 Error: ${error.message}`;
+                    debugDiv.style.background = '#842029';
+                    debugDiv.style.borderColor = '#dc3545';
+
+                    if (typeof showToast === 'function') {
+                        showToast('Failed to register device', 'error');
+                    }
+                });
+        }
+    } catch (error) {
+        // Silent fail - auto-register is optional
+    }
+})();
+
 // --- Network helpers (restored) ---
 function apiUrl(path) {
     if (!path) return '/';
@@ -11818,75 +12105,7 @@ function initDevicesPanel() {
                 }
             };
 
-            // Handle auto-registration from QR code scan
-            (() => {
-                try {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const autoRegister = urlParams.get('auto-register');
-                    const deviceId = urlParams.get('device-id');
-                    const deviceName = urlParams.get('device-name');
-
-                    if (autoRegister === 'true' && deviceId) {
-                        // Clear the URL parameters to avoid re-processing on refresh
-                        const cleanUrl = new URL(window.location.href);
-                        cleanUrl.searchParams.delete('auto-register');
-                        cleanUrl.searchParams.delete('device-id');
-                        cleanUrl.searchParams.delete('device-name');
-                        window.history.replaceState({}, document.title, cleanUrl.toString());
-
-                        // Perform auto-registration
-                        (async () => {
-                            try {
-                                if (status) status.textContent = 'Auto-registering device...';
-
-                                const registrationData = {
-                                    id: deviceId,
-                                    name: deviceName || deviceId,
-                                };
-
-                                const res = await authenticatedFetch(
-                                    apiUrl('/api/devices/register'),
-                                    {
-                                        method: 'POST',
-                                        body: JSON.stringify(registrationData),
-                                        noRedirectOn401: true,
-                                    }
-                                );
-
-                                if (res.ok) {
-                                    if (status)
-                                        status.textContent = `Device "${deviceName || deviceId}" registered successfully.`;
-                                    showToast(
-                                        `Device "${deviceName || deviceId}" registered successfully`,
-                                        'success'
-                                    );
-                                    // Refresh the devices list to show the new device
-                                    setTimeout(() => {
-                                        const list = fetchDevices().then(devices => {
-                                            if (tbodyHasRows()) {
-                                                reconcileDevicesTable(devices);
-                                            } else {
-                                                renderDevicesTable(devices);
-                                            }
-                                        });
-                                    }, 1000);
-                                } else {
-                                    const errorText = await res.text();
-                                    if (status)
-                                        status.textContent = `Failed to register device: ${errorText}`;
-                                    showToast(`Failed to register device: ${errorText}`, 'error');
-                                }
-                            } catch (error) {
-                                console.error('Auto-registration error:', error);
-                                if (status) status.textContent = 'Failed to auto-register device.';
-                                showToast('Failed to auto-register device', 'error');
-                            }
-                        })();
-                    }
-                } catch (error) {
-                    console.error('Error processing auto-registration:', error);
-                }
-            })();
+            // Old auto-register code removed - using unified auto-register logic at top of file
 
             const openMergeModal = ids => {
                 if (!ids || ids.length < 2) return;
