@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Posterrama Admin Theme Demo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="theme-demo.css">
+    <link rel="stylesheet" href="theme-demo.css?v=20250902-1">
 </head>
 <body>
     <!-- Navigation -->
@@ -394,6 +397,93 @@ And more text here...</textarea>
                             <span>Loading...</span>
                         </div>
                     </div>
+
+                    <div class="component-section">
+                        <h3>Modals & Dialogs</h3>
+                        <div class="button-grid">
+                            <button class="btn btn-primary" data-open-modal="#modal-2fa">
+                                <i class="fas fa-key"></i>
+                                Open 2FA Setup
+                            </button>
+                            <button class="btn btn-warning" data-open-modal="#modal-confirm">
+                                <i class="fas fa-triangle-exclamation"></i>
+                                Confirm Update
+                            </button>
+                            <button class="btn btn-secondary" data-open-modal="#modal-settings">
+                                <i class="fas fa-sliders"></i>
+                                Device Settings
+                            </button>
+                            <button class="btn btn-error" data-open-modal="#modal-merge">
+                                <i class="fas fa-object-group"></i>
+                                Merge Devices
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="component-section">
+                        <h3>Toast Notifications</h3>
+                        <div class="button-grid">
+                            <button class="btn btn-success" data-toast="success">Show Success</button>
+                            <button class="btn btn-warning" data-toast="warning">Show Warning</button>
+                            <button class="btn btn-error" data-toast="error">Show Error</button>
+                            <button class="btn btn-secondary" data-toast="info">Show Info</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Multi-Select Demo -->
+            <section class="panel">
+                <header class="panel-header">
+                    <h2><i class="fas fa-list-check"></i> Multi-Select</h2>
+                </header>
+                <div class="panel-content">
+                    <div class="component-section">
+                        <h3>Genres (chips + dropdown)</h3>
+                        <div class="multiselect" id="ms-genres">
+                            <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                                <div class="ms-chips" id="ms-genres-chips"></div>
+                                <input class="ms-input" id="ms-genres-input" placeholder="Type to search…" aria-autocomplete="list" aria-controls="ms-genres-menu">
+                                <button class="ms-clear" id="ms-genres-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                                <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                            </div>
+                            <div class="ms-menu" id="ms-genres-menu" role="listbox">
+                                <div class="ms-search">
+                                    <i class="fas fa-search"></i>
+                                    <input id="ms-genres-search" type="text" placeholder="Search genres…">
+                                </div>
+                                <div class="ms-actions">
+                                    <button class="btn btn-outline btn-sm" id="ms-genres-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                                    <button class="btn btn-outline btn-sm" id="ms-genres-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                                </div>
+                                <div class="ms-options" id="ms-genres-options"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="component-section">
+                        <h3>Tags (async options example)</h3>
+                        <div class="multiselect" id="ms-tags">
+                            <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                                <div class="ms-chips" id="ms-tags-chips"></div>
+                                <input class="ms-input" id="ms-tags-input" placeholder="Search tags…" aria-autocomplete="list" aria-controls="ms-tags-menu">
+                                <button class="ms-clear" id="ms-tags-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                                <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                            </div>
+                            <div class="ms-menu" id="ms-tags-menu" role="listbox">
+                                <div class="ms-search">
+                                    <i class="fas fa-search"></i>
+                                    <input id="ms-tags-search" type="text" placeholder="Type to search tags…">
+                                </div>
+                                <div class="ms-actions">
+                                    <button class="btn btn-outline btn-sm" id="ms-tags-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                                    <button class="btn btn-outline btn-sm" id="ms-tags-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                                </div>
+                                <div class="ms-options" id="ms-tags-options"></div>
+                            </div>
+                        </div>
+                        <small class="form-help">Client-side filtering demo (no async).</small>
+                    </div>
                 </div>
             </section>
 
@@ -406,7 +496,35 @@ And more text here...</textarea>
                             <i class="fas fa-search"></i>
                             <input type="text" placeholder="Search devices...">
                         </div>
-                        <button class="btn btn-primary btn-sm">
+                        <div class="dropdown">
+                            <button class="btn btn-outline btn-sm dropdown-toggle" id="filters-toggle">
+                                <i class="fas fa-filter"></i>
+                                Filters
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="dropdown-menu" id="filters-menu">
+                                <div class="dropdown-heading">Quick filters</div>
+                                <div class="dropdown-item" data-filter="status:live"><i class="fas fa-bolt"></i> Live</div>
+                                <div class="dropdown-item" data-filter="status:online"><i class="fas fa-signal"></i> Online</div>
+                                <div class="dropdown-item" data-filter="status:offline"><i class="fas fa-plug-circle-xmark"></i> Offline</div>
+                                <div class="dropdown-heading">Groups</div>
+                                <div class="dropdown-item" data-filter="group:living-room"><i class="fas fa-tv"></i> Living Room</div>
+                                <div class="dropdown-item" data-filter="group:office"><i class="fas fa-briefcase"></i> Office</div>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-outline btn-sm dropdown-toggle" id="presets-toggle">
+                                <i class="fas fa-star"></i>
+                                Presets
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="dropdown-menu" id="presets-menu">
+                                <div class="dropdown-item" data-preset="default"><i class="fas fa-rotate"></i> Default</div>
+                                <div class="dropdown-item" data-preset="maintenance"><i class="fas fa-wrench"></i> Maintenance</div>
+                                <div class="dropdown-item" data-preset="showroom"><i class="fas fa-store"></i> Showroom</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="add-device-btn">
                             <i class="fas fa-plus"></i>
                             Add Device
                         </button>
@@ -414,11 +532,67 @@ And more text here...</textarea>
                 </header>
                 
                 <div class="panel-content">
+                    <div class="filter-toolbar" id="filter-toolbar">
+                        <div class="filter-group">
+                            <span class="chip" id="chip-status" style="display:none;">
+                                <i class="fas fa-signal"></i>
+                                <span>Status: <strong id="chip-status-val"></strong></span>
+                                <i class="fas fa-times chip-remove" data-chip-remove="status"></i>
+                            </span>
+                            <span class="chip" id="chip-group" style="display:none;">
+                                <i class="fas fa-layer-group"></i>
+                                <span>Group: <strong id="chip-group-val"></strong></span>
+                                <i class="fas fa-times chip-remove" data-chip-remove="group"></i>
+                            </span>
+                        </div>
+                        <div class="filter-group">
+                            <button class="btn btn-outline btn-sm" id="advanced-toggle">
+                                <i class="fas fa-sliders"></i>
+                                Advanced
+                            </button>
+                            <button class="btn btn-outline btn-sm" id="bulk-select">
+                                <i class="fas fa-square-check"></i>
+                                Bulk select
+                            </button>
+                            <button class="btn btn-outline btn-sm" id="notify-open">
+                                <i class="fas fa-bell"></i>
+                                Notifications
+                                <span class="badge badge-notification" id="notify-count" style="position:static;">2</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="advanced-filters" id="advanced-filters">
+                        <div class="advanced-grid">
+                            <div class="form-group">
+                                <label>Device Type</label>
+                                <select id="adv-type">
+                                    <option value="">Any</option>
+                                    <option>TV</option>
+                                    <option>Tablet</option>
+                                    <option>Browser</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Location</label>
+                                <input id="adv-location" type="text" placeholder="e.g. Living Room">
+                            </div>
+                            <div class="form-group">
+                                <label>Last Seen</label>
+                                <select id="adv-last-seen">
+                                    <option value="">Any time</option>
+                                    <option>Last 10 min</option>
+                                    <option>Last hour</option>
+                                    <option>Today</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <div class="table-wrapper">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th><input type="checkbox"></th>
+                                    <th><input type="checkbox" id="master-checkbox"></th>
                                     <th>Device Name</th>
                                     <th>Status</th>
                                     <th>Location</th>
@@ -428,7 +602,7 @@ And more text here...</textarea>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><input type="checkbox"></td>
+                                    <td><input type="checkbox" class="row-select"></td>
                                     <td>
                                         <div class="device-info">
                                             <i class="fas fa-tv device-icon"></i>
@@ -461,7 +635,7 @@ And more text here...</textarea>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td><input type="checkbox"></td>
+                                    <td><input type="checkbox" class="row-select"></td>
                                     <td>
                                         <div class="device-info">
                                             <i class="fas fa-desktop device-icon"></i>
@@ -494,7 +668,7 @@ And more text here...</textarea>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td><input type="checkbox"></td>
+                                    <td><input type="checkbox" class="row-select"></td>
                                     <td>
                                         <div class="device-info">
                                             <i class="fas fa-tablet device-icon"></i>
@@ -623,6 +797,245 @@ And more text here...</textarea>
         </div>
     </main>
 
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Notification Center -->
+    <div class="notify-center" id="notify-center" aria-live="polite" aria-label="Notifications panel">
+        <div class="notify-header">
+            <strong>Notifications</strong>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button class="btn btn-outline btn-sm" id="notify-mark-all" title="Mark all as read">
+                    <i class="fas fa-check-double"></i>
+                    Mark all
+                </button>
+                <button class="btn btn-icon btn-sm" id="notify-close" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="notify-list" id="notify-list">
+            <div class="notify-item notify-success" data-unread="true">
+                <i class="fas fa-check-circle" aria-hidden="true"></i>
+                <div>
+                    <div class="notify-title">Sync complete</div>
+                    <div class="notify-meta">Just now • Library sync finished (2,847 items)</div>
+                </div>
+                <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="notify-item notify-info" data-unread="true">
+                <i class="fas fa-circle-info" aria-hidden="true"></i>
+                <div>
+                    <div class="notify-title">New device added</div>
+                    <div class="notify-meta">2m ago • Office Monitor registered</div>
+                </div>
+                <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="notify-item notify-error" data-unread="true">
+                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                <div>
+                    <div class="notify-title">Cache warning</div>
+                    <div class="notify-meta">5m ago • Cache nearing capacity (85%)</div>
+                </div>
+                <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="modal-2fa">
+        <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-title">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-2fa-title">
+                    <i class="fas fa-shield-halved"></i>
+                    Enable Two-Factor Authentication
+                </div>
+                <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>Scan the QR code with your authenticator app, then enter the 6‑digit code to verify.</p>
+                <div class="form-grid" style="margin-top: var(--space-lg); grid-template-columns: 1fr;">
+                    <div class="form-group" style="align-items:center;">
+                        <div class="qr-box">
+                            <canvas id="qr-canvas" width="180" height="180" aria-label="QR code"></canvas>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="otp-code">Verification Code</label>
+                        <input id="otp-code" type="text" placeholder="123 456" inputmode="numeric" maxlength="6">
+                        <small class="form-help">Generated by your authenticator app</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" data-close-modal>Cancel</button>
+                <button class="btn btn-primary">Verify & Enable</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-confirm">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-title">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-confirm-title">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    Confirm Update
+                </div>
+                <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning" style="margin-bottom: var(--space-lg);">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <span>You're about to apply changes to all devices. This action may restart active sessions.</span>
+                </div>
+                <p>Do you want to continue?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" data-close-modal>No, go back</button>
+                <button class="btn btn-warning">Yes, apply update</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-settings">
+        <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="modal-settings-title">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-settings-title">
+                    <i class="fas fa-sliders"></i>
+                    Device Settings
+                </div>
+                <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="range-demo">
+                    <div class="range-row">
+                        <span class="range-label">Opacity</span>
+                        <div class="range-container" style="position: relative;">
+                            <input type="range" id="range-opacity" class="range-advanced" value="65" min="0" max="100">
+                            <span class="range-tooltip" id="tooltip-opacity">65%</span>
+                        </div>
+                        <span id="value-opacity">65%</span>
+                    </div>
+                    <div class="range-row">
+                        <span class="range-label">Scale</span>
+                        <div class="range-container" style="position: relative;">
+                            <input type="range" id="range-scale" class="range-advanced" value="120" min="50" max="200">
+                            <span class="range-tooltip" id="tooltip-scale">120%</span>
+                        </div>
+                        <span id="value-scale">120%</span>
+                    </div>
+                    <div class="range-row">
+                        <span class="range-label">Volume</span>
+                        <div class="volume-control" style="width: 100%;">
+                            <i class="fas fa-volume-off"></i>
+                            <input type="range" id="range-volume" class="range-advanced" value="30" min="0" max="100">
+                            <i class="fas fa-volume-high"></i>
+                        </div>
+                        <span id="value-volume">30%</span>
+                    </div>
+                    <div class="range-row">
+                        <span class="range-label">Theme Density</span>
+                        <div>
+                            <div class="range-container" style="position: relative;">
+                                <input type="range" id="range-density" class="range-advanced" value="1" min="0" max="2" step="1" aria-valuetext="Cozy">
+                            </div>
+                            <div class="range-labels">
+                                <span>Compact</span>
+                                <span>Cozy</span>
+                                <span>Comfort</span>
+                            </div>
+                        </div>
+                        <span id="value-density">Cozy</span>
+                    </div>
+                    <div class="range-row">
+                        <span class="range-label">Image Quality</span>
+                        <div>
+                            <div class="range-container" style="position: relative;">
+                                <input type="range" id="range-quality" class="range-advanced" value="2" min="0" max="3" step="1" aria-valuetext="High">
+                            </div>
+                            <div class="range-labels">
+                                <span>Low</span>
+                                <span>Medium</span>
+                                <span>High</span>
+                                <span>Ultra</span>
+                            </div>
+                        </div>
+                        <span id="value-quality">High</span>
+                    </div>
+                    <div class="range-row">
+                        <span class="range-label">Cache Strategy</span>
+                        <div>
+                            <div class="range-container" style="position: relative;">
+                                <input type="range" id="range-cache" class="range-advanced" value="1" min="0" max="2" step="1" aria-valuetext="Balanced">
+                            </div>
+                            <div class="range-labels">
+                                <span>Conservative</span>
+                                <span>Balanced</span>
+                                <span>Aggressive</span>
+                            </div>
+                        </div>
+                        <span id="value-cache">Balanced</span>
+                    </div>
+                    <div class="range-row">
+                        <span class="range-label">Year Range</span>
+                        <div class="dual-range">
+                            <div class="track"></div>
+                            <div class="range-selection" id="dual-selection"></div>
+                            <input type="range" id="dual-min" min="1980" max="2025" value="1995">
+                            <input type="range" id="dual-max" min="1980" max="2025" value="2020">
+                        </div>
+                        <div class="range-values">
+                            <span id="dual-min-value">1995</span>
+                            <span>–</span>
+                            <span id="dual-max-value">2020</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" data-close-modal>Close</button>
+                <button class="btn btn-primary">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-merge">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-merge-title">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-merge-title">
+                    <i class="fas fa-object-group"></i>
+                    Merge Devices
+                </div>
+                <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>Select the source and target devices to merge histories and preferences. This cannot be undone.</p>
+                <div class="form-grid" style="margin-top: var(--space-lg);">
+                    <div class="form-group">
+                        <label>Source Device</label>
+                        <select>
+                            <option>Living Room TV</option>
+                            <option>Office Monitor</option>
+                            <option>Kitchen Tablet</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Target Device</label>
+                        <select>
+                            <option>Office Monitor</option>
+                            <option>Living Room TV</option>
+                            <option>Kitchen Tablet</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" data-close-modal>Cancel</button>
+                <button class="btn btn-error">Merge</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Demo Scripts -->
     <script>
         // Demo interactions
@@ -669,7 +1082,590 @@ And more text here...</textarea>
             setTimeout(() => {
                 console.log('🎨 Theme Demo Loaded! This showcases the new Posterrama admin design.');
             }, 1000);
+
+            // Modals: open/close logic
+            const openButtons = document.querySelectorAll('[data-open-modal]');
+            const closeButtons = document.querySelectorAll('[data-close-modal]');
+            const overlays = document.querySelectorAll('.modal-overlay');
+
+            openButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sel = btn.getAttribute('data-open-modal');
+                    const overlay = document.querySelector(sel);
+                    if (overlay) overlay.classList.add('open');
+                });
+            });
+
+            closeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const overlay = btn.closest('.modal-overlay');
+                    overlay?.classList.remove('open');
+                });
+            });
+
+            overlays.forEach(ov => {
+                ov.addEventListener('click', (e) => {
+                    if (e.target === ov) ov.classList.remove('open');
+                });
+            });
+
+            // Toasts
+            const toastContainer = document.getElementById('toast-container');
+            function showToast(type = 'info', title = 'Notification', message = 'This is a toast', duration = 3500) {
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                toast.innerHTML = `
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-times-circle' : type === 'warning' ? 'fa-triangle-exclamation' : 'fa-info-circle'}"></i>
+                    <div>
+                        <div class="toast-title">${title}</div>
+                        <div class="toast-message">${message}</div>
+                    </div>
+                    <button class="toast-close"><i class="fas fa-times"></i></button>
+                    <div class="toast-progress"></div>
+                `;
+                toastContainer.appendChild(toast);
+
+                const close = () => {
+                    toast.style.animation = 'toast-out 0.25s ease-in forwards';
+                    setTimeout(() => toast.remove(), 250);
+                };
+
+                const closeBtn = toast.querySelector('.toast-close');
+                closeBtn.addEventListener('click', close);
+
+                // Progress bar countdown
+                const progress = toast.querySelector('.toast-progress');
+                progress.style.transitionDuration = duration + 'ms';
+                requestAnimationFrame(() => progress.style.transform = 'scaleX(0)');
+
+                const timer = setTimeout(close, duration);
+
+                // Pause on hover
+                toast.addEventListener('mouseenter', () => {
+                    clearTimeout(timer);
+                    progress.style.transitionDuration = '0ms';
+                });
+                toast.addEventListener('mouseleave', () => {
+                    const remaining = progress.getBoundingClientRect().width / toast.getBoundingClientRect().width * duration;
+                    progress.style.transitionDuration = remaining + 'ms';
+                    requestAnimationFrame(() => progress.style.transform = 'scaleX(0)');
+                    setTimeout(close, remaining);
+                });
+            }
+
+            document.querySelectorAll('[data-toast]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.getAttribute('data-toast');
+                    const presets = {
+                        success: ['Success', 'All changes saved and synced'],
+                        warning: ['Warning', 'Cache nearing capacity (85%)'],
+                        error: ['Error', 'Failed to reach TMDB API'],
+                        info: ['Info', 'Background sync started'],
+                    };
+                    const [title, message] = presets[type] || presets.info;
+                    showToast(type, title, message);
+                });
+            });
+
+            // Advanced sliders in settings modal
+            function bindAdvancedRange(inputId, tooltipId, valueId, suffix = '%') {
+                const input = document.getElementById(inputId);
+                const tooltip = document.getElementById(tooltipId);
+                const valueEl = document.getElementById(valueId);
+                if (!input || !tooltip || !valueEl) return;
+
+                const update = () => {
+                    const min = Number(input.min);
+                    const max = Number(input.max);
+                    const val = Number(input.value);
+                    const pct = ((val - min) / (max - min)) * 100;
+                    input.style.setProperty('--value', pct + '%');
+                    tooltip.textContent = val + suffix;
+                    valueEl.textContent = val + suffix;
+                    // Position within container
+                    const container = tooltip.parentElement;
+                    if (container) {
+                        const cRect = container.getBoundingClientRect();
+                        let px = cRect.width * (pct / 100);
+                        const margin = 8;
+                        if (px < margin) px = margin;
+                        if (px > cRect.width - margin) px = cRect.width - margin;
+                        tooltip.style.left = px + 'px';
+                    }
+                };
+                update();
+                input.addEventListener('input', update);
+            }
+
+            bindAdvancedRange('range-opacity', 'tooltip-opacity', 'value-opacity');
+            bindAdvancedRange('range-scale', 'tooltip-scale', 'value-scale');
+            bindAdvancedRange('range-volume', 'value-volume', 'value-volume'); // no tooltip
+
+            // Dual range logic
+            const minInput = document.getElementById('dual-min');
+            const maxInput = document.getElementById('dual-max');
+            const selection = document.getElementById('dual-selection');
+            const minValueEl = document.getElementById('dual-min-value');
+            const maxValueEl = document.getElementById('dual-max-value');
+
+            function clampDual() {
+            // Text-labeled slider bindings
+            function bindDiscreteRange(inputId, valueId, labels) {
+                const input = document.getElementById(inputId);
+                const valueEl = document.getElementById(valueId);
+                if (!input || !valueEl) return;
+                const update = () => {
+                    const idx = Number(input.value);
+                    const label = labels[idx] ?? idx;
+                    valueEl.textContent = label;
+                    const min = Number(input.min), max = Number(input.max);
+                    const pct = ((idx - min) / (max - min)) * 100;
+                    input.style.setProperty('--value', pct + '%');
+                    input.setAttribute('aria-valuetext', String(label));
+                };
+                update();
+                input.addEventListener('input', update);
+            }
+
+            bindDiscreteRange('range-density', 'value-density', ['Compact', 'Cozy', 'Comfort']);
+            bindDiscreteRange('range-quality', 'value-quality', ['Low', 'Medium', 'High', 'Ultra']);
+            bindDiscreteRange('range-cache', 'value-cache', ['Conservative', 'Balanced', 'Aggressive']);
+
+                let minVal = Math.min(Number(minInput.value), Number(maxInput.value) - 1);
+                let maxVal = Math.max(Number(maxInput.value), Number(minInput.value) + 1);
+                minInput.value = minVal;
+                maxInput.value = maxVal;
+                const min = Number(minInput.min);
+                const max = Number(minInput.max);
+                const leftPct = ((minVal - min) / (max - min)) * 100;
+                const rightPct = ((maxVal - min) / (max - min)) * 100;
+                selection.style.left = leftPct + '%';
+                selection.style.width = (rightPct - leftPct) + '%';
+                minValueEl.textContent = String(minVal);
+                maxValueEl.textContent = String(maxVal);
+            }
+
+            if (minInput && maxInput && selection) {
+                minInput.addEventListener('input', clampDual);
+                maxInput.addEventListener('input', clampDual);
+                clampDual();
+            }
+
+            // 2FA QR demo rendering (lightweight placeholder)
+            function pseudoHash(str) {
+                let h = 0;
+                for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+                return h;
+            }
+
+            function drawDemoQR(canvas, text) {
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const size = canvas.width;
+                ctx.clearRect(0, 0, size, size);
+                // Background
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-bg-card').trim() || '#111827';
+                ctx.fillRect(0, 0, size, size);
+                // Draw a pseudo QR pattern grid 29x29
+                const cells = 29;
+                const cell = Math.floor(size / cells);
+                const hash = pseudoHash(text);
+                for (let y = 0; y < cells; y++) {
+                    for (let x = 0; x < cells; x++) {
+                        // Reserve finder patterns at corners
+                        const inTL = x < 7 && y < 7;
+                        const inTR = x > cells - 8 && y < 7;
+                        const inBL = x < 7 && y > cells - 8;
+                        if (inTL || inTR || inBL) continue;
+                        const bit = ((x * 73856093) ^ (y * 19349663) ^ hash) & 1;
+                        if (bit) {
+                            ctx.fillStyle = '#fff';
+                            ctx.fillRect(x * cell, y * cell, cell - 1, cell - 1);
+                        }
+                    }
+                }
+                // Finder patterns (simple)
+                function finder(px, py) {
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(px, py, cell * 7, cell * 7);
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(px + cell, py + cell, cell * 5, cell * 5);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(px + cell * 2, py + cell * 2, cell * 3, cell * 3);
+                }
+                finder(0, 0);
+                finder(size - cell * 7, 0);
+                finder(0, size - cell * 7);
+            }
+            const qrCanvas = document.getElementById('qr-canvas');
+            // Minimal demo text to seed the placeholder QR
+            drawDemoQR(qrCanvas, 'otpauth://totp/Posterrama:admin@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Posterrama');
+
+            // Dropdowns (Filters & Presets)
+            const dropdowns = document.querySelectorAll('.dropdown');
+            const filtersToggle = document.getElementById('filters-toggle');
+            const presetsToggle = document.getElementById('presets-toggle');
+            function closeAllDropdowns(except) {
+                dropdowns.forEach(dd => { if (dd !== except) dd.classList.remove('open'); });
+            }
+            function toggleDropdown(btn) {
+                const dd = btn?.closest('.dropdown');
+                if (!dd) return;
+                const willOpen = !dd.classList.contains('open');
+                closeAllDropdowns(dd);
+                dd.classList.toggle('open', willOpen);
+            }
+            filtersToggle?.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(e.currentTarget); });
+            presetsToggle?.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(e.currentTarget); });
+            document.addEventListener('click', () => closeAllDropdowns());
+
+            // Filter chips
+            const chipStatus = document.getElementById('chip-status');
+            const chipGroup = document.getElementById('chip-group');
+            const chipStatusVal = document.getElementById('chip-status-val');
+            const chipGroupVal = document.getElementById('chip-group-val');
+
+            function setChip(type, label) {
+                if (type === 'status') {
+                    chipStatusVal.textContent = label;
+                    chipStatus.style.display = '';
+                } else if (type === 'group') {
+                    chipGroupVal.textContent = label;
+                    chipGroup.style.display = '';
+                }
+            }
+            function clearChip(type) {
+                if (type === 'status') chipStatus.style.display = 'none';
+                if (type === 'group') chipGroup.style.display = 'none';
+            }
+
+            document.querySelectorAll('#filters-menu .dropdown-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const f = item.getAttribute('data-filter');
+                    const label = item.textContent.trim();
+                    const [type/* status|group */] = f.split(':');
+                    setChip(type, label);
+                    closeAllDropdowns();
+                });
+            });
+            document.querySelectorAll('.chip .chip-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const type = btn.getAttribute('data-chip-remove');
+                    clearChip(type);
+                });
+            });
+
+            // Advanced filters toggle
+            const advToggle = document.getElementById('advanced-toggle');
+            const advPanel = document.getElementById('advanced-filters');
+            advToggle?.addEventListener('click', () => advPanel?.classList.toggle('open'));
+
+            // Presets
+            document.querySelectorAll('#presets-menu .dropdown-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const preset = item.getAttribute('data-preset');
+                    closeAllDropdowns();
+                    const labels = { default: 'Default', maintenance: 'Maintenance', showroom: 'Showroom' };
+                    showToast('info', 'Preset applied', labels[preset] + ' settings loaded');
+                });
+            });
+
+            // Bulk selection
+            const master = document.getElementById('master-checkbox');
+            const rowChecks = Array.from(document.querySelectorAll('.row-select'));
+            const bulkBar = document.getElementById('bulk-bar');
+            const bulkCount = document.getElementById('bulk-count');
+            const bulkSelectBtn = document.getElementById('bulk-select');
+            function updateBulkUI() {
+                const total = rowChecks.length;
+                const selected = rowChecks.filter(c => c.checked).length;
+                if (bulkCount) bulkCount.textContent = String(selected);
+                if (bulkBar) bulkBar.classList.toggle('open', selected > 0);
+                if (master) {
+                    master.checked = selected === total && total > 0;
+                    master.indeterminate = selected > 0 && selected < total;
+                }
+            }
+            function selectAllRows(checked) {
+                rowChecks.forEach(c => { if (!c.disabled) c.checked = !!checked; });
+                updateBulkUI();
+            }
+            master?.addEventListener('change', (e) => selectAllRows(master.checked));
+            rowChecks.forEach(c => c.addEventListener('change', updateBulkUI));
+            bulkSelectBtn?.addEventListener('click', () => selectAllRows(true));
+
+            // Bulk bar actions
+            document.getElementById('bulk-clear')?.addEventListener('click', () => selectAllRows(false));
+            document.getElementById('bulk-restart')?.addEventListener('click', () => {
+                const n = rowChecks.filter(c => c.checked).length;
+                showToast('info', 'Restart requested', `Restarting ${n} device${n!==1?'s':''}...`);
+            });
+            document.getElementById('bulk-poweroff')?.addEventListener('click', () => {
+                const n = rowChecks.filter(c => c.checked).length;
+                showToast('warning', 'Power off', `Powering off ${n} device${n!==1?'s':''}...`);
+            });
+            document.getElementById('bulk-update')?.addEventListener('click', () => {
+                const n = rowChecks.filter(c => c.checked).length;
+                showToast('success', 'Updates queued', `${n} device${n!==1?'s':''} scheduled for update`);
+            });
+            updateBulkUI();
+
+            // Notification Center logic
+            const notifyCenter = document.getElementById('notify-center');
+            const notifyOpen = document.getElementById('notify-open');
+            const notifyClose = document.getElementById('notify-close');
+            const notifyMarkAll = document.getElementById('notify-mark-all');
+            const notifyList = document.getElementById('notify-list');
+            const notifyCount = document.getElementById('notify-count');
+
+            function unreadCount() {
+                return notifyList ? notifyList.querySelectorAll('[data-unread="true"]').length : 0;
+            }
+            function syncNotifyBadge() {
+                const n = unreadCount();
+                if (notifyCount) {
+                    notifyCount.textContent = String(n);
+                    notifyCount.style.display = n > 0 ? '' : 'none';
+                }
+            }
+            function openNotify() { notifyCenter?.classList.add('open'); }
+            function closeNotify() { notifyCenter?.classList.remove('open'); }
+
+            notifyOpen?.addEventListener('click', (e) => { e.stopPropagation(); openNotify(); closeAllDropdowns(); });
+            notifyClose?.addEventListener('click', closeNotify);
+            notifyMarkAll?.addEventListener('click', () => {
+                notifyList?.querySelectorAll('.notify-item').forEach(item => item.removeAttribute('data-unread'));
+                syncNotifyBadge();
+            });
+            notifyList?.addEventListener('click', (e) => {
+                const btn = e.target.closest('.notify-close');
+                if (btn) {
+                    const item = btn.closest('.notify-item');
+                    item?.remove();
+                    syncNotifyBadge();
+                }
+            });
+            document.addEventListener('click', (e) => {
+                if (!notifyCenter?.classList.contains('open')) return;
+                const within = notifyCenter.contains(e.target) || notifyOpen?.contains(e.target);
+                if (!within) closeNotify();
+            });
+            syncNotifyBadge();
+            
+            // Multi-Select implementation
+            function createMultiSelect(rootId, { options = [], asyncLoader = null, minChars = 0 } = {}) {
+                const root = document.getElementById(rootId);
+                if (!root) return;
+                const control = root.querySelector('.ms-control');
+                const chips = root.querySelector('.ms-chips');
+                const input = root.querySelector('.ms-input');
+                const clearBtn = root.querySelector('.ms-clear');
+                const menu = root.querySelector('.ms-menu');
+                const optionsBox = root.querySelector('.ms-options');
+                const search = root.querySelector('.ms-search input');
+                const selectAllBtn = root.querySelector('#'+rootId+'-select-all');
+                const clearAllBtn = root.querySelector('#'+rootId+'-clear-all');
+
+                let open = false;
+                let selected = new Map(); // key -> label
+                let currentOptions = options.slice();
+                let filtered = currentOptions.slice();
+                let lastQueryToken = 0;
+
+                function setOpen(v) {
+                    open = v;
+                    root.classList.toggle('ms-open', open);
+                    control.setAttribute('aria-expanded', String(open));
+                    if (open) {
+                        // prefer focusing the menu search to trigger filtering/async
+                        search?.focus();
+                    }
+                }
+                function renderChips() {
+                    chips.innerHTML = '';
+                    selected.forEach((label, key) => {
+                        const chip = document.createElement('span');
+                        chip.className = 'ms-chip';
+                        chip.innerHTML = `<span>${label}</span><i class="fas fa-xmark ms-chip-remove" data-key="${key}"></i>`;
+                        chips.appendChild(chip);
+                    });
+                    control.classList.toggle('has-selection', selected.size > 0);
+                    clearBtn.style.display = selected.size > 0 ? 'inline-flex' : 'none';
+                }
+                function renderOptions(list = filtered, state = { loading: false, hint: '' }) {
+                    optionsBox.innerHTML = '';
+                    if (state.loading) {
+                        const msg = document.createElement('div');
+                        msg.className = 'ms-message';
+                        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading…';
+                        optionsBox.appendChild(msg);
+                        return;
+                    }
+                    if (state.hint) {
+                        const msg = document.createElement('div');
+                        msg.className = 'ms-message';
+                        msg.textContent = state.hint;
+                        optionsBox.appendChild(msg);
+                        return;
+                    }
+                    if (!list.length) {
+                        const msg = document.createElement('div');
+                        msg.className = 'ms-message';
+                        msg.textContent = 'No results';
+                        optionsBox.appendChild(msg);
+                        return;
+                    }
+                    list.forEach(opt => {
+                        const row = document.createElement('div');
+                        row.className = 'ms-option';
+                        row.setAttribute('role', 'option');
+                        row.dataset.key = opt.value;
+                        row.innerHTML = `<input type="checkbox" ${selected.has(opt.value) ? 'checked' : ''}/> <span>${opt.label}</span>`;
+                        optionsBox.appendChild(row);
+                    });
+                }
+                function syncFiltered(term) {
+                    const t = (term || '').toLowerCase();
+                    filtered = currentOptions.filter(o => o.label.toLowerCase().includes(t));
+                    renderOptions();
+                }
+
+                async function performSearch(term) {
+                    if (asyncLoader) {
+                        if (!term || term.length < (minChars || 0)) {
+                            currentOptions = [];
+                            renderOptions([], { hint: minChars ? `Type at least ${minChars} characters…` : '' });
+                            return;
+                        }
+                        const token = ++lastQueryToken;
+                        renderOptions([], { loading: true });
+                        const loaded = await asyncLoader(term);
+                        // ignore stale responses
+                        if (token !== lastQueryToken) return;
+                        currentOptions = loaded;
+                    }
+                    syncFiltered(term);
+                }
+
+                control.addEventListener('click', (e) => {
+                    setOpen(!open);
+                    // focus handled in setOpen
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') setOpen(true);
+                    e.stopPropagation();
+                });
+                input.addEventListener('input', () => {
+                    // mirror typing from the chips input into the search box
+                    if (!open) setOpen(true);
+                    if (search) {
+                        search.value = input.value;
+                        performSearch(search.value);
+                    }
+                });
+                document.addEventListener('click', (e) => {
+                    if (!root.contains(e.target)) setOpen(false);
+                });
+
+                optionsBox.addEventListener('click', (e) => {
+                    const row = e.target.closest('.ms-option');
+                    if (!row) return;
+                    const key = row.dataset.key;
+                    const found = currentOptions.find(o => o.value === key);
+                    if (!found) return;
+                    if (selected.has(key)) selected.delete(key); else selected.set(key, found.label);
+                    renderChips();
+                    syncFiltered(search.value);
+                });
+                chips.addEventListener('click', (e) => {
+                    const x = e.target.closest('.ms-chip-remove');
+                    if (!x) return;
+                    const key = x.getAttribute('data-key');
+                    selected.delete(key);
+                    renderChips();
+                    syncFiltered(search.value);
+                });
+                clearBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selected.clear();
+                    renderChips();
+                    syncFiltered(search.value);
+                });
+                selectAllBtn?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    filtered.forEach(o => selected.set(o.value, o.label));
+                    renderChips();
+                    syncFiltered(search.value);
+                });
+                clearAllBtn?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    selected.clear();
+                    renderChips();
+                    syncFiltered(search.value);
+                });
+                search.addEventListener('input', async () => {
+                    const term = search.value;
+                    await performSearch(term);
+                });
+
+                // initial
+                renderChips();
+                renderOptions(currentOptions);
+                syncFiltered('');
+            }
+
+            // Init Multi-Select: Genres (static)
+            createMultiSelect('ms-genres', {
+                options: [
+                    { value: 'action', label: 'Action' },
+                    { value: 'drama', label: 'Drama' },
+                    { value: 'comedy', label: 'Comedy' },
+                    { value: 'sci-fi', label: 'Sci‑Fi' },
+                    { value: 'thriller', label: 'Thriller' },
+                    { value: 'horror', label: 'Horror' },
+                    { value: 'documentary', label: 'Documentary' },
+                    { value: 'romance', label: 'Romance' },
+                    { value: 'animation', label: 'Animation' },
+                    { value: 'fantasy', label: 'Fantasy' }
+                ]
+            });
+
+            // Init Multi-Select: Tags (static, client-side filter)
+            createMultiSelect('ms-tags', {
+                options: [
+                    { value: 'featured', label: 'Featured' },
+                    { value: 'kids', label: 'Kids' },
+                    { value: 'classic', label: 'Classic' },
+                    { value: 'award', label: 'Award' },
+                    { value: 'new', label: 'New' },
+                    { value: 'underrated', label: 'Underrated' },
+                    { value: 'long', label: 'Long' },
+                    { value: 'short', label: 'Short' },
+                    { value: 'indie', label: 'Indie' },
+                    { value: 'popular', label: 'Popular' },
+                    { value: 'trending', label: 'Trending' },
+                    { value: 'recommended', label: 'Recommended' },
+                    { value: 'continue-watching', label: 'Continue Watching' },
+                    { value: 'top-rated', label: 'Top Rated' },
+                    { value: 'sci-fi', label: 'Sci‑Fi' },
+                    { value: 'drama', label: 'Drama' },
+                    { value: 'comedy', label: 'Comedy' }
+                ]
+            });
         });
     </script>
+
+    <!-- Bulk Selection Bar -->
+    <div class="bulk-bar" id="bulk-bar" aria-live="polite">
+        <div class="bulk-inner">
+            <div class="bulk-count"><strong id="bulk-count">0</strong> selected</div>
+            <div class="bulk-actions">
+                <button class="btn btn-secondary btn-sm" id="bulk-restart"><i class="fas fa-rotate-right"></i> Restart</button>
+                <button class="btn btn-warning btn-sm" id="bulk-poweroff"><i class="fas fa-power-off"></i> Power off</button>
+                <button class="btn btn-primary btn-sm" id="bulk-update"><i class="fas fa-download"></i> Update</button>
+                <button class="btn btn-outline btn-sm" id="bulk-clear"><i class="fas fa-xmark"></i> Clear</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
