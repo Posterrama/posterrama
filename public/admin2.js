@@ -3796,7 +3796,8 @@
         // On initial load, always show Dashboard regardless of hash.
         // Debounced router to avoid rapid flicker when switching fast
         let routeTimer = null;
-        let firstRoute = true;
+        // Persist first-run across any accidental script re-executions to avoid bouncing to Dashboard
+        let firstRoute = !window.__adminFirstRouteDone;
         function routeByHash() {
             if (routeTimer) {
                 clearTimeout(routeTimer);
@@ -3807,6 +3808,11 @@
                 // First-run: force Dashboard view and clear any hash
                 if (firstRoute) {
                     firstRoute = false;
+                    try {
+                        window.__adminFirstRouteDone = true;
+                    } catch (_) {
+                        /* no-op */
+                    }
                     try {
                         if (location.hash) {
                             // replaceState to avoid history entry
@@ -3832,6 +3838,26 @@
                     return;
                 }
                 const h = (location.hash || '').toLowerCase();
+                // If user is already on Devices and hash doesn't target a source, keep Devices active
+                try {
+                    const devicesActive = document
+                        .getElementById('section-devices')
+                        ?.classList.contains('active');
+                    if (
+                        devicesActive &&
+                        (!h ||
+                            h === '#' ||
+                            h === '#/' ||
+                            h === '#media-sources' ||
+                            h === '#media-sources/overview')
+                    ) {
+                        // Ensure Devices remains visible and skip default routing
+                        showSection('section-devices');
+                        return;
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
                 if (h === '#plex' || h === '#media-sources/plex') {
                     showSourcePanel('panel-plex', 'Plex');
                     // Lazy-load on routed open
@@ -3843,6 +3869,13 @@
                     mediaGroup
                         ?.querySelector('.nav-subitem[data-sub="plex"]')
                         ?.classList.add('active');
+                    return;
+                }
+                if (h === '#devices') {
+                    showSection('section-devices');
+                    try {
+                        window.admin2?.initDevices?.();
+                    } catch (_) {}
                     return;
                 }
                 if (h === '#jellyfin') {
@@ -4707,6 +4740,11 @@
                         }
                     } catch (_) {}
                     await sendCommand(id, 'core.mgmt.reload');
+                    // Keep hash neutral to avoid router reactions
+                    try {
+                        if (location.hash && location.hash !== '#devices')
+                            location.hash = '#devices';
+                    } catch (_) {}
                     window.notify?.toast({
                         type: 'info',
                         title: 'Reload',
@@ -4729,6 +4767,11 @@
                         }
                     } catch (_) {}
                     await sendCommand(id, 'core.mgmt.clearCache');
+                    // Keep hash neutral to avoid router reactions
+                    try {
+                        if (location.hash && location.hash !== '#devices')
+                            location.hash = '#devices';
+                    } catch (_) {}
                     window.notify?.toast({
                         type: 'success',
                         title: 'Clear cache',
