@@ -3658,16 +3658,10 @@ document.addEventListener('DOMContentLoaded', () => {
             disney: false,
             prime: false,
             hbo: false,
-            newReleases: false,
         };
-
-        // Populate streaming form fields
         const enabledField = document.getElementById('streamingSources.enabled');
         const regionField = document.getElementById('streamingSources.region');
-        // Removed streaming maxItems input
         const minRatingField = document.getElementById('streamingSources.minRating');
-
-        // Provider checkboxes
         const netflixField = document.getElementById('streamingSources.netflix');
         const disneyField = document.getElementById('streamingSources.disney');
         const primeField = document.getElementById('streamingSources.prime');
@@ -9590,10 +9584,10 @@ function confirmDialog(message, triggerEl = null) {
     });
 }
 
-async function sendDeviceCommand(id, type) {
+async function sendDeviceCommand(id, type, payload = undefined) {
     const res = await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}/command`), {
         method: 'POST',
-        body: JSON.stringify({ type }),
+        body: JSON.stringify(payload ? { type, payload } : { type }),
         noRedirectOn401: true,
     });
     if (res.status === 401) {
@@ -9772,6 +9766,20 @@ function renderDevicesTable(devices) {
         const last = fmtParts(d.lastSeenAt);
         // const cellScreen = dims ? `<span class="badge is-unknown">${esc(dims)}</span>` : '—';
         const cellMode = mode ? `<span class="badge is-unknown">${esc(mode)}</span>` : '—';
+        const overridesObj =
+            d && d.settingsOverride && typeof d.settingsOverride === 'object'
+                ? d.settingsOverride
+                : {};
+        const overridesCount = (() => {
+            try {
+                return Object.keys(overridesObj || {}).length;
+            } catch (_) {
+                return 0;
+            }
+        })();
+        const overridesBadge = overridesCount
+            ? `<span class="badge is-primary" title="Per-device display overrides active">Overrides: ${overridesCount}</span>`
+            : '';
         const details = (() => {
             const id = d.id || d.installId || '';
             const ci = d.clientInfo || {};
@@ -9810,6 +9818,21 @@ function renderDevicesTable(devices) {
             <button type="button" class="btn" data-cmd="pair" data-id="${d.id}" title="Generate pairing code (admin)">
                             <span class="icon"><i class="fas fa-link"></i></span>
                         </button>
+            <button type="button" class="btn" data-cmd="overrides" data-id="${d.id}" title="Edit display settings override">
+                            <span class="icon"><i class="fas fa-sliders-h"></i></span>
+                        </button>
+            <button type="button" class="btn" data-cmd="playback.prev" data-id="${d.id}" title="Previous poster">
+                            <span class="icon"><i class="fas fa-step-backward"></i></span>
+                        </button>
+            <button type="button" class="btn playback-toggle${d.currentState && d.currentState.paused === false ? ' is-primary is-playing' : ''}" data-cmd="playback.toggle" data-id="${d.id}" title="Play/Pause">
+                            <span class="icon"><i class="fas ${d.currentState && d.currentState.paused === false ? 'fa-pause' : 'fa-play'}"></i></span>
+                        </button>
+            <button type="button" class="btn" data-cmd="playback.next" data-id="${d.id}" title="Next poster">
+                            <span class="icon"><i class="fas fa-step-forward"></i></span>
+                        </button>
+            <button type="button" class="btn" data-cmd="playback.pinPoster" data-id="${d.id}" title="Pin current poster">
+                            <span class="icon"><i class="fas fa-thumbtack"></i></span>
+                        </button>
             <button type="button" class="btn btn-danger" data-cmd="delete" data-id="${d.id}" title="Delete this device">
                             <span class="icon"><i class="fas fa-trash"></i></span>
                         </button>
@@ -9840,14 +9863,41 @@ function renderDevicesTable(devices) {
                         <div class="group-badges">${toChips(groupsArr)}</div>
                     </div>
                 </div>
-                <div class="row-bottom meta-line"></div>
+                <div class="row-bottom meta-line">${overridesBadge}</div>
             </td>
             <td class="cell-mode">${cellMode}</td>
             <td class="cell-status">${(() => {
-                const s = d.status || 'unknown';
-                const cls =
-                    s === 'online' ? 'is-online' : s === 'offline' ? 'is-offline' : 'is-unknown';
-                return `<span class="badge ${cls}" data-device-tip="1">${esc(s)}<div class="device-tip">${details || '<div class="tip-row"><span class="tip-k">No details</span></div>'}</div></span>`;
+                const raw = (d.status || 'unknown').toLowerCase();
+                const hasWs = !!d.wsConnected;
+                // Determine unified status
+                let label = 'Unknown';
+                let cls = 'is-unknown';
+                let explain = 'Device status is unknown.';
+                if (raw === 'offline') {
+                    label = 'Offline';
+                    cls = 'is-unknown';
+                    explain = 'Device is not connected. No recent heartbeat detected.';
+                } else if (raw === 'online' && hasWs) {
+                    label = 'Live';
+                    cls = 'is-online'; // green
+                    explain = 'Client is online and connected via WebSocket. Live control enabled.';
+                } else if (raw === 'online' && !hasWs) {
+                    label = 'Online';
+                    cls = 'is-primary'; // blue
+                    explain = 'Client is online but no live WebSocket is connected.';
+                }
+
+                const statusTip = `
+                    <div class="tip-title">Status</div>
+                    <div class="tip-grid">
+                        <span class="tip-k">State</span><span class="tip-v">${esc(label)}</span>
+                        <span class="tip-k">WebSocket</span><span class="tip-v">${hasWs ? 'Connected' : 'Not connected'}</span>
+                    </div>
+                `;
+
+                const detailsHtml =
+                    details || '<div class="tip-row"><span class="tip-k">No details</span></div>';
+                return `<span class="badge ${cls}" data-device-tip="1" title="${esc(explain)}">${esc(label)}<div class="device-tip">${statusTip}${detailsHtml}</div></span>`;
             })()}</td>
             <td class="cell-last">${last ? `<div class="last-date">${esc(last.date)}</div><div class="last-time">${esc(last.time)}</div>` : '—'}</td>`;
         tbody.appendChild(tr);
@@ -9965,12 +10015,32 @@ function renderDevicesTable(devices) {
             const status = document.getElementById('devices-status');
             devLog('row action click', { cmd, id });
             try {
-                const type =
-                    cmd === 'reload'
-                        ? 'core.mgmt.reload'
-                        : cmd === 'reset'
-                          ? 'core.mgmt.reset'
-                          : null;
+                const commandMap = {
+                    reload: 'core.mgmt.reload',
+                    reset: 'core.mgmt.reset',
+                    'playback.prev': 'playback.prev',
+                    'playback.next': 'playback.next',
+                    'playback.pause': 'playback.pause',
+                    'playback.resume': 'playback.resume',
+                    'playback.pinPoster': 'playback.pinPoster',
+                    'playback.toggle': 'playback.toggle',
+                    'source.switch': 'source.switch',
+                };
+                const type = commandMap[cmd] || null;
+                if (cmd === 'overrides') {
+                    // Load current device details for prefill
+                    const res = await authenticatedFetch(
+                        apiUrl(`/api/devices/${encodeURIComponent(id)}`),
+                        {
+                            method: 'GET',
+                            noRedirectOn401: true,
+                        }
+                    );
+                    if (!res.ok) throw new Error('Failed to load device');
+                    const device = await res.json();
+                    showDeviceSettingsModal(device);
+                    return;
+                }
                 if (cmd === 'delete') {
                     devLog('row delete: opening confirm');
                     const ok = await confirmDialog('Delete this device?', btn);
@@ -10021,7 +10091,19 @@ function renderDevicesTable(devices) {
                     setTimeout(() => setButtonState(btn, 'revert'), 1500);
                 } else if (type) {
                     setButtonState(btn, 'loading', { text: 'Queuing…' });
-                    await sendDeviceCommand(id, type);
+                    // Special handling for toggle: infer from button state
+                    if (type === 'playback.toggle') {
+                        const isPlaying = btn.classList.contains('is-playing');
+                        const nextType = isPlaying ? 'playback.pause' : 'playback.resume';
+                        await sendDeviceCommand(id, nextType);
+                        // Update visual state
+                        btn.classList.toggle('is-playing', !isPlaying);
+                        const icon = btn.querySelector('i');
+                        if (icon) icon.className = `fas ${!isPlaying ? 'fa-pause' : 'fa-play'}`;
+                        btn.classList.toggle('is-primary', !isPlaying); // green when playing
+                    } else {
+                        await sendDeviceCommand(id, type);
+                    }
                     setButtonState(btn, 'success', { text: 'Queued' });
                     if (status)
                         status.textContent = 'Command queued. It will run on next heartbeat.';
@@ -10043,6 +10125,7 @@ function initDevicesPanel() {
     if (!container) return;
     const refreshBtn = document.getElementById('devices-refresh');
     const status = document.getElementById('devices-status');
+    let liveTimer = null;
     devLog('initDevicesPanel: start');
 
     // Attach delegated handlers once for reliability (works across re-renders)
@@ -10063,13 +10146,29 @@ function initDevicesPanel() {
                 const id = btn.getAttribute('data-id');
                 const cmd = btn.getAttribute('data-cmd');
                 devLog('delegated table click', { cmd, id });
-                const type =
-                    cmd === 'reload'
-                        ? 'core.mgmt.reload'
-                        : cmd === 'reset'
-                          ? 'core.mgmt.reset'
-                          : null;
+                const commandMap = {
+                    reload: 'core.mgmt.reload',
+                    reset: 'core.mgmt.reset',
+                    'playback.prev': 'playback.prev',
+                    'playback.next': 'playback.next',
+                    'playback.pause': 'playback.pause',
+                    'playback.resume': 'playback.resume',
+                    'playback.pinPoster': 'playback.pinPoster',
+                    'playback.toggle': 'playback.toggle',
+                    'source.switch': 'source.switch',
+                };
+                const type = commandMap[cmd] || null;
                 try {
+                    if (cmd === 'overrides') {
+                        const res = await authenticatedFetch(
+                            apiUrl(`/api/devices/${encodeURIComponent(id)}`),
+                            { method: 'GET', noRedirectOn401: true }
+                        );
+                        if (!res.ok) throw new Error('Failed to load device');
+                        const device = await res.json();
+                        showDeviceSettingsModal(device);
+                        return;
+                    }
                     if (cmd === 'delete') {
                         devLog('delegated delete: confirm open');
                         const ok = await confirmDialog('Delete this device?', btn);
@@ -10115,7 +10214,26 @@ function initDevicesPanel() {
                         setTimeout(() => setButtonState(btn, 'revert'), 1500);
                     } else if (type) {
                         setButtonState(btn, 'loading', { text: 'Queuing…' });
-                        await sendDeviceCommand(id, type);
+                        let payload;
+                        if (type === 'source.switch') {
+                            const srcKey = prompt(
+                                'Enter source key to switch to (e.g., plex, jellyfin, tmdb, tvdb):'
+                            );
+                            if (!srcKey) {
+                                setButtonState(btn, 'revert');
+                                return;
+                            }
+                            payload = { sourceKey: srcKey };
+                        } else if (type === 'playback.toggle') {
+                            const isPlaying = btn.classList.contains('is-playing');
+                            const nextType = isPlaying ? 'playback.pause' : 'playback.resume';
+                            await sendDeviceCommand(id, nextType);
+                            btn.classList.toggle('is-playing', !isPlaying);
+                            const icon = btn.querySelector('i');
+                            if (icon) icon.className = `fas ${!isPlaying ? 'fa-pause' : 'fa-play'}`;
+                            btn.classList.toggle('is-primary', !isPlaying);
+                        }
+                        if (type !== 'playback.toggle') await sendDeviceCommand(id, type, payload);
                         setButtonState(btn, 'success', { text: 'Queued' });
                         if (status)
                             status.textContent = 'Command queued. It will run on next heartbeat.';
@@ -10183,6 +10301,420 @@ function initDevicesPanel() {
     if (refreshBtn) refreshBtn.addEventListener('click', refresh);
     // Auto-load on first open
     refresh();
+
+    // While the devices section is visible, periodically refresh to reflect Live status.
+    try {
+        const section = document.getElementById('devices-section');
+        const onVis = () => {
+            const visible = section && section.offsetParent !== null;
+            if (visible && !liveTimer) liveTimer = setInterval(refresh, 7000);
+            if (!visible && liveTimer) {
+                clearInterval(liveTimer);
+                liveTimer = null;
+            }
+        };
+        document.addEventListener('visibilitychange', onVis);
+        window.addEventListener('hashchange', onVis);
+        onVis();
+    } catch (_) {
+        /* ignore live refresh errors */
+    }
+}
+
+// Device Settings Override Modal
+// --------------------------------------------------------------------------
+function showDeviceSettingsModal(device) {
+    try {
+        const existing = document.getElementById('device-settings-modal');
+        if (existing) existing.remove();
+    } catch (_) {
+        /* ignore remove errors */
+    }
+
+    const d = device || {};
+    const id = d.id || '';
+    const name = d.name || '';
+    const loc = d.location || '';
+    const overrides =
+        d.settingsOverride && typeof d.settingsOverride === 'object' ? d.settingsOverride : {};
+    const escapeHtml = s =>
+        String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    const pretty = (() => {
+        try {
+            return JSON.stringify(overrides, null, 2);
+        } catch (_) {
+            return '{}';
+        }
+    })();
+
+    const html = `
+        <div id="device-settings-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="device-settings-title">
+            <div class="modal-background" data-close></div>
+            <div class="modal-content" style="max-width: 980px;">
+                <span class="close" data-close>&times;</span>
+                <h3 id="device-settings-title"><i class="fas fa-sliders-h"></i> Display Settings</h3>
+                <p class="muted">${name ? `<strong>${escapeHtml(name)}</strong>` : 'Unnamed device'}${
+                    loc ? ` &middot; <span class="muted">${escapeHtml(loc)}</span>` : ''
+                }<br/><span class="muted">ID: ${escapeHtml(id)}</span></p>
+
+                        <div class="ds-grid" style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:12px; align-items:start;">
+                                        <form id="device-settings-form" class="ds-form" autocomplete="off">
+                                            <div class="form-section unified-section">
+                                                <div class="subsection-header"><i class="fas fa-eye"></i> Visual elements</div>
+                                                <div class="subsection-content">
+                                                    <div class="checkbox-row">
+                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showPoster" id="ovr-showPoster"><label for="ovr-showPoster">Show poster</label></div>
+                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showMetadata" id="ovr-showMetadata"><label for="ovr-showMetadata">Show metadata</label></div>
+                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showClearLogo" id="ovr-showClearLogo"><label for="ovr-showClearLogo">ClearLogo</label></div>
+                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showRottenTomatoes" id="ovr-showRT"><label for="ovr-showRT">Rotten Tomatoes</label></div>
+                                                    </div>
+                                                    <div class="form-grid-2">
+                                                        <div class="form-group"><label>RT min score</label><input type="number" min="0" max="10" step="0.5" data-key="rottenTomatoesMinimumScore"></div>
+                                                        <div class="form-group"><label>Background refresh (min)</label><input type="number" min="0" max="240" step="1" data-key="backgroundRefreshMinutes"></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="subsection-header"><i class="fas fa-clock"></i> Clock</div>
+                                                <div class="subsection-content">
+                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="clockWidget" id="ovr-clock"><label for="ovr-clock">Show clock</label></div>
+                                                    <div class="form-grid-2">
+                                                        <div class="form-group"><label>Format</label><select data-key="clockFormat"><option value="">(inherit)</option><option value="24h">24h</option><option value="12h">12h</option></select></div>
+                                                        <div class="form-group"><label>Timezone</label><input type="text" data-key="clockTimezone" placeholder="auto / Europe/Amsterdam"></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="subsection-header"><i class="fas fa-images"></i> Slideshow</div>
+                                                <div class="subsection-content">
+                                                    <div class="form-grid-3">
+                                                        <div class="form-group"><label>Effect</label><select data-key="transitionEffect"><option value="">(inherit)</option><option value="none">None</option><option value="fade">Fade</option><option value="slide">Slide</option><option value="kenburns">Ken Burns</option></select></div>
+                                                        <div class="form-group"><label>Interval (s)</label><input type="number" min="1" max="600" step="1" data-key="transitionIntervalSeconds"></div>
+                                                        <div class="form-group"><label>Pause time (s)</label><input type="number" min="0" max="10" step="0.5" data-key="effectPauseTime"></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="subsection-header"><i class="fas fa-film"></i> Cinema mode</div>
+                                                <div class="subsection-content">
+                                                    <div class="form-grid-2">
+                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="cinemaMode" id="ovr-cinema"><label for="ovr-cinema">Enable cinema mode</label></div>
+                                                        <div class="form-group"><label>Orientation</label><select data-key="cinemaOrientation"><option value="">(inherit)</option><option value="auto">Auto</option><option value="portrait">Portrait</option><option value="portrait-flipped">Portrait flipped</option></select></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="subsection-header"><i class="fas fa-magnifying-glass"></i> UI scaling</div>
+                                                <div class="subsection-content">
+                                                    <div class="form-group"><label>Global</label><div class="slider-wrapper modern-slider"><input type="range" min="50" max="200" step="1" data-key="uiScaling.global"><div class="slider-percentage" data-out="uiScaling.global"></div></div></div>
+                                                    <div class="form-group"><label>% Content</label><div class="slider-wrapper modern-slider"><input type="range" min="50" max="200" step="1" data-key="uiScaling.content"><div class="slider-percentage" data-out="uiScaling.content"></div></div></div>
+                                                    <div class="form-group"><label>% ClearLogo</label><div class="slider-wrapper modern-slider"><input type="range" min="50" max="200" step="1" data-key="uiScaling.clearlogo"><div class="slider-percentage" data-out="uiScaling.clearlogo"></div></div></div>
+                                                    <div class="form-group"><label>% Clock</label><div class="slider-wrapper modern-slider"><input type="range" min="50" max="200" step="1" data-key="uiScaling.clock"><div class="slider-percentage" data-out="uiScaling.clock"></div></div></div>
+                                                </div>
+
+                                                <div class="subsection-header"><i class="fas fa-th-large"></i> Wallart mode</div>
+                                                <div class="subsection-content">
+                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.enabled" id="ovr-wallart"><label for="ovr-wallart">Enable wallart</label></div>
+                                                    <div class="form-grid-3">
+                                                        <div class="form-group"><label>Layout</label><select data-key="wallartMode.layoutVariant"><option value="">(inherit)</option><option value="classic">Classic</option><option value="heroGrid">Hero Grid</option></select></div>
+                                                        <div class="form-group"><label>Density</label><select data-key="wallartMode.density"><option value="">(inherit)</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="ludicrous">Ludicrous</option></select></div>
+                                                        <div class="form-group"><label>Animation</label><select data-key="wallartMode.animationType"><option value="">(inherit)</option><option value="random">Random</option><option value="fade">Fade</option><option value="slideLeft">Slide Left</option><option value="slideUp">Slide Up</option><option value="zoom">Zoom</option><option value="flip">Flip</option><option value="staggered">Staggered</option><option value="ripple">Ripple</option><option value="scanline">Scanline</option><option value="parallax">Parallax</option><option value="neonPulse">Neon Pulse</option><option value="chromaticShift">Chromatic Shift</option><option value="mosaicShatter">Mosaic Shatter</option></select></div>
+                                                    </div>
+                                                    <div class="form-grid-3">
+                                                        <div class="form-group"><label>Items per screen</label><input type="number" min="4" max="100" step="1" data-key="wallartMode.itemsPerScreen"></div>
+                                                        <div class="form-group"><label>Columns</label><input type="number" min="2" max="12" step="1" data-key="wallartMode.columns"></div>
+                                                        <div class="form-group"><label>Transition interval (s)</label><input type="number" min="5" max="300" step="1" data-key="wallartMode.transitionInterval"></div>
+                                                    </div>
+                                                    <div class="form-grid-2">
+                                                        <div class="form-group"><label>Refresh rate</label><div class="slider-wrapper modern-slider"><input type="range" min="1" max="10" step="1" data-key="wallartMode.refreshRate"><div class="slider-percentage" data-out="wallartMode.refreshRate"></div></div></div>
+                                                        <div class="form-group"><label>Randomness</label><div class="slider-wrapper modern-slider"><input type="range" min="0" max="10" step="1" data-key="wallartMode.randomness"><div class="slider-percentage" data-out="wallartMode.randomness"></div></div></div>
+                                                    </div>
+                                                    <div class="form-grid-2">
+                                                        <div class="form-group"><label>Hero side</label><select data-key="wallartMode.layoutSettings.heroGrid.heroSide"><option value="">(inherit)</option><option value="left">Left</option><option value="right">Right</option></select></div>
+                                                        <div class="form-group"><label>Hero rotation (min)</label><input type="number" min="1" max="60" step="1" data-key="wallartMode.layoutSettings.heroGrid.heroRotationMinutes"></div>
+                                                    </div>
+                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.ambientGradient" id="ovr-ambient"><label for="ovr-ambient">Ambient gradient</label></div>
+                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.layoutSettings.heroGrid.biasAmbientToHero" id="ovr-bias"><label for="ovr-bias">Bias ambient to hero</label></div>
+                                                </div>
+                                            </div>
+
+                                                <div class="form-actions" style="display:flex; gap: 8px; align-items:center;">
+                                                    <button type="button" class="btn is-primary" id="device-settings-save">Save & apply</button>
+                                                    <button type="button" class="btn" id="device-settings-clear">Clear overrides</button>
+                                                    <div class="hint" id="device-settings-status" style="margin-left:auto; min-height:1.4em;"></div>
+                                                </div>
+                    </form>
+
+                    <div id="modal-preview-container" class="preview-container pip-mode screensaver-mode compact" style="display:block;">
+                        <button type="button" class="preview-peek-handle" aria-label="Toggle preview visibility" title="Hide/Show Preview"></button>
+                        <button type="button" id="modal-toggle-preview-zoom" class="pip-button preview-zoom-btn" title="Toggle Preview Size (1.5x)">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <div class="preview-controls">
+                            <button type="button" id="modal-toggle-preview-mode" class="pip-button" title="Toggle Preview Mode">
+                                <i class="fas fa-desktop"></i>
+                            </button>
+                        </div>
+                        <iframe id="modal-preview-frame" class="preview-frame" title="Display Settings Live Preview" src="/preview"></iframe>
+                    </div>
+                    <div class="hint" style="margin-top:6px;">Changes are applied to the preview automatically.</div>
+                </div>
+            </div>
+        </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const modal = document.getElementById('device-settings-modal');
+    const form = modal.querySelector('#device-settings-form');
+    const btnSave = modal.querySelector('#device-settings-save');
+    const btnClear = modal.querySelector('#device-settings-clear');
+    const status = modal.querySelector('#device-settings-status');
+    const previewContainerEl = modal.querySelector('#modal-preview-container');
+    const previewFrame = modal.querySelector('#modal-preview-frame');
+    const previewToggleMode = modal.querySelector('#modal-toggle-preview-mode');
+    const previewToggleZoom = modal.querySelector('#modal-toggle-preview-zoom');
+
+    // Helper: set/get deep values by path like "wallartMode.layoutSettings.heroGrid.heroSide"
+    function setDeep(obj, path, value) {
+        const parts = path.split('.');
+        let cur = obj;
+        for (let i = 0; i < parts.length - 1; i++) {
+            const k = parts[i];
+            if (!cur[k] || typeof cur[k] !== 'object') cur[k] = {};
+            cur = cur[k];
+        }
+        cur[parts[parts.length - 1]] = value;
+        return obj;
+    }
+    function getDeep(obj, path) {
+        const parts = path.split('.');
+        let cur = obj;
+        for (const k of parts) {
+            if (!cur || typeof cur !== 'object') return undefined;
+            cur = cur[k];
+        }
+        return cur;
+    }
+
+    // Presets removed per request
+
+    function deepMerge(target, source) {
+        if (!source || typeof source !== 'object') return target;
+        const out = Array.isArray(target) ? target.slice() : { ...(target || {}) };
+        for (const k of Object.keys(source)) {
+            const sv = source[k];
+            if (sv && typeof sv === 'object' && !Array.isArray(sv)) {
+                out[k] = deepMerge(out[k] && typeof out[k] === 'object' ? out[k] : {}, sv);
+            } else {
+                out[k] = sv;
+            }
+        }
+        return out;
+    }
+    // GUI: bind values, track dirty state, preview on change
+    const dirty = new Set();
+    function bindInitialValues() {
+        const inputs = form.querySelectorAll('[data-key]');
+        inputs.forEach(el => {
+            const key = el.getAttribute('data-key');
+            const val = getDeep(overrides, key);
+            if (val !== undefined) {
+                if (el.type === 'checkbox') el.checked = !!val;
+                else el.value = String(val);
+                // reflect range outputs
+                if (el.type === 'range') {
+                    const out = form.querySelector(`[data-out="${key}"]`);
+                    if (out) out.textContent = el.value;
+                }
+            } else {
+                if (el.type === 'checkbox') el.checked = false;
+                else el.value = '';
+            }
+        });
+    }
+    function payloadFromInputs(onlyDirty = true) {
+        const payload = {};
+        const inputs = form.querySelectorAll('[data-key]');
+        inputs.forEach(el => {
+            const key = el.getAttribute('data-key');
+            if (onlyDirty && !dirty.has(key)) return;
+            let v;
+            if (el.type === 'checkbox') v = !!el.checked;
+            else if (el.type === 'number' || el.type === 'range')
+                v = el.value === '' ? undefined : Number(el.value);
+            else v = el.value;
+            if (v === '' || v === undefined || Number.isNaN(v)) return; // omit unset
+            setDeep(payload, key, v);
+        });
+        return payload;
+    }
+    function postPreview(partial) {
+        try {
+            const win = previewFrame && previewFrame.contentWindow;
+            if (!win) return;
+            win.postMessage(
+                { type: 'posterrama.preview.update', payload: partial || {} },
+                window.location.origin
+            );
+        } catch (_) {}
+    }
+    function onChanged(el) {
+        const key = el.getAttribute('data-key');
+        if (!key) return;
+        dirty.add(key);
+        if (el.type === 'range') {
+            const out = form.querySelector(`[data-out="${key}"]`);
+            if (out) out.textContent = el.value;
+        }
+        // live preview just for this field
+        const partial = {};
+        let v;
+        if (el.type === 'checkbox') v = !!el.checked;
+        else if (el.type === 'number' || el.type === 'range')
+            v = el.value === '' ? undefined : Number(el.value);
+        else v = el.value;
+        if (v !== undefined && v !== '' && !Number.isNaN(v)) setDeep(partial, key, v);
+        postPreview(partial);
+        status.textContent = 'Edited (unsaved)';
+    }
+    function wireInputs() {
+        const inputs = form.querySelectorAll('[data-key]');
+        inputs.forEach(el => {
+            el.addEventListener('change', () => onChanged(el));
+            if (el.type === 'range') el.addEventListener('input', () => onChanged(el));
+        });
+    }
+
+    function close() {
+        try {
+            modal.remove();
+        } catch (_) {
+            /* ignore errors */
+        }
+    }
+
+    modal.addEventListener('click', ev => {
+        if (ev.target && (ev.target.getAttribute('data-close') != null || ev.target === modal)) {
+            close();
+        }
+    });
+
+    // Initial preview: apply existing overrides when preview iframe is ready
+    try {
+        const sendInitial = () => {
+            if (!previewFrame || !previewFrame.contentWindow) return;
+            postPreview(overrides || {});
+        };
+        if (previewFrame) {
+            previewFrame.addEventListener('load', sendInitial, { once: true });
+            // Fallback if it was already loaded
+            setTimeout(sendInitial, 150);
+        }
+    } catch (_) {
+        /* ignore preview init errors */
+    }
+    // Initialize GUI
+    bindInitialValues();
+    wireInputs();
+
+    // Wire modal preview controls to mimic Display Settings preview
+    if (previewToggleMode && previewContainerEl) {
+        previewToggleMode.addEventListener('click', () => {
+            const isCinema = previewContainerEl.classList.contains('cinema-mode');
+            previewContainerEl.classList.toggle('cinema-mode', !isCinema);
+            previewContainerEl.classList.toggle('screensaver-mode', isCinema);
+        });
+    }
+    if (previewToggleZoom && previewContainerEl) {
+        previewToggleZoom.addEventListener('click', () => {
+            previewContainerEl.classList.toggle('is-zoomed');
+        });
+    }
+
+    // No presets UI
+
+    btnSave.addEventListener('click', async () => {
+        const dirtyPayload = payloadFromInputs(true); // only dirty fields
+        // Avoid clearing existing overrides if nothing changed
+        if (
+            !dirtyPayload ||
+            (typeof dirtyPayload === 'object' && Object.keys(dirtyPayload).length === 0)
+        ) {
+            status.textContent = 'No changes to save';
+            return;
+        }
+        // Merge with current overrides so server replacement keeps others intact
+        const payload = deepMerge(overrides || {}, dirtyPayload);
+        try {
+            btnSave.disabled = true;
+            btnClear.disabled = true;
+            status.textContent = 'Saving…';
+            const res = await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
+                method: 'PATCH',
+                body: JSON.stringify({ settingsOverride: payload }),
+                noRedirectOn401: true,
+            });
+            if (!res.ok) throw new Error('Save failed');
+            status.textContent = 'Saved. Applying…';
+            // Refresh table to reflect overrides badge
+            try {
+                const list = await fetchDevices();
+                renderDevicesTable(list);
+            } catch (_) {
+                /* ignore refresh errors */
+            }
+            setTimeout(close, 300);
+        } catch (e) {
+            status.textContent = 'Failed to save';
+        } finally {
+            btnSave.disabled = false;
+            btnClear.disabled = false;
+        }
+    });
+
+    btnClear.addEventListener('click', async () => {
+        try {
+            const ok = await confirmDialog('Clear overrides for this device?');
+            if (!ok) return;
+            btnSave.disabled = true;
+            btnClear.disabled = true;
+            status.textContent = 'Clearing…';
+            const res = await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
+                method: 'PATCH',
+                body: JSON.stringify({ settingsOverride: {} }),
+                noRedirectOn401: true,
+            });
+            if (!res.ok) throw new Error('Clear failed');
+            // Reset GUI fields
+            const inputs = form.querySelectorAll('[data-key]');
+            inputs.forEach(el => {
+                if (el.type === 'checkbox') el.checked = false;
+                else el.value = '';
+                const key = el.getAttribute('data-key');
+                if (el.type === 'range') {
+                    const out = form.querySelector(`[data-out="${key}"]`);
+                    if (out) out.textContent = '';
+                }
+            });
+            dirty.clear?.();
+            postPreview({});
+            try {
+                const list = await fetchDevices();
+                renderDevicesTable(list);
+            } catch (_) {
+                /* ignore refresh errors */
+            }
+            setTimeout(close, 200);
+        } catch (e) {
+            status.textContent = 'Failed to clear';
+        } finally {
+            btnSave.disabled = false;
+            btnClear.disabled = false;
+        }
+    });
+
+    // no-op focus for GUI
 }
 
 // DYNAMIC RATING FILTER FUNCTIONALITY
@@ -10216,9 +10748,34 @@ function initDevicesPanel() {
             const cmd = btn.getAttribute('data-cmd');
             const status = getStatusEl();
             devLog('global: action click', { cmd, id });
-            const type =
-                cmd === 'reload' ? 'core.mgmt.reload' : cmd === 'reset' ? 'core.mgmt.reset' : null;
+            const commandMap = {
+                reload: 'core.mgmt.reload',
+                reset: 'core.mgmt.reset',
+                'playback.prev': 'playback.prev',
+                'playback.next': 'playback.next',
+                'playback.pause': 'playback.pause',
+                'playback.resume': 'playback.resume',
+                'playback.pinPoster': 'playback.pinPoster',
+                'playback.toggle': 'playback.toggle',
+                'source.switch': 'source.switch',
+            };
+            const type = commandMap[cmd] || null;
             try {
+                if (cmd === 'overrides') {
+                    // Open overrides modal with fresh device data
+                    try {
+                        const res = await authenticatedFetch(
+                            apiUrl(`/api/devices/${encodeURIComponent(id)}`),
+                            { method: 'GET', noRedirectOn401: true }
+                        );
+                        if (!res.ok) throw new Error('Failed to load device');
+                        const device = await res.json();
+                        showDeviceSettingsModal(device);
+                    } catch (e) {
+                        if (status) status.textContent = 'Failed to open overrides editor';
+                    }
+                    return;
+                }
                 if (cmd === 'delete') {
                     devLog('global: delete confirm open');
                     const ok = await confirmDialog('Delete this device?', btn);
@@ -10261,7 +10818,26 @@ function initDevicesPanel() {
                     setTimeout(() => setButtonState(btn, 'revert'), 1500);
                 } else if (type) {
                     setButtonState(btn, 'loading', { text: 'Queuing…' });
-                    await sendDeviceCommand(id, type);
+                    let payload;
+                    if (type === 'source.switch') {
+                        const srcKey = prompt(
+                            'Enter source key to switch to (e.g., plex, jellyfin, tmdb, tvdb):'
+                        );
+                        if (!srcKey) {
+                            setButtonState(btn, 'revert');
+                            return;
+                        }
+                        payload = { sourceKey: srcKey };
+                    } else if (type === 'playback.toggle') {
+                        const isPlaying = btn.classList.contains('is-playing');
+                        const nextType = isPlaying ? 'playback.pause' : 'playback.resume';
+                        await sendDeviceCommand(id, nextType);
+                        btn.classList.toggle('is-playing', !isPlaying);
+                        const icon = btn.querySelector('i');
+                        if (icon) icon.className = `fas ${!isPlaying ? 'fa-pause' : 'fa-play'}`;
+                        btn.classList.toggle('is-primary', !isPlaying);
+                    }
+                    if (type !== 'playback.toggle') await sendDeviceCommand(id, type, payload);
                     setButtonState(btn, 'success', { text: 'Queued' });
                     if (status)
                         status.textContent = 'Command queued. It will run on next heartbeat.';

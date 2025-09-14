@@ -58,6 +58,7 @@ const crypto = require('crypto');
 const { PassThrough } = require('stream');
 const fsp = fs.promises;
 const deviceStore = require('./utils/deviceStore');
+const wsHub = require('./utils/wsHub');
 const dns = require('dns').promises;
 
 // --- Auto Cache Busting ---
@@ -1670,7 +1671,9 @@ if (isDeviceMgmtEnabled()) {
     app.get('/api/devices', adminAuth, async (_req, res) => {
         try {
             const all = await deviceStore.getAll();
-            res.json(all);
+            // Attach live WS connectivity status per device
+            const withLive = all.map(d => ({ ...d, wsConnected: wsHub.isConnected(d.id) }));
+            res.json(withLive);
         } catch (e) {
             res.status(500).json({ error: 'list_failed' });
         }
@@ -1681,7 +1684,7 @@ if (isDeviceMgmtEnabled()) {
         try {
             const d = await deviceStore.getById(req.params.id);
             if (!d) return res.status(404).json({ error: 'not_found' });
-            res.json(d);
+            res.json({ ...d, wsConnected: wsHub.isConnected(d.id) });
         } catch (e) {
             res.status(500).json({ error: 'get_failed' });
         }
@@ -1706,21 +1709,32 @@ if (isDeviceMgmtEnabled()) {
             for (const k of allowed) if (k in req.body) patch[k] = req.body[k];
             const d = await deviceStore.patchDevice(req.params.id, patch);
             if (!d) return res.status(404).json({ error: 'not_found' });
+            // If settingsOverride changed, push live to device when connected
+            if (typeof patch.settingsOverride === 'object' && patch.settingsOverride) {
+                try {
+                    wsHub.sendApplySettings(req.params.id, patch.settingsOverride);
+                } catch (_) {
+                    /* ignore ws push errors */
+                }
+            }
             res.json(d);
         } catch (e) {
             res.status(500).json({ error: 'patch_failed' });
         }
     });
 
-    // Admin: queue command to device
+    // Admin: queue or live-send command to device
     app.post('/api/devices/:id/command', adminAuth, express.json(), async (req, res) => {
         try {
             const { type, payload } = req.body || {};
             if (!type) return res.status(400).json({ error: 'type_required' });
             const d = await deviceStore.getById(req.params.id);
             if (!d) return res.status(404).json({ error: 'not_found' });
+            // Try live first via WS; fall back to queue if offline
+            const liveSent = wsHub.sendCommand(req.params.id, { type, payload });
+            if (liveSent) return res.json({ queued: false, live: true });
             const cmd = deviceStore.queueCommand(req.params.id, { type, payload });
-            res.json({ queued: true, command: cmd });
+            res.json({ queued: true, live: false, command: cmd });
         } catch (e) {
             res.status(500).json({ error: 'queue_failed' });
         }
@@ -5649,6 +5663,59 @@ app.get(
 
 /**
  * @swagger
+ * /api/config/schema:
+ *   get:
+ *     summary: Retrieve configuration JSON schema
+ *     description: Returns the config.schema.json used for validating configuration. Admin-only.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: The JSON schema document
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       401:
+ *         description: Unauthorized.
+ */
+app.get(
+    '/api/config/schema',
+    isAuthenticated,
+    asyncHandler(async (_req, res) => {
+        try {
+            const schemaPath = path.join(__dirname, 'config.schema.json');
+            const raw = await fs.promises.readFile(schemaPath, 'utf8');
+            res.type('application/json').send(raw);
+        } catch (e) {
+            logger.error('[Admin API] Failed to read config.schema.json:', e && e.message);
+            res.status(500).json({ error: 'schema_read_failed' });
+        }
+    })
+);
+
+// Back-compat/admin-prefixed alias so proxies that gate admin endpoints under /api/admin continue to work
+app.get(
+    '/api/admin/config/schema',
+    isAuthenticated,
+    asyncHandler(async (_req, res) => {
+        try {
+            const schemaPath = path.join(__dirname, 'config.schema.json');
+            const raw = await fs.promises.readFile(schemaPath, 'utf8');
+            res.type('application/json').send(raw);
+        } catch (e) {
+            logger.error(
+                '[Admin API] Failed to read config.schema.json (admin alias):',
+                e && e.message
+            );
+            res.status(500).json({ error: 'schema_read_failed' });
+        }
+    })
+);
+
+/**
+ * @swagger
  * /api/admin/test-plex:
  *   post:
  *     summary: Test connection to a Plex server
@@ -9532,7 +9599,7 @@ if (require.main === module) {
             }
 
             // Now start the server with cache ready
-            app.listen(port, async () => {
+            const httpServer = app.listen(port, async () => {
                 logger.info(`posterrama.app is listening on http://localhost:${port}`);
                 if (isDebug)
                     logger.debug(
@@ -9575,12 +9642,21 @@ if (require.main === module) {
                     logger.debug('Automatic cache cleanup scheduled every 30 minutes.');
                 }
             });
+            // Initialize WebSocket hub once server is listening
+            try {
+                wsHub.init(httpServer, {
+                    path: '/ws/devices',
+                    verifyDevice: deviceStore.verifyDevice,
+                });
+            } catch (e) {
+                logger.warn('[WS] init failed', e);
+            }
         })
         .catch(err => {
             logger.error('Initial playlist fetch failed during startup:', err);
 
             // Start server anyway but with empty cache
-            app.listen(port, async () => {
+            const httpServer = app.listen(port, async () => {
                 logger.info(
                     `posterrama.app is listening on http://localhost:${port} (with empty cache due to startup error)`
                 );
@@ -9639,6 +9715,15 @@ if (require.main === module) {
                         });
                 }, 5000); // Retry after 5 seconds
             });
+            // Initialize WebSocket hub once server is listening
+            try {
+                wsHub.init(httpServer, {
+                    path: '/ws/devices',
+                    verifyDevice: deviceStore.verifyDevice,
+                });
+            } catch (e2) {
+                logger.warn('[WS] init failed', e2);
+            }
         });
 
     // Note: The rest of the startup logic (intervals, cleanup) will be moved inside the app.listen callback

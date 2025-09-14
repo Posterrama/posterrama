@@ -21,6 +21,8 @@
         deviceSecret: null,
         installId: null,
         hardwareId: null,
+        ws: null,
+        wsTimer: null,
     };
 
     function getStorage() {
@@ -194,7 +196,11 @@
             userAgent: navigator.userAgent,
             screen: collectClientInfo().screen,
             mode: currentMode(),
-            // current media/state can be extended later
+            // Include playback paused state if the main app exposes it
+            paused:
+                typeof window !== 'undefined' && window.__posterramaPaused != null
+                    ? !!window.__posterramaPaused
+                    : undefined,
         };
         try {
             const res = await fetch('/api/devices/heartbeat', {
@@ -233,8 +239,151 @@
         }
     }
 
+    // --- WebSocket live control ---
+    // Debug logger (toggle with window.__POSTERRAMA_LIVE_DEBUG = false to silence)
+    function liveDbg() {
+        try {
+            if (typeof window !== 'undefined' && window.__POSTERRAMA_LIVE_DEBUG === false) return;
+        } catch (_) {}
+        try {
+            if (
+                typeof window !== 'undefined' &&
+                window.logger &&
+                typeof window.logger.debug === 'function' &&
+                window.logger.isDebug &&
+                window.logger.isDebug()
+            ) {
+                window.logger.debug.apply(window.logger, arguments);
+            } else {
+                // eslint-disable-next-line no-console
+                console.info.apply(console, arguments);
+            }
+        } catch (_) {}
+    }
+    function connectWS() {
+        if (!state.enabled || !state.deviceId || !state.deviceSecret) return;
+        const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const url = `${proto}://${window.location.host}/ws/devices`;
+        try {
+            const ws = new WebSocket(url);
+            state.ws = ws;
+            ws.onopen = () => {
+                liveDbg('[Live] WS open', { url });
+                try {
+                    ws.send(
+                        JSON.stringify({
+                            kind: 'hello',
+                            deviceId: state.deviceId,
+                            deviceSecret: state.deviceSecret,
+                        })
+                    );
+                    liveDbg('[Live] WS hello sent', { deviceId: state.deviceId });
+                } catch (_) {
+                    /* ignore initial hello send errors */
+                }
+            };
+            ws.onmessage = ev => {
+                try {
+                    const msg = JSON.parse(ev.data);
+                    if (!msg || !msg.kind) return;
+                    if (msg.kind === 'hello-ack') {
+                        liveDbg('[Live] WS hello-ack');
+                        return;
+                    }
+                    if (msg.kind === 'command') {
+                        const t = msg.type || '';
+                        liveDbg('[Live] WS command received', { type: t, payload: msg.payload });
+                        // First try runtime playback hooks for immediate action
+                        try {
+                            const api = window.__posterramaPlayback || {};
+                            if (t === 'playback.prev' && api.prev) {
+                                liveDbg('[Live] invoking playback.prev');
+                                return void api.prev();
+                            }
+                            if (t === 'playback.next' && api.next) {
+                                liveDbg('[Live] invoking playback.next');
+                                return void api.next();
+                            }
+                            if (t === 'playback.pause' && api.pause) {
+                                liveDbg('[Live] invoking playback.pause');
+                                return void api.pause();
+                            }
+                            if (t === 'playback.resume' && api.resume) {
+                                liveDbg('[Live] invoking playback.resume');
+                                return void api.resume();
+                            }
+                            if (t === 'playback.pinPoster' && api.pinPoster) {
+                                liveDbg('[Live] invoking playback.pinPoster', {
+                                    payload: msg.payload,
+                                });
+                                return void api.pinPoster(msg.payload);
+                            }
+                            if (t === 'source.switch' && api.switchSource) {
+                                liveDbg('[Live] invoking source.switch', {
+                                    sourceKey: msg.payload?.sourceKey,
+                                });
+                                return void api.switchSource(msg.payload?.sourceKey);
+                            }
+                        } catch (_) {
+                            /* ignore playback hook errors */
+                        }
+                        // Fallback to mgmt command handler
+                        liveDbg('[Live] delegating to handleCommand', { type: msg.type });
+                        handleCommand({ type: msg.type, payload: msg.payload });
+                    } else if (msg.kind === 'apply-settings' && msg.payload) {
+                        // Apply partial settings live if script.js exposed applySettings
+                        try {
+                            if (typeof window.applySettings === 'function') {
+                                liveDbg('[Live] WS apply-settings received', {
+                                    keys: Object.keys(msg.payload || {}),
+                                });
+                                window.applySettings(msg.payload);
+                            }
+                        } catch (_) {
+                            /* ignore applySettings errors */
+                        }
+                    }
+                } catch (_) {
+                    /* ignore ws message parse errors */
+                }
+            };
+            ws.onclose = ev => {
+                state.ws = null;
+                try {
+                    liveDbg('[Live] WS close', { code: ev?.code, reason: ev?.reason });
+                } catch (_) {}
+                scheduleReconnect();
+            };
+            ws.onerror = err => {
+                try {
+                    liveDbg('[Live] WS error', err);
+                } catch (_) {}
+                try {
+                    ws.close();
+                } catch (_) {
+                    /* ignore ws close errors */
+                }
+            };
+        } catch (_) {
+            liveDbg('[Live] WS connect exception, scheduling reconnect');
+            scheduleReconnect();
+        }
+    }
+
+    function scheduleReconnect() {
+        if (state.wsTimer) return;
+        state.wsTimer = setTimeout(
+            () => {
+                state.wsTimer = null;
+                connectWS();
+            },
+            3000 + Math.floor(Math.random() * 2000)
+        );
+    }
+
     async function handleCommand(cmd) {
         const type = cmd?.type || '';
+        liveDbg('[Live] queued command received', { type });
         switch (type) {
             case 'core.mgmt.reload':
                 forceReload();
@@ -330,6 +479,8 @@
             clearTimeout(resizeDebounce);
             resizeDebounce = setTimeout(sendHeartbeat, 500);
         });
+        // connect live channel
+        connectWS();
     }
 
     function stopHeartbeat() {
@@ -442,6 +593,13 @@
     // Expose minimal debug helpers for testing without server roundtrip
     window.PosterramaDevice = {
         init,
+        beat: () => {
+            try {
+                return sendHeartbeat();
+            } catch (_) {
+                /* ignore */
+            }
+        },
         resetIdentity: () => {
             try {
                 clearIdentity();

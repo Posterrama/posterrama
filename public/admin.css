@@ -4534,6 +4534,13 @@ fieldset:focus-within {
     color: rgba(148, 163, 184, 0.95);
 }
 
+/* Live (blue) */
+.badge.is-primary {
+    border-color: rgba(59, 130, 246, 0.4); /* blue-500 */
+    background: rgba(59, 130, 246, 0.12);
+    color: rgba(59, 130, 246, 0.95);
+}
+
 /* ===== Devices (Admin) Themed Styles ===== */
 #devices-section .table-wrapper {
     overflow: visible;
@@ -4653,6 +4660,27 @@ div#devices-section.section-content.active .section-main-content {
     margin-bottom: 0 !important;
     margin-top: 0.5rem !important;
     padding-bottom: 0 !important;
+}
+
+/* Overrides Modal - mirror Display Settings spacing and layout */
+#device-settings-modal .form-section.unified-section {
+    min-height: 200px !important;
+    padding: var(--content-padding-y) var(--content-padding-x) 0 var(--content-padding-x) !important;
+}
+#device-settings-modal .subsection-header {
+    margin-top: 2rem !important;
+}
+#device-settings-modal .subsection-header:first-of-type {
+    margin-top: 0 !important;
+}
+#device-settings-modal .subsection-content:last-child {
+    margin-bottom: var(--content-padding-y) !important;
+}
+
+#device-settings-modal #modal-preview-container.preview-container {
+    margin-top: 0.5rem;
+    border-radius: 12px;
+    box-shadow: var(--elevation-2);
 }
 
 /* Device Status hover tooltip with device details */

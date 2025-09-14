@@ -17,11 +17,29 @@ const logger = {
     error: (message, data) => console.error(`[ERROR] ${message}`, data || ''),
 };
 
-// Silence generic console noise on the public page (keep warn/error)
+// Silence generic console noise on the public page (keep warn/error),
+// but DO NOT silence when debug is enabled via client-logger, URL (?debug=true), or a global flag.
 (() => {
     try {
+        // If client-logger is present and says we're in debug, keep console intact
+        if (
+            typeof window !== 'undefined' &&
+            window.logger &&
+            typeof window.logger.isDebug === 'function' &&
+            window.logger.isDebug()
+        ) {
+            return; // leave console methods untouched for debugging
+        }
+        // Allow quick enable via URL param
+        try {
+            const sp = new URLSearchParams(window.location.search);
+            if (sp.get('debug') === 'true') return;
+        } catch (_) {}
+        // Allow forcing live debug via global flag
+        if (typeof window !== 'undefined' && window.__POSTERRAMA_LIVE_DEBUG === true) {
+            return;
+        }
         const noop = () => {};
-        // Silence logs unconditionally (debug helpers removed)
         console.log = noop;
         console.info = noop;
         console.debug = noop;
@@ -250,6 +268,132 @@ document.addEventListener('DOMContentLoaded', async () => {
     let activeLayer = layerA;
     let inactiveLayer = layerB;
     let isPaused = false;
+    // expose paused status globally for device heartbeat/admin
+    Object.defineProperty(window, '__posterramaPaused', {
+        get() {
+            return isPaused;
+        },
+    });
+    // Expose minimal playback control API for WS/admin control
+    // Unified programmatic pause/resume that mirrors the UI button behavior
+    function setPaused(val) {
+        const next = !!val;
+        isPaused = next;
+        try {
+            if (pauseButton) pauseButton.classList.toggle('is-paused', next);
+        } catch (_) {}
+        if (next) {
+            // Pause: stop slideshow timer and freeze animations
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            try {
+                if (activeLayer) activeLayer.style.animationPlayState = 'paused';
+            } catch (_) {}
+        } else {
+            // Resume: restart slideshow timer and unfreeze animations
+            try {
+                if (activeLayer) activeLayer.style.animationPlayState = 'running';
+            } catch (_) {}
+            startTimer();
+        }
+        try {
+            window.PosterramaDevice &&
+                window.PosterramaDevice.beat &&
+                window.PosterramaDevice.beat();
+        } catch (_) {}
+    }
+
+    function playbackPrev() {
+        try {
+            (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
+                console,
+                '[Live] playback.prev'
+            );
+        } catch (_) {}
+        // For wallart, trigger a single poster refresh; for others, move to previous item
+        if (appConfig.wallartMode?.enabled && typeof window.refreshSinglePoster === 'function') {
+            try {
+                window.refreshSinglePoster();
+            } catch (_) {}
+            return;
+        }
+        try {
+            changeMedia('prev');
+        } catch (_) {}
+    }
+    function playbackNext() {
+        try {
+            (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
+                console,
+                '[Live] playback.next'
+            );
+        } catch (_) {}
+        if (appConfig.wallartMode?.enabled && typeof window.refreshSinglePoster === 'function') {
+            try {
+                window.refreshSinglePoster();
+            } catch (_) {}
+            return;
+        }
+        try {
+            changeMedia('next');
+        } catch (_) {}
+    }
+    function playbackPause() {
+        try {
+            (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
+                console,
+                '[Live] playback.pause'
+            );
+        } catch (_) {}
+        setPaused(true);
+    }
+    function playbackResume() {
+        try {
+            (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
+                console,
+                '[Live] playback.resume'
+            );
+        } catch (_) {}
+        setPaused(false);
+    }
+    function pinCurrentPoster() {
+        try {
+            (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
+                console,
+                '[Live] playback.pinPoster'
+            );
+        } catch (_) {}
+        // Freeze the current visual
+        setPaused(true);
+        // Optional: extend pause interval behavior for transition-based cycles
+        try {
+            if (typeof window.applySettings === 'function') {
+                window.applySettings({
+                    effectPauseTime: Math.max(appConfig.effectPauseTime || 0, 999999),
+                });
+            }
+        } catch (_) {}
+    }
+    function switchSource(_sourceKey) {
+        // Stub: requires deeper integration with playlist/source pipeline
+        try {
+            (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
+                console,
+                '[Live] source.switch requested',
+                _sourceKey
+            );
+        } catch (_) {}
+    }
+    window.__posterramaPlayback = {
+        prev: playbackPrev,
+        next: playbackNext,
+        pause: playbackPause,
+        resume: playbackResume,
+        pinPoster: pinCurrentPoster,
+        switchSource,
+    };
     let timerId = null;
     let controlsTimer = null;
     let refreshTimerId = null;
