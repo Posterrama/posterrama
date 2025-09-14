@@ -4890,6 +4890,22 @@ app.get('/admin', (req, res) => {
 });
 
 /**
+ * /admin2 and /admin2.html: New Admin v2 UI
+ *
+ * Serve the modern admin UI located in public/admin2.html. We gate it behind the same
+ * authentication middleware as other admin pages. Static assets (admin2.js, theme-demo.css, etc.)
+ * are served by the express.static middleware below.
+ */
+app.get(['/admin2', '/admin2/', '/admin2.html'], isAuthenticated, (req, res) => {
+    try {
+        res.sendFile(path.join(__dirname, 'public', 'admin2.html'));
+    } catch (err) {
+        logger.error(`[Admin] Error serving admin2.html: ${err.message}`);
+        res.status(500).send('Failed to load Admin UI');
+    }
+});
+
+/**
  * @swagger
  * /admin/logs:
  *   get:

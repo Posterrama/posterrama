@@ -404,7 +404,26 @@
         return `${m}m`;
     }
 
+    // Debug helper
+    const __debugOn = (() => {
+        try {
+            const params = new URLSearchParams(location.search);
+            if (params.get('debug') === '1') return true;
+            if (localStorage.getItem('admin2Debug') === '1') return true;
+        } catch (_) {}
+        return false;
+    })();
+    const dbg = (...args) => {
+        if (__debugOn) {
+            try {
+                // eslint-disable-next-line no-console
+                console.debug('[admin2]', ...args);
+            } catch (_) {}
+        }
+    };
+
     function showSection(id) {
+        dbg('showSection()', { id });
         const sections = document.querySelectorAll('.app-section');
         sections.forEach(s => {
             s.classList.remove('active');
@@ -433,6 +452,7 @@
                 if (subtitle) subtitle.textContent = 'Overview of devices, media and system health';
             }
         }
+        dbg('showSection() applied', { activeId: id, sections: sections.length });
     }
 
     async function refreshSecurity() {
@@ -654,21 +674,97 @@
         toggleLink?.addEventListener('click', e => {
             e.preventDefault();
             mediaGroup.classList.toggle('open');
+            // Show section and the overview (unhide all panels) when header clicked
+            const section = document.getElementById('section-media-sources');
+            if (section) {
+                const list = section.querySelectorAll('section.panel');
+                list.forEach(p => (p.hidden = false));
+                dbg('nav-toggle click -> overview shown', { panels: list.length });
+            }
+            showSection('section-media-sources');
         });
+        // Show only the selected source panel
+        function showSourcePanel(panelId, title) {
+            // Ensure section is visible first
+            showSection('section-media-sources');
+            const section = document.getElementById('section-media-sources');
+            if (!section) return;
+            const list = section.querySelectorAll('section.panel');
+            dbg('showSourcePanel()', { panelId, title, panels: list.length });
+            list.forEach(p => {
+                if (
+                    p.id === 'panel-plex' ||
+                    p.id === 'panel-jellyfin' ||
+                    p.id === 'panel-tmdb' ||
+                    p.id === 'panel-tvdb'
+                ) {
+                    p.hidden = p.id !== panelId;
+                } else {
+                    p.hidden = true; // hide overview panel when selecting a specific source
+                }
+            });
+            // Update header AFTER showSection so it doesn't overwrite
+            const h1 = document.querySelector('.page-header h1');
+            const subtitle = document.querySelector('.page-header p');
+            if (h1) h1.innerHTML = `<i class="fas fa-server"></i> ${title}`;
+            if (subtitle) subtitle.textContent = `Configure ${title} settings`;
+            const el = document.getElementById(panelId);
+            if (el) {
+                // Force show defensively if some stylesheet keeps it hidden
+                el.hidden = false;
+                const cs = window.getComputedStyle(el);
+                if (cs.display === 'none' || cs.visibility === 'hidden') {
+                    el.style.display = 'block';
+                    el.style.visibility = 'visible';
+                }
+                const content = el.querySelector('.panel-content');
+                if (content) {
+                    content.hidden = false;
+                    const ccs = window.getComputedStyle(content);
+                    if (ccs.display === 'none' || ccs.visibility === 'hidden') {
+                        content.style.display = 'block';
+                        content.style.visibility = 'visible';
+                    }
+                }
+                dbg('panel visibility', {
+                    id: panelId,
+                    hidden: el.hidden,
+                    display: cs.display,
+                    visibility: cs.visibility,
+                    contentHidden: content?.hidden,
+                });
+                el.scrollIntoView({ behavior: 'auto', block: 'start' });
+            } else {
+                dbg('panel not found', { panelId });
+            }
+            // Ensure inputs are populated
+            try {
+                window.admin2?.loadMediaSources?.();
+            } catch (_) {}
+            dbg('showSourcePanel() applied', { panelId, visible: !el?.hidden });
+        }
+
         mediaGroup?.querySelectorAll('.nav-subitem').forEach((sub, idx) => {
             sub.addEventListener('click', e => {
                 e.preventDefault();
-                // Mark parent group active and open section
                 document
                     .querySelectorAll('.sidebar-nav .nav-item')
                     .forEach(n => n.classList.remove('active'));
+                // Mark group header and the clicked subitem as active
                 toggleLink?.classList.add('active');
-                showSection('section-media-sources');
-                // Scroll to panel
+                mediaGroup
+                    ?.querySelectorAll('.nav-subitem')
+                    .forEach(s => s.classList.remove('active'));
+                sub.classList.add('active');
                 const panelIds = ['panel-plex', 'panel-jellyfin', 'panel-tmdb', 'panel-tvdb'];
+                const titles = ['Plex', 'Jellyfin', 'TMDB', 'TVDB'];
                 const id = panelIds[idx] || 'panel-plex';
-                const el = document.getElementById(id);
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const title = titles[idx] || 'Media Sources';
+                dbg('submenu click', { idx, id, title });
+                // Refresh config values then show the panel
+                Promise.resolve(window.admin2?.loadMediaSources?.())
+                    .catch(() => {})
+                    .finally(() => showSourcePanel(id, title));
             });
         });
 
@@ -1365,6 +1461,7 @@
             const j = r.ok ? await r.json() : {};
             const env = j?.env || {};
             const cfg = j?.config || j || {};
+            dbg('loadMediaSources()', { hasConfig: !!cfg, hasEnv: !!env });
             // Plex/Jellyfin server entries
             const plex = (cfg.mediaServers || []).find(s => s.type === 'plex') || {};
             const jf = (cfg.mediaServers || []).find(s => s.type === 'jellyfin') || {};
@@ -1443,6 +1540,9 @@
                 getInput('tvdb.category').value = tvdb.category || 'popular';
             if (getInput('tvdb.minRating')) getInput('tvdb.minRating').value = tvdb.minRating ?? 0;
         }
+        // Expose for reuse
+        window.admin2 = window.admin2 || {};
+        window.admin2.loadMediaSources = loadMediaSources;
 
         // Fetch libraries
         async function fetchPlexLibraries() {
@@ -1732,7 +1832,9 @@
         document.getElementById('btn-tmdb-test')?.addEventListener('click', testTMDB);
 
         // Initial population
-        loadMediaSources().catch(() => {});
+        loadMediaSources()
+            .then(() => dbg('loadMediaSources() initial done'))
+            .catch(err => dbg('loadMediaSources() initial failed', err));
 
         btnSaveServer?.addEventListener('click', async () => {
             const debugEl = document.getElementById('DEBUG');
