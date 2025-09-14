@@ -1629,6 +1629,16 @@
                 try {
                     typeof closeUserMenu === 'function' && closeUserMenu();
                 } catch (_) {}
+                // Also ensure notifications panel is closed when opening settings
+                try {
+                    if (window.__closeNotifyCenter) window.__closeNotifyCenter();
+                    else {
+                        const panel = document.getElementById('notify-center');
+                        const btn = document.getElementById('notif-btn');
+                        panel?.classList.remove('open');
+                        btn?.setAttribute('aria-expanded', 'false');
+                    }
+                } catch (_) {}
                 settingsMenu?.classList.add('show');
                 // Show and dynamically position within viewport
                 const dd = document.getElementById('settings-dropdown');
@@ -1970,6 +1980,12 @@
                 btn?.setAttribute('aria-expanded', 'false');
             }
 
+            // Expose close/open so other header menus can close notifications when they open
+            try {
+                window.__closeNotifyCenter = closePanel;
+                window.__openNotifyCenter = openPanel;
+            } catch (_) {}
+
             // Guard to avoid duplicate bindings if init runs again
             if (!window.__notifHandlersAdded) {
                 window.__notifHandlersAdded = true;
@@ -1984,6 +2000,13 @@
                             // Toggle: if open, close it
                             closePanel();
                         } else {
+                            // Ensure other header menus are closed when opening notifications
+                            try {
+                                typeof closeMenu === 'function' && closeMenu();
+                            } catch (_) {}
+                            try {
+                                typeof closeUserMenu === 'function' && closeUserMenu();
+                            } catch (_) {}
                             // Force bypass TTL when the user explicitly opens the panel
                             await refreshBadge(true);
                             openPanel();
@@ -2149,6 +2172,16 @@
                 // Ensure the settings menu is closed when opening user menu
                 try {
                     typeof closeMenu === 'function' && closeMenu();
+                } catch (_) {}
+                // Also ensure notifications panel is closed when opening user menu
+                try {
+                    if (window.__closeNotifyCenter) window.__closeNotifyCenter();
+                    else {
+                        const panel = document.getElementById('notify-center');
+                        const btn = document.getElementById('notif-btn');
+                        panel?.classList.remove('open');
+                        btn?.setAttribute('aria-expanded', 'false');
+                    }
                 } catch (_) {}
                 userMenu.classList.add('show');
                 // Add same inline styles as settings menu
