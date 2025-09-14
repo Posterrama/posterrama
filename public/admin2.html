@@ -499,6 +499,10 @@
   #panel-plex .panel-content { display: block !important; visibility: visible !important; }
   /* Consistent inner padding for Media Sources panels (Plex/Jellyfin/TMDB/TVDB) */
   #section-media-sources .panel > .panel-content { padding: 16px 20px; }
+  /* Lightweight sub-section groupings inside panels */
+  .form-section { margin: 14px 0 8px; }
+  .form-section .section-title { display:flex; align-items:center; gap:8px; margin: 6px 0 10px; padding-left: 10px; border-left: 3px solid var(--color-border); color: var(--color-text-primary); font-size: 1rem; font-weight: 600; opacity: .95; }
+  .form-section .section-title i { color: var(--color-text-secondary); }
   /* Operations panel polish (align with theme-demo) */
   /* Ensure Operations panel uses the same panel background as theme-demo */
   .operations-panel {
@@ -1313,6 +1317,9 @@
             <div class="loader"><span class="spinner"></span></div>
           </div>
           <!-- Connection -->
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-server"></i> Server</div>
+          </div>
           <div class="form-grid">
             <div class="form-group">
               <label for="plex.hostname">Hostname</label>
@@ -1330,6 +1337,9 @@
           </div>
 
           <!-- Libraries -->
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-list"></i> Libraries</div>
+          </div>
           <div class="form-grid">
             <div class="form-group">
               <label for="plex.movies">Movie Libraries</label>
@@ -1378,6 +1388,9 @@
           </div>
 
           <!-- Years -->
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-filter"></i> Filters</div>
+          </div>
           <div class="form-grid">
             <div class="form-group">
               <label for="plex.yearFilter">Release Years</label>
@@ -1498,6 +1511,9 @@
             <div class="glass"></div>
             <div class="loader"><span class="spinner"></span></div>
           </div>
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-server"></i> Server</div>
+          </div>
           <div class="form-grid">
             <div class="form-group">
               <label for="jf.hostname">Hostname</label>
@@ -1520,6 +1536,9 @@
               </label>
               <small class="form-help">Use for testing with self-signed certs (e.g., HTTPS on port 8920).</small>
             </div>
+          </div>
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-list"></i> Libraries</div>
           </div>
           <div class="form-grid">
             <div class="form-group">
@@ -1568,6 +1587,9 @@
             </div>
           </div>
           
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-filter"></i> Filters</div>
+          </div>
           <div class="form-grid">
             <div class="form-group">
               <label for="jf.yearFilter">Release Years</label>
