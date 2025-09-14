@@ -10090,19 +10090,19 @@ function renderDevicesTable(devices) {
             <button type="button" class="btn" data-cmd="overrides" data-id="${d.id}" title="Edit display settings override">
                             <span class="icon"><i class="fas fa-sliders-h"></i></span>
                         </button>
-            <button type="button" class="btn" data-cmd="send-command" data-id="${d.id}" title="Send command (e.g., source.switch)" ${isOffline ? 'disabled' : ''}>
+            <button type="button" class="btn" data-cmd="send-command" data-id="${d.id}" title="Send command (e.g., source.switch)" ${isOffline || isPoweredOff ? 'disabled' : ''}>
                             <span class="icon"><i class="fas fa-paper-plane"></i></span>
                         </button>
-            <button type="button" class="btn" data-cmd="playback.prev" data-id="${d.id}" title="Previous poster" ${isOffline ? 'disabled' : ''}>
+            <button type="button" class="btn" data-cmd="playback.prev" data-id="${d.id}" title="Previous poster" ${isOffline || isPoweredOff ? 'disabled' : ''}>
                             <span class="icon"><i class="fas fa-step-backward"></i></span>
                         </button>
-            <button type="button" class="btn playback-toggle${d.currentState && d.currentState.paused === false ? ' is-primary is-playing' : isPaused ? ' is-paused' : ''}" data-cmd="playback.toggle" data-id="${d.id}" title="Play/Pause" ${isOffline ? 'disabled' : ''}>
+            <button type="button" class="btn playback-toggle${d.currentState && d.currentState.paused === false ? ' is-primary is-playing' : isPaused ? ' is-paused' : ''}" data-cmd="playback.toggle" data-id="${d.id}" title="Play/Pause" ${isOffline || isPoweredOff ? 'disabled' : ''}>
                             <span class="icon"><i class="fas ${d.currentState && d.currentState.paused === false ? 'fa-pause' : 'fa-play'}"></i></span>
                         </button>
-            <button type="button" class="btn" data-cmd="playback.next" data-id="${d.id}" title="Next poster" ${isOffline ? 'disabled' : ''}>
+            <button type="button" class="btn" data-cmd="playback.next" data-id="${d.id}" title="Next poster" ${isOffline || isPoweredOff ? 'disabled' : ''}>
                             <span class="icon"><i class="fas fa-step-forward"></i></span>
                         </button>
-            <button type="button" class="btn pin-btn${isPinned ? ' is-pinned' : ''}" data-cmd="playback.pinPoster" data-id="${d.id}" title="Pin current poster" aria-pressed="${isPinned ? 'true' : 'false'}" ${isOffline ? 'disabled' : ''}>
+            <button type="button" class="btn pin-btn${isPinned ? ' is-pinned' : ''}" data-cmd="playback.pinPoster" data-id="${d.id}" title="Pin current poster" aria-pressed="${isPinned ? 'true' : 'false'}" ${isOffline || isPoweredOff ? 'disabled' : ''}>
                             <span class="icon"><i class="fas ${isPinned ? 'fa-map-pin' : 'fa-thumbtack'}" aria-hidden="true"></i></span>
                         </button>
             <button type="button" class="btn btn-danger" data-cmd="delete" data-id="${d.id}" title="Delete this device">
@@ -10318,6 +10318,7 @@ function renderDevicesTable(devices) {
                 const commandMap = {
                     reload: 'core.mgmt.reload',
                     reset: 'core.mgmt.reset',
+                    'power.toggle': 'power.toggle',
                     'playback.prev': 'playback.prev',
                     'playback.next': 'playback.next',
                     'playback.pause': 'playback.pause',
@@ -10340,6 +10341,22 @@ function renderDevicesTable(devices) {
                     const device = await res.json();
                     showDeviceSettingsModal(device);
                     return;
+                }
+                // If device is powered off and a non-power command is requested, wake first
+                if (type && !type.startsWith('power.')) {
+                    const group = btn.closest('.btn-group');
+                    const powerBtn = group && group.querySelector('.power-toggle');
+                    const isOff = powerBtn && powerBtn.classList.contains('is-off');
+                    if (isOff) {
+                        setButtonState(btn, 'loading', { text: 'Waking…' });
+                        await sendDeviceCommand(id, 'power.on');
+                        // Flip power button UI to on
+                        powerBtn.classList.remove('is-off', 'is-danger');
+                        powerBtn.classList.add('is-on', 'is-success');
+                        // small grace period
+                        await new Promise(r => setTimeout(r, 200));
+                        setButtonState(btn, 'revert');
+                    }
                 }
                 if (cmd === 'send-command') {
                     showSendCommandPopover(btn, id);
@@ -10551,6 +10568,21 @@ function initDevicesPanel() {
                 };
                 const type = commandMap[cmd] || null;
                 try {
+                    // If device is powered off and a non-power command is requested, wake first
+                    if (type && !type.startsWith('power.')) {
+                        const group = btn.closest('.btn-group');
+                        const powerBtn = group && group.querySelector('.power-toggle');
+                        const isOff = powerBtn && powerBtn.classList.contains('is-off');
+                        if (isOff) {
+                            setButtonState(btn, 'loading', { text: 'Waking…' });
+                            await sendDeviceCommand(id, 'power.on');
+                            // Flip power button UI to on
+                            powerBtn.classList.remove('is-off', 'is-danger');
+                            powerBtn.classList.add('is-on', 'is-success');
+                            await new Promise(r => setTimeout(r, 200));
+                            setButtonState(btn, 'revert');
+                        }
+                    }
                     if (cmd === 'overrides') {
                         const res = await authenticatedFetch(
                             apiUrl(`/api/devices/${encodeURIComponent(id)}`),
