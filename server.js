@@ -2592,9 +2592,14 @@ if (isDeviceMgmtEnabled()) {
                     60_000,
                     Math.min(60 * 60_000, Number(req.body?.ttlMs) || 600_000)
                 );
-                const result = await deviceStore.generatePairingCode(req.params.id, { ttlMs });
+                const requireToken = req.body?.requireToken !== false; // default true
+                const result = await deviceStore.generatePairingCode(req.params.id, {
+                    ttlMs,
+                    requireToken,
+                });
                 if (!result) return res.status(404).json({ error: 'not_found' });
-                res.json(result);
+                const expiresInMs = Math.max(0, Date.parse(result.expiresAt) - Date.now());
+                res.json({ ...result, expiresInMs });
             } catch (e) {
                 res.status(500).json({ error: 'pair_generate_failed' });
             }

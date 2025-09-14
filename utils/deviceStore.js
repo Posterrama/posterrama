@@ -154,17 +154,26 @@ function genPairCode(len = 6) {
     return s;
 }
 
-async function generatePairingCode(id, { ttlMs = 10 * 60 * 1000 } = {}) {
+async function generatePairingCode(id, { ttlMs = 10 * 60 * 1000, requireToken = true } = {}) {
     const all = await readAll();
     const idx = all.findIndex(d => d.id === id);
     if (idx === -1) return null;
     const now = Date.now();
     const code = genPairCode(6);
     const expiresAt = new Date(now + ttlMs).toISOString();
-    // Minimal shared-secret to complement short numeric code
-    const token = crypto.randomBytes(16).toString('hex');
-    const tokenHash = hashSecret(token);
-    all[idx].pairing = { ...(all[idx].pairing || {}), code, tokenHash, expiresAt };
+    // Optional minimal shared-secret to complement short numeric code
+    let token;
+    let tokenHash;
+    if (requireToken) {
+        token = crypto.randomBytes(16).toString('hex');
+        tokenHash = hashSecret(token);
+    }
+    all[idx].pairing = {
+        ...(all[idx].pairing || {}),
+        code,
+        ...(tokenHash ? { tokenHash } : {}),
+        expiresAt,
+    };
     all[idx].updatedAt = new Date(now).toISOString();
     await writeAll(all);
     // Return token directly; only store its hash server-side

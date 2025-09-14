@@ -3124,17 +3124,21 @@
                             {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ ttlMs: 600000 }),
+                                body: JSON.stringify({ ttlMs: 600000, requireToken: false }),
                             }
                         );
-                        const name = (state.all || []).find(d => d.id === id)?.name || id;
+                        const dev = (state.all || []).find(d => d.id === id);
+                        const name = dev?.name || id;
+                        const claimUrl = `${location.origin}/?pair=${encodeURIComponent(r?.code || '')}`;
+                        const qrUrl = `/api/qr?text=${encodeURIComponent(claimUrl)}&format=svg`;
                         const html = `
                             <div class="pairing-item" style="display:flex; gap:12px; align-items:center;">
                                 <div style="flex:1;">
                                     <div style="font-weight:600;">${escapeHtml(name)}</div>
-                                    <div class="subtle">Code: <code>${escapeHtml(r?.code || '—')}</code> · Expires in ${Math.round((r?.expiresInMs || 0) / 1000)}s</div>
+                    <div class="subtle">Code: <code>${escapeHtml(r?.code || '—')}</code> · Expires in ${Math.round((r?.expiresInMs || Math.max(0, Date.parse(r?.expiresAt || 0) - Date.now())) / 1000)}s</div>
+                    <div class="subtle"><a href="${claimUrl}" target="_blank" rel="noopener">Claim URL</a></div>
                                 </div>
-                                <div>${r?.qrCodeDataUrl ? `<img src="${r.qrCodeDataUrl}" alt="QR" style="width:96px;height:96px;background:#fff;padding:6px;border-radius:8px;"/>` : ''}</div>
+                <div><img src="${qrUrl}" alt="QR" style="width:96px;height:96px;background:#fff;padding:6px;border-radius:8px;"/></div>
                             </div>`;
                         if (container) container.insertAdjacentHTML('beforeend', html);
                     } catch (e) {
@@ -3378,6 +3382,9 @@
                 if (!menu) return;
                 dbg('buildActionsMenu()');
                 menu.innerHTML = `
+                    <div class="dropdown-item" data-device-action="create-device"><i class="fas fa-plus"></i> New device…</div>
+                    <div class="dropdown-item" data-device-action="pair-new"><i class="fas fa-qrcode"></i> New device with pairing code…</div>
+                    <div class="dropdown-divider"></div>
                     <div class="dropdown-item" data-device-action="merge"><i class="fas fa-object-group"></i> Merge selected</div>
                     <div class="dropdown-item" data-device-action="groups"><i class="fas fa-layer-group"></i> Groups…</div>
                     <div class="dropdown-item" data-device-action="presets"><i class="fas fa-star"></i> Presets…</div>
@@ -3740,6 +3747,36 @@
                     if (!item || !actionsMenuEl.contains(item)) return;
                     ev.stopPropagation();
                     const act = item.getAttribute('data-device-action');
+                    if (act === 'create-device' || act === 'pair-new') {
+                        const name = prompt('Device name (optional)') || '';
+                        const location = prompt('Location (optional)') || '';
+                        try {
+                            const r = await fetchJSON('/api/devices/register', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name, location }),
+                            });
+                            await loadDevices();
+                            const newId = r?.deviceId || r?.device?.id || r?.id;
+                            if (!newId) throw new Error('No device id returned');
+                            if (act === 'pair-new') {
+                                await openPairingFor([newId]);
+                            } else {
+                                window.notify?.toast({
+                                    type: 'success',
+                                    title: 'Device created',
+                                    message: `Device ${newId} created`,
+                                });
+                            }
+                        } catch (e) {
+                            window.notify?.toast({
+                                type: 'error',
+                                title: 'Create device failed',
+                                message: e?.message || 'Failed to create device',
+                            });
+                        }
+                        return;
+                    }
                     if (act === 'select-all') {
                         document.querySelectorAll('#device-grid .device-card').forEach(card => {
                             if (card.style.display === 'none') return; // page filtered out
