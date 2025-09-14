@@ -36,7 +36,7 @@ function round2(n) {
 
 function loadThresholds() {
     try {
-        // eslint-disable-next-line import/no-dynamic-require, global-require
+        // eslint-disable-next-line global-require
         const jestConfig = require(JEST_CONFIG_PATH);
         const thresholds = jestConfig.coverageThreshold || {};
         const perFile = { ...thresholds };
@@ -212,7 +212,6 @@ function run() {
         .sort((a, b) => a.sPct - b.sPct);
 
     const below = rows.filter(r => r.thFails.length > 0);
-    const above = rows.filter(r => r.thFails.length === 0);
 
     const lines = [];
     lines.push('# Coverage Report (Per-file)');
