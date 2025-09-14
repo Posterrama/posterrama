@@ -1619,10 +1619,10 @@
       border: 1px solid var(--color-border);
       box-shadow: var(--shadow-lg);
       background: #000;
-      transform-origin: center;
+  transform-origin: top right;
     transition: transform 160ms ease, width 160ms ease, height 160ms ease;
-  /* Default visual scale 0.8 */
-  transform: scale(0.8);
+  /* Default visual scale 0.8 (overridable via CSS var) */
+  transform: scale(var(--preview-scale, 0.8));
       cursor: default; /* drag only via grip */
     }
     /* Landscape vs Portrait shell sizing (aspect-ratio approach) */
@@ -1677,29 +1677,23 @@
     }
     #display-preview-container .preview-tools .pip-button {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 6px 8px; border-radius: 10px; border: none;
-      background: rgba(20,20,28,0.55); color: #E5E7EB; cursor: pointer; font-size: .8rem;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+      padding: 6px 8px; border-radius: 8px; border: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.10));
+      color: #F3F4F6; cursor: pointer; font-size: .8rem;
+      backdrop-filter: blur(20px) saturate(160%) contrast(110%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%) contrast(110%);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(255,255,255,0.08);
+      transition: background .15s ease, box-shadow .15s ease, transform .12s ease;
     }
-    #display-preview-container .preview-tools .pip-button:hover { background: rgba(30,30,40,0.75); }
-    #display-preview-container .preview-tools .pip-button i { font-size: .9em; opacity: .9; }
+    #display-preview-container .preview-tools .pip-button:hover {
+      background: linear-gradient(135deg, rgba(255,255,255,0.30), rgba(255,255,255,0.16));
+      box-shadow: 0 14px 36px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(255,255,255,0.10);
+      transform: translateZ(0) scale(1.03);
+    }
+    #display-preview-container .preview-tools .pip-button i { font-size: .9em; opacity: .95; color: #FFF; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
   /* Orientation icon reflects current aspect: portrait (upright), landscape (rotated) */
   #display-preview-container .preview-tools #toggle-preview-orientation i { transition: transform 160ms ease; }
   #display-preview-container.landscape .preview-tools #toggle-preview-orientation i { transform: rotate(90deg); }
-
-  /* Glass style for Orientation toggle (no border) */
-  #display-preview-container .preview-tools #toggle-preview-orientation {
-    border: none !important;
-    background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05)) !important;
-    backdrop-filter: blur(10px) saturate(120%);
-    -webkit-backdrop-filter: blur(10px) saturate(120%);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.06);
-  }
-  #display-preview-container .preview-tools #toggle-preview-orientation:hover {
-    background: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08)) !important;
-  }
     </style>
     <style>
   #section-display .modern-slider input[type="range"] { width:100%; height: 28px; background: transparent; accent-color: var(--color-info); position: relative; z-index: 1; }
@@ -1749,6 +1743,9 @@
             <div class="preview-shell">
               <div class="preview-drag-handle" title="Drag preview"></div>
               <div class="preview-tools">
+                <button type="button" id="toggle-preview-zoom" class="pip-button" title="Zoom 1.4x">
+                  <i class="fas fa-search-plus"></i>
+                </button>
                 <button type="button" id="toggle-preview-orientation" class="pip-button" title="Toggle Orientation">
                   <i class="fas fa-mobile-alt"></i>
                 </button>

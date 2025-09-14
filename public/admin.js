@@ -2226,6 +2226,7 @@
         const frame = document.getElementById('display-preview-frame');
         // Zoom removed per request
         const orientBtn = document.getElementById('toggle-preview-orientation');
+        const zoomBtn = document.getElementById('toggle-preview-zoom');
         if (!container || !frame) return; // HTML not present, nothing to do
 
         let previewWin = null;
@@ -2557,7 +2558,26 @@
             }
         });
 
-        // (No zoom toggle)
+        // Zoom toggle: default 0.8x → 1.4x (and back). Preserve top-right anchor across zoom changes.
+        zoomBtn?.addEventListener('click', () => {
+            try {
+                const shell = container.querySelector('.preview-shell');
+                if (!shell) return;
+                // Capture current anchor before changing scale
+                const anchor = userHasMovedPreview
+                    ? lastUserAnchor || getTopRightAnchorPoint()
+                    : getActiveModeAnchorPoint(ANCHOR_INSET);
+                const current = getComputedStyle(shell).getPropertyValue('--preview-scale').trim();
+                const currVal = current ? parseFloat(current) : 0.8;
+                const nextVal = Math.abs(currVal - 1.4) < 0.01 ? 0.8 : 1.4;
+                shell.style.setProperty('--preview-scale', String(nextVal));
+                // After transform, re-anchor twice to account for async layout/transform
+                requestAnimationFrame(() => {
+                    setPositionFromTopRightAnchor(anchor);
+                    requestAnimationFrame(() => setPositionFromTopRightAnchor(anchor));
+                });
+            } catch (_) {}
+        });
 
         // Orientation toggle for non-cinema modes: landscape <-> portrait
         orientBtn?.addEventListener('click', () => {
