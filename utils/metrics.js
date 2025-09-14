@@ -22,6 +22,11 @@ class MetricsManager {
             maxHistoryPoints: 1440, // 24 hours of minute-by-minute data
         };
 
+        // Internal samplers for CPU calculations
+        this._lastSystemCpuTimes = null; // { idle, total }
+        this._lastProcessCpu = null; // result of process.cpuUsage()
+        this._lastHrtime = null; // result of process.hrtime()
+
         // Avoid background timers automatically in test environment to prevent noisy failures & open handles
         if (process.env.NODE_ENV !== 'test') {
             this.startMetricsCollection();
@@ -188,8 +193,8 @@ class MetricsManager {
         const memUsage = process.memoryUsage();
         const uptime = Date.now() - this.startTime;
 
-        // Convert CPU usage to percentage (approximation)
-        const cpuPercent = this.getCpuUsagePercent();
+        // CPU usage percentages (system and process) computed via time-delta sampling
+        const cpuStats = this.getCpuUsage();
 
         return {
             memory: {
@@ -198,7 +203,13 @@ class MetricsManager {
                 percentage: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 10000) / 100,
             },
             cpu: {
-                usage: Math.round(cpuPercent * 100) / 100,
+                // Keep backward compatibility: usage == overall system percent
+                usage: Math.round(cpuStats.systemPercent * 100) / 100,
+                percent: Math.round(cpuStats.systemPercent * 100) / 100,
+                system: Math.round(cpuStats.systemPercent * 100) / 100,
+                process: Math.round(cpuStats.processPercent * 100) / 100,
+                loadAverage: cpuStats.loadAverage1m,
+                cores: cpuStats.cores,
             },
             uptime: Math.round(uptime / 1000), // seconds
         };
@@ -369,24 +380,97 @@ class MetricsManager {
     }
 
     // Helper methods
-    getCpuUsagePercent() {
-        // Simplified CPU usage calculation with defensive guards for mocked/partial os module in tests
-        let loadAvgValue = 0;
+    // Compute CPU usage using deltas over time to better match OS tools
+    getCpuUsage() {
+        // Defaults
+        let cores = 1;
         try {
-            const load = typeof os.loadavg === 'function' ? os.loadavg() : [0];
-            if (Array.isArray(load) && load.length) loadAvgValue = Number(load[0]) || 0;
+            const cpuInfo = typeof os.cpus === 'function' ? os.cpus() : [];
+            if (Array.isArray(cpuInfo) && cpuInfo.length) cores = cpuInfo.length;
         } catch (_) {
-            loadAvgValue = 0;
+            cores = 1;
         }
-        let numCPUs = 1;
+        if (cores <= 0) cores = 1;
+
+        // Load average (1 minute) as supplemental info
+        let loadAverage1m = 0;
         try {
-            const cpus = typeof os.cpus === 'function' ? os.cpus() : [];
-            if (Array.isArray(cpus) && cpus.length) numCPUs = cpus.length;
+            const la = typeof os.loadavg === 'function' ? os.loadavg() : [0];
+            if (Array.isArray(la) && la.length) loadAverage1m = Number(la[0]) || 0;
         } catch (_) {
-            numCPUs = 1;
+            loadAverage1m = 0;
         }
-        if (numCPUs <= 0) numCPUs = 1;
-        return Math.min((loadAvgValue / numCPUs) * 100, 100);
+
+        // Aggregate current system CPU times
+        const currentTimes = this._readSystemCpuTimes();
+
+        // Initialize sampling windows if needed
+        if (!this._lastSystemCpuTimes || !this._lastHrtime || !this._lastProcessCpu) {
+            this._lastSystemCpuTimes = currentTimes;
+            this._lastHrtime = process.hrtime();
+            this._lastProcessCpu = process.cpuUsage();
+            return {
+                systemPercent: Math.min((loadAverage1m / cores) * 100, 100),
+                processPercent: 0,
+                loadAverage1m,
+                cores,
+            };
+        }
+
+        // Calculate deltas
+        const prevTimes = this._lastSystemCpuTimes;
+        const idleDelta = currentTimes.idle - prevTimes.idle;
+        const totalDelta = currentTimes.total - prevTimes.total;
+        let systemPercent = 0;
+        if (totalDelta > 0) {
+            systemPercent = (1 - idleDelta / totalDelta) * 100;
+        }
+
+        // Process CPU percent over wall time and cores
+        const hrDelta = process.hrtime(this._lastHrtime);
+        const elapsedMicros = hrDelta[0] * 1e6 + hrDelta[1] / 1e3; // wall time in microseconds
+        const procDelta = process.cpuUsage(this._lastProcessCpu); // microseconds used by process since last sample
+        const usedMicros = (procDelta.user || 0) + (procDelta.system || 0);
+        let processPercent = 0;
+        if (elapsedMicros > 0) {
+            processPercent = (usedMicros / (elapsedMicros * cores)) * 100;
+        }
+
+        // Update baselines for next call
+        this._lastSystemCpuTimes = currentTimes;
+        this._lastHrtime = process.hrtime();
+        this._lastProcessCpu = process.cpuUsage();
+
+        // Clamp values to [0, 100]
+        systemPercent = Math.max(0, Math.min(100, systemPercent));
+        processPercent = Math.max(0, Math.min(100, processPercent));
+
+        return { systemPercent, processPercent, loadAverage1m, cores };
+    }
+
+    _readSystemCpuTimes() {
+        try {
+            const cpuInfo = typeof os.cpus === 'function' ? os.cpus() : [];
+            if (!Array.isArray(cpuInfo) || cpuInfo.length === 0) {
+                return { idle: 0, total: 1 }; // avoid division by zero
+            }
+            let idle = 0;
+            let total = 0;
+            for (const cpu of cpuInfo) {
+                const t = cpu.times || {};
+                const i = Number(t.idle || 0);
+                const s = Number(t.sys || t.system || 0);
+                const u = Number(t.user || 0);
+                const n = Number(t.nice || 0);
+                const irq = Number(t.irq || 0);
+                idle += i;
+                total += i + s + u + n + irq;
+            }
+            return { idle, total };
+        } catch (_) {
+            // Fallback that avoids NaN in case os.cpus() throws
+            return { idle: 0, total: 1 };
+        }
     }
 
     getActiveConnections() {
