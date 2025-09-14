@@ -1458,6 +1458,27 @@ div:nth-of-type(2).subsection-header i {
     filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.2)) !important;
 }
 
+/* Sync - Cyan/Blue/Violet gradient for header line, text, and icon */
+.subsection-header:has(i.fa-link)::after {
+    background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6) !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+.subsection-header:has(i.fa-link) {
+    color: transparent !important;
+    background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.subsection-header:has(i.fa-link) i {
+    color: transparent !important;
+    background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.2)) !important;
+}
+
 /* General Configuration */
 .subsection-header:has(i.fa-cogs)::after {
     background: linear-gradient(90deg, #6b7280, #9ca3af, #d1d5db) !important;
@@ -1906,7 +1927,6 @@ div:nth-of-type(2).subsection-header i {
     flex-wrap: wrap;
     gap: 1rem 1.5rem; /* row/column gaps */
     align-items: center;
-    padding: 0.25rem 0.5rem; /* subtle padding around the row */
 }
 .subsection-content .checkbox-row .checkbox-group {
     display: inline-flex;
@@ -1918,6 +1938,9 @@ div:nth-of-type(2).subsection-header i {
 }
 .subsection-content .checkbox-row .checkbox-group label {
     padding-left: 0.35rem; /* small space between box and label */
+    display: inline-block; /* keep label on same line as checkbox */
+    flex: 0 0 auto; /* don't stretch label which can force wrapping */
+    white-space: nowrap; /* avoid label dropping under checkbox */
 }
 
 .subsection-content .form-grid-2 .form-group {
@@ -2811,7 +2834,6 @@ div#logs-section.section-content.active .section-main-content {
 /* Perfect alignment for dropdowns - no left padding */
 .form-section .form-group:not(.checkbox-group):not(.radio-group) {
     padding-left: 0; /* Remove left padding for perfect alignment */
-    margin-bottom: 0.5rem;
 }
 
 input[type='range'] {
@@ -3567,6 +3589,16 @@ fieldset:focus-within {
     vertical-align: top; /* Align with top of checkbox */
 }
 
+/* Force inline-flex for checkbox rows (Visual Elements) so labels don't drop under */
+.subsection-content .checkbox-row .checkbox-group {
+    display: inline-flex !important;
+}
+.subsection-content .checkbox-row .checkbox-group label {
+    display: inline-block !important;
+    flex: 0 0 auto !important;
+    white-space: nowrap;
+}
+
 .checkbox-group:hover,
 .radio-group:hover {
     background: none; /* No hover background */
@@ -3578,6 +3610,7 @@ fieldset:focus-within {
 /* Form groups - minimal styling */
 .form-group:not(.checkbox-group):not(.radio-group) {
     margin-bottom: 1.5rem;
+    margin-top: 1.5rem;
     padding: 0; /* Remove padding */
     background: none; /* Remove background */
     border: none; /* Remove border */
