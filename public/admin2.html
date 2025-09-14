@@ -420,7 +420,9 @@
               </div>
               <div class="actions sub-actions">
                 <div class="input-row">
-                  <input type="number" id="input-keep-backups" min="1" max="20" value="5" style="width:90px;" />
+                  <div class="form-group" style="margin:0;">
+                    <input type="number" id="input-keep-backups" min="1" max="20" value="5" style="width:90px;" />
+                  </div>
                   <button type="button" id="btn-cleanup-backups" class="btn btn-secondary btn-sm"><i class="fas fa-trash"></i><span>Cleanup Old</span></button>
                 </div>
               </div>
@@ -441,9 +443,12 @@
                   <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" style="width:120px;" />
                   <div class="subtle">Application port (default 4000). Changing this requires a restart.</div>
                 </div>
-                <div class="form-group" style="display:flex;align-items:center;gap:10px;">
-                  <input type="checkbox" id="DEBUG" />
-                  <label for="DEBUG" style="margin:0;">Enable Debug Mode</label>
+                <div class="form-group checkbox-group">
+                  <label class="checkbox" for="DEBUG">
+                    <input type="checkbox" id="DEBUG" />
+                    <span class="checkmark"></span>
+                    <span>Enable Debug Mode</span>
+                  </label>
                 </div>
                 <div class="subtle">Debug mode increases logging detail. Use temporarily for troubleshooting.</div>
               </div>
@@ -462,7 +467,6 @@
               </div>
               <div class="actions" style="margin-top:8px;">
                 <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
-                <a href="/api/admin/logs" target="_blank" rel="noopener" class="btn btn-outline btn-sm"><i class="fas fa-download"></i><span>Download JSON</span></a>
               </div>
             </section>
 
@@ -470,9 +474,12 @@
             <section class="perf-card" aria-label="Promobox Site">
               <h3><i class="fas fa-bullhorn"></i> Promobox Site</h3>
               <div class="metric-row">
-                <div class="form-group" style="display:flex;align-items:center;gap:10px;">
-                  <input type="checkbox" id="siteServer.enabled" />
-                  <label for="siteServer.enabled" style="margin:0;">Enable Promobox Site</label>
+                <div class="form-group checkbox-group">
+                  <label class="checkbox" for="siteServer.enabled">
+                    <input type="checkbox" id="siteServer.enabled" />
+                    <span class="checkmark"></span>
+                    <span>Enable Promobox Site</span>
+                  </label>
                 </div>
                 <div class="form-group" id="siteServerPortGroup" style="display:none;">
                   <label for="siteServer.port">Port</label>
