@@ -353,6 +353,23 @@ app.use(
     })
 );
 
+// Seed a stable install cookie early so concurrent tabs share one installId
+app.use((req, res, next) => {
+    try {
+        const cookies = String(req.headers['cookie'] || '');
+        if (!/(^|;\s*)pr_iid=/.test(cookies)) {
+            const iid = require('crypto').randomUUID();
+            res.setHeader(
+                'Set-Cookie',
+                `pr_iid=${encodeURIComponent(iid)}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax`
+            );
+        }
+    } catch (_) {
+        // ignore cookie seeding failures
+    }
+    next();
+});
+
 // Performance and security logging middleware
 app.use((req, res, next) => {
     // Add request ID for tracking
@@ -1502,14 +1519,21 @@ if (isDeviceMgmtEnabled()) {
     // Device register (MVP)
     app.post('/api/devices/register', deviceRegisterLimiter, express.json(), async (req, res) => {
         try {
-            const { name = '', location = '', installId = null } = req.body || {};
+            const {
+                name = '',
+                location = '',
+                installId = null,
+                hardwareId: bodyHw = null,
+            } = req.body || {};
             const cookies = parseCookies(req.headers['cookie']);
             const hdrIid = req.headers['x-install-id'] || null;
+            const hdrHw = req.headers['x-hardware-id'] || null;
             const cookieIid = cookies['pr_iid'] || null;
-            // Choose a single stable install identifier, preferring client-provided header/body over cookie
-            // This avoids cross-tab cookie clashes creating new device IDs
+            // Prefer cookie over header/body to keep identity stable across concurrent tabs
+            // If no cookie yet, fall back to header/body and set cookie below
             const stableInstallId =
-                hdrIid || installId || cookieIid || require('crypto').randomUUID();
+                cookieIid || hdrIid || installId || require('crypto').randomUUID();
+            const hardwareId = (hdrHw || bodyHw || '').toString().slice(0, 256) || null;
             let finalName = (name || '').trim();
             if (!finalName) {
                 const xfwd = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
@@ -1525,6 +1549,7 @@ if (isDeviceMgmtEnabled()) {
                 name: finalName,
                 location,
                 installId: stableInstallId,
+                hardwareId,
             });
             // Ensure cookie is set/updated so future tabs share identity immediately
             if (!cookieIid || cookieIid !== stableInstallId) setInstallCookie(res, stableInstallId);
@@ -1548,9 +1573,11 @@ if (isDeviceMgmtEnabled()) {
             const paused = b.paused;
             const cookies = parseCookies(req.headers['cookie']);
             const hdrIid = req.headers['x-install-id'] || null;
+            const hdrHw = req.headers['x-hardware-id'] || null;
             const cookieIid = cookies['pr_iid'] || null;
             // Prefer client install id (header/body) over cookie; cookie can reflect another tab
             const installId = hdrIid || b.installId || cookieIid || null;
+            const hardwareId = (hdrHw || b.hardwareId || '').toString().slice(0, 256) || null;
             if (!deviceId || !deviceSecret) return res.status(401).json({ error: 'unauthorized' });
             const ok = await deviceStore.verifyDevice(deviceId, deviceSecret);
             if (!ok) return res.status(401).json({ error: 'unauthorized' });
@@ -1558,6 +1585,7 @@ if (isDeviceMgmtEnabled()) {
                 clientInfo: { userAgent, screen, mode },
                 currentState: { mediaId, paused },
                 installId,
+                hardwareId,
             });
             if (installId && (!cookieIid || cookieIid !== installId))
                 setInstallCookie(res, installId);
@@ -1567,6 +1595,7 @@ if (isDeviceMgmtEnabled()) {
                     keepId: deviceId,
                     userAgent,
                     screen,
+                    hardwareId,
                 });
             } catch (_) {}
             // If name is still empty, attempt a best-effort reverse DNS and set it once

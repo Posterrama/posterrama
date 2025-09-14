@@ -9589,7 +9589,7 @@ function __ensurePairingModal() {
     if (el) return el;
     const wrapper = document.createElement('div');
     wrapper.innerHTML =
-        '<div id="pairing-modal" class="modal is-hidden" aria-hidden="true" role="dialog" aria-labelledby="pairing-modal-title" tabindex="-1"><div class="modal-background" data-pairing-close></div><div class="modal-content"><span class="close" data-pairing-close>&times;</span><h3 id="pairing-modal-title"><i class="fas fa-link"></i> Pairing code</h3><div class="pairing-body"><div class="pairing-code" data-pairing-code>—</div><div class="pairing-exp" data-pairing-exp></div><div class="pairing-qr"><img data-pairing-qr alt="QR"/></div><div class="pairing-actions"><button type="button" class="btn is-primary" data-pairing-copy>Copy claim URL</button><button type="button" class="btn" data-pairing-close>Close</button></div></div></div></div>';
+        '<div id="pairing-modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="pairing-modal-title" tabindex="-1"><div class="modal-background" data-pairing-close></div><div class="modal-content"><button type="button" class="close" data-pairing-close aria-label="Close dialog">&times;</button><h3 id="pairing-modal-title"><i class="fas fa-link"></i> Pairing code</h3><div class="pairing-body"><div class="pairing-code" data-pairing-code>—</div><div class="pairing-exp" data-pairing-exp></div><div class="pairing-qr"><img data-pairing-qr alt="QR"/></div><div class="pairing-actions"><button type="button" class="btn is-primary" data-pairing-copy>Copy claim URL</button><button type="button" class="btn" data-pairing-close>Close</button></div></div></div></div>';
     el = wrapper.firstChild;
     document.body.appendChild(el);
     el.querySelectorAll('[data-pairing-close]').forEach(c =>
@@ -9597,7 +9597,9 @@ function __ensurePairingModal() {
             try {
                 el.classList.add('is-hidden');
                 el.classList.remove('modal-open');
-                el.setAttribute('aria-hidden', 'true');
+                // Return focus to the trigger if we stored it
+                const lastTrigger = el.__lastTrigger || null;
+                if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
             } catch (_) {}
         })
     );
@@ -9623,10 +9625,17 @@ function showPairingModal({ code, expiresAt, claimUrl }) {
         }
     };
     try {
-        el.setAttribute('aria-hidden', 'false');
+        // Remember current focused element to restore after close
+        const active = document.activeElement;
+        if (active && active !== document.body) el.__lastTrigger = active;
         el.classList.remove('is-hidden');
         el.classList.add('modal-open');
-        setTimeout(() => el.focus?.(), 0);
+        // Focus the first interactive element for accessibility
+        const firstFocusable =
+            el.querySelector('[data-pairing-copy]') ||
+            el.querySelector('[data-pairing-close]') ||
+            el;
+        setTimeout(() => firstFocusable.focus && firstFocusable.focus(), 0);
     } catch (_) {}
 }
 

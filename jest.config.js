@@ -1,3 +1,6 @@
+// Allow relaxed thresholds for focused runs (e.g., --runTestsByPath) to not fail CI locally
+const focusedRun = process.argv.some(a => /runTestsByPath|--testPathPattern/.test(a));
+
 module.exports = {
     // Use the Node.js environment for the tests
     testEnvironment: 'node',
@@ -11,7 +14,7 @@ module.exports = {
     forceExit: true, // Force exit after tests complete
 
     // Coverage configuration
-    collectCoverage: true, // Always collect coverage to enforce thresholds
+    collectCoverage: true, // Always collect coverage to enforce thresholds (relaxed on focused runs)
     collectCoverageFrom: [
         // Include these files in coverage
         '*.js',
@@ -27,41 +30,65 @@ module.exports = {
     ],
 
     // Coverage thresholds - realistic targets based on current coverage
-    coverageThreshold: {
-        global: {
-            branches: 24, // Based on current 42.91% with margin
-            functions: 25, // Based on current 43.22% with margin
-            lines: 25, // Based on current 45.7% with margin
-            statements: 25, // Based on current 45.24% with margin
-        },
-        // File-specific thresholds for well-tested modules only
-        'sources/tmdb.js': { branches: 60, functions: 85, lines: 75, statements: 75 },
-        'sources/tvdb.js': { branches: 70, functions: 80, lines: 80, statements: 80 },
-        'sources/plex.js': { branches: 80, functions: 85, lines: 85, statements: 85 },
-        // FASE 1 improvements - Complete or high coverage
-        'utils.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
-        'utils/logger.js': { branches: 38, functions: 64, lines: 52, statements: 55 },
-        'utils/errors.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
-        // FASE 2 improvements - Middleware optimization
-        'middleware/cache.js': { branches: 74, functions: 89, lines: 93, statements: 92 },
-        'middleware/errorHandler.js': { branches: 100, functions: 88, lines: 98, statements: 98 },
-        'middleware/validate.js': { branches: 55, functions: 45, lines: 65, statements: 65 },
-        // FASE 3 improvements - Cache utilities
-        'utils/cache.js': { branches: 81, functions: 79, lines: 90, statements: 89 },
-        // FASE 4 improvements - Rate limiting
-        'middleware/rateLimiter.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
-        // FASE 5 improvements - Middleware orchestration
-        'middleware/index.js': { branches: 92, functions: 100, lines: 98, statements: 98 },
-        // FASE 7 improvements - Metrics middleware
-        'middleware/metrics.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
-        // FASE 8 improvements - Metrics utilities
-        'utils/metrics.js': { branches: 85, functions: 94, lines: 96, statements: 96 },
-        // FASE 9 improvements - Input validation middleware
-        'middleware/validation.js': { branches: 50, functions: 60, lines: 62, statements: 63 },
-        // Coverage improvement targets
-        'utils/rating-cache.js': { branches: 85, functions: 90, lines: 90, statements: 90 },
-        'sources/jellyfin.js': { branches: 55, functions: 85, lines: 75, statements: 75 },
-    },
+    coverageThreshold: focusedRun
+        ? {
+              global: { branches: 0, functions: 0, lines: 0, statements: 0 },
+          }
+        : {
+              global: {
+                  branches: 24, // Based on current 42.91% with margin
+                  functions: 25, // Based on current 43.22% with margin
+                  lines: 25, // Based on current 45.7% with margin
+                  statements: 25, // Based on current 45.24% with margin
+              },
+              // File-specific thresholds for well-tested modules only
+              'sources/tmdb.js': { branches: 60, functions: 85, lines: 75, statements: 75 },
+              'sources/tvdb.js': { branches: 70, functions: 80, lines: 80, statements: 80 },
+              'sources/plex.js': { branches: 80, functions: 85, lines: 85, statements: 85 },
+              // FASE 1 improvements - Complete or high coverage
+              'utils.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
+              'utils/logger.js': { branches: 38, functions: 64, lines: 52, statements: 55 },
+              'utils/errors.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
+              // FASE 2 improvements - Middleware optimization
+              'middleware/cache.js': { branches: 74, functions: 89, lines: 93, statements: 92 },
+              'middleware/errorHandler.js': {
+                  branches: 100,
+                  functions: 88,
+                  lines: 98,
+                  statements: 98,
+              },
+              'middleware/validate.js': { branches: 55, functions: 45, lines: 65, statements: 65 },
+              // FASE 3 improvements - Cache utilities
+              'utils/cache.js': { branches: 81, functions: 79, lines: 90, statements: 89 },
+              // FASE 4 improvements - Rate limiting
+              'middleware/rateLimiter.js': {
+                  branches: 100,
+                  functions: 100,
+                  lines: 100,
+                  statements: 100,
+              },
+              // FASE 5 improvements - Middleware orchestration
+              'middleware/index.js': { branches: 92, functions: 100, lines: 98, statements: 98 },
+              // FASE 7 improvements - Metrics middleware
+              'middleware/metrics.js': {
+                  branches: 100,
+                  functions: 100,
+                  lines: 100,
+                  statements: 100,
+              },
+              // FASE 8 improvements - Metrics utilities
+              'utils/metrics.js': { branches: 85, functions: 94, lines: 96, statements: 96 },
+              // FASE 9 improvements - Input validation middleware
+              'middleware/validation.js': {
+                  branches: 50,
+                  functions: 60,
+                  lines: 62,
+                  statements: 63,
+              },
+              // Coverage improvement targets
+              'utils/rating-cache.js': { branches: 85, functions: 90, lines: 90, statements: 90 },
+              'sources/jellyfin.js': { branches: 55, functions: 85, lines: 75, statements: 75 },
+          },
 
     // Coverage output formats
     coverageReporters: [

@@ -20,6 +20,7 @@
         deviceId: null,
         deviceSecret: null,
         installId: null,
+        hardwareId: null,
     };
 
     function getStorage() {
@@ -78,14 +79,64 @@
         return iid;
     }
 
+    // Best-effort hardwareId across browsers on the same machine:
+    // - Use persistentStorage API to request durability
+    // - Combine userAgent, platform, screen metrics, timezone, and language
+    // - Store in localStorage when available to keep stable per browser profile
+    function computeHardwareId() {
+        try {
+            const nav = navigator || {};
+            const scr = window.screen || {};
+            const hints = [
+                nav.platform || '',
+                (scr.width || 0) + 'x' + (scr.height || 0) + '@' + (window.devicePixelRatio || 1),
+                Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+                (nav.language || '') + '|' + (nav.languages || []).join(','),
+                (nav.hardwareConcurrency || 0) + 'c',
+                (nav.deviceMemory || 0) + 'gb',
+                (scr.colorDepth || 0) + 'cd',
+                (scr.pixelDepth || 0) + 'pd',
+                (nav.maxTouchPoints || 0) + 'tp',
+            ].join('|');
+            // Simple, stable hash (FNV-1a)
+            let hash = 2166136261;
+            for (let i = 0; i < hints.length; i++) {
+                hash ^= hints.charCodeAt(i);
+                hash = (hash >>> 0) * 16777619;
+            }
+            return 'hw-' + (hash >>> 0).toString(16);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function getHardwareId() {
+        const store = getStorage();
+        try {
+            let hw = store && store.getItem('posterrama.hardwareId');
+            if (!hw) {
+                hw = computeHardwareId();
+                if (store && hw) store.setItem('posterrama.hardwareId', hw);
+            }
+            return hw;
+        } catch (_) {
+            return computeHardwareId();
+        }
+    }
+
     async function registerIfNeeded() {
         if (state.deviceId && state.deviceSecret) return true;
         try {
             state.installId = state.installId || getInstallId();
+            state.hardwareId = state.hardwareId || getHardwareId();
             const res = await fetch('/api/devices/register', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Install-Id': state.installId },
-                body: JSON.stringify({ installId: state.installId }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Install-Id': state.installId,
+                    'X-Hardware-Id': state.hardwareId || '',
+                },
+                body: JSON.stringify({ installId: state.installId, hardwareId: state.hardwareId }),
             });
             if (!res.ok) {
                 // Feature disabled or server error — disable client mgmt quietly
@@ -135,6 +186,7 @@
             deviceId: state.deviceId,
             deviceSecret: state.deviceSecret,
             installId: state.installId || getInstallId(),
+            hardwareId: state.hardwareId || getHardwareId(),
             userAgent: navigator.userAgent,
             screen: collectClientInfo().screen,
             mode: currentMode(),
@@ -147,6 +199,7 @@
                     'Content-Type': 'application/json',
                     // Always include the same stable install id header
                     'X-Install-Id': state.installId || getInstallId(),
+                    'X-Hardware-Id': state.hardwareId || getHardwareId() || '',
                 },
                 body: JSON.stringify(payload),
             });

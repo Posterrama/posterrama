@@ -3271,6 +3271,7 @@ input[type='range']::-webkit-slider-thumb:hover {
     gap: 1rem; /* More space between buttons */
     align-items: center;
     margin-top: 1rem;
+    flex-wrap: wrap;
 }
 
 /* Ensure all buttons in form-actions have consistent height */
@@ -3281,6 +3282,32 @@ input[type='range']::-webkit-slider-thumb:hover {
     box-sizing: border-box !important;
     display: inline-flex !important;
     align-items: center !important;
+}
+
+/* Devices status pill aligned to the right of action buttons */
+#devices-subsection .form-actions {
+    justify-content: flex-start;
+}
+#devices-status.hint {
+    margin-left: auto;
+    margin-right: 1rem;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #93c5fd;
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+@media (max-width: 640px) {
+    #devices-status.hint {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        margin-top: 0.5rem;
+        text-align: left;
+    }
 }
 
 /* Prevent layout shift on focus by ensuring consistent box model */
@@ -4624,6 +4651,7 @@ div#devices-section.section-content.active .section-main-content {
 }
 #devices-section .table-wrapper {
     margin-bottom: 0 !important;
+    margin-top: 0.5rem !important;
     padding-bottom: 0 !important;
 }
 

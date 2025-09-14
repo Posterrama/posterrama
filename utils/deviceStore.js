@@ -58,11 +58,35 @@ async function getById(id) {
     return all.find(d => d.id === id) || null;
 }
 
-async function registerDevice({ name = '', location = '', installId = null } = {}) {
+async function registerDevice({
+    name = '',
+    location = '',
+    installId = null,
+    hardwareId = null,
+} = {}) {
     const all = await readAll();
     const now = new Date().toISOString();
+    // Prefer existing match by hardwareId (cross-browser on same physical device)
+    if (hardwareId) {
+        const byHwIdx = all.findIndex(d => d.hardwareId && d.hardwareId === hardwareId);
+        if (byHwIdx !== -1) {
+            const newSecret = crypto.randomBytes(32).toString('hex');
+            all[byHwIdx] = {
+                ...all[byHwIdx],
+                name: name || all[byHwIdx].name,
+                location: location || all[byHwIdx].location,
+                secretHash: hashSecret(newSecret),
+                updatedAt: now,
+                installId: installId || all[byHwIdx].installId || null,
+                hardwareId,
+            };
+            await writeAll(all);
+            return { device: all[byHwIdx], secret: newSecret };
+        }
+    }
+    // Fallback: match by installId (same browser profile)
     if (installId) {
-        const existingIdx = all.findIndex(d => d.installId === installId);
+        const existingIdx = all.findIndex(d => d.installId && d.installId === installId);
         if (existingIdx !== -1) {
             // Rotate secret for existing device and return existing id
             const newSecret = crypto.randomBytes(32).toString('hex');
@@ -72,7 +96,8 @@ async function registerDevice({ name = '', location = '', installId = null } = {
                 location: location || all[existingIdx].location,
                 secretHash: hashSecret(newSecret),
                 updatedAt: now,
-                installId: installId,
+                installId,
+                hardwareId: hardwareId || all[existingIdx].hardwareId || null,
             };
             await writeAll(all);
             return { device: all[existingIdx], secret: newSecret };
@@ -84,6 +109,7 @@ async function registerDevice({ name = '', location = '', installId = null } = {
     const device = {
         id,
         installId: installId || null,
+        hardwareId: hardwareId || null,
         secretHash: hashSecret(secret),
         name,
         location,
@@ -161,7 +187,7 @@ async function claimByPairingCode({ code, name, location } = {}) {
     return { device: all[idx], secret: newSecret };
 }
 
-async function updateHeartbeat(id, { clientInfo, currentState, installId } = {}) {
+async function updateHeartbeat(id, { clientInfo, currentState, installId, hardwareId } = {}) {
     const all = await readAll();
     const idx = all.findIndex(d => d.id === id);
     if (idx === -1) return null;
@@ -181,6 +207,18 @@ async function updateHeartbeat(id, { clientInfo, currentState, installId } = {})
             all.length = 0;
             for (const d of filtered) all.push(d);
             // Guarantee current device is in list
+            if (!all.find(d => d.id === currentId)) all.push(current);
+        }
+    }
+    // Bind or update hardwareId; prune others sharing same hardwareId
+    if (hardwareId && all[idx].hardwareId !== hardwareId) {
+        all[idx].hardwareId = hardwareId;
+        const currentId = all[idx].id;
+        const filtered = all.filter((d, i) => i === idx || d.hardwareId !== hardwareId);
+        if (filtered.length !== all.length) {
+            const current = all[idx];
+            all.length = 0;
+            for (const d of filtered) all.push(d);
             if (!all.find(d => d.id === currentId)) all.push(current);
         }
     }
@@ -211,6 +249,12 @@ async function findByInstallId(installId) {
     return all.find(d => d.installId === installId) || null;
 }
 
+async function findByHardwareId(hardwareId) {
+    if (!hardwareId) return null;
+    const all = await readAll();
+    return all.find(d => d.hardwareId === hardwareId) || null;
+}
+
 function screensEqual(a, b) {
     if (!a || !b) return false;
     const aw = Number(a.w || a.width || 0);
@@ -223,12 +267,19 @@ function screensEqual(a, b) {
 }
 
 // Best-effort duplicate pruning to counter early multi-tab races
-async function pruneLikelyDuplicates({ keepId, userAgent, screen, maxDelete = 5 } = {}) {
+async function pruneLikelyDuplicates({
+    keepId,
+    userAgent,
+    screen,
+    hardwareId,
+    maxDelete = 5,
+} = {}) {
     try {
         const all = await readAll();
         const keep = all.find(d => d.id === keepId);
         if (!keep) return { deleted: 0 };
         const kIid = keep.installId || null;
+        const kHw = keep.hardwareId || hardwareId || null;
         const keyUA = userAgent || keep.clientInfo?.userAgent || null;
         const keyScreen = screen || keep.clientInfo?.screen || null;
 
@@ -236,6 +287,8 @@ async function pruneLikelyDuplicates({ keepId, userAgent, screen, maxDelete = 5 
         const candidates = all
             .filter(d => d.id !== keepId)
             .filter(d => {
+                // Strongest signal: same hardwareId
+                if (kHw && d.hardwareId && d.hardwareId === kHw) return true;
                 const sameInstall = kIid && d.installId && d.installId === kIid;
                 const uaMatch = keyUA && d.clientInfo && d.clientInfo.userAgent === keyUA;
                 const scMatch =
@@ -299,6 +352,7 @@ module.exports = {
     updateHeartbeat,
     deleteDevice,
     findByInstallId,
+    findByHardwareId,
     pruneLikelyDuplicates,
     queueCommand,
     popCommands,
