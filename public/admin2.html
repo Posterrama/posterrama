@@ -1562,6 +1562,20 @@
     /* Themed sliders for Display section */
     #section-display .modern-slider { display:block; width:100%; }
     #section-display .modern-slider input[type="range"] { width:100%; height: 28px; background: transparent; accent-color: var(--color-info); }
+    /* Add a non-intrusive progress bar behind the native slider */
+    #section-display .modern-slider { position: relative; }
+    #section-display .modern-slider .slider-bar { 
+      position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+      height: 6px; border-radius: 999px; pointer-events: none;
+      background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    #section-display .modern-slider .slider-bar .fill {
+      width: 0%; height: 100%; border-radius: 999px; pointer-events: none;
+      background: linear-gradient(90deg, rgba(59,130,246,0.45), rgba(59,130,246,0.20));
+      border-right: 1px solid rgba(59,130,246,0.45);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+    }
     #section-display .slider-percentage { font-size: .8rem; color: var(--color-text-secondary); opacity: .85; margin-top: 4px; text-align: right; }
 
     /* Themed number steppers (shared in Display) */

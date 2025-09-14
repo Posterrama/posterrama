@@ -1648,6 +1648,47 @@
 
         // Update slider labels for modern sliders
         try {
+            // Create lightweight progress bars behind native sliders without changing their appearance
+            (function initSliderBars() {
+                const ids = [
+                    'uiScaling.global',
+                    'uiScaling.content',
+                    'uiScaling.clearlogo',
+                    'uiScaling.clock',
+                    'wallartMode.refreshRate',
+                    'wallartMode.randomness',
+                ];
+                const updateBar = inputEl => {
+                    try {
+                        const wrap = inputEl.closest('.modern-slider');
+                        if (!wrap) return;
+                        const bar = wrap.querySelector('.slider-bar');
+                        const fill = bar && bar.querySelector('.fill');
+                        if (!bar || !fill) return;
+                        const min = Number(inputEl.min || 0);
+                        const max = Number(inputEl.max || 100);
+                        const val = Number(inputEl.value || 0);
+                        const pct = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+                        fill.style.width = pct + '%';
+                    } catch (_) {}
+                };
+                ids.forEach(id => {
+                    const el = getVal(id);
+                    if (!el) return;
+                    const wrap = el.closest('.modern-slider');
+                    if (wrap && !wrap.querySelector('.slider-bar')) {
+                        const bar = document.createElement('div');
+                        bar.className = 'slider-bar';
+                        const fill = document.createElement('div');
+                        fill.className = 'fill';
+                        bar.appendChild(fill);
+                        wrap.appendChild(bar);
+                    }
+                    updateBar(el);
+                    el.addEventListener('input', () => updateBar(el));
+                    el.addEventListener('change', () => updateBar(el));
+                });
+            })();
             const labelFor = (id, val) => {
                 if (id === 'wallartMode.refreshRate') {
                     const v = Number(val);
