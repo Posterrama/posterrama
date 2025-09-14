@@ -38,17 +38,38 @@
         const el = typeof id === 'string' ? document.getElementById(id) : id;
         if (!el) return;
         const v = Math.max(0, Math.min(100, Number(pct) || 0));
-        // Try a child .meter-fill bar first
-        const fill = el.querySelector?.('.meter-fill');
-        if (fill) {
-            fill.style.width = `${v}%`;
-            fill.setAttribute('aria-valuenow', String(v));
+
+        // Set width for progress bar
+        el.style.width = `${v}%`;
+
+        // Dynamic color based on percentage and kind
+        let gradient = '';
+        if (kind === 'cpu') {
+            if (v < 50) {
+                gradient =
+                    'linear-gradient(90deg, var(--color-success), var(--color-success-dark))';
+            } else if (v < 80) {
+                gradient =
+                    'linear-gradient(90deg, var(--color-warning), var(--color-warning-dark))';
+            } else {
+                gradient = 'linear-gradient(90deg, var(--color-error), var(--color-error-dark))';
+            }
+        } else if (kind === 'mem') {
+            if (v < 60) {
+                gradient = 'linear-gradient(90deg, var(--color-info), var(--color-info-dark))';
+            } else if (v < 85) {
+                gradient =
+                    'linear-gradient(90deg, var(--color-warning), var(--color-warning-dark))';
+            } else {
+                gradient = 'linear-gradient(90deg, var(--color-error), var(--color-error-dark))';
+            }
         } else {
-            // Fallback: set CSS var or width directly on the element
-            el.style.setProperty('--value', v);
-            el.style.width = el.classList?.contains('meter') ? `${v}%` : el.style.width;
-            el.setAttribute?.('aria-valuenow', String(v));
+            // Default gradient
+            gradient = 'linear-gradient(90deg, var(--color-info), var(--color-info-dark))';
         }
+
+        el.style.background = gradient;
+        el.setAttribute?.('aria-valuenow', String(v));
         if (kind) el.setAttribute?.('data-kind', kind);
     }
 
@@ -261,9 +282,18 @@
                     dot.classList.add(`status-${cls}`);
                 }
                 if (badge) {
-                    badge.classList.remove('status-success', 'status-warning', 'status-error');
-                    badge.classList.add(`status-${cls}`);
-                    badge.textContent = String(textVal || '').toLowerCase();
+                    // Don't remove existing status classes for our new pills, just update the text
+                    if (!badge.classList.contains('header-pill')) {
+                        badge.classList.remove('status-success', 'status-warning', 'status-error');
+                        badge.classList.add(`status-${cls}`);
+                    }
+                    // Update the value span inside the pill
+                    const valueSpan = badge.querySelector('.value');
+                    if (valueSpan) {
+                        valueSpan.textContent = String(textVal || '').toLowerCase();
+                    } else {
+                        badge.textContent = String(textVal || '').toLowerCase();
+                    }
                 }
             };
             setChip('chip-app-dot', 'perf-app-status', appCls, app);
@@ -398,6 +428,7 @@
             if (!btn.querySelector('.spinner')) {
                 const sp = document.createElement('span');
                 sp.className = 'spinner';
+                sp.style.display = 'none'; // Hide spinner by default
                 btn.insertBefore(sp, btn.firstChild);
             }
         };

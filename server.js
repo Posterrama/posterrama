@@ -10761,21 +10761,13 @@ app.get(
         try {
             const os = require('os');
 
-            // CPU information
-            const cpus = os.cpus();
-            let totalIdle = 0;
-            let totalTick = 0;
+            // CPU information - use load average as more reliable indicator
+            const loadAvg = os.loadavg();
+            const numCPUs = os.cpus().length;
 
-            cpus.forEach(cpu => {
-                for (const type in cpu.times) {
-                    totalTick += cpu.times[type];
-                }
-                totalIdle += cpu.times.idle;
-            });
-
-            const idle = totalIdle / cpus.length;
-            const total = totalTick / cpus.length;
-            const cpuUsage = 100 - Math.round((100 * idle) / total);
+            // Convert load average to percentage (first minute load)
+            // Load average of 1.0 means 100% CPU utilization on single core
+            const cpuUsage = Math.min(100, Math.round((loadAvg[0] / numCPUs) * 100));
 
             // Load average
             const loadAverage = os
