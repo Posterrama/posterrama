@@ -44,6 +44,7 @@
         "review:self-check": "node scripts/review-self-check.js",
         "review:pre-check": "./scripts/simple-review-check.sh",
         "health": "./scripts/health-check.sh",
+        "config:validate": "node scripts/validate-config.js",
         "quality:all": "npm run lint && npm run format:check && npm test && npm run deps:security-audit",
         "push": "bash private/release-push.sh --no-tag --yes",
         "push:force": "bash private/release-push.sh --no-tag --yes --force",

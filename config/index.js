@@ -12,7 +12,7 @@ class Config {
         this.defaults = {
             serverPort: 4000,
             logLevel: 'info',
-            backgroundRefreshMinutes: 30,
+            backgroundRefreshMinutes: 60,
             maxLogLines: 200,
         };
     }

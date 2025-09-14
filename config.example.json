@@ -1,13 +1,11 @@
 {
-    "syncEnabled": true,
-    "syncAlignMaxDelayMs": 1200,
-    "transitionIntervalSeconds": 15,
+    "transitionIntervalSeconds": 10,
     "backgroundRefreshMinutes": 60,
     "showClearLogo": true,
     "showRottenTomatoes": true,
     "rottenTomatoesMinimumScore": 0,
     "showPoster": true,
-    "showMetadata": false,
+    "showMetadata": true,
     "clockWidget": true,
     "clockTimezone": "auto",
     "clockFormat": "24h",
@@ -24,7 +22,8 @@
                 "heroRotationMinutes": 10
             }
         },
-        "ambientGradient": false
+        "ambientGradient": false,
+        "autoRefresh": true
     },
     "cinemaMode": false,
     "cinemaOrientation": "auto",
@@ -35,9 +34,6 @@
         "clearlogo": 100,
         "clock": 100,
         "global": 100
-    },
-    "deviceMgmt": {
-        "enabled": true
     },
     "mediaServers": [
         {
@@ -52,7 +48,8 @@
             "recentlyAddedOnly": false,
             "recentlyAddedDays": 30,
             "ratingFilter": [],
-            "genreFilter": ""
+            "genreFilter": "",
+            "qualityFilter": ""
         },
         {
             "name": "Jellyfin Server",
@@ -67,6 +64,7 @@
             "recentlyAddedDays": 30,
             "ratingFilter": [],
             "genreFilter": "",
+            "qualityFilter": "",
             "ratingFilters": {
                 "minCommunityRating": 0,
                 "allowedOfficialRatings": [],
@@ -84,21 +82,23 @@
     },
     "tvdbSource": {
         "enabled": false,
-        "category": "popular",
+        "category": "newest",
         "minRating": 0,
         "yearFilter": null,
         "genreFilter": ""
     },
     "streamingSources": [],
     "siteServer": {
-        "enabled": false,
+        "enabled": true,
         "port": 4001
     },
     "cache": {
-        "maxSizeGB": 1.5,
-        "minFreeDiskSpaceMB": 750,
-        "autoCleanup": true,
-        "cleanupIntervalMinutes": 15,
-        "maxAgeHours": 168
-    }
+        "maxSizeGB": 5
+    },
+    "serverName": "Your Server Name",
+    "baseUrl": "http://localhost:3000",
+    "port": 3000,
+    "syncEnabled": true,
+    "syncAlignMaxDelayMs": 1200,
+    "serverPort": 4000
 }

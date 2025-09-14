@@ -18,12 +18,13 @@
         "transitionIntervalSeconds": {
             "description": "How many seconds each poster is visible.",
             "type": "integer",
-            "minimum": 1
+            "minimum": 5
         },
         "backgroundRefreshMinutes": {
             "description": "How often (in minutes) the entire media library is re-fetched. 0 to disable.",
             "type": "integer",
-            "minimum": 0
+            "minimum": 5,
+            "default": 60
         },
         "showClearLogo": {
             "description": "Shows the movie/series logo (if available).",
@@ -35,9 +36,9 @@
         },
         "rottenTomatoesMinimumScore": {
             "description": "Filters media to only show items with this score or higher. Set to 0 to disable.",
-            "type": "number",
+            "type": "integer",
             "minimum": 0,
-            "maximum": 10
+            "maximum": 100
         },
         "showPoster": {
             "description": "Shows the poster.",
@@ -80,7 +81,7 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 10,
-                    "default": 5,
+                    "default": 6,
                     "description": "Relative refresh tempo (1=slow, 10=fast)"
                 },
                 "randomness": {
@@ -120,6 +121,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Enable subtle ambient gradient background overlay"
+                },
+                "autoRefresh": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically refresh wallart content without manual interaction"
                 },
                 "layoutSettings": {
                     "type": "object",
@@ -193,7 +199,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 10,
-            "default": 2
+            "default": 3
         },
         "uiScaling": {
             "description": "Scaling settings for UI elements to adapt to different screen sizes and resolutions.",
@@ -305,6 +311,11 @@
                         "description": "Comma-separated list of allowed genres for filtering content.",
                         "default": ""
                     },
+                    "qualityFilter": {
+                        "type": "string",
+                        "description": "Optional quality filter e.g. '4k,1080p'.",
+                        "default": ""
+                    },
                     "ratingFilters": {
                         "type": "object",
                         "description": "Rating-based filtering options (Jellyfin only).",
@@ -347,7 +358,7 @@
             "properties": {
                 "enabled": {
                     "type": "boolean",
-                    "default": false
+                    "default": true
                 },
                 "port": {
                     "type": "integer",
@@ -382,7 +393,7 @@
             "type": "object",
             "properties": {
                 "enabled": { "type": "boolean", "default": false },
-                "category": { "type": "string", "default": "popular" },
+                "category": { "type": "string", "default": "newest" },
                 "minRating": { "type": "number", "minimum": 0, "maximum": 10, "default": 0 },
                 "yearFilter": { "type": ["integer", "string", "null"], "default": null },
                 "genreFilter": { "type": "string", "default": "" },
@@ -400,7 +411,7 @@
             "description": "Cache tuning parameters.",
             "type": "object",
             "properties": {
-                "maxSizeGB": { "type": "number", "minimum": 0, "default": 1.5 },
+                "maxSizeGB": { "type": "number", "minimum": 0, "default": 5 },
                 "minFreeDiskSpaceMB": { "type": "integer", "minimum": 0, "default": 750 },
                 "autoCleanup": { "type": "boolean", "default": true },
                 "cleanupIntervalMinutes": { "type": "integer", "minimum": 1, "default": 15 },
@@ -424,6 +435,13 @@
         "plexClientOptions": {
             "description": "Advanced options to pass to the plex-api client.",
             "type": "object"
+        },
+        "serverPort": {
+            "description": "Fallback server port if SERVER_PORT env var is not set.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535,
+            "default": 4000
         }
     },
     "required": [
