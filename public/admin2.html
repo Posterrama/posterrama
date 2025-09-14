@@ -483,8 +483,12 @@
     margin: 8px 6px;
     border: none;
   }
+  /* Notification layers: keep above dropdowns/modals to ensure visibility */
+  .notify-center { z-index: 3003; }
+  .toast-container { z-index: 11000; }
+  .notification-container { z-index: 11000; }
     /* Toasts – theme alignment, bottom-right placement */
-  .toast-container { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 3001; }
+  .toast-container { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 11000; }
     .toast { display: flex; align-items: flex-start; gap: 10px; min-width: 260px; max-width: 360px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(20,20,28,0.95); color: var(--color-text-primary, #E5E7EB); box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05); opacity: 0; transform: translateY(8px); transition: opacity .18s ease, transform .18s ease; }
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast .toast-icon { font-size: 1rem; line-height: 1.2; }
