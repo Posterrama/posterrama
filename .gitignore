@@ -65,6 +65,9 @@ test-*.html
 *.orig
 *.rej
 
+# Generated config backups directory
+backups/
+
 # Runtime cache and temporary data
 # These directories contain runtime generated cache files and should never be committed
 image_cache/
