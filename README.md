@@ -36,6 +36,14 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 
 ### 🎬 Screensaver Mode
 
+<figure>
+  <img src="./screenshots/screensaver_2.png" alt="Screensaver Mode – Ken Burns and smooth fades" width="740">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>
+    Screensaver Mode feels like a living poster wall—bold artwork gliding in and out, always fresh and cinematic.
+  </em></figcaption>
+  
+</figure>
+
 Turn any screen into a cinematic slideshow. Enjoy smooth, full-screen poster transitions from your own collection. Choose from multiple animation types (fade, slide, zoom, flip, and more) and set the interval for how often posters change. Perfect for ambiance, parties, or just showing off your taste.
 
 **Key features:**
@@ -48,22 +56,21 @@ Turn any screen into a cinematic slideshow. Enjoy smooth, full-screen poster tra
 ### 🖼️ Wallart Mode
 
 <figure>
-  <img src="./screenshots/wallart.png" alt="Wallart Grid" width="420">
+  <img src="./screenshots/wallart.png" alt="Wallart Grid" width="740">
   <figcaption style="text-align:left; color:#6a6a6a;"><em>Wallart Mode: multi-poster grid with smooth animations</em></figcaption>
   
 </figure>
 
-Display a beautiful grid of posters, updating dynamically with new content. Choose between a full grid or a hero+grid layout (one large featured poster with a 4x4 grid). Each poster can animate in with its own style, and you can customize the number of rows/columns.
+Display a beautiful grid of posters, updating dynamically with new content. Choose between a full grid or a hero+grid layout (one large featured poster with a 4x4 grid). Posters slide in smoothly, and you can choose between preset grid sizes.
 
 **Key features:**
 
 - 13+ animation styles for grid transitions
 - Hero+Grid layout or full grid
 - Customizable grid size and spacing
-- Option to show/hide metadata, ratings, and logos
 
 <figure>
-  <img src="./screenshots/wallart_hero.png" alt="Wallart Hero + Grid" width="420">
+  <img src="./screenshots/wallart_hero.png" alt="Wallart Hero + Grid" width="740">
   <figcaption style="text-align:left; color:#6a6a6a;"><em>Hero+Grid layout variant</em></figcaption>
   
 </figure>
@@ -100,7 +107,7 @@ Images are loaded instantly thanks to smart caching and optimization. Posters al
 ### 🔗 Multiple Content Sources
 
 <figure>
-  <img src="./screenshots/admin_sources.png" alt="Admin Sources" width="420">
+  <img src="./screenshots/admin_sources.png" alt="Admin Sources" width="740">
   <figcaption style="text-align:left; color:#6a6a6a;"><em>Connect your media sources easily</em></figcaption>
   
 </figure>
@@ -116,13 +123,12 @@ In the admin dashboard, you can configure for each source:
 - Enable/disable each source (Plex, Jellyfin, TMDB, TVDB)
 - Set server address and authentication (token, username/password)
 - Choose which libraries or collections to include
-- Filter by genre, year, rating, or watched/unwatched status
-- Enable/disable specific genres
+- Filter by genre, rating, or quality
 
 ---
 
 <figure>
-  <img src="./screenshots/admin_display.png" alt="Admin Display Settings" width="420">
+  <img src="./screenshots/admin_display.png" alt="Admin Display Settings" width="740">
   <figcaption style="text-align:left; color:#6a6a6a;"><em>Fine-tune your display settings</em></figcaption>
   
 </figure>
@@ -163,9 +169,22 @@ And that’s just the beginning — much more is on the way.
 curl -fsSL https://raw.githubusercontent.com/Posterrama/posterrama/main/install.sh | bash
 ```
 
-### Manual install
+### Manual install (Debian-based distros)
 
 ```bash
+# Install prerequisites (Debian/Ubuntu/Raspberry Pi OS)
+sudo apt-get update
+sudo apt-get install -y git curl build-essential
+
+# Install Node.js (v18 LTS recommended)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Verify
+node -v
+npm -v
+
+# Install Posterrama
 git clone https://github.com/Posterrama/posterrama.git
 cd posterrama
 npm install
@@ -176,7 +195,7 @@ pm2 save
 
 ## 🛠️ Configuration & Usage
 
-Go to [http://localhost:4000/admin](http://localhost:4000/admin) to:
+Go to http://your-posterrama-ip:4000/admin to:
 
 - Connect your Plex, Jellyfin, or both
 - Choose your favorite display mode (Screensaver, Wallart, Cinema)
