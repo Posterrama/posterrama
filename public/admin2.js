@@ -2499,11 +2499,6 @@
         const settingsBtn = document.getElementById('settings-btn');
         const settingsMenu = document.getElementById('settings-menu');
 
-        console.log('Dropdown setup - Settings:', {
-            settingsBtn: !!settingsBtn,
-            settingsMenu: !!settingsMenu,
-        });
-
         function closeMenu() {
             console.log('closeMenu called');
             if (!settingsMenu) return;
@@ -3206,11 +3201,6 @@
         // User dropdown (Account)
         const userBtn = document.getElementById('user-btn');
         const userMenu = document.getElementById('user-menu');
-
-        console.log('Dropdown setup - User:', {
-            userBtn: !!userBtn,
-            userMenu: !!userMenu,
-        });
 
         function closeUserMenu() {
             console.log('closeUserMenu called');
@@ -7491,7 +7481,6 @@
         });
 
         // Change Password Modal
-        console.log('Setting up Change Password Modal...');
         const btnChangePasswordModal = document.getElementById('btn-change-password');
         const currentPwInput = document.getElementById('input-current-password');
         const newPwInput = document.getElementById('input-new-password');
@@ -7499,16 +7488,6 @@
         const strengthIndicator = document.getElementById('password-strength');
         const strengthBars = document.querySelectorAll('.strength-bar');
         const strengthText = document.getElementById('strength-text');
-
-        console.log('Change Password elements found:', {
-            button: !!btnChangePasswordModal,
-            currentInput: !!currentPwInput,
-            newInput: !!newPwInput,
-            confirmInput: !!confirmPwInput,
-            strengthIndicator: !!strengthIndicator,
-            strengthBars: strengthBars.length,
-            strengthText: !!strengthText,
-        });
 
         if (!btnChangePasswordModal) {
             console.error('Change password button not found! ID: btn-change-password');
@@ -7660,16 +7639,13 @@
         const btnChangePasswordModalClean = document.getElementById('btn-change-password');
         ensureSpinner(btnChangePasswordModalClean);
 
-        console.log('Adding click event listener to change password button...');
         btnChangePasswordModalClean.addEventListener('click', async event => {
             try {
                 // Prevent multiple submissions
                 if (btnChangePasswordModalClean.disabled) {
-                    console.log('Button already disabled, ignoring click');
                     return;
                 }
 
-                console.log('=== CHANGE PASSWORD BUTTON CLICKED ===');
                 console.log('Event object:', event);
 
                 const statusEl = document.getElementById('password-status');
@@ -7847,13 +7823,9 @@
             }
         });
 
-        // Test if this code runs
-        console.log('Change Password Modal setup completed at:', new Date().toISOString());
-
-        // Also add a manual test button click
+        // Also add a manual test data flag
         if (btnChangePasswordModal) {
             btnChangePasswordModal.setAttribute('data-debug', 'ready');
-            console.log('Change password button is ready for testing');
         }
 
         // API key management
