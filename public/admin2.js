@@ -3798,6 +3798,22 @@
         let routeTimer = null;
         // Persist first-run across any accidental script re-executions to avoid bouncing to Dashboard
         let firstRoute = !window.__adminFirstRouteDone;
+        // Preserve last route across hard reloads (fallback)
+        try {
+            const saved = sessionStorage.getItem('admin:lastRoute');
+            if (!location.hash && saved && typeof saved === 'string') {
+                const allowed = [
+                    '#dashboard',
+                    '#display',
+                    '#operations',
+                    '#devices',
+                    '#media-sources',
+                ];
+                if (allowed.includes(saved)) {
+                    history.replaceState(null, '', saved);
+                }
+            }
+        } catch (_) {}
         function routeByHash() {
             if (routeTimer) {
                 clearTimeout(routeTimer);
@@ -3938,7 +3954,15 @@
             }, 60); // small debounce to smooth rapid clicks
         }
         window.addEventListener('hashchange', routeByHash);
+        window.addEventListener('hashchange', () => {
+            try {
+                sessionStorage.setItem('admin:lastRoute', location.hash || '');
+            } catch (_) {}
+        });
         // Initial route on load
+        try {
+            sessionStorage.setItem('admin:lastRoute', location.hash || '');
+        } catch (_) {}
         routeByHash();
         // If hash on load points to a top-level section (none currently), ensure submenu is cleared
         try {
