@@ -2,6 +2,13 @@
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
+    // Fallback for update polling if not provided by this build
+    if (typeof window.pollUpdateStatusOnce !== 'function') {
+        window.pollUpdateStatusOnce = async function () {
+            return null;
+        };
+    }
+
     function setText(id, val) {
         const el = typeof id === 'string' ? document.getElementById(id) : id;
         if (el) el.textContent = val;
@@ -12,6 +19,7 @@
     }
 
     // Returns true when the given ISO date falls on the current local day
+    /* eslint-disable no-unused-vars */
     function isToday(iso) {
         if (!iso) return false;
         const d = new Date(iso);
@@ -23,6 +31,7 @@
             d.getDate() === now.getDate()
         );
     }
+    /* eslint-enable no-unused-vars */
 
     // Safe fallback meter renderer used by cache/perf panels
     function setMeter(id, pct /* 0-100 */, kind = 'default') {
@@ -376,6 +385,8 @@
             }
         });
     }
+    // format uptime helper (not used everywhere but kept for parity/UI)
+    // eslint-disable-next-line no-unused-vars
     function formatUptime(sec) {
         const d = Math.floor(sec / 86400);
         const h = Math.floor((sec % 86400) / 3600);
@@ -391,7 +402,9 @@
             const params = new URLSearchParams(location.search);
             if (params.get('debug') === '1') return true;
             if (localStorage.getItem('admin2Debug') === '1') return true;
-        } catch (_) {}
+        } catch (_) {
+            // ignore
+        }
         return false;
     })();
     const dbg = (...args) => {
@@ -399,7 +412,9 @@
             try {
                 // eslint-disable-next-line no-console
                 console.debug('[admin2]', ...args);
-            } catch (_) {}
+            } catch (_) {
+                // ignore
+            }
         }
     };
 
@@ -808,7 +823,9 @@
             // Ensure configuration values are loaded once when opening the group
             try {
                 window.admin2?.loadMediaSources?.();
-            } catch (_) {}
+            } catch (_) {
+                // ignore
+            }
         });
         // Show only the selected source panel
         function showSourcePanel(panelId, title) {
@@ -1527,10 +1544,9 @@
             }
 
             // Wire buttons one-time per open
-            const cleanup = () => {
-                btnConfirm.replaceWith(btnConfirm.cloneNode(true));
-                btnForce.replaceWith(btnForce.cloneNode(true));
-            };
+            // Reset buttons to clear prior listeners
+            btnConfirm.replaceWith(btnConfirm.cloneNode(true));
+            btnForce.replaceWith(btnForce.cloneNode(true));
             const freshConfirm = document.getElementById('btn-update-confirm');
             const freshForce = document.getElementById('btn-update-force');
             freshConfirm?.addEventListener(
@@ -1573,7 +1589,9 @@
                 message: j?.message || 'Auto-update started',
                 duration: 0,
             });
-            await refreshUpdateStatusUI();
+            // Begin polling status; UI hook will pick it up
+            // eslint-disable-next-line no-undef
+            await pollUpdateStatusOnce();
         } catch (e) {
             window.notify?.toast({
                 type: 'error',
@@ -1590,6 +1608,8 @@
     document.addEventListener('DOMContentLoaded', () => {
         const btnSaveServer = document.getElementById('btn-save-server-settings');
         const btnSavePromo = document.getElementById('btn-save-promobox');
+        const btnSaveOps = document.getElementById('btn-save-operations');
+        const portInput = document.getElementById('SERVER_PORT');
         // Helper to fetch config, patch minimal keys, and POST back
         async function saveConfigPatch(patchConfig, patchEnv) {
             const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
@@ -1914,7 +1934,9 @@
                 // Sync custom select UI/icon
                 try {
                     el.dispatchEvent(new Event('change', { bubbles: true }));
-                } catch {}
+                } catch (_) {
+                    // ignore (custom select sync)
+                }
                 syncCustomSelect(el);
             }
             if (getInput('tmdb.minRating')) {
@@ -1928,7 +1950,9 @@
             // Load TMDB genres with selection from config
             try {
                 await loadTMDBGenres(tmdb.genreFilter || '');
-            } catch (_) {}
+            } catch (_) {
+                // ignore (initial genre load is optional)
+            }
             // Streaming Releases (TMDB-based)
             try {
                 const streaming = cfg.streamingSources || {};
@@ -1967,7 +1991,9 @@
                 initMsForSelect('streaming-ms-providers', 'streaming.providers');
                 // New Releases toggle remains a standalone flag
                 setBool('streamingSources.newReleases', streaming.newReleases);
-            } catch (_) {}
+            } catch (_) {
+                // ignore (streaming UI init optional)
+            }
             // TVDB
             const tvdb = cfg.tvdbSource || {};
             if (getInput('tvdb.enabled')) getInput('tvdb.enabled').checked = !!tvdb.enabled;
@@ -1977,7 +2003,9 @@
                 // Sync custom select UI/icon
                 try {
                     tvdbCatEl.dispatchEvent(new Event('change', { bubbles: true }));
-                } catch {}
+                } catch (_) {
+                    // ignore (custom select sync)
+                }
                 syncCustomSelect(tvdbCatEl);
             }
             const tvdbMinRatingEl = getInput('tvdb.minRating');
@@ -2080,6 +2108,7 @@
             });
             container.appendChild(chip);
         }
+        // eslint-disable-next-line no-unused-vars
         function populatePlexGenreChips(genres, selectedCsv) {
             const container = document.getElementById('plex.genreFilter');
             const select = document.getElementById('plex.genreFilter-select');
@@ -2145,6 +2174,8 @@
                 };
             }
         }
+        // Expose for reuse
+        window.populatePlexGenreChips = populatePlexGenreChips;
         async function loadPlexGenres(currentValueCsv = '') {
             const chipsRoot = document.getElementById('plex-ms-genres-chips');
             const optsEl = document.getElementById('plex-ms-genres-options');
@@ -2818,7 +2849,8 @@
             if (!root) return;
             if (root.dataset.msWired === 'true') return; // avoid duplicate listeners
             const control = root?.querySelector('.ms-control');
-            const input = null; // no top input; use search field inside menu
+            // no top input; use search field inside menu
+            // const input = null;
             const menu = document.getElementById('tmdb-ms-genres-menu');
             const search = document.getElementById('tmdb-ms-genres-search');
             const selectAll = document.getElementById('tmdb-ms-genres-select-all');
@@ -3201,7 +3233,9 @@
                 // Initial sync for trigger and list selection
                 try {
                     syncCustomSelect(tmdbCat);
-                } catch (_) {}
+                } catch (_) {
+                    // ignore
+                }
             }
         }
 
@@ -3381,7 +3415,9 @@
                 // Initial sync for trigger and list selection
                 try {
                     syncCustomSelect(tvdbCat);
-                } catch (_) {}
+                } catch (_) {
+                    // ignore
+                }
             }
         }
         document.getElementById('btn-tvdb-test')?.addEventListener('click', testTVDB);
@@ -3461,6 +3497,108 @@
             }
         });
 
+        // Helper: update Operations save button label depending on restart requirement
+        function opsRestartNeeded() {
+            const portEl = document.getElementById('SERVER_PORT');
+            const btn = document.getElementById('btn-save-operations');
+            if (!portEl || !btn) return false;
+            let original = btn.dataset.originalPort || portEl.dataset.originalPort;
+            // If original not known yet, treat current value as original to avoid false positives
+            if (original == null) {
+                original = String(portEl.value || '4000');
+                btn.dataset.originalPort = original;
+                portEl.dataset.originalPort = original;
+            }
+            const current = Number(portEl.value || 4000);
+            const origNum = Number(original);
+            if (!Number.isFinite(current) || !Number.isFinite(origNum)) return false;
+            return current !== origNum;
+        }
+        function updateOpsSaveButtonLabel() {
+            const btn = document.getElementById('btn-save-operations');
+            if (!btn) return;
+            const span = btn.querySelector('span');
+            const needs = opsRestartNeeded();
+            if (span) span.textContent = needs ? 'Save Settings & Restart' : 'Save Settings';
+            btn.dataset.restartRequired = needs ? 'true' : 'false';
+        }
+        // Expose for later use after async loads
+        window.updateOpsSaveButtonLabel = updateOpsSaveButtonLabel;
+        // Wire live updates on port input
+        if (portInput) {
+            ['input', 'change'].forEach(evt =>
+                portInput.addEventListener(evt, updateOpsSaveButtonLabel)
+            );
+        }
+
+        // Unified save for Operations: saves both Server Settings and Promobox
+        btnSaveOps?.addEventListener('click', async () => {
+            const btn = btnSaveOps;
+            try {
+                // Collect Server Settings
+                const DEBUG = !!document.getElementById('DEBUG')?.checked;
+                const portEl = document.getElementById('SERVER_PORT');
+                const serverPort = Math.max(1024, Math.min(65535, Number(portEl?.value || 4000)));
+                if (!Number.isFinite(serverPort) || serverPort < 1024 || serverPort > 65535) {
+                    return window.notify?.toast({
+                        type: 'warning',
+                        title: 'Invalid Port',
+                        message: 'Port must be between 1024 and 65535',
+                        duration: 4000,
+                    });
+                }
+                if (!btn.querySelector('.spinner')) {
+                    const sp = document.createElement('span');
+                    sp.className = 'spinner';
+                    btn.insertBefore(sp, btn.firstChild);
+                }
+                btn.classList.add('btn-loading');
+                // Collect Promobox
+                const enabled = !!document.getElementById('siteServer.enabled')?.checked;
+                const portVal = Number(document.getElementById('siteServer.port')?.value || 4001);
+
+                await saveConfigPatch(
+                    { serverPort: serverPort, siteServer: { enabled, port: portVal } },
+                    { DEBUG: String(DEBUG), SERVER_PORT: String(serverPort) }
+                );
+
+                const needsRestart = btn.dataset.restartRequired === 'true' || opsRestartNeeded();
+                if (needsRestart) {
+                    // Immediately trigger restart
+                    window.notify?.toast({
+                        type: 'info',
+                        title: 'Restarting…',
+                        message: 'Port changed. Applying changes and restarting.',
+                        duration: 0,
+                    });
+                    try {
+                        await fetch('/api/admin/restart-app', {
+                            method: 'POST',
+                            credentials: 'include',
+                        });
+                    } catch (_) {
+                        // Non-fatal: server may restart before responding
+                    }
+                } else {
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'Saved',
+                        message: 'Operations settings updated',
+                        duration: 2500,
+                    });
+                }
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Unable to save',
+                    duration: 4500,
+                });
+            } finally {
+                btn.classList.remove('btn-loading');
+            }
+        });
+
         // Toggle port/status visibility
         const promoEnabled = document.getElementById('siteServer.enabled');
         promoEnabled?.addEventListener('change', async () => {
@@ -3480,20 +3618,20 @@
                             hostFromApi && hostFromApi !== '127.0.0.1'
                                 ? hostFromApi
                                 : window.location?.hostname || 'localhost';
-                        const protocol = window.location?.protocol === 'https:' ? 'https' : 'http';
+                        const protocol = 'http';
                         const port = Number(
                             document.getElementById('siteServer.port')?.value || 4001
                         );
                         const url = `${protocol}://${host}:${port}`;
-                        status.innerHTML = `<div class="status-line"><i class="fas fa-globe"></i> Will run at <a class="url-chip" href="${url}" target="_blank" rel="noopener">${url}</a></div>`;
+                        status.innerHTML = `<div class="status-line"><i class="fas fa-globe"></i> <a class="url-chip" href="${url}" target="_blank" rel="noopener">${url}</a></div>`;
                     } catch {
                         const host = window.location?.hostname || 'localhost';
-                        const protocol = window.location?.protocol === 'https:' ? 'https' : 'http';
+                        const protocol = 'http';
                         const port = Number(
                             document.getElementById('siteServer.port')?.value || 4001
                         );
                         const url = `${protocol}://${host}:${port}`;
-                        status.innerHTML = `<div class="status-line"><i class="fas fa-globe"></i> Will run at <a class="url-chip" href="${url}" target="_blank" rel="noopener">${url}</a></div>`;
+                        status.innerHTML = `<div class="status-line"><i class="fas fa-globe"></i> <a class="url-chip" href="${url}" target="_blank" rel="noopener">${url}</a></div>`;
                     }
                 } else {
                     status.textContent = '';
@@ -3516,6 +3654,8 @@
             if (portElMain) {
                 const v = j?.env?.SERVER_PORT || cfg?.serverPort || 4000;
                 portElMain.value = Number(v) || 4000;
+                // Snapshot original for restart detection in unified save
+                portElMain.dataset.originalPort = String(portElMain.value);
             }
             // Promobox
             const site = cfg.siteServer || {};
@@ -3534,13 +3674,17 @@
                         hostFromApi && hostFromApi !== '127.0.0.1'
                             ? hostFromApi
                             : window.location?.hostname || 'localhost';
-                    const protocol = window.location?.protocol === 'https:' ? 'https' : 'http';
+                    const protocol = 'http';
                     const port = site.port || 4001;
                     const url = `${protocol}://${host}:${port}`;
-                    status.innerHTML = `<div class="status-line"><i class="fas fa-globe"></i> Running at <a class="url-chip" href="${url}" target="_blank" rel="noopener">${url}</a></div>`;
+                    status.innerHTML = `<div class="status-line"><i class="fas fa-globe"></i> <a class="url-chip" href="${url}" target="_blank" rel="noopener">${url}</a></div>`;
                 } else {
                     status.textContent = '';
                 }
+            }
+            // Ensure the unified save button label is correct after loading
+            if (typeof window.updateOpsSaveButtonLabel === 'function') {
+                window.updateOpsSaveButtonLabel();
             }
         } catch (e) {
             // non-fatal

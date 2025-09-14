@@ -817,13 +817,21 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             }
 
             // Clean up polling timer when modal closes
-            const originalDoClose = doClose;
-            doClose = function () {
+            const originalDoClose = typeof doClose === 'function' ? doClose : () => {};
+            function wrappedDoClose() {
                 if (registrationPollTimer) {
                     clearInterval(registrationPollTimer);
                 }
                 return originalDoClose();
-            };
+            }
+            // Assign via window to avoid reassigning a function declaration in some modes
+            if (typeof window !== 'undefined') {
+                window.doClose = wrappedDoClose;
+            } else {
+                // Fallback to local reassignment if window is not available
+                // eslint-disable-next-line no-func-assign
+                doClose = wrappedDoClose;
+            }
 
             // Initial button check
             setTimeout(checkButtons, 50);

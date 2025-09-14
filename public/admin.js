@@ -61,6 +61,7 @@
         let autoRegister = urlParams.get('auto-register');
         let deviceId = urlParams.get('device-id');
         let deviceName = urlParams.get('device-name');
+        // Track auto-register source for debugging only
         let source = 'current_url';
 
         // Try captured data from window.location
@@ -97,6 +98,7 @@
                         autoRegister,
                         deviceId,
                         deviceName,
+                        source,
                     });
                 }
             } catch (e) {
@@ -230,8 +232,8 @@
                         document.body.appendChild(successModal);
 
                         // Show success toast if available
-                        if (typeof showToast === 'function') {
-                            showToast(
+                        if (typeof window.showToast === 'function') {
+                            window.showToast(
                                 `Device "${deviceName || deviceId}" registered successfully`,
                                 'success'
                             );
@@ -259,8 +261,8 @@
 
                         // Navigate to devices tab automatically after a short delay
                         setTimeout(() => {
-                            if (typeof activateSection === 'function') {
-                                activateSection('devices');
+                            if (typeof window.activateSection === 'function') {
+                                window.activateSection('devices');
                             }
                         }, 2000);
                     } else {
@@ -269,8 +271,8 @@
                             debugDiv.style.background = '#842029';
                             debugDiv.style.borderColor = '#dc3545';
 
-                            if (typeof showToast === 'function') {
-                                showToast(`Failed to register device: ${text}`, 'error');
+                            if (typeof window.showToast === 'function') {
+                                window.showToast(`Failed to register device: ${text}`, 'error');
                             }
                         });
                     }
@@ -281,8 +283,8 @@
                     debugDiv.style.background = '#842029';
                     debugDiv.style.borderColor = '#dc3545';
 
-                    if (typeof showToast === 'function') {
-                        showToast('Failed to register device', 'error');
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Failed to register device', 'error');
                     }
                 });
         }

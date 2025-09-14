@@ -179,6 +179,16 @@
   .operations-panel .perf-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
   .operations-panel .perf-card h3 { margin: 0 0 10px 0; font-size: 0.95rem; opacity: 0.9; display: flex; align-items: center; gap: 8px; }
   .operations-panel .metric-row { display: flex; flex-direction: column; gap: 10px; }
+  /* Inline field styling for label + input rows */
+  .operations-panel .inline-field { display: flex; align-items: center; gap: 12px; justify-content: flex-start; flex-wrap: nowrap; }
+  .operations-panel .inline-field label {
+    display: inline-flex; align-items: center; margin: 0; line-height: 1.2; white-space: nowrap; width: auto;
+  }
+  .operations-panel .inline-field input,
+  .operations-panel .inline-field select {
+    flex: 0 0 auto;
+  }
+  /* removed number input left padding per UX request */
   /* Update progress bar */
   #update-progress { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
   #update-progress > div { height: 100%; width: 0; background: linear-gradient(90deg, #60a5fa, #2563eb); transition: width .2s ease; }
@@ -186,24 +196,25 @@
   #backups-display { border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 10px; }
   #backups-content { display: grid; gap: 8px; }
   #backups-content .backup-item { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); border-radius:10px; }
-  /* Security panel polish */
-  .security-panel .perf-card { background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: var(--space-lg); }
-  .security-panel .perf-card h3 { margin: 0 0 12px 0; font-weight: 700; opacity: .92; display:flex; align-items:center; gap:8px; }
-  .security-panel .metric-row { gap: 12px; }
-  .security-panel .actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  /* Security panel – compact layout */
+  .security-panel .perf-card { background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px 12px; }
+  .security-panel .perf-card h3 { margin: 0 0 8px 0; font-weight: 700; opacity: .92; display:flex; align-items:center; gap:8px; }
+  .security-panel .metric-row { gap: 8px; }
+  .security-panel .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .security-panel .subtle { opacity: .8; }
   .security-panel .input-row { display:flex; gap:8px; align-items:center; }
   .security-panel .input-row .btn.btn-icon { min-width: 36px; height: 36px; display:flex; align-items:center; justify-content:center; }
   .security-panel .input-row input { flex: 1; min-width: 0; }
   .security-panel .note { font-size:.85rem; opacity:.75; }
-  .security-panel .perf-columns { display:grid; grid-template-columns: 1fr 1fr; gap: var(--space-md, 12px); }
+  .security-panel .perf-columns { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+  .security-panel .sec-col { display: flex; flex-direction: column; gap: 10px; }
   .security-panel .perf-card + .perf-card { margin-top: 0; }
   .security-panel .perf-card { margin-bottom: 0; }
   @media (max-width: 900px) {
     .security-panel .perf-columns { grid-template-columns: 1fr !important; }
   }
   /* Single-column grid helper for stacked fields */
-  .security-panel .form-grid.form-single-col { grid-template-columns: 1fr; gap: var(--space-md, 12px); }
+  .security-panel .form-grid.form-single-col { grid-template-columns: 1fr; gap: 8px; }
   /* Utility */
   .is-hidden { display: none !important; }
 
@@ -1037,51 +1048,15 @@
         <header class="panel-header">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;">
             <h2 style="margin:0; display:flex; align-items:center; gap:10px;"><i class="fas fa-screwdriver-wrench"></i> Operations</h2>
-            <div class="subtle" style="opacity:.8;">Maintenance, updates, and server settings</div>
+            <button type="button" id="btn-save-operations" class="btn btn-primary btn-sm" title="Save all operation settings">
+              <i class="fas fa-save"></i><span>Save Settings</span>
+            </button>
           </div>
         </header>
         <div class="panel-content">
       <div class="content-grid" style="gap:12px;">
         <div class="ops-col">
-            <!-- Media Operations -->
-            <section class="perf-card" aria-label="Media Operations">
-              <h3><i class="fas fa-sync-alt"></i> Media</h3>
-              <div class="metric-row">
-                <div class="subtle">Manually refresh media from configured sources.</div>
-              </div>
-        <div class="actions main-actions">
-                <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
-                  <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
-                </button>
-              </div>
-            </section>
-            <!-- Server Settings -->
-            <section class="perf-card" aria-label="Server Settings">
-              <h3><i class="fas fa-gear"></i> Server Settings</h3>
-              <div class="metric-row">
-                <div class="form-group">
-                  <label for="SERVER_PORT">Port</label>
-                  <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" style="width:120px;" />
-                  <div class="subtle">Application port (default 4000). Changing this requires a restart.</div>
-                </div>
-                <div class="form-group checkbox-group">
-                  <label class="checkbox" for="DEBUG">
-                    <input type="checkbox" id="DEBUG" />
-                    <span class="checkmark"></span>
-                    <span>Enable Debug Mode</span>
-                  </label>
-                </div>
-                <div class="subtle">Debug mode increases logging detail. Use temporarily for troubleshooting.</div>
-              </div>
-              <div class="actions" style="margin-top:8px;">
-                <button type="button" id="btn-save-server-settings" class="btn btn-primary btn-sm">
-                  <i class="fas fa-save"></i><span>Save Settings</span>
-                </button>
-              </div>
-            </section>
-        </div>
-        <div class="ops-col">
-            <!-- Auto-Update Operations -->
+            <!-- Auto-Update Operations (moved to top-left) -->
             <section class="perf-card" aria-label="Automatic Updates">
               <h3><i class="fas fa-download"></i> Automatic Updates</h3>
               <div id="ops-update-status" class="status-display">
@@ -1119,11 +1094,43 @@
                 </div>
               </div>
       </section>
+            <!-- Media Operations -->
+            <section class="perf-card" aria-label="Media Operations">
+              <h3><i class="fas fa-sync-alt"></i> Media</h3>
+              <div class="metric-row">
+                <div class="subtle">Manually refresh media from configured sources.</div>
+              </div>
+        <div class="actions main-actions">
+                <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
+                  <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
+                </button>
+              </div>
+            </section>
+            <!-- Server Settings -->
+            <section class="perf-card" aria-label="Server Settings">
+              <h3><i class="fas fa-gear"></i> Server Settings</h3>
+              <div class="metric-row">
+                <div class="form-group inline-field" style="display: block; white-space: nowrap;">
+                  <label for="SERVER_PORT" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
+                  <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" style="width:110px;" />
+                </div>
+              </div>
+            </section>
+        </div>
+  <div class="ops-col">
       <!-- Debug & Logging -->
             <section class="perf-card" aria-label="Debug & Logging">
               <h3><i class="fas fa-bug"></i> Debug & Logging</h3>
               <div class="metric-row">
                 <div class="subtle">View recent logs and monitor server activity.</div>
+                <div class="form-group checkbox-group" style="margin-top:6px;">
+                  <label class="checkbox" for="DEBUG">
+                    <input type="checkbox" id="DEBUG" />
+                    <span class="checkmark"></span>
+                    <span>Enable Debug Mode</span>
+                  </label>
+                </div>
+                <div class="subtle">Debug mode increases logging detail. Use temporarily for troubleshooting.</div>
               </div>
               <div class="actions" style="margin-top:8px;">
                 <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
@@ -1140,16 +1147,11 @@
                     <span>Enable Promobox Site</span>
                   </label>
                 </div>
-                <div class="form-group" id="siteServerPortGroup" style="display:none;">
-                  <label for="siteServer.port">Port</label>
+                <div class="form-group inline-field" id="siteServerPortGroup" style="display:none;white-space:nowrap;">
+                  <label for="siteServer.port" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
                   <input type="number" id="siteServer.port" min="1024" max="65535" value="4001" style="width:110px;" />
                 </div>
                 <div id="siteServerStatus" class="subtle" style="display:none;"></div>
-              </div>
-              <div class="actions" style="margin-top:8px;">
-                <button type="button" id="btn-save-promobox" class="btn btn-primary btn-sm">
-                  <i class="fas fa-save"></i><span>Save Promobox</span>
-                </button>
               </div>
             </section>
     </div>
@@ -1166,8 +1168,9 @@
         </header>
         <div class="panel-content">
           <div class="perf-columns" style="grid-template-columns: 1fr 1fr;">
+            <div class="sec-col">
             <!-- Password Management -->
-            <section class="perf-card" aria-label="Password Management" style="margin-bottom: var(--space-md, 12px);">
+            <section class="perf-card" aria-label="Password Management">
               <h3><i class="fas fa-key"></i> Password Management</h3>
               <div class="form-grid form-single-col">
                 <div class="form-group">
@@ -1183,27 +1186,26 @@
                   <input type="password" id="sec-confirm-pw" autocomplete="new-password" />
                 </div>
               </div>
-              <div class="actions" style="margin-top:8px;">
+              <div class="actions" style="margin-top:6px;">
                 <button type="button" id="btn-change-password" class="btn btn-success btn-sm">
                   <i class="fas fa-lock"></i><span>Change Password</span>
                 </button>
               </div>
             </section>
-
-            
-
+            </div>
+            <div class="sec-col">
             <!-- Two-Factor Authentication -->
-            <section class="perf-card" aria-label="Two-Factor Authentication" style="margin-bottom: var(--space-md, 12px);">
+            <section class="perf-card" aria-label="Two-Factor Authentication">
               <h3><i class="fas fa-mobile-alt"></i> Two-Factor Authentication</h3>
               <div id="sec-2fa-status" class="subtle">Loading…</div>
-              <div class="actions" style="margin-top:8px;">
+              <div class="actions" style="margin-top:6px;">
                 <button type="button" id="btn-2fa-enable" class="btn btn-secondary btn-sm"><i class="fas fa-qrcode"></i><span>Enable 2FA</span></button>
                 <button type="button" id="btn-2fa-disable" class="btn btn-error btn-sm" disabled><i class="fas fa-user-lock"></i><span>Disable 2FA</span></button>
               </div>
             </section>
 
             <!-- API Access -->
-            <section class="perf-card" aria-label="API Access Management" style="grid-column: 1 / -1;">
+            <section class="perf-card" aria-label="API Access Management">
               <h3><i class="fas fa-code"></i> API Access</h3>
               <div class="metric-row">
                 <div id="api-key-status" class="subtle">Status: <span id="api-key-status-text">Loading…</span></div>
@@ -1218,7 +1220,7 @@
                   </div>
                 </div>
               </div>
-              <div class="actions" style="margin-top:8px;">
+              <div class="actions" style="margin-top:6px;">
         <button id="generate-api-key-button" type="button" class="btn btn-success btn-sm">
                   <i class="fas fa-key"></i>
                   <span>Generate New Key</span>
@@ -1229,6 +1231,7 @@
                 </button>
               </div>
             </section>
+            </div>
           </div>
         </div>
       </section>
