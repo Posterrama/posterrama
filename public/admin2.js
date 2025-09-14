@@ -879,7 +879,27 @@
                     visibility: cs.visibility,
                     contentHidden: content?.hidden,
                 });
-                el.scrollIntoView({ behavior: 'auto', block: 'start' });
+                // Always scroll the entire page to the absolute top when switching panels
+                try {
+                    // Primary: window scroll
+                    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                } catch (_) {
+                    // no-op
+                }
+                try {
+                    // Fallbacks for various scroll containers/browsers
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
+                    // Attempt common scroll containers just in case
+                    const scrollers = document.querySelectorAll(
+                        '.main, .content, .container, .layout, .page, .page-content, .content-wrapper, .scroll-container'
+                    );
+                    scrollers.forEach(s => {
+                        if (s && typeof s.scrollTop === 'number') s.scrollTop = 0;
+                    });
+                } catch (_) {
+                    // no-op
+                }
                 // Show loading overlay while we ensure config is populated
                 el.classList.add('is-loading');
             } else {
