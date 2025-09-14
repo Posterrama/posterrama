@@ -1,0 +1,32 @@
+[
+    {
+        "key": "4k-tv",
+        "name": "4K TV",
+        "description": "Living-room 4K television: larger UI, bigger text/clock",
+        "overrides": {
+            "uiScaling": { "content": 105, "clearlogo": 110, "clock": 120, "global": 110 },
+            "wallartMode": { "enabled": false },
+            "cinemaMode": false
+        }
+    },
+    {
+        "key": "full-hd",
+        "name": "Full HD",
+        "description": "1080p monitor balanced UI scaling",
+        "overrides": {
+            "uiScaling": { "content": 100, "clearlogo": 100, "clock": 108, "global": 102 },
+            "wallartMode": { "enabled": false },
+            "cinemaMode": false
+        }
+    },
+    {
+        "key": "ultrawide",
+        "name": "Ultrawide 21:9",
+        "description": "21:9 monitors; compact content, bigger clock",
+        "overrides": {
+            "uiScaling": { "content": 92, "clearlogo": 96, "clock": 118, "global": 100 },
+            "wallartMode": { "enabled": false },
+            "cinemaMode": false
+        }
+    }
+]

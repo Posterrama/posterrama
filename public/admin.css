@@ -718,7 +718,7 @@ a:hover {
 }
 
 .admin-main {
-    padding: 0.5rem 1rem 6rem 1rem; /* Unified, tighter top/bottom spacing */
+    padding: 0.5rem 1rem 6rem 1rem; /* Revert: no extra empty space at page bottom */
     height: 100%;
     width: 100%;
     max-width: 1400px;
@@ -757,6 +757,11 @@ a:hover {
     .form-grid-auto .form-group.full-width {
         grid-column: 1 / -1;
     }
+
+    /* Device Settings modal specific: ensure the Animation Type row spans full width beneath density/variant selects */
+    #device-settings-modal .ds-form .form-grid-3 .form-group.full-width {
+        grid-column: 1 / -1 !important;
+    }
     .form-grid-2 .form-group.span-2 {
         grid-column: span 2;
     }
@@ -789,14 +794,9 @@ a:hover {
 /* Simple subsection headers - match section-title width and work with dynamic visibility */
 /* When zoomed, increase size and adjust whitespace cancellation accordingly */
 #device-settings-modal #modal-preview-container.preview-container.pip-mode.zoom-2x {
-    width: calc(var(--preview-width) * 1.5) !important;
+    width: min(calc(var(--preview-width) * 1.5), calc(100% - 32px)) !important;
     height: calc(var(--preview-height) * 1.5) !important;
-    margin: 0 16px
-        calc(
-            -1 * (calc(var(--preview-height) * 1.5) + 2 * var(--preview-container-padding, 8px)) +
-                12px
-        )
-        auto !important;
+    margin: 0 16px 12px auto !important;
 }
 .subsection-header {
     display: flex;
@@ -832,8 +832,16 @@ a:hover {
 
 /* SPECIFIC FIX: Display Settings section dynamic layout */
 #display-section .form-section.unified-section {
-    min-height: 200px !important;
-    padding: var(--content-padding-y) var(--content-padding-x) 0 var(--content-padding-x) !important; /* Add horizontal padding back */
+    /* Do not reserve vertical space; preview is fixed and decoupled */
+    min-height: 0 !important;
+    /* Remove extra gap between section title and content for Display page */
+    padding: 0 var(--content-padding-x) 0 var(--content-padding-x) !important;
+}
+
+/* Eliminate space between section title and first content block for Display */
+#display-section .section-title {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
 }
 
 /* All subsection headers in Display Settings get standard spacing */
@@ -1693,12 +1701,22 @@ div:nth-of-type(2).subsection-header i {
 #display-section .subsection-content:last-child,
 #display-section .form-section.unified-section > .subsection-content:last-child {
     margin-bottom: var(--content-padding-y) !important;
-    padding-bottom: 0.5rem !important; /* Extra padding for visual breathing room */
+    padding-bottom: 0.75rem !important; /* Extra padding for visual breathing room */
 }
 
 /* Additional fix: Ensure any form groups in the last subsection have proper spacing */
 #display-section .subsection-content:last-child .form-group:last-child {
     margin-bottom: 0.5rem !important;
+}
+
+/* Scoped: give a touch of padding at the bottom of the last settings container only */
+.section-content.active .form-section.unified-section > .subsection-content:last-child {
+    padding-bottom: 0.75rem !important;
+}
+
+/* Modal: same subtle bottom padding for the last settings container only */
+#device-settings-modal .form-section.unified-section > .subsection-content:last-child {
+    padding-bottom: 0.75rem !important;
 }
 
 /* WALLART MODE SPECIFIC STYLING */
@@ -2059,6 +2077,43 @@ div:nth-of-type(2).subsection-header i {
         grid-template-columns: 1fr;
         gap: 0.75rem;
     }
+}
+
+/* Devices: Preset select styling */
+.table .cell-preset select,
+#devices-subsection .bulk-preset-actions select,
+.inline-edit.preset-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #e1e5f2;
+    padding: 0.4rem 2rem 0.4rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    min-width: 160px;
+    cursor: pointer;
+}
+
+.table .cell-preset select:focus,
+#devices-subsection .bulk-preset-actions select:focus,
+.inline-edit.preset-select:focus {
+    outline: none;
+    border-color: rgba(102, 126, 234, 0.7);
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
+}
+
+#devices-subsection .bulk-preset-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 0.5rem;
+}
+
+#devices-subsection .bulk-preset-actions .btn {
+    white-space: nowrap;
 }
 
 .section-header {
@@ -2586,7 +2641,7 @@ div#logs-section.section-content.active .section-main-content {
     width: 100%;
     position: relative;
     min-height: 300px;
-    padding: 0; /* Let inner form-sections handle padding */
+    padding: 0; /* Revert: inner containers will handle their own end padding */
     background: transparent; /* No backdrop on the entire section */
     border-radius: 0;
 }
@@ -4577,7 +4632,10 @@ fieldset:focus-within {
     padding-right: 0;
 }
 #devices-section th.col-name {
-    width: 60%;
+    width: 46%;
+}
+#devices-section th.col-preset {
+    width: 18%;
 }
 #devices-section th.col-mode {
     width: 10%;
@@ -4606,6 +4664,9 @@ fieldset:focus-within {
 #devices-section td.cell-mode,
 #devices-section td.cell-screen {
     text-align: center;
+}
+#devices-section td.cell-preset {
+    white-space: nowrap;
 }
 #devices-section td.cell-screen {
     display: none;
@@ -4676,7 +4737,11 @@ div#devices-section.section-content.active .section-main-content {
 /* Overrides Modal - mirror Display Settings spacing and layout */
 #device-settings-modal .form-section.unified-section {
     min-height: 200px !important;
-    padding: var(--content-padding-y) var(--content-padding-x) 0 var(--content-padding-x) !important;
+    padding: var(--content-padding-y) var(--content-padding-x) var(--content-padding-y)
+        var(--content-padding-x) !important;
+    /* Let the modal-content handle scrolling */
+    max-height: none !important;
+    overflow: visible !important;
 }
 /* On desktop, remove reserved min-height since the preview overlays the form */
 @media (min-width: 1024px) {
@@ -4707,6 +4772,42 @@ div#devices-section.section-content.active .section-main-content {
     backdrop-filter: blur(12px) saturate(120%) !important;
     -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
     border-radius: 14px !important;
+    overflow-y: auto !important; /* scroll the whole modal as one unit */
+    overflow-x: hidden !important; /* prevent unnecessary horizontal scroll */
+}
+
+/* Nicer, compact close button positioned slightly higher/right */
+#device-settings-modal .modal-content .close {
+    position: absolute !important;
+    top: 8px !important;
+    right: 10px !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 999px !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    color: #e5e7eb !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+    cursor: pointer !important;
+    z-index: 2 !important;
+}
+#device-settings-modal .modal-content .close:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+}
+#device-settings-modal .modal-content .close:active {
+    transform: scale(0.96) !important;
+}
+#device-settings-modal .modal-content .close:focus-visible {
+    outline: 2px solid #6366f1 !important;
+    outline-offset: 2px !important;
 }
 /* Light, neutral overlay for this modal only (no dark scrim) */
 #device-settings-modal .modal-background {
@@ -4719,36 +4820,15 @@ div#devices-section.section-content.active .section-main-content {
     border-radius: 12px;
     box-shadow: var(--elevation-2);
 }
-/* Inside the device settings modal, the preview should behave like PiP but scoped to the modal */
-#device-settings-modal #modal-preview-container.preview-container.pip-mode {
-    position: sticky !important;
-    top: 140px !important; /* further down so it sits below headers */
-    margin-left: auto !important; /* push to the right edge within container */
-    margin-right: 16px !important; /* inside container padding */
-    z-index: 10002 !important; /* above form fields */
-}
-/* Desktop: lower sticky preview a bit more to align with first subsection */
-@media (min-width: 1024px) {
-    /* Revert to block flow; no grid columns for modal content */
-    #device-settings-modal .ds-grid {
-        display: block !important;
-    }
-    /* Float preview above content, within container, and keep it pinned while scrolling */
-    #device-settings-modal #modal-preview-container.preview-container.pip-mode {
-        position: sticky !important; /* pins within modal scroll */
-        top: 160px !important; /* sit slightly higher below modal header */
-        width: var(--preview-width) !important; /* preserve container dimensions for scaler */
-        height: var(--preview-height) !important; /* preserve proportions for scaler */
-        overflow: visible !important; /* allow overlay over content */
-        /* Remove most reserved space but leave a small gap under the preview (12px) */
-        margin: 0 16px
-            calc(-1 * (var(--preview-height) + 2 * var(--preview-container-padding, 8px)) + 12px)
-            auto !important; /* align right */
-        left: auto !important;
-        right: auto !important;
-        z-index: 10002 !important; /* above form controls */
-    }
-    /* No additional negative shift on the form; preview container handles space cancellation */
+/* Force modal preview to float globally (decoupled) */
+#modal-preview-container.preview-container.pip-mode {
+    position: fixed !important;
+    top: calc(var(--header-height, 70px) + 12px) !important;
+    right: 12px !important;
+    left: auto !important;
+    bottom: auto !important;
+    z-index: 10000020 !important; /* above modal */
+    margin: 0 !important;
 }
 
 /* Align checkbox + label inline like main settings */
@@ -8681,6 +8761,16 @@ input[type='range']::-moz-range-thumb {
     transform: translate(-50%, -50%) scale(1.05) !important;
     background: rgba(0, 0, 0, 0.9) !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Place Timing Randomness label below its slider in main Display Settings */
+.wallart-controls-group .slider-wrapper:has(#wallartRandomness) {
+    margin-bottom: 1.25rem !important; /* room for label below */
+}
+.wallart-controls-group .slider-wrapper:has(#wallartRandomness) .slider-percentage {
+    top: calc(100% + 8px) !important; /* below track */
+    left: 50% !important;
+    transform: translate(-50%, 0) !important;
 }
 
 /* Hide old slider values completely */

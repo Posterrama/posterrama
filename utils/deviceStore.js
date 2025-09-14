@@ -121,6 +121,7 @@ async function registerDevice({
         status: 'unknown',
         clientInfo: {},
         settingsOverride: {},
+        preset: '',
         currentState: {},
         pairing: {},
     };

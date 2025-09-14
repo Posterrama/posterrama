@@ -612,6 +612,9 @@ window.scrollToSubsection = function (id) {
                 const dy = Math.abs(clientY - startClientY);
                 if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) return;
                 startedDragging = true;
+                try {
+                    container.dataset.userMoved = '1';
+                } catch (_) {}
             }
             const vw = window.innerWidth;
             const vh = window.innerHeight;
@@ -4651,11 +4654,43 @@ document.addEventListener('DOMContentLoaded', () => {
                             display: flex;
                             align-items: center;
                             gap: 8px;
+                            position: relative; /* for absolute bubble positioning */
                         }
-                        #device-settings-modal .ds-form .slider-wrapper .slider-percentage {
-                            min-width: 64px;
-                            text-align: right;
-                            opacity: 0.9;
+                        /* Thumb-following value bubble (above the thumb) */
+                        #device-settings-modal .ds-form .slider-wrapper.modern-slider .slider-percentage {
+                            position: absolute;
+                            bottom: auto;
+                            top: auto;
+                            left: 50%; /* default thumb-follow; overridden by .bubble-br */
+                            transform: translateX(-50%);
+                            background: rgba(0,0,0,0.85);
+                            color: #fff;
+                            padding: 4px 8px;
+                            border-radius: 10px;
+                            font-size: 0.75rem;
+                            font-weight: 600;
+                            border: 1px solid rgba(255,255,255,0.2);
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+                            pointer-events: none;
+                            white-space: nowrap;
+                            z-index: 2;
+                        }
+                        /* Place value bubbles for Refresh Rate and Randomness at bottom-left of their slider */
+                        #device-settings-modal .ds-form .form-group:has([data-key='wallartMode.refreshRate']) .slider-wrapper.modern-slider,
+                        #device-settings-modal .ds-form .form-group:has([data-key='wallartMode.randomness']) .slider-wrapper.modern-slider {
+                            margin-bottom: 1.25rem; /* room for bubble below */
+                        }
+                        #device-settings-modal .ds-form .form-group:has([data-key='wallartMode.refreshRate']) .slider-wrapper.modern-slider .slider-percentage,
+                        #device-settings-modal .ds-form .form-group:has([data-key='wallartMode.randomness']) .slider-wrapper.modern-slider .slider-percentage {
+                            top: calc(100% + 8px);
+                            bottom: auto;
+                            left: 0;
+                            right: auto;
+                            transform: none;
+                        }
+                        #device-settings-modal .ds-form .slider-wrapper input[type='range'] {
+                            width: 100%;
+                            max-width: none;
                         }
                     </style>
                     <input type="text" id="custom-2fa-token" placeholder="000000" maxlength="6" style="
@@ -9683,6 +9718,54 @@ function showPairingModal({ code, expiresAt, claimUrl }) {
     }
 }
 
+// Simple in-memory cache for presets loaded from admin config
+let __devicePresets = [];
+
+async function loadDevicePresets() {
+    try {
+        const res = await authenticatedFetch(apiUrl('/api/admin/device-presets'), {
+            method: 'GET',
+            noRedirectOn401: true,
+        });
+        if (!res.ok) throw new Error('failed');
+        const data = await res.json();
+        setDevicePresets(Array.isArray(data) ? data : []);
+        populateBulkPresetPicker();
+    } catch (e) {
+        // leave empty list on failure
+        setDevicePresets([]);
+        populateBulkPresetPicker();
+    }
+}
+
+function populateBulkPresetPicker() {
+    try {
+        const sel = document.getElementById('bulk-preset-select');
+        if (!sel) return;
+        const presets = getDevicePresets();
+        sel.innerHTML = ['<option value="">(none)</option>']
+            .concat(
+                presets.map(
+                    p =>
+                        `<option value="${(p.key || '').replace(/"/g, '&quot;')}">${(
+                            p.name ||
+                            p.key ||
+                            ''
+                        ).replace(/</g, '&lt;')}</option>`
+                )
+            )
+            .join('');
+    } catch (_) {}
+}
+
+function getDevicePresets() {
+    return Array.isArray(__devicePresets) ? __devicePresets : [];
+}
+
+function setDevicePresets(presets) {
+    __devicePresets = Array.isArray(presets) ? presets : [];
+}
+
 function renderDevicesTable(devices) {
     const tbody = document.querySelector('#devices-table tbody');
     if (!tbody) return;
@@ -9704,96 +9787,68 @@ function renderDevicesTable(devices) {
         };
     };
     const esc = s => (s == null ? '' : String(s));
-    const parseGroups = raw => {
-        try {
-            if (Array.isArray(raw))
-                return raw
-                    .filter(Boolean)
-                    .map(s => String(s).trim())
-                    .filter(Boolean);
-            if (raw == null) return [];
-            const str = String(raw).trim();
-            // Try JSON array first
-            if (
-                (str.startsWith('[') && str.endsWith(']')) ||
-                (str.startsWith('"[') && str.endsWith(']"'))
-            ) {
-                try {
-                    const parsed = JSON.parse(str.replace(/^"|"$/g, ''));
-                    if (Array.isArray(parsed))
-                        return parsed
-                            .filter(Boolean)
-                            .map(s => String(s).trim())
-                            .filter(Boolean);
-                } catch (_) {
-                    // fall through to delimiter split
-                }
-            }
-            // Split on common delimiters: comma, semicolon, pipe
-            return str
-                .split(/[,;|]/)
-                .map(s =>
-                    s
-                        .replace(/^\[|\]$/g, '')
-                        .replace(/^"|"$/g, '')
-                        .trim()
-                )
-                .filter(Boolean);
-        } catch (_) {
-            return [];
-        }
+    // Preset helpers
+    const presets = getDevicePresets();
+    const buildPresetOptions = currentKey => {
+        const safe = s => (s == null ? '' : String(s));
+        const opts = [
+            `<option value="" ${!currentKey ? 'selected' : ''}>(none)</option>`,
+            ...presets.map(p => {
+                const key = safe(p.key);
+                const name = safe(p.name || p.key);
+                const sel = key === currentKey ? ' selected' : '';
+                return `<option value="${key.replace(/"/g, '&quot;')}"${sel}>${name.replace(
+                    /</g,
+                    '&lt;'
+                )}</option>`;
+            }),
+        ];
+        return opts.join('');
     };
-    const toChips = (arr = []) =>
-        (Array.isArray(arr) ? arr : [])
-            .map(g => `<span class="chip" data-chip="group">${esc(g)}</span>`)
-            .join('');
-
-    // Populate group suggestions
-    const allGroups = new Set();
-    devices.forEach(d => {
-        const rawArr = parseGroups(d.groups);
-        rawArr.forEach(g => {
-            if (g) allGroups.add(g);
-        });
-    });
-    let datalist = document.getElementById('device-groups-datalist');
-    if (!datalist) {
-        const host = document.getElementById('devices-subsection') || document.body;
-        datalist = document.createElement('datalist');
-        datalist.id = 'device-groups-datalist';
-        host.appendChild(datalist);
-    }
-    if (datalist) {
-        const existing = new Set(Array.from(datalist.querySelectorAll('option')).map(o => o.value));
-        Array.from(allGroups)
-            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-            .forEach(g => {
-                if (!existing.has(g)) {
-                    const opt = document.createElement('option');
-                    opt.value = g;
-                    datalist.appendChild(opt);
-                }
-            });
-    }
-    const groupsListHtml = Array.from(allGroups)
-        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-        .map(g => `<span class="chip" data-chip="group">${esc(g)}</span>`)
-        .join('');
 
     devices.forEach(d => {
         const tr = document.createElement('tr');
-        const groupsArr = parseGroups(d.groups);
+        const currentPresetKey = d.preset || '';
         // const screen = d.clientInfo?.screen || {};
-        const mode = d.clientInfo?.mode || '';
         // const dims =
         //     screen.w && screen.h ? `${screen.w}×${screen.h} @${screen.dpr || 1}x` : '';
         const last = fmtParts(d.lastSeenAt);
         // const cellScreen = dims ? `<span class="badge is-unknown">${esc(dims)}</span>` : '—';
-        const cellMode = mode ? `<span class="badge is-unknown">${esc(mode)}</span>` : '—';
+        // Determine effective mode: overrides take priority, then client-reported, else default
         const overridesObj =
             d && d.settingsOverride && typeof d.settingsOverride === 'object'
                 ? d.settingsOverride
                 : {};
+        const modeInfo = (() => {
+            try {
+                // 1) Per-device overrides (explicit choice)
+                if (overridesObj && typeof overridesObj === 'object') {
+                    const ow = overridesObj.wallartMode || {};
+                    const oc = overridesObj.cinemaMode;
+                    if (ow && ow.enabled === true) {
+                        return { label: 'Wallart', cls: 'is-primary', src: 'override' };
+                    }
+                    if (oc === true) {
+                        return { label: 'Cinema', cls: 'is-primary', src: 'override' };
+                    }
+                    if (ow && ow.enabled === false && oc === false) {
+                        return { label: 'Screensaver', cls: 'is-unknown', src: 'override' };
+                    }
+                }
+                // 2) Client-reported mode (best available runtime state)
+                const cm = (d.clientInfo?.mode || '').toLowerCase();
+                if (cm === 'cinema') return { label: 'Cinema', cls: 'is-primary', src: 'client' };
+                if (cm === 'wallart') return { label: 'Wallart', cls: 'is-primary', src: 'client' };
+                if (cm === 'screensaver' || cm === 'slideshow' || cm === 'default')
+                    return { label: 'Screensaver', cls: 'is-unknown', src: 'client' };
+            } catch (_) {}
+            // 3) Fallback
+            return { label: 'Screensaver', cls: 'is-unknown', src: 'fallback' };
+        })();
+        const cellMode = `<span class="badge ${modeInfo.cls}" title="Mode source: ${modeInfo.src}">${esc(
+            modeInfo.label
+        )}</span>`;
+        // overridesObj kept above for overrides badge calculation
         const overridesCount = (() => {
             try {
                 return Object.keys(overridesObj || {}).length;
@@ -9814,7 +9869,12 @@ function renderDevicesTable(devices) {
                 ['Resolution', sc.w && sc.h ? `${sc.w}×${sc.h}` : '—'],
                 ['Pixel Ratio', sc.dpr != null ? String(sc.dpr) : '—'],
                 ['Orientation', sc.orientation || '—'],
-                ['Mode', ci.mode || '—'],
+                [
+                    'Mode',
+                    ci.mode
+                        ? String(ci.mode).charAt(0).toUpperCase() + String(ci.mode).slice(1)
+                        : '—',
+                ],
                 ['Platform', ci.platform || '—'],
                 ['User Agent', ua ? ua.substring(0, 180) + (ua.length > 180 ? '…' : '') : '—'],
             ];
@@ -9827,6 +9887,11 @@ function renderDevicesTable(devices) {
                 .join('');
             return `<div class="tip-title">Device details</div><div class="tip-grid">${rows || '<span class="tip-k">No details</span><span class="tip-v"></span>'}</div>`;
         })();
+
+        // Compute status flags for control availability
+        const rawStatus = (d.status || 'unknown').toLowerCase();
+        const hasWs = !!d.wsConnected;
+        const isOffline = rawStatus === 'offline';
 
         tr.innerHTML = `
             <td class="cell-select"><input type="checkbox" class="row-select" data-id="${d.id}" aria-label="Select device" /></td>
@@ -9845,16 +9910,16 @@ function renderDevicesTable(devices) {
             <button type="button" class="btn" data-cmd="overrides" data-id="${d.id}" title="Edit display settings override">
                             <span class="icon"><i class="fas fa-sliders-h"></i></span>
                         </button>
-            <button type="button" class="btn" data-cmd="playback.prev" data-id="${d.id}" title="Previous poster">
+            <button type="button" class="btn" data-cmd="playback.prev" data-id="${d.id}" title="Previous poster" ${isOffline ? 'disabled' : ''}>
                             <span class="icon"><i class="fas fa-step-backward"></i></span>
                         </button>
-            <button type="button" class="btn playback-toggle${d.currentState && d.currentState.paused === false ? ' is-primary is-playing' : ''}" data-cmd="playback.toggle" data-id="${d.id}" title="Play/Pause">
+            <button type="button" class="btn playback-toggle${d.currentState && d.currentState.paused === false ? ' is-primary is-playing' : ''}" data-cmd="playback.toggle" data-id="${d.id}" title="Play/Pause" ${isOffline ? 'disabled' : ''}>
                             <span class="icon"><i class="fas ${d.currentState && d.currentState.paused === false ? 'fa-pause' : 'fa-play'}"></i></span>
                         </button>
-            <button type="button" class="btn" data-cmd="playback.next" data-id="${d.id}" title="Next poster">
+            <button type="button" class="btn" data-cmd="playback.next" data-id="${d.id}" title="Next poster" ${isOffline ? 'disabled' : ''}>
                             <span class="icon"><i class="fas fa-step-forward"></i></span>
                         </button>
-            <button type="button" class="btn" data-cmd="playback.pinPoster" data-id="${d.id}" title="Pin current poster">
+            <button type="button" class="btn" data-cmd="playback.pinPoster" data-id="${d.id}" title="Pin current poster" ${isOffline ? 'disabled' : ''}>
                             <span class="icon"><i class="fas fa-thumbtack"></i></span>
                         </button>
             <button type="button" class="btn btn-danger" data-cmd="delete" data-id="${d.id}" title="Delete this device">
@@ -9871,23 +9936,13 @@ function renderDevicesTable(devices) {
                         <div class="field-label">Location</div>
                         <input class="inline-edit location-input" data-field="location" data-id="${d.id}" value="${esc(d.location)}" placeholder="Location" />
                     </div>
-                    <div class="field field-group-picker">
-                        <div class="field-label">Group</div>
-                        <input class="inline-edit groups-input" list="device-groups-datalist" data-field="groups" data-id="${d.id}" value="${esc(groupsArr.join(', '))}" placeholder="Groups" title="Use comma to separate multiple groups" autocomplete="off" />
-                        <div class="help-popup" role="tooltip">
-                            <div class="help-title">Groups</div>
-                            <div class="help-text">
-                                • Type to search or pick from the list<br/>
-                                • Separate multiple groups with commas<br/>
-                                • New names are allowed
-                            </div>
-                            <div class="help-subtitle">Existing groups</div>
-                            <div class="help-groups">${groupsListHtml || '<span class="muted">No groups</span>'}</div>
-                        </div>
-                        <div class="group-badges">${toChips(groupsArr)}</div>
-                    </div>
                 </div>
                 <div class="row-bottom meta-line">${overridesBadge}</div>
+            </td>
+            <td class="cell-preset">
+                <select class="inline-edit preset-select" data-field="preset" data-id="${d.id}" title="Assign a display preset to this device" aria-label="Preset">
+                    ${buildPresetOptions(currentPresetKey)}
+                </select>
             </td>
             <td class="cell-mode">${cellMode}</td>
             <td class="cell-status">${(() => {
@@ -9899,7 +9954,7 @@ function renderDevicesTable(devices) {
                 let explain = 'Device status is unknown.';
                 if (raw === 'offline') {
                     label = 'Offline';
-                    cls = 'is-unknown';
+                    cls = 'is-unknown'; // gray
                     explain = 'Device is not connected. No recent heartbeat detected.';
                 } else if (raw === 'online' && hasWs) {
                     label = 'Live';
@@ -9930,9 +9985,12 @@ function renderDevicesTable(devices) {
     // Bulk selection controls
     const selectAll = document.getElementById('devices-select-all');
     const bulkDeleteBtn = document.getElementById('devices-delete-selected');
+    const bulkAssignBtn = document.getElementById('devices-assign-preset');
+    const bulkPresetSelect = document.getElementById('bulk-preset-select');
     const updateBulkState = () => {
         const selected = tbody.querySelectorAll('.row-select:checked');
         if (bulkDeleteBtn) bulkDeleteBtn.disabled = selected.length === 0;
+        if (bulkAssignBtn) bulkAssignBtn.disabled = selected.length === 0;
         if (selectAll)
             selectAll.checked =
                 selected.length > 0 &&
@@ -9975,21 +10033,39 @@ function renderDevicesTable(devices) {
             renderDevicesTable(list);
         });
     }
+    // Bulk assign preset
+    if (bulkAssignBtn && bulkPresetSelect) {
+        bulkAssignBtn.addEventListener('click', async () => {
+            const key = bulkPresetSelect.value;
+            const ids = Array.from(tbody.querySelectorAll('.row-select:checked')).map(cb =>
+                cb.getAttribute('data-id')
+            );
+            if (!ids.length) return;
+            const status = document.getElementById('devices-status');
+            if (status) status.textContent = 'Assigning preset...';
+            for (const id of ids) {
+                try {
+                    await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
+                        method: 'PATCH',
+                        body: JSON.stringify({ preset: key }),
+                        noRedirectOn401: true,
+                    });
+                } catch (_) {}
+            }
+            const list = await fetchDevices();
+            renderDevicesTable(list);
+            if (status) status.textContent = 'Preset assigned to selected device(s).';
+        });
+    }
     // Removed "delete offline" functionality by request.
 
     // Inline edit handlers
-    tbody.querySelectorAll('input.inline-edit').forEach(input => {
+    tbody.querySelectorAll('input.inline-edit, select.inline-edit').forEach(input => {
         const submit = async () => {
             const id = input.getAttribute('data-id');
             const field = input.getAttribute('data-field');
-            let value = input.value;
+            const value = input.value;
             const payload = {};
-            if (field === 'groups') {
-                value = value
-                    .split(',')
-                    .map(s => s.trim())
-                    .filter(Boolean);
-            }
             payload[field] = value;
             try {
                 input.disabled = true;
@@ -10006,6 +10082,9 @@ function renderDevicesTable(devices) {
                 input.classList.remove('saving');
                 input.classList.add('saved');
                 setTimeout(() => input.classList.remove('saved'), 800);
+                // Re-render to reflect preset badge
+                const list = await fetchDevices();
+                renderDevicesTable(list);
             } catch (e) {
                 input.classList.add('error');
                 setTimeout(() => input.classList.remove('error'), 1200);
@@ -10028,6 +10107,7 @@ function renderDevicesTable(devices) {
             // Prevent submitting the surrounding config form
             e.preventDefault();
             e.stopPropagation();
+            if (btn.disabled) return;
             // Proactively blur the trigger to avoid focus remaining inside aria-hidden region
             try {
                 btn.blur();
@@ -10159,13 +10239,39 @@ function initDevicesPanel() {
         if (table) {
             table.addEventListener('click', async ev => {
                 const btn = ev.target && ev.target.closest && ev.target.closest('button[data-cmd]');
-                if (!btn) return;
+                const applyBtn =
+                    ev.target && ev.target.closest && ev.target.closest('.apply-preset-btn');
+                const actionBtn = btn || applyBtn;
+                if (!actionBtn) return;
                 ev.preventDefault();
                 ev.stopPropagation();
+                if (actionBtn.disabled) return;
                 try {
-                    btn.blur?.();
+                    actionBtn.blur?.();
                 } catch (_) {
                     // ignore blur errors
+                }
+                if (applyBtn) {
+                    const id = applyBtn.getAttribute('data-id');
+                    const key = applyBtn.getAttribute('data-preset');
+                    const presets = getDevicePresets();
+                    const found = presets.find(p => p.key === key);
+                    if (!found || !found.overrides) return;
+                    const status = document.getElementById('devices-status');
+                    try {
+                        if (status) status.textContent = 'Applying preset...';
+                        await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
+                            method: 'PATCH',
+                            body: JSON.stringify({ settingsOverride: found.overrides }),
+                            noRedirectOn401: true,
+                        });
+                        const list = await fetchDevices();
+                        renderDevicesTable(list);
+                        if (status) status.textContent = 'Preset applied.';
+                    } catch (e) {
+                        if (status) status.textContent = 'Failed to apply preset.';
+                    }
+                    return;
                 }
                 const id = btn.getAttribute('data-id');
                 const cmd = btn.getAttribute('data-cmd');
@@ -10273,6 +10379,15 @@ function initDevicesPanel() {
             devLog('initDevicesPanel: delegated table handler bound');
         }
         const bulkDeleteBtn = container.querySelector('#devices-delete-selected');
+        const managePresetsBtn = container.querySelector('#manage-device-presets');
+        if (managePresetsBtn) {
+            managePresetsBtn.addEventListener('click', ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                showManagePresetsModal();
+            });
+            devLog('initDevicesPanel: manage presets handler bound');
+        }
         if (bulkDeleteBtn) {
             bulkDeleteBtn.addEventListener('click', async ev => {
                 ev.preventDefault();
@@ -10307,6 +10422,8 @@ function initDevicesPanel() {
     async function refresh() {
         try {
             if (status) status.textContent = 'Loading devices...';
+            // Load presets in parallel, but don't block devices render if it fails
+            await loadDevicePresets();
             const list = await fetchDevices();
             renderDevicesTable(list);
             if (status) status.textContent = `${list.length} device(s)`;
@@ -10343,6 +10460,68 @@ function initDevicesPanel() {
     } catch (_) {
         /* ignore live refresh errors */
     }
+}
+
+// Simple modal editor for JSON presets
+function showManagePresetsModal() {
+    const existing = document.getElementById('manage-presets-modal');
+    if (existing) existing.remove();
+    const presets = getDevicePresets();
+    const html = `
+        <div id="manage-presets-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="presets-title">
+            <div class="modal-background" data-close></div>
+            <div class="modal-content" style="max-width: 900px;">
+                <span class="close" data-close>&times;</span>
+                <h3 id="presets-title" class="section-title modal-section-title">
+                    <i class="fas fa-cog"></i>
+                    <span>Device Presets</span>
+                </h3>
+                <div class="form-section unified-section">
+                    <div class="subsection-content">
+                        <p class="hint">Edit presets as JSON array. Each item should have: key (string), name (string, optional), description (optional), overrides (object, optional).</p>
+                        <textarea id="presets-json-editor" style="width:100%;height:300px;font-family:monospace;"></textarea>
+                        <div class="form-actions" style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+                            <button type="button" id="presets-save" class="btn is-primary"><span class="icon"><i class="fas fa-save"></i></span><span>Save</span></button>
+                            <button type="button" id="presets-close" class="btn" data-close><span class="icon"><i class="fas fa-times"></i></span><span>Close</span></button>
+                            <div id="presets-status" class="hint"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    const el = wrap.firstElementChild;
+    document.body.appendChild(el);
+    const editor = el.querySelector('#presets-json-editor');
+    editor.value = JSON.stringify(presets, null, 2);
+    const status = el.querySelector('#presets-status');
+    const closeEls = el.querySelectorAll('[data-close]');
+    closeEls.forEach(c => c.addEventListener('click', () => el.remove()));
+    el.classList.add('modal-open');
+    const saveBtn = el.querySelector('#presets-save');
+    saveBtn.addEventListener('click', async () => {
+        try {
+            status.textContent = 'Saving...';
+            const next = JSON.parse(editor.value);
+            if (!Array.isArray(next)) throw new Error('Top-level must be an array');
+            const res = await authenticatedFetch(apiUrl('/api/admin/device-presets'), {
+                method: 'PUT',
+                body: JSON.stringify(next),
+                noRedirectOn401: true,
+            });
+            if (!res.ok) throw new Error('Failed to save');
+            setDevicePresets(next);
+            populateBulkPresetPicker();
+            // Re-render devices to update badge names
+            const list = await fetchDevices();
+            renderDevicesTable(list);
+            status.textContent = 'Saved.';
+            setTimeout(() => (status.textContent = ''), 1200);
+        } catch (e) {
+            status.textContent = 'Failed: ' + (e && e.message ? e.message : 'unknown');
+        }
+    });
 }
 
 // Device Settings Override Modal
@@ -10412,13 +10591,13 @@ function showDeviceSettingsModal(device) {
                                                 <div class="subsection-content" id="ovr-wallart-content">
                                                     <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.enabled" id="ovr-wallart"><label for="ovr-wallart">Enable Wallart Mode</label></div>
                                                     <div class="form-grid-3">
-                                                        <div class="form-group"><label>Layout variant</label><select data-key="wallartMode.layoutVariant"><option value="">(inherit)</option><option value="classic">Classic</option><option value="heroGrid">Hero grid</option></select></div>
-                                                        <div class="form-group"><label>Poster Density</label><select data-key="wallartMode.density"><option value="">(inherit)</option><option value="low">Few (low)</option><option value="medium">Medium</option><option value="high">Many (high)</option><option value="ludicrous">Ludicrous</option></select></div>
-                                                        <div class="form-group"><label>Animation Type</label><select data-key="wallartMode.animationType"><option value="">(inherit)</option><option value="random">Random</option><option value="fade">Fade</option><option value="slideLeft">Slide Left</option><option value="slideUp">Slide Up</option><option value="zoom">Zoom</option><option value="flip">Flip</option><option value="staggered">Staggered</option><option value="ripple">Ripple</option><option value="scanline">Scanline</option><option value="parallax">Parallax</option><option value="neonPulse">Neon Pulse</option><option value="chromaticShift">Chromatic Shift</option><option value="mosaicShatter">Mosaic Shatter</option></select></div>
+                                                        <div class="form-group"><label>Layout variant</label><select data-key="wallartMode.layoutVariant"><option value="">(inherit)</option><option value="classic">Classic Grid</option><option value="heroGrid">Hero + Grid</option></select></div>
+                                                        <div class="form-group"><label>Poster Density</label><select data-key="wallartMode.density"><option value="">(inherit)</option><option value="low">Few - 60% of screen-optimal (larger posters)</option><option value="medium">Medium - 100% screen-optimal (balanced)</option><option value="high">Many - 150% of screen-optimal (smaller posters)</option><option value="ludicrous">Ludicrous - 200% of screen-optimal (tiny posters)</option></select></div>
+                                                        <div class="form-group full-width"><label>Animation Type</label><select data-key="wallartMode.animationType"><option value="">(inherit)</option><option value="random">Random</option><option value="fade">Fade</option><option value="slideLeft">Slide Left</option><option value="slideUp">Slide Up</option><option value="zoom">Zoom</option><option value="flip">Flip</option><option value="staggered">Staggered</option><option value="ripple">Ripple</option><option value="scanline">Scanline</option><option value="parallax">Parallax</option><option value="neonPulse">Neon Pulse</option><option value="chromaticShift">Chromatic Shift</option><option value="mosaicShatter">Mosaic Shatter</option></select></div>
                                                     </div>
                                                     <div class="form-grid-2">
-                                                        <div class="form-group"><label>Poster Refresh Rate</label><div class="slider-wrapper modern-slider"><input type="range" min="1" max="10" step="1" data-key="wallartMode.refreshRate"><div class="slider-percentage" data-out="wallartMode.refreshRate" data-target="wallartMode.refreshRate"></div></div></div>
-                                                        <div class="form-group"><label>Timing Randomness</label><div class="slider-wrapper modern-slider"><input type="range" min="0" max="10" step="1" data-key="wallartMode.randomness"><div class="slider-percentage" data-out="wallartMode.randomness" data-target="wallartMode.randomness"></div></div></div>
+                                                        <div class="form-group"><label>Poster Refresh Rate</label><div class="slider-wrapper modern-slider"><input type="range" min="1" max="10" step="1" data-key="wallartMode.refreshRate"></div></div>
+                                                        <div class="form-group"><label>Timing Randomness</label><div class="slider-wrapper modern-slider"><input type="range" min="0" max="10" step="1" data-key="wallartMode.randomness"></div></div>
                                                     </div>
                                                     <div class="form-grid-2" id="ovr-hero-grid">
                                                         <div class="form-group"><label>Hero side</label><select data-key="wallartMode.layoutSettings.heroGrid.heroSide"><option value="">(inherit)</option><option value="left">Left</option><option value="right">Right</option></select></div>
@@ -10540,13 +10719,248 @@ function showDeviceSettingsModal(device) {
     const previewFrame = modal.querySelector('#modal-preview-frame');
     const previewToggleMode = modal.querySelector('#modal-toggle-preview-mode');
     const previewToggleZoom = modal.querySelector('#modal-toggle-preview-zoom');
+    const modalContentEl = modal.querySelector('.modal-content');
 
     // Ensure identical starting classes/visibility as main preview
     if (previewContainerEl) {
+        // Detach from modal content so it cannot affect layout; make it global
+        try {
+            document.body.appendChild(previewContainerEl);
+        } catch (_) {
+            /* ignore append failure */
+        }
         previewContainerEl.classList.add('pip-mode');
         previewContainerEl.classList.add('screensaver-mode');
         previewContainerEl.classList.remove('cinema-mode');
         previewContainerEl.style.display = 'block';
+        // Clear any previous explicit side so we can compute left based on modal position (force over CSS !important)
+        try {
+            previewContainerEl.style.setProperty('right', 'auto', 'important');
+        } catch (_) {
+            previewContainerEl.style.right = 'auto';
+        }
+        try {
+            previewContainerEl.style.setProperty('left', 'auto', 'important');
+        } catch (_) {
+            previewContainerEl.style.left = 'auto';
+        }
+        // Align and pin preview to the right side of the modal until the user moves it
+        (function alignPreviewWithModal() {
+            if (!modalContentEl) return;
+            const align = () => {
+                if (!previewContainerEl || !modalContentEl) return;
+                if (previewContainerEl.dataset.userMoved === '1') return;
+                const rect = modalContentEl.getBoundingClientRect();
+                const gutter = 16; // px between modal and preview
+                const top = Math.max(12, Math.round(rect.top));
+                const desiredLeft = Math.round(rect.right + gutter);
+                // Clamp within viewport so preview stays visible
+                const pcRect = previewContainerEl.getBoundingClientRect();
+                const maxLeft = Math.max(12, window.innerWidth - pcRect.width - 12);
+                const left = Math.max(12, Math.min(maxLeft, desiredLeft));
+                try {
+                    previewContainerEl.style.setProperty('top', top + 'px', 'important');
+                } catch (_) {
+                    previewContainerEl.style.top = top + 'px';
+                }
+                try {
+                    previewContainerEl.style.setProperty('left', left + 'px', 'important');
+                } catch (_) {
+                    previewContainerEl.style.left = left + 'px';
+                }
+                try {
+                    previewContainerEl.style.setProperty('right', 'auto', 'important');
+                } catch (_) {
+                    previewContainerEl.style.right = 'auto';
+                }
+                // Mark pinned mode
+                previewContainerEl.dataset.pinned = '1';
+            };
+            try {
+                align();
+            } catch (_) {
+                /* ignore once */
+            }
+            let ro = null;
+            try {
+                if (window.ResizeObserver) {
+                    ro = new ResizeObserver(() => align());
+                    ro.observe(modalContentEl);
+                }
+            } catch (_) {
+                /* no ResizeObserver */
+            }
+            const onWinResize = () => align();
+            const onWinScroll = () => align();
+            window.addEventListener('resize', onWinResize);
+            window.addEventListener('scroll', onWinScroll, { passive: true });
+            previewContainerEl.__alignCleanup = () => {
+                try {
+                    if (ro) ro.disconnect();
+                } catch (_) {
+                    /* ignore */
+                }
+                try {
+                    window.removeEventListener('resize', onWinResize);
+                } catch (_) {
+                    /* ignore */
+                }
+                try {
+                    window.removeEventListener('scroll', onWinScroll);
+                } catch (_) {
+                    /* ignore */
+                }
+            };
+        })();
+
+        // Enable drag to unpin for the modal preview (left/top anchored)
+        (function enableModalPreviewDrag() {
+            const el = previewContainerEl;
+            if (!el) return;
+            let dragging = false;
+            let started = false;
+            let startX = 0;
+            let startY = 0;
+            let offsetX = 0; // distance from left edge
+            let offsetY = 0; // distance from top edge
+            let raf = null;
+            let nextPos = null;
+            const DRAG_THRESHOLD = 4;
+            function isInteractiveTarget(target) {
+                if (!target || !(target instanceof Element)) return false;
+                return (
+                    target.closest('.pip-button') ||
+                    target.closest('.preview-controls') ||
+                    target.closest('.preview-peek-handle') ||
+                    target.closest('button, a, select, input, label')
+                );
+            }
+            function onDown(e) {
+                const tgt = e.target;
+                if (isInteractiveTarget(tgt)) return;
+                if (e.touches && e.touches.length > 1) return;
+                const rect = el.getBoundingClientRect();
+                const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                startX = cx;
+                startY = cy;
+                offsetX = cx - rect.left;
+                offsetY = cy - rect.top;
+                dragging = true;
+                started = false;
+                el.classList.add('dragging');
+                el.style.cursor = 'grabbing';
+                if (e.cancelable) e.preventDefault();
+            }
+            function onMove(e) {
+                if (!dragging) return;
+                const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                if (!started) {
+                    const dx = Math.abs(cx - startX);
+                    const dy = Math.abs(cy - startY);
+                    if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) return;
+                    started = true;
+                    try {
+                        el.dataset.userMoved = '1';
+                    } catch (_) {
+                        /* ignore */
+                    }
+                    try {
+                        el.dataset.pinned = '0';
+                    } catch (_) {
+                        /* ignore */
+                    }
+                }
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const rect = el.getBoundingClientRect();
+                let left = cx - offsetX;
+                let top = cy - offsetY;
+                // clamp within viewport
+                left = Math.max(0, Math.min(vw - rect.width, left));
+                top = Math.max(0, Math.min(vh - rect.height, top));
+                nextPos = { left, top };
+                if (!raf) {
+                    raf = requestAnimationFrame(() => {
+                        if (nextPos) {
+                            try {
+                                el.style.setProperty('left', nextPos.left + 'px', 'important');
+                            } catch (_) {
+                                el.style.left = nextPos.left + 'px';
+                            }
+                            try {
+                                el.style.setProperty('top', nextPos.top + 'px', 'important');
+                            } catch (_) {
+                                el.style.top = nextPos.top + 'px';
+                            }
+                            try {
+                                el.style.setProperty('right', 'auto', 'important');
+                            } catch (_) {
+                                el.style.right = 'auto';
+                            }
+                            nextPos = null;
+                        }
+                        raf = null;
+                    });
+                }
+                if (e.cancelable) e.preventDefault();
+            }
+            function onUp(e) {
+                if (!dragging) return;
+                const wasDragging = started;
+                dragging = false;
+                started = false;
+                el.style.cursor = 'grab';
+                el.classList.remove('dragging');
+                if (wasDragging && e && e.cancelable) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    el.style.pointerEvents = 'none';
+                    setTimeout(() => (el.style.pointerEvents = 'auto'), 0);
+                }
+            }
+            const onMouseDown = e => onDown(e);
+            const onTouchStart = e => onDown(e);
+            el.addEventListener('mousedown', onMouseDown);
+            el.addEventListener('touchstart', onTouchStart, { passive: false });
+            window.addEventListener('mousemove', onMove, { passive: false });
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('mouseup', onUp, { passive: false });
+            window.addEventListener('touchend', onUp, { passive: false });
+            previewContainerEl.__dragCleanup = () => {
+                try {
+                    el.removeEventListener('mousedown', onMouseDown);
+                } catch (_) {
+                    /* ignore */
+                }
+                try {
+                    el.removeEventListener('touchstart', onTouchStart);
+                } catch (_) {
+                    /* ignore */
+                }
+                try {
+                    window.removeEventListener('mousemove', onMove);
+                } catch (_) {
+                    /* ignore */
+                }
+                try {
+                    window.removeEventListener('touchmove', onMove);
+                } catch (_) {
+                    /* ignore */
+                }
+                try {
+                    window.removeEventListener('mouseup', onUp);
+                } catch (_) {
+                    /* ignore */
+                }
+                try {
+                    window.removeEventListener('touchend', onUp);
+                } catch (_) {
+                    /* ignore */
+                }
+            };
+        })();
     }
 
     // Helper: set/get deep values by path like "wallartMode.layoutSettings.heroGrid.heroSide"
@@ -10601,8 +11015,37 @@ function showDeviceSettingsModal(device) {
     }
     function formatSliderLabel(key, value) {
         const v = Number(value);
-        if (key === 'wallartMode.refreshRate') return `${v}/10`;
-        if (key === 'wallartMode.randomness') return `${v}/10`;
+        if (key === 'wallartMode.refreshRate') {
+            const map = {
+                1: 'Very slow (25s)',
+                2: 'Slow (22s)',
+                3: 'Relaxed (19s)',
+                4: 'Moderate (16s)',
+                5: 'Medium (13s)',
+                6: 'Active (10s)',
+                7: 'Quick (7s)',
+                8: 'Fast (5s)',
+                9: 'Very fast (3s)',
+                10: 'Chaos mode',
+            };
+            return map[v] || 'Medium (13s)';
+        }
+        if (key === 'wallartMode.randomness') {
+            const map = {
+                0: 'No randomness',
+                1: 'Minimal variation',
+                2: 'Slight variation',
+                3: 'Low randomness',
+                4: 'Moderate randomness',
+                5: 'Medium randomness',
+                6: 'High randomness',
+                7: 'Very random',
+                8: 'Highly unpredictable',
+                9: 'Maximum variation',
+                10: 'Extreme',
+            };
+            return map[v] || 'Low randomness';
+        }
         return String(v);
     }
     function bindInitialValues() {
@@ -10622,10 +11065,13 @@ function showDeviceSettingsModal(device) {
                 el.value = eff === undefined ? '' : String(eff);
             }
             if (el.type === 'range') {
-                const out =
-                    form.querySelector(`[data-out="${key}"]`) ||
-                    form.querySelector(`[data-target="${key}"]`);
+                const out = null; // no dedicated bubble for refreshRate/randomness in modal
                 if (out) out.textContent = formatSliderLabel(key, el.value);
+                try {
+                    // Visual polish
+                    updateSliderBackground?.(el);
+                    if (out) positionSliderBubble?.(el, out);
+                } catch (_) {}
             }
         });
     }
@@ -10677,10 +11123,12 @@ function showDeviceSettingsModal(device) {
         if (!key) return;
         dirty.add(key);
         if (el.type === 'range') {
-            const out =
-                form.querySelector(`[data-out="${key}"]`) ||
-                form.querySelector(`[data-target="${key}"]`);
+            const out = null; // bubbles removed
             if (out) out.textContent = formatSliderLabel(key, el.value);
+            try {
+                updateSliderBackground?.(el);
+                if (out) positionSliderBubble?.(el, out);
+            } catch (_) {}
         }
         // live preview just for this field
         const partial = {};
@@ -10716,12 +11164,84 @@ function showDeviceSettingsModal(device) {
         }
     }
 
+    // Slider bubble helpers (thumb-following)
+    function sliderPercent(el) {
+        const min = Number(el.min ?? 0);
+        const max = Number(el.max ?? 100);
+        const val = Number(el.value ?? min);
+        if (max === min) return 0;
+        return ((val - min) / (max - min)) * 100;
+    }
+    function positionSliderBubble(inputEl, bubbleEl) {
+        if (!inputEl || !bubbleEl || !inputEl.parentElement) return;
+        // Default: thumb-following above track for sliders that still use bubbles
+        const pct = sliderPercent(inputEl);
+        // Position within the slider track width
+        const track = inputEl;
+        const rect = track.getBoundingClientRect();
+        const padL = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+        const padR = parseFloat(getComputedStyle(track).paddingRight) || 0;
+        const usable = Math.max(0, rect.width - padL - padR);
+        const x = (pct / 100) * usable + padL;
+        // Set as left relative to wrapper
+        const wrapperRect = inputEl.parentElement.getBoundingClientRect();
+        const rel = Math.max(0, Math.min(wrapperRect.width, x));
+        bubbleEl.style.left = rel + 'px';
+        bubbleEl.style.transform = 'translateX(-50%)';
+        // Always render bubble above the slider for consistency
+        bubbleEl.style.top = 'auto';
+        bubbleEl.style.bottom = 'calc(100% + 8px)';
+    }
+    function wireSliderBubbles(scopeEl) {
+        const scope = scopeEl || form;
+        scope.querySelectorAll('.slider-wrapper.modern-slider').forEach(wrapper => {
+            const input = wrapper.querySelector('input[type="range"]');
+            const bubble = wrapper.querySelector('.slider-percentage');
+            if (!input || !bubble) return; // most wrappers may not have bubbles now
+            const key = input.getAttribute('data-key') || '';
+            // Initial position
+            positionSliderBubble(input, bubble);
+            // On input and change
+            input.addEventListener('input', () => positionSliderBubble(input, bubble));
+            input.addEventListener('change', () => positionSliderBubble(input, bubble));
+        });
+        // Reposition on modal resize
+        if (window.ResizeObserver) {
+            const ro = new ResizeObserver(() => {
+                scope.querySelectorAll('.slider-wrapper.modern-slider').forEach(wrapper => {
+                    const input = wrapper.querySelector('input[type="range"]');
+                    const bubble = wrapper.querySelector('.slider-percentage');
+                    if (input && bubble) positionSliderBubble(input, bubble);
+                });
+            });
+            ro.observe(scope);
+        } else {
+            window.addEventListener('resize', () => wireSliderBubbles(scope));
+        }
+    }
+
     function close() {
         try {
             modal.remove();
         } catch (_) {
             /* ignore errors */
         }
+        // Remove orphaned modal preview if it was moved to <body>
+        try {
+            const orphan = document.getElementById('modal-preview-container');
+            if (orphan && orphan.parentElement === document.body) {
+                orphan.remove();
+            }
+        } catch (_) {}
+        // Cleanup preview alignment observers/listeners
+        try {
+            if (previewContainerEl && previewContainerEl.__alignCleanup) {
+                previewContainerEl.__alignCleanup();
+            }
+            if (previewContainerEl && previewContainerEl.__dragCleanup) {
+                previewContainerEl.__dragCleanup();
+            }
+        } catch (_) {}
     }
 
     modal.addEventListener('click', ev => {
@@ -10758,6 +11278,8 @@ function showDeviceSettingsModal(device) {
             // ignore; we'll just bind what we can
         }
         bindInitialValues();
+        // Ensure slider bubbles are positioned initially
+        wireSliderBubbles(form);
         wireInputs();
         applyModeVisibility();
         // Populate timezone dropdown and wire clock toggle
@@ -10837,6 +11359,10 @@ function showDeviceSettingsModal(device) {
             grids.forEach(g => {
                 g.style.gridAutoRows = 'minmax(40px, auto)';
             });
+            // Reposition bubbles after layout/visibility changes
+            try {
+                wireSliderBubbles(content);
+            } catch (_) {}
         } catch (_) {
             /* ignore */
         }
@@ -10916,12 +11442,9 @@ function showDeviceSettingsModal(device) {
                 sections.cinema[1].style.display = 'block';
                 showAllWithin(sections.cinema[1]);
             }
-            // Keep Wallart header visible with only its enable toggle
-            if (sections.wallart[0]) sections.wallart[0].style.display = 'block';
-            if (sections.wallart[1]) {
-                sections.wallart[1].style.display = 'block';
-                showOnlyToggle(sections.wallart[1], '#ovr-wallart');
-            }
+            // When Cinema is enabled, hide Wallart entirely (no toggle, no subsection)
+            if (sections.wallart[0]) sections.wallart[0].style.display = 'none';
+            if (sections.wallart[1]) sections.wallart[1].style.display = 'none';
             // Hide non-cinema sections to match main behavior
             showPair(sections.visual, false);
             showPair(sections.clock, false);
@@ -10942,12 +11465,9 @@ function showDeviceSettingsModal(device) {
                 // Ensure ambient and bias are visible when enabled
                 syncWallartSubOptions();
             }
-            // Keep Cinema header visible with only its enable toggle
-            if (sections.cinema[0]) sections.cinema[0].style.display = 'block';
-            if (sections.cinema[1]) {
-                sections.cinema[1].style.display = 'block';
-                showOnlyToggle(sections.cinema[1], '#ovr-cinema');
-            }
+            // When Wallart is enabled, hide Cinema entirely (no toggle, no subsection)
+            if (sections.cinema[0]) sections.cinema[0].style.display = 'none';
+            if (sections.cinema[1]) sections.cinema[1].style.display = 'none';
             // Hide other non-wallart sections
             showPair(sections.visual, false);
             showPair(sections.clock, false);
@@ -11032,6 +11552,9 @@ function showDeviceSettingsModal(device) {
             }
             applyModeVisibility();
             syncWallartSubOptions();
+            try {
+                wireSliderBubbles(form);
+            } catch (_) {}
         });
     }
     if (cbWallartEl) {
@@ -11048,6 +11571,9 @@ function showDeviceSettingsModal(device) {
             }
             applyModeVisibility();
             syncWallartSubOptions();
+            try {
+                wireSliderBubbles(form);
+            } catch (_) {}
         });
     }
 
@@ -11106,19 +11632,22 @@ function showDeviceSettingsModal(device) {
         });
     }
 
-    // Make the preview draggable within the modal bounds (top-right by default)
+    // Make the preview draggable within the viewport bounds (top-right by default)
     (function enableModalDrag() {
         if (!previewContainerEl) return;
-        // When sticky preview is used in modal, disable dragging to prevent odd jumps on scroll
-        const isSticky = window.getComputedStyle(previewContainerEl).position === 'sticky';
-        if (isSticky) return;
         let dragging = false;
         let offsetFromRight = 0;
         let offsetFromTop = 0;
         let rafId = null;
         let nextPos = null;
-        const modalContent = modal.querySelector('.modal-content');
-        const getModalRect = () => (modalContent ? modalContent.getBoundingClientRect() : null);
+        const getViewportRect = () => ({
+            left: 0,
+            top: 0,
+            right: window.innerWidth,
+            bottom: window.innerHeight,
+            width: window.innerWidth,
+            height: window.innerHeight,
+        });
         function isInteractive(target) {
             if (!target || !(target instanceof Element)) return false;
             return (
@@ -11131,6 +11660,12 @@ function showDeviceSettingsModal(device) {
         function onDown(e) {
             const tgt = e.target;
             if (isInteractive(tgt)) return;
+            if (
+                previewContainerEl &&
+                previewContainerEl.dataset &&
+                previewContainerEl.dataset.pinned === '1'
+            )
+                return;
             if (e.touches && e.touches.length > 1) return;
             dragging = true;
             previewContainerEl.classList.add('dragging');
@@ -11158,15 +11693,22 @@ function showDeviceSettingsModal(device) {
                 const dy = Math.abs(clientY - startClientY);
                 if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) return;
                 startedDragging = true;
+                try {
+                    previewContainerEl.dataset.userMoved = '1';
+                    previewContainerEl.dataset.pinned = '0';
+                } catch (_) {}
             }
-            const modalRect = getModalRect();
-            if (!modalRect) return;
+            const vp = getViewportRect();
             const rect = previewContainerEl.getBoundingClientRect();
-            let right = modalRect.right - (clientX + offsetFromRight);
-            let top = clientY - offsetFromTop - modalRect.top;
-            right = Math.max(0, Math.min(modalRect.width - rect.width, right));
+            // Constrain within viewport with small margins
+            const right = Math.max(
+                0,
+                Math.min(vp.width - rect.width, vp.right - (clientX + offsetFromRight))
+            );
+            let top = clientY - offsetFromTop; // viewport-relative
             const minTop = 12;
-            top = Math.max(minTop, Math.min(modalRect.height - rect.height - 12, top));
+            const maxTop = Math.max(minTop, vp.height - rect.height - 12);
+            top = Math.max(minTop, Math.min(maxTop, top));
             nextPos = { right, top };
             if (!rafId) {
                 rafId = requestAnimationFrame(() => {
@@ -11227,7 +11769,7 @@ function showDeviceSettingsModal(device) {
                 updateModalPreviewScale();
             } catch (_) {}
         });
-        const peekHandle = modal.querySelector('.preview-peek-handle');
+        const peekHandle = previewContainerEl.querySelector('.preview-peek-handle');
         if (peekHandle) {
             peekHandle.addEventListener('click', e => {
                 e.stopPropagation();
@@ -11398,6 +11940,7 @@ function showDeviceSettingsModal(device) {
             if (!btn) return;
             ev.preventDefault();
             ev.stopPropagation();
+            if (btn.disabled) return;
             try {
                 btn.blur?.();
             } catch (_) {

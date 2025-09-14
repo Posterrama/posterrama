@@ -554,6 +554,20 @@
                                             <span class="icon"><i class="fas fa-trash"></i></span>
                                             <span>Delete Selected</span>
                                         </button>
+                                        <div class="bulk-preset-actions">
+                                            <label for="bulk-preset-select" class="sr-only">Preset</label>
+                                            <select id="bulk-preset-select" title="Choose preset to assign to selected devices">
+                                                <option value="">(none)</option>
+                                            </select>
+                                            <button type="button" id="devices-assign-preset" class="btn" disabled>
+                                                <span class="icon"><i class="fas fa-check"></i></span>
+                                                <span>Assign to Selected</span>
+                                            </button>
+                                            <button type="button" id="manage-device-presets" class="btn">
+                                                <span class="icon"><i class="fas fa-cog"></i></span>
+                                                <span>Manage Presets</span>
+                                            </button>
+                                        </div>
                                         <div id="devices-status" class="hint"></div>
                                     </div>
                                     <div class="table-wrapper">
@@ -562,6 +576,7 @@
                                                 <tr>
                                                     <th class="col-select"><input type="checkbox" id="devices-select-all" aria-label="Select all devices" /></th>
                                                     <th class="col-name">Device</th>
+                                                    <th class="col-preset">Preset</th>
                                                     <th class="col-mode">Mode</th>
                                                     <th class="col-status">Status</th>
                                                     <th class="col-last">Last Seen</th>

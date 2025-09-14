@@ -1705,7 +1705,7 @@ if (isDeviceMgmtEnabled()) {
     // Admin: patch device
     app.patch('/api/devices/:id', adminAuth, express.json(), async (req, res) => {
         try {
-            const allowed = ['name', 'location', 'tags', 'groups', 'settingsOverride'];
+            const allowed = ['name', 'location', 'tags', 'groups', 'settingsOverride', 'preset'];
             const patch = {};
             for (const k of allowed) if (k in req.body) patch[k] = req.body[k];
             const d = await deviceStore.patchDevice(req.params.id, patch);
@@ -1762,6 +1762,54 @@ const cspReportJson = express.json({
         );
     },
 });
+
+// Device Presets storage (simple JSON file)
+const PRESETS_FILE = path.join(__dirname, 'device-presets.json');
+async function readPresets() {
+    try {
+        const raw = await fs.promises.readFile(PRESETS_FILE, 'utf8');
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : [];
+    } catch (e) {
+        return [];
+    }
+}
+async function writePresets(presets) {
+    const arr = Array.isArray(presets) ? presets : [];
+    const tmp = PRESETS_FILE + '.tmp';
+    await fs.promises.writeFile(tmp, JSON.stringify(arr, null, 2), 'utf8');
+    await fs.promises.rename(tmp, PRESETS_FILE);
+}
+
+// Admin: get device presets (JSON)
+app.get('/api/admin/device-presets', adminAuth, async (req, res) => {
+    try {
+        const list = await readPresets();
+        res.json(list);
+    } catch (e) {
+        res.status(500).json({ error: 'presets_read_failed' });
+    }
+});
+
+// Admin: replace device presets (JSON)
+app.put(
+    '/api/admin/device-presets',
+    adminAuth,
+    express.json({ limit: '1mb' }),
+    async (req, res) => {
+        try {
+            const body = req.body;
+            if (!Array.isArray(body)) return res.status(400).json({ error: 'array_required' });
+            // Light validation: key must be string
+            const ok = body.every(p => p && typeof p.key === 'string');
+            if (!ok) return res.status(400).json({ error: 'invalid_entries' });
+            await writePresets(body);
+            res.json({ ok: true, count: body.length });
+        } catch (e) {
+            res.status(500).json({ error: 'presets_write_failed' });
+        }
+    }
+);
 
 // Lightweight QR code rendering for admin UI (optional). Requires 'qrcode' package.
 app.get('/api/qr', isAuthenticated, async (req, res) => {
