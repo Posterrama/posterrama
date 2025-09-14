@@ -13305,15 +13305,31 @@ try {
         if (!req.session || !req.session.user) {
             return res.status(401).end();
         }
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
+        // SSE headers; harden for proxies (nginx/cloudflare) and intermediaries
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
         res.setHeader('Connection', 'keep-alive');
+        // Disable nginx proxy buffering so events flush immediately
+        res.setHeader('X-Accel-Buffering', 'no');
         res.flushHeaders?.();
+        // Send an initial comment line to force flush in some proxies
+        res.write(`: connected\n\n`);
         res.write(`event: hello\n`);
         res.write(`data: {"t": ${Date.now()}}\n\n`);
-        const client = { res };
+        // Keep-alive heartbeat to prevent idle timeouts
+        const heartbeat = setInterval(() => {
+            try {
+                res.write(`event: ping\n` + `data: {"t": ${Date.now()}}\n\n`);
+            } catch (_) {
+                // On write error, the close listener will cleanup
+            }
+        }, 25000);
+        const client = { res, heartbeat };
         __sseClients.add(client);
         req.on('close', () => {
+            try {
+                clearInterval(client.heartbeat);
+            } catch (_) {}
             __sseClients.delete(client);
         });
     });
