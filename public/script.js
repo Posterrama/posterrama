@@ -4193,7 +4193,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     swapLayers(newLayer, oldLayer, { preserveNewAnimation: false });
                     ensureBackgroundVisible();
                 }, fadeDuration * 1000);
-            } catch (e) {}
+            } catch (e) {
+                // Intentionally empty: silencing transition errors
+            }
             return;
         }
         // Prep layers
@@ -4250,7 +4252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let onNewFadeEndRef = null;
         let onNewTransformEndRef = null;
 
-        function doSwap(trigger) {
+        function doSwap(/*trigger*/) {
             if (swapped) return;
             swapped = true;
             try {
@@ -4263,10 +4265,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     oldLayer.style.opacity = 0;
                 }
                 ensureBackgroundVisible();
-            } catch (e) {}
+            } catch (e) {
+                // Intentionally empty: silencing transition errors
+            }
         }
 
-        function doCleanup(trigger) {
+        function doCleanup(/*trigger*/) {
             if (cleaned) return;
             cleaned = true;
             try {
@@ -4274,7 +4278,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 newLayer.style.zIndex = '';
                 newLayer.style.willChange = '';
                 newLayer.removeAttribute('data-ken-burns');
-            } catch (e) {}
+            } catch (e) {
+                // Intentionally empty: silencing transition errors
+            }
         }
 
         const startAnimation = () => {
@@ -4283,7 +4289,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Mark layer as Ken Burns active so swapLayers doesn't reset its transform
             try {
                 newLayer.setAttribute('data-ken-burns', 'true');
-            } catch (e) {}
+            } catch (e) {
+                // Intentionally empty: silencing transition errors
+            }
 
             const transformTransition = `transform ${durationSec}s linear`;
             const fadeTransition = `opacity ${fadeSec}s ease-in-out`;
@@ -4313,7 +4321,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         if (onNewFadeEndRef)
                             newLayer.removeEventListener('transitionend', onNewFadeEndRef);
-                    } catch (e) {}
+                    } catch (e) {
+                        // Intentionally empty: silencing transition errors
+                    }
                     doSwap('timeout');
                 },
                 Math.max(50, fadeSec * 1000)
@@ -4336,7 +4346,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         if (onNewTransformEndRef)
                             newLayer.removeEventListener('transitionend', onNewTransformEndRef);
-                    } catch (e) {}
+                    } catch (e) {
+                        // Intentionally empty: silencing transition errors
+                    }
                     doCleanup('timeout');
                 },
                 Math.max(100, durationSec * 1000)
@@ -4395,7 +4407,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     swapLayers(newLayer, oldLayer, { preserveNewAnimation: false });
                     ensureBackgroundVisible();
                 }, fadeDuration * 1000);
-            } catch (e) {}
+            } catch (e) {
+                // Intentionally empty: silencing transition errors
+            }
             return;
         }
 
