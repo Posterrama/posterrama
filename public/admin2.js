@@ -1,7 +1,6 @@
 /* Admin v2 Dashboard (theme-based) */
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
-    const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
     function setText(id, val) {
         const el = typeof id === 'string' ? document.getElementById(id) : id;
@@ -381,6 +380,9 @@
             if (id === 'section-security') {
                 h1.innerHTML = '<i class="fas fa-shield-alt"></i> Security';
                 if (subtitle) subtitle.textContent = 'Manage password, 2FA, and API access';
+            } else if (id === 'section-operations') {
+                h1.innerHTML = '<i class="fas fa-screwdriver-wrench"></i> Operations';
+                if (subtitle) subtitle.textContent = 'Run media refresh and manage auto-updates';
             } else {
                 h1.innerHTML = '<i class="fas fa-gauge-high"></i> Dashboard';
                 if (subtitle) subtitle.textContent = 'Overview of devices, media and system health';
@@ -523,7 +525,7 @@
             }
             try {
                 el.classList.add('disabled');
-                const res = await fetch('/api/admin/restart-app', {
+                await fetch('/api/admin/restart-app', {
                     method: 'POST',
                     credentials: 'include',
                 });
@@ -882,7 +884,14 @@
                     message: 'API key copied to clipboard',
                     duration: 2000,
                 });
-            } catch (_) {}
+            } catch (_) {
+                window.notify?.toast({
+                    type: 'warning',
+                    title: 'Clipboard blocked',
+                    message: 'Copy not permitted in this context',
+                    duration: 2500,
+                });
+            }
         });
 
         // OPERATIONS: Refresh Media
