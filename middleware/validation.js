@@ -162,6 +162,21 @@ const validationRules = {
     adminRequest: [
         // No specific validation needed for cache stats - authentication is handled by middleware
     ],
+
+    // Devices: merge validation
+    devicesMerge: [
+        param('id')
+            .notEmpty()
+            .matches(/^[a-zA-Z0-9_-]+$/)
+            .isLength({ max: 100 })
+            .withMessage('ID must be alphanumeric with underscore or dash, max 100 characters'),
+        body('sourceIds').isArray({ min: 1 }).withMessage('sourceIds must be a non-empty array'),
+        body('sourceIds.*')
+            .isString()
+            .isLength({ min: 1, max: 100 })
+            .matches(/^[a-zA-Z0-9_-]+$/)
+            .withMessage('Each source id must be 1-100 chars (alphanumeric, underscore or dash)'),
+    ],
 };
 
 /**

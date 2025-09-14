@@ -397,13 +397,28 @@ async function pruneLikelyDuplicates({
             }))
             .sort((a, b) => a.ts - b.ts);
 
-        const toDelete = sorted
-            .slice(0, Math.max(0, Math.min(maxDelete, sorted.length)))
-            .map(x => x.d.id);
+        const capped = Math.max(0, Math.min(maxDelete, sorted.length));
+        const toDelete = sorted.slice(0, capped).map(x => x.d.id);
         let deleted = 0;
         for (const id of toDelete) {
             const ok = await deleteDevice(id);
             if (ok) deleted++;
+        }
+        // Metrics: record histogram-like event (best-effort)
+        try {
+            const metrics = require('./metrics');
+            if (metrics && typeof metrics.recordRequest === 'function') {
+                // Use a synthetic endpoint label for internal events
+                metrics.recordRequest(
+                    'INTERNAL',
+                    `/devices/pruneLikelyDuplicates?capped=${capped}`,
+                    0,
+                    200,
+                    false
+                );
+            }
+        } catch (_) {
+            // ignore metrics errors
         }
         return { deleted };
     } catch (e) {

@@ -9413,9 +9413,15 @@ function confirmDialog(message, triggerEl = null) {
     msgEl.textContent = message || 'Are you sure?';
 
     return new Promise(resolve => {
-        const cleanup = () => {
-            document.body.classList.remove('modal-open');
-            document.documentElement.classList.remove('modal-open');
+        function cleanup() {
+            // Hide modal visuals
+            try {
+                modal.setAttribute('aria-hidden', 'true');
+                modal.classList.add('is-hidden');
+                modal.classList.remove('modal-open', 'force-show');
+                document.body.classList.remove('modal-open');
+                document.documentElement.classList.remove('modal-open');
+            } catch (_) {}
             // Move focus out of modal before hiding (avoid aria-hidden focus conflict)
             try {
                 if (document.activeElement && typeof document.activeElement.blur === 'function') {
@@ -9424,21 +9430,14 @@ function confirmDialog(message, triggerEl = null) {
                 if (triggerEl && typeof triggerEl.focus === 'function') {
                     triggerEl.focus();
                 }
-            } catch (_) {
-                // ignore focus/blur errors
-            }
-            modal.classList.add('is-hidden');
-            modal.classList.remove('modal-open');
-            modal.classList.remove('force-show');
+            } catch (_) {}
+            // Detach listeners
             try {
-                modal.setAttribute('aria-hidden', 'true');
-            } catch (_) {
-                // ignore focusing errors during cleanup
-            }
-            okBtn.removeEventListener('click', onOk);
-            cancelEls.forEach(el => el.removeEventListener('click', onCancel));
-            document.removeEventListener('keydown', onEsc);
-        };
+                okBtn.removeEventListener('click', onOk);
+                cancelEls.forEach(el => el.removeEventListener('click', onCancel));
+                document.removeEventListener('keydown', onEsc);
+            } catch (_) {}
+        }
         const onOk = () => {
             cleanup();
             devLog('confirmDialog: OK');
@@ -10044,10 +10043,41 @@ function deviceRowHTML(d) {
 function reconcileDevicesTable(devices) {
     const tbody = document.querySelector('#devices-table tbody');
     if (!tbody) return;
+    // Apply client-side filter if present (prefer in-memory term for immediacy)
+    const term = (
+        (typeof window !== 'undefined' && window.__devicesSearchTerm) ||
+        localStorage.getItem('devices.ui.search') ||
+        ''
+    )
+        .trim()
+        .toLowerCase();
+    const matches = d => {
+        if (!term) return true;
+        try {
+            const fields = [d.name, d.location, d.id, d.installId, d.hardwareId]
+                .filter(Boolean)
+                .map(x => String(x).toLowerCase());
+            if (fields.some(s => s.includes(term))) return true;
+            const ua = d.clientInfo && (d.clientInfo.userAgent || d.clientInfo.ua);
+            if (ua && String(ua).toLowerCase().includes(term)) return true;
+        } catch (_) {}
+        return false;
+    };
     const container = document.getElementById('devices-subsection');
-    const editing = !!(container && container.matches && container.matches(':focus-within'));
+    const tbodyEl = document.querySelector('#devices-table tbody');
+    const active = document.activeElement;
+    // Consider "editing" only when focus is inside a row input/select, not when in header search
+    const isRowEditor = !!(
+        active &&
+        tbodyEl &&
+        tbodyEl.contains(active) &&
+        (active.matches?.('input.inline-edit, select.inline-edit') ||
+            active.classList?.contains('inline-edit'))
+    );
+    const editing = isRowEditor;
     const byId = new Map();
-    (devices || []).forEach(d => byId.set(getDeviceId(d), d));
+    const filtered = (devices || []).filter(matches);
+    filtered.forEach(d => byId.set(getDeviceId(d), d));
 
     // Update existing rows and mark seen
     const seen = new Set();
@@ -10056,6 +10086,10 @@ function reconcileDevicesTable(devices) {
         const d = byId.get(id);
         if (!d) return; // handled in removal phase
         seen.add(id);
+        // Keep device object attached for batch operations
+        try {
+            tr.__deviceData = d;
+        } catch (_) {}
         // If user is editing inside this row, preserve inputs; update status only
         const isRowActive = tr.contains(document.activeElement);
         // Update status badges (includes Overrides now)
@@ -10116,13 +10150,16 @@ function reconcileDevicesTable(devices) {
         }
     });
 
-    // Add missing rows (skip while user is editing to avoid layout jumps)
+    // Add missing rows (skip while user is editing an inline field to avoid layout jumps)
     if (!editing) {
-        (devices || []).forEach(d => {
+        filtered.forEach(d => {
             const id = getDeviceId(d);
             if (seen.has(id)) return;
             const tr = document.createElement('tr');
             tr.setAttribute('data-id', id);
+            try {
+                tr.__deviceData = d;
+            } catch (_) {}
             tr.innerHTML = deviceRowHTML(d);
             tbody.appendChild(tr);
             try {
@@ -10136,13 +10173,24 @@ function reconcileDevicesTable(devices) {
         });
     }
 
-    // Remove rows for devices that disappeared (skip while editing)
+    // Remove rows for devices that disappeared (skip while editing an inline field)
     if (!editing) {
         tbody.querySelectorAll('tr').forEach(tr => {
             const id = tr.getAttribute('data-id') || '';
             if (!byId.has(id)) tr.remove();
         });
     }
+    // Restore persisted selection
+    try {
+        const sel = JSON.parse(localStorage.getItem('devices.ui.selected') || '[]');
+        if (Array.isArray(sel) && sel.length) {
+            tbody.querySelectorAll('.row-select').forEach(cb => {
+                const id = cb.getAttribute('data-id');
+                cb.checked = sel.includes(id);
+            });
+            updateBulkSelectionState();
+        }
+    } catch (_) {}
 }
 
 // Attach inline edit handlers within a root element (tbody or single row)
@@ -10200,6 +10248,10 @@ function updateBulkSelectionState() {
         const bulkDeleteBtn = document.getElementById('devices-delete-selected');
         const bulkAssignBtn = document.getElementById('devices-assign-preset');
         const selected = tbody.querySelectorAll('.row-select:checked');
+        try {
+            const ids = Array.from(selected).map(cb => cb.getAttribute('data-id'));
+            localStorage.setItem('devices.ui.selected', JSON.stringify(ids));
+        } catch (_) {}
         if (bulkDeleteBtn) bulkDeleteBtn.disabled = selected.length === 0;
         if (bulkAssignBtn) bulkAssignBtn.disabled = selected.length === 0;
         if (selectAll)
@@ -10247,12 +10299,27 @@ function renderDevicesTable(devices) {
     } catch (_) {
         /* ignore debug log errors */ void 0;
     }
+    // Apply client-side filter on initial render as well
+    const term = (localStorage.getItem('devices.ui.search') || '').trim().toLowerCase();
+    const matches = d => {
+        if (!term) return true;
+        try {
+            const fields = [d.name, d.location, d.id, d.installId, d.hardwareId]
+                .filter(Boolean)
+                .map(x => String(x).toLowerCase());
+            if (fields.some(s => s.includes(term))) return true;
+            const ua = d.clientInfo && (d.clientInfo.userAgent || d.clientInfo.ua);
+            if (ua && String(ua).toLowerCase().includes(term)) return true;
+        } catch (_) {}
+        return false;
+    };
 
     // Precompute duplicate candidates by hardwareId and installId
     const hwMap = Object.create(null);
     const iidMap = Object.create(null);
+    const filtered = (devices || []).filter(matches);
     try {
-        (devices || []).forEach(d => {
+        filtered.forEach(d => {
             const hw = d && d.hardwareId;
             if (hw) (hwMap[hw] = hwMap[hw] || []).push(d);
             const iid = d && d.installId;
@@ -10272,9 +10339,12 @@ function renderDevicesTable(devices) {
     const esc = s => (s == null ? '' : String(s));
     // (Removed unused preset helpers)
 
-    devices.forEach(d => {
+    filtered.forEach(d => {
         const tr = document.createElement('tr');
         tr.setAttribute('data-id', getDeviceId(d));
+        try {
+            tr.__deviceData = d;
+        } catch (_) {}
         // (unused) const currentPresetKey = d.preset || '';
         // const screen = d.clientInfo?.screen || {};
         // const dims =
@@ -10540,12 +10610,33 @@ function renderDevicesTable(devices) {
             .join(' ');
         return `<div class="status-badges">${together}</div>`;
     })()}</td>`;
+        // Highlight rows that have duplicates
+        try {
+            if (
+                d &&
+                ((d.hardwareId && hwMap[d.hardwareId]?.length > 1) ||
+                    (d.installId && iidMap[d.installId]?.length > 1))
+            ) {
+                tr.classList.add('row-dup-suspect');
+            }
+        } catch (_) {}
         tbody.appendChild(tr);
     });
 
     // Bind inline-edit handlers for newly rendered rows
     try {
         bindInlineEditHandlers(tbody);
+    } catch (_) {}
+
+    // Restore persisted selection (if any) and update bulk controls
+    try {
+        const sel = JSON.parse(localStorage.getItem('devices.ui.selected') || '[]');
+        if (Array.isArray(sel) && sel.length) {
+            tbody.querySelectorAll('.row-select').forEach(cb => {
+                const id = cb.getAttribute('data-id');
+                cb.checked = sel.includes(id);
+            });
+        }
     } catch (_) {}
 
     // Bulk selection controls
@@ -11140,6 +11231,57 @@ function initDevicesPanel() {
             });
             devLog('initDevicesPanel: delegated table handler bound');
         }
+        // Persist search box state and filter
+        const searchEl = container.querySelector('#devices-search');
+        if (searchEl) {
+            try {
+                const saved = localStorage.getItem('devices.ui.search') || '';
+                if (saved) searchEl.value = saved;
+            } catch (_) {}
+            // Live-filter on input and on native 'search' (clear button in type=search)
+            const doFilter = async () => {
+                try {
+                    const val = (searchEl.value || '').trim();
+                    if (typeof window !== 'undefined') {
+                        window.__devicesSearchTerm = val;
+                    }
+                    localStorage.setItem('devices.ui.search', val);
+                } catch (_) {}
+                // Optimistic client-side filter of existing rows first (snappier)
+                try {
+                    const existing = Array.from(
+                        document.querySelectorAll('#devices-table tbody tr')
+                    )
+                        .map(tr => tr.__deviceData)
+                        .filter(Boolean);
+                    if (existing.length) reconcileDevicesTable(existing);
+                } catch (_) {}
+                // Then fetch fresh list to reflect server changes
+                const list = await fetchDevices();
+                if (tbodyHasRows()) reconcileDevicesTable(list);
+                else renderDevicesTable(list);
+            };
+            // Prevent Enter from submitting the surrounding form and trigger filter
+            searchEl.addEventListener('keydown', ev => {
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    doFilter();
+                }
+            });
+            searchEl.addEventListener('input', doFilter);
+            searchEl.addEventListener('search', doFilter);
+            searchEl.addEventListener('keyup', ev => {
+                // Trigger on character keys; prevent double-trigger when Enter already handled
+                if (ev.key === 'Enter') return;
+                doFilter();
+            });
+            searchEl.addEventListener('compositionend', doFilter);
+            // If a saved search is present on load, run once to filter initial table
+            if ((searchEl.value || '').trim()) {
+                doFilter();
+            }
+        }
         const bulkDeleteBtn = container.querySelector('#devices-delete-selected');
         const managePresetsBtn = container.querySelector('#manage-device-presets');
         // Manage Presets access via menu item now; keep handler if present (back-compat)
@@ -11160,6 +11302,9 @@ function initDevicesPanel() {
                 menu.classList.remove('open');
                 menuBtn.setAttribute('aria-expanded', 'false');
                 menu.setAttribute('aria-hidden', 'true');
+                try {
+                    localStorage.setItem('devices.ui.menu.presets.open', '0');
+                } catch (_) {}
             };
             const openMenu = () => {
                 // Populate items
@@ -11202,6 +11347,9 @@ function initDevicesPanel() {
                 menu.classList.add('open');
                 menuBtn.setAttribute('aria-expanded', 'true');
                 menu.setAttribute('aria-hidden', 'false');
+                try {
+                    localStorage.setItem('devices.ui.menu.presets.open', '1');
+                } catch (_) {}
             };
             const bulkAssignPreset = async key => {
                 const tbody = container.querySelector('#devices-table tbody');
@@ -11230,6 +11378,12 @@ function initDevicesPanel() {
                 if (menu.classList.contains('open')) closeMenu();
                 else openMenu();
             });
+            // Hydrate open state
+            try {
+                if (localStorage.getItem('devices.ui.menu.presets.open') === '1') {
+                    openMenu();
+                }
+            } catch (_) {}
             menuManage.addEventListener('click', ev => {
                 ev.preventDefault();
                 ev.stopPropagation();
@@ -11279,11 +11433,17 @@ function initDevicesPanel() {
                 mergeMenu.classList.remove('open');
                 mergeMenuBtn.setAttribute('aria-expanded', 'false');
                 mergeMenu.setAttribute('aria-hidden', 'true');
+                try {
+                    localStorage.setItem('devices.ui.menu.merge.open', '0');
+                } catch (_) {}
             };
             const openMenu = () => {
                 mergeMenu.classList.add('open');
                 mergeMenuBtn.setAttribute('aria-expanded', 'true');
                 mergeMenu.setAttribute('aria-hidden', 'false');
+                try {
+                    localStorage.setItem('devices.ui.menu.merge.open', '1');
+                } catch (_) {}
             };
             mergeMenuBtn.addEventListener('click', ev => {
                 ev.preventDefault();
@@ -11291,6 +11451,12 @@ function initDevicesPanel() {
                 if (mergeMenu.classList.contains('open')) closeMenu();
                 else openMenu();
             });
+            // Hydrate open state
+            try {
+                if (localStorage.getItem('devices.ui.menu.merge.open') === '1') {
+                    openMenu();
+                }
+            } catch (_) {}
             document.addEventListener('click', e => {
                 if (!mergeMenu.contains(e.target) && e.target !== mergeMenuBtn) closeMenu();
             });
@@ -11874,11 +12040,16 @@ ${escHtml(presets.length ? JSON.stringify(presets[0], null, 2) : '')}
         const menu = container.querySelector('#groups-menu');
         const manageBtn = container.querySelector('#menu-manage-groups');
         const sendBtn = container.querySelector('#menu-group-send');
+        const addBtn = container.querySelector('#menu-group-add');
+        const removeBtn = container.querySelector('#menu-group-remove');
         if (!btn || !menu || !manageBtn) return;
         const setOpen = open => {
             btn.setAttribute('aria-expanded', open ? 'true' : 'false');
             menu.setAttribute('aria-hidden', open ? 'false' : 'true');
             menu.style.display = open ? 'block' : 'none';
+            try {
+                localStorage.setItem('devices.ui.menu.groups.open', open ? '1' : '0');
+            } catch (_) {}
         };
         let open = false;
         btn.addEventListener('click', ev => {
@@ -11886,6 +12057,13 @@ ${escHtml(presets.length ? JSON.stringify(presets[0], null, 2) : '')}
             open = !open;
             setOpen(open);
         });
+        // Hydrate open state
+        try {
+            if (localStorage.getItem('devices.ui.menu.groups.open') === '1') {
+                open = true;
+                setOpen(true);
+            }
+        } catch (_) {}
         manageBtn.addEventListener('click', ev => {
             ev.stopPropagation();
             setOpen(false);
@@ -11903,6 +12081,110 @@ ${escHtml(presets.length ? JSON.stringify(presets[0], null, 2) : '')}
                 }
             });
         }
+        // Batch add/remove selected devices to group
+        const openBatchGroupModal = async mode => {
+            try {
+                const tbody = container.querySelector('#devices-table tbody');
+                const ids = Array.from(tbody.querySelectorAll('.row-select:checked')).map(cb =>
+                    cb.getAttribute('data-id')
+                );
+                if (!ids.length) return;
+                const groups = await fetchGroups();
+                const existing = document.getElementById('batch-group-modal');
+                if (existing) existing.remove();
+                const esc = s => (s == null ? '' : String(s).replace(/</g, '&lt;'));
+                const html = `
+                    <div id="batch-group-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="batch-group-title">
+                        <div class="modal-background" data-close></div>
+                        <div class="modal-content" style="max-width:560px;">
+                            <span class="close" data-close>&times;</span>
+                            <h3 id="batch-group-title" class="section-title modal-section-title">
+                                <i class="fas fa-object-group"></i>
+                                <span>${mode === 'add' ? 'Add to Group' : 'Remove from Group'}</span>
+                            </h3>
+                            <div class="form-section unified-section">
+                                <div class="subsection-content">
+                                    <p>${ids.length} device(s) selected.</p>
+                                    <div class="form-group">
+                                        <label>Group</label>
+                                        <select id="batch-group-select" style="min-width:240px;">
+                                            ${groups.map(g => `<option value="${esc(g.id)}">${esc(g.name || g.id)}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+                                        <button type="button" class="btn" data-close>Cancel</button>
+                                        <button type="button" class="btn is-primary" id="batch-group-apply">Apply</button>
+                                    </div>
+                                    <div class="hint" id="batch-group-status" style="margin-top:6px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                const wrap = document.createElement('div');
+                wrap.innerHTML = html;
+                const el = wrap.firstElementChild;
+                document.body.appendChild(el);
+                el.querySelectorAll('[data-close]').forEach(c =>
+                    c.addEventListener('click', () => el.remove())
+                );
+                const select = el.querySelector('#batch-group-select');
+                const apply = el.querySelector('#batch-group-apply');
+                const status = el.querySelector('#batch-group-status');
+                apply.addEventListener('click', async () => {
+                    const gid = select.value;
+                    if (!gid) return;
+                    apply.disabled = true;
+                    apply.textContent = 'Applying…';
+                    try {
+                        for (const id of ids) {
+                            try {
+                                const row = tbody.querySelector(`tr[data-id="${id}"]`);
+                                const current =
+                                    row &&
+                                    row.__deviceData &&
+                                    Array.isArray(row.__deviceData.groups)
+                                        ? row.__deviceData.groups.slice()
+                                        : [];
+                                const set = new Set(current);
+                                if (mode === 'add') set.add(gid);
+                                else set.delete(gid);
+                                await patchDeviceGroups(id, Array.from(set));
+                            } catch (_) {}
+                        }
+                        // Refresh list and reconcile/restore selection
+                        const list = await fetchDevices();
+                        renderDevicesTable(list);
+                        if (typeof showNotification === 'function') {
+                            showNotification(
+                                `Group ${mode === 'add' ? 'added to' : 'removed from'} ${ids.length} device(s)`,
+                                'success'
+                            );
+                        }
+                        el.remove();
+                    } catch (e) {
+                        status.textContent = 'Failed to apply to some devices';
+                        if (typeof showNotification === 'function') {
+                            showNotification('Failed to update groups', 'error');
+                        }
+                    } finally {
+                        apply.disabled = false;
+                        apply.textContent = 'Apply';
+                    }
+                });
+            } catch (_) {}
+        };
+        if (addBtn)
+            addBtn.addEventListener('click', ev => {
+                ev.stopPropagation();
+                setOpen(false);
+                openBatchGroupModal('add');
+            });
+        if (removeBtn)
+            removeBtn.addEventListener('click', ev => {
+                ev.stopPropagation();
+                setOpen(false);
+                openBatchGroupModal('remove');
+            });
         document.addEventListener('click', e => {
             if (!open) return;
             if (!menu.contains(e.target) && e.target !== btn) {

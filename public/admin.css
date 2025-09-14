@@ -4858,6 +4858,38 @@ fieldset:focus-within {
 #devices-section .dropdown-menu.open {
     display: block;
 }
+
+/* Devices: duplicate suspect highlight */
+#devices-section tr.row-dup-suspect {
+    background-color: rgba(255, 0, 200, 0.06);
+}
+#devices-section tr.row-dup-suspect:hover {
+    background-color: rgba(255, 0, 200, 0.1);
+}
+
+/* Devices: search box (toolbar and header) */
+#devices-section .toolbar-right .search-box input[type='search'],
+#devices-section th.col-name .search-box input[type='search'] {
+    width: 220px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+/* Compact spacing for header search */
+#devices-section th.col-name .search-box {
+    gap: 0.4rem;
+    margin-left: 8px; /* adjusted by -2px as requested */
+}
+#devices-section th.col-name .search-box input[type='search'] {
+    width: 200px;
+    padding: 5px 8px;
+    padding-left: 0.6rem; /* match Location field left padding */
+}
+#devices-section th.col-name .search-box .fa-search {
+    opacity: 0.8;
+}
 #devices-section .menu-section {
     max-height: 280px;
     overflow: auto;
@@ -4892,8 +4924,8 @@ fieldset:focus-within {
     gap: 0.5rem;
     justify-content: flex-start;
     align-items: center;
-    /* Fine-tune: minus 4px to move 1px to the right */
-    padding-left: calc(22px + 14px - 4px);
+    /* Fine-tune: add ~2px more left space before first button */
+    padding-left: calc(22px + 14px - 2px);
 }
 /* toolbar-preset wrapper removed; presets button now lives in toolbar-left */
 #devices-section .devices-toolbar .toolbar-right {
@@ -4959,7 +4991,7 @@ fieldset:focus-within {
 #devices-section th.col-name .header-with-select {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 8px; /* spacing between checkbox and search */
 }
 #devices-section th.col-name .header-with-select input[type='checkbox'] {
     margin: 0;
