@@ -2476,6 +2476,19 @@ document.addEventListener('DOMContentLoaded', () => {
             config.clockTimezone ?? defaults.clockTimezone;
         document.getElementById('clockFormat').value = config.clockFormat ?? defaults.clockFormat;
 
+        // Sync settings
+        const syncEnabledEl = document.getElementById('syncEnabled');
+        if (syncEnabledEl)
+            syncEnabledEl.checked =
+                config.syncEnabled !== undefined
+                    ? config.syncEnabled
+                    : defaults.syncEnabled !== undefined
+                      ? defaults.syncEnabled
+                      : true;
+        const syncDelayEl = document.getElementById('syncAlignMaxDelayMs');
+        if (syncDelayEl)
+            syncDelayEl.value = config.syncAlignMaxDelayMs ?? defaults.syncAlignMaxDelayMs ?? 1200;
+
         // Wallart Mode (object-based)
         const wallartMode = config.wallartMode ??
             defaults.wallartMode ?? {
@@ -5793,6 +5806,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const newConfig = {
                     transitionIntervalSeconds: getValue('transitionIntervalSeconds', 'number'),
+                    syncEnabled: getValue('syncEnabled'),
+                    syncAlignMaxDelayMs: getValue('syncAlignMaxDelayMs', 'number'),
 
                     showClearLogo: getValue('showClearLogo'),
                     // Rotten Tomatoes: minimum score applied only if badge enabled; when disabled we still send value for persistence.
@@ -9868,24 +9883,30 @@ function renderDevicesTable(devices) {
                     const ow = overridesObj.wallartMode || {};
                     const oc = overridesObj.cinemaMode;
                     if (ow && ow.enabled === true) {
-                        return { label: 'Wallart', cls: 'is-primary', src: 'override' };
+                        return { label: 'Wallart', cls: 'is-mode-wallart', src: 'override' };
                     }
                     if (oc === true) {
-                        return { label: 'Cinema', cls: 'is-primary', src: 'override' };
+                        return { label: 'Cinema', cls: 'is-mode-cinema', src: 'override' };
                     }
                     if (ow && ow.enabled === false && oc === false) {
-                        return { label: 'Screensaver', cls: 'is-unknown', src: 'override' };
+                        return {
+                            label: 'Screensaver',
+                            cls: 'is-mode-screensaver',
+                            src: 'override',
+                        };
                     }
                 }
                 // 2) Client-reported mode (best available runtime state)
                 const cm = (d.clientInfo?.mode || '').toLowerCase();
-                if (cm === 'cinema') return { label: 'Cinema', cls: 'is-primary', src: 'client' };
-                if (cm === 'wallart') return { label: 'Wallart', cls: 'is-primary', src: 'client' };
+                if (cm === 'cinema')
+                    return { label: 'Cinema', cls: 'is-mode-cinema', src: 'client' };
+                if (cm === 'wallart')
+                    return { label: 'Wallart', cls: 'is-mode-wallart', src: 'client' };
                 if (cm === 'screensaver' || cm === 'slideshow' || cm === 'default')
-                    return { label: 'Screensaver', cls: 'is-unknown', src: 'client' };
+                    return { label: 'Screensaver', cls: 'is-mode-screensaver', src: 'client' };
             } catch (_) {}
             // 3) Fallback
-            return { label: 'Screensaver', cls: 'is-unknown', src: 'fallback' };
+            return { label: 'Screensaver', cls: 'is-mode-screensaver', src: 'fallback' };
         })();
         const cellMode = `<span class="badge ${modeInfo.cls}" title="Mode source: ${modeInfo.src}">${esc(
             modeInfo.label
@@ -9969,14 +9990,8 @@ function renderDevicesTable(devices) {
             <button type="button" class="btn" data-cmd="send-command" data-id="${d.id}" title="Send command (e.g., source.switch)" ${isOffline || isPoweredOff ? 'disabled' : ''}>
                             <span class="icon"><i class="fas fa-paper-plane"></i></span>
                         </button>
-            <button type="button" class="btn" data-cmd="playback.prev" data-id="${d.id}" title="Previous poster" ${isOffline || isPoweredOff ? 'disabled' : ''}>
-                            <span class="icon"><i class="fas fa-step-backward"></i></span>
-                        </button>
             <button type="button" class="btn playback-toggle${d.currentState && d.currentState.paused === false ? ' is-primary is-playing' : isPaused ? ' is-paused' : ''}" data-cmd="playback.toggle" data-id="${d.id}" title="Play/Pause" ${isOffline || isPoweredOff ? 'disabled' : ''}>
                             <span class="icon"><i class="fas ${d.currentState && d.currentState.paused === false ? 'fa-pause' : 'fa-play'}"></i></span>
-                        </button>
-            <button type="button" class="btn" data-cmd="playback.next" data-id="${d.id}" title="Next poster" ${isOffline || isPoweredOff ? 'disabled' : ''}>
-                            <span class="icon"><i class="fas fa-step-forward"></i></span>
                         </button>
             <button type="button" class="btn pin-btn${isPinned ? ' is-pinned' : ''}" data-cmd="playback.pinPoster" data-id="${d.id}" title="Pin current poster" aria-pressed="${isPinned ? 'true' : 'false'}" ${isOffline || isPoweredOff ? 'disabled' : ''}>
                             <span class="icon"><i class="fas ${isPinned ? 'fa-map-pin' : 'fa-thumbtack'}" aria-hidden="true"></i></span>
@@ -9998,57 +10013,76 @@ function renderDevicesTable(devices) {
                         <div class="field-label">Location</div>
                         <input class="inline-edit location-input" data-field="location" data-id="${d.id}" value="${esc(d.location)}" placeholder="Location" />
                     </div>
-                    <div class="field">
-                        <div class="field-label">Preset</div>
-                        <select class="inline-edit preset-select" data-field="preset" data-id="${d.id}" title="Assign a display preset to this device" aria-label="Preset">
-                            ${buildPresetOptions(currentPresetKey)}
-                        </select>
-                    </div>
-                    <div class="field field-mode-inline">
-                        <div class="field-label">Mode</div>
-                        <div class="mode-inline">${cellMode}</div>
-                    </div>
+                    
+                    
                 </div>
                 <div class="row-bottom meta-line">${overridesBadge}</div>
             </td>
-            <td class="cell-mode"></td>
-            <td class="cell-status">${(() => {
-                const raw = (d.status || 'unknown').toLowerCase();
-                const hasWs = !!d.wsConnected;
-                // Determine unified status
-                let label = 'Unknown';
-                let cls = 'is-unknown';
-                let explain = 'Device status is unknown.';
-                if (raw === 'offline' || (d.currentState && d.currentState.poweredOff === true)) {
-                    label = 'Offline';
-                    cls = 'is-unknown'; // gray
-                    explain =
-                        d.currentState && d.currentState.poweredOff
-                            ? 'Device is powered off (blackout mode).'
-                            : 'Device is not connected. No recent heartbeat detected.';
-                } else if (raw === 'online' && hasWs) {
-                    label = 'Live';
-                    cls = 'is-online'; // green
-                    explain = 'Client is online and connected via WebSocket. Live control enabled.';
-                } else if (raw === 'online' && !hasWs) {
-                    label = 'Online';
-                    cls = 'is-primary'; // blue
-                    explain = 'Client is online but no live WebSocket is connected.';
-                }
+    <td class="cell-status">${(() => {
+        const raw = (d.status || 'unknown').toLowerCase();
+        const hasWs = !!d.wsConnected;
+        // Determine unified status
+        let label = 'Unknown';
+        let cls = 'is-unknown';
+        let explain = 'Device status is unknown.';
+        if (raw === 'offline' || (d.currentState && d.currentState.poweredOff === true)) {
+            label = 'Offline';
+            cls = 'is-unknown'; // gray
+            explain =
+                d.currentState && d.currentState.poweredOff
+                    ? 'Device is powered off (blackout mode).'
+                    : 'Device is not connected. No recent heartbeat detected.';
+        } else if (raw === 'online' && hasWs) {
+            label = 'Live';
+            cls = 'is-live'; // standout styling for best status
+            explain = 'Best state: live WebSocket connected for instant control and sync.';
+        } else if (raw === 'online' && !hasWs) {
+            label = 'Online';
+            cls = 'is-online'; // green
+            explain = 'Client is online but no live WebSocket is connected.';
+        }
 
-                const statusTip = `
+        const statusTip = `
                     <div class="tip-title">Status</div>
                     <div class="tip-grid">
                         <span class="tip-k">State</span><span class="tip-v">${esc(label)}</span>
                         <span class="tip-k">WebSocket</span><span class="tip-v">${hasWs ? 'Connected' : 'Not connected'}</span>
+                        ${last ? `<span class="tip-k">Last Seen</span><span class="tip-v">${esc(last.date)} ${esc(last.time)}</span>` : ''}
                     </div>
                 `;
 
-                const detailsHtml =
-                    details || '<div class="tip-row"><span class="tip-k">No details</span></div>';
-                return `<span class="badge ${cls}" data-device-tip="1" title="${esc(explain)}">${esc(label)}<div class="device-tip">${statusTip}${detailsHtml}</div></span>`;
-            })()}</td>
-            <td class="cell-last">${last ? `<div class="last-label">Last Seen</div><div class="last-date">${esc(last.date)}</div><div class="last-time">${esc(last.time)}</div>` : '<div class="last-label">Last Seen</div>—'}</td>`;
+        const detailsHtml =
+            details || '<div class="tip-row"><span class="tip-k">No details</span></div>';
+        const statusBadge = `<span class="badge ${cls}" data-device-tip="1" title="${esc(explain)}">${esc(label)}<div class="device-tip">${statusTip}${detailsHtml}</div></span>`;
+        // Build mode/groups/synced badges here so they sit next to the status badge
+        const modeBadge = cellMode;
+        // Groups badge (only when member of at least one group)
+        const ids = Array.isArray(d.groups) ? d.groups.filter(Boolean) : [];
+        const groups = Array.isArray(window.__groupsCache) ? window.__groupsCache : [];
+        const names = ids
+            .map(id => {
+                const g = groups.find(x => x && (x.id === id || x.key === id));
+                return g ? g.name || g.id || id : id;
+            })
+            .filter(Boolean);
+        const count = ids.length;
+        const groupsBadge =
+            count > 0
+                ? `<span class="badge badge-groups" title="Groups: ${names.map(n => String(n).replace(/</g, '&lt;')).join(', ')}">Groups: ${count}</span>`
+                : '';
+        const synced = !!(
+            hasWs &&
+            window.currentConfig &&
+            window.currentConfig.syncEnabled !== false
+        );
+        const syncedBadge = synced
+            ? '<span class="badge is-online badge-synced" title="Device will align to sync ticks">Synced</span>'
+            : '';
+        const together = [statusBadge, modeBadge, groupsBadge, syncedBadge]
+            .filter(Boolean)
+            .join(' ');
+        return `<div class="status-badges">${together}</div>`;
+    })()}</td>`;
         tbody.appendChild(tr);
     });
 
@@ -11399,8 +11433,15 @@ function showManageGroupsModal() {
                 try {
                     await patchGroup(gid, { settingsTemplate: parsed });
                     tplHint.textContent = 'Template saved';
+                    // Toast: group template saved and live-applied to members
+                    if (typeof showNotification === 'function') {
+                        showNotification('Group template saved and applied to members', 'success');
+                    }
                 } catch (_) {
                     tplHint.textContent = 'Failed to save template';
+                    if (typeof showNotification === 'function') {
+                        showNotification('Failed to save group template', 'error');
+                    }
                 }
             });
         }
@@ -11414,8 +11455,14 @@ function showManageGroupsModal() {
                 try {
                     await patchGroup(gid, { order: val });
                     if (status) status.textContent = 'Order saved';
+                    if (typeof showNotification === 'function') {
+                        showNotification('Group order saved', 'success');
+                    }
                 } catch (_) {
                     if (status) status.textContent = 'Failed to save order';
+                    if (typeof showNotification === 'function') {
+                        showNotification('Failed to save group order', 'error');
+                    }
                 }
             });
         }
@@ -11439,8 +11486,14 @@ function showManageGroupsModal() {
                 try {
                     await sendGroupCommand(gid, type, payload);
                     if (status) status.textContent = 'Command sent to group';
+                    if (typeof showNotification === 'function') {
+                        showNotification('Group command sent', 'success');
+                    }
                 } catch (_) {
                     if (status) status.textContent = 'Failed to send command';
+                    if (typeof showNotification === 'function') {
+                        showNotification('Failed to send group command', 'error');
+                    }
                 }
             });
         }
@@ -11452,10 +11505,16 @@ function showManageGroupsModal() {
             try {
                 await createGroup({ name });
                 if (status) status.textContent = 'Group created.';
+                if (typeof showNotification === 'function') {
+                    showNotification('Group created', 'success');
+                }
                 el.remove();
                 loadAndRender();
             } catch (e) {
                 if (status) status.textContent = 'Failed to create group.';
+                if (typeof showNotification === 'function') {
+                    showNotification('Failed to create group', 'error');
+                }
             }
         });
 
@@ -11469,10 +11528,16 @@ function showManageGroupsModal() {
             try {
                 await patchGroup(id, { name });
                 if (status) status.textContent = 'Group renamed.';
+                if (typeof showNotification === 'function') {
+                    showNotification('Group renamed', 'success');
+                }
                 el.remove();
                 loadAndRender();
             } catch (e) {
                 if (status) status.textContent = 'Failed to rename group.';
+                if (typeof showNotification === 'function') {
+                    showNotification('Failed to rename group', 'error');
+                }
             }
         });
 
@@ -11484,10 +11549,16 @@ function showManageGroupsModal() {
             try {
                 await deleteGroup(id);
                 if (status) status.textContent = 'Group deleted.';
+                if (typeof showNotification === 'function') {
+                    showNotification('Group deleted', 'success');
+                }
                 el.remove();
                 loadAndRender();
             } catch (e) {
                 if (status) status.textContent = 'Failed to delete group.';
+                if (typeof showNotification === 'function') {
+                    showNotification('Failed to delete group', 'error');
+                }
             }
         });
 
@@ -11504,9 +11575,15 @@ function showManageGroupsModal() {
                 else next.delete(gid);
                 await patchDeviceGroups(did, Array.from(next));
                 if (status) status.textContent = 'Updated group membership.';
+                if (typeof showNotification === 'function') {
+                    showNotification('Group membership updated and applied', 'success');
+                }
             } catch (_) {
                 if (status) status.textContent = 'Failed to update group membership.';
                 cb.checked = !cb.checked;
+                if (typeof showNotification === 'function') {
+                    showNotification('Failed to update group membership', 'error');
+                }
             }
         });
     };
@@ -11584,8 +11661,14 @@ function showQuickGroupCommandModal(groups) {
         try {
             await sendGroupCommand(gid, type, payload);
             status.textContent = 'Command sent';
+            if (typeof showNotification === 'function') {
+                showNotification('Group command sent', 'success');
+            }
         } catch (_) {
             status.textContent = 'Failed to send';
+            if (typeof showNotification === 'function') {
+                showNotification('Failed to send group command', 'error');
+            }
         }
     });
 }

@@ -387,6 +387,15 @@
                         // Fallback to mgmt command handler
                         liveDbg('[Live] delegating to handleCommand', { type: msg.type });
                         handleCommand({ type: msg.type, payload: msg.payload });
+                    } else if (msg.kind === 'sync-tick') {
+                        // Forward sync-tick to runtime slideshow for transition alignment
+                        try {
+                            if (typeof window.__posterramaOnSyncTick === 'function') {
+                                window.__posterramaOnSyncTick(msg.payload || {});
+                            }
+                        } catch (_) {
+                            /* ignore sync handler errors */
+                        }
                     } else if (msg.kind === 'apply-settings' && msg.payload) {
                         // Apply partial settings live if script.js exposed applySettings
                         try {

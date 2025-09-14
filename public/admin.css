@@ -4638,6 +4638,59 @@ fieldset:focus-within {
 #devices-section .presets-menu {
     position: relative;
 }
+
+/* --- Minimal badge styling for Status cell (safe, scoped) --- */
+#devices-section td.cell-status .status-badges .badge.is-mode-screensaver {
+    border-color: rgba(148, 163, 184, 0.5);
+    background: rgba(148, 163, 184, 0.16);
+    color: rgba(226, 232, 240, 0.98);
+}
+#devices-section td.cell-status .status-badges .badge.is-mode-wallart {
+    border-color: rgba(20, 184, 166, 0.55);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(45, 212, 191, 0.18));
+    color: rgba(224, 255, 250, 0.98);
+}
+#devices-section td.cell-status .status-badges .badge.is-mode-cinema {
+    border-color: rgba(249, 115, 22, 0.55);
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.22), rgba(236, 72, 153, 0.18));
+    color: #fff7ed;
+}
+#devices-section td.cell-status .status-badges .badge.badge-groups {
+    border-color: rgba(168, 85, 247, 0.5);
+    background: rgba(168, 85, 247, 0.15);
+    color: rgba(232, 213, 255, 0.95);
+    position: relative;
+}
+#devices-section td.cell-status .status-badges .badge.badge-groups::before {
+    content: '\f0c0'; /* fa-users */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    margin-right: 6px;
+}
+#devices-section td.cell-status .status-badges .badge.badge-synced::before {
+    content: '\f017'; /* fa-clock */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    margin-right: 6px;
+}
+#devices-section td.cell-status .status-badges .badge.is-mode-screensaver::before {
+    content: '\f186'; /* fa-moon */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    margin-right: 6px;
+}
+#devices-section td.cell-status .status-badges .badge.is-mode-wallart::before {
+    content: '\f302'; /* fa-images */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    margin-right: 6px;
+}
+#devices-section td.cell-status .status-badges .badge.is-mode-cinema::before {
+    content: '\f008'; /* fa-film */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    margin-right: 6px;
+}
 #devices-section .groups-menu {
     position: relative;
 }
@@ -4739,8 +4792,7 @@ fieldset:focus-within {
 }
 /* Show all header columns */
 #devices-section th.col-mode,
-#devices-section th.col-status,
-#devices-section th.col-last {
+#devices-section th.col-status {
     display: table-cell;
 }
 /* (baseline spacing removed to restore original layout) */
@@ -4756,7 +4808,7 @@ fieldset:focus-within {
     padding: 0;
 }
 #devices-section th.col-name {
-    width: 70%;
+    width: 50%;
 }
 #devices-section th.col-name {
     text-align: left;
@@ -4780,10 +4832,8 @@ fieldset:focus-within {
     padding: 0;
 }
 #devices-section th.col-status {
-    width: 10%;
-}
-#devices-section th.col-last {
-    width: 10%;
+    width: 50%;
+    padding-left: 12px;
 }
 #devices-section th.col-actions {
     width: 6%;
@@ -4795,38 +4845,33 @@ fieldset:focus-within {
 /* Removed absolute positioning to prevent overlap and restore normal flow */
 #devices-section th.col-status,
 #devices-section td.cell-status {
-    text-align: center;
+    text-align: left;
 }
 /* Align Status badge vertically with Mode badge */
 #devices-section td.cell-status {
-    vertical-align: top; /* start at top of row like the inputs grid */
-    padding-top: 5px; /* nudge up by 1px */
+    vertical-align: middle; /* fallback */
+    display: flex; /* robust alignment to inputs baseline */
+    align-items: flex-start; /* align with top of inputs area */
+    padding-top: 32px; /* match name cell reserved toolbar space */
+    padding-left: 12px; /* breathing room from inputs */
 }
-#devices-section td.cell-status .badge {
-    /* Align bottoms: actions (22) + actions mb (6) + label (0.75rem) + gap (4) + input height (36) - badge height (~26) + 1px nudge */
-    margin-top: calc(22px + 6px + 0.75rem + 4px + 36px - 25px);
+#devices-section td.cell-status .status-badges {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-start;
+    margin-top: 0; /* let table cell handle vertical centering */
+    width: 100%;
+    flex-wrap: wrap; /* allow badges to wrap without affecting vertical centering */
+    row-gap: 4px; /* tighten vertical gap when wrapped */
 }
-/* Align Last Seen with the icons row and inputs baseline */
-#devices-section td.cell-last {
-    vertical-align: top;
-    padding-top: 5px;
-    white-space: nowrap;
-    text-align: center;
+#devices-section td.cell-status .status-badges .badge {
+    margin-top: 0; /* container handles baseline alignment */
+    display: inline-flex; /* ensure inner content aligns vertically */
+    align-items: center;
+    line-height: 1; /* avoid extra vertical whitespace from generic .badge */
 }
-#devices-section td.cell-last .last-date {
-    /* Push the date/time block down so its bottom aligns with inputs baseline (Mode infobox) */
-    margin-top: calc(22px + 6px + 0.75rem + 4px + 36px - 41px);
-}
-#devices-section td.cell-last .last-label {
-    /* Place label on the same row as the action icons visually */
-    display: block;
-    color: #c7d2fe;
-    opacity: 0.9;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    margin-bottom: 4px;
-}
+/* Last Seen column removed: styles pruned */
 #devices-section td.cell-mode,
 #devices-section td.cell-screen {
     text-align: center;
@@ -4848,9 +4893,16 @@ fieldset:focus-within {
     width: 100%;
 }
 #devices-section .actions-inline {
-    margin-bottom: 6px;
-    /* Align action icons under the Name column: 22px checkbox + 14px grid gap */
-    padding-left: calc(22px + 14px);
+    /* Float toolbar inside the name cell header area so it doesn't push the row */
+    position: absolute;
+    top: 0;
+    left: calc(22px + 14px);
+    right: 0;
+    margin: 0;
+    padding: 0;
+    height: 26px;
+    display: flex;
+    align-items: center;
 }
 #devices-section .actions-inline .btn-group.icon-only {
     display: flex;
@@ -4906,13 +4958,12 @@ fieldset:focus-within {
 /* Device row inputs layout */
 #devices-section .inputs-line {
     display: grid;
-    /* Select | Name | Location | Preset | Mode | Status | spacer */
-    grid-template-columns:
-        auto minmax(12ch, 0.7fr) minmax(12ch, 0.7fr) minmax(14ch, 0.7fr)
-        auto auto 1fr;
+    /* Select | Name | Location (only these exist in the row) */
+    grid-template-columns: auto 1fr 1fr;
     gap: 10px 14px;
     /* Bottom-align all input fields for a clean baseline */
     align-items: end;
+    width: 100%;
 }
 #devices-section .inputs-line .preset-select {
     /* Override global min-width to avoid forcing wrap in a tight cell */
@@ -4938,21 +4989,7 @@ fieldset:focus-within {
         grid-template-columns: 1fr;
     }
 }
-/* Last Seen: unify date/time typography to match app text sizing */
-#devices-section td.cell-last .last-date,
-#devices-section td.cell-last .last-time {
-    display: block;
-    line-height: 1;
-    font-size: 0.75rem; /* match field-label size */
-    color: #c7d2fe; /* match field-label blue */
-    opacity: 0.8; /* match field-label opacity */
-    font-weight: 400;
-}
-
-/* Hide textual header content since label moves into rows; keep width for layout */
-#devices-section th.col-last {
-    text-align: center;
-}
+/* Last Seen column removed */
 
 /* Reduce bottom whitespace in Devices section */
 div#devices-section.section-content.active .section-main-content {
@@ -5445,7 +5482,8 @@ div#devices-section.section-content.active .section-main-content {
 
 /* Two-line device cell layout */
 #devices-section td.cell-name {
-    padding-top: 6px;
+    position: relative;
+    padding-top: 32px; /* reserve space for toolbar above inputs */
     padding-bottom: 6px;
 }
 /* removed row-wide/metrics-line experiment */
@@ -5459,11 +5497,12 @@ div#devices-section.section-content.active .section-main-content {
 #devices-section .row-top.inputs-line {
     /* Override generic .row-top flex; use grid for inputs line */
     display: grid;
-    /* Select | Name | Location | Preset | Mode | Status | spacer */
-    grid-template-columns: auto 18ch 18ch 18ch auto auto 1fr;
+    /* Select | Name | Location */
+    grid-template-columns: auto 1fr 1fr;
     gap: 10px 14px;
     /* Bottom-align inputs under their labels while allowing specific items to override */
     align-items: end;
+    width: 100%;
 }
 /* Grid item that contains the row-select checkbox (first column) */
 #devices-section .field-select-inline {
@@ -5641,10 +5680,6 @@ div#devices-section.section-content.active .section-main-content {
 
 /* Responsive tweaks without widening content */
 @media (max-width: 1100px) {
-    #devices-section th.col-last,
-    #devices-section td.cell-last {
-        display: none;
-    }
     #devices-section th.col-screen,
     #devices-section td.cell-screen {
         display: none;

@@ -4,6 +4,17 @@
     "description": "Schema for the Posterrama config.json file.",
     "type": "object",
     "properties": {
+        "syncEnabled": {
+            "description": "Enable global sync-tick alignment across devices.",
+            "type": "boolean",
+            "default": true
+        },
+        "syncAlignMaxDelayMs": {
+            "description": "Maximum milliseconds before a sync boundary at which clients will realign to the global tick.",
+            "type": "integer",
+            "minimum": 0,
+            "default": 1200
+        },
         "transitionIntervalSeconds": {
             "description": "How many seconds each poster is visible.",
             "type": "integer",

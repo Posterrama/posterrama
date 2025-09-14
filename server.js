@@ -1749,7 +1749,7 @@ if (isDeviceMgmtEnabled()) {
                     /* ignore cache clear errors */
                 }
             }
-            // If groups changed, invalidate /get-config so group templates apply immediately
+            // If groups changed, invalidate /get-config and best-effort live-apply merged template to connected device
             if ('groups' in patch) {
                 try {
                     if (cacheManager && typeof cacheManager.clear === 'function') {
@@ -1757,6 +1757,53 @@ if (isDeviceMgmtEnabled()) {
                     }
                 } catch (_) {
                     /* ignore cache clear errors */
+                }
+                // Live-apply: compute merged group template in deterministic order and push as apply-settings
+                try {
+                    if (wsHub.isConnected(req.params.id)) {
+                        const dev = d; // patched device returned above
+                        if (dev && Array.isArray(dev.groups) && dev.groups.length) {
+                            const allGroups = await groupsStore.getAll();
+                            const seq = dev.groups
+                                .map((gid, idx) => {
+                                    const g = allGroups.find(x => x.id === gid);
+                                    return g ? { g, idx } : null;
+                                })
+                                .filter(Boolean)
+                                .sort((a, b) => {
+                                    const ao = Number.isFinite(a.g.order)
+                                        ? a.g.order
+                                        : Number.MAX_SAFE_INTEGER;
+                                    const bo = Number.isFinite(b.g.order)
+                                        ? b.g.order
+                                        : Number.MAX_SAFE_INTEGER;
+                                    if (ao !== bo) return ao - bo;
+                                    return a.idx - b.idx;
+                                });
+                            let mergedTemplate = {};
+                            for (const { g } of seq) {
+                                if (
+                                    g &&
+                                    g.settingsTemplate &&
+                                    typeof g.settingsTemplate === 'object'
+                                ) {
+                                    mergedTemplate = deepMerge(
+                                        {},
+                                        mergedTemplate,
+                                        g.settingsTemplate
+                                    );
+                                }
+                            }
+                            if (mergedTemplate && Object.keys(mergedTemplate).length) {
+                                wsHub.sendApplySettings(req.params.id, mergedTemplate);
+                            }
+                        } else {
+                            // No groups assigned anymore; push empty delta to reset any preview-only changes
+                            wsHub.sendApplySettings(req.params.id, {});
+                        }
+                    }
+                } catch (_) {
+                    /* ignore live-apply errors */
                 }
             }
             res.json(d);
@@ -1826,6 +1873,59 @@ if (isDeviceMgmtEnabled()) {
                 }
             } catch (_) {
                 /* no-op: cache clear is best-effort */
+            }
+            // Best-effort live-apply: if settingsTemplate updated, push merged templates to connected members
+            try {
+                if (
+                    g &&
+                    req.body &&
+                    Object.prototype.hasOwnProperty.call(req.body, 'settingsTemplate')
+                ) {
+                    const allDevices = await deviceStore.getAll();
+                    const allGroups = await groupsStore.getAll();
+                    for (const dev of allDevices) {
+                        if (
+                            Array.isArray(dev.groups) &&
+                            dev.groups.includes(g.id) &&
+                            wsHub.isConnected(dev.id)
+                        ) {
+                            // Build deterministic group sequence: order asc, then device index
+                            const seq = dev.groups
+                                .map((gid, idx) => {
+                                    const gx = allGroups.find(x => x.id === gid);
+                                    return gx ? { g: gx, idx } : null;
+                                })
+                                .filter(Boolean)
+                                .sort((a, b) => {
+                                    const ao = Number.isFinite(a.g.order)
+                                        ? a.g.order
+                                        : Number.MAX_SAFE_INTEGER;
+                                    const bo = Number.isFinite(b.g.order)
+                                        ? b.g.order
+                                        : Number.MAX_SAFE_INTEGER;
+                                    if (ao !== bo) return ao - bo;
+                                    return a.idx - b.idx;
+                                });
+                            let mergedTemplate = {};
+                            for (const { g: gg } of seq) {
+                                if (
+                                    gg &&
+                                    gg.settingsTemplate &&
+                                    typeof gg.settingsTemplate === 'object'
+                                ) {
+                                    mergedTemplate = deepMerge(
+                                        {},
+                                        mergedTemplate,
+                                        gg.settingsTemplate
+                                    );
+                                }
+                            }
+                            wsHub.sendApplySettings(dev.id, mergedTemplate);
+                        }
+                    }
+                }
+            } catch (_) {
+                /* ignore live-apply errors */
             }
             res.json(g);
         } catch (e) {
@@ -3986,6 +4086,10 @@ app.get(
             clockWidget: config.clockWidget !== false,
             clockTimezone: config.clockTimezone || 'auto',
             clockFormat: config.clockFormat || '24h',
+            syncEnabled: config.syncEnabled !== false,
+            syncAlignMaxDelayMs: Number.isFinite(Number(config.syncAlignMaxDelayMs))
+                ? Number(config.syncAlignMaxDelayMs)
+                : 1200,
             cinemaMode: config.cinemaMode || false,
             cinemaOrientation: config.cinemaOrientation || 'auto',
             wallartMode: config.wallartMode || {
@@ -4031,14 +4135,31 @@ app.get(
                 device = await deviceStore.findByHardwareId(hardwareId);
             }
 
-            // Accumulate group templates in order, then apply device overrides
+            // Accumulate group templates deterministically by group.order, then device order, then apply device overrides
             let fromGroups = {};
             try {
                 if (device && Array.isArray(device.groups) && device.groups.length) {
                     const allGroups = await groupsStore.getAll();
-                    for (const gid of device.groups) {
-                        const g = allGroups.find(x => x.id === gid);
+                    // Build and sort group sequence: by numeric order asc, then by device list index asc
+                    const seq = device.groups
+                        .map((gid, idx) => {
+                            const g = allGroups.find(x => x.id === gid);
+                            return g ? { g, idx } : null;
+                        })
+                        .filter(Boolean)
+                        .sort((a, b) => {
+                            const ao = Number.isFinite(a.g.order)
+                                ? a.g.order
+                                : Number.MAX_SAFE_INTEGER;
+                            const bo = Number.isFinite(b.g.order)
+                                ? b.g.order
+                                : Number.MAX_SAFE_INTEGER;
+                            if (ao !== bo) return ao - bo;
+                            return a.idx - b.idx;
+                        });
+                    for (const { g } of seq) {
                         if (g && g.settingsTemplate && typeof g.settingsTemplate === 'object') {
+                            // Later templates override earlier ones
                             fromGroups = deepMerge({}, fromGroups, g.settingsTemplate);
                         }
                     }
@@ -9957,7 +10078,7 @@ if (require.main === module) {
                             const nextAt = Math.ceil(now / periodMs) * periodMs;
                             const msToNext = nextAt - now;
                             // Broadcast when close to the next boundary so clients can align
-                            if (msToNext <= 800) {
+                            if (config.syncEnabled !== false && msToNext <= 800) {
                                 wsHub.broadcast({
                                     kind: 'sync-tick',
                                     payload: {
@@ -10061,7 +10182,7 @@ if (require.main === module) {
                             const now = Date.now();
                             const nextAt = Math.ceil(now / periodMs) * periodMs;
                             const msToNext = nextAt - now;
-                            if (msToNext <= 800) {
+                            if (config.syncEnabled !== false && msToNext <= 800) {
                                 wsHub.broadcast({
                                     kind: 'sync-tick',
                                     payload: { serverTime: now, periodMs, nextAt },

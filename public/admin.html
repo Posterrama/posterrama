@@ -33,7 +33,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <!-- Local CSS with versioning -->
-    <link rel="stylesheet" href="/admin.css?v=20250830f&cb=1756867201">
+    <link rel="stylesheet" href="/admin.css?v=20250831b&cb=1756867201">
     
     <!-- Font Awesome with SRI for security -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -347,6 +347,24 @@
                                     <i class="fas fa-eye"></i>
                                     Visual Elements
                                 </div>
+                                <!-- Sync Settings Subsection -->
+                                <div class="subsection-header" id="syncSettingsHeader">
+                                    <i class="fas fa-link"></i>
+                                    Sync
+                                </div>
+                                <div class="subsection-content" id="syncSettingsContent">
+                                    <div class="checkbox-row">
+                                        <div class="form-group checkbox-group">
+                                            <input type="checkbox" id="syncEnabled" name="syncEnabled">
+                                            <label for="syncEnabled">Enable device sync</label>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="syncAlignMaxDelayMs">Max align delay (ms)</label>
+                                        <input type="number" id="syncAlignMaxDelayMs" name="syncAlignMaxDelayMs" min="0" step="50">
+                                        <div class="help-text">Clients will realign only when next boundary is within this many milliseconds.</div>
+                                    </div>
+                                </div>
                                 <div class="subsection-content" id="visualElementsContent">
                                     <div class="checkbox-row">
                                         <div class="form-group checkbox-group">
@@ -602,9 +620,7 @@
                                                 <tr>
                                                     <th class="col-select"></th>
                                                     <th class="col-name"><span class="header-with-select"><input type="checkbox" id="devices-select-all" aria-label="Select all devices" /></span></th>
-                                                    <th class="col-mode" aria-hidden="true"></th>
                                                     <th class="col-status"></th>
-                                                    <th class="col-last" aria-hidden="true"></th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>
