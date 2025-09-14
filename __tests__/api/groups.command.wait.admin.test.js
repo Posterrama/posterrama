@@ -1,9 +1,6 @@
 const request = require('supertest');
 
 describe('Admin Group Command wait=true', () => {
-    let app;
-    let wsHub;
-
     beforeEach(() => {
         jest.resetModules();
         process.env.NODE_ENV = 'test';
@@ -23,7 +20,6 @@ describe('Admin Group Command wait=true', () => {
         delete process.env.API_ACCESS_TOKEN;
         delete process.env.DEVICE_MGMT_ENABLED;
     });
-
     test('collects per-device ACKs and queues offline members', async () => {
         let app;
         let wsHub;

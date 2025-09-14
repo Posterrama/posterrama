@@ -3,8 +3,6 @@
  Covers: register, heartbeat, pairing claim, and command queue
 */
 
-const http = require('http');
-
 let app;
 let server;
 let baseUrl;
