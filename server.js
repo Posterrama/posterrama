@@ -134,14 +134,13 @@ function getAssetVersions() {
             'admin.js',
             'style.css',
             'admin.css',
-            'admin2.js',
             'sw.js',
             'client-logger.js',
             'manifest.json',
             'device-mgmt.js',
             'lazy-loading.js',
             'notify.js',
-            'theme-demo.css',
+            // 'theme-demo.css' has been renamed to admin.css for Admin v2 rollout
         ];
 
         criticalAssets.forEach(asset => {
@@ -5938,42 +5937,7 @@ app.get('/admin', (req, res) => {
     });
 });
 
-/**
- * /admin2 and /admin2.html: New Admin v2 UI
- *
- * Serve the modern admin UI located in public/admin2.html. We gate it behind the same
- * authentication middleware as other admin pages. Static assets (admin2.js, theme-demo.css, etc.)
- * are served by the express.static middleware below.
- */
-app.get(['/admin2', '/admin2/', '/admin2.html'], isAuthenticated, (req, res) => {
-    // Serve stamped admin2.html to bust cached assets automatically
-    const filePath = path.join(__dirname, 'public', 'admin2.html');
-    fs.readFile(filePath, 'utf8', (err, contents) => {
-        if (err) {
-            logger.error(`[Admin] Error reading admin2.html: ${err.message}`);
-            return res.sendFile(filePath); // Fallback to static file
-        }
-        const versions = getAssetVersions();
-        const stamped = contents
-            // JS
-            .replace(
-                /admin2\.js\?v=[^"'\s>]+/g,
-                `admin2.js?v=${versions['admin2.js'] || ASSET_VERSION}`
-            )
-            .replace(
-                /notify\.js\?v=[^"'\s>]+/g,
-                `notify.js?v=${versions['notify.js'] || ASSET_VERSION}`
-            )
-            // CSS
-            .replace(
-                /theme-demo\.css\?v=[^"'\s>]+/g,
-                `theme-demo.css?v=${versions['theme-demo.css'] || ASSET_VERSION}`
-            );
-
-        res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
-        res.send(stamped);
-    });
-});
+// Note: Admin v2 is now served exclusively at /admin; legacy /admin2 routes removed
 
 /**
  * @swagger

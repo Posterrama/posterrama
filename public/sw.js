@@ -16,9 +16,7 @@ const STATIC_ASSETS = [
     '/favicon.ico',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png',
-    // Admin assets
-    // Admin assets are also versioned; cached at runtime
-    '/admin-help.js',
+    // Admin assets are versioned and cached at runtime
 ];
 
 // Install event - cache static assets
@@ -91,11 +89,7 @@ self.addEventListener('fetch', event => {
     }
 
     // Always fetch latest admin assets from network (no SW cache). Fallback to cache only if offline.
-    if (
-        url.pathname === '/admin.js' ||
-        url.pathname === '/admin2.js' ||
-        url.pathname === '/theme-demo.css'
-    ) {
+    if (url.pathname === '/admin.js' || url.pathname === '/admin.css') {
         event.respondWith(fetch(request, { cache: 'no-store' }).catch(() => caches.match(request)));
         return;
     }
