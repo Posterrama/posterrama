@@ -160,7 +160,7 @@
     }
 
     async function refreshDashboardMetrics() {
-        // Populate media totals and warnings for the top dashboard cards
+        // Populate media totals and Active Mode for the top dashboard cards
         // Apply client-side dedupe and 429 backoff to avoid hammering the server
         if (!window.__metricsCooldownUntil) window.__metricsCooldownUntil = 0;
         if (!window.__metricsInFlight) window.__metricsInFlight = null;
@@ -194,11 +194,6 @@
                         Number(data?.media?.playlistItems) ||
                         0;
                     setText('metric-media-items', formatNumber(totalMedia));
-
-                    const warns = Array.isArray(data?.alerts) ? data.alerts.length : 0;
-                    setText('metric-warnings', formatNumber(warns));
-                    const warnSub = document.getElementById('metric-warn-sub');
-                    if (warnSub) warnSub.textContent = warns > 0 ? 'check system' : 'no alerts';
                 }
                 return data;
             })();
@@ -210,7 +205,7 @@
             window.__metricsInFlight = null;
         }
 
-        // Count enabled sources from the actual config
+        // Count enabled sources and update Active Mode from the actual config
         try {
             const configData = await fetchJSON('/api/admin/config').catch(() => null);
             if (configData) {
@@ -237,6 +232,74 @@
                         mediaSub.textContent = `from ${enabledSources} sources`;
                     }
                 }
+
+                // Active Mode snapshot: cinema > wallart > screensaver
+                try {
+                    const c = config;
+                    const w = c.wallartMode || {};
+                    const active = c.cinemaMode ? 'cinema' : w.enabled ? 'wallart' : 'screensaver';
+                    const label =
+                        active === 'cinema'
+                            ? 'Cinema'
+                            : active === 'wallart'
+                              ? 'Wallart'
+                              : 'Screensaver';
+                    setText('metric-mode', label);
+                    const sub = (() => {
+                        if (active === 'screensaver') {
+                            const eff = String(c.transitionEffect || 'kenburns');
+                            const interval = Number(c.transitionIntervalSeconds || 0);
+                            const clock = c.clockWidget !== false;
+                            const effLabel =
+                                eff === 'kenburns'
+                                    ? 'Ken Burns'
+                                    : eff === 'fade'
+                                      ? 'Fade'
+                                      : eff === 'slide'
+                                        ? 'Slide'
+                                        : eff;
+                            const parts = [];
+                            if (interval) parts.push(`Every ${interval}s`);
+                            parts.push(`Effect: ${effLabel}`);
+                            parts.push(`Clock: ${clock ? 'On' : 'Off'}`);
+                            return parts.join(' · ');
+                        }
+                        if (active === 'wallart') {
+                            const density = w.density || 'medium';
+                            const rate = Number(w.refreshRate ?? 6);
+                            const variant = w.layoutVariant || 'heroGrid';
+                            const rateLabel = (() => {
+                                const map = [
+                                    'Very slow',
+                                    'Slow',
+                                    'Med‑slow',
+                                    'Medium',
+                                    'Med‑fast',
+                                    'Fast',
+                                    'Faster',
+                                    'Very fast',
+                                    'Ultra',
+                                    'Ludicrous',
+                                ];
+                                return map[Math.min(Math.max(rate, 1), 10) - 1];
+                            })();
+                            return `${density} · ${rateLabel} · ${variant}`;
+                        }
+                        // cinema
+                        const orient = c.cinemaOrientation || 'auto';
+                        return `Orientation: ${orient}`;
+                    })();
+                    const subEl = document.getElementById('metric-mode-sub');
+                    if (subEl) subEl.textContent = sub;
+                    // Icon swap
+                    const iconEl = document.getElementById('metric-mode-icon');
+                    if (iconEl) {
+                        iconEl.className = 'fas';
+                        if (active === 'screensaver') iconEl.classList.add('fa-image');
+                        else if (active === 'wallart') iconEl.classList.add('fa-images');
+                        else iconEl.classList.add('fa-tv');
+                    }
+                } catch (_) {}
             }
         } catch (_) {
             // fallback to static text
@@ -8238,17 +8301,20 @@
             );
 
             makeClickable(
-                'metric-warnings',
+                'metric-mode',
                 () => {
                     try {
-                        showSection('section-operations');
-                        const logsBtn = document.querySelector(
-                            '#section-operations a[href="/logs.html"]'
-                        );
-                        if (logsBtn) logsBtn.focus();
+                        showSection('section-display');
+                        // Ensure the display section is initialized and mode badges reflect state
+                        if (!window.__displayInit) {
+                            // Lazy init if available
+                            try {
+                                window.admin2?.initDisplaySection?.();
+                            } catch (_) {}
+                        }
                     } catch (_) {}
                 },
-                'View system warnings and logs'
+                'Open Display settings'
             );
         } catch (_) {
             /* isolated wiring: do not throw */
