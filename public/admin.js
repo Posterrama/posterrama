@@ -11,8 +11,6 @@ function apiUrl(path) {
 }
 
 function apiUrlWithCacheBust(path) {
-    // Provide a local alias for widespread references
-    const setButtonState = window.setButtonState;
     try {
         const u = new URL(apiUrl(path), window.location.origin);
         u.searchParams.set('cb', Date.now().toString());
@@ -133,6 +131,17 @@ window.setButtonState = function (button, state, options = {}) {
             break;
     }
 };
+
+// Small helpers expected elsewhere in the file
+// 1) Provide a local alias for widespread bare references used throughout admin.js
+const setButtonState = window.setButtonState;
+// 2) Minimal prompt wrapper used by some flows
+async function promptDialog(message, defaultValue = '') {
+    // eslint-disable-next-line no-alert
+    return window.prompt(message, defaultValue);
+}
+// 3) No-op slider background updater to satisfy references in legacy UI sections
+function updateSliderBackground() {}
 
 // --- Display Settings Live Preview ---
 (function setupDisplayPreview() {
@@ -11194,7 +11203,7 @@ function showManageGroupsModal() {
                 </h3>
                 <div class="form-section unified-section">
                     <div class="subsection-content">
-                        <div class="preset-manager-grid" style="display:grid;grid-template-columns: 300px 1fr;gap:12px;align-items:start;">
+                        <div class="preset-manager-grid" style="display:grid;grid-template-columns: 320px 1fr;gap:12px;align-items:start;">
                             <div class="left">
                                 <div class="field">
                                     <div class="field-label">Groups</div>
@@ -11223,6 +11232,49 @@ function showManageGroupsModal() {
                                         <div class="hint">Select a group to manage its members.</div>
                                     </div>
                                 </div>
+                                <div class="field" style="margin-top:12px;">
+                                    <div class="field-label">Template (JSON)</div>
+                                    <textarea id="group-template-json" rows="8" placeholder='{"transitionIntervalSeconds": 12}' style="width:100%;"></textarea>
+                                    <div class="hint small" id="group-template-hint" style="margin-top:4px;opacity:.85;"></div>
+                                </div>
+                                <div class="form-grid-3" style="margin-top:8px;gap:8px;">
+                                    <div class="form-group">
+                                        <label for="group-order-input">Order</label>
+                                        <input id="group-order-input" type="number" min="0" step="1" style="width:120px" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>&nbsp;</label>
+                                        <button type="button" id="group-save-template" class="btn is-primary"><i class="fas fa-save icon"></i><span>Save Template</span></button>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>&nbsp;</label>
+                                        <button type="button" id="group-save-order" class="btn"><i class="fas fa-list-ol icon"></i><span>Save Order</span></button>
+                                    </div>
+                                </div>
+                                <div class="field" style="margin-top:12px;">
+                                    <div class="field-label">Send Command</div>
+                                    <div class="form-grid-3" style="gap:8px;align-items:end;">
+                                        <div class="form-group">
+                                            <label for="group-cmd-type">Command</label>
+                                            <select id="group-cmd-type" style="min-width:180px">
+                                                <option value="playback.next">Next Poster</option>
+                                                <option value="playback.prev">Previous Poster</option>
+                                                <option value="playback.toggle">Toggle Pause/Resume</option>
+                                                <option value="source.switch">Switch Source</option>
+                                                <option value="power.off">Power Off</option>
+                                                <option value="power.on">Power On</option>
+                                                <option value="reload">Reload</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="group-cmd-payload">Payload (JSON)</label>
+                                            <input id="group-cmd-payload" type="text" placeholder='{"sourceKey":"plex"}' />
+                                        </div>
+                                        <div class="form-group">
+                                            <button type="button" id="group-cmd-send" class="btn"><i class="fas fa-paper-plane icon"></i><span>Send</span></button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="hint" style="margin-top:6px;"></div>
@@ -11240,6 +11292,14 @@ function showManageGroupsModal() {
         const status = el.querySelector('.hint');
         const listEl = el.querySelector('#groups-select-list');
         const membersBox = el.querySelector('#group-members-box');
+        const tplEl = el.querySelector('#group-template-json');
+        const tplHint = el.querySelector('#group-template-hint');
+        const orderInput = el.querySelector('#group-order-input');
+        const saveTplBtn = el.querySelector('#group-save-template');
+        const saveOrderBtn = el.querySelector('#group-save-order');
+        const cmdTypeEl = el.querySelector('#group-cmd-type');
+        const cmdPayloadEl = el.querySelector('#group-cmd-payload');
+        const cmdSendBtn = el.querySelector('#group-cmd-send');
         el.classList.add('modal-open');
         el.classList.remove('is-hidden');
         // Close handlers
@@ -11251,9 +11311,12 @@ function showManageGroupsModal() {
             if (!gid) {
                 membersBox.innerHTML =
                     '<div class="hint">Select a group to manage its members.</div>';
+                if (tplEl) tplEl.value = '';
+                if (orderInput) orderInput.value = '';
+                if (tplHint) tplHint.textContent = '';
                 return;
             }
-            const g = groups.find(x => x.id === gid);
+            const g = groups.find(x => x.id === gid) || {};
             const set = new Set(
                 devices
                     .filter(d => Array.isArray(d.groups) && d.groups.includes(gid))
@@ -11269,11 +11332,90 @@ function showManageGroupsModal() {
                     </label>`;
                 })
                 .join('');
+            if (tplEl) {
+                try {
+                    tplEl.value = g.settingsTemplate
+                        ? JSON.stringify(g.settingsTemplate, null, 2)
+                        : '';
+                    tplHint.textContent =
+                        'Group settings override device defaults for members. Leave empty to inherit.';
+                } catch (_) {
+                    tplEl.value = '';
+                }
+            }
+            if (orderInput) {
+                orderInput.value = Number.isFinite(g.order) ? g.order : 0;
+            }
         };
 
         listEl.addEventListener('change', () => {
             renderMembers(listEl.value);
         });
+
+        // Save template
+        if (saveTplBtn && tplEl) {
+            saveTplBtn.addEventListener('click', async () => {
+                const gid = listEl.value;
+                if (!gid) return;
+                let parsed = {};
+                const txt = (tplEl.value || '').trim();
+                if (txt) {
+                    try {
+                        parsed = JSON.parse(txt);
+                    } catch (e) {
+                        tplHint.textContent =
+                            'Invalid JSON: ' + (e && e.message ? e.message : 'parse error');
+                        return;
+                    }
+                }
+                try {
+                    await patchGroup(gid, { settingsTemplate: parsed });
+                    tplHint.textContent = 'Template saved';
+                } catch (_) {
+                    tplHint.textContent = 'Failed to save template';
+                }
+            });
+        }
+
+        // Save order
+        if (saveOrderBtn && orderInput) {
+            saveOrderBtn.addEventListener('click', async () => {
+                const gid = listEl.value;
+                if (!gid) return;
+                const val = Number(orderInput.value || 0);
+                try {
+                    await patchGroup(gid, { order: val });
+                    if (status) status.textContent = 'Order saved';
+                } catch (_) {
+                    if (status) status.textContent = 'Failed to save order';
+                }
+            });
+        }
+
+        // Send command
+        if (cmdSendBtn && cmdTypeEl) {
+            cmdSendBtn.addEventListener('click', async () => {
+                const gid = listEl.value;
+                if (!gid) return;
+                const type = cmdTypeEl.value;
+                let payload = undefined;
+                const txt = ((cmdPayloadEl && cmdPayloadEl.value) || '').trim();
+                if (txt) {
+                    try {
+                        payload = JSON.parse(txt);
+                    } catch (e) {
+                        if (status) status.textContent = 'Invalid payload JSON';
+                        return;
+                    }
+                }
+                try {
+                    await sendGroupCommand(gid, type, payload);
+                    if (status) status.textContent = 'Command sent to group';
+                } catch (_) {
+                    if (status) status.textContent = 'Failed to send command';
+                }
+            });
+        }
 
         // Create group
         el.querySelector('#group-create').addEventListener('click', async () => {

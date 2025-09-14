@@ -81,14 +81,6 @@
             } catch (_) {
                 // ignore inability to persist installId
             }
-        } else if (msg && msg.kind === 'sync-tick') {
-            try {
-                if (typeof window.__posterramaOnSyncTick === 'function') {
-                    window.__posterramaOnSyncTick(msg.payload || {});
-                }
-            } catch (_) {
-                // ignore sync-tick handler errors
-            }
         }
         return iid;
     }
