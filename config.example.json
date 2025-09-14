@@ -96,7 +96,11 @@
         "enabled": true
     },
     "cache": {
-        "maxSizeGB": 2
+        "maxSizeGB": 2,
+        "minFreeDiskSpaceMB": 750,
+        "autoCleanup": true,
+        "cleanupIntervalMinutes": 15,
+        "maxAgeHours": 168
     },
     "serverName": "Your Server Name",
     "baseUrl": "http://localhost:3000",

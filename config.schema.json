@@ -35,10 +35,10 @@
             "type": "boolean"
         },
         "rottenTomatoesMinimumScore": {
-            "description": "Filters media to only show items with this score or higher. Set to 0 to disable.",
-            "type": "integer",
+            "description": "Minimum score (0-10 scale) required for inclusion when Rotten Tomatoes data is available. Set to 0 to disable.",
+            "type": "number",
             "minimum": 0,
-            "maximum": 100
+            "maximum": 10
         },
         "showPoster": {
             "description": "Shows the poster.",
@@ -193,6 +193,15 @@
             "type": "string",
             "enum": ["none", "kenburns", "fade", "slide"],
             "default": "kenburns"
+        },
+        "kenBurnsEffect": {
+            "description": "Legacy Ken Burns effect configuration (backward compatibility). Prefer using 'transitionEffect' where possible.",
+            "type": "object",
+            "properties": {
+                "enabled": { "type": "boolean", "default": true },
+                "durationSeconds": { "type": "integer", "minimum": 5, "maximum": 60, "default": 20 }
+            },
+            "additionalProperties": false
         },
         "effectPauseTime": {
             "description": "Time to pause after effect completes before next transition in seconds (not applied to Ken Burns effect).",

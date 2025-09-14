@@ -1569,8 +1569,10 @@ app.use('/api/v1/get-media', validateQueryParams);
  * /api/v1/test-error:
  *   get:
  *     summary: Test error handling (Development only)
- *     description: Throws a test error to verify error handling middleware works correctly
+ *     description: Throws a test error to verify error handling middleware works correctly.
  *     tags: ['Testing']
+ *     deprecated: true
+ *     x-internal: true
  *     responses:
  *       500:
  *         description: Test error thrown successfully
@@ -1593,8 +1595,10 @@ app.get('/api/v1/test-error', (req, res, next) => {
  * /api/v1/test-async-error:
  *   get:
  *     summary: Test async error handling (Development only)
- *     description: Throws a test async error to verify async error handling middleware works correctly
+ *     description: Throws a test async error to verify async error handling middleware works correctly.
  *     tags: ['Testing']
+ *     deprecated: true
+ *     x-internal: true
  *     responses:
  *       500:
  *         description: Test async error thrown successfully
@@ -13058,7 +13062,35 @@ function broadcastAdminEvent(event, payload) {
 }
 
 // --- Config Backups API (Operations) ---
-// List backups
+/**
+ * @swagger
+ * /api/admin/config-backups:
+ *   get:
+ *     summary: List configuration backups
+ *     description: Returns a list of available configuration backups with their files and metadata.
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: List of backups
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id: { type: string }
+ *                   createdAt: { type: string, format: date-time }
+ *                   files:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         name: { type: string }
+ *                         size: { type: integer }
+ */
 app.get('/api/admin/config-backups', isAuthenticated, async (req, res) => {
     try {
         const list = await cfgListBackups();
@@ -13069,7 +13101,33 @@ app.get('/api/admin/config-backups', isAuthenticated, async (req, res) => {
     }
 });
 
-// Create backup now
+/**
+ * @swagger
+ * /api/admin/config-backups:
+ *   post:
+ *     summary: Create a new configuration backup
+ *     description: Creates a new backup of whitelisted configuration files (config.json, .env, devices/groups, presets).
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Backup metadata
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id: { type: string }
+ *                 createdAt: { type: string, format: date-time }
+ *                 files:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       name: { type: string }
+ *                       size: { type: integer }
+ */
 app.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
     try {
         const meta = await cfgCreateBackup();
@@ -13084,7 +13142,38 @@ app.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
     }
 });
 
-// Cleanup old backups, keep N
+/**
+ * @swagger
+ * /api/admin/config-backups/cleanup:
+ *   post:
+ *     summary: Cleanup old backups
+ *     description: Deletes older backups while keeping the most recent N backups (default 7).
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               keep:
+ *                 type: integer
+ *                 description: Number of most recent backups to retain (1-60)
+ *                 example: 7
+ *     responses:
+ *       200:
+ *         description: Cleanup result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 keep: { type: integer }
+ *                 deleted: { type: integer }
+ *                 kept: { type: integer }
+ */
 app.post('/api/admin/config-backups/cleanup', isAuthenticated, async (req, res) => {
     try {
         const keep = Math.max(1, Math.min(60, Number(req.body?.keep || 7)));
@@ -13100,7 +13189,40 @@ app.post('/api/admin/config-backups/cleanup', isAuthenticated, async (req, res) 
     }
 });
 
-// Restore a specific file from a backup
+/**
+ * @swagger
+ * /api/admin/config-backups/restore:
+ *   post:
+ *     summary: Restore a file from a backup
+ *     description: Restores a whitelisted file (e.g., config.json or .env) from a specified backup.
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [backupId, file]
+ *             properties:
+ *               backupId:
+ *                 type: string
+ *               file:
+ *                 type: string
+ *                 enum: ['config.json', 'device-presets.json', 'devices.json', 'groups.json', '.env']
+ *     responses:
+ *       200:
+ *         description: Restore successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *       400:
+ *         description: Invalid request or restore failed
+ */
 app.post('/api/admin/config-backups/restore', isAuthenticated, async (req, res) => {
     const id = String(req.body?.backupId || '');
     const file = String(req.body?.file || '');
@@ -13127,7 +13249,34 @@ app.post('/api/admin/config-backups/restore', isAuthenticated, async (req, res) 
     }
 });
 
-// Delete a specific backup folder
+/**
+ * @swagger
+ * /api/admin/config-backups/{id}:
+ *   delete:
+ *     summary: Delete a specific backup
+ *     description: Permanently deletes a backup directory by ID.
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deletion result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *                 id: { type: string }
+ *       400:
+ *         description: Invalid ID or deletion failed
+ */
 app.delete('/api/admin/config-backups/:id', isAuthenticated, async (req, res) => {
     const id = String(req.params.id || '');
     try {
@@ -13144,7 +13293,27 @@ app.delete('/api/admin/config-backups/:id', isAuthenticated, async (req, res) =>
     }
 });
 
-// Read schedule config
+/**
+ * @swagger
+ * /api/admin/config-backups/schedule:
+ *   get:
+ *     summary: Read backup schedule configuration
+ *     description: Returns current daily schedule for automatic backups (enabled flag, time, and retention).
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Schedule configuration
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 enabled: { type: boolean }
+ *                 time: { type: string, example: '02:30' }
+ *                 retention: { type: integer, example: 7 }
+ */
 app.get('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) => {
     try {
         const cfg = await cfgReadSchedule();
@@ -13155,7 +13324,39 @@ app.get('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) 
     }
 });
 
-// Save schedule config
+/**
+ * @swagger
+ * /api/admin/config-backups/schedule:
+ *   post:
+ *     summary: Update backup schedule configuration
+ *     description: Saves daily backup scheduler configuration and realigns the in-memory scheduler.
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               enabled: { type: boolean }
+ *               time: { type: string, example: '02:30' }
+ *               retention: { type: integer, minimum: 1, maximum: 60, example: 7 }
+ *     responses:
+ *       200:
+ *         description: Saved schedule
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 enabled: { type: boolean }
+ *                 time: { type: string }
+ *                 retention: { type: integer }
+ *       400:
+ *         description: Validation or save failure
+ */
 app.post('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) => {
     try {
         const out = await cfgWriteSchedule(req.body || {});
@@ -13685,6 +13886,36 @@ process.on('SIGINT', () => {
 // Register BEFORE the 404 handler so it isn't shadowed.
 try {
     const __sseClients = new Set();
+    /**
+     * @swagger
+     * /api/admin/events:
+     *   get:
+     *     summary: Subscribe to Admin Server-Sent Events
+     *     description: |
+     *       Stream of server-sent events (SSE) for admin notifications and logs. Requires an authenticated admin session.
+     *       The stream emits periodic ping events to keep the connection alive and "log" events for recent log entries
+     *       and admin notifications. Content-Type is text/event-stream.
+     *     tags: ['Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     responses:
+     *       200:
+     *         description: Event stream started
+     *         content:
+     *           text/event-stream:
+     *             schema:
+     *               type: string
+     *               example: |
+     *                 : connected\n\n
+     *                 event: hello\n
+     *                 data: {"t": 1700000000000}\n\n
+     *                 event: ping\n
+     *                 data: {"t": 1700000002500}\n\n
+     *                 event: log\n
+     *                 data: {"level":"info","message":"Started"}\n\n
+     *       401:
+     *         description: Unauthorized (no admin session)
+     */
     app.get('/api/admin/events', (req, res) => {
         // Basic auth guard: require admin session
         if (!req.session || !req.session.user) {

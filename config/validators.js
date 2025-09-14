@@ -21,7 +21,7 @@ const schemas = {
         showPoster: Joi.boolean(),
         showMetadata: Joi.boolean(),
         showRottenTomatoes: Joi.boolean(),
-        rottenTomatoesMinimumScore: Joi.number().integer().min(0).max(100),
+        rottenTomatoesMinimumScore: Joi.number().min(0).max(10),
         kenBurnsEffect: Joi.object({
             enabled: Joi.boolean(),
             durationSeconds: Joi.number().integer().min(5).max(60),
