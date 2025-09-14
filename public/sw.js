@@ -1,7 +1,7 @@
 // Posterrama PWA Service Worker
-// Version 2.2.0 - Network-first for HTML, SWR for static assets, enhanced media caching
+// Version 2.2.1 - Network-first for HTML, SWR for static assets, enhanced media caching
 
-const CACHE_NAME = 'posterrama-pwa-v2.2.0';
+const CACHE_NAME = 'posterrama-pwa-v2.2.1';
 const MEDIA_CACHE_NAME = 'posterrama-media-v1.1.0';
 
 const STATIC_ASSETS = [
@@ -71,6 +71,12 @@ self.addEventListener('fetch', event => {
 
     // Skip API requests (let them go to network)
     if (url.pathname.startsWith('/api/')) {
+        return;
+    }
+
+    // Always fetch latest admin.js from network (no SW cache). Fallback to cache only if offline.
+    if (url.pathname === '/admin.js') {
+        event.respondWith(fetch(request, { cache: 'no-store' }).catch(() => caches.match(request)));
         return;
     }
 

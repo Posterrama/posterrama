@@ -1,3 +1,214 @@
+/* Devices table layout */
+#devices-section .table-wrapper {
+    overflow: auto;
+}
+#devices-section table.table {
+    table-layout: fixed;
+    width: 100%;
+}
+#devices-section th.col-select {
+    width: 36px;
+}
+#devices-section th.col-name {
+    width: 52%;
+}
+#devices-section th.col-status {
+    width: 12%;
+}
+#devices-section th.col-last {
+    width: 18%;
+}
+#devices-section th.col-actions {
+    width: 18%;
+}
+#devices-section td {
+    vertical-align: middle;
+}
+#devices-section .btn-group {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
+#devices-section td.cell-actions .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+#devices-section td.cell-actions .btn {
+    min-height: 36px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.85rem;
+}
+#devices-section input.inline-edit {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 1rem; /* match admin inputs */
+    min-height: 48px; /* match admin inputs */
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+#devices-section input.inline-edit.small {
+    padding: 0.6rem 0.8rem;
+    min-height: 40px;
+    font-size: 0.95rem;
+}
+#devices-section input.inline-edit::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+}
+#devices-section input.inline-edit:focus {
+    outline: none;
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+}
+#devices-section input.inline-edit.saving {
+    opacity: 0.6;
+}
+#devices-section input.inline-edit.saved {
+    outline: 2px solid #34c75933;
+}
+#devices-section input.inline-edit.error {
+    outline: 2px solid #ff3b3033;
+}
+
+/* Two-line device cell layout */
+#devices-section td.cell-name {
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+#devices-section .row-top {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+#devices-section .row-bottom {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+    flex-wrap: wrap;
+    opacity: 0.9;
+}
+#devices-section .row-bottom .inline-edit.small {
+    padding: 4px 6px;
+    font-size: 0.9em;
+}
+#devices-section .sep {
+    color: #999;
+}
+#devices-section .kv {
+    color: #666;
+    font-size: 0.9em;
+}
+#devices-section .chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+#devices-section .chip[data-chip='group'] {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+}
+
+/* Theme-aligned checkboxes inside devices */
+#devices-section input[type='checkbox'] {
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    background: linear-gradient(
+        180deg,
+        rgba(102, 126, 234, 0.05) 0%,
+        rgba(118, 75, 162, 0.05) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+#devices-section input[type='checkbox']:hover {
+    background: linear-gradient(180deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-color: rgba(102, 126, 234, 0.3);
+    box-shadow:
+        0 4px 12px rgba(102, 126, 234, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+#devices-section input[type='checkbox']:focus {
+    outline: none;
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow:
+        0 0 0 3px rgba(102, 126, 234, 0.1),
+        0 4px 12px rgba(102, 126, 234, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+#devices-section input[type='checkbox']:checked {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    box-shadow:
+        0 4px 15px rgba(102, 126, 234, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+#devices-section input[type='checkbox']:checked:hover {
+    box-shadow:
+        0 6px 20px rgba(102, 126, 234, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+#devices-section input[type='checkbox']:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 1100px) {
+    #devices-section th.col-last,
+    #devices-section td.cell-last {
+        display: none;
+    }
+    #devices-section th.col-name {
+        width: 60%;
+    }
+    #devices-section th.col-actions {
+        width: 22%;
+    }
+}
+
+@media (max-width: 800px) {
+    #devices-section th.col-status,
+    #devices-section td.cell-status {
+        display: none;
+    }
+    #devices-section th.col-name {
+        width: 66%;
+    }
+    #devices-section th.col-actions {
+        width: 22%;
+    }
+}
 /**
  * posterrama.app - Main Stylesheet
  *

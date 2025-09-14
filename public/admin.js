@@ -4,20 +4,26 @@
  * Scope: Cache stats functionality with clearer labeling.
  */
 
-// Silence debug/info noise in the admin console while keeping warnings/errors
-(() => {
-    try {
-        const noop = () => {};
-        if (typeof window !== 'undefined' && window.console) {
-            // Preserve existing functions to avoid breaking feature detection
-            console.log = noop;
-            console.info = noop;
-            console.debug = noop;
-        }
-    } catch (_) {
-        // no-op
-    }
-})();
+// Explicitly surface errors in console during bootstrap
+try {
+    console.warn('[Admin] bootstrap starting');
+    window.addEventListener('error', ev => {
+        try {
+            console.error(
+                '[Admin] Uncaught error:',
+                ev.error || ev.message,
+                ev.filename,
+                ev.lineno,
+                ev.colno
+            );
+        } catch (_) {}
+    });
+    window.addEventListener('unhandledrejection', ev => {
+        try {
+            console.error('[Admin] Unhandled rejection:', ev.reason);
+        } catch (_) {}
+    });
+} catch (_) {}
 
 // Make version available globally (will be updated by server)
 window.POSTERRAMA_VERSION = 'Loading...';
@@ -43,7 +49,7 @@ function apiUrl(path) {
     }
 
     // Always use the current host - no hardcoded URLs or special cases
-    return API_BASE + path;
+    return `${API_BASE}${path}`;
 }
 
 // Cache busting helper for API calls that should always be fresh
@@ -55,23 +61,28 @@ function apiUrlWithCacheBust(path) {
 
 // Helper for authenticated fetch calls with proper error handling
 async function authenticatedFetch(url, options = {}) {
+    const { noRedirectOn401, ...rest } = options || {};
     const defaultOptions = {
         credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
             Pragma: 'no-cache',
-            ...options.headers,
+            ...(rest.headers || {}),
         },
     };
 
     try {
-        const response = await fetch(url, { ...defaultOptions, ...options });
+        const response = await fetch(url, { ...defaultOptions, ...rest });
 
         // Handle authentication errors
         if (response.status === 401) {
-            window.location.href = '/admin/login';
-            throw new Error('Authentication required');
+            if (!noRedirectOn401) {
+                window.location.href = '/admin/login';
+            }
+            const err = new Error('Authentication required');
+            err.code = 'unauthorized';
+            throw err;
         }
 
         return response;
@@ -93,44 +104,45 @@ window.setButtonState = function (button, state, options = {}) {
         return;
     }
 
-    const buttonTextSpan = button.querySelector('span:last-child');
+    // Determine if this is an icon-only button (no separate text span)
+    const textSpan = button.querySelector('span:not(.icon)');
+    const isIconOnly = !textSpan;
     const icon = button.querySelector('.icon i');
 
     // Store original state if not already stored
-    if (!button.dataset.originalText) {
-        button.dataset.originalText = buttonTextSpan
-            ? buttonTextSpan.textContent
-            : button.textContent;
+    if (!button.dataset.originalStateSaved) {
+        // Save only what we will need to restore
+        button.dataset.originalText = isIconOnly
+            ? ''
+            : textSpan
+              ? textSpan.textContent
+              : button.textContent;
         button.dataset.originalIconClass = icon ? icon.className : '';
         button.dataset.originalButtonClass = button.className;
+        button.dataset.originalStateSaved = '1';
     }
 
     switch (state) {
         case 'loading':
             button.disabled = true;
-            if (buttonTextSpan) {
-                buttonTextSpan.textContent = options.text || 'Working...';
-            } else {
-                button.textContent = options.text || 'Working...';
+            if (!isIconOnly) {
+                if (textSpan) textSpan.textContent = options.text || 'Working...';
+                else button.textContent = options.text || 'Working...';
             }
-            if (icon) {
-                icon.className = options.iconClass || 'fas fa-spinner fa-spin';
-            }
+            if (icon) icon.className = options.iconClass || 'fas fa-spinner fa-spin';
             button.className = button.dataset.originalButtonClass;
             break;
         case 'success':
         case 'error':
             button.disabled = true;
-            if (buttonTextSpan) {
-                buttonTextSpan.textContent =
-                    options.text || (state === 'success' ? 'Success!' : 'Failed');
-            } else {
-                button.textContent = options.text || (state === 'success' ? 'Success!' : 'Failed');
+            if (!isIconOnly) {
+                const msg = options.text || (state === 'success' ? 'Success!' : 'Failed');
+                if (textSpan) textSpan.textContent = msg;
+                else button.textContent = msg;
             }
-            if (icon) {
+            if (icon)
                 icon.className =
                     options.iconClass || (state === 'success' ? 'fas fa-check' : 'fas fa-times');
-            }
             button.className =
                 options.buttonClass ||
                 (state === 'success'
@@ -139,14 +151,11 @@ window.setButtonState = function (button, state, options = {}) {
             break;
         case 'revert':
             button.disabled = false;
-            if (buttonTextSpan) {
-                buttonTextSpan.textContent = button.dataset.originalText;
-            } else {
-                button.textContent = button.dataset.originalText;
+            if (!isIconOnly) {
+                if (textSpan) textSpan.textContent = button.dataset.originalText || '';
+                else button.textContent = button.dataset.originalText || '';
             }
-            if (icon) {
-                icon.className = button.dataset.originalIconClass;
-            }
+            if (icon) icon.className = button.dataset.originalIconClass || '';
             button.className = button.dataset.originalButtonClass;
             break;
     }
@@ -889,32 +898,41 @@ window.scrollToSubsection = function (id) {
 
     // Wire change listeners for display-related inputs
     const inputIds = [
+        // Cinema mode + orientation
         'cinemaMode',
         'cinemaOrientation',
+        // Visual toggles
         'showClearLogo',
         'showRottenTomatoes',
         'showPoster',
         'showMetadata',
+        // Filters / numbers
         'rottenTomatoesMinimumScore',
+        // Clock
         'clockWidget',
         'clockTimezone',
         'clockFormat',
+        // UI scaling
         'uiScaling.content',
         'uiScaling.clearlogo',
         'uiScaling.clock',
         'uiScaling.global',
+        // Effects
         'transitionEffect',
         'effectPauseTime',
+        // Timing
         'transitionIntervalSeconds',
+        // Wallart mode
         'wallartModeEnabled',
         'wallartLayoutVariant',
-        'heroSide',
-        'heroRotationMinutes',
         'wallartDensity',
         'wallartRefreshRate',
         'wallartRandomness',
         'wallartAnimationType',
         'wallartAmbientGradient',
+        // Hero grid settings (also surfaced at top-level for preview mapping)
+        'heroSide',
+        'heroRotationMinutes',
     ];
 
     inputIds.forEach(id => {
@@ -1085,7 +1103,10 @@ function toggleHelpPanel() {
     helpPanel.classList.toggle('open');
 
     // Update content based on active section - do this AFTER opening
-    if (helpPanel.classList.contains('open')) {
+    if (helpPanel.classList.contains('open') && sectionName) {
+        updateHelpContent(sectionName);
+    }
+    if (helpPanel.classList.contains('open') && sectionName) {
         updateHelpContent(sectionName);
     }
 }
@@ -1765,6 +1786,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'media',
         'authentication',
         'management',
+        'devices',
         'logs',
     ];
 
@@ -2089,6 +2111,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Always update help content when section changes
         updateHelpContent(targetSection);
 
+        // When switching sections, clear any config status warning if moving away from config edits
+        const statusMessage = document.getElementById('config-status');
+        const saveButton = document.getElementById('save-config-button');
+        if (statusMessage && saveButton) {
+            if (targetSection === 'devices') {
+                statusMessage.textContent = 'Ready to save';
+                statusMessage.className = 'status-message';
+                saveButton.classList.remove('has-changes');
+            }
+        }
+
         // If help panel is open, make sure it updates immediately
         const helpPanel = document.getElementById('quick-help-panel');
         if (helpPanel && helpPanel.classList.contains('open')) {
@@ -2105,6 +2138,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Also ensure cache config event listeners are attached
                 setupCacheConfigEventListeners();
             }, 100); // Small delay to ensure DOM is ready
+        }
+
+        // Initialize Devices panel when Devices section is activated
+        if (targetSection === 'devices') {
+            setTimeout(() => {
+                try {
+                    initDevicesPanel();
+                } catch (e) {
+                    // silent
+                }
+            }, 50);
         }
 
         // Libraries are now loaded during config load, no need for lazy loading here
@@ -2386,8 +2430,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData(configForm);
             const state = {};
             for (const [key, value] of formData.entries()) state[key] = value;
-            configForm.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                state[cb.name] = cb.checked;
+            // Only include named checkboxes in the state snapshot; ignore transient/unnamed controls (e.g., Devices table)
+            configForm.querySelectorAll('input[type="checkbox"][name]').forEach(cb => {
+                if (cb.name) state[cb.name] = cb.checked;
             });
             return state;
         };
@@ -2430,8 +2475,21 @@ document.addEventListener('DOMContentLoaded', () => {
             originalFormData = captureFormState();
         }, 120);
 
-        configForm.addEventListener('input', handleFormChange);
-        configForm.addEventListener('change', handleFormChange);
+        const onFormEvent = e => {
+            // If Devices section is active, ignore form dirty tracking events entirely
+            const devicesActive = !!document.querySelector(
+                '#devices-section.section-content.active'
+            );
+            if (devicesActive) return;
+            // Ignore events originating from the Devices panel (not part of config persistence)
+            if (e && e.target && typeof e.target.closest === 'function') {
+                if (e.target.closest('#devices-section')) return;
+            }
+            handleFormChange();
+        };
+
+        configForm.addEventListener('input', onFormEvent);
+        configForm.addEventListener('change', onFormEvent);
 
         document.addEventListener('configSaved', () => {
             originalFormData = captureFormState();
@@ -9286,8 +9344,806 @@ if (document.readyState === 'loading') {
 }
 
 // ============================================================================
+// Devices (beta) – list + actions
+// Debug logging: enable via ?devicesDebug=1 or localStorage.setItem('devicesDebug','1')
+const __devicesDebugFlag = (() => {
+    try {
+        const qs = new URLSearchParams(location.search);
+        if (qs.get('devicesDebug') === '1') localStorage.setItem('devicesDebug', '1');
+        if (qs.get('devicesDebug') === '0') localStorage.removeItem('devicesDebug');
+        return () => localStorage.getItem('devicesDebug') === '1';
+    } catch (_) {
+        return () => true; // if storage fails, keep logs on
+    }
+})();
+function devLog(...args) {
+    try {
+        if (__devicesDebugFlag()) console.log('[Devices]', ...args);
+    } catch (_) {
+        console.log('[Devices]', ...args);
+    }
+}
+devLog('Debug logging enabled');
+async function fetchDevices() {
+    const res = await authenticatedFetch(apiUrl('/api/devices'), { noRedirectOn401: true });
+    if (res.status === 401) {
+        const err = new Error('unauthorized');
+        err.code = 'unauthorized';
+        throw err;
+    }
+    if (!res.ok) throw new Error('Failed to load devices');
+    const data = await res.json();
+    try {
+        devLog('fetchDevices:', Array.isArray(data) ? data.length : 'n/a', 'device(s)');
+    } catch (_) {}
+    return data;
+}
+
+function confirmDialog(message, triggerEl = null) {
+    devLog('confirmDialog: open', { message, triggerEl });
+    // Feature flag: allow forcing native confirm via ?devicesNative=1 or localStorage.devicesNative='1'
+    try {
+        const qs = new URLSearchParams(location.search);
+        const forceNative =
+            qs.get('devicesNative') === '1' || localStorage.getItem('devicesNative') === '1';
+        if (forceNative) {
+            devLog('confirmDialog: forced native confirm via flag');
+            return window.confirm(message);
+        }
+    } catch (_) {}
+    // Always re-inject a fresh modal to avoid stale/hidden DOM or duplicate IDs
+    try {
+        const existing = document.getElementById('confirm-modal');
+        if (existing) {
+            existing.remove();
+            devLog('confirmDialog: removed existing #confirm-modal');
+        }
+        const div = document.createElement('div');
+        div.innerHTML =
+            '<div id="confirm-modal" class="modal is-hidden" aria-hidden="true" role="dialog" aria-labelledby="confirm-modal-title" tabindex="-1"><div class="modal-background" data-confirm-cancel></div><div class="modal-content"><span class="close" data-confirm-cancel>&times;</span><h3 id="confirm-modal-title"><i class="fas fa-question-circle"></i> Bevestigen</h3><p data-confirm-message></p><div class="form-actions" style="margin-top: 1rem; display:flex; gap:.5rem; justify-content:flex-end;"><button type="button" class="btn btn-secondary" data-confirm-cancel>Annuleren</button><button type="button" class="btn btn-danger" data-confirm-ok>Verwijderen</button></div></div></div>';
+        const injected = div.firstChild;
+        document.body.appendChild(injected);
+        devLog('confirmDialog: injected fresh modal');
+    } catch (e) {
+        console.error('[Devices] confirmDialog: inject error', e);
+        return window.confirm(message);
+    }
+    // Admin-styled modal confirm; returns a Promise<boolean>
+    const modal = document.getElementById('confirm-modal');
+    devLog('confirmDialog: modal present?', !!modal);
+    if (!modal) {
+        devLog('confirmDialog: no modal element, fallback to native confirm');
+        return window.confirm(message);
+    }
+    const msgEl = modal.querySelector('[data-confirm-message]');
+    const okBtn = modal.querySelector('[data-confirm-ok]');
+    const cancelEls = modal.querySelectorAll('[data-confirm-cancel]');
+    devLog('confirmDialog: structure', {
+        hasMsg: !!msgEl,
+        hasOk: !!okBtn,
+        cancelCount: cancelEls ? cancelEls.length : 0,
+    });
+    // If modal structure is incomplete, fallback to native confirm
+    if (!msgEl || !okBtn || !cancelEls || cancelEls.length === 0) {
+        devLog('confirmDialog: incomplete modal structure, native confirm');
+        return window.confirm(message);
+    }
+
+    msgEl.textContent = message || 'Are you sure?';
+
+    return new Promise(resolve => {
+        const cleanup = () => {
+            document.body.classList.remove('modal-open');
+            document.documentElement.classList.remove('modal-open');
+            // Move focus out of modal before hiding (avoid aria-hidden focus conflict)
+            try {
+                if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
+                if (triggerEl && typeof triggerEl.focus === 'function') {
+                    triggerEl.focus();
+                }
+            } catch (_) {}
+            modal.classList.add('is-hidden');
+            modal.classList.remove('modal-open');
+            modal.classList.remove('force-show');
+            try {
+                modal.setAttribute('aria-hidden', 'true');
+            } catch (_) {}
+            okBtn.removeEventListener('click', onOk);
+            cancelEls.forEach(el => el.removeEventListener('click', onCancel));
+            document.removeEventListener('keydown', onEsc);
+        };
+        const onOk = () => {
+            cleanup();
+            devLog('confirmDialog: OK');
+            resolve(true);
+        };
+        const onCancel = () => {
+            cleanup();
+            devLog('confirmDialog: Cancel');
+            resolve(false);
+        };
+        const onEsc = e => {
+            if (e.key === 'Escape') onCancel();
+        };
+
+        try {
+            // Ensure modal interactions don't bubble to underlying forms/buttons
+            okBtn.addEventListener('click', onOk);
+            okBtn.addEventListener('click', ev => ev.stopPropagation());
+            cancelEls.forEach(el => {
+                el.addEventListener('click', onCancel);
+                el.addEventListener('click', ev => ev.stopPropagation());
+            });
+            document.addEventListener('keydown', onEsc);
+        } catch (e) {
+            console.error('[Devices] confirmDialog: listener attach error', e);
+            // If anything goes wrong, fallback immediately
+            return resolve(window.confirm(message));
+        }
+
+        try {
+            // Mark visible before any focus changes to avoid aria-hidden conflict
+            modal.setAttribute('aria-hidden', 'false');
+            modal.classList.remove('is-hidden');
+            modal.classList.add('modal-open');
+            // Force show in case CSS specificity or states interfere
+            modal.classList.add('force-show');
+            document.body.classList.add('modal-open');
+            document.documentElement.classList.add('modal-open');
+            // Focus the dialog or OK button
+            setTimeout(() => {
+                try {
+                    (modal.focus && modal.focus()) || okBtn.focus();
+                } catch (_) {}
+            }, 0);
+
+            // Immediate visibility check (same tick) to preserve user gesture for native confirm fallback
+            try {
+                // Force reflow to apply styles immediately
+                // eslint-disable-next-line no-unused-expressions
+                modal.offsetHeight;
+                const stylesNow = window.getComputedStyle(modal);
+                const displayedNow = stylesNow.display !== 'none';
+                const visibleNow = stylesNow.visibility !== 'hidden' && stylesNow.opacity !== '0';
+                const rectNow = modal.getBoundingClientRect();
+                const sizedNow = rectNow.width > 0 && rectNow.height > 0;
+                const openNow =
+                    modal.classList.contains('modal-open') &&
+                    !modal.classList.contains('is-hidden') &&
+                    modal.getAttribute('aria-hidden') === 'false' &&
+                    displayedNow &&
+                    visibleNow &&
+                    sizedNow;
+                if (!openNow) {
+                    // Clean up listeners before fallback
+                    okBtn.removeEventListener('click', onOk);
+                    cancelEls.forEach(el => el.removeEventListener('click', onCancel));
+                    document.removeEventListener('keydown', onEsc);
+                    devLog('confirmDialog: immediate fallback to native confirm');
+                    return resolve(window.confirm(message));
+                }
+            } catch (_) {}
+
+            // Safety fallback: if for any reason the modal isn't open after 200ms, use native confirm
+            setTimeout(() => {
+                try {
+                    const styles = window.getComputedStyle(modal);
+                    const isDisplayed = styles.display !== 'none';
+                    const isVisible = styles.visibility !== 'hidden' && styles.opacity !== '0';
+                    const rect = modal.getBoundingClientRect();
+                    const hasSize = rect.width > 0 && rect.height > 0;
+                    const isOpen =
+                        modal.classList.contains('modal-open') &&
+                        !modal.classList.contains('is-hidden') &&
+                        modal.getAttribute('aria-hidden') === 'false' &&
+                        isDisplayed &&
+                        isVisible &&
+                        hasSize;
+                    if (!isOpen) {
+                        // Clean up listeners before fallback
+                        okBtn.removeEventListener('click', onOk);
+                        cancelEls.forEach(el => el.removeEventListener('click', onCancel));
+                        document.removeEventListener('keydown', onEsc);
+                        devLog('confirmDialog: modal did not open, native confirm');
+                        try {
+                            // Visual banner to indicate fallback
+                            const banner = document.createElement('div');
+                            banner.textContent =
+                                'Kon bevestigingsvenster niet openen; val terug op systeembevestiging.';
+                            banner.style.cssText =
+                                'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#c53030;color:#fff;padding:8px 12px;border-radius:6px;z-index:10000002;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.3)';
+                            document.body.appendChild(banner);
+                            setTimeout(() => banner.remove(), 2000);
+                        } catch (_) {}
+                        resolve(window.confirm(message));
+                    }
+                } catch (_) {}
+            }, 200);
+        } catch (e) {
+            console.error('[Devices] confirmDialog: open error', e);
+            return resolve(window.confirm(message));
+        }
+    });
+}
+
+async function sendDeviceCommand(id, type) {
+    const res = await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}/command`), {
+        method: 'POST',
+        body: JSON.stringify({ type }),
+        noRedirectOn401: true,
+    });
+    if (res.status === 401) {
+        const err = new Error('unauthorized');
+        err.code = 'unauthorized';
+        throw err;
+    }
+    if (!res.ok) throw new Error('Failed to queue command');
+    return res.json();
+}
+
+function renderDevicesTable(devices) {
+    const tbody = document.querySelector('#devices-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    try {
+        const ids = (devices || []).map(d => d && (d.id || d.installId)).filter(Boolean);
+        devLog('renderDevicesTable:', ids.length, 'device(s)', ids.slice(0, 10));
+    } catch (_) {}
+
+    // Format last-seen into separate date/time lines for compact layout
+    const fmtParts = ts => {
+        if (!ts) return null;
+        const d = new Date(ts);
+        return {
+            date: d.toLocaleDateString(),
+            time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+    };
+    const esc = s => (s == null ? '' : String(s));
+    const parseGroups = raw => {
+        try {
+            if (Array.isArray(raw))
+                return raw
+                    .filter(Boolean)
+                    .map(s => String(s).trim())
+                    .filter(Boolean);
+            if (raw == null) return [];
+            const str = String(raw).trim();
+            // Try JSON array first
+            if (
+                (str.startsWith('[') && str.endsWith(']')) ||
+                (str.startsWith('"[') && str.endsWith(']"'))
+            ) {
+                try {
+                    const parsed = JSON.parse(str.replace(/^"|"$/g, ''));
+                    if (Array.isArray(parsed))
+                        return parsed
+                            .filter(Boolean)
+                            .map(s => String(s).trim())
+                            .filter(Boolean);
+                } catch (_) {
+                    // fall through to delimiter split
+                }
+            }
+            // Split on common delimiters: comma, semicolon, pipe
+            return str
+                .split(/[,;|]/)
+                .map(s =>
+                    s
+                        .replace(/^\[|\]$/g, '')
+                        .replace(/^"|"$/g, '')
+                        .trim()
+                )
+                .filter(Boolean);
+        } catch (_) {
+            return [];
+        }
+    };
+    const toChips = (arr = []) =>
+        (Array.isArray(arr) ? arr : [])
+            .map(g => `<span class="chip" data-chip="group">${esc(g)}</span>`)
+            .join('');
+
+    // Populate group suggestions
+    const allGroups = new Set();
+    devices.forEach(d => {
+        const rawArr = parseGroups(d.groups);
+        rawArr.forEach(g => {
+            if (g) allGroups.add(g);
+        });
+    });
+    let datalist = document.getElementById('device-groups-datalist');
+    if (!datalist) {
+        const host = document.getElementById('devices-subsection') || document.body;
+        datalist = document.createElement('datalist');
+        datalist.id = 'device-groups-datalist';
+        host.appendChild(datalist);
+    }
+    if (datalist) {
+        const existing = new Set(Array.from(datalist.querySelectorAll('option')).map(o => o.value));
+        Array.from(allGroups)
+            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+            .forEach(g => {
+                if (!existing.has(g)) {
+                    const opt = document.createElement('option');
+                    opt.value = g;
+                    datalist.appendChild(opt);
+                }
+            });
+    }
+    const groupsListHtml = Array.from(allGroups)
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+        .map(g => `<span class="chip" data-chip="group">${esc(g)}</span>`)
+        .join('');
+
+    devices.forEach(d => {
+        const tr = document.createElement('tr');
+        const groupsArr = parseGroups(d.groups);
+        const screen = d.clientInfo?.screen || {};
+        const mode = d.clientInfo?.mode || '';
+        const dims = screen.w && screen.h ? `${screen.w}×${screen.h} @${screen.dpr || 1}x` : '';
+        const last = fmtParts(d.lastSeenAt);
+        const cellScreen = dims ? `<span class="badge is-unknown">${esc(dims)}</span>` : '—';
+        const cellMode = mode ? `<span class="badge is-unknown">${esc(mode)}</span>` : '—';
+        const details = (() => {
+            const id = d.id || d.installId || '';
+            const ci = d.clientInfo || {};
+            const sc = ci.screen || {};
+            const ua = ci.userAgent || ci.ua || '';
+            const kv = [
+                ['Device ID', id],
+                ['Resolution', sc.w && sc.h ? `${sc.w}×${sc.h}` : '—'],
+                ['Pixel Ratio', sc.dpr != null ? String(sc.dpr) : '—'],
+                ['Orientation', sc.orientation || '—'],
+                ['Mode', ci.mode || '—'],
+                ['Platform', ci.platform || '—'],
+                ['User Agent', ua ? ua.substring(0, 180) + (ua.length > 180 ? '…' : '') : '—'],
+            ];
+            const rows = kv
+                .filter(([_, v]) => v && v !== '—')
+                .map(
+                    ([k, v]) =>
+                        `<span class=\"tip-k\">${esc(k)}:</span><span class=\"tip-v\">${esc(v)}</span>`
+                )
+                .join('');
+            return `<div class=\"tip-title\">Device details</div><div class=\"tip-grid\">${rows || '<span class=\\"tip-k\\">No details</span><span class=\\"tip-v\\"></span>'}</div>`;
+        })();
+
+        tr.innerHTML = `
+            <td class="cell-select"><input type="checkbox" class="row-select" data-id="${d.id}" aria-label="Select device" /></td>
+            <td class="cell-name">
+                <div class="actions-inline">
+                    <div class="btn-group icon-only">
+            <button type="button" class="btn is-primary" data-cmd="reload" data-id="${d.id}" title="Reload this device">
+                            <span class="icon"><i class="fas fa-redo"></i></span>
+                        </button>
+            <button type="button" class="btn" data-cmd="sw" data-id="${d.id}" title="Unregister Service Worker on device">
+                            <span class="icon"><i class="fas fa-broom"></i></span>
+                        </button>
+            <button type="button" class="btn btn-danger" data-cmd="delete" data-id="${d.id}" title="Delete this device">
+                            <span class="icon"><i class="fas fa-trash"></i></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="row-top inputs-line">
+                    <div class="field">
+                        <div class="field-label">Name</div>
+                        <input class="inline-edit name-input" data-field="name" data-id="${d.id}" value="${esc(d.name)}" placeholder="Name" />
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Location</div>
+                        <input class="inline-edit location-input" data-field="location" data-id="${d.id}" value="${esc(d.location)}" placeholder="Location" />
+                    </div>
+                    <div class="field field-group-picker">
+                        <div class="field-label">Group</div>
+                        <input class="inline-edit groups-input" list="device-groups-datalist" data-field="groups" data-id="${d.id}" value="${esc(groupsArr.join(', '))}" placeholder="Groups" title="Use comma to separate multiple groups" autocomplete="off" />
+                        <div class="help-popup" role="tooltip">
+                            <div class="help-title">Groups</div>
+                            <div class="help-text">
+                                • Type to search or pick from the list<br/>
+                                • Separate multiple groups with commas<br/>
+                                • New names are allowed
+                            </div>
+                            <div class="help-subtitle">Existing groups</div>
+                            <div class="help-groups">${groupsListHtml || '<span class=\"muted\">No groups</span>'}</div>
+                        </div>
+                        <div class="group-badges">${toChips(groupsArr)}</div>
+                    </div>
+                </div>
+                <div class="row-bottom meta-line"></div>
+            </td>
+            <td class="cell-mode">${cellMode}</td>
+            <td class="cell-status">${(() => {
+                const s = d.status || 'unknown';
+                const cls =
+                    s === 'online' ? 'is-online' : s === 'offline' ? 'is-offline' : 'is-unknown';
+                return `<span class=\"badge ${cls}\" data-device-tip="1">${esc(s)}<div class=\"device-tip\">${details || '<div class=\\"tip-row\\"><span class=\\"tip-k\\">No details</span></div>'}</div></span>`;
+            })()}</td>
+            <td class="cell-last">${last ? `<div class=\"last-date\">${esc(last.date)}</div><div class=\"last-time\">${esc(last.time)}</div>` : '—'}</td>`;
+        tbody.appendChild(tr);
+    });
+
+    // Bulk selection controls
+    const selectAll = document.getElementById('devices-select-all');
+    const bulkDeleteBtn = document.getElementById('devices-delete-selected');
+    const updateBulkState = () => {
+        const selected = tbody.querySelectorAll('.row-select:checked');
+        if (bulkDeleteBtn) bulkDeleteBtn.disabled = selected.length === 0;
+        if (selectAll)
+            selectAll.checked =
+                selected.length > 0 &&
+                selected.length === tbody.querySelectorAll('.row-select').length;
+    };
+    tbody
+        .querySelectorAll('.row-select')
+        .forEach(cb => cb.addEventListener('change', updateBulkState));
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            tbody.querySelectorAll('.row-select').forEach(cb => (cb.checked = selectAll.checked));
+            updateBulkState();
+        });
+    }
+    // Initialize the state so bulk button is disabled until something is selected
+    updateBulkState();
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', async () => {
+            devLog('bulkDeleteBtn: click');
+            const ids = Array.from(tbody.querySelectorAll('.row-select:checked')).map(cb =>
+                cb.getAttribute('data-id')
+            );
+            devLog('bulkDeleteBtn: selected ids', ids);
+            if (!ids.length) return;
+            const ok = await confirmDialog(`Delete ${ids.length} device(s)?`, bulkDeleteBtn);
+            devLog('bulkDeleteBtn: confirm result', ok);
+            if (!ok) return;
+            for (const id of ids) {
+                try {
+                    await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
+                        method: 'DELETE',
+                        noRedirectOn401: true,
+                    });
+                    devLog('bulkDeleteBtn: deleted', id);
+                } catch (_) {}
+            }
+            const list = await fetchDevices();
+            renderDevicesTable(list);
+        });
+    }
+    // Removed "delete offline" functionality by request.
+
+    // Inline edit handlers
+    tbody.querySelectorAll('input.inline-edit').forEach(input => {
+        const submit = async () => {
+            const id = input.getAttribute('data-id');
+            const field = input.getAttribute('data-field');
+            let value = input.value;
+            const payload = {};
+            if (field === 'groups') {
+                value = value
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean);
+            }
+            payload[field] = value;
+            try {
+                input.disabled = true;
+                input.classList.add('saving');
+                const res = await authenticatedFetch(
+                    apiUrl(`/api/devices/${encodeURIComponent(id)}`),
+                    {
+                        method: 'PATCH',
+                        body: JSON.stringify(payload),
+                        noRedirectOn401: true,
+                    }
+                );
+                if (!res.ok) throw new Error('Failed to save');
+                input.classList.remove('saving');
+                input.classList.add('saved');
+                setTimeout(() => input.classList.remove('saved'), 800);
+            } catch (e) {
+                input.classList.add('error');
+                setTimeout(() => input.classList.remove('error'), 1200);
+            } finally {
+                input.disabled = false;
+            }
+        };
+        input.addEventListener('change', submit);
+        input.addEventListener('blur', submit);
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submit();
+            }
+        });
+    });
+
+    tbody.querySelectorAll('button[data-cmd]').forEach(btn => {
+        btn.addEventListener('click', async e => {
+            // Prevent submitting the surrounding config form
+            e.preventDefault();
+            e.stopPropagation();
+            // Proactively blur the trigger to avoid focus remaining inside aria-hidden region
+            try {
+                btn.blur();
+            } catch (_) {}
+            const id = btn.getAttribute('data-id');
+            const cmd = btn.getAttribute('data-cmd');
+            const status = document.getElementById('devices-status');
+            devLog('row action click', { cmd, id });
+            try {
+                const type =
+                    cmd === 'reload'
+                        ? 'core.mgmt.reload'
+                        : cmd === 'sw'
+                          ? 'core.mgmt.swUnregister'
+                          : null;
+                if (cmd === 'delete') {
+                    devLog('row delete: opening confirm');
+                    const ok = await confirmDialog('Delete this device?', btn);
+                    devLog('row delete: confirm result', ok);
+                    if (!ok) {
+                        setButtonState(btn, 'revert');
+                        return;
+                    }
+                    setButtonState(btn, 'loading', { text: 'Deleting…' });
+                    const res = await authenticatedFetch(
+                        apiUrl(`/api/devices/${encodeURIComponent(id)}`),
+                        {
+                            method: 'DELETE',
+                            noRedirectOn401: true,
+                        }
+                    );
+                    if (!res.ok) throw new Error('Failed to delete');
+                    if (status) status.textContent = 'Device deleted.';
+                    devLog('row delete: deleted', id);
+                    // Refresh the list after delete
+                    const list = await fetchDevices();
+                    renderDevicesTable(list);
+                    setButtonState(btn, 'revert');
+                    return;
+                }
+                setButtonState(btn, 'loading', { text: 'Queuing…' });
+                await sendDeviceCommand(id, type);
+                setButtonState(btn, 'success', { text: 'Queued' });
+                if (status) status.textContent = 'Command queued. It will run on next heartbeat.';
+                setTimeout(() => setButtonState(btn, 'revert'), 1200);
+                devLog('row command queued', { cmd, id, type });
+            } catch (err) {
+                setButtonState(btn, 'error', { text: 'Failed' });
+                if (status) status.textContent = 'Failed to queue command (are you logged in?)';
+                setTimeout(() => setButtonState(btn, 'revert'), 1500);
+                console.error('[Devices] row action error', err);
+            }
+        });
+    });
+}
+
+function initDevicesPanel() {
+    const container = document.getElementById('devices-subsection');
+    if (!container) return;
+    const refreshBtn = document.getElementById('devices-refresh');
+    const status = document.getElementById('devices-status');
+    devLog('initDevicesPanel: start');
+
+    // Attach delegated handlers once for reliability (works across re-renders)
+    if (!container.dataset.delegatedBound) {
+        container.dataset.delegatedBound = '1';
+        const table = container.querySelector('#devices-table');
+        if (table) {
+            table.addEventListener('click', async ev => {
+                const btn = ev.target && ev.target.closest && ev.target.closest('button[data-cmd]');
+                if (!btn) return;
+                ev.preventDefault();
+                ev.stopPropagation();
+                try {
+                    btn.blur?.();
+                } catch (_) {}
+                const id = btn.getAttribute('data-id');
+                const cmd = btn.getAttribute('data-cmd');
+                devLog('delegated table click', { cmd, id });
+                const type =
+                    cmd === 'reload'
+                        ? 'core.mgmt.reload'
+                        : cmd === 'sw'
+                          ? 'core.mgmt.swUnregister'
+                          : null;
+                try {
+                    if (cmd === 'delete') {
+                        devLog('delegated delete: confirm open');
+                        const ok = await confirmDialog('Delete this device?', btn);
+                        devLog('delegated delete: confirm result', ok);
+                        if (!ok) return;
+                        setButtonState(btn, 'loading', { text: 'Deleting…' });
+                        const res = await authenticatedFetch(
+                            apiUrl(`/api/devices/${encodeURIComponent(id)}`),
+                            { method: 'DELETE', noRedirectOn401: true }
+                        );
+                        if (!res.ok) throw new Error('Failed to delete');
+                        if (status) status.textContent = 'Device deleted.';
+                        const list = await fetchDevices();
+                        renderDevicesTable(list);
+                        setButtonState(btn, 'revert');
+                        return;
+                    }
+                    if (type) {
+                        setButtonState(btn, 'loading', { text: 'Queuing…' });
+                        await sendDeviceCommand(id, type);
+                        setButtonState(btn, 'success', { text: 'Queued' });
+                        if (status)
+                            status.textContent = 'Command queued. It will run on next heartbeat.';
+                        setTimeout(() => setButtonState(btn, 'revert'), 1200);
+                        devLog('delegated command queued', { cmd, id, type });
+                    }
+                } catch (err) {
+                    setButtonState(btn, 'error', { text: 'Failed' });
+                    setTimeout(() => setButtonState(btn, 'revert'), 1500);
+                    console.error('[Devices] delegated table click error', err);
+                }
+            });
+            devLog('initDevicesPanel: delegated table handler bound');
+        }
+        const bulkDeleteBtn = container.querySelector('#devices-delete-selected');
+        if (bulkDeleteBtn) {
+            bulkDeleteBtn.addEventListener('click', async ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const tbody = container.querySelector('#devices-table tbody');
+                const ids = Array.from(tbody.querySelectorAll('.row-select:checked')).map(cb =>
+                    cb.getAttribute('data-id')
+                );
+                devLog('init bulk delete: ids', ids);
+                if (!ids.length) return;
+                const ok = await confirmDialog(`Delete ${ids.length} device(s)?`, bulkDeleteBtn);
+                devLog('init bulk delete: confirm result', ok);
+                if (!ok) return;
+                for (const id of ids) {
+                    try {
+                        await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
+                            method: 'DELETE',
+                            noRedirectOn401: true,
+                        });
+                        devLog('init bulk delete: deleted', id);
+                    } catch (_) {}
+                }
+                const list = await fetchDevices();
+                renderDevicesTable(list);
+            });
+            devLog('initDevicesPanel: bulk delete handler bound');
+        }
+    }
+
+    async function refresh() {
+        try {
+            if (status) status.textContent = 'Loading devices...';
+            const list = await fetchDevices();
+            renderDevicesTable(list);
+            if (status) status.textContent = `${list.length} device(s)`;
+            devLog('initDevicesPanel: refresh complete', list.length);
+        } catch (e) {
+            if (status) {
+                status.textContent =
+                    e && (e.code === 'unauthorized' || e.message === 'unauthorized')
+                        ? 'Not signed in: please login again to manage devices.'
+                        : 'Failed to load devices.';
+            }
+            console.error('[Devices] refresh error', e);
+        }
+    }
+
+    if (refreshBtn) refreshBtn.addEventListener('click', refresh);
+    // Auto-load on first open
+    refresh();
+}
+
 // DYNAMIC RATING FILTER FUNCTIONALITY
 // ============================================================================
+
+// As an extra safety net, bind global delegated click handlers once so device actions
+// always work even if section-specific init didn't run for some reason.
+(function bindDevicesDelegatedHandlersOnce() {
+    if (window.__devicesDelegatedHandlersBound) return;
+    window.__devicesDelegatedHandlersBound = true;
+    const getStatusEl = () => document.getElementById('devices-status');
+    devLog('bindDevicesDelegatedHandlersOnce: binding global handlers');
+
+    // Capture-phase to intercept before any form submits, restricted to Devices section
+    document.addEventListener(
+        'click',
+        async ev => {
+            const withinDevices =
+                ev.target && ev.target.closest && ev.target.closest('#devices-section');
+            if (!withinDevices) return;
+            const btn = ev.target.closest && ev.target.closest('button[data-cmd]');
+            if (!btn) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            try {
+                btn.blur?.();
+            } catch (_) {}
+            const id = btn.getAttribute('data-id');
+            const cmd = btn.getAttribute('data-cmd');
+            const status = getStatusEl();
+            devLog('global: action click', { cmd, id });
+            const type =
+                cmd === 'reload'
+                    ? 'core.mgmt.reload'
+                    : cmd === 'sw'
+                      ? 'core.mgmt.swUnregister'
+                      : null;
+            try {
+                if (cmd === 'delete') {
+                    devLog('global: delete confirm open');
+                    const ok = await confirmDialog('Delete this device?', btn);
+                    devLog('global: delete confirm result', ok);
+                    if (!ok) return;
+                    setButtonState(btn, 'loading', { text: 'Deleting…' });
+                    const res = await authenticatedFetch(
+                        apiUrl(`/api/devices/${encodeURIComponent(id)}`),
+                        { method: 'DELETE', noRedirectOn401: true }
+                    );
+                    if (!res.ok) throw new Error('Failed to delete');
+                    if (status) status.textContent = 'Device deleted.';
+                    const list = await fetchDevices();
+                    renderDevicesTable(list);
+                    setButtonState(btn, 'revert');
+                    return;
+                }
+                if (type) {
+                    setButtonState(btn, 'loading', { text: 'Queuing…' });
+                    await sendDeviceCommand(id, type);
+                    setButtonState(btn, 'success', { text: 'Queued' });
+                    if (status)
+                        status.textContent = 'Command queued. It will run on next heartbeat.';
+                    setTimeout(() => setButtonState(btn, 'revert'), 1200);
+                    devLog('global: command queued', { cmd, id, type });
+                }
+            } catch (err) {
+                setButtonState(btn, 'error', { text: 'Failed' });
+                if (status) status.textContent = 'Action failed.';
+                setTimeout(() => setButtonState(btn, 'revert'), 1500);
+                console.error('[Devices] global action error', err);
+            }
+        },
+        true
+    );
+
+    // Bulk delete (capture-phase), restricted to Devices section
+    document.addEventListener(
+        'click',
+        async ev => {
+            const bulkBtn = ev.target.closest && ev.target.closest('#devices-delete-selected');
+            if (!bulkBtn) return;
+            if (!bulkBtn.closest('#devices-section')) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            const container = document.getElementById('devices-subsection');
+            const tbody = container && container.querySelector('#devices-table tbody');
+            if (!tbody) return;
+            const ids = Array.from(tbody.querySelectorAll('.row-select:checked')).map(cb =>
+                cb.getAttribute('data-id')
+            );
+            devLog('global: bulk delete click', { count: ids.length, ids: ids.slice(0, 10) });
+            if (!ids.length) return;
+            const ok = await confirmDialog(`Delete ${ids.length} device(s)?`, bulkBtn);
+            devLog('global: bulk confirm result', ok);
+            if (!ok) return;
+            for (const id of ids) {
+                try {
+                    await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
+                        method: 'DELETE',
+                        noRedirectOn401: true,
+                    });
+                    devLog('global: bulk deleted', id);
+                } catch (_) {}
+            }
+            const list = await fetchDevices();
+            renderDevicesTable(list);
+        },
+        true
+    );
+})();
 
 /**
  * Load available ratings from a specific source

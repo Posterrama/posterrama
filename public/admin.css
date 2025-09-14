@@ -53,6 +53,7 @@ body {
     --content-radius: 12px;
     --content-backdrop-blur: 12px;
     --pip-radius: 12px; /* PiP frame/icon radius for consistent rounded corners */
+    --section-min-height: auto; /* Avoid forcing big min-height so sections like Devices don't have huge blank space */
 }
 
 /* Emergency fallback visibility class */
@@ -268,12 +269,12 @@ a:hover {
     display: flex;
     min-height: calc(100vh - 70px);
     position: relative;
+    padding: 0 !important; /* Reset padding for better layout */
 }
 
 /* Sidebar */
 /* Sidebar - now fixed so it remains visible while content scrolls */
 .sidebar {
-    /* Glass effect - no background, only blur */
     background: transparent;
     backdrop-filter: blur(20px);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
@@ -4479,6 +4480,546 @@ fieldset:focus-within {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Generic pill/badge (used by Devices status) */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+}
+.badge.is-online {
+    border-color: rgba(34, 197, 94, 0.4);
+    background: rgba(34, 197, 94, 0.12);
+    color: rgba(34, 197, 94, 0.95);
+}
+.badge.is-offline {
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.12);
+    color: rgba(239, 68, 68, 0.95);
+}
+.badge.is-unknown {
+    border-color: rgba(148, 163, 184, 0.4);
+    background: rgba(148, 163, 184, 0.12);
+    color: rgba(148, 163, 184, 0.95);
+}
+
+/* ===== Devices (Admin) Themed Styles ===== */
+#devices-section .table-wrapper {
+    overflow: visible;
+}
+#devices-section table.table {
+    table-layout: fixed;
+    width: 100%;
+}
+#devices-section th.col-select {
+    width: 36px;
+    padding-left: 8px;
+    padding-right: 0;
+    text-align: left;
+}
+#devices-section th.col-select input[type='checkbox'] {
+    display: inline-block;
+    margin: 0;
+    vertical-align: middle;
+}
+#devices-section td.cell-select {
+    text-align: left;
+    padding-left: 8px;
+    padding-right: 0;
+}
+#devices-section th.col-name {
+    width: 60%;
+}
+#devices-section th.col-mode {
+    width: 10%;
+}
+#devices-section th.col-status {
+    width: 12%;
+}
+#devices-section th.col-last {
+    width: 12%;
+}
+#devices-section th.col-actions {
+    width: 6%;
+}
+#devices-section td {
+    vertical-align: middle;
+}
+#devices-section th.col-status,
+#devices-section td.cell-status {
+    text-align: center;
+}
+#devices-section td.cell-last {
+    white-space: nowrap;
+    color: #e5e7eb;
+    text-align: center;
+}
+#devices-section td.cell-mode,
+#devices-section td.cell-screen {
+    text-align: center;
+}
+#devices-section td.cell-screen {
+    display: none;
+}
+#devices-section .actions-inline {
+    margin-bottom: 6px;
+}
+#devices-section .actions-inline .btn-group.icon-only {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+/* Make the inline device action buttons (reload, SW, delete) half-size and center the icon */
+#devices-section .actions-inline .btn-group.icon-only .btn {
+    flex: 0 0 22px;
+    min-width: 22px;
+    min-height: 22px;
+    padding: 2px 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+#devices-section .actions-inline .btn-group.icon-only .btn .icon {
+    margin: 0;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+/* slightly larger icon in tiny buttons for better legibility */
+#devices-section .actions-inline .btn-group.icon-only .btn .icon i {
+    font-size: 0.85rem;
+}
+/* Last Seen: unify date/time typography to match app text sizing */
+#devices-section td.cell-last .last-date,
+#devices-section td.cell-last .last-time {
+    display: block;
+    line-height: 1;
+    font-size: 0.75rem; /* match field-label size */
+    color: #c7d2fe; /* match field-label blue */
+    opacity: 0.8; /* match field-label opacity */
+    font-weight: 400;
+}
+
+/* Reduce bottom whitespace in Devices section */
+div#devices-section.section-content.active .section-main-content {
+    min-height: auto !important;
+}
+#devices-section .form-section.unified-section {
+    margin: 0 auto 0.25rem auto !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+#devices-section .form-section.unified-section > .subsection-content {
+    margin: 0 !important;
+    padding: 0.25rem 0 0 !important;
+}
+#devices-section .form-section.unified-section > .subsection-content:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+#devices-section .table-wrapper {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Device Status hover tooltip with device details */
+#devices-section .cell-status .badge[data-device-tip] {
+    position: relative;
+}
+#devices-section .cell-status .badge .device-tip {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    transform: translateX(-50%);
+    min-width: 300px;
+    max-width: 460px;
+    background: rgba(17, 24, 39, 0.98);
+    color: #e5e7eb;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+    padding: 14px 16px;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity 0.12s ease,
+        transform 0.12s ease,
+        visibility 0.12s ease;
+    pointer-events: auto; /* allow interaction & selection */
+    user-select: text;
+    -webkit-user-select: text;
+}
+#devices-section .cell-status .badge[data-device-tip]:hover .device-tip,
+#devices-section .cell-status .badge .device-tip:hover {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+#devices-section .cell-status .badge .device-tip::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: rgba(17, 24, 39, 0.98);
+}
+#devices-section .cell-status .badge .device-tip .tip-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #f3f4f6;
+    margin-bottom: 10px;
+}
+#devices-section .cell-status .badge .device-tip .tip-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px 12px;
+    align-items: start;
+}
+#devices-section .cell-status .badge .device-tip .tip-k {
+    color: #c7d2fe; /* match label blue */
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+}
+#devices-section .cell-status .badge .device-tip .tip-v {
+    color: #e5e7eb;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+/* subtle row separators for readability (apply from second row) */
+#devices-section .cell-status .badge .device-tip .tip-grid > .tip-k:nth-child(n + 3),
+#devices-section .cell-status .badge .device-tip .tip-grid > .tip-v:nth-child(n + 4) {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 6px;
+    margin-top: 2px;
+}
+
+/* Compact action group within rows */
+#devices-section .btn-group {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
+#devices-section td.cell-actions .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+#devices-section td.cell-actions .btn-group.icon-only .btn {
+    flex: 0 0 42px;
+    min-width: 42px;
+    min-height: 42px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#devices-section td.cell-actions .btn-group.icon-only .btn .icon {
+    margin: 0;
+}
+
+/* Inline edit inputs – match admin inputs */
+#devices-section input.inline-edit {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0.55rem 0.8rem;
+    min-height: 36px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+#devices-section .inputs-line input.inline-edit {
+    width: auto;
+    max-width: none;
+}
+#devices-section input.inline-edit.small {
+    padding: 0.45rem 0.6rem;
+    min-height: 34px;
+    font-size: 0.92rem;
+}
+#devices-section input.inline-edit::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+}
+#devices-section input.inline-edit:focus {
+    outline: none;
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+}
+#devices-section input.inline-edit.saving {
+    opacity: 0.6;
+}
+#devices-section input.inline-edit.saved {
+    outline: 2px solid #34c75933;
+}
+#devices-section input.inline-edit.error {
+    outline: 2px solid #ff3b3033;
+}
+
+/* Themed checkboxes (match admin checkbox style) */
+#devices-section input[type='checkbox'] {
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    background: linear-gradient(
+        180deg,
+        rgba(102, 126, 234, 0.05) 0%,
+        rgba(118, 75, 162, 0.05) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+#devices-section input[type='checkbox']:hover {
+    background: linear-gradient(180deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-color: rgba(102, 126, 234, 0.3);
+    box-shadow:
+        0 4px 12px rgba(102, 126, 234, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+#devices-section input[type='checkbox']:focus {
+    outline: none;
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow:
+        0 0 0 3px rgba(102, 126, 234, 0.1),
+        0 4px 12px rgba(102, 126, 234, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+#devices-section input[type='checkbox']:checked {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    box-shadow:
+        0 4px 15px rgba(102, 126, 234, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+#devices-section input[type='checkbox']:checked:hover {
+    box-shadow:
+        0 6px 20px rgba(102, 126, 234, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+#devices-section input[type='checkbox']:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+/* Two-line device cell layout */
+#devices-section td.cell-name {
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+#devices-section .row-top,
+#devices-section .row-bottom {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 10px;
+}
+#devices-section .row-top.inputs-line {
+    gap: 10px;
+}
+#devices-section .row-bottom.meta-line {
+    margin-top: 4px;
+    opacity: 0.95;
+    align-items: center;
+}
+
+/* Groups field inline help */
+#devices-section .field-group-picker {
+    position: relative;
+}
+#devices-section .field-group-picker .help-popup {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 8px);
+    min-width: 260px;
+    max-width: 420px;
+    background: rgba(17, 24, 39, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(4px);
+    transition:
+        opacity 0.12s ease,
+        transform 0.12s ease,
+        visibility 0.12s ease;
+    z-index: 20;
+}
+#devices-section .field-group-picker .groups-input:hover ~ .help-popup,
+#devices-section .field-group-picker .groups-input:focus ~ .help-popup {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+#devices-section .field-group-picker .help-popup .help-title {
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+#devices-section .field-group-picker .help-popup .help-subtitle {
+    margin-top: 8px;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #cbd5e1;
+}
+#devices-section .field-group-picker .help-popup .help-text {
+    font-size: 0.92rem;
+    color: #cbd5e1;
+}
+#devices-section .field-group-picker .help-popup .help-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+#devices-section .field-group-picker .help-popup .help-groups .chip {
+    background: rgba(255, 255, 255, 0.08);
+}
+#devices-section .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+#devices-section .field-label {
+    font-size: 0.75rem;
+    line-height: 1;
+    color: #c7d2fe;
+    opacity: 0.8;
+    padding-left: 10px;
+}
+/* automatic separators for meta items */
+#devices-section .row-top .kv:not(:first-of-type)::before {
+    content: '·';
+    margin: 0 6px 0 2px;
+    color: #9aa4b2;
+}
+#devices-section .kv {
+    color: #c7d2fe;
+    font-size: 0.92rem;
+    opacity: 0.85;
+}
+#devices-section .chips,
+#devices-section .group-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 120px;
+}
+#devices-section .chip[data-chip='group'] {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+/* groups under input styled like status badge */
+#devices-section .group-badges .chip[data-chip='group'] {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+/* Equal-width inputs (≈14 characters) for Name/Location/Groups on one line */
+#devices-section input.inline-edit.name-input,
+#devices-section input.inline-edit.location-input,
+#devices-section input.inline-edit.groups-input {
+    padding: 0.4rem 0.6rem;
+    min-height: 34px;
+    font-size: 0.9rem;
+    width: 18ch;
+    max-width: 18ch;
+    flex: 0 0 auto; /* fixed width to maintain one line */
+}
+#devices-section .inputs-line {
+    overflow: hidden;
+}
+#devices-section .inputs-line .field {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+#devices-section .inputs-line .field .inline-edit {
+    min-width: 12ch;
+}
+
+/* Improve datalist usability */
+#devices-section input[list='device-groups-datalist'] {
+    min-width: 18ch;
+}
+
+/* Make Groups field specifically 15ch wide */
+#devices-section input.inline-edit.groups-input {
+    width: 18ch;
+    max-width: 18ch;
+}
+
+/* Bulk delete disabled visual emphasis */
+#devices-section #devices-delete-selected:disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+    filter: grayscale(0.2);
+}
+
+/* Responsive tweaks without widening content */
+@media (max-width: 1100px) {
+    #devices-section th.col-last,
+    #devices-section td.cell-last {
+        display: none;
+    }
+    #devices-section th.col-screen,
+    #devices-section td.cell-screen {
+        display: none;
+    }
+    #devices-section th.col-name {
+        width: 62%;
+    }
+    #devices-section th.col-actions {
+        width: 20%;
+    }
+}
+@media (max-width: 800px) {
+    #devices-section th.col-status,
+    #devices-section td.cell-status {
+        display: none;
+    }
+    #devices-section th.col-name {
+        width: 70%;
+    }
+    #devices-section th.col-actions {
+        width: 18%;
+    }
+}
+
 /* Quick Help Panel */
 .quick-help-panel {
     position: fixed;
@@ -5238,6 +5779,13 @@ fieldset:focus-within {
 
 .modal.is-hidden {
     display: none;
+}
+
+/* Safety override: if JS detects the modal failed to render, this ensures it's visible */
+.modal.force-show {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .modal-background {

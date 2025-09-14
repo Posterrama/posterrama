@@ -33,7 +33,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <!-- Local CSS with versioning -->
-    <link rel="stylesheet" href="/admin.css?v=20250819a&cb=1755384925&mobilefinal=1">
+    <link rel="stylesheet" href="/admin.css?v=20250829m&cb=1756491800&mobilefinal=1">
     
     <!-- Font Awesome with SRI for security -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -43,7 +43,7 @@
     <script src="/lazy-loading.js?v=20250825a"></script>
     
     <!-- Preload critical JavaScript -->
-    <link rel="preload" href="/admin.js?v=20250823a&cb=1755384925&mobilefinal=1" as="script">
+    <!-- Preload removed to avoid stale cached versions during debugging -->
     
     <!-- IMMEDIATE desktop sidebar fix - disable toggle functionality on desktop -->
     <script>
@@ -180,6 +180,10 @@
                 <button class="nav-item" data-section="management" title="Management & Tools" role="tab" id="management-tab">
                     <i class="fas fa-tools nav-icon"></i>
                     <span class="nav-text">Management</span>
+                </button>
+                <button class="nav-item" data-section="devices" title="Devices" role="tab" id="devices-tab">
+                    <i class="fas fa-mobile-alt nav-icon"></i>
+                    <span class="nav-text">Devices</span>
                 </button>
             </div>
         </nav>
@@ -531,6 +535,47 @@
                         </div> <!-- End of section-main-content -->
                     </section>
                     
+        
+                    <!-- Devices Section -->
+                    <section class="section-content" id="devices-section" role="tabpanel">
+                        <div class="section-main-content">
+                            <div class="section-title">
+                                <i class="fas fa-mobile-alt"></i>
+                                Devices (beta)
+                            </div>
+                            <div class="form-section unified-section">
+                                <div class="subsection-content" id="devices-subsection">
+                                    <div class="form-actions">
+                                        <button type="button" id="devices-refresh" class="btn">
+                                            <span class="icon"><i class="fas fa-sync"></i></span>
+                                            <span>Refresh Devices</span>
+                                        </button>
+                                        <button type="button" id="devices-delete-selected" class="btn btn-danger" disabled>
+                                            <span class="icon"><i class="fas fa-trash"></i></span>
+                                            <span>Delete Selected</span>
+                                        </button>
+                                    </div>
+                                    <div id="devices-status" class="hint"></div>
+                                    <div class="table-wrapper">
+                                        <table class="table" id="devices-table" aria-label="Registered devices">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-select"><input type="checkbox" id="devices-select-all" aria-label="Select all devices" /></th>
+                                                    <th class="col-name">Device</th>
+                                                    <th class="col-mode">Mode</th>
+                                                    <th class="col-status">Status</th>
+                                                    <th class="col-last">Last Seen</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                    <datalist id="device-groups-datalist"></datalist>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
 
                     <!-- Sources Section -->
                     <section class="section-content" id="media-section" role="tabpanel">
@@ -1197,6 +1242,7 @@
                                                 <span class="loading">Loading...</span>
                                             </div>
                                         </div>
+
                                         <div class="stat-item">
                                             <div class="stat-label">
                                                 <i class="fas fa-memory"></i>
@@ -1225,6 +1271,8 @@
                                     </div>
                                 </div>
                                 
+                                
+
                                 <!-- Media Management Subsection -->
                                 <div class="subsection-header">
                                     <i class="fas fa-sync-alt"></i>
@@ -1628,7 +1676,49 @@
         </div>
     </div>
 
-    <!-- Load admin JavaScript -->
-    <script src="/admin.js?v=20250823a&cb=1755384925&mobilefinal=1" defer></script>
+    <!-- Generic Confirmation Modal (reusable) -->
+    <div id="confirm-modal" class="modal is-hidden" aria-hidden="true" role="dialog" aria-labelledby="confirm-modal-title">
+        <div class="modal-background" data-confirm-cancel></div>
+        <div class="modal-content">
+            <span class="close" data-confirm-cancel>&times;</span>
+            <h3 id="confirm-modal-title"><i class="fas fa-question-circle"></i> Bevestigen</h3>
+            <p data-confirm-message style="margin-top: .5rem; color: #ddd;"></p>
+            <div class="form-actions" style="margin-top: 1rem; display: flex; gap: .5rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" data-confirm-cancel>Annuleren</button>
+                <button type="button" class="btn btn-danger" data-confirm-ok>Verwijderen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load admin JavaScript (freshness handled by Service Worker no-store rule) -->
+    <script src="/admin.js" defer></script>
+    <!-- Bootstrap watchdog to surface early failures and ensure we see console output -->
+    <script>
+        (function () {
+            try {
+                console.log('[AdminBoot] inline bootstrap running');
+                window.addEventListener('DOMContentLoaded', function () {
+                    console.log('[AdminBoot] DOMContentLoaded');
+                });
+                window.addEventListener('load', function () {
+                    console.log('[AdminBoot] window load');
+                });
+                // After a short delay, check whether admin.js initialized globals
+                setTimeout(function () {
+                    if (!window.activateSection) {
+                        console.warn('[AdminBoot] activateSection missing; admin.js may not have loaded');
+                        var bar = document.createElement('div');
+                        bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#b00020;color:#fff;padding:10px 14px;font:14px/1.4 system-ui, sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.3)';
+                        bar.textContent = 'Admin scripts did not initialize. Hard refresh (Ctrl+F5). If it persists: open DevTools → Network → check /admin.js for 404 or errors; Application → Service Workers → Bypass.';
+                        document.body.appendChild(bar);
+                    } else {
+                        console.log('[AdminBoot] activateSection is available');
+                    }
+                }, 800);
+            } catch (e) {
+                console.error('[AdminBoot] bootstrap error', e);
+            }
+        })();
+    </script>
 </body>
 </html>

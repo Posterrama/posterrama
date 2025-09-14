@@ -57,6 +57,8 @@ require('dotenv').config();
 const crypto = require('crypto');
 const { PassThrough } = require('stream');
 const fsp = fs.promises;
+const deviceStore = require('./utils/deviceStore');
+const dns = require('dns').promises;
 
 // --- Auto Cache Busting ---
 const cachedVersions = {};
@@ -325,6 +327,31 @@ const githubService = require('./utils/github');
 
 // Auto-updater system
 const autoUpdater = require('./utils/updater');
+
+// Session middleware setup (must come BEFORE any middleware/routes that access req.session)
+app.use(
+    session({
+        store: new FileStore({
+            path: './sessions', // Sessions will be stored in a 'sessions' directory
+            logFn: isDebug ? logger.debug : () => {},
+            ttl: 86400 * 7, // Session TTL in seconds (7 days)
+            reapInterval: 86400, // Clean up expired sessions once a day
+            retries: 3, // Retry file operations up to 3 times
+        }),
+        name: 'posterrama.sid',
+        secret: process.env.SESSION_SECRET,
+        resave: false,
+        saveUninitialized: false,
+        rolling: true, // Extend session lifetime on each request
+        proxy: process.env.NODE_ENV === 'production',
+        cookie: {
+            maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        },
+    })
+);
 
 // Performance and security logging middleware
 app.use((req, res, next) => {
@@ -1422,6 +1449,193 @@ app.use(compressionMiddleware());
 app.use(securityMiddleware());
 app.use(corsMiddleware());
 app.use(requestLoggingMiddleware());
+// --- Feature flag: device management ---
+function isDeviceMgmtEnabled() {
+    try {
+        const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+        if (cfg && cfg.deviceMgmt && cfg.deviceMgmt.enabled) return true;
+    } catch (_) {
+        // ignore missing or invalid config.json
+    }
+    return process.env.DEVICE_MGMT_ENABLED === '1' || process.env.DEVICE_MGMT_ENABLED === 'true';
+}
+
+if (isDeviceMgmtEnabled()) {
+    const adminAuth = isAuthenticated; // reuse existing admin guard
+    // Lightweight cookie parsing to bind an install identifier across tabs
+    function parseCookies(header) {
+        const out = {};
+        if (!header) return out;
+        const parts = header.split(';');
+        for (const p of parts) {
+            const i = p.indexOf('=');
+            if (i === -1) continue;
+            const k = p.slice(0, i).trim();
+            const v = p.slice(i + 1).trim();
+            if (!k) continue;
+            out[k] = decodeURIComponent(v);
+        }
+        return out;
+    }
+    function setInstallCookie(res, iid) {
+        try {
+            const cookie = `pr_iid=${encodeURIComponent(iid)}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax`;
+            res.setHeader('Set-Cookie', cookie);
+        } catch (_) {
+            // ignore cookie set failures
+        }
+    }
+
+    // Device register (MVP)
+    app.post('/api/devices/register', express.json(), async (req, res) => {
+        try {
+            const { name = '', location = '', installId = null } = req.body || {};
+            const cookies = parseCookies(req.headers['cookie']);
+            const hdrIid = req.headers['x-install-id'] || null;
+            const cookieIid = cookies['pr_iid'] || null;
+            // Choose a single stable install identifier, preferring client-provided header/body over cookie
+            // This avoids cross-tab cookie clashes creating new device IDs
+            const stableInstallId =
+                hdrIid || installId || cookieIid || require('crypto').randomUUID();
+            let finalName = (name || '').trim();
+            if (!finalName) {
+                const xfwd = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+                const ip = xfwd || req.ip;
+                try {
+                    const hostnames = await dns.reverse(ip);
+                    if (hostnames && hostnames.length) finalName = hostnames[0];
+                } catch (_) {
+                    // ignore reverse DNS failures
+                }
+            }
+            const { device, secret } = await deviceStore.registerDevice({
+                name: finalName,
+                location,
+                installId: stableInstallId,
+            });
+            // Ensure cookie is set/updated so future tabs share identity immediately
+            if (!cookieIid || cookieIid !== stableInstallId) setInstallCookie(res, stableInstallId);
+            res.json({ deviceId: device.id, deviceSecret: secret });
+        } catch (e) {
+            logger.error('[Devices] register failed', e);
+            res.status(500).json({ error: 'register_failed' });
+        }
+    });
+
+    // Device heartbeat + poll commands
+    app.post('/api/devices/heartbeat', express.json(), async (req, res) => {
+        try {
+            const b = req.body || {};
+            const deviceId = b.deviceId;
+            const deviceSecret = b.deviceSecret;
+            const screen = b.screen;
+            const userAgent = b.userAgent;
+            const mode = b.mode;
+            const mediaId = b.mediaId;
+            const paused = b.paused;
+            const cookies = parseCookies(req.headers['cookie']);
+            const hdrIid = req.headers['x-install-id'] || null;
+            const cookieIid = cookies['pr_iid'] || null;
+            // Prefer client install id (header/body) over cookie; cookie can reflect another tab
+            const installId = hdrIid || b.installId || cookieIid || null;
+            if (!deviceId || !deviceSecret) return res.status(401).json({ error: 'unauthorized' });
+            const ok = await deviceStore.verifyDevice(deviceId, deviceSecret);
+            if (!ok) return res.status(401).json({ error: 'unauthorized' });
+            await deviceStore.updateHeartbeat(deviceId, {
+                clientInfo: { userAgent, screen, mode },
+                currentState: { mediaId, paused },
+                installId,
+            });
+            if (installId && (!cookieIid || cookieIid !== installId))
+                setInstallCookie(res, installId);
+            // Opportunistically prune likely duplicate rows created by early multi-tab races
+            try {
+                await deviceStore.pruneLikelyDuplicates({
+                    keepId: deviceId,
+                    userAgent,
+                    screen,
+                });
+            } catch (_) {}
+            // If name is still empty, attempt a best-effort reverse DNS and set it once
+            try {
+                const existing = await deviceStore.getById(deviceId);
+                if (existing && (!existing.name || existing.name === '')) {
+                    const xfwd = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+                    const ip = xfwd || req.ip;
+                    const hostnames = await dns.reverse(ip).catch(() => []);
+                    if (hostnames && hostnames[0]) {
+                        await deviceStore.patchDevice(deviceId, { name: hostnames[0] });
+                    }
+                }
+            } catch (_) {}
+            const commandsQueued = deviceStore.popCommands(deviceId);
+            res.json({ serverTime: Date.now(), commandsQueued });
+        } catch (e) {
+            logger.error('[Devices] heartbeat failed', e);
+            res.status(500).json({ error: 'heartbeat_failed' });
+        }
+    });
+
+    // Admin: list devices
+    app.get('/api/devices', adminAuth, async (_req, res) => {
+        try {
+            const all = await deviceStore.getAll();
+            res.json(all);
+        } catch (e) {
+            res.status(500).json({ error: 'list_failed' });
+        }
+    });
+
+    // Admin: get device
+    app.get('/api/devices/:id', adminAuth, async (req, res) => {
+        try {
+            const d = await deviceStore.getById(req.params.id);
+            if (!d) return res.status(404).json({ error: 'not_found' });
+            res.json(d);
+        } catch (e) {
+            res.status(500).json({ error: 'get_failed' });
+        }
+    });
+
+    // Admin: delete device
+    app.delete('/api/devices/:id', adminAuth, async (req, res) => {
+        try {
+            const removed = await deviceStore.deleteDevice(req.params.id);
+            if (!removed) return res.status(404).json({ error: 'not_found' });
+            res.json({ ok: true });
+        } catch (e) {
+            res.status(500).json({ error: 'delete_failed' });
+        }
+    });
+
+    // Admin: patch device
+    app.patch('/api/devices/:id', adminAuth, express.json(), async (req, res) => {
+        try {
+            const allowed = ['name', 'location', 'tags', 'groups', 'settingsOverride'];
+            const patch = {};
+            for (const k of allowed) if (k in req.body) patch[k] = req.body[k];
+            const d = await deviceStore.patchDevice(req.params.id, patch);
+            if (!d) return res.status(404).json({ error: 'not_found' });
+            res.json(d);
+        } catch (e) {
+            res.status(500).json({ error: 'patch_failed' });
+        }
+    });
+
+    // Admin: queue command to device
+    app.post('/api/devices/:id/command', adminAuth, express.json(), async (req, res) => {
+        try {
+            const { type, payload } = req.body || {};
+            if (!type) return res.status(400).json({ error: 'type_required' });
+            const d = await deviceStore.getById(req.params.id);
+            if (!d) return res.status(404).json({ error: 'not_found' });
+            const cmd = deviceStore.queueCommand(req.params.id, { type, payload });
+            res.json({ queued: true, command: cmd });
+        } catch (e) {
+            res.status(500).json({ error: 'queue_failed' });
+        }
+    });
+}
 
 // Minimal CSP violation report endpoint
 // Accepts both deprecated report-uri (application/csp-report) and modern report-to (application/reports+json)
@@ -1597,30 +1811,7 @@ if (isDebug) {
     });
 }
 
-// Session middleware setup
-app.use(
-    session({
-        store: new FileStore({
-            path: './sessions', // Sessions will be stored in a 'sessions' directory
-            logFn: isDebug ? logger.debug : () => {},
-            ttl: 86400 * 7, // Session TTL in seconds (7 days)
-            reapInterval: 86400, // Clean up expired sessions once a day
-            retries: 3, // Retry file operations up to 3 times
-        }),
-        name: 'posterrama.sid',
-        secret: process.env.SESSION_SECRET,
-        resave: false,
-        saveUninitialized: false,
-        rolling: true, // Extend session lifetime on each request
-        proxy: process.env.NODE_ENV === 'production',
-        cookie: {
-            maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-        },
-    })
-);
+// (relocated earlier) Session middleware is now registered before any API routes
 
 // Wrapper for async routes to catch errors and pass them to the error handler
 const asyncHandler = fn => (req, res, next) => {
