@@ -9583,6 +9583,53 @@ async function sendDeviceCommand(id, type) {
     return res.json();
 }
 
+// Pairing modal utilities
+function __ensurePairingModal() {
+    let el = document.getElementById('pairing-modal');
+    if (el) return el;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML =
+        '<div id="pairing-modal" class="modal is-hidden" aria-hidden="true" role="dialog" aria-labelledby="pairing-modal-title" tabindex="-1"><div class="modal-background" data-pairing-close></div><div class="modal-content"><span class="close" data-pairing-close>&times;</span><h3 id="pairing-modal-title"><i class="fas fa-link"></i> Pairing code</h3><div class="pairing-body"><div class="pairing-code" data-pairing-code>—</div><div class="pairing-exp" data-pairing-exp></div><div class="pairing-qr"><img data-pairing-qr alt="QR"/></div><div class="pairing-actions"><button type="button" class="btn is-primary" data-pairing-copy>Copy claim URL</button><button type="button" class="btn" data-pairing-close>Close</button></div></div></div></div>';
+    el = wrapper.firstChild;
+    document.body.appendChild(el);
+    el.querySelectorAll('[data-pairing-close]').forEach(c =>
+        c.addEventListener('click', () => {
+            try {
+                el.classList.add('is-hidden');
+                el.classList.remove('modal-open');
+                el.setAttribute('aria-hidden', 'true');
+            } catch (_) {}
+        })
+    );
+    return el;
+}
+function showPairingModal({ code, expiresAt, claimUrl }) {
+    const el = __ensurePairingModal();
+    const codeEl = el.querySelector('[data-pairing-code]');
+    const expEl = el.querySelector('[data-pairing-exp]');
+    const qrImg = el.querySelector('[data-pairing-qr]');
+    const copyBtn = el.querySelector('[data-pairing-copy]');
+    codeEl.textContent = code;
+    expEl.textContent = expiresAt ? `Expires: ${new Date(expiresAt).toLocaleString()}` : '';
+    const qrUrl = apiUrl(`/api/qr?format=svg&text=${encodeURIComponent(claimUrl)}`);
+    qrImg.src = qrUrl;
+    copyBtn.onclick = async () => {
+        try {
+            await navigator.clipboard.writeText(claimUrl);
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => (copyBtn.textContent = 'Copy claim URL'), 1200);
+        } catch (_) {
+            window.prompt('Copy this URL', claimUrl);
+        }
+    };
+    try {
+        el.setAttribute('aria-hidden', 'false');
+        el.classList.remove('is-hidden');
+        el.classList.add('modal-open');
+        setTimeout(() => el.focus?.(), 0);
+    } catch (_) {}
+}
+
 function renderDevicesTable(devices) {
     const tbody = document.querySelector('#devices-table tbody');
     if (!tbody) return;
@@ -9917,14 +9964,20 @@ function renderDevicesTable(devices) {
                             noRedirectOn401: true,
                         }
                     );
+                    if (res.status === 404) {
+                        if (status) status.textContent = 'Device no longer exists; list refreshed.';
+                        const list = await fetchDevices();
+                        renderDevicesTable(list);
+                        setButtonState(btn, 'revert');
+                        return;
+                    }
                     if (!res.ok) throw new Error('Failed to get code');
                     const data = await res.json();
                     setButtonState(btn, 'success', { text: 'Code' });
-                    try {
-                        const msg = `Pairing code: ${data.code}\nExpires: ${new Date(data.expiresAt).toLocaleString()}\nShare this code with the target device.`;
-                        window.prompt('Pairing code (copy):', data.code);
-                        if (status) status.textContent = msg;
-                    } catch (_) {}
+                    const claimUrl = `${location.origin}${location.pathname}?pair=${encodeURIComponent(
+                        data.code
+                    )}`;
+                    showPairingModal({ code: data.code, expiresAt: data.expiresAt, claimUrl });
                     setTimeout(() => setButtonState(btn, 'revert'), 1500);
                 } else if (type) {
                     setButtonState(btn, 'loading', { text: 'Queuing…' });
@@ -10002,14 +10055,21 @@ function initDevicesPanel() {
                                 noRedirectOn401: true,
                             }
                         );
+                        if (res.status === 404) {
+                            if (status)
+                                status.textContent = 'Device no longer exists; list refreshed.';
+                            const list = await fetchDevices();
+                            renderDevicesTable(list);
+                            setButtonState(btn, 'revert');
+                            return;
+                        }
                         if (!res.ok) throw new Error('Failed to get code');
                         const data = await res.json();
                         setButtonState(btn, 'success', { text: 'Code' });
-                        try {
-                            window.prompt('Pairing code (copy):', data.code);
-                            if (status)
-                                status.textContent = `Pairing code: ${data.code} (expires ${new Date(data.expiresAt).toLocaleString()})`;
-                        } catch (_) {}
+                        const claimUrl = `${location.origin}${location.pathname}?pair=${encodeURIComponent(
+                            data.code
+                        )}`;
+                        showPairingModal({ code: data.code, expiresAt: data.expiresAt, claimUrl });
                         setTimeout(() => setButtonState(btn, 'revert'), 1500);
                     } else if (type) {
                         setButtonState(btn, 'loading', { text: 'Queuing…' });
@@ -10140,17 +10200,20 @@ function initDevicesPanel() {
                             noRedirectOn401: true,
                         }
                     );
+                    if (res.status === 404) {
+                        if (status) status.textContent = 'Device no longer exists; list refreshed.';
+                        const list = await fetchDevices();
+                        renderDevicesTable(list);
+                        setButtonState(btn, 'revert');
+                        return;
+                    }
                     if (!res.ok) throw new Error('Failed to get code');
                     const data = await res.json();
                     setButtonState(btn, 'success', { text: 'Code' });
-                    try {
-                        window.prompt('Pairing code (copy):', data.code);
-                        const status = getStatusEl();
-                        if (status)
-                            status.textContent = `Pairing code: ${data.code} (expires ${new Date(
-                                data.expiresAt
-                            ).toLocaleString()})`;
-                    } catch (_) {}
+                    const claimUrl = `${location.origin}${location.pathname}?pair=${encodeURIComponent(
+                        data.code
+                    )}`;
+                    showPairingModal({ code: data.code, expiresAt: data.expiresAt, claimUrl });
                     setTimeout(() => setButtonState(btn, 'revert'), 1500);
                 } else if (type) {
                     setButtonState(btn, 'loading', { text: 'Queuing…' });

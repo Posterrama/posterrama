@@ -1706,6 +1706,44 @@ const cspReportJson = express.json({
     },
 });
 
+// Lightweight QR code rendering for admin UI (optional). Requires 'qrcode' package.
+app.get('/api/qr', isAuthenticated, async (req, res) => {
+    try {
+        const text = (req.query && req.query.text) || '';
+        if (!text || typeof text !== 'string')
+            return res.status(400).json({ error: 'text_required' });
+        const format = String((req.query && req.query.format) || 'svg').toLowerCase();
+        let QRCode;
+        try {
+            QRCode = require('qrcode');
+        } catch (_) {
+            return res.status(501).json({ error: 'qr_unavailable' });
+        }
+        if (format === 'svg') {
+            const svg = await QRCode.toString(text, {
+                type: 'svg',
+                errorCorrectionLevel: 'M',
+                margin: 1,
+                width: 256,
+            });
+            res.setHeader('Content-Type', 'image/svg+xml');
+            return res.send(svg);
+        } else {
+            const dataUrl = await QRCode.toDataURL(text, {
+                errorCorrectionLevel: 'M',
+                margin: 1,
+                width: 256,
+            });
+            const b64 = (dataUrl || '').split(',')[1] || '';
+            const buf = Buffer.from(b64, 'base64');
+            res.setHeader('Content-Type', 'image/png');
+            return res.send(buf);
+        }
+    } catch (e) {
+        res.status(500).json({ error: 'qr_render_failed' });
+    }
+});
+
 /**
  * @swagger
  * /csp-report:
