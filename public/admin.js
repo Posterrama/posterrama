@@ -10041,7 +10041,7 @@ function deviceRowHTML(d) {
         <td class="cell-status">${deviceStatusBadgesHTML(d)}</td>`;
 }
 
-function reconcileDevicesTable(devices, opts = {}) {
+function reconcileDevicesTable(devices) {
     const tbody = document.querySelector('#devices-table tbody');
     if (!tbody) return;
     const container = document.getElementById('devices-subsection');
@@ -10258,29 +10258,12 @@ function renderDevicesTable(devices) {
         };
     };
     const esc = s => (s == null ? '' : String(s));
-    // Preset helpers
-    const presets = getDevicePresets();
-    const buildPresetOptions = currentKey => {
-        const safe = s => (s == null ? '' : String(s));
-        const opts = [
-            `<option value="" ${!currentKey ? 'selected' : ''}>(none)</option>`,
-            ...presets.map(p => {
-                const key = safe(p.key);
-                const name = safe(p.name || p.key);
-                const sel = key === currentKey ? ' selected' : '';
-                return `<option value="${key.replace(/"/g, '&quot;')}"${sel}>${name.replace(
-                    /</g,
-                    '&lt;'
-                )}</option>`;
-            }),
-        ];
-        return opts.join('');
-    };
+    // (Removed unused preset helpers)
 
     devices.forEach(d => {
         const tr = document.createElement('tr');
         tr.setAttribute('data-id', getDeviceId(d));
-        const currentPresetKey = d.preset || '';
+        // (unused) const currentPresetKey = d.preset || '';
         // const screen = d.clientInfo?.screen || {};
         // const dims =
         //     screen.w && screen.h ? `${screen.w}×${screen.h} @${screen.dpr || 1}x` : '';
