@@ -6029,6 +6029,39 @@ app.get(
         },
     }),
     async (req, res) => {
+        // Helper: normalize to a JSON-safe plain structure (drop functions/symbols, handle BigInt, Dates, NaN/Infinity)
+        function toPlainJSONSafe(value, seen = new WeakSet()) {
+            const t = typeof value;
+            if (
+                value == null ||
+                t === 'string' ||
+                t === 'boolean' ||
+                (t === 'number' && Number.isFinite(value))
+            )
+                return value;
+            if (t === 'number') return 0; // normalize NaN/Infinity
+            if (t === 'bigint') {
+                const num = Number(value);
+                return Number.isFinite(num) ? num : value.toString();
+            }
+            if (value instanceof Date) return value.toISOString();
+            if (Array.isArray(value)) return value.map(v => toPlainJSONSafe(v, seen));
+            if (t === 'function' || t === 'symbol') return undefined; // drop
+            if (t === 'object') {
+                if (seen.has(value)) return undefined; // break cycles
+                seen.add(value);
+                const isPlain = Object.prototype.toString.call(value) === '[object Object]';
+                if (!isPlain) return undefined; // drop exotic objects (Map, Set, Buffer, etc.)
+                const out = {};
+                for (const [k, v] of Object.entries(value)) {
+                    const pv = toPlainJSONSafe(v, seen);
+                    if (pv !== undefined) out[k] = pv;
+                }
+                return out;
+            }
+            return undefined;
+        }
+
         const userAgent = req.get('user-agent') || '';
         const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
 
@@ -6151,9 +6184,9 @@ app.get(
             }
         }
 
-        res.json({
+        // Build final payload and ensure it's safe to stringify to avoid intermittent 500s
+        const finalPayload = {
             ...merged,
-            // Debug info can help verify device-aware config
             _debug: isDebug
                 ? {
                       isMobile,
@@ -6161,7 +6194,31 @@ app.get(
                       configTimestamp: Date.now(),
                   }
                 : undefined,
-        });
+        };
+
+        let safeString;
+        try {
+            // Fast path: try direct JSON.stringify
+            safeString = JSON.stringify(finalPayload);
+        } catch (_) {
+            try {
+                // Fallback: sanitize to a JSON-safe plain structure
+                const safeObj = toPlainJSONSafe(finalPayload);
+                safeString = JSON.stringify(safeObj);
+                if (isDebug) logger.debug('[get-config] Response normalized via safe serializer');
+            } catch (err) {
+                // Last resort: serve base config only
+                const minimal = toPlainJSONSafe({ ...merged, _debug: undefined });
+                safeString = JSON.stringify(minimal || {});
+                if (isDebug)
+                    logger.debug('[get-config] Failed to serialize full config, returned minimal', {
+                        error: err?.message,
+                    });
+            }
+        }
+
+        res.set('Content-Type', 'application/json');
+        res.send(safeString);
     }
 );
 
