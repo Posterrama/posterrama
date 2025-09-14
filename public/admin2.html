@@ -235,12 +235,12 @@
   /* Ensure the subtext (trend) stays below the number */
   #kpi-cards .status-card .trend { display: block; }
 
-  /* Make the Mode KPI visually distinct from Media Items */
-  #kpi-cards #mode-card.status-accent .card-icon i {
-    color: var(--color-accent) !important;
+  /* Make the Mode KPI visually distinct from Media Items (warning color) */
+  #kpi-cards #mode-card.status-warning .card-icon i {
+    color: var(--color-warning) !important;
   }
-  #kpi-cards #mode-card.status-accent {
-    border-left-color: var(--color-accent) !important;
+  #kpi-cards #mode-card.status-warning {
+    border-left-color: var(--color-warning) !important;
     border-left-width: 3px;
     border-left-style: solid;
   }
@@ -1322,7 +1322,7 @@
           <span class="trend" id="metric-media-sub">from sources</span>
         </div>
       </div>
-      <div class="status-card status-accent" id="mode-card" title="Current display mode and key settings">
+      <div class="status-card status-warning" id="mode-card" title="Current display mode and key settings">
         <div class="card-icon"><i id="metric-mode-icon" class="fas fa-image"></i></div>
         <div class="card-content">
           <h3>Active Mode</h3>
