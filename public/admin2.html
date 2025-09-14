@@ -245,6 +245,66 @@
         </div>
       </div>
     </section>
+  
+    <!-- Operations Section (top-level) -->
+    <section id="section-operations" class="app-section">
+      <section class="panel">
+        <header class="panel-header">
+          <h2><i class="fas fa-screwdriver-wrench"></i> Operations</h2>
+        </header>
+        <div class="panel-content">
+          <div class="content-grid" style="gap:16px;">
+            <!-- Media Operations -->
+            <section class="perf-card" aria-label="Media Operations">
+              <h3><i class="fas fa-sync-alt"></i> Media</h3>
+              <div class="metric-row">
+                <div class="subtle">Manually refresh media from configured sources.</div>
+              </div>
+              <div class="actions" style="margin-top:10px;">
+                <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
+                  <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
+                </button>
+              </div>
+            </section>
+
+            <!-- Auto-Update Operations -->
+            <section class="perf-card" aria-label="Automatic Updates">
+              <h3><i class="fas fa-download"></i> Automatic Updates</h3>
+              <div id="ops-update-status" class="status-display">
+                <div id="update-idle-state">
+                  <div class="subtle">Status: <span class="status-success">Ready for Updates</span></div>
+                </div>
+                <div id="update-progress-state" style="display:none; margin-top:8px;">
+                  <div class="update-progress-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <span id="update-phase-text">Checking for updates…</span>
+                    <span id="update-progress-percent">0%</span>
+                  </div>
+                  <div class="meter" style="margin-top:6px;">
+                    <div id="update-progress-bar" style="width:0%; background: linear-gradient(90deg,#60a5fa,#1e40af);"></div>
+                  </div>
+                  <div id="update-message" class="subtle" style="margin-top:6px;">Preparing…</div>
+                </div>
+              </div>
+              <div class="actions" style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                <button type="button" id="btn-start-update" class="btn btn-success btn-sm"><i class="fas fa-download"></i><span>Start Auto-Update</span></button>
+                <button type="button" id="btn-rollback-update" class="btn btn-secondary btn-sm"><i class="fas fa-undo"></i><span>Rollback</span></button>
+                <button type="button" id="btn-list-backups" class="btn btn-secondary btn-sm"><i class="fas fa-archive"></i><span>View Backups</span></button>
+                <div class="input-row">
+                  <input type="number" id="input-keep-backups" min="1" max="20" value="5" style="width:90px;" />
+                  <button type="button" id="btn-cleanup-backups" class="btn btn-secondary btn-sm"><i class="fas fa-trash"></i><span>Cleanup Old</span></button>
+                </div>
+              </div>
+              <div id="backups-display" class="status-display" style="display:none; margin-top:10px;">
+                <div class="subtle">Available Backups</div>
+                <div id="backups-content" class="metric-row" style="margin-top:6px;">
+                  <div class="subtle">Loading…</div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </section>
 
   <section class="content-grid" style="margin-top: 16px;">
       <!-- Unified System Performance Dashboard -->
@@ -389,65 +449,7 @@
               </div>
             </section>
 
-            <!-- Operations Section -->
-            <section id="section-operations" class="app-section">
-              <section class="panel">
-                <header class="panel-header">
-                  <h2><i class="fas fa-screwdriver-wrench"></i> Operations</h2>
-                </header>
-                <div class="panel-content">
-                  <div class="content-grid" style="gap:16px;">
-                    <!-- Media Operations -->
-                    <section class="perf-card" aria-label="Media Operations">
-                      <h3><i class="fas fa-sync-alt"></i> Media</h3>
-                      <div class="metric-row">
-                        <div class="subtle">Manually refresh media from configured sources.</div>
-                      </div>
-                      <div class="actions" style="margin-top:10px;">
-                        <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
-                          <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
-                        </button>
-                      </div>
-                    </section>
-
-                    <!-- Auto-Update Operations -->
-                    <section class="perf-card" aria-label="Automatic Updates">
-                      <h3><i class="fas fa-download"></i> Automatic Updates</h3>
-                      <div id="ops-update-status" class="status-display">
-                        <div id="update-idle-state">
-                          <div class="subtle">Status: <span class="status-success">Ready for Updates</span></div>
-                        </div>
-                        <div id="update-progress-state" style="display:none; margin-top:8px;">
-                          <div class="update-progress-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                            <span id="update-phase-text">Checking for updates…</span>
-                            <span id="update-progress-percent">0%</span>
-                          </div>
-                          <div class="meter" style="margin-top:6px;">
-                            <div id="update-progress-bar" style="width:0%; background: linear-gradient(90deg,#60a5fa,#1e40af);"></div>
-                          </div>
-                          <div id="update-message" class="subtle" style="margin-top:6px;">Preparing…</div>
-                        </div>
-                      </div>
-                      <div class="actions" style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-                        <button type="button" id="btn-start-update" class="btn btn-success btn-sm"><i class="fas fa-download"></i><span>Start Auto-Update</span></button>
-                        <button type="button" id="btn-rollback-update" class="btn btn-secondary btn-sm"><i class="fas fa-undo"></i><span>Rollback</span></button>
-                        <button type="button" id="btn-list-backups" class="btn btn-secondary btn-sm"><i class="fas fa-archive"></i><span>View Backups</span></button>
-                        <div class="input-row">
-                          <input type="number" id="input-keep-backups" min="1" max="20" value="5" style="width:90px;" />
-                          <button type="button" id="btn-cleanup-backups" class="btn btn-secondary btn-sm"><i class="fas fa-trash"></i><span>Cleanup Old</span></button>
-                        </div>
-                      </div>
-                      <div id="backups-display" class="status-display" style="display:none; margin-top:10px;">
-                        <div class="subtle">Available Backups</div>
-                        <div id="backups-content" class="metric-row" style="margin-top:6px;">
-                          <div class="subtle">Loading…</div>
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </div>
-              </section>
-            </section>
+            
 
             <!-- Two-Factor Authentication -->
             <section class="perf-card" aria-label="Two-Factor Authentication" style="margin-bottom: var(--space-lg);">
