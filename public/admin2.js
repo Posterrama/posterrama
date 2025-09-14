@@ -1543,9 +1543,16 @@
                     const notifBtn = e.target.closest?.('#notif-btn');
                     if (notifBtn) {
                         e.stopPropagation();
-                        // Force bypass TTL when the user explicitly opens the panel
-                        await refreshBadge(true);
-                        openPanel();
+                        const { panel } = getRefs();
+                        const isOpen = panel?.classList.contains('open');
+                        if (isOpen) {
+                            // Toggle: if open, close it
+                            closePanel();
+                        } else {
+                            // Force bypass TTL when the user explicitly opens the panel
+                            await refreshBadge(true);
+                            openPanel();
+                        }
                         return;
                     }
                     // Close when clicking outside
