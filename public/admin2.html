@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Posterrama Admin — Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/theme-demo.css" />
+  <style>
+    /* Status tiles styling */
+    .status-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+    .status-tile { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
+    .status-tile .tile-left { display: flex; align-items: center; gap: 10px; }
+    .status-tile .tile-title { font-weight: 600; opacity: 0.95; display: flex; align-items: center; gap: 8px; }
+    .status-tile .tile-badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); text-transform: capitalize; }
+    .tile-badge.status-success { background: rgba(34,197,94,0.15); color: #86efac; }
+    .tile-badge.status-warning { background: rgba(245,158,11,0.15); color: #fcd34d; }
+    .tile-badge.status-error { background: rgba(239,68,68,0.15); color: #fca5a5; }
+  /* Theme alignment for dropdown links */
+  .dropdown-menu a.dropdown-item { text-decoration: none; color: var(--color-text-primary); }
+  .dropdown-menu a.dropdown-item:hover,
+    .dropdown-menu a.dropdown-item:focus { text-decoration: none; }
+  .dropdown-menu .dropdown-divider { height:1px; background: rgba(255,255,255,0.08); margin:6px 0; }
+    /* Toasts – theme alignment, bottom-right placement */
+    .toast-container { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; }
+    .toast { display: flex; align-items: flex-start; gap: 10px; min-width: 260px; max-width: 360px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(20,20,28,0.95); color: var(--color-text-primary, #E5E7EB); box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05); opacity: 0; transform: translateY(8px); transition: opacity .18s ease, transform .18s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast .toast-icon { font-size: 1rem; line-height: 1.2; }
+    .toast .toast-content { flex: 1; }
+    .toast .toast-title { display:block; margin-bottom: 2px; font-weight: 600; opacity: .95; }
+    .toast .toast-message { font-size: .9rem; opacity: .9; }
+    .toast .toast-close { background: transparent; border: none; color: inherit; font-size: 1.1rem; cursor: pointer; opacity: .7; }
+    .toast .toast-close:hover { opacity: 1; }
+    .toast-info { border-left: 4px solid #60a5fa; }
+    .toast-success { border-left: 4px solid #34d399; }
+    .toast-warning { border-left: 4px solid #f59e0b; }
+    .toast-error { border-left: 4px solid #ef4444; }
+    /* Button loading spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.25); border-top-color:#60a5fa; border-radius:50%; animation:spin .8s linear infinite; margin-right:6px; vertical-align:-2px; }
+    .btn .spinner { display:none; }
+    .btn.btn-loading .spinner { display:inline-block; }
+    .btn.btn-loading i { display:none; }
+    .btn[aria-busy="true"] { cursor: progress; opacity: .85; }
+
+  /* System Performance redesign (scoped) */
+  #panel-perf-dashboard .perf-layout { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 16px; align-items: start; }
+  @media (max-width: 1280px) { #panel-perf-dashboard .perf-layout { grid-template-columns: repeat(2, minmax(220px, 1fr)); } }
+  @media (max-width: 700px) { #panel-perf-dashboard .perf-layout { grid-template-columns: 1fr; } }
+  /* New unified three-column layout */
+  #panel-perf-dashboard .perf-columns { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 1280px) { #panel-perf-dashboard .perf-columns { grid-template-columns: 1fr; } }
+  @media (min-width: 1281px) and (max-width: 1500px) { #panel-perf-dashboard .perf-columns { grid-template-columns: 1.1fr 1fr 1fr; } }
+  #panel-perf-dashboard .perf-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
+  #panel-perf-dashboard .perf-card h3 { margin: 0 0 10px 0; font-size: 0.95rem; opacity: 0.85; display: flex; align-items: center; gap: 8px; }
+  #panel-perf-dashboard .perf-card .subtle { opacity: 0.7; font-size: 0.8rem; }
+  #panel-perf-dashboard .metric-row { display: flex; flex-direction: column; gap: 10px; }
+  #panel-perf-dashboard .metric-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  #panel-perf-dashboard .metric-label { opacity: 0.9; }
+  #panel-perf-dashboard .metric-value { font-weight: 600; }
+  #panel-perf-dashboard .meter { width: 100%; height: 6px; border-radius: 4px; background: rgba(255,255,255,0.06); overflow: hidden; margin-top: 6px; }
+  #panel-perf-dashboard .meter > div { height: 100%; width: 0; }
+  #panel-perf-dashboard .chip-list { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  #panel-perf-dashboard .chip { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
+  #panel-perf-dashboard .chip .left { display: flex; align-items: center; gap: 10px; }
+  #panel-perf-dashboard .chip .title { font-weight: 600; opacity: 0.95; display: flex; align-items: center; gap: 8px; }
+  #panel-perf-dashboard .perf-badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); text-transform: capitalize; }
+  #panel-perf-dashboard .perf-badge.status-success { background: rgba(34,197,94,0.15); color: #86efac; }
+  #panel-perf-dashboard .perf-badge.status-warning { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  #panel-perf-dashboard .perf-badge.status-error { background: rgba(239,68,68,0.15); color: #fca5a5; }
+  #panel-perf-dashboard .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  #panel-perf-dashboard .status-success { background: #22c55e; }
+  #panel-perf-dashboard .status-warning { background: #f59e0b; }
+  #panel-perf-dashboard .status-error { background: #ef4444; }
+  #panel-perf-dashboard .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  #panel-perf-dashboard .kpi { position: relative; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.15); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
+  #panel-perf-dashboard .kpi .kpi-title { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  #panel-perf-dashboard .kpi small { opacity: 0.7; }
+  #panel-perf-dashboard .accent-left { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; opacity: 0.8; }
+  #panel-perf-dashboard .accent-blue { background: linear-gradient(180deg, #60a5fa, #1e40af); }
+  #panel-perf-dashboard .accent-green { background: linear-gradient(180deg, #34d399, #047857); }
+  #panel-perf-dashboard .accent-amber { background: linear-gradient(180deg, #fbbf24, #b45309); }
+  #panel-perf-dashboard .accent-cyan { background: linear-gradient(180deg, #22d3ee, #0e7490); }
+  #panel-perf-dashboard .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  </style>
+</head>
+<body>
+  <!-- Top navbar -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <button class="btn btn-icon mobile-only" id="mobile-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+      </button>
+      <span>Posterrama</span>
+  <span class="version" id="app-version" title="Current version" style="margin-left:8px;">—</span>
+  <span class="nav-badge" id="update-available-pill" hidden title="" style="margin-left:6px;">Update available</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-icon" id="notif-btn" title="Notifications">
+        <i class="fas fa-bell"></i>
+        <span class="badge" id="notif-count" hidden>0</span>
+      </button>
+      <div class="dropdown" id="settings-dropdown">
+        <button class="btn btn-icon dropdown-toggle" id="settings-btn" title="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">
+          <i class="fas fa-cog"></i>
+        </button>
+        <div class="dropdown-menu" id="settings-menu" role="menu" aria-hidden="true">
+          <div class="dropdown-heading">Quick links</div>
+          <a class="dropdown-item" href="/" target="_blank" rel="noopener" title="Open Posterrama in a new tab">
+            <i class="fas fa-external-link-alt"></i>
+            <span>View Posterrama</span>
+          </a>
+          <a class="dropdown-item" href="https://github.com/Posterrama/posterrama#readme" target="_blank" rel="noopener">
+            <i class="fas fa-circle-question"></i>
+            <span>Help</span>
+          </a>
+          <a class="dropdown-item" href="/api-docs" target="_blank" rel="noopener">
+            <i class="fas fa-book"></i>
+            <span>API Docs</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-heading">Server</div>
+          <a class="dropdown-item" href="#" id="menu-restart" role="button" title="Restart the Posterrama service">
+            <i class="fas fa-rotate"></i>
+            <span>Restart Posterrama</span>
+          </a>
+        </div>
+      </div>
+      <div class="nav-user">
+        <i class="fas fa-user-circle"></i>
+        <span>Admin</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-nav="dashboard">
+        <i class="fas fa-tachometer-alt"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-nav="display">
+        <i class="fas fa-desktop"></i>
+        <span>Display Settings</span>
+      </a>
+      <div class="nav-group open">
+        <a href="#" class="nav-item nav-toggle">
+          <i class="fas fa-server"></i>
+          <span>Media Sources</span>
+          <i class="fas fa-chevron-down nav-arrow"></i>
+        </a>
+        <div class="nav-submenu">
+          <a href="#" class="nav-subitem"><i class="fas fa-film"></i><span>Plex</span></a>
+          <a href="#" class="nav-subitem"><i class="fas fa-play"></i><span>Jellyfin</span></a>
+          <a href="#" class="nav-subitem"><i class="fas fa-database"></i><span>TMDB</span></a>
+          <a href="#" class="nav-subitem"><i class="fas fa-tv"></i><span>TVDB</span></a>
+        </div>
+      </div>
+      <a href="#" class="nav-item" data-nav="devices">
+        <i class="fas fa-laptop"></i>
+        <span class="nav-text-with-badge">
+          Device Management
+          <span class="nav-badge">BETA</span>
+        </span>
+      </a>
+      <a href="#" class="nav-item" data-nav="security"><i class="fas fa-shield-alt"></i><span>Security</span></a>
+      <a href="#" class="nav-item" data-nav="operations"><i class="fas fa-screwdriver-wrench"></i><span>Operations</span></a>
+    </nav>
+  <div class="sidebar-footer"></div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebar-overlay" hidden></div>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <header class="page-header">
+      <div class="page-title">
+        <h1><i class="fas fa-gauge-high"></i> Dashboard</h1>
+        <p>Overview of devices, media and system health</p>
+      </div>
+      
+    </header>
+
+    <!-- KPI cards -->
+    <section class="card-grid" id="kpi-cards">
+      <div class="status-card status-success" title="Devices that are Online or Live">
+        <div class="card-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="card-content">
+          <h3>Active Devices</h3>
+          <span class="metric" id="metric-active-devices">—</span>
+          <span class="trend" id="metric-active-trend"></span>
+        </div>
+      </div>
+      <div class="status-card status-info" title="Total media items across connected sources">
+        <div class="card-icon"><i class="fas fa-images"></i></div>
+        <div class="card-content">
+          <h3>Media Items</h3>
+          <span class="metric" id="metric-media-items">—</span>
+          <span class="trend" id="metric-media-sub">from sources</span>
+        </div>
+      </div>
+      <div class="status-card status-warning" title="Open warnings and recent errors">
+        <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="card-content">
+          <h3>Warnings</h3>
+          <span class="metric" id="metric-warnings">—</span>
+          <span class="trend" id="metric-warn-sub"></span>
+        </div>
+      </div>
+      <div class="status-card status-error" title="Devices currently Offline">
+        <div class="card-icon"><i class="fas fa-times-circle"></i></div>
+        <div class="card-content">
+          <h3>Offline Devices</h3>
+          <span class="metric" id="metric-offline-devices">—</span>
+          <span class="trend negative" id="metric-offline-sub">needs attention</span>
+        </div>
+      </div>
+    </section>
+
+  <section class="content-grid" style="margin-top: 16px;">
+      <!-- Unified System Performance Dashboard -->
+      <section class="panel" id="panel-perf-dashboard">
+        <header class="panel-header">
+          <h2><i class="fas fa-gauge-high"></i> System Performance</h2>
+          <div class="panel-actions">
+            <button class="btn btn-icon btn-sm" id="btn-perf-refresh" title="Refresh performance"><i class="fas fa-rotate"></i></button>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="perf-columns">
+            <!-- Column 1: Status + Resources unified -->
+            <section class="perf-card" aria-label="System Status and Resources">
+              <h3><i class="fas fa-heartbeat"></i> Status</h3>
+              <div class="chip-list">
+                <div class="chip" id="chip-app">
+                  <div class="left">
+                    <span class="status-dot status-success" id="chip-app-dot"></span>
+                    <span class="title"><i class="fas fa-rocket"></i> App</span>
+                  </div>
+                  <span class="perf-badge" id="perf-app-status">—</span>
+                </div>
+                <div class="chip" id="chip-db">
+                  <div class="left">
+                    <span class="status-dot status-warning" id="chip-db-dot"></span>
+                    <span class="title"><i class="fas fa-database"></i> Database</span>
+                  </div>
+                  <span class="perf-badge" id="perf-db-status">—</span>
+                </div>
+                <div class="chip" id="chip-cache">
+                  <div class="left">
+                    <span class="status-dot status-warning" id="chip-cache-dot"></span>
+                    <span class="title"><i class="fas fa-bolt"></i> Cache</span>
+                  </div>
+                  <span class="perf-badge" id="perf-cache-status">—</span>
+                </div>
+              </div>
+              <div style="height:8px;"></div>
+              <h3><i class="fas fa-microchip"></i> Resources</h3>
+              <div class="metric-row">
+                <div>
+                  <div class="metric-line"><span class="metric-label">CPU</span><span class="metric-value" id="perf-cpu">—</span></div>
+                  <div class="meter"><div id="meter-cpu"></div></div>
+                </div>
+                <div>
+                  <div class="metric-line"><span class="metric-label" title="System memory (OS) — same as legacy Admin > Management > Performance Monitor">System Memory</span><span class="metric-value" id="perf-mem">—</span></div>
+                  <div class="meter"><div id="meter-mem"></div></div>
+                </div>
+                <div class="metric-line"><span class="metric-label">Disk</span><span class="metric-value" id="perf-disk">—</span></div>
+                <div class="metric-line"><span class="metric-label">Uptime</span><span class="metric-value" id="perf-uptime">—</span></div>
+              </div>
+            </section>
+
+            <!-- Column 2: Traffic & Reliability -->
+            <section class="perf-card" aria-label="Traffic and Reliability">
+              <h3><i class="fas fa-wave-square"></i> Traffic & Reliability</h3>
+              <div class="kpi-grid">
+                <div class="kpi" title="Requests handled by Posterrama per minute (server-wide, last 60s)">
+                  <span class="accent-left accent-blue"></span>
+                  <div class="kpi-title"><span>Requests</span><span id="perf-rps">—</span></div>
+                  <small>per minute</small>
+                </div>
+                <div class="kpi" title="Average HTTP response time of Posterrama API (last hour)">
+                  <span class="accent-left accent-cyan"></span>
+                  <div class="kpi-title"><span>Resp. Time</span><span id="perf-rt">—</span></div>
+                  <small>average</small>
+                </div>
+                <div class="kpi" title="Percentage van requests met HTTP status >=400 (laatste uur)">
+                  <span class="accent-left accent-amber"></span>
+                  <div class="kpi-title"><span>Error Rate</span><span id="perf-error-rate">—</span></div>
+                  <small>last hour</small>
+                </div>
+                <div class="kpi" title="Cache hit rate (gemiddeld) van Posterrama responses)">
+                  <span class="accent-left accent-green"></span>
+                  <div class="kpi-title"><span>Cache Hit</span><span id="perf-cache-hit">—</span></div>
+                  <small>overall</small>
+                </div>
+              </div>
+            </section>
+
+            <!-- Column 3: Cache Management -->
+            <section class="perf-card" aria-label="Cache Management">
+              <h3><i class="fas fa-database"></i> Cache Management</h3>
+              <div class="metric-row" style="margin-bottom:8px;">
+                <div>
+                  <div class="metric-line"><span class="metric-label"><i class="fas fa-hdd"></i> Cache Storage</span></div>
+                  <div id="cache-disk-usage" class="subtle" style="margin-top:6px;">Loading…</div>
+                  <div class="meter" title="Image cache usage against max configured size" style="margin-top:8px;">
+                    <div id="meter-image-cache"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="metric-line"><span class="metric-label"><i class="fas fa-memory"></i> Memory Cache</span></div>
+                  <div id="cache-item-count" class="subtle" style="margin-top:6px;">Loading…</div>
+                </div>
+              </div>
+              <div class="actions">
+                <button type="button" id="cleanup-cache-button" class="btn btn-secondary btn-sm" title="Run cache cleanup">
+                  <i class="fas fa-compress-alt"></i><span>Run Cleanup</span>
+                </button>
+                <button type="button" id="clear-cache-button" class="btn btn-primary btn-sm" title="Clear image cache from disk">
+                  <i class="fas fa-broom"></i><span>Clear Cache</span>
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/notify.js"></script>
+  <script src="/admin2.js"></script>
+</body>
+</html>

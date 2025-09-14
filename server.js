@@ -9307,11 +9307,12 @@ app.get(
                 cacheStatus = 'error';
             }
 
-            // Get memory info
-            const totalMem = os.totalmem();
-            const freeMem = os.freemem();
-            const usedMem = totalMem - freeMem;
-            const memUsage = Math.round((usedMem / totalMem) * 100);
+            // Get memory info (system-wide)
+            const totalMem = os.totalmem(); // bytes
+            const freeMem = os.freemem(); // bytes
+            const usedMem = totalMem - freeMem; // bytes
+            const memUsage = Math.round((usedMem / totalMem) * 100); // percent integer
+            const toGB = b => b / 1024 ** 3;
 
             // Get disk space
             let diskUsage = { available: 'Unknown', status: 'info' };
@@ -9334,7 +9335,14 @@ app.get(
                 cache: { status: cacheStatus },
                 disk: diskUsage,
                 memory: {
-                    usage: `${memUsage}%`,
+                    usage: `${memUsage}%`, // deprecated: prefer percent
+                    percent: memUsage,
+                    totalBytes: totalMem,
+                    usedBytes: usedMem,
+                    freeBytes: freeMem,
+                    totalGB: Number(toGB(totalMem).toFixed(1)),
+                    usedGB: Number(toGB(usedMem).toFixed(1)),
+                    freeGB: Number(toGB(freeMem).toFixed(1)),
                     status: memUsage > 90 ? 'error' : memUsage > 70 ? 'warning' : 'success',
                 },
                 uptime: uptimeString,
