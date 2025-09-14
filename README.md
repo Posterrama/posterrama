@@ -154,27 +154,30 @@ Tooltips explain each control and status for quick onboarding. Overrides merge o
 
 ## 🔊 Coming Soon — turn it up to eleven
 
-A quick peek at what’s next. We’re actively building these high‑impact upgrades to make Posterrama even more powerful and fun.
+A quick peek at what's next. We're actively building these high‑impact upgrades to make Posterrama even more powerful and fun.
 
-### Media Sources
+**🎬 Cinema & Visual Experience**
+
+- [ ] Cinema mode: major expansion planned with many new features
+- [ ] Advanced transition effects
+- [ ] Motion posters with AI
+- [ ] Now playing mode (cinema)
+- [ ] Trailer support
+
+**🎨 Customization & Design**
+
+- [ ] Font/size/color customization
+
+**📚 Media Sources & Libraries**
 
 - [ ] Local photo directory support
 - [ ] Emby integration
 - [ ] Additional poster services
+- [ ] Music library support
 - [ ] Radarr/Sonarr/Lidarr integration
 - [ ] Steam and ROMM gaming libraries and collections
 
-### UI/UX Improvements
-
-- [ ] Cinema mode: major expansion planned with many new features
-- [ ] Advanced transition effects
-- [ ] Font/size/color customization
-- [ ] Trailer support
-- [ ] Motion posters with AI
-- [ ] Now playing mode (cinema)
-- [ ] Music library support
-
-And that’s just the beginning — much more is on the way.
+And that's just the beginning — much more is on the way.
 
 ## 🚀 Get Started Instantly
 

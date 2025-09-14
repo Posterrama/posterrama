@@ -408,47 +408,40 @@
     <div class="pr-topbar">
       <div>
         <h2 id="pr-welcome-title">Set up this screen</h2>
-    <p id="pr-sub">Enter a pairing code, scan the Admin QR, or register this device as new.</p>
+    <p id="pr-sub">Register this device for management, or skip to use without admin control.</p>
       </div>
       <div class="pr-count"><span id="pr-countdown">02:00</span></div>
     </div>
     <div class="pr-field">
-      <label for="pr-pair-code">Pair code</label>
+      <label for="pr-pair-code">Pairing code (from admin)</label>
       <input id="pr-pair-code" placeholder="e.g. 123456" inputmode="numeric" autocomplete="one-time-code" />
     </div>
-    <div class="pr-field">
-      <label for="pr-pair-token">Token (if provided)</label>
-      <input id="pr-pair-token" placeholder="Optional" />
-    </div>
     <div class="pr-actions">
-      <button class="pr-btn" id="pr-do-pair">Pair</button>
-      <button class="pr-btn sec" id="pr-scan">Scan QR</button>
+      <button class="pr-btn" id="pr-do-pair">Pair with admin</button>
       <button class="pr-btn sec" id="pr-register">Register as new</button>
-      <button class="pr-btn warn" id="pr-close">Close</button>
+    </div>
+    <div class="pr-field" style="margin-top: 1rem;">
+      <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #aab3c2;">
+        <input type="checkbox" id="pr-skip-setup" style="margin: 0;">
+        Skip device management (use without admin control)
+      </label>
+    </div>
+    <div class="pr-actions" style="margin-top: 0.5rem;">
+      <button class="pr-btn warn" id="pr-close">Skip & Continue</button>
     </div>
     <div class="pr-msg" id="pr-msg"></div>
-    <div class="pr-qr" id="pr-qr" hidden>
-      <video id="pr-video" class="pr-video" autoplay playsinline></video>
-      <div class="pr-note">Point the camera at a pairing QR. Click Scan again to stop.</div>
-    </div>
   </div>
   <div class="pr-qr">
-    <img id="pr-qr-img" alt="Admin link QR"/>
-    <div class="qr-caption">Scan to open Admin → Devices</div>
+    <img id="pr-qr-img" alt="Auto-registration QR code"/>
+    <div class="qr-caption">Scan to auto-register in Admin</div>
   </div>
 </div>`;
             document.body.appendChild(overlay);
 
             const msg = $('#pr-msg');
             const codeEl = $('#pr-pair-code');
-            const tokenEl = $('#pr-pair-token');
-            const video = $('#pr-video');
-            const qrWrap = $('#pr-qr');
-            const qrImg = $('#pr-qr-img');
+            const skipCheckbox = $('#pr-skip-setup');
             const countdownEl = $('#pr-countdown');
-            let stream = null;
-            let scanning = false;
-            let detector = null;
             let countTimer = null;
             let remaining = 120; // seconds
 
@@ -467,29 +460,22 @@
                     doClose();
                 }
             }
-            async function stopScan() {
-                scanning = false;
-                try {
-                    if (stream) {
-                        for (const tr of stream.getTracks()) tr.stop();
-                    }
-                    stream = null;
-                } catch (_) {
-                    /* noop: ignore stop stream errors */
-                }
-                if (qrWrap) qrWrap.hidden = true;
-            }
             function doClose() {
-                try {
-                    stopScan();
-                } catch (_) {
-                    /* noop: ignore stopScan */
-                }
                 try {
                     clearInterval(countTimer);
                 } catch (_) {
                     /* noop: ignore clearInterval */
                 }
+
+                // Check if user wants to skip setup permanently
+                if (skipCheckbox && skipCheckbox.checked) {
+                    try {
+                        localStorage.setItem('posterrama-skip-device-setup', 'true');
+                    } catch (_) {
+                        /* noop: localStorage failed */
+                    }
+                }
+
                 try {
                     document.body.removeChild(overlay);
                 } catch (_) {
@@ -497,66 +483,11 @@
                 }
                 resolve(true);
             }
-            async function startScan() {
-                if (!('BarcodeDetector' in window)) {
-                    setMsg(
-                        'QR scanning is not supported by this browser. Enter the code instead.',
-                        false
-                    );
-                    return;
-                }
-                try {
-                    detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-                } catch (_) {
-                    setMsg('QR scanning unavailable.', false);
-                    return;
-                }
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: 'environment' },
-                    });
-                    video.srcObject = stream;
-                    qrWrap.hidden = false;
-                    scanning = true;
-                    const tick = async () => {
-                        if (!scanning) return;
-                        try {
-                            const codes = await detector.detect(video);
-                            if (codes && codes.length) {
-                                const raw = codes[0].rawValue || '';
-                                // Allow full claim URL or just code
-                                try {
-                                    const u = new URL(raw);
-                                    const pc =
-                                        u.searchParams.get('pair') ||
-                                        u.searchParams.get('pairCode');
-                                    const pt =
-                                        u.searchParams.get('pairToken') ||
-                                        u.searchParams.get('token');
-                                    if (pc) codeEl.value = pc;
-                                    if (pt) tokenEl.value = pt;
-                                } catch (_) {
-                                    codeEl.value = raw.replace(/\D/g, '').slice(0, 12);
-                                }
-                                setMsg('QR read. Click Pair.', true);
-                                await stopScan();
-                                return;
-                            }
-                        } catch (_) {
-                            /* noop: detector.detect failed */
-                        }
-                        requestAnimationFrame(tick);
-                    };
-                    requestAnimationFrame(tick);
-                } catch (e) {
-                    setMsg('No camera access.', false);
-                }
-            }
+
             async function tryPair() {
                 const code = (codeEl.value || '').trim();
-                const token = (tokenEl.value || '').trim();
                 if (!code) {
-                    setMsg('Please enter a valid code.', false);
+                    setMsg('Please enter a valid pairing code.', false);
                     return;
                 }
                 setMsg('Pairing...', true);
@@ -564,7 +495,7 @@
                     const res = await fetch('/api/devices/pair', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ code, token: token || undefined }),
+                        body: JSON.stringify({ code }),
                     });
                     if (!res.ok) {
                         setMsg('Code invalid or expired.', false);
@@ -614,22 +545,21 @@
                     setMsg('Registration failed.', false);
                 }
             });
-            $('#pr-scan').addEventListener('click', async () => {
-                if (scanning) return void stopScan();
-                await startScan();
-            });
             $('#pr-close').addEventListener('click', doClose);
-            // Inline QR: link to Admin → Devices with hints for this device
+
+            // Auto-registration QR: link to Admin with device info for auto-registration
             try {
                 const iid = state.installId || getInstallId();
                 const hw = state.hardwareId || getHardwareId();
-                const adminLink = `${window.location.origin}/admin#devices?setup=1${iid ? `&iid=${encodeURIComponent(iid)}` : ''}${hw ? `&hw=${encodeURIComponent(hw)}` : ''}`;
+                const autoRegisterUrl = `${window.location.origin}/admin#devices?auto-register=1${iid ? `&iid=${encodeURIComponent(iid)}` : ''}${hw ? `&hw=${encodeURIComponent(hw)}` : ''}`;
+                const qrImg = $('#pr-qr-img');
                 if (qrImg) {
-                    qrImg.src = `/api/qr?format=svg&text=${encodeURIComponent(adminLink)}`;
+                    qrImg.src = `/api/qr?format=svg&text=${encodeURIComponent(autoRegisterUrl)}`;
                 }
             } catch (_) {
-                /* noop: building admin link failed */
+                /* noop: building auto-register link failed */
             }
+
             // Start countdown
             try {
                 if (countdownEl) countdownEl.textContent = '02:00';
@@ -637,9 +567,77 @@
             } catch (_) {
                 /* noop: countdown init failed */
             }
-            // Cleanup on unload
-            window.addEventListener('beforeunload', stopScan);
         });
+    }
+
+    // Add a subtle setup button to the runtime interface for skipped devices
+    function addSetupButton() {
+        // Only add if not already present
+        if (document.getElementById('pr-setup-btn')) return;
+
+        const btn = document.createElement('button');
+        btn.id = 'pr-setup-btn';
+        btn.innerHTML = '⚙️';
+        btn.title = 'Set up device management';
+        btn.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+
+        btn.addEventListener('mouseenter', () => {
+            btn.style.background = 'rgba(0,0,0,0.7)';
+            btn.style.transform = 'scale(1.1)';
+        });
+
+        btn.addEventListener('mouseleave', () => {
+            btn.style.background = 'rgba(0,0,0,0.5)';
+            btn.style.transform = 'scale(1)';
+        });
+
+        btn.addEventListener('click', async () => {
+            // Remove the skip flag and show setup
+            try {
+                localStorage.removeItem('posterrama-skip-device-setup');
+            } catch (_) {
+                /* ignore localStorage errors */
+            }
+
+            // Remove the button
+            btn.remove();
+
+            // Show setup overlay
+            await showWelcomeOverlay();
+
+            // Re-init device management if successful
+            const next = await loadIdentityAsync();
+            if (next.id && next.secret) {
+                state.deviceId = next.id;
+                state.deviceSecret = next.secret;
+                state.enabled = true;
+                startHeartbeat();
+                sendHeartbeat();
+            } else {
+                // If setup was skipped again, re-add the button
+                addSetupButton();
+            }
+        });
+
+        document.body.appendChild(btn);
     }
 
     // --- WebSocket live control ---
@@ -1271,18 +1269,34 @@
             // ignore store.setItem errors
         }
 
-        // If no identity yet, present welcome overlay to pair or register
+        // If no identity yet, check if user wants to skip setup
         if (!hasIdentity) {
-            await showWelcomeOverlay();
-            // After overlay resolves, re-load identity and enable
-            const next = await loadIdentityAsync();
-            if (!next.id || !next.secret) {
-                state.enabled = false;
-                return; // user closed or failed; keep idle
+            // Check if user previously chose to skip device setup
+            let skipSetup = false;
+            try {
+                skipSetup = localStorage.getItem('posterrama-skip-device-setup') === 'true';
+            } catch (_) {
+                /* ignore localStorage errors */
             }
-            state.deviceId = next.id;
-            state.deviceSecret = next.secret;
-            state.enabled = true;
+
+            if (!skipSetup) {
+                await showWelcomeOverlay();
+                // After overlay resolves, re-load identity and enable
+                const next = await loadIdentityAsync();
+                if (!next.id || !next.secret) {
+                    state.enabled = false;
+                    return; // user closed or failed; keep idle
+                }
+                state.deviceId = next.id;
+                state.deviceSecret = next.secret;
+                state.enabled = true;
+            } else {
+                // User chose to skip setup, disable device management
+                state.enabled = false;
+                // Add subtle setup button to runtime interface
+                addSetupButton();
+                return;
+            }
         }
 
         // Start interval and also send one immediate heartbeat for visibility in Network tab
@@ -1315,6 +1329,19 @@
                 });
             } catch (_) {
                 // ignore resetIdentity errors
+            }
+        },
+        showSetup: () => {
+            try {
+                // Remove skip flag if set
+                localStorage.removeItem('posterrama-skip-device-setup');
+                // Remove setup button if present
+                const btn = document.getElementById('pr-setup-btn');
+                if (btn) btn.remove();
+                // Show setup overlay
+                return showWelcomeOverlay();
+            } catch (_) {
+                // ignore showSetup errors
             }
         },
         debugHandle: async cmd => {

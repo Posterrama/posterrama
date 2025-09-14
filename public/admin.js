@@ -11818,6 +11818,76 @@ function initDevicesPanel() {
                 }
             };
 
+            // Handle auto-registration from QR code scan
+            (() => {
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const autoRegister = urlParams.get('auto-register');
+                    const deviceId = urlParams.get('device-id');
+                    const deviceName = urlParams.get('device-name');
+
+                    if (autoRegister === 'true' && deviceId) {
+                        // Clear the URL parameters to avoid re-processing on refresh
+                        const cleanUrl = new URL(window.location.href);
+                        cleanUrl.searchParams.delete('auto-register');
+                        cleanUrl.searchParams.delete('device-id');
+                        cleanUrl.searchParams.delete('device-name');
+                        window.history.replaceState({}, document.title, cleanUrl.toString());
+
+                        // Perform auto-registration
+                        (async () => {
+                            try {
+                                if (status) status.textContent = 'Auto-registering device...';
+
+                                const registrationData = {
+                                    id: deviceId,
+                                    name: deviceName || deviceId,
+                                };
+
+                                const res = await authenticatedFetch(
+                                    apiUrl('/api/devices/register'),
+                                    {
+                                        method: 'POST',
+                                        body: JSON.stringify(registrationData),
+                                        noRedirectOn401: true,
+                                    }
+                                );
+
+                                if (res.ok) {
+                                    if (status)
+                                        status.textContent = `Device "${deviceName || deviceId}" registered successfully.`;
+                                    showToast(
+                                        `Device "${deviceName || deviceId}" registered successfully`,
+                                        'success'
+                                    );
+                                    // Refresh the devices list to show the new device
+                                    setTimeout(() => {
+                                        const list = fetchDevices().then(devices => {
+                                            if (tbodyHasRows()) {
+                                                reconcileDevicesTable(devices);
+                                            } else {
+                                                renderDevicesTable(devices);
+                                            }
+                                        });
+                                    }, 1000);
+                                } else {
+                                    const errorText = await res.text();
+                                    if (status)
+                                        status.textContent = `Failed to register device: ${errorText}`;
+                                    showToast(`Failed to register device: ${errorText}`, 'error');
+                                }
+                            } catch (error) {
+                                console.error('Auto-registration error:', error);
+                                if (status) status.textContent = 'Failed to auto-register device.';
+                                showToast('Failed to auto-register device', 'error');
+                            }
+                        })();
+                    }
+                } catch (error) {
+                    console.error('Error processing auto-registration:', error);
+                }
+            })();
+
             const openMergeModal = ids => {
                 if (!ids || ids.length < 2) return;
                 const existing = document.getElementById('merge-devices-modal');
