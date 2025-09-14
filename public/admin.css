@@ -4752,6 +4752,8 @@ fieldset:focus-within {
     background: rgba(255, 165, 0, 0.1); /* amber */
     border-color: rgba(255, 165, 0, 0.35);
     color: rgba(255, 193, 7, 0.95);
+    cursor: help;
+    text-decoration: underline dotted rgba(255, 193, 7, 0.6);
 }
 #devices-section td.cell-status .status-badges .badge.badge-groups::before {
     content: '\f0c0'; /* fa-users */

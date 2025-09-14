@@ -10313,9 +10313,24 @@ function renderDevicesTable(devices) {
         return false;
     };
 
-    // Precompute duplicate candidates by hardwareId and installId
+    // Precompute duplicate candidates by hardwareId, installId, and UA+screen
     const hwMap = Object.create(null);
     const iidMap = Object.create(null);
+    const uaScMap = Object.create(null);
+    const uaScKey = d => {
+        try {
+            const ci = d && d.clientInfo ? d.clientInfo : {};
+            const ua = (ci.userAgent || ci.ua || '').trim();
+            const sc = ci.screen || {};
+            const w = Number(sc.w || sc.width || 0) || 0;
+            const h = Number(sc.h || sc.height || 0) || 0;
+            const dpr = Number(sc.dpr || sc.scale || 1) || 1;
+            if (!ua || !w || !h) return '';
+            return `${ua}|${w}x${h}@${dpr}x`;
+        } catch (_) {
+            return '';
+        }
+    };
     const filtered = (devices || []).filter(matches);
     try {
         filtered.forEach(d => {
@@ -10323,6 +10338,8 @@ function renderDevicesTable(devices) {
             if (hw) (hwMap[hw] = hwMap[hw] || []).push(d);
             const iid = d && d.installId;
             if (iid) (iidMap[iid] = iidMap[iid] || []).push(d);
+            const key = uaScKey(d);
+            if (key) (uaScMap[key] = uaScMap[key] || []).push(d);
         });
     } catch (_) {}
 
@@ -10557,25 +10574,46 @@ function renderDevicesTable(devices) {
         let __dupeIdsCache = [];
         const dupesBadge = (() => {
             try {
-                const set = new Set();
+                const reasonsById = Object.create(null);
+                const add = (x, reason) => {
+                    if (!x || x.id === d.id) return;
+                    const entry = reasonsById[x.id] || { dev: x, reasons: new Set() };
+                    entry.reasons.add(reason);
+                    reasonsById[x.id] = entry;
+                };
+                // HardwareId reason
                 if (d.hardwareId && hwMap[d.hardwareId] && hwMap[d.hardwareId].length > 1) {
-                    for (const x of hwMap[d.hardwareId]) if (x && x.id !== d.id) set.add(x);
+                    for (const x of hwMap[d.hardwareId]) add(x, 'hardwareId');
                 }
+                // InstallId reason
                 if (d.installId && iidMap[d.installId] && iidMap[d.installId].length > 1) {
-                    for (const x of iidMap[d.installId]) if (x && x.id !== d.id) set.add(x);
+                    for (const x of iidMap[d.installId]) add(x, 'installId');
                 }
-                const list = Array.from(set);
+                // UA+screen reason
+                const key = uaScKey(d);
+                if (key && uaScMap[key] && uaScMap[key].length > 1) {
+                    for (const x of uaScMap[key]) add(x, 'UA+screen');
+                }
+                // Build list from reasons map
+                const list = Object.values(reasonsById).map(v => ({
+                    dev: v.dev,
+                    reasons: Array.from(v.reasons),
+                }));
                 if (!list.length) return '';
-                const listIds = list.map(x => x && x.id).filter(Boolean);
+                const listIds = list.map(x => x.dev && x.dev.id).filter(Boolean);
                 __dupeIdsCache = listIds.slice();
                 const tipList = list
                     .map(x => {
-                        const nm = (x.name && String(x.name).slice(0, 40)) || '(unnamed)';
-                        const sid = (x.id || '').slice(0, 8);
-                        return `${nm} — ${sid}`;
+                        const nm =
+                            (x.dev && x.dev.name && String(x.dev.name).slice(0, 40)) ||
+                            (x.dev && x.dev.id ? x.dev.id.slice(0, 8) : '(unnamed)');
+                        const sid = (x.dev && x.dev.id ? x.dev.id : '').slice(0, 8);
+                        const rsn =
+                            x.reasons && x.reasons.length ? ` [${x.reasons.join(', ')}]` : '';
+                        return `${nm} — ${sid}${rsn}`;
                     })
                     .join('\n');
-                const title = `Likely duplicates on same machine or installId:\n${tipList}`;
+                const title = `Likely duplicates (reasons per item):\n${tipList}`;
                 const safeTitle = title.replace(/"/g, '&quot;');
                 const safeIds = listIds.join(',').replace(/"/g, '&quot;');
                 return `<span class="badge badge-dup" title="${safeTitle}" data-dupes="${safeIds}" tabindex="0" role="button">Dupes: ${list.length}</span>`;
@@ -10611,11 +10649,11 @@ function renderDevicesTable(devices) {
     })()}</td>`;
         // Highlight rows that have duplicates
         try {
-            if (
-                d &&
-                ((d.hardwareId && hwMap[d.hardwareId]?.length > 1) ||
-                    (d.installId && iidMap[d.installId]?.length > 1))
-            ) {
+            const hasHw = d && d.hardwareId && hwMap[d.hardwareId]?.length > 1;
+            const hasIid = d && d.installId && iidMap[d.installId]?.length > 1;
+            const key = uaScKey(d);
+            const hasUaSc = key && uaScMap[key] && uaScMap[key].length > 1;
+            if (hasHw || hasIid || hasUaSc) {
                 tr.classList.add('row-dup-suspect');
             }
         } catch (_) {}
