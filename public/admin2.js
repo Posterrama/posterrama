@@ -123,7 +123,7 @@
             const isLive = d => {
                 try {
                     const raw = String(d.status || '').toLowerCase();
-                    if (d?.currentState?.poweredOff) return false;
+                    // Consider device active if it's live (WS) or reported online by server
                     if (d?.wsConnected) return true;
                     return raw === 'online' || raw === 'live';
                 } catch (_) {
@@ -2292,6 +2292,23 @@
                 groups: [],
                 syncEnabled: undefined, // loaded from /get-config
             };
+            // Persist UI pin toggles so they survive reloads; merge with server state
+            const PIN_STORE_KEY = 'admin2:pinned-devices';
+            const loadPinnedMap = () => {
+                try {
+                    const raw = localStorage.getItem(PIN_STORE_KEY);
+                    const obj = raw ? JSON.parse(raw) : {};
+                    return obj && typeof obj === 'object' ? obj : {};
+                } catch (_) {
+                    return {};
+                }
+            };
+            let pinnedUI = loadPinnedMap();
+            const savePinnedMap = () => {
+                try {
+                    localStorage.setItem(PIN_STORE_KEY, JSON.stringify(pinnedUI));
+                } catch (_) {}
+            };
             // Expose minimal debug hooks
             try {
                 window.admin2 = window.admin2 || {};
@@ -2313,9 +2330,13 @@
 
             function getStatusClass(d) {
                 const st = String(d?.status || '').toLowerCase();
-                if (d?.currentState?.poweredOff) return 'offline';
+                // Status precedence:
+                // 1) Live when a WebSocket is connected
+                // 2) Otherwise reflect server status string (online/unknown)
+                // Note: poweredOff is a separate state and must NOT force "offline"
                 if (d?.wsConnected) return 'live';
-                if (st === 'online' || st === 'live') return st === 'live' ? 'live' : 'online';
+                if (st === 'live') return 'live';
+                if (st === 'online') return 'online';
                 if (st === 'unknown') return 'unknown';
                 return 'offline';
             }
@@ -2350,6 +2371,16 @@
                 if (/Windows/i.test(ua)) return 'Windows';
                 if (/Mac OS|Macintosh/i.test(ua)) return 'macOS';
                 return 'Browser';
+            }
+            function isDevicePinned(d) {
+                if (!d) return false;
+                // Display must ALWAYS reflect what the client reports via server state.
+                const cs = d.currentState || {};
+                const serverPinned =
+                    cs.pinned === true ||
+                    cs.pin === true ||
+                    (cs.pinMediaId != null && cs.pinMediaId !== '');
+                return !!serverPinned;
             }
             function iconForType(type) {
                 const t = String(type || '').toLowerCase();
@@ -2547,10 +2578,18 @@
                     : [];
                 // Playback state helpers for toolbar play/pause button
                 const pausedFlag = d?.currentState?.paused;
-                const ppCls =
-                    pausedFlag === true ? ' is-paused' : pausedFlag === false ? ' is-playing' : '';
-                const ppIcon =
-                    pausedFlag === false ? 'fa-pause' : pausedFlag === true ? 'fa-play' : 'fa-play';
+                const ppCls = pausedFlag === true ? ' is-paused' : ' is-playing';
+                // Icon represents STATE (not action):
+                // - playing => play icon (gray)
+                // - paused  => pause icon (yellow)
+                const ppIcon = pausedFlag === true ? 'fa-pause' : /* paused */ 'fa-play';
+                const ppTitle = pausedFlag === true ? 'Resume' : 'Pause';
+                // Pin button initial state
+                const initiallyPinned = isDevicePinned(d);
+                const pinCls = initiallyPinned ? ' is-pinned' : '';
+                const pinIcon = initiallyPinned ? 'fa-map-pin' : 'fa-thumbtack';
+                const pinTitle = initiallyPinned ? 'Unpin poster' : 'Pin current poster';
+                const pinPressed = initiallyPinned ? 'true' : 'false';
                 return `
                                                                 <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
                                                                         <div class="device-card-header">
@@ -2581,8 +2620,8 @@
                                                 <button class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control"><i class="fas fa-gamepad"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command"><i class="fas fa-terminal"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-playpause${ppCls}" title="Play/Pause"><i class="fas ${ppIcon}"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-pin card-secondary" title="Pin current poster"><i class="fas fa-map-pin"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-playpause${ppCls}" title="${ppTitle}"><i class="fas ${ppIcon}"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-pin card-secondary${pinCls}" title="${pinTitle}" aria-pressed="${pinPressed}"><i class="fas ${pinIcon}"></i></button>
                                                 <div class="dropdown card-more" style="position:relative;display:none;">
                                                         <button class="btn btn-icon btn-sm" title="More"><i class="fas fa-ellipsis"></i></button>
                                                         <div class="dropdown-menu"></div>
@@ -2799,8 +2838,12 @@
                         const wasPaused = btn.classList.contains('is-paused');
                         btn.classList.toggle('is-paused', !wasPaused);
                         btn.classList.toggle('is-playing', wasPaused);
-                        if (icon) icon.className = `fas ${wasPaused ? 'fa-pause' : 'fa-play'}`;
-                        btn.title = wasPaused ? 'Pause' : 'Play';
+                        // New icon semantics: represent STATE
+                        // nowPaused => show pause icon; nowPlaying => show play icon
+                        const nowPaused = !wasPaused;
+                        if (icon) icon.className = `fas ${nowPaused ? 'fa-pause' : 'fa-play'}`;
+                        // Title can reflect next action when clicked
+                        btn.title = nowPaused ? 'Resume' : 'Pause';
                     }
                     try {
                         await sendCommand(id, 'playback.toggle');
@@ -2818,22 +2861,63 @@
                             const revertToPaused = !nowPaused; // revert to previous
                             btn.classList.toggle('is-paused', revertToPaused);
                             btn.classList.toggle('is-playing', !revertToPaused);
+                            // Re-apply icon reflecting the (reverted) STATE
                             if (icon)
-                                icon.className = `fas ${revertToPaused ? 'fa-play' : 'fa-pause'}`;
-                            btn.title = revertToPaused ? 'Play' : 'Pause';
+                                icon.className = `fas ${revertToPaused ? 'fa-pause' : 'fa-play'}`;
+                            // Title reflects the next action
+                            btn.title = revertToPaused ? 'Resume' : 'Pause';
                         }
                     }
                 });
                 card.querySelector('.btn-pin')?.addEventListener('click', async () => {
                     const id = card.getAttribute('data-id');
                     const btn = card.querySelector('.btn-pin');
-                    // optimistic UI: toggle pinned style immediately
-                    if (btn) btn.classList.toggle('is-pinned');
+                    const icon = btn?.querySelector('i');
+                    const wasPinned = !!btn?.classList.contains('is-pinned');
+                    // optimistic UI: toggle pinned state and aria-pressed immediately
+                    if (btn) {
+                        btn.classList.toggle('is-pinned', !wasPinned);
+                        const pressed = !wasPinned;
+                        btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+                        if (icon) {
+                            icon.className = pressed ? 'fas fa-map-pin' : 'fas fa-thumbtack';
+                        }
+                        btn.title = pressed ? 'Unpin poster' : 'Pin current poster';
+                    }
                     try {
-                        await sendCommand(id, 'playback.pinPoster');
+                        const cmd = wasPinned ? 'playback.resume' : 'playback.pinPoster';
+                        await sendCommand(id, cmd);
+                        // Update local maps and in-memory state
+                        if (wasPinned) {
+                            if (pinnedUI && pinnedUI[id]) delete pinnedUI[id];
+                            savePinnedMap();
+                            const dev = state.all.find(d => d.id === id);
+                            if (dev) {
+                                dev.currentState = dev.currentState || {};
+                                dev.currentState.pinned = false;
+                                dev.currentState.pinMediaId = undefined;
+                            }
+                        } else {
+                            pinnedUI = pinnedUI || {};
+                            pinnedUI[id] = true;
+                            savePinnedMap();
+                            const dev = state.all.find(d => d.id === id);
+                            if (dev) {
+                                dev.currentState = dev.currentState || {};
+                                dev.currentState.pinned = true;
+                            }
+                        }
                     } catch (_) {
                         // revert on failure
-                        if (btn) btn.classList.toggle('is-pinned');
+                        if (btn) {
+                            btn.classList.toggle('is-pinned', wasPinned);
+                            const pressed = wasPinned;
+                            btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+                            if (icon) {
+                                icon.className = pressed ? 'fas fa-map-pin' : 'fas fa-thumbtack';
+                            }
+                            btn.title = pressed ? 'Unpin poster' : 'Pin current poster';
+                        }
                     }
                 });
                 // Support both inline header pencil and legacy rename button
@@ -3906,6 +3990,80 @@
                     state.syncEnabled = undefined;
                 }
             })();
+
+            // Live reconcile: periodically refresh toolbar states from device-reported truth
+            let devicesLiveTimer = null;
+            const DEVICES_LIVE_INTERVAL = 3000; // 3s is snappy without being too chatty
+            function isDevicesSectionVisible() {
+                try {
+                    const cs = getComputedStyle(section);
+                    return cs.display !== 'none' && cs.visibility !== 'hidden';
+                } catch (_) {
+                    return true;
+                }
+            }
+            async function reconcileDeviceToolbarStatesOnce() {
+                try {
+                    const list = await fetchJSON('/api/devices').catch(() => null);
+                    if (!Array.isArray(list)) return;
+                    const byId = new Map(
+                        list.map(d => [String(d.id || d.deviceId || d._id || d.name || ''), d])
+                    );
+                    document.querySelectorAll('#device-grid .device-card').forEach(card => {
+                        const id = card.getAttribute('data-id');
+                        if (!id) return;
+                        const d = byId.get(id);
+                        if (!d) return;
+
+                        // Play/Pause button truth from device state
+                        const ppBtn = card.querySelector('.btn-playpause');
+                        if (ppBtn) {
+                            const paused = d?.currentState?.paused === true;
+                            ppBtn.classList.toggle('is-paused', paused);
+                            ppBtn.classList.toggle('is-playing', !paused);
+                            const icon = ppBtn.querySelector('i');
+                            if (icon) icon.className = `fas ${paused ? 'fa-pause' : 'fa-play'}`;
+                            ppBtn.title = paused ? 'Resume' : 'Pause';
+                        }
+
+                        // Pin button truth from device state
+                        const pinBtn = card.querySelector('.btn-pin');
+                        if (pinBtn) {
+                            const pinned = isDevicePinned(d);
+                            pinBtn.classList.toggle('is-pinned', pinned);
+                            try {
+                                pinBtn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+                            } catch (_) {}
+                            const icon = pinBtn.querySelector('i');
+                            if (icon)
+                                icon.className = `fas ${pinned ? 'fa-map-pin' : 'fa-thumbtack'}`;
+                            pinBtn.title = pinned ? 'Unpin poster' : 'Pin current poster';
+                        }
+                    });
+                } catch (_) {
+                    /* ignore transient errors */
+                }
+            }
+            function startDevicesLiveReconcile() {
+                stopDevicesLiveReconcile();
+                if (!isDevicesSectionVisible()) return;
+                devicesLiveTimer = setInterval(() => {
+                    if (!isDevicesSectionVisible()) return;
+                    reconcileDeviceToolbarStatesOnce();
+                }, DEVICES_LIVE_INTERVAL);
+            }
+            function stopDevicesLiveReconcile() {
+                if (devicesLiveTimer) {
+                    clearInterval(devicesLiveTimer);
+                    devicesLiveTimer = null;
+                }
+            }
+            // Start live reconcile now and on tab visibility changes
+            startDevicesLiveReconcile();
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) stopDevicesLiveReconcile();
+                else startDevicesLiveReconcile();
+            });
 
             // Bulk selection bar (events are bound to selection changes in bindCardEvents)
             document.getElementById('bulk-clear')?.addEventListener('click', () => {

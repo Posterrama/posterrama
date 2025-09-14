@@ -243,7 +243,7 @@
     color: var(--color-warning) !important;
   }
   #section-devices .device-card .btn-playpause.is-playing i {
-    color: var(--color-text-primary);
+  color: var(--color-text-muted) !important;
   }
   /* Utility classes for explicit dropdown alignment */
   .dropdown.dropdown-left .dropdown-menu {
@@ -486,13 +486,8 @@
     @keyframes broom-sweep { 0% { transform: rotate(0deg) translateX(0); } 25% { transform: rotate(-14deg) translateX(2px); } 50% { transform: rotate(14deg) translateX(-2px); } 75% { transform: rotate(-10deg) translateX(1px); } 100% { transform: rotate(0deg) translateX(0); } }
     #section-devices .device-tools .btn-clearcache i.broom-sweep { display:inline-block; transform-origin: 50% 70%; animation: broom-sweep .8s ease-in-out 1; }
 
-    /* Pinned state for Pin button: only icon turns magenta */
-    #section-devices .device-tools .btn-pin.is-pinned {
-      background: transparent;
-      border-color: inherit;
-      color: inherit;
-    }
-    #section-devices .device-tools .btn-pin.is-pinned i { color: #ff00a7; }
+  /* Pinned state for Pin button: only icon turns magenta (strong specificity) */
+  #section-devices .device-card .device-tools .btn-pin.is-pinned > i { color: #ff00a7 !important; }
 
   /* MODERN DASHBOARD - inspired by the screenshot */
   #panel-perf-dashboard {
