@@ -4677,10 +4677,21 @@ div#devices-section.section-content.active .section-main-content {
     margin-bottom: var(--content-padding-y) !important;
 }
 
+#device-settings-modal .modal-content {
+    position: relative;
+}
 #device-settings-modal #modal-preview-container.preview-container {
     margin-top: 0.5rem;
     border-radius: 12px;
     box-shadow: var(--elevation-2);
+}
+/* Inside the device settings modal, the preview should behave like PiP but scoped to the modal */
+#device-settings-modal #modal-preview-container.preview-container.pip-mode {
+    position: absolute !important;
+    right: 12px !important;
+    top: 12px !important;
+    left: auto !important;
+    z-index: 10002 !important; /* above form fields */
 }
 
 /* Device Status hover tooltip with device details */

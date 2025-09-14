@@ -10344,13 +10344,7 @@ function showDeviceSettingsModal(device) {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
-    const pretty = (() => {
-        try {
-            return JSON.stringify(overrides, null, 2);
-        } catch (_) {
-            return '{}';
-        }
-    })();
+    // no JSON view; modal uses the same GUI as main Display Settings
 
     const html = `
         <div id="device-settings-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="device-settings-title">
@@ -10474,6 +10468,14 @@ function showDeviceSettingsModal(device) {
     const previewFrame = modal.querySelector('#modal-preview-frame');
     const previewToggleMode = modal.querySelector('#modal-toggle-preview-mode');
     const previewToggleZoom = modal.querySelector('#modal-toggle-preview-zoom');
+
+    // Ensure identical starting classes/visibility as main preview
+    if (previewContainerEl) {
+        previewContainerEl.classList.add('pip-mode');
+        previewContainerEl.classList.add('screensaver-mode');
+        previewContainerEl.classList.remove('cinema-mode');
+        previewContainerEl.style.display = 'block';
+    }
 
     // Helper: set/get deep values by path like "wallartMode.layoutSettings.heroGrid.heroSide"
     function setDeep(obj, path, value) {
@@ -10618,18 +10620,150 @@ function showDeviceSettingsModal(device) {
     bindInitialValues();
     wireInputs();
 
+    // Modal preview: same scaling logic as main preview
+    function updateModalPreviewScale() {
+        if (!previewContainerEl || !previewFrame) return;
+        const isCinema = previewContainerEl.classList.contains('cinema-mode');
+        const baseW = isCinema ? 1080 : 1920;
+        const baseH = isCinema ? 1920 : 1080;
+        const style = getComputedStyle(previewContainerEl);
+        const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+        const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+        const cw = Math.max(0, previewContainerEl.clientWidth - paddingX);
+        const ch = Math.max(0, previewContainerEl.clientHeight - paddingY);
+        const scale = Math.max(0.01, Math.min(cw / baseW, ch / baseH));
+        previewFrame.style.width = baseW + 'px';
+        previewFrame.style.height = baseH + 'px';
+        previewFrame.style.transform = `scale(${scale})`;
+        const offsetX = parseFloat(style.paddingLeft) + (cw - baseW * scale) / 2;
+        const offsetY = parseFloat(style.paddingTop) + (ch - baseH * scale) / 2;
+        previewFrame.style.left = `${offsetX}px`;
+        previewFrame.style.top = `${offsetY}px`;
+    }
     // Wire modal preview controls to mimic Display Settings preview
     if (previewToggleMode && previewContainerEl) {
         previewToggleMode.addEventListener('click', () => {
             const isCinema = previewContainerEl.classList.contains('cinema-mode');
             previewContainerEl.classList.toggle('cinema-mode', !isCinema);
             previewContainerEl.classList.toggle('screensaver-mode', isCinema);
+            updateModalPreviewScale();
         });
     }
     if (previewToggleZoom && previewContainerEl) {
         previewToggleZoom.addEventListener('click', () => {
-            previewContainerEl.classList.toggle('is-zoomed');
+            // Use the same class name as main preview for 1.5x/2x zoom
+            previewContainerEl.classList.toggle('zoom-2x');
+            updateModalPreviewScale();
         });
+    }
+
+    // Make the preview draggable within the modal bounds (top-right by default)
+    (function enableModalDrag() {
+        if (!previewContainerEl) return;
+        let dragging = false;
+        let offsetFromRight = 0;
+        let offsetFromTop = 0;
+        let rafId = null;
+        let nextPos = null;
+        const modalContent = modal.querySelector('.modal-content');
+        const getModalRect = () => (modalContent ? modalContent.getBoundingClientRect() : null);
+        function isInteractive(target) {
+            if (!target || !(target instanceof Element)) return false;
+            return (
+                target.closest('.pip-button') ||
+                target.closest('.preview-controls') ||
+                target.closest('.preview-peek-handle') ||
+                target.closest('button, a, select, input, label')
+            );
+        }
+        function onDown(e) {
+            const tgt = e.target;
+            if (isInteractive(tgt)) return;
+            if (e.touches && e.touches.length > 1) return;
+            dragging = true;
+            previewContainerEl.classList.add('dragging');
+            previewContainerEl.style.cursor = 'grabbing';
+            const rect = previewContainerEl.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            offsetFromRight = rect.right - clientX;
+            offsetFromTop = clientY - rect.top;
+            if (e.cancelable) e.preventDefault();
+        }
+        const DRAG_THRESHOLD = 4;
+        let startedDragging = false;
+        let startClientX = 0;
+        let startClientY = 0;
+        function onMove(e) {
+            if (!dragging) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            if (!startedDragging) {
+                const dx = Math.abs(clientX - startClientX);
+                const dy = Math.abs(clientY - startClientY);
+                if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) return;
+                startedDragging = true;
+            }
+            const modalRect = getModalRect();
+            if (!modalRect) return;
+            const rect = previewContainerEl.getBoundingClientRect();
+            let right = modalRect.right - (clientX + offsetFromRight);
+            let top = clientY - offsetFromTop - modalRect.top;
+            right = Math.max(0, Math.min(modalRect.width - rect.width, right));
+            const minTop = 12;
+            top = Math.max(minTop, Math.min(modalRect.height - rect.height - 12, top));
+            nextPos = { right, top };
+            if (!rafId) {
+                rafId = requestAnimationFrame(() => {
+                    if (nextPos) {
+                        previewContainerEl.style.right = nextPos.right + 'px';
+                        previewContainerEl.style.left = 'auto';
+                        previewContainerEl.style.top = nextPos.top + 'px';
+                        nextPos = null;
+                    }
+                    rafId = null;
+                });
+            }
+        }
+        function onUp(e) {
+            if (!dragging) return;
+            const wasDragging = startedDragging;
+            dragging = false;
+            startedDragging = false;
+            previewContainerEl.style.cursor = 'grab';
+            previewContainerEl.classList.remove('dragging');
+            if (wasDragging && e && e.cancelable) {
+                e.preventDefault();
+                e.stopPropagation();
+                previewContainerEl.style.pointerEvents = 'none';
+                setTimeout(() => (previewContainerEl.style.pointerEvents = 'auto'), 0);
+            }
+        }
+        previewContainerEl.addEventListener('mousedown', e => {
+            startClientX = e.clientX;
+            startClientY = e.clientY;
+            onDown(e);
+        });
+        previewContainerEl.addEventListener(
+            'touchstart',
+            e => {
+                startClientX = e.touches ? e.touches[0].clientX : 0;
+                startClientY = e.touches ? e.touches[0].clientY : 0;
+                onDown(e);
+            },
+            { passive: false }
+        );
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('mouseup', onUp);
+        window.addEventListener('touchend', onUp);
+    })();
+
+    // Initial scale and keep scaled on size changes
+    if (previewContainerEl) updateModalPreviewScale();
+    if (window.ResizeObserver && previewContainerEl) {
+        const ro = new ResizeObserver(() => updateModalPreviewScale());
+        ro.observe(previewContainerEl);
     }
 
     // No presets UI
