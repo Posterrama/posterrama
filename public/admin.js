@@ -10505,7 +10505,9 @@ function renderDevicesTable(devices) {
                     })
                     .join('\n');
                 const title = `Likely duplicates on same machine or installId:\n${tipList}`;
-                return `<span class=\"badge badge-dup\" title=\"${title.replace(/\"/g, '&quot;')}\" data-dupes=\"${listIds.join(',').replace(/\"/g, '&quot;')}\" tabindex=\"0\" role=\"button\">Dupes: ${list.length}</span>`;
+                const safeTitle = title.replace(/"/g, '&quot;');
+                const safeIds = listIds.join(',').replace(/"/g, '&quot;');
+                return `<span class="badge badge-dup" title="${safeTitle}" data-dupes="${safeIds}" tabindex="0" role="button">Dupes: ${list.length}</span>`;
             } catch (_) {
                 return '';
             }
