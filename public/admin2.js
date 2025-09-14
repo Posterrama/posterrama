@@ -2698,20 +2698,16 @@
                     if (!ts) return '';
                     const ms = typeof ts === 'number' ? ts : Date.parse(String(ts));
                     if (!Number.isFinite(ms)) return '';
-                    try {
-                        return `${fmtAgoLite(ms)} \u00B7 ${new Date(ms).toLocaleString()}`;
-                    } catch (_) {
-                        return new Date(ms).toISOString();
-                    }
+                    return fmtAgoLite(ms);
                 }
                 function iconForLevel(st) {
                     switch (st) {
                         case 'success':
-                            return 'fa-circle-check';
+                            return 'fa-check';
                         case 'error':
-                            return 'fa-circle-exclamation';
+                            return 'fa-exclamation';
                         case 'info':
-                            return 'fa-circle-info';
+                            return 'fa-info';
                         case 'warning':
                         default:
                             return 'fa-triangle-exclamation';

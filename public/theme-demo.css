@@ -2226,6 +2226,9 @@ input[type='range']::-moz-range-thumb {
     border: none;
     color: var(--color-text-secondary);
     cursor: pointer;
+    padding: 0;
+    width: 20px;
+    text-align: center;
 }
 .notify-item.notify-info .notify-close {
     color: color-mix(in srgb, var(--color-info) 70%, var(--color-text-secondary));
@@ -2249,27 +2252,13 @@ input[type='range']::-moz-range-thumb {
 .notify-info i {
     color: var(--color-info);
 }
-/* Circular tinted icon backgrounds per type */
+/* Simple per-type icon colors, no circular backgrounds */
 .notify-item i {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 9999px;
-}
-.notify-info i {
-    background: color-mix(in srgb, var(--color-info) 18%, transparent);
+    width: 20px;
+    text-align: center;
 }
 .notify-warning i {
     color: var(--color-warning);
-    background: color-mix(in srgb, var(--color-warning) 18%, transparent);
-}
-.notify-error i {
-    background: color-mix(in srgb, var(--color-error) 18%, transparent);
-}
-.notify-success i {
-    background: color-mix(in srgb, var(--color-success) 18%, transparent);
 }
 
 /* Modals & Dialogs */
