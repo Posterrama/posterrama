@@ -3722,7 +3722,7 @@
                     window.notify?.toast({
                         type: 'success',
                         title: 'Plex',
-                        message: 'Libraries loaded',
+                        message: 'Plex libraries loaded',
                         duration: 2200,
                     });
                     // Optionally refresh dependent filters now that libraries are known
@@ -4112,7 +4112,7 @@
                     window.notify?.toast({
                         type: 'success',
                         title: 'Jellyfin',
-                        message: 'Libraries loaded',
+                        message: 'Jellyfin libraries loaded',
                         duration: 2200,
                     });
                     // Optionally refresh dependent filters now that libraries are known

@@ -55,6 +55,14 @@
     border-color: var(--color-warning) !important;
     color: var(--color-warning) !important;
   }
+  
+  /* Subtle dropdown item hover */
+  .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: none !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease;
+  }
   /* Custom select (for icon-in-list support) */
   .select-wrap.has-custom-select { position: relative; }
   .select-wrap.has-custom-select .select-icon { display: none; }
@@ -2409,7 +2417,7 @@
   </div>
 
   <script src="/notify.js?v=20250906-1"></script>
-  <script src="/admin2.js?v=20250906-50"></script>
+  <script src="/admin2.js?v=20250906-51"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
     if ('serviceWorker' in navigator) {
