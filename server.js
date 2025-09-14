@@ -303,6 +303,7 @@ const swaggerUi = require('swagger-ui-express');
 const pkg = require('./package.json');
 const ecosystemConfig = require('./ecosystem.config.js');
 const { shuffleArray } = require('./utils.js');
+const { PassThrough: _PT } = require('stream');
 
 // Asset version (can later be replaced by build hash); fallback to package.json version
 const ASSET_VERSION = pkg.version || '1.0.0';
@@ -12611,6 +12612,48 @@ if (require.main === module) {
                 }
             }, 5000);
         });
+        // --- Admin SSE: /api/admin/events (logs + alerts) ---
+        try {
+            const clients = new Set();
+            app.get('/api/admin/events', (req, res) => {
+                // Basic auth guard: require admin session
+                if (!req.session || !req.session.user) {
+                    return res.status(401).end();
+                }
+                res.setHeader('Content-Type', 'text/event-stream');
+                res.setHeader('Cache-Control', 'no-cache');
+                res.setHeader('Connection', 'keep-alive');
+                res.flushHeaders?.();
+                res.write(`event: hello\n`);
+                res.write(`data: {"t": ${Date.now()}}\n\n`);
+                const client = { res };
+                clients.add(client);
+                req.on('close', () => {
+                    clients.delete(client);
+                });
+            });
+            // Bridge logger events to SSE clients
+            const onLog = log => {
+                const payload = `event: log\n` + `data: ${JSON.stringify(log)}\n\n`;
+                for (const c of clients) {
+                    try {
+                        c.res.write(payload);
+                    } catch (_) {}
+                }
+            };
+            logger.events.on('log', onLog);
+            // Optional: hook for future alerts events
+            if (!global.__adminSSECleanup) {
+                global.__adminSSECleanup = () => {
+                    try {
+                        logger.events.off('log', onLog);
+                    } catch (_) {}
+                    clients.clear();
+                };
+            }
+        } catch (e) {
+            logger.warn('[SSE] init failed', e?.message || e);
+        }
         // Initialize WebSocket hub once server is listening
         try {
             wsHub.init(httpServer, {

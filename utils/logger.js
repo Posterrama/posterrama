@@ -1,4 +1,5 @@
 const winston = require('winston');
+const { EventEmitter } = require('events');
 const path = require('path');
 const fs = require('fs');
 
@@ -10,6 +11,8 @@ if (!fs.existsSync(logsDir)) {
 
 // Format messages to handle objects and arrays
 const formatMessage = winston.format(info => {
+    // Lightweight event bus to signal new logs to any live streams (SSE/WS)
+    logger.events = new EventEmitter();
     if (typeof info.message === 'object' && info.message !== null) {
         try {
             info.message = JSON.stringify(
@@ -115,6 +118,12 @@ const memoryTransport = new winston.transports.Stream({
                     logger.memoryLogs.shift();
                 }
                 logger.memoryLogs.push(chunk);
+                try {
+                    // Emit a real-time event to subscribers
+                    logger.events.emit('log', chunk);
+                } catch (_) {
+                    /* ignore */
+                }
             }
             callback();
         },

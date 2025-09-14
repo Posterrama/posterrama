@@ -1061,7 +1061,27 @@
         // Prevent duplicate wiring (DOMContentLoaded + immediate call race)
         if (window.__admin2Wired) return;
         window.__admin2Wired = true;
-        // No manual performance refresh: updates are automatic
+        // Live updates via SSE (logs). Falls back to polling below.
+        (function initAdminEvents() {
+            try {
+                if (window.__adminSSE) return;
+                const src = new EventSource('/api/admin/events');
+                window.__adminSSE = src;
+                const pump = debounce(() => {
+                    try {
+                        refreshBadge();
+                    } catch (_) {}
+                }, 500);
+                src.addEventListener('log', () => pump());
+                src.addEventListener('hello', () => pump());
+                src.onerror = () => {
+                    // Auto-reconnect handled by EventSource; if it fully fails, polling remains
+                };
+            } catch (_) {
+                // Ignore if EventSource not available or endpoint not reachable
+            }
+        })();
+
         // Mobile sidebar toggle demo behavior
         const toggle = $('#mobile-nav-toggle');
         const overlay = $('#sidebar-overlay');
