@@ -9795,6 +9795,419 @@ async function loadDevicePresets() {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Devices table helpers: IDs, HTML builders, and in-place reconciliation
+// ---------------------------------------------------------------------------
+
+function getDeviceId(d) {
+    return (d && (d.id || d.installId)) || '';
+}
+
+function deviceModeInfo(d) {
+    try {
+        const overridesObj =
+            d && d.settingsOverride && typeof d.settingsOverride === 'object'
+                ? d.settingsOverride
+                : {};
+        if (overridesObj && typeof overridesObj === 'object') {
+            const ow = overridesObj.wallartMode || {};
+            const oc = overridesObj.cinemaMode;
+            if (ow && ow.enabled === true)
+                return { label: 'Wallart', cls: 'is-mode-wallart', src: 'override' };
+            if (oc === true) return { label: 'Cinema', cls: 'is-mode-cinema', src: 'override' };
+            if (ow && ow.enabled === false && oc === false)
+                return { label: 'Screensaver', cls: 'is-mode-screensaver', src: 'override' };
+        }
+        const cm = (d.clientInfo?.mode || '').toLowerCase();
+        if (cm === 'cinema') return { label: 'Cinema', cls: 'is-mode-cinema', src: 'client' };
+        if (cm === 'wallart') return { label: 'Wallart', cls: 'is-mode-wallart', src: 'client' };
+        if (cm === 'screensaver' || cm === 'slideshow' || cm === 'default')
+            return { label: 'Screensaver', cls: 'is-mode-screensaver', src: 'client' };
+    } catch (_) {}
+    return { label: 'Screensaver', cls: 'is-mode-screensaver', src: 'fallback' };
+}
+
+function deviceOverridesBadgeHTML(d) {
+    try {
+        const overridesObj =
+            d && d.settingsOverride && typeof d.settingsOverride === 'object'
+                ? d.settingsOverride
+                : {};
+        const count = Object.keys(overridesObj || {}).length;
+        return count
+            ? `<span class="badge is-primary" title="Per-device display overrides active">Overrides: ${count}</span>`
+            : '';
+    } catch (_) {
+        return '';
+    }
+}
+
+function deviceDetailsHTML(d) {
+    try {
+        const esc = s => (s == null ? '' : String(s));
+        const id = d.id || d.installId || '';
+        const ci = d.clientInfo || {};
+        const sc = ci.screen || {};
+        const ua = ci.userAgent || ci.ua || '';
+        const kv = [
+            ['Device ID', id],
+            ['Resolution', sc.w && sc.h ? `${sc.w}×${sc.h}` : '—'],
+            ['Pixel Ratio', sc.dpr != null ? String(sc.dpr) : '—'],
+            ['Orientation', sc.orientation || '—'],
+            [
+                'Mode',
+                ci.mode ? String(ci.mode).charAt(0).toUpperCase() + String(ci.mode).slice(1) : '—',
+            ],
+            ['Platform', ci.platform || '—'],
+            ['User Agent', ua ? ua.substring(0, 180) + (ua.length > 180 ? '…' : '') : '—'],
+        ];
+        const rows = kv
+            .filter(([_, v]) => v && v !== '—')
+            .map(
+                ([k, v]) =>
+                    `<span class="tip-k">${esc(k)}:</span><span class="tip-v">${esc(v)}</span>`
+            )
+            .join('');
+        return `<div class="tip-title">Device details</div><div class="tip-grid">${rows || '<span class="tip-k">No details</span><span class="tip-v"></span>'}</div>`;
+    } catch (_) {
+        return '<div class="tip-title">Device details</div><div class="tip-grid"><span class="tip-k">No details</span><span class="tip-v"></span></div>';
+    }
+}
+
+function deviceStatusBadgesHTML(d) {
+    const esc = s => (s == null ? '' : String(s));
+    const last = d.lastSeenAt
+        ? (() => {
+              const dt = new Date(d.lastSeenAt);
+              return {
+                  date: dt.toLocaleDateString(),
+                  time: dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              };
+          })()
+        : null;
+    const mode = deviceModeInfo(d);
+    const cellMode = `<span class="badge ${mode.cls}" title="Mode source: ${esc(mode.src)}">${esc(
+        mode.label
+    )}</span>`;
+    const groups = Array.isArray(window.__groupsCache) ? window.__groupsCache : [];
+    const ids = Array.isArray(d.groups) ? d.groups.filter(Boolean) : [];
+    const names = ids
+        .map(id => {
+            const g = groups.find(x => x && (x.id === id || x.key === id));
+            return g ? g.name || g.id || id : id;
+        })
+        .filter(Boolean);
+    const groupsBadge = ids.length
+        ? `<span class="badge badge-groups" title="Groups: ${names
+              .map(n => String(n).replace(/</g, '&lt;'))
+              .join(', ')}">Groups: ${ids.length}</span>`
+        : '';
+    const hasWs = !!d.wsConnected;
+    const synced = !!(hasWs && window.currentConfig && window.currentConfig.syncEnabled !== false);
+    const syncedBadge = synced
+        ? '<span class="badge is-online badge-synced" title="Device will align to sync ticks">Synced</span>'
+        : '';
+
+    const raw = (d.status || 'unknown').toLowerCase();
+    let label = 'Unknown';
+    let cls = 'is-unknown';
+    let explain = 'Device status is unknown.';
+    if (raw === 'offline' || (d.currentState && d.currentState.poweredOff === true)) {
+        label = 'Offline';
+        cls = 'is-unknown';
+        explain =
+            d.currentState && d.currentState.poweredOff
+                ? 'Device is powered off (blackout mode).'
+                : 'Device is not connected. No recent heartbeat detected.';
+    } else if (raw === 'online' && hasWs) {
+        label = 'Live';
+        cls = 'is-live';
+        explain = 'Best state: live WebSocket connected for instant control and sync.';
+    } else if (raw === 'online' && !hasWs) {
+        label = 'Online';
+        cls = 'is-online';
+        explain = 'Client is online but no live WebSocket is connected.';
+    }
+    const statusTip = `
+        <div class="tip-title">Status</div>
+        <div class="tip-grid">
+            <span class="tip-k">State</span><span class="tip-v">${esc(label)}</span>
+            <span class="tip-k">WebSocket</span><span class="tip-v">${hasWs ? 'Connected' : 'Not connected'}</span>
+            ${last ? `<span class="tip-k">Last Seen</span><span class="tip-v">${esc(last.date)} ${esc(last.time)}</span>` : ''}
+        </div>`;
+    const detailsHtml = deviceDetailsHTML(d);
+    const statusBadge = `<span class="badge ${cls}" data-device-tip="1" title="${esc(
+        explain
+    )}">${esc(label)}<div class="device-tip">${statusTip}${detailsHtml}</div></span>`;
+    const together = [statusBadge, cellMode, groupsBadge, syncedBadge].filter(Boolean).join(' ');
+    return `<div class="status-badges">${together}</div>`;
+}
+
+function deviceRowHTML(d) {
+    const esc = s => (s == null ? '' : String(s));
+    const overridesBadge = deviceOverridesBadgeHTML(d);
+    const isOffline = (d.status || 'unknown').toLowerCase() === 'offline';
+    const isPoweredOff = !!(d.currentState && d.currentState.poweredOff === true);
+    const isPaused = !!(d.currentState && d.currentState.paused === true);
+    window.__devicesPinned = window.__devicesPinned || Object.create(null);
+    const isPinnedFromState = !!(
+        d.currentState &&
+        (d.currentState.pinned === true || d.currentState.pin === true)
+    );
+    const isPinnedUI = !!window.__devicesPinned[d.id];
+    const isPinned = isPinnedFromState || isPinnedUI;
+    return `
+        <td class="cell-select"></td>
+        <td class="cell-name">
+            <div class="actions-inline">
+                <div class="btn-group icon-only">
+                    <button type="button" class="btn power-toggle${
+                        isPoweredOff
+                            ? ' is-danger is-off'
+                            : isOffline
+                              ? ' is-danger'
+                              : ' is-success is-on'
+                    }" data-cmd="power.toggle" data-id="${d.id}" title="Power on/off (black screen)">
+                        <span class="icon"><i class="fas fa-power-off"></i></span>
+                    </button>
+                    <button type="button" class="btn is-primary" data-cmd="reload" data-id="${d.id}" title="Reload this device">
+                        <span class="icon"><i class="fas fa-redo"></i></span>
+                    </button>
+                    <button type="button" class="btn" data-cmd="reset" data-id="${d.id}" title="Clear caches + unregister SW + reload on device">
+                        <span class="icon"><i class="fas fa-broom"></i></span>
+                    </button>
+                    <button type="button" class="btn" data-cmd="pair" data-id="${d.id}" title="Generate pairing code (admin)">
+                        <span class="icon"><i class="fas fa-link"></i></span>
+                    </button>
+                    <button type="button" class="btn" data-cmd="overrides" data-id="${d.id}" title="Edit display settings override">
+                        <span class="icon"><i class="fas fa-sliders-h"></i></span>
+                    </button>
+                    <button type="button" class="btn" data-cmd="send-command" data-id="${d.id}" title="Send command (e.g., source.switch)" ${
+                        isOffline || isPoweredOff ? 'disabled' : ''
+                    }>
+                        <span class="icon"><i class="fas fa-paper-plane"></i></span>
+                    </button>
+                    <button type="button" class="btn playback-toggle${
+                        d.currentState && d.currentState.paused === false
+                            ? ' is-primary is-playing'
+                            : isPaused
+                              ? ' is-paused'
+                              : ''
+                    }" data-cmd="playback.toggle" data-id="${d.id}" title="Play/Pause" ${
+                        isOffline || isPoweredOff ? 'disabled' : ''
+                    }>
+                        <span class="icon"><i class="fas ${
+                            d.currentState && d.currentState.paused === false
+                                ? 'fa-pause'
+                                : 'fa-play'
+                        }"></i></span>
+                    </button>
+                    <button type="button" class="btn pin-btn${
+                        isPinned ? ' is-pinned' : ''
+                    }" data-cmd="playback.pinPoster" data-id="${d.id}" title="Pin current poster" aria-pressed="${
+                        isPinned ? 'true' : 'false'
+                    }" ${isOffline || isPoweredOff ? 'disabled' : ''}>
+                        <span class="icon"><i class="fas ${
+                            isPinned ? 'fa-map-pin' : 'fa-thumbtack'
+                        }" aria-hidden="true"></i></span>
+                    </button>
+                    <button type="button" class="btn btn-danger" data-cmd="delete" data-id="${d.id}" title="Delete this device">
+                        <span class="icon"><i class="fas fa-trash"></i></span>
+                    </button>
+                </div>
+            </div>
+            <div class="row-top inputs-line">
+                <div class="field field-select-inline">
+                    <input type="checkbox" class="row-select" data-id="${d.id}" aria-label="Select device" />
+                </div>
+                <div class="field">
+                    <div class="field-label">Name</div>
+                    <input class="inline-edit name-input" data-field="name" data-id="${d.id}" value="${esc(
+                        d.name
+                    )}" placeholder="Name" />
+                </div>
+                <div class="field">
+                    <div class="field-label">Location</div>
+                    <input class="inline-edit location-input" data-field="location" data-id="${d.id}" value="${esc(
+                        d.location
+                    )}" placeholder="Location" />
+                </div>
+            </div>
+            <div class="row-bottom meta-line">${overridesBadge}</div>
+        </td>
+        <td class="cell-status">${deviceStatusBadgesHTML(d)}</td>`;
+}
+
+function reconcileDevicesTable(devices, opts = {}) {
+    const tbody = document.querySelector('#devices-table tbody');
+    if (!tbody) return;
+    const container = document.getElementById('devices-subsection');
+    const editing = !!(container && container.matches && container.matches(':focus-within'));
+    const byId = new Map();
+    (devices || []).forEach(d => byId.set(getDeviceId(d), d));
+
+    // Update existing rows and mark seen
+    const seen = new Set();
+    tbody.querySelectorAll('tr').forEach(tr => {
+        const id = tr.getAttribute('data-id') || '';
+        const d = byId.get(id);
+        if (!d) return; // handled in removal phase
+        seen.add(id);
+        // If user is editing inside this row, preserve inputs; update status only
+        const isRowActive = tr.contains(document.activeElement);
+        // Update status badges
+        const statusCell = tr.querySelector('td.cell-status');
+        if (statusCell) statusCell.innerHTML = deviceStatusBadgesHTML(d);
+        // Update overrides badge
+        const meta = tr.querySelector('.row-bottom.meta-line');
+        if (meta) meta.innerHTML = deviceOverridesBadgeHTML(d);
+        // Update buttons state conservatively
+        try {
+            const isOffline = (d.status || 'unknown').toLowerCase() === 'offline';
+            const isPoweredOff = !!(d.currentState && d.currentState.poweredOff === true);
+            const powerBtn = tr.querySelector('button.power-toggle');
+            if (powerBtn) {
+                powerBtn.classList.toggle('is-off', isPoweredOff);
+                powerBtn.classList.toggle('is-danger', isPoweredOff || isOffline);
+                powerBtn.classList.toggle('is-success', !isPoweredOff && !isOffline);
+                powerBtn.classList.toggle('is-on', !isPoweredOff && !isOffline);
+            }
+            const disable = isOffline || isPoweredOff;
+            const sendBtn = tr.querySelector('button[data-cmd="send-command"]');
+            const playBtn = tr.querySelector('button.playback-toggle');
+            const pinBtn = tr.querySelector('button.pin-btn');
+            if (sendBtn) sendBtn.disabled = disable;
+            if (playBtn) playBtn.disabled = disable;
+            if (pinBtn) pinBtn.disabled = disable;
+            // Pin/play states
+            if (playBtn) {
+                const isPlaying = d.currentState && d.currentState.paused === false;
+                playBtn.classList.toggle('is-playing', !!isPlaying);
+                playBtn.classList.toggle('is-primary', !!isPlaying);
+                playBtn.classList.toggle('is-paused', !isPlaying);
+                const icon = playBtn.querySelector('i');
+                if (icon) icon.className = `fas ${isPlaying ? 'fa-pause' : 'fa-play'}`;
+            }
+            if (pinBtn) {
+                const pinned = !!(
+                    (d.currentState &&
+                        (d.currentState.pinned === true || d.currentState.pin === true)) ||
+                    (window.__devicesPinned && window.__devicesPinned[d.id])
+                );
+                pinBtn.classList.toggle('is-pinned', pinned);
+                pinBtn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+                const icon = pinBtn.querySelector('i');
+                if (icon) icon.className = `fas ${pinned ? 'fa-map-pin' : 'fa-thumbtack'}`;
+            }
+        } catch (_) {}
+        // Update inputs only if not actively editing this row
+        if (!isRowActive) {
+            const nameInput = tr.querySelector('input.name-input');
+            const locInput = tr.querySelector('input.location-input');
+            if (nameInput && nameInput !== document.activeElement) {
+                const nv = d.name == null ? '' : String(d.name);
+                if (nameInput.value !== nv) nameInput.value = nv;
+            }
+            if (locInput && locInput !== document.activeElement) {
+                const lv = d.location == null ? '' : String(d.location);
+                if (locInput.value !== lv) locInput.value = lv;
+            }
+        }
+    });
+
+    // Add missing rows (skip while user is editing to avoid layout jumps)
+    if (!editing) {
+        (devices || []).forEach(d => {
+            const id = getDeviceId(d);
+            if (seen.has(id)) return;
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-id', id);
+            tr.innerHTML = deviceRowHTML(d);
+            tbody.appendChild(tr);
+            try {
+                // Bind inline edit handlers for new row inputs
+                bindInlineEditHandlers(tr);
+            } catch (_) {}
+            try {
+                const cb = tr.querySelector('.row-select');
+                if (cb) cb.addEventListener('change', updateBulkSelectionState);
+            } catch (_) {}
+        });
+    }
+
+    // Remove rows for devices that disappeared (skip while editing)
+    if (!editing) {
+        tbody.querySelectorAll('tr').forEach(tr => {
+            const id = tr.getAttribute('data-id') || '';
+            if (!byId.has(id)) tr.remove();
+        });
+    }
+}
+
+// Attach inline edit handlers within a root element (tbody or single row)
+function bindInlineEditHandlers(root) {
+    const scope = root || document;
+    scope.querySelectorAll('input.inline-edit, select.inline-edit').forEach(input => {
+        const submit = async () => {
+            const id = input.getAttribute('data-id');
+            const field = input.getAttribute('data-field');
+            const value = input.value;
+            const payload = {};
+            payload[field] = value;
+            try {
+                input.disabled = true;
+                input.classList.add('saving');
+                const res = await authenticatedFetch(
+                    apiUrl(`/api/devices/${encodeURIComponent(id)}`),
+                    {
+                        method: 'PATCH',
+                        body: JSON.stringify(payload),
+                        noRedirectOn401: true,
+                    }
+                );
+                if (!res.ok) throw new Error('Failed to save');
+                input.classList.remove('saving');
+                input.classList.add('saved');
+                setTimeout(() => input.classList.remove('saved'), 800);
+                // Soft refresh: reconcile to avoid focus loss
+                const list = await fetchDevices();
+                if (tbodyHasRows()) reconcileDevicesTable(list);
+                else renderDevicesTable(list);
+            } catch (e) {
+                input.classList.add('error');
+                setTimeout(() => input.classList.remove('error'), 1200);
+            } finally {
+                input.disabled = false;
+            }
+        };
+        input.addEventListener('change', submit);
+        input.addEventListener('blur', submit);
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submit();
+            }
+        });
+    });
+}
+
+function updateBulkSelectionState() {
+    try {
+        const tbody = document.querySelector('#devices-table tbody');
+        if (!tbody) return;
+        const selectAll = document.getElementById('devices-select-all');
+        const bulkDeleteBtn = document.getElementById('devices-delete-selected');
+        const bulkAssignBtn = document.getElementById('devices-assign-preset');
+        const selected = tbody.querySelectorAll('.row-select:checked');
+        if (bulkDeleteBtn) bulkDeleteBtn.disabled = selected.length === 0;
+        if (bulkAssignBtn) bulkAssignBtn.disabled = selected.length === 0;
+        if (selectAll)
+            selectAll.checked =
+                selected.length > 0 &&
+                selected.length === tbody.querySelectorAll('.row-select').length;
+    } catch (_) {}
+}
+
 function populateBulkPresetPicker() {
     try {
         const sel = document.getElementById('bulk-preset-select');
@@ -9865,6 +10278,7 @@ function renderDevicesTable(devices) {
 
     devices.forEach(d => {
         const tr = document.createElement('tr');
+        tr.setAttribute('data-id', getDeviceId(d));
         const currentPresetKey = d.preset || '';
         // const screen = d.clientInfo?.screen || {};
         // const dims =
@@ -10086,22 +10500,17 @@ function renderDevicesTable(devices) {
         tbody.appendChild(tr);
     });
 
-    // Preset select is rendered inline with Name/Location via CSS grid; no JS alignment needed
+    // Bind inline-edit handlers for newly rendered rows
+    try {
+        bindInlineEditHandlers(tbody);
+    } catch (_) {}
 
     // Bulk selection controls
     const selectAll = document.getElementById('devices-select-all');
     const bulkDeleteBtn = document.getElementById('devices-delete-selected');
     const bulkAssignBtn = document.getElementById('devices-assign-preset');
     const bulkPresetSelect = document.getElementById('bulk-preset-select');
-    const updateBulkState = () => {
-        const selected = tbody.querySelectorAll('.row-select:checked');
-        if (bulkDeleteBtn) bulkDeleteBtn.disabled = selected.length === 0;
-        if (bulkAssignBtn) bulkAssignBtn.disabled = selected.length === 0;
-        if (selectAll)
-            selectAll.checked =
-                selected.length > 0 &&
-                selected.length === tbody.querySelectorAll('.row-select').length;
-    };
+    const updateBulkState = updateBulkSelectionState;
     tbody
         .querySelectorAll('.row-select')
         .forEach(cb => cb.addEventListener('change', updateBulkState));
@@ -10428,6 +10837,15 @@ function renderDevicesTable(devices) {
             }
         });
     });
+}
+
+function tbodyHasRows() {
+    try {
+        const tbody = document.querySelector('#devices-table tbody');
+        return !!(tbody && tbody.querySelector('tr'));
+    } catch (_) {
+        return false;
+    }
 }
 
 function initDevicesPanel() {
@@ -10810,13 +11228,38 @@ function initDevicesPanel() {
         }
     }
 
+    let __devicesRefreshInhibitUntil = 0;
+    const inhibit = (ms = 800) => {
+        __devicesRefreshInhibitUntil = Date.now() + ms;
+    };
+    // Inhibit on common interactions inside the devices table
+    container.addEventListener('focusin', () => inhibit(2000));
+    container.addEventListener('pointerdown', () => inhibit(1500));
+    container.addEventListener('keydown', () => inhibit(2000));
+
     async function refresh() {
+        // Skip refresh if user is interacting (focus within or recent interaction)
+        try {
+            const now = Date.now();
+            if (now < __devicesRefreshInhibitUntil) {
+                devLog('initDevicesPanel: refresh inhibited');
+                return;
+            }
+            if (container.matches && container.matches(':focus-within')) {
+                devLog('initDevicesPanel: refresh skipped due to focus');
+                return;
+            }
+        } catch (_) {}
         try {
             if (status) status.textContent = 'Loading devices...';
             // Load presets in parallel, but don't block devices render if it fails
             await loadDevicePresets();
             const list = await fetchDevices();
-            renderDevicesTable(list);
+            if (tbodyHasRows()) {
+                reconcileDevicesTable(list);
+            } else {
+                renderDevicesTable(list);
+            }
             if (status) status.textContent = `${list.length} device(s)`;
             devLog('initDevicesPanel: refresh complete', list.length);
         } catch (e) {
@@ -10839,7 +11282,18 @@ function initDevicesPanel() {
         const section = document.getElementById('devices-section');
         const onVis = () => {
             const visible = section && section.offsetParent !== null;
-            if (visible && !liveTimer) liveTimer = setInterval(refresh, 7000);
+            if (visible && !liveTimer)
+                liveTimer = setInterval(() => {
+                    try {
+                        // Avoid background refresh when page/tab not focused to reduce churn
+                        if (
+                            document.visibilityState === 'hidden' ||
+                            document.hasFocus?.() === false
+                        )
+                            return;
+                    } catch (_) {}
+                    refresh();
+                }, 7000);
             if (!visible && liveTimer) {
                 clearInterval(liveTimer);
                 liveTimer = null;
