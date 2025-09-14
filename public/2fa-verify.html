@@ -33,8 +33,18 @@
             .form-compact .form-group input,
             .form-compact .form-group select { width: 100%; }
             /* Error message styled with theme vars */
-            .error-message { display: none; background: rgba(232,67,147,0.08); border: 1px solid rgba(232,67,147,0.35); color: var(--color-error-light); padding: .75rem 1rem; border-radius: var(--border-radius-md); text-align:center; font-size: var(--font-size-sm); }
-            .error-message.show { display:block; }
+            .error-message { 
+                display: none; 
+                background: rgba(232,67,147,0.08); 
+                border: 1px solid rgba(232,67,147,0.35); 
+                color: #e8439b; 
+                padding: .75rem 1rem; 
+                border-radius: 8px; 
+                text-align: center; 
+                font-size: 14px; 
+                margin-top: 1rem;
+            }
+            .error-message.show { display: block !important; }
             .helper { text-align:center; color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0 0 1rem 0; }
             .auth-actions { display:flex; justify-content:center; margin-top: 1rem; }
             .auth-footer { display:flex; gap:12px; align-items:center; justify-content:center; }
@@ -45,9 +55,9 @@
             <div class="auth-box panel">
                 <div class="panel-content">
                     <h1 class="auth-title">
-                        <i class="fas fa-shield-alt" aria-hidden="true" style="opacity:.9"></i>
+                        <i class="fas fa-user-lock" aria-hidden="true" style="opacity:.9; margin-right: 0.5rem;"></i>
                         <span class="admin-text" style="color: var(--color-text-primary); font-weight: var(--font-weight-semibold);">2FA Verification</span>
-                        <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-regular);">posterrama</span>
+                        <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: 100;">posterrama</span>
                     </h1>
 
                     <p class="helper">Enter the 6-digit code from your authenticator app to complete your login.</p>
@@ -57,7 +67,6 @@
 
                     <form action="/admin/2fa-verify" method="POST" class="form-compact">
                         <div class="form-group">
-                            <label for="totp_code">Verification Code</label>
                             <input
                                 type="text"
                                 id="totp_code"

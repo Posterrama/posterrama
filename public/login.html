@@ -51,8 +51,18 @@
             /* Heading overrides: plain white, no forced uppercase */
             .auth-title .admin-text { text-transform: none; letter-spacing: 0; }
             /* Error message styled with theme vars */
-            .error-message { display: none; background: rgba(232,67,147,0.08); border: 1px solid rgba(232,67,147,0.35); color: var(--color-error-light); padding: .75rem 1rem; border-radius: var(--border-radius-md); text-align:center; font-size: var(--font-size-sm); }
-            .error-message.show { display:block; }
+            .error-message { 
+                display: none; 
+                background: rgba(232,67,147,0.08); 
+                border: 1px solid rgba(232,67,147,0.35); 
+                color: #e8439b; 
+                padding: .75rem 1rem; 
+                border-radius: 8px; 
+                text-align: center; 
+                font-size: 14px; 
+                margin-top: 1rem;
+            }
+            .error-message.show { display: block !important; }
             /* Smaller centered submit */
             .auth-actions { display:flex; justify-content:center; margin-top: 1rem; }
             .auth-footer { display:flex; gap:12px; align-items:center; justify-content:center; }
@@ -63,14 +73,13 @@
             <div class="auth-box panel">
                 <div class="panel-content">
                 <h1 class="auth-title">
-                    <i class="fas fa-shield-alt" aria-hidden="true" style="opacity:.9"></i>
-                    <span class="admin-text" style="color: var(--color-text-primary); font-weight: var(--font-weight-semibold);">Control Center</span>
-                    <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-regular);">posterrama</span>
+                    <i class="fas fa-user-lock" aria-hidden="true" style="opacity:.9; margin-right: 0.5rem;"></i>
+                    <span class="admin-text" style="color: var(--color-text-primary); font-weight: var(--font-weight-semibold);">Admin login</span>
+                    <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: 100;">posterrama</span>
                 </h1>
 
                 <form id="loginForm" class="form-compact" method="POST" action="/admin/login">
                     <div class="form-group">
-                        <label for="username">Username</label>
                         <input
                             type="text"
                             id="username"
@@ -84,7 +93,6 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="password">Password</label>
                         <div class="input-wrap">
                             <input
                                 type="password"
@@ -149,10 +157,18 @@
                         },
                     });
 
-
                     if (response.ok) {
                         try {
-                            const result = await response.json();
+                            // First check if response is actually JSON
+                            const responseText = await response.text();
+                            
+                            // Check if it's HTML (redirect page)
+                            if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+                                window.location.href = '/admin';
+                                return;
+                            }
+                            
+                            const result = JSON.parse(responseText);
                             
                             if (result.success) {
                                 // Login successful, redirect as instructed
@@ -164,8 +180,12 @@
                             }
                         } catch (jsonError) {
                             console.error('JSON parse error on success response:', jsonError);
-                            errorDiv.textContent = 'Unexpected response format. Please try again.';
+                            errorDiv.textContent = 'Unexpected response format. Redirecting to admin panel...';
                             errorDiv.classList.add('show');
+                            // Try redirecting anyway since we got a 200 response
+                            setTimeout(() => {
+                                window.location.href = '/admin';
+                            }, 2000);
                         }
                     } else {
                         // Handle error responses
@@ -205,7 +225,7 @@
                     errorDiv.classList.add('show');
                 } finally {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Sign In';
+                    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Sign In</span>';
                 }
             });
 

@@ -3019,7 +3019,7 @@
     async function refreshSecurity() {
         // Note: Security panel has been removed, this function is kept for compatibility
         // with existing 2FA handlers in the user menu
-        console.log('Security panel refresh requested (panel removed, skipping)');
+        // Security panel refresh requested (panel removed, skipping)
     }
 
     function openModal(id) {
@@ -8379,31 +8379,26 @@
         const btnChangePasswordModalClean = document.getElementById('btn-change-password');
         ensureSpinner(btnChangePasswordModalClean);
 
-        btnChangePasswordModalClean.addEventListener('click', async event => {
+        btnChangePasswordModalClean.addEventListener('click', async _event => {
             try {
                 // Prevent multiple submissions
                 if (btnChangePasswordModalClean.disabled) {
                     return;
                 }
 
-                console.log('Event object:', event);
+                // Debug: Event object and status element checks
 
                 const statusEl = document.getElementById('password-status');
-                console.log('Status element found:', !!statusEl);
+                // Debug: Status element found check
 
                 const currentPassword = currentPwInput?.value || '';
                 const newPassword = newPwInput?.value || '';
                 const confirmPassword = confirmPwInput?.value || '';
 
-                console.log('Password values:', {
-                    current: currentPassword
-                        ? `has value (${currentPassword.length} chars)`
-                        : 'empty',
-                    new: newPassword ? `has value (${newPassword.length} chars)` : 'empty',
-                    confirm: confirmPassword
-                        ? `has value (${confirmPassword.length} chars)`
-                        : 'empty',
-                });
+                // Debug: Password values validation
+                // current: currentPassword ? `has value (${currentPassword.length} chars)` : 'empty',
+                // new: newPassword ? `has value (${newPassword.length} chars)` : 'empty',
+                // confirm: confirmPassword ? `has value (${confirmPassword.length} chars)` : 'empty'
 
                 // Clear status
                 if (statusEl) {
@@ -8413,7 +8408,7 @@
 
                 // Validate inputs
                 if (!currentPassword || !newPassword || !confirmPassword) {
-                    console.log('Validation failed: missing fields');
+                    // Validation failed: missing fields
                     if (statusEl) {
                         statusEl.innerHTML = `
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -8428,7 +8423,7 @@
                 }
 
                 if (newPassword !== confirmPassword) {
-                    console.log('Validation failed: passwords do not match');
+                    // Validation failed: passwords do not match
                     if (statusEl) {
                         statusEl.innerHTML = `
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -8443,9 +8438,9 @@
                 }
 
                 const strengthResult = checkPasswordStrength(newPassword);
-                console.log('Password strength check result:', strengthResult);
+                // Password strength check result: strengthResult
                 if (strengthResult.score < 2) {
-                    console.log('Validation failed: password too weak');
+                    // Validation failed: password too weak
                     if (statusEl) {
                         statusEl.innerHTML = `
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -8459,7 +8454,7 @@
                     return;
                 }
 
-                console.log('All validations passed, making API call...');
+                // All validations passed, making API call...
                 btnChangePasswordModalClean.classList.add('btn-loading');
                 btnChangePasswordModalClean.disabled = true;
 
@@ -8468,15 +8463,7 @@
                     newPassword,
                     confirmPassword: confirmPassword,
                 };
-                console.log('Request body (passwords masked):', {
-                    currentPassword: currentPassword
-                        ? `*** (${currentPassword.length} chars)`
-                        : 'EMPTY',
-                    newPassword: newPassword ? `*** (${newPassword.length} chars)` : 'EMPTY',
-                    confirmPassword: confirmPassword
-                        ? `*** (${confirmPassword.length} chars)`
-                        : 'EMPTY',
-                });
+                // Request body (passwords masked): currentPassword, newPassword, confirmPassword
 
                 const response = await fetch('/api/admin/change-password', {
                     method: 'POST',
@@ -8485,12 +8472,12 @@
                     body: JSON.stringify(requestBody),
                 });
 
-                console.log('API response status:', response.status);
+                // API response status: response.status
                 const result = await response.json();
-                console.log('API response data:', result);
+                // API response data: result
 
                 if (response.ok) {
-                    console.log('Password change successful');
+                    // Password change successful
                     if (statusEl) {
                         statusEl.innerHTML = `
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -8530,7 +8517,7 @@
                         });
                     }
                 } else {
-                    console.log('Password change failed:', result);
+                    // Password change failed: result
                     if (statusEl) {
                         statusEl.innerHTML = `
                             <div style="display: flex; align-items: center; gap: 8px;">
