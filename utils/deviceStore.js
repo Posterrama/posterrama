@@ -411,7 +411,10 @@ async function pruneLikelyDuplicates({
                 // Use a synthetic endpoint label for internal events
                 metrics.recordRequest(
                     'INTERNAL',
-                    `/devices/pruneLikelyDuplicates?capped=${capped}`,
+                    `/devices/pruneLikelyDuplicates?deleted=${deleted}&capped=${capped}`.slice(
+                        0,
+                        200
+                    ),
                     0,
                     200,
                     false
