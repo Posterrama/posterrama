@@ -1523,6 +1523,31 @@ if (isDeviceMgmtEnabled()) {
     };
 
     // Device register (MVP)
+    /**
+     * @swagger
+     * /api/devices/register:
+     *   post:
+     *     summary: Register a device
+     *     description: Registers a device and returns credentials. Prefers stable hardwareId; falls back to installId. Also sets a pr_iid cookie.
+     *     tags: ['Devices']
+     *     requestBody:
+     *       required: false
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/DeviceRegisterRequest'
+     *     responses:
+     *       200:
+     *         description: Device credentials
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/DeviceRegisterResponse'
+     *       429:
+     *         description: Too many registration requests
+     *       500:
+     *         description: Register failed
+     */
     app.post('/api/devices/register', deviceRegisterLimiter, express.json(), async (req, res) => {
         try {
             const {
@@ -1566,7 +1591,33 @@ if (isDeviceMgmtEnabled()) {
         }
     });
 
-    // Device heartbeat + poll commands
+    /**
+     * @swagger
+     * /api/devices/heartbeat:
+     *   post:
+     *     summary: Device heartbeat and command polling
+     *     description: Authenticates the device, updates status, and returns any queued commands.
+     *     tags: ['Devices']
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/DeviceHeartbeatRequest'
+     *     responses:
+     *       200:
+     *         description: Heartbeat processed
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/DeviceHeartbeatResponse'
+     *       401:
+     *         description: Unauthorized
+     *       429:
+     *         description: Too many heartbeat requests
+     *       500:
+     *         description: Heartbeat failed
+     */
     app.post('/api/devices/heartbeat', deviceHeartbeatLimiter, express.json(), async (req, res) => {
         try {
             const b = req.body || {};
@@ -1655,6 +1706,41 @@ if (isDeviceMgmtEnabled()) {
         30,
         'Too many pairing requests from this IP, please try again later.'
     );
+    /**
+     * @swagger
+     * /api/devices/{id}/pairing-code:
+     *   post:
+     *     summary: Generate pairing code for a device
+     *     description: Admin-only. Generates a short-lived pairing code with a one-time token.
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     requestBody:
+     *       required: false
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/PairingCodeRequest'
+     *     responses:
+     *       200:
+     *         description: Pairing code
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/PairingCodeResponse'
+     *       404:
+     *         description: Device not found
+     *       429:
+     *         description: Too many pairing requests
+     *       500:
+     *         description: Pair code generation failed
+     */
     app.post(
         '/api/devices/:id/pairing-code',
         adminAuth,
@@ -1681,6 +1767,33 @@ if (isDeviceMgmtEnabled()) {
         60,
         'Too many pairing attempts from this IP, please try again later.'
     );
+    /**
+     * @swagger
+     * /api/devices/pair:
+     *   post:
+     *     summary: Claim a device using a pairing code
+     *     description: Used by the device to claim an existing device record. Rotates the secret.
+     *     tags: ['Devices']
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/PairingClaimRequest'
+     *     responses:
+     *       200:
+     *         description: New device credentials
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/PairingClaimResponse'
+     *       400:
+     *         description: Invalid or expired code
+     *       429:
+     *         description: Too many pairing attempts
+     *       500:
+     *         description: Pair claim failed
+     */
     app.post('/api/devices/pair', devicePairClaimLimiter, express.json(), async (req, res) => {
         try {
             const { code, token, name = '', location = '' } = req.body || {};
@@ -1699,6 +1812,36 @@ if (isDeviceMgmtEnabled()) {
         120,
         'Too many QR requests from this IP, please try again later.'
     );
+    /**
+     * @swagger
+     * /api/qr:
+     *   get:
+     *     summary: Generate a QR code for arbitrary text
+     *     description: Returns an SVG or PNG image of the QR code. Used by the pairing modal.
+     *     tags: ['Devices']
+     *     parameters:
+     *       - in: query
+     *         name: text
+     *         required: true
+     *         schema:
+     *           type: string
+     *       - in: query
+     *         name: format
+     *         required: false
+     *         schema:
+     *           type: string
+     *           enum: [svg, png]
+     *           default: svg
+     *     responses:
+     *       200:
+     *         description: QR image (SVG or PNG)
+     *       400:
+     *         description: Bad request (missing or too long text)
+     *       429:
+     *         description: Too many QR requests
+     *       500:
+     *         description: QR generation failed
+     */
     app.get('/api/qr', qrLimiter, async (req, res) => {
         try {
             const rawText = (req.query && (req.query.text || req.query.t)) || '';
@@ -1734,6 +1877,28 @@ if (isDeviceMgmtEnabled()) {
     });
 
     // Admin: list devices
+    /**
+     * @swagger
+     * /api/devices:
+     *   get:
+     *     summary: List devices
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     responses:
+     *       200:
+     *         description: List of devices with live WS status
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 $ref: '#/components/schemas/Device'
+     *       401:
+     *         description: Unauthorized
+     *       500:
+     *         description: List failed
+     */
     app.get('/api/devices', adminAuth, async (_req, res) => {
         try {
             const all = await deviceStore.getAll();
@@ -1746,6 +1911,34 @@ if (isDeviceMgmtEnabled()) {
     });
 
     // Admin: get device
+    /**
+     * @swagger
+     * /api/devices/{id}:
+     *   get:
+     *     summary: Get a device by id
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     responses:
+     *       200:
+     *         description: Device details
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/Device'
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Not found
+     *       500:
+     *         description: Get failed
+     */
     app.get('/api/devices/:id', adminAuth, async (req, res) => {
         try {
             const d = await deviceStore.getById(req.params.id);
@@ -1757,6 +1950,30 @@ if (isDeviceMgmtEnabled()) {
     });
 
     // Admin: delete device
+    /**
+     * @swagger
+     * /api/devices/{id}:
+     *   delete:
+     *     summary: Delete a device
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     responses:
+     *       200:
+     *         description: Deleted
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Not found
+     *       500:
+     *         description: Delete failed
+     */
     app.delete('/api/devices/:id', adminAuth, async (req, res) => {
         try {
             const removed = await deviceStore.deleteDevice(req.params.id);
@@ -1768,6 +1985,41 @@ if (isDeviceMgmtEnabled()) {
     });
 
     // Admin: patch device
+    /**
+     * @swagger
+     * /api/devices/{id}:
+     *   patch:
+     *     summary: Patch a device
+     *     description: Update name, location, tags, groups, settingsOverride, or preset.
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/DevicePatchRequest'
+     *     responses:
+     *       200:
+     *         description: Updated device
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/Device'
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Not found
+     *       500:
+     *         description: Patch failed
+     */
     app.patch('/api/devices/:id', adminAuth, express.json(), async (req, res) => {
         try {
             const allowed = ['name', 'location', 'tags', 'groups', 'settingsOverride', 'preset'];
@@ -1860,6 +2112,37 @@ if (isDeviceMgmtEnabled()) {
         20,
         'Too many merge requests from this IP, please slow down.'
     );
+    /**
+     * @swagger
+     * /api/devices/{id}/merge:
+     *   post:
+     *     summary: Merge devices into a target device
+     *     description: Merges one or more devices into the target device.
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/DeviceMergeRequest'
+     *     responses:
+     *       200:
+     *         description: Merge result
+     *       401:
+     *         description: Unauthorized
+     *       400:
+     *         description: Invalid request
+     *       500:
+     *         description: Merge failed
+     */
     app.post(
         '/api/devices/:id/merge',
         adminAuth,
@@ -1890,6 +2173,58 @@ if (isDeviceMgmtEnabled()) {
     );
 
     // Admin: queue or live-send command to device (optional wait for ack)
+    /**
+     * @swagger
+     * /api/devices/{id}/command:
+     *   post:
+     *     summary: Send a command to a device
+     *     description: Sends a live WebSocket command when connected, otherwise queues it. Use wait=true to await an ACK.
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *       - in: query
+     *         name: wait
+     *         required: false
+     *         schema:
+     *           type: boolean
+     *           default: false
+     *         description: If true, waits up to 3s for an ACK and returns ack status
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/DeviceCommandRequest'
+     *     responses:
+     *       200:
+     *         description: Command sent or queued
+     *         content:
+     *           application/json:
+     *             schema:
+     *               oneOf:
+     *                 - $ref: '#/components/schemas/DeviceCommandResponse'
+     *                 - type: object
+     *                   properties:
+     *                     queued: { type: boolean }
+     *                     live: { type: boolean }
+     *                     ack: { $ref: '#/components/schemas/DeviceCommandAck' }
+     *       202:
+     *         description: Live command sent but ACK timed out
+     *       400:
+     *         description: Missing type
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Device not found
+     *       500:
+     *         description: Send failed
+     */
     app.post('/api/devices/:id/command', adminAuth, express.json(), async (req, res) => {
         try {
             const { type, payload } = req.body || {};
@@ -1930,6 +2265,27 @@ if (isDeviceMgmtEnabled()) {
     });
 
     // --- Groups Admin API (minimal) ---
+    /**
+     * @swagger
+     * /api/groups:
+     *   get:
+     *     summary: List groups
+     *     tags: ['Groups', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     responses:
+     *       200:
+     *         description: List of groups
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items: { $ref: '#/components/schemas/Group' }
+     *       401:
+     *         description: Unauthorized
+     *       500:
+     *         description: Groups list failed
+     */
     app.get('/api/groups', adminAuth, async (_req, res) => {
         try {
             const list = await groupsStore.getAll();
@@ -1938,6 +2294,33 @@ if (isDeviceMgmtEnabled()) {
             res.status(500).json({ error: 'groups_list_failed' });
         }
     });
+    /**
+     * @swagger
+     * /api/groups:
+     *   post:
+     *     summary: Create a group
+     *     tags: ['Groups', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/GroupCreateRequest'
+     *     responses:
+     *       201:
+     *         description: Created group
+     *         content:
+     *           application/json:
+     *             schema: { $ref: '#/components/schemas/Group' }
+     *       401:
+     *         description: Unauthorized
+     *       409:
+     *         description: Group exists
+     *       500:
+     *         description: Group create failed
+     */
     app.post('/api/groups', adminAuth, express.json(), async (req, res) => {
         try {
             const { id, name, description, settingsTemplate, order } = req.body || {};
@@ -1963,6 +2346,39 @@ if (isDeviceMgmtEnabled()) {
             res.status(500).json({ error: 'group_create_failed' });
         }
     });
+    /**
+     * @swagger
+     * /api/groups/{id}:
+     *   patch:
+     *     summary: Patch a group
+     *     tags: ['Groups', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/GroupPatchRequest'
+     *     responses:
+     *       200:
+     *         description: Updated group
+     *         content:
+     *           application/json:
+     *             schema: { $ref: '#/components/schemas/Group' }
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Not found
+     *       500:
+     *         description: Group patch failed
+     */
     app.patch('/api/groups/:id', adminAuth, express.json(), async (req, res) => {
         try {
             const g = await groupsStore.patchGroup(req.params.id, req.body || {});
@@ -2032,6 +2448,30 @@ if (isDeviceMgmtEnabled()) {
             res.status(500).json({ error: 'group_patch_failed' });
         }
     });
+    /**
+     * @swagger
+     * /api/groups/{id}:
+     *   delete:
+     *     summary: Delete a group
+     *     tags: ['Groups', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     responses:
+     *       200:
+     *         description: Deleted
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Not found
+     *       500:
+     *         description: Group delete failed
+     */
     app.delete('/api/groups/:id', adminAuth, async (req, res) => {
         try {
             const ok = await groupsStore.deleteGroup(req.params.id);
@@ -2049,6 +2489,47 @@ if (isDeviceMgmtEnabled()) {
         }
     });
     // Admin: send command to all devices in a group (optional wait for per-device acks)
+    /**
+     * @swagger
+     * /api/groups/{id}/command:
+     *   post:
+     *     summary: Broadcast a command to group members
+     *     description: Sends a command to all devices in the group. Use wait=true to collect per-device ACKs.
+     *     tags: ['Groups', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *       - in: query
+     *         name: wait
+     *         required: false
+     *         schema:
+     *           type: boolean
+     *           default: false
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/DeviceCommandRequest'
+     *     responses:
+     *       200:
+     *         description: Broadcast result
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/GroupCommandResponse'
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Group not found
+     *       500:
+     *         description: Group command failed
+     */
     app.post('/api/groups/:id/command', adminAuth, express.json(), async (req, res) => {
         try {
             const { type, payload } = req.body || {};

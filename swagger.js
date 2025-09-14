@@ -42,6 +42,16 @@ function generateSwaggerSpec() {
                         'Secured endpoints for admin panel, setup, and configuration. Requires an active admin session where applicable.',
                 },
                 {
+                    name: 'Devices',
+                    description:
+                        'Device management endpoints for registration, heartbeat, pairing, commands, and admin device operations.',
+                },
+                {
+                    name: 'Groups',
+                    description:
+                        'Admin endpoints for managing device groups and broadcasting commands.',
+                },
+                {
                     name: 'Authentication',
                     description: 'General authentication and authorization endpoints.',
                 },
@@ -105,8 +115,292 @@ function generateSwaggerSpec() {
                         name: 'connect.sid',
                         description: 'Session-based authentication using cookies',
                     },
+                    bearerAuth: {
+                        type: 'http',
+                        scheme: 'bearer',
+                        bearerFormat: 'JWT',
+                        description:
+                            'Bearer token authentication. The application accepts API keys as Bearer tokens.',
+                    },
                 },
                 schemas: {
+                    // --- Device Management ---
+                    Device: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', description: 'Unique device identifier' },
+                            name: { type: 'string', description: 'Human-friendly name' },
+                            location: { type: 'string', description: 'Optional physical location' },
+                            tags: {
+                                type: 'array',
+                                description: 'Custom device tags',
+                                items: { type: 'string' },
+                            },
+                            groups: {
+                                type: 'array',
+                                description: 'Assigned group IDs',
+                                items: { type: 'string' },
+                            },
+                            installId: {
+                                type: 'string',
+                                nullable: true,
+                                description: 'Browser/session install identifier (nullable)',
+                            },
+                            hardwareId: {
+                                type: 'string',
+                                nullable: true,
+                                description: 'Stable hardware identifier when available (nullable)',
+                            },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            updatedAt: { type: 'string', format: 'date-time' },
+                            lastSeenAt: { type: 'string', format: 'date-time', nullable: true },
+                            status: {
+                                type: 'string',
+                                description: 'Reported status',
+                                enum: ['unknown', 'online', 'offline'],
+                            },
+                            clientInfo: {
+                                type: 'object',
+                                properties: {
+                                    userAgent: { type: 'string' },
+                                    screen: {
+                                        type: 'object',
+                                        properties: {
+                                            w: { type: 'integer' },
+                                            h: { type: 'integer' },
+                                            dpr: { type: 'number' },
+                                        },
+                                    },
+                                    mode: { type: 'string' },
+                                },
+                            },
+                            settingsOverride: {
+                                type: 'object',
+                                description: 'Per-device settings override payload',
+                            },
+                            preset: { type: 'string', description: 'Optional preset name' },
+                            currentState: {
+                                type: 'object',
+                                properties: {
+                                    mediaId: { type: 'string', nullable: true },
+                                    paused: { type: 'boolean', nullable: true },
+                                    pinned: { type: 'boolean', nullable: true },
+                                    pinMediaId: { type: 'string', nullable: true },
+                                    poweredOff: { type: 'boolean', nullable: true },
+                                },
+                            },
+                            wsConnected: {
+                                type: 'boolean',
+                                description: 'Derived flag indicating active WebSocket connection',
+                            },
+                        },
+                    },
+                    DeviceRegisterRequest: {
+                        type: 'object',
+                        properties: {
+                            name: { type: 'string' },
+                            location: { type: 'string' },
+                            installId: { type: 'string', nullable: true },
+                            hardwareId: { type: 'string', nullable: true },
+                        },
+                    },
+                    DeviceRegisterResponse: {
+                        type: 'object',
+                        required: ['deviceId', 'deviceSecret'],
+                        properties: {
+                            deviceId: { type: 'string' },
+                            deviceSecret: { type: 'string' },
+                        },
+                    },
+                    DeviceQueuedCommand: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', description: 'Server-assigned queue id' },
+                            type: { type: 'string' },
+                            payload: { type: 'object' },
+                        },
+                    },
+                    DeviceHeartbeatRequest: {
+                        type: 'object',
+                        required: ['deviceId', 'deviceSecret'],
+                        properties: {
+                            deviceId: { type: 'string' },
+                            deviceSecret: { type: 'string' },
+                            userAgent: { type: 'string' },
+                            screen: {
+                                type: 'object',
+                                properties: {
+                                    w: { type: 'integer' },
+                                    h: { type: 'integer' },
+                                    dpr: { type: 'number' },
+                                },
+                            },
+                            mode: { type: 'string' },
+                            mediaId: { type: 'string' },
+                            paused: { type: 'boolean' },
+                            pinned: { type: 'boolean' },
+                            pinMediaId: { type: 'string' },
+                            poweredOff: { type: 'boolean' },
+                            installId: { type: 'string' },
+                            hardwareId: { type: 'string' },
+                        },
+                    },
+                    DeviceHeartbeatResponse: {
+                        type: 'object',
+                        properties: {
+                            serverTime: { type: 'integer' },
+                            commandsQueued: {
+                                type: 'array',
+                                items: { $ref: '#/components/schemas/DeviceQueuedCommand' },
+                            },
+                        },
+                    },
+                    PairingCodeRequest: {
+                        type: 'object',
+                        properties: {
+                            ttlMs: {
+                                type: 'integer',
+                                description: 'TTL in milliseconds (min 60000, max 3600000)',
+                                example: 600000,
+                            },
+                        },
+                    },
+                    PairingCodeResponse: {
+                        type: 'object',
+                        properties: {
+                            code: { type: 'string', description: 'Numeric pairing code' },
+                            token: {
+                                type: 'string',
+                                description: 'One-time token (only shown once) for added security',
+                            },
+                            expiresAt: { type: 'string', format: 'date-time' },
+                        },
+                    },
+                    PairingClaimRequest: {
+                        type: 'object',
+                        required: ['code'],
+                        properties: {
+                            code: { type: 'string' },
+                            token: {
+                                type: 'string',
+                                description: 'Token from PairingCodeResponse',
+                            },
+                            name: { type: 'string' },
+                            location: { type: 'string' },
+                        },
+                    },
+                    PairingClaimResponse: {
+                        type: 'object',
+                        properties: {
+                            deviceId: { type: 'string' },
+                            deviceSecret: { type: 'string' },
+                        },
+                    },
+                    DeviceCommandRequest: {
+                        type: 'object',
+                        required: ['type'],
+                        properties: {
+                            type: {
+                                type: 'string',
+                                description: 'Command type (e.g., reload, clear-cache, next, prev)',
+                            },
+                            payload: { type: 'object' },
+                        },
+                    },
+                    DeviceCommandResponse: {
+                        type: 'object',
+                        properties: {
+                            queued: { type: 'boolean' },
+                            live: { type: 'boolean' },
+                            command: { $ref: '#/components/schemas/DeviceQueuedCommand' },
+                        },
+                    },
+                    DeviceCommandAck: {
+                        type: 'object',
+                        properties: {
+                            status: { type: 'string', enum: ['ok', 'timeout', 'error'] },
+                            info: { type: 'object', nullable: true },
+                        },
+                    },
+                    Group: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string' },
+                            name: { type: 'string' },
+                            description: { type: 'string' },
+                            settingsTemplate: {
+                                type: 'object',
+                                description: 'Settings template applied to group members',
+                            },
+                            order: { type: 'integer', description: 'Sort order (ascending)' },
+                        },
+                    },
+                    GroupCommandResult: {
+                        type: 'object',
+                        properties: {
+                            deviceId: { type: 'string' },
+                            status: {
+                                type: 'string',
+                                description: 'Per-device status',
+                                enum: ['ok', 'timeout', 'queued', 'error'],
+                            },
+                            detail: { type: 'string', nullable: true },
+                        },
+                    },
+                    DevicePatchRequest: {
+                        type: 'object',
+                        properties: {
+                            name: { type: 'string' },
+                            location: { type: 'string' },
+                            tags: { type: 'array', items: { type: 'string' } },
+                            groups: { type: 'array', items: { type: 'string' } },
+                            settingsOverride: { type: 'object' },
+                            preset: { type: 'string' },
+                        },
+                    },
+                    GroupCreateRequest: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string' },
+                            name: { type: 'string' },
+                            description: { type: 'string' },
+                            settingsTemplate: { type: 'object' },
+                            order: { type: 'integer' },
+                        },
+                    },
+                    GroupPatchRequest: {
+                        type: 'object',
+                        properties: {
+                            name: { type: 'string' },
+                            description: { type: 'string' },
+                            settingsTemplate: { type: 'object' },
+                            order: { type: 'integer' },
+                        },
+                    },
+                    DeviceMergeRequest: {
+                        type: 'object',
+                        required: ['sourceIds'],
+                        properties: {
+                            sourceIds: {
+                                type: 'array',
+                                items: { type: 'string' },
+                                description: 'IDs of devices to merge into target',
+                            },
+                        },
+                    },
+                    GroupCommandResponse: {
+                        type: 'object',
+                        properties: {
+                            ok: { type: 'boolean' },
+                            live: { type: 'integer' },
+                            queued: { type: 'integer' },
+                            total: { type: 'integer' },
+                            results: {
+                                type: 'array',
+                                items: { $ref: '#/components/schemas/GroupCommandResult' },
+                            },
+                        },
+                    },
                     Config: {
                         type: 'object',
                         properties: {

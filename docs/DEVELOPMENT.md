@@ -170,6 +170,61 @@ Notes:
 - Without `wait=true`, behavior remains unchanged (fire-and-forget live send with offline queue fallback).
 - Devices ACK immediately for critical operations (reload/reset/clear-cache) before the action, to avoid losing the ACK on reload.
 
+### Device Management API quick reference
+
+Admin endpoints require an authenticated session or a Bearer token; device endpoints are unauthenticated but require deviceId/deviceSecret when applicable. Replace placeholders as needed.
+
+- Device register: `POST /api/devices/register`
+- Device heartbeat/poll: `POST /api/devices/heartbeat`
+- List devices: `GET /api/devices`
+- Get/patch/delete device: `GET|PATCH|DELETE /api/devices/{id}`
+- Generate pairing code: `POST /api/devices/{id}/pairing-code`
+- Device claim (pair): `POST /api/devices/pair`
+- Send device command: `POST /api/devices/{id}/command[?wait=true]`
+- Groups CRUD: `GET|POST /api/groups`, `PATCH|DELETE /api/groups/{id}`
+- Send group command: `POST /api/groups/{id}/command[?wait=true]`
+
+Examples
+
+```bash
+# Device: register
+curl -sS -X POST http://localhost:4000/api/devices/register \
+    -H 'Content-Type: application/json' \
+    -d '{"installId":"iid-123","hardwareId":"hw-123","name":"Kiosk"}'
+
+# Device: heartbeat + poll
+curl -sS -X POST http://localhost:4000/api/devices/heartbeat \
+    -H 'Content-Type: application/json' \
+    -d '{"deviceId":"<id>","deviceSecret":"<secret>","userAgent":"curl","screen":{"w":1920,"h":1080,"dpr":1}}'
+
+# Admin: list devices
+curl -sS http://localhost:4000/api/devices \
+    -H 'Authorization: Bearer <TOKEN>'
+
+# Admin: send command and wait for ACK (returns per-device for groups)
+curl -sS -X POST 'http://localhost:4000/api/devices/<ID>/command?wait=true' \
+    -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' \
+    -d '{"type":"core.mgmt.reload"}'
+
+# Admin: group broadcast with wait=true
+curl -sS -X POST 'http://localhost:4000/api/groups/<GROUP>/command?wait=true' \
+    -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' \
+    -d '{"type":"core.mgmt.clear-cache"}'
+
+# Pairing: admin creates code, device claims
+curl -sS -X POST http://localhost:4000/api/devices/<ID>/pairing-code \
+    -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' \
+    -d '{"ttlMs":600000}'
+curl -sS -X POST http://localhost:4000/api/devices/pair \
+    -H 'Content-Type: application/json' \
+    -d '{"code":"123456","token":"<from previous>","name":"Lobby"}'
+```
+
+Notes
+
+- With `wait=true`, single-device responses include `ack.status` or `queued`; group responses include `results` with `ok|timeout|queued|error` per device.
+- Devices ACK immediately for reload/clear-cache to avoid losing ACK on reload.
+
 ## 🗄️ Configuration Schema
 
 ### Media Servers
