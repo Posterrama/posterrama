@@ -1540,8 +1540,119 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             // ignore store.setItem errors
         }
 
-        // If no identity yet, check if user wants to skip setup
-        if (!hasIdentity) {
+        // If no identity yet OR identity is invalid on server, check if user wants to skip setup
+        let needsSetup = !hasIdentity;
+
+        if (hasIdentity) {
+            console.log('🔍 [DEBUG] Checking if device is still registered on server');
+            console.log('  - deviceId from localStorage:', state.deviceId);
+            try {
+                const response = await fetch('/api/devices/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: state.deviceId }),
+                });
+
+                console.log('  - Server response status:', response.status);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('  - Server response:', result);
+                    if (!result.isRegistered) {
+                        console.log('  → Device not registered on server, clearing local identity');
+                        // Device was removed from server, clear local identity
+                        clearIdentity();
+                        state.deviceId = null;
+                        state.deviceSecret = null;
+                        needsSetup = true;
+                    } else {
+                        console.log('  → Device is registered on server, skipping setup');
+                    }
+                } else {
+                    console.log('  → Server check failed, assuming device is registered');
+                }
+                // If server is unreachable, assume device is still valid
+            } catch (error) {
+                console.log('  → Network error, assuming device is registered:', error.message);
+                // If we can't reach the server, assume device is registered to avoid showing setup
+                needsSetup = false;
+            }
+        } else {
+            console.log(
+                '🔍 [DEBUG] No local identity found, checking if device exists on server with hardware ID'
+            );
+
+            // Try to recover identity by checking if our hardware ID is registered
+            try {
+                const hardwareId = getHardwareId();
+                console.log('  - Generated hardware ID:', hardwareId);
+
+                const response = await fetch('/api/devices/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: hardwareId }),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('  - Server response for hardware ID:', result);
+
+                    if (result.isRegistered) {
+                        console.log(
+                            '  → Device found on server with hardware ID, attempting automatic recovery'
+                        );
+
+                        // Try to automatically re-adopt this device since it's already registered with our hardware ID
+                        try {
+                            const recoveryResponse = await fetch('/api/devices/register', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    name:
+                                        result.deviceName || `Screen ${hardwareId.substring(0, 9)}`,
+                                    hardwareId: hardwareId,
+                                }),
+                            });
+
+                            if (recoveryResponse.ok) {
+                                const recoveryData = await recoveryResponse.json();
+                                console.log('  → Automatic recovery successful:', recoveryData);
+
+                                // Save the recovered identity
+                                await saveIdentity(
+                                    recoveryData.deviceId,
+                                    recoveryData.deviceSecret
+                                );
+                                state.deviceId = recoveryData.deviceId;
+                                state.deviceSecret = recoveryData.deviceSecret;
+
+                                console.log('  → Local identity restored, skipping setup');
+                                needsSetup = false;
+                            } else {
+                                console.log('  → Automatic recovery failed, will show setup');
+                                needsSetup = true;
+                            }
+                        } catch (recoveryError) {
+                            console.log('  → Recovery error:', recoveryError.message);
+                            needsSetup = true;
+                        }
+                    } else {
+                        console.log('  → Hardware ID not found on server, setup required');
+                        needsSetup = true;
+                    }
+                } else {
+                    console.log('  → Server check failed, will show setup');
+                    needsSetup = true;
+                }
+            } catch (error) {
+                console.log('  → Network error checking hardware ID:', error.message);
+                needsSetup = true;
+            }
+        }
+
+        console.log('🔍 [DEBUG] Setup decision: needsSetup =', needsSetup);
+
+        if (needsSetup) {
             // Check if user previously chose to skip device setup
             let skipSetup = false;
             try {
