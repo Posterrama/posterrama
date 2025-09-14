@@ -458,11 +458,13 @@
                 const laStr = String(perf?.cpu?.loadAverage || '').trim();
                 const parts = laStr ? laStr.split(',').map(s => s.trim()) : [];
                 const [la1, la5, la15] = [parts[0], parts[1], parts[2]];
-                const setChip = (id, val) => {
+                const setChip = (id, val, label) => {
                     const el = document.getElementById(id);
                     if (!el) return;
                     const num = Number(val);
                     el.textContent = val || '—';
+                    // tooltip for clarity
+                    if (label) el.setAttribute('title', `${label} load average: ${val || '—'}`);
                     // simple thresholds: <1 good, 1-2 busy, >2 overloaded
                     el.style.background = '';
                     el.style.color = '';
@@ -483,9 +485,9 @@
                         }
                     }
                 };
-                setChip('perf-loadavg-1', la1);
-                setChip('perf-loadavg-5', la5);
-                setChip('perf-loadavg-15', la15);
+                setChip('perf-loadavg-1', la1, '1m');
+                setChip('perf-loadavg-5', la5, '5m');
+                setChip('perf-loadavg-15', la15, '15m');
             } catch (_) {
                 /* non-fatal */
             }
@@ -510,9 +512,16 @@
     async function refreshCacheStatsV2() {
         try {
             // Always get fresh stats; also fetch config to derive current maxSizeGB
+            const ts = Date.now();
             const [statsRes, cfgRes] = await Promise.all([
-                fetch('/api/admin/cache-stats', { credentials: 'include' }),
-                fetch('/api/admin/config', { credentials: 'include' }).catch(() => null),
+                fetch(`/api/admin/cache-stats?_=${ts}`, {
+                    credentials: 'include',
+                    cache: 'no-store',
+                }),
+                fetch(`/api/admin/config?_=${ts}`, {
+                    credentials: 'include',
+                    cache: 'no-store',
+                }).catch(() => null),
             ]);
             if (!statsRes.ok) throw new Error(`HTTP ${statsRes.status}`);
             const stats = await statsRes.json();
@@ -596,7 +605,7 @@
                 // Prefer config endpoint for source of truth; fallback to cache-stats if needed
                 let maxSizeGB = 2;
                 try {
-                    const r = await window.dedupJSON('/api/admin/config', {
+                    const r = await window.dedupJSON('/api/admin/config?_=' + Date.now(), {
                         credentials: 'include',
                     });
                     const j = r?.ok ? await r.json() : null;
@@ -606,9 +615,12 @@
                 } catch (_) {
                     // fallback to cache-stats
                     try {
-                        const rs = await window.dedupJSON('/api/admin/cache-stats', {
-                            credentials: 'include',
-                        });
+                        const rs = await window.dedupJSON(
+                            '/api/admin/cache-stats?_=' + Date.now(),
+                            {
+                                credentials: 'include',
+                            }
+                        );
                         const dj = rs?.ok ? await rs.json() : null;
                         maxSizeGB = Number(dj?.cacheConfig?.maxSizeGB ?? maxSizeGB);
                     } catch (_) {
@@ -664,11 +676,15 @@
                           });
                           if (!r.ok) throw new Error('Save failed');
                           try {
-                              // Manually invalidate cached GET for config in dedup cache if present
-                              if (typeof miniCache?.delete === 'function')
+                              // Manually invalidate cached GET for config and cache-stats in dedup cache if present
+                              if (typeof miniCache?.delete === 'function') {
                                   miniCache.delete('/api/admin/config|GET');
-                              if (typeof inflight?.delete === 'function')
+                                  miniCache.delete('/api/admin/cache-stats|GET');
+                              }
+                              if (typeof inflight?.delete === 'function') {
                                   inflight.delete('/api/admin/config|GET');
+                                  inflight.delete('/api/admin/cache-stats|GET');
+                              }
                           } catch (_) {
                               /* ignore */
                           }
@@ -1144,6 +1160,14 @@
                 }, 2000);
                 src.addEventListener('log', () => pump());
                 src.addEventListener('hello', () => pump());
+                // When config changes (e.g., cache size), refresh cache stats panel immediately
+                src.addEventListener('config-updated', async () => {
+                    try {
+                        await refreshCacheStatsV2();
+                    } catch (_) {
+                        /* ignore */
+                    }
+                });
                 src.onerror = () => {
                     // Auto-reconnect handled by EventSource; if it fully fails, polling remains
                 };

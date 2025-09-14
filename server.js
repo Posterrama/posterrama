@@ -12001,6 +12001,9 @@ app.get(
             }
 
             if (isDebug) logger.debug('[Admin API] Cache stats calculated:', response);
+            // Prevent any intermediary/browser caching of this dynamic data
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
             res.json(response);
         } catch (error) {
             console.error('[Admin API] Error getting cache stats:', error);
@@ -12030,6 +12033,9 @@ app.get(
     asyncHandler(async (_req, res) => {
         try {
             const cfg = await readConfig();
+            // Always serve fresh config to the admin UI (no caching)
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
             res.json({ config: cfg });
         } catch (e) {
             res.status(500).json({ error: 'config_read_failed', message: e?.message || 'error' });
@@ -12083,7 +12089,22 @@ app.post(
                 }
             }
 
-            res.json({ success: true, config: merged });
+            // Prevent caching and include effective cache config so UI can update immediately
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            const effective = getCacheConfig();
+            try {
+                if (typeof broadcastAdminEvent === 'function') {
+                    broadcastAdminEvent('config-updated', {
+                        at: Date.now(),
+                        keys: Object.keys(incoming || {}),
+                        cacheConfig: effective,
+                    });
+                }
+            } catch (_) {
+                /* ignore broadcast errors */
+            }
+            res.json({ success: true, config: merged, cache: { cacheConfig: effective } });
         } catch (e) {
             res.status(500).json({ error: 'config_write_failed', message: e?.message || 'error' });
         }
@@ -12172,12 +12193,50 @@ app.get(
  */
 function getCacheConfig() {
     try {
+        // Read latest config from disk to support manual edits without restart
+        let diskCfg = null;
+        try {
+            const raw = fs.readFileSync('./config.json', 'utf-8');
+            diskCfg = JSON.parse(raw);
+        } catch (_) {
+            // ignore disk read errors; fall back to in-memory
+            diskCfg = null;
+        }
+
+        const diskMaxGB = Number(diskCfg?.cache?.maxSizeGB ?? config?.cache?.maxSizeGB ?? 2);
+        const diskMinMB = Number(
+            diskCfg?.cache?.minFreeDiskSpaceMB ?? config?.cache?.minFreeDiskSpaceMB ?? 500
+        );
+
+        // If CacheDiskManager is out of sync with on-disk config, update it live
+        const liveMaxGB = cacheDiskManager?.maxSizeBytes
+            ? cacheDiskManager.maxSizeBytes / (1024 * 1024 * 1024)
+            : null;
+        if (
+            liveMaxGB != null &&
+            Number.isFinite(diskMaxGB) &&
+            Math.abs(liveMaxGB - diskMaxGB) > 1e-9
+        ) {
+            try {
+                cacheDiskManager.updateConfig(diskCfg?.cache || config?.cache || {});
+            } catch (_) {
+                /* ignore update errors */
+            }
+        }
+
+        // Keep in-memory config close to disk to avoid stale reads
+        try {
+            if (diskCfg && typeof diskCfg === 'object') Object.assign(config, diskCfg);
+        } catch (_) {
+            /* ignore */
+        }
+
         const maxSizeGB = cacheDiskManager?.maxSizeBytes
             ? cacheDiskManager.maxSizeBytes / (1024 * 1024 * 1024)
-            : Number(config?.cache?.maxSizeGB ?? 2);
+            : diskMaxGB;
         const minFreeDiskSpaceMB = cacheDiskManager?.minFreeDiskSpaceBytes
             ? Math.round(cacheDiskManager.minFreeDiskSpaceBytes / (1024 * 1024))
-            : Number(config?.cache?.minFreeDiskSpaceMB ?? 500);
+            : diskMinMB;
         return { maxSizeGB, minFreeDiskSpaceMB };
     } catch (_) {
         return {
@@ -12490,6 +12549,61 @@ app.get('/api/admin/logs', isAuthenticated, (req, res) => {
     res.setHeader('Cache-Control', 'no-store'); // Prevent browser caching of log data
     res.json(logger.getRecentLogs(level, parseInt(limit) || 200));
 });
+// --- Admin SSE (Server-Sent Events) for live updates ---
+const adminSseClients = new Set(); // Set<res>
+
+function broadcastAdminEvent(event, payload) {
+    const line = `event: ${event}\n` + `data: ${JSON.stringify(payload || {})}\n\n`;
+    for (const res of adminSseClients) {
+        try {
+            res.write(line);
+        } catch (_) {
+            // drop broken client on next flush
+        }
+    }
+}
+
+app.get(
+    '/api/admin/events',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        // SSE headers
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no'); // disable nginx buffering if present
+
+        // Add client and send an initial hello
+        adminSseClients.add(res);
+        res.write(`event: hello\n` + `data: {"t":${Date.now()}}\n\n`);
+
+        // Heartbeat to keep connection alive
+        const hb = setInterval(() => {
+            try {
+                res.write(`event: ping\n` + `data: {"t":${Date.now()}}\n\n`);
+            } catch (_) {
+                // if write fails, cleanup below on close
+            }
+        }, 25000);
+
+        // Cleanup on close
+        const cleanup = () => {
+            try {
+                clearInterval(hb);
+            } catch (_) {
+                /* ignore */
+            }
+            adminSseClients.delete(res);
+            try {
+                res.end();
+            } catch (_) {
+                /* ignore */
+            }
+        };
+        req.on('close', cleanup);
+        req.on('error', cleanup);
+    })
+);
 
 /**
  * @swagger
