@@ -146,7 +146,8 @@
   /* Modern Dropdown Menu Styling */
   .dropdown-menu {
     position: absolute !important;
-    top: calc(100% + 4px) !important; /* Default gap; navbar menus override below */
+    /* Do NOT set a global top with !important here — header menus use position:fixed
+       and JS-computed coordinates. Device/toolbars get their own top rule below. */
     min-width: 240px !important;
     max-width: 280px !important;
     padding: 8px !important;
@@ -170,8 +171,21 @@
     /* Animation */
     opacity: 0 !important;
     transform: translateY(-8px) scale(0.98) !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity var(--anim-duration-fast) var(--anim-ease-emph), transform var(--anim-duration-fast) var(--anim-ease-emph) !important;
     pointer-events: none !important;
+  }
+  /* Device/tool dropdowns (absolute, anchored under trigger) */
+  #section-devices .dropdown .dropdown-menu {
+    top: calc(100% + 4px);
+  }
+  /* Ensure header menus stack above everything (including the Preview PiP) */
+  #settings-menu,
+  #user-menu,
+  #notify-center,
+  .notify-center {
+    z-index: 12000 !important;
+    /* Force header dropdowns to escape navbar stacking context */
+    position: fixed !important;
   }
   /* Disable hover bridges; menus are click-open, JS-managed */
   #settings-menu::before,
@@ -286,10 +300,11 @@
   /* User menu (right) positioning - MORE SPECIFIC */
   #user-dropdown #user-menu,
   #user-menu {
-    right: 12px !important;
-    left: auto !important;
+    /* Let JS set final X position; keep transform origin only */
     transform-origin: right top !important;
   }
+  /* Settings menu: use same transform origin/animation as user menu for consistency */
+  #settings-menu { transform-origin: right top !important; }
   /* Play/Pause stateful styling: make paused state yellow per theme */
   #section-devices .device-card .btn-playpause.is-paused i {
     color: var(--color-warning) !important;
@@ -319,26 +334,11 @@
   
   /* (removed forced-left rules; JS sets left/right per available space) */
   
-  /* Force user menu to right with extreme specificity */  
-  body .dropdown #user-menu,
-  body #user-dropdown #user-menu,
-  body .dropdown-menu.dropdown-right#user-menu,
-  body #user-dropdown .dropdown-menu.dropdown-right#user-menu {
-  right: 0 !important;
-    left: auto !important;
-  margin-top: 0 !important;
-    margin-right: 0 !important;
-  /* Align user menu height with navbar buttons by compensating for the inner shift */
-  top: calc(100% - var(--navbar-inner-shift) + 4px) !important; /* nudged a bit lower for consistent spacing */
-    position: absolute !important;
-  }
+  /* JS positions user menu; avoid forcing absolute positioning that can be clipped */
 
   /* Ensure Notifications and Settings dropdowns match the same vertical offset as the User menu */
   /* Notifications & Settings: align with user menu */
-  .navbar .nav-actions #notif-dropdown > .dropdown-menu,
-  .navbar .nav-actions #settings-dropdown > .dropdown-menu {
-    top: calc(100% - var(--navbar-inner-shift) + 4px) !important;
-  }
+  /* JS positions navbar dropdowns; removed forced top offset to prevent conflicts */
   
   /* Dropdown items */
   .dropdown-menu .dropdown-item {
@@ -1189,7 +1189,7 @@
         <div class="dropdown-menu" id="notif-menu" role="menu" aria-hidden="true"></div>
       </div>
   <div class="dropdown" id="settings-dropdown">
-        <button class="btn btn-icon dropdown-toggle" id="settings-btn" title="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">
+  <button type="button" class="btn btn-icon dropdown-toggle" id="settings-btn" title="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">
           <i class="fas fa-cog"></i>
         </button>
         <div class="dropdown-menu" id="settings-menu" role="menu" aria-hidden="true">
@@ -1220,7 +1220,7 @@
         </div>
       </div>
       <div class="dropdown nav-user" id="user-dropdown">
-        <button class="btn btn-icon dropdown-toggle" id="user-btn" title="Account" aria-haspopup="true" aria-expanded="false" aria-controls="user-menu">
+  <button type="button" class="btn btn-icon dropdown-toggle" id="user-btn" title="Account" aria-haspopup="true" aria-expanded="false" aria-controls="user-menu">
           <i class="fas fa-user-circle"></i>
           <span>Admin</span>
         </button>

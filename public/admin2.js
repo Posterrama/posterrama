@@ -2346,6 +2346,8 @@
         let previewWin = null;
         let lastPayload = null;
         let debounceTimer = null;
+        // Track whether the user has manually moved the PiP; if so, don't auto-reanchor
+        let userHasMovedPreview = false;
         // Preview-only orientation state for non-cinema modes
         let previewOrientation = 'landscape'; // 'landscape' | 'portrait'
 
@@ -2354,25 +2356,55 @@
             if (on) positionAtActiveMode();
         }
 
+        // Compute visual metrics for the preview shell (accounts for CSS transform scale)
+        function getVisualShellMetrics() {
+            const shell = container.querySelector('.preview-shell');
+            const Lw = shell?.clientWidth || container.offsetWidth || 420; // layout width
+            const Lh = shell?.clientHeight || container.offsetHeight || 250; // layout height
+            const srect = shell?.getBoundingClientRect?.() || { width: Lw, height: Lh };
+            const Vw = srect.width || Lw;
+            const Vh = srect.height || Lh;
+            // Offset of visual box within layout box due to center-origin scale
+            const offsetX = (Lw - Vw) / 2;
+            const offsetY = (Lh - Vh) / 2;
+            return { Vw, Vh, offsetX, offsetY };
+        }
+
+        // Clamp the current container position so the visual box stays within viewport margins
+        function clampWithinViewport(margin = 8) {
+            try {
+                const { Vw, Vh, offsetX, offsetY } = getVisualShellMetrics();
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const minLeft = margin - offsetX;
+                const maxLeft = Math.max(minLeft, vw - margin - offsetX - Vw);
+                const minTop = margin - offsetY;
+                const maxTop = Math.max(minTop, vh - margin - offsetY - Vh);
+                const rect = container.getBoundingClientRect();
+                const left = Math.min(Math.max(rect.left, minLeft), maxLeft);
+                const top = Math.min(Math.max(rect.top, minTop), maxTop);
+                container.style.top = top + 'px';
+                container.style.left = left + 'px';
+                container.style.right = 'auto';
+                container.style.bottom = 'auto';
+            } catch (_) {}
+        }
+
         // Position the preview near the top-right of the Active Mode card
         function positionAtActiveMode() {
             try {
+                // If the user has manually moved the preview, do not re-anchor; just ensure it's clamped
+                if (userHasMovedPreview) {
+                    clampWithinViewport(8);
+                    return;
+                }
                 const activeCard =
                     document.getElementById('card-active-mode') ||
                     document.getElementById('section-display');
                 if (!activeCard) return;
                 const r = activeCard.getBoundingClientRect();
                 const inset = 8; // slightly tighter padding top/right
-                const shell = container.querySelector('.preview-shell');
-                const Lw = shell?.clientWidth || container.offsetWidth || 420; // layout width
-                const Lh = shell?.clientHeight || container.offsetHeight || 250; // layout height
-                // Visual size (includes CSS transform scale)
-                const srect = shell?.getBoundingClientRect?.() || { width: Lw, height: Lh };
-                const Vw = srect.width || Lw;
-                const Vh = srect.height || Lh;
-                // Offset of visual box within layout box due to center-origin scale
-                const offsetX = (Lw - Vw) / 2;
-                const offsetY = (Lh - Vh) / 2;
+                const { Vw, Vh, offsetX, offsetY } = getVisualShellMetrics();
                 // Place so the visual top aligns with card top+inset, and visual right aligns with card right-inset
                 const top = r.top + inset - offsetY;
                 const left = r.right - Vw - inset - offsetX;
@@ -2688,6 +2720,8 @@
             function onPointerUp(e) {
                 dragging = false;
                 container.classList.remove('dragging');
+                // Mark that the user has intentionally moved the PiP; suppress future auto-reanchors
+                userHasMovedPreview = true;
                 try {
                     grip.releasePointerCapture?.(e.pointerId);
                 } catch (_) {}
@@ -2735,6 +2769,7 @@
                 const onUp = () => {
                     dragging = false;
                     container.classList.remove('dragging');
+                    userHasMovedPreview = true;
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
                     document.removeEventListener('touchmove', onMove);
@@ -2744,6 +2779,14 @@
                 grip.addEventListener('touchstart', onDown, { passive: false });
             }
         })();
+
+        // Optional: developer hook to reset/snap back to the corner on demand
+        window.__resetPreviewPosition = () => {
+            try {
+                userHasMovedPreview = false;
+                positionAtActiveMode();
+            } catch (_) {}
+        };
     }
 
     async function refreshApiKeyStatus() {
@@ -2935,6 +2978,43 @@
         const settingsBtn = document.getElementById('settings-btn');
         const settingsMenu = document.getElementById('settings-menu');
 
+        // Compute a shared Y baseline for header menus so they match the Notifications panel
+        function getHeaderDropdownTop() {
+            try {
+                const nav = document.querySelector('.navbar');
+                const rootStyle = getComputedStyle(document.documentElement);
+                const innerShiftRaw = rootStyle.getPropertyValue('--navbar-inner-shift') || '0';
+                const innerShift = parseFloat(String(innerShiftRaw).trim()) || 0;
+                if (nav) {
+                    const navRect = nav.getBoundingClientRect();
+                    return Math.round(navRect.bottom + innerShift);
+                }
+                // Fallback to CSS var --navbar-height if navbar element missing
+                const navHRaw = rootStyle.getPropertyValue('--navbar-height') || '68px';
+                const navH = parseFloat(String(navHRaw).trim()) || 68;
+                return Math.round(navH + innerShift);
+            } catch (_) {
+                return 72; // safe default (68 + ~4 shift)
+            }
+        }
+
+        // Simple portal helpers to escape stacking contexts
+        function portalize(el) {
+            try {
+                if (!el || el.__portalized) return;
+                el.__portal = { parent: el.parentElement, next: el.nextSibling };
+                document.body.appendChild(el);
+                el.__portalized = true;
+            } catch (_) {}
+        }
+        function unportalize(el) {
+            try {
+                if (!el || !el.__portal || !el.__portal.parent) return;
+                el.__portal.parent.insertBefore(el, el.__portal.next || null);
+                el.__portalized = false;
+            } catch (_) {}
+        }
+
         function closeMenu() {
             if (!settingsMenu) return;
             settingsBtn?.setAttribute('aria-expanded', 'false');
@@ -2944,6 +3024,8 @@
             settingsMenu.style.display = 'none';
             settingsMenu.style.opacity = '0';
             settingsMenu.style.pointerEvents = 'none';
+            // Restore to original DOM to keep structure tidy
+            unportalize(settingsMenu);
         }
 
         // Click-to-open only; hover-open removed
@@ -2968,47 +3050,50 @@
                         btn?.setAttribute('aria-expanded', 'false');
                     }
                 } catch (_) {}
-                settingsMenu?.classList.add('show');
-                // Show and dynamically position within viewport
-                const dd = document.getElementById('settings-dropdown');
+                // Show (hidden) and dynamically position using fixed coordinates (escape parent stacking context)
                 settingsMenu.style.display = 'block';
-                settingsMenu.style.position = 'absolute';
-                settingsMenu.style.top = 'calc(100% + 8px)';
-                settingsMenu.style.zIndex = '2000';
-                settingsMenu.style.opacity = '1';
-                settingsMenu.style.pointerEvents = 'auto';
-                // Reset anchors
-                settingsMenu.style.left = 'auto';
-                settingsMenu.style.right = 'auto';
-                // Default: align left edge with button
+                settingsMenu.style.position = 'fixed';
+                settingsMenu.style.zIndex = '12000'; // above preview PiP
+                settingsMenu.style.opacity = '0';
+                settingsMenu.style.pointerEvents = 'none';
+                settingsMenu.style.visibility = 'hidden';
+                // Reset anchors then compute from trigger viewport rect
                 settingsMenu.style.left = '0';
-                // Compute overflow and flip if needed
+                settingsMenu.style.right = 'auto';
+                settingsMenu.style.top = '0';
+                // Move into body to avoid clipping by transformed/overflow ancestors
+                portalize(settingsMenu);
+                const prevTransSM = settingsMenu.style.transition;
+                settingsMenu.style.transition = 'none';
                 requestAnimationFrame(() => {
                     try {
-                        const menuRect = settingsMenu.getBoundingClientRect();
-                        const dropdownRect = dd?.getBoundingClientRect();
                         const vw = Math.max(
                             document.documentElement.clientWidth,
                             window.innerWidth || 0
                         );
-                        // If the right edge overflows, anchor to the right of the dropdown instead
-                        if (menuRect.right > vw && dropdownRect) {
-                            settingsMenu.style.left = 'auto';
-                            settingsMenu.style.right = '0';
+                        const rect = settingsBtn?.getBoundingClientRect();
+                        const menuRect = settingsMenu.getBoundingClientRect();
+                        // Use a shared top aligned with the Notifications panel height
+                        const top = getHeaderDropdownTop();
+                        let left = Math.max(8, rect?.left || 0);
+                        if (left + menuRect.width > vw - 8) {
+                            left = Math.max(8, (rect?.right || vw) - menuRect.width);
                         }
-                        // If still overflowing left, clamp width and stick to viewport
-                        const updatedRect = settingsMenu.getBoundingClientRect();
-                        if (updatedRect.left < 0) {
-                            const maxWidth = Math.min(280, vw - 16);
-                            settingsMenu.style.maxWidth = maxWidth + 'px';
-                            settingsMenu.style.left = '8px';
-                            settingsMenu.style.right = 'auto';
-                        }
+                        left = Math.min(left, Math.max(8, vw - menuRect.width - 8));
+                        settingsMenu.style.top = `${top}px`;
+                        settingsMenu.style.left = `${left}px`;
                     } catch (err) {
                         console.warn('Settings menu positioning error', err);
                     }
+                    requestAnimationFrame(() => {
+                        settingsMenu.style.transition = prevTransSM || '';
+                        settingsMenu.style.visibility = 'visible';
+                        settingsMenu.style.opacity = '1';
+                        settingsMenu.style.pointerEvents = 'auto';
+                        settingsMenu?.classList.add('show');
+                        console.log('Settings menu opened');
+                    });
                 });
-                console.log('Settings menu opened');
             } else {
                 closeMenu();
             }
@@ -3646,6 +3731,8 @@
             userMenu.style.display = 'none';
             userMenu.style.opacity = '0';
             userMenu.style.pointerEvents = 'none';
+            // Restore to original DOM to keep structure tidy
+            unportalize(userMenu);
         }
         userBtn?.addEventListener('click', e => {
             console.log('User button clicked!');
@@ -3668,15 +3755,50 @@
                         btn?.setAttribute('aria-expanded', 'false');
                     }
                 } catch (_) {}
-                userMenu.classList.add('show');
-                // Add same inline styles as settings menu
+                // Use fixed positioning like settings to escape stacking contexts
                 userMenu.style.display = 'block';
-                userMenu.style.position = 'absolute';
-                userMenu.style.top = 'calc(100% + 8px)';
-                userMenu.style.zIndex = '2000';
-                userMenu.style.opacity = '1';
-                userMenu.style.pointerEvents = 'auto';
-                console.log('User menu opened');
+                userMenu.style.position = 'fixed';
+                userMenu.style.zIndex = '12000'; // above preview PiP
+                userMenu.style.opacity = '0';
+                userMenu.style.pointerEvents = 'none';
+                userMenu.style.visibility = 'hidden';
+                userMenu.style.left = '0';
+                userMenu.style.right = 'auto';
+                userMenu.style.top = '0';
+                // Move into body to avoid clipping by transformed/overflow ancestors
+                portalize(userMenu);
+                const prevTransUM = userMenu.style.transition;
+                userMenu.style.transition = 'none';
+                requestAnimationFrame(() => {
+                    try {
+                        const vw = Math.max(
+                            document.documentElement.clientWidth,
+                            window.innerWidth || 0
+                        );
+                        const rect = userBtn?.getBoundingClientRect();
+                        const menuRect = userMenu.getBoundingClientRect();
+                        // Use a shared top aligned with the Notifications panel height
+                        const top = getHeaderDropdownTop();
+                        // Prefer aligning the right edge of the menu to the trigger's right edge
+                        let left = Math.max(8, (rect?.right || vw) - menuRect.width);
+                        // Clamp to viewport
+                        if (left + menuRect.width > vw - 8)
+                            left = Math.max(8, vw - menuRect.width - 8);
+                        left = Math.min(left, Math.max(8, vw - menuRect.width - 8));
+                        userMenu.style.top = `${top}px`;
+                        userMenu.style.left = `${left}px`;
+                    } catch (err) {
+                        console.warn('User menu positioning error', err);
+                    }
+                    requestAnimationFrame(() => {
+                        userMenu.style.transition = prevTransUM || '';
+                        userMenu.style.visibility = 'visible';
+                        userMenu.style.opacity = '1';
+                        userMenu.style.pointerEvents = 'auto';
+                        userMenu.classList.add('show');
+                        console.log('User menu opened');
+                    });
+                });
             } else {
                 userMenu.classList.remove('show');
             }

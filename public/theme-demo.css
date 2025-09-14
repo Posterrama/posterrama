@@ -91,6 +91,10 @@
     --sidebar-width: 280px;
     --navbar-height: 68px;
     --navbar-inner-shift: 4px; /* shift header contents down for added top spacing */
+
+    /* Animations */
+    --anim-duration-fast: 0.2s;
+    --anim-ease-emph: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Reset & Base */
@@ -2084,11 +2088,21 @@ input[type='range']::-moz-range-thumb {
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-xl);
     overflow: hidden;
-    display: none;
+    /* Use same animation style as header dropdowns/user menu */
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    transform-origin: right top;
+    transition:
+        opacity var(--anim-duration-fast) var(--anim-ease-emph),
+        transform var(--anim-duration-fast) var(--anim-ease-emph);
+    pointer-events: none;
+    display: block;
     z-index: 3003;
 }
 .notify-center.open {
-    display: block;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
 }
 .notify-header {
     display: flex;
