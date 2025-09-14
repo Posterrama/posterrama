@@ -7,6 +7,14 @@ const socketToDevice = new WeakMap(); // ws -> deviceId
 
 let wss = null;
 
+// Pending command acknowledgements: id -> { resolve, reject, timer, deviceId }
+const pendingAcks = new Map();
+
+function genId() {
+    // Simple unique id: timestamp + random
+    return Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e9).toString(36);
+}
+
 function sendJson(ws, obj) {
     try {
         ws.send(JSON.stringify(obj));
@@ -42,6 +50,22 @@ function unregister(ws) {
     if (deviceId) {
         deviceToSocket.delete(deviceId);
         socketToDevice.delete(ws);
+        // Clean up any pending acks for this device (fail them fast)
+        for (const [id, p] of pendingAcks) {
+            if (p.deviceId === deviceId) {
+                try {
+                    clearTimeout(p.timer);
+                } catch (_) {
+                    /* noop: ignore clearTimeout errors */
+                }
+                pendingAcks.delete(id);
+                try {
+                    p.reject(new Error('socket_closed'));
+                } catch (_) {
+                    /* noop: reject error ignored */
+                }
+            }
+        }
     }
 }
 
@@ -59,6 +83,32 @@ function sendToDevice(deviceId, message) {
 
 function sendCommand(deviceId, { type, payload }) {
     return sendToDevice(deviceId, { kind: 'command', type, payload: payload || {} });
+}
+
+function sendCommandAwait(deviceId, { type, payload, timeoutMs = 3000 }) {
+    const ws = deviceToSocket.get(deviceId);
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        return Promise.reject(new Error('not_connected'));
+    }
+    const id = genId();
+    const msg = { kind: 'command', id, type, payload: payload || {} };
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(
+            () => {
+                pendingAcks.delete(id);
+                reject(new Error('ack_timeout'));
+            },
+            Math.max(500, timeoutMs | 0)
+        );
+        pendingAcks.set(id, { resolve, reject, timer, deviceId });
+        try {
+            sendJson(ws, msg);
+        } catch (e) {
+            clearTimeout(timer);
+            pendingAcks.delete(id);
+            reject(e);
+        }
+    });
 }
 
 function sendApplySettings(deviceId, settingsOverride) {
@@ -111,6 +161,28 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
                     }
                     return closeSocket(ws, 1008, 'Authenticate first');
                 }
+                // Ack from device for a previously sent command
+                if (msg && msg.kind === 'ack' && msg.id) {
+                    const deviceId = socketToDevice.get(ws);
+                    const p = pendingAcks.get(msg.id);
+                    if (p && p.deviceId === deviceId) {
+                        pendingAcks.delete(msg.id);
+                        try {
+                            clearTimeout(p.timer);
+                        } catch (_) {
+                            /* noop: ignore clearTimeout on resolve */
+                        }
+                        try {
+                            p.resolve({
+                                status: msg.status || 'ok',
+                                info: msg.info || null,
+                            });
+                        } catch (_) {
+                            /* noop: resolve handler threw */
+                        }
+                    }
+                    return; // nothing else to do for ack
+                }
                 // Future: handle client->server messages (e.g., state reports)
                 if (msg && msg.kind === 'ping') {
                     sendJson(ws, { kind: 'pong', t: Date.now() });
@@ -136,6 +208,7 @@ module.exports = {
     isConnected,
     sendToDevice,
     sendCommand,
+    sendCommandAwait,
     sendApplySettings,
     broadcast,
 };

@@ -151,6 +151,25 @@ GET /api/cache/clear     # Clear cache
 }
 ```
 
+### Live command ACKs (optional)
+
+Device command endpoints support optional wait-for-ack semantics over WebSocket:
+
+- Single device: `POST /api/devices/:id/command?wait=true`
+    - Body: `{ "type": "core.mgmt.reload", "payload": { /* optional */ } }`
+    - Responses:
+        - `{ queued: false, live: true, ack: { status: "ok" } }` when device ACKs within ~3s
+        - `202 Accepted` with `{ queued: false, live: true, ack: { status: "timeout" } }` if ACK not received in time
+        - `{ queued: true, live: false, command: { ... } }` if device offline (fallback queue)
+
+- Group: `POST /api/groups/:id/command?wait=true`
+    - Returns per-device `results` with statuses: `ok`, `timeout`, `queued`, or `error`.
+
+Notes:
+
+- Without `wait=true`, behavior remains unchanged (fire-and-forget live send with offline queue fallback).
+- Devices ACK immediately for critical operations (reload/reset/clear-cache) before the action, to avoid losing the ACK on reload.
+
 ## 🗄️ Configuration Schema
 
 ### Media Servers

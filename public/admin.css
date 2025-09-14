@@ -4861,12 +4861,12 @@ fieldset:focus-within {
     display: block;
 }
 
-/* Devices: duplicate suspect highlight */
+/* Devices: duplicate suspect highlight (disabled per UX change) */
 #devices-section tr.row-dup-suspect {
-    background-color: rgba(255, 0, 200, 0.06);
+    background-color: transparent;
 }
 #devices-section tr.row-dup-suspect:hover {
-    background-color: rgba(255, 0, 200, 0.1);
+    background-color: inherit;
 }
 
 /* Devices: search box (toolbar and header) */
@@ -4917,6 +4917,117 @@ fieldset:focus-within {
 }
 #devices-section .menu-item:hover {
     background: rgba(255, 255, 255, 0.08);
+}
+
+/* Merge Devices Modal - glass look consistent with theme (Display/Device Settings) */
+#merge-devices-modal .modal-content {
+    position: relative;
+    background: rgba(17, 24, 39, 0.5) !important; /* glass base */
+    border: none !important; /* no borders per theme */
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(12px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
+    border-radius: 14px !important;
+    padding: 1.25rem 1.5rem !important; /* neat padding */
+}
+#merge-devices-modal .modal-content .close {
+    position: absolute !important;
+    top: 8px !important;
+    right: 10px !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 999px !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    color: #e5e7eb !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+    cursor: pointer !important;
+    z-index: 2 !important;
+}
+#merge-devices-modal .modal-content .close:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+}
+#merge-devices-modal .modal-content .close:active {
+    transform: scale(0.96) !important;
+}
+#merge-devices-modal .modal-content .close:focus-visible {
+    outline: 2px solid #6366f1 !important;
+    outline-offset: 2px !important;
+}
+#merge-devices-modal .modal-background {
+    background: rgba(0, 0, 0, 0.2) !important; /* neutral dim, no magenta */
+    backdrop-filter: blur(2px) saturate(110%) !important;
+    -webkit-backdrop-filter: blur(2px) saturate(110%) !important;
+}
+#merge-devices-modal .modal-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 10px;
+    padding: 4px 0;
+    font-weight: 700;
+    font-size: 1.15rem;
+    /* Gradient text (non-purple) to match theme variant */
+    background-image: linear-gradient(
+        135deg,
+        #22d3ee 0%,
+        #60a5fa 50%,
+        #a7f3d0 100%
+    ) !important; /* cyan -> blue -> mint */
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+}
+#merge-devices-modal .modal-section-title i {
+    color: transparent !important;
+    background-image: linear-gradient(135deg, #22d3ee 0%, #60a5fa 50%, #a7f3d0 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+}
+#merge-devices-modal .subsection-content > p {
+    margin: 0 0 10px;
+    color: #cbd5e1;
+}
+#merge-devices-modal .merge-list {
+    margin-top: 8px;
+    display: grid;
+    gap: 8px;
+}
+#merge-devices-modal .merge-target {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: none; /* no borders per theme */
+    background: rgba(255, 255, 255, 0.03);
+}
+#merge-devices-modal .merge-target:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+#merge-devices-modal .merge-target:focus-within {
+    background: rgba(255, 255, 255, 0.08);
+}
+#merge-devices-modal .merge-name {
+    color: #e5e7eb;
+}
+#merge-devices-modal .merge-id {
+    color: #9ca3af;
+}
+#merge-devices-modal .actions .btn.is-primary {
+    background: rgba(14, 165, 233, 0.85); /* sky-500 glassy */
+    border: none !important;
+}
+#merge-devices-modal .actions .btn.is-primary:hover {
+    background: rgba(2, 132, 199, 0.95);
 }
 #devices-section .menu-item .badge {
     margin-left: auto;

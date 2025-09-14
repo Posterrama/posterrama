@@ -9560,8 +9560,11 @@ function confirmDialog(message, triggerEl = null) {
     });
 }
 
-async function sendDeviceCommand(id, type, payload = undefined) {
-    const res = await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}/command`), {
+async function sendDeviceCommand(id, type, payload = undefined, { wait = false } = {}) {
+    const url = apiUrl(
+        `/api/devices/${encodeURIComponent(id)}/command` + (wait ? '?wait=true' : '')
+    );
+    const res = await authenticatedFetch(url, {
         method: 'POST',
         body: JSON.stringify(payload ? { type, payload } : { type }),
         noRedirectOn401: true,
@@ -9571,7 +9574,7 @@ async function sendDeviceCommand(id, type, payload = undefined) {
         err.code = 'unauthorized';
         throw err;
     }
-    if (!res.ok) throw new Error('Failed to queue command');
+    if (!res.ok) throw new Error('Failed to send command');
     // Some commands (notably power.toggle when queued) may return 202/204 with no body
     // Be tolerant to empty responses and treat them as a generic queued result
     const ct = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
@@ -9789,7 +9792,7 @@ function __ensureRemoteModal() {
     if (el) return el;
     const wrapper = document.createElement('div');
     wrapper.innerHTML =
-        '<div id="remote-modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="remote-modal-title" tabindex="-1"><div class="modal-background" data-remote-close></div><div class="modal-content"><button type="button" class="close" data-remote-close aria-label="Close dialog">&times;</button><h3 id="remote-modal-title"><i class="fas fa-gamepad"></i> Remote Control</h3><div class="remote-body"><div class="remote-grid"><button class="btn" data-remote="up" title="Up"><i class="fas fa-arrow-up"></i></button><div class="remote-center"><button class="btn is-primary" data-remote="select" title="Select"><i class="fas fa-dot-circle"></i></button></div><button class="btn" data-remote="right" title="Right"><i class="fas fa-arrow-right"></i></button><button class="btn" data-remote="left" title="Left"><i class="fas fa-arrow-left"></i></button><button class="btn" data-remote="down" title="Down"><i class="fas fa-arrow-down"></i></button></div><div class="remote-row"><button class="btn" data-remote="back" title="Back"><i class="fas fa-arrow-circle-left"></i></button><button class="btn" data-remote="home" title="Home"><i class="fas fa-home"></i></button><button class="btn" data-remote="menu" title="Menu"><i class="fas fa-bars"></i></button></div><div class="remote-media"><button class="btn" data-remote="playpause" title="Play/Pause"><i class="fas fa-play"></i>/<i class="fas fa-pause"></i></button><button class="btn" data-remote="prev" title="Previous"><i class="fas fa-step-backward"></i></button><button class="btn" data-remote="next" title="Next"><i class="fas fa-step-forward"></i></button></div></div></div></div>';
+        '<div id="remote-modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="remote-modal-title" tabindex="-1"><div class="modal-background" data-remote-close></div><div class="modal-content"><button type="button" class="close" data-remote-close aria-label="Close dialog">&times;</button><h3 id="remote-modal-title"><i class="fas fa-gamepad"></i> Remote Control</h3><div class="remote-body"><div class="remote-grid"><button class="btn" data-remote="up" title="Up"><i class="fas fa-arrow-up"></i></button><div class="remote-center"><button class="btn is-primary" data-remote="select" title="Select"><i class="fas fa-dot-circle"></i></button></div><button class="btn" data-remote="right" title="Right"><i class="fas fa-arrow-right"></i></button><button class="btn" data-remote="left" title="Left"><i class="fas fa-arrow-left"></i></button><button class="btn" data-remote="down" title="Down"><i class="fas fa-arrow-down"></i></button></div><div class="remote-row"><button class="btn" data-remote="back" title="Back"><i class="fas fa-arrow-circle-left"></i></button><button class="btn" data-remote="home" title="Home"><i class="fas fa-home"></i></button><button class="btn" data-remote="menu" title="Menu"><i class="fas fa-bars"></i></button></div><div class="remote-media"><button class="btn" data-remote="playpause" title="Play/Pause"><i class="fas fa-play"></i>/<i class="fas fa-pause"></i></button><button class="btn" data-remote="prev" title="Previous"><i class="fas fa-step-backward"></i></button><button class="btn" data-remote="next" title="Next"><i class="fas fa-step-forward"></i></button></div><div class="remote-system"><button class="btn" data-remote="reload" title="Reload device"><i class="fas fa-sync-alt"></i> Reload</button> <button class="btn" data-remote="clearcache" title="Clear device cache"><i class="fas fa-broom"></i> Clear cache</button></div></div></div></div>';
     el = wrapper.firstChild;
     document.body.appendChild(el);
     el.querySelectorAll('[data-remote-close]').forEach(c =>
@@ -9813,6 +9816,12 @@ function showRemoteModal(deviceId) {
         el.classList.add('modal-open');
         const handler = async action => {
             try {
+                const setStatus = msg => {
+                    try {
+                        const status = document.getElementById('devices-status');
+                        if (status) status.textContent = msg;
+                    } catch (_) {}
+                };
                 switch (action) {
                     case 'up':
                     case 'down':
@@ -9821,19 +9830,57 @@ function showRemoteModal(deviceId) {
                     case 'select':
                     case 'back':
                     case 'home':
-                    case 'menu':
-                        await sendDeviceCommand(deviceId, 'remote.key', { key: action });
-                        break;
-                    case 'playpause': {
-                        await sendDeviceCommand(deviceId, 'playback.toggle');
+                    case 'menu': {
+                        const r = await sendDeviceCommand(
+                            deviceId,
+                            'remote.key',
+                            { key: action },
+                            { wait: true }
+                        );
+                        setStatus(r && r.ack ? `Ack: ${r.ack.status}` : 'Sent');
                         break;
                     }
-                    case 'prev':
-                        await sendDeviceCommand(deviceId, 'playback.prev');
+                    case 'playpause': {
+                        const r2 = await sendDeviceCommand(deviceId, 'playback.toggle', undefined, {
+                            wait: true,
+                        });
+                        setStatus(r2 && r2.ack ? `Ack: ${r2.ack.status}` : 'Sent');
                         break;
-                    case 'next':
-                        await sendDeviceCommand(deviceId, 'playback.next');
+                    }
+                    case 'prev': {
+                        const r3 = await sendDeviceCommand(deviceId, 'playback.prev', undefined, {
+                            wait: true,
+                        });
+                        setStatus(r3 && r3.ack ? `Ack: ${r3.ack.status}` : 'Sent');
                         break;
+                    }
+                    case 'next': {
+                        const r4 = await sendDeviceCommand(deviceId, 'playback.next', undefined, {
+                            wait: true,
+                        });
+                        setStatus(r4 && r4.ack ? `Ack: ${r4.ack.status}` : 'Sent');
+                        break;
+                    }
+                    case 'reload': {
+                        const r5 = await sendDeviceCommand(
+                            deviceId,
+                            'core.mgmt.reload',
+                            undefined,
+                            { wait: true }
+                        );
+                        setStatus(r5 && r5.ack ? `Ack: ${r5.ack.status}` : 'Sent');
+                        break;
+                    }
+                    case 'clearcache': {
+                        const r6 = await sendDeviceCommand(
+                            deviceId,
+                            'core.mgmt.clearCache',
+                            undefined,
+                            { wait: true }
+                        );
+                        setStatus(r6 && r6.ack ? `Ack: ${r6.ack.status}` : 'Sent');
+                        break;
+                    }
                 }
             } catch (_) {}
         };
@@ -9977,6 +10024,70 @@ function deviceStatusBadgesHTML(d) {
         ? '<span class="badge is-online badge-synced" title="Device will align to sync ticks">Synced</span>'
         : '';
 
+    // Compute Dupes badge using globally prepared maps (populated during render/reconcile)
+    const dupesBadge = (() => {
+        try {
+            const maps = (typeof window !== 'undefined' && window.__dupMaps) || {};
+            const hwMap = maps.hwMap || {};
+            const iidMap = maps.iidMap || {};
+            const uaScMap = maps.uaScMap || {};
+            // Helper to match UA+screen like initial render
+            const uaScKey = dev => {
+                try {
+                    const ci = dev && dev.clientInfo ? dev.clientInfo : {};
+                    const ua = (ci.userAgent || ci.ua || '').trim();
+                    const sc = ci.screen || {};
+                    const w = Number(sc.w || sc.width || 0) || 0;
+                    const h = Number(sc.h || sc.height || 0) || 0;
+                    const dpr = Number(sc.dpr || sc.scale || 1) || 1;
+                    if (!ua || !w || !h) return '';
+                    return `${ua}|${w}x${h}@${dpr}x`;
+                } catch (_) {
+                    return '';
+                }
+            };
+            const reasonsById = Object.create(null);
+            const add = (x, reason) => {
+                if (!x || x.id === d.id) return;
+                const entry = reasonsById[x.id] || { dev: x, reasons: new Set() };
+                entry.reasons.add(reason);
+                reasonsById[x.id] = entry;
+            };
+            if (d.hardwareId && hwMap[d.hardwareId] && hwMap[d.hardwareId].length > 1) {
+                for (const x of hwMap[d.hardwareId]) add(x, 'hardwareId');
+            }
+            if (d.installId && iidMap[d.installId] && iidMap[d.installId].length > 1) {
+                for (const x of iidMap[d.installId]) add(x, 'installId');
+            }
+            const key = uaScKey(d);
+            if (key && uaScMap[key] && uaScMap[key].length > 1) {
+                for (const x of uaScMap[key]) add(x, 'UA+screen');
+            }
+            const list = Object.values(reasonsById).map(v => ({
+                dev: v.dev,
+                reasons: Array.from(v.reasons),
+            }));
+            if (!list.length) return '';
+            const listIds = list.map(x => x.dev && x.dev.id).filter(Boolean);
+            const tipList = list
+                .map(x => {
+                    const nm =
+                        (x.dev && x.dev.name && String(x.dev.name).slice(0, 40)) ||
+                        (x.dev && x.dev.id ? x.dev.id.slice(0, 8) : '(unnamed)');
+                    const sid = (x.dev && x.dev.id ? x.dev.id : '').slice(0, 8);
+                    const rsn = x.reasons && x.reasons.length ? ` [${x.reasons.join(', ')}]` : '';
+                    return `${nm} — ${sid}${rsn}`;
+                })
+                .join('\n');
+            const title = `Likely duplicates (reasons per item):\n${tipList}`;
+            const safeTitle = title.replace(/"/g, '&quot;');
+            const safeIds = listIds.join(',').replace(/"/g, '&quot;');
+            return `<span class="badge badge-dup" title="${safeTitle}" data-dupes="${safeIds}" tabindex="0" role="button">Dupes: ${list.length}</span>`;
+        } catch (_) {
+            return '';
+        }
+    })();
+
     const raw = (d.status || 'unknown').toLowerCase();
     let label = 'Unknown';
     let cls = 'is-unknown';
@@ -10010,7 +10121,7 @@ function deviceStatusBadgesHTML(d) {
     )}">${esc(label)}<div class="device-tip">${statusTip}${detailsHtml}</div></span>`;
     // Add Overrides badge into the status cell, but not as the first item
     const overridesBadge = deviceOverridesBadgeHTML(d);
-    const together = [statusBadge, cellMode, overridesBadge, groupsBadge, syncedBadge]
+    const together = [statusBadge, cellMode, overridesBadge, groupsBadge, dupesBadge, syncedBadge]
         .filter(Boolean)
         .join(' ');
     return `<div class="status-badges">${together}</div>`;
@@ -10149,6 +10260,35 @@ function reconcileDevicesTable(devices) {
     const editing = isRowEditor;
     const byId = new Map();
     const filtered = (devices || []).filter(matches);
+    // Recompute duplicate maps for current filtered set and expose globally
+    const hwMap = Object.create(null);
+    const iidMap = Object.create(null);
+    const uaScMap = Object.create(null);
+    const uaScKey = d => {
+        try {
+            const ci = d && d.clientInfo ? d.clientInfo : {};
+            const ua = (ci.userAgent || ci.ua || '').trim();
+            const sc = ci.screen || {};
+            const w = Number(sc.w || sc.width || 0) || 0;
+            const h = Number(sc.h || sc.height || 0) || 0;
+            const dpr = Number(sc.dpr || sc.scale || 1) || 1;
+            if (!ua || !w || !h) return '';
+            return `${ua}|${w}x${h}@${dpr}x`;
+        } catch (_) {
+            return '';
+        }
+    };
+    try {
+        filtered.forEach(d => {
+            const hw = d && d.hardwareId;
+            if (hw) (hwMap[hw] = hwMap[hw] || []).push(d);
+            const iid = d && d.installId;
+            if (iid) (iidMap[iid] = iidMap[iid] || []).push(d);
+            const key = uaScKey(d);
+            if (key) (uaScMap[key] = uaScMap[key] || []).push(d);
+        });
+        window.__dupMaps = { hwMap, iidMap, uaScMap };
+    } catch (_) {}
     filtered.forEach(d => byId.set(getDeviceId(d), d));
 
     // Update existing rows and mark seen
@@ -10167,6 +10307,16 @@ function reconcileDevicesTable(devices) {
         // Update status badges (includes Overrides now)
         const statusCell = tr.querySelector('td.cell-status');
         if (statusCell) statusCell.innerHTML = deviceStatusBadgesHTML(d);
+        // Update duplicate row marker
+        try {
+            const hw = d && d.hardwareId;
+            const iid = d && d.installId;
+            const key = uaScKey(d);
+            const hasHw = hw && hwMap[hw] && hwMap[hw].length > 1;
+            const hasIid = iid && iidMap[iid] && iidMap[iid].length > 1;
+            const hasUaSc = key && uaScMap[key] && uaScMap[key].length > 1;
+            tr.classList.toggle('row-dup-suspect', !!(hasHw || hasIid || hasUaSc));
+        } catch (_) {}
         // Meta line remains empty (no overrides badge here)
         // Update buttons state conservatively
         try {
@@ -10417,6 +10567,10 @@ function renderDevicesTable(devices) {
             if (key) (uaScMap[key] = uaScMap[key] || []).push(d);
         });
     } catch (_) {}
+    // Expose maps globally for status badge computation during periodic refresh
+    try {
+        window.__dupMaps = { hwMap, iidMap, uaScMap };
+    } catch (_) {}
 
     // Format last-seen into separate date/time lines for compact layout
     const fmtParts = ts => {
@@ -10649,7 +10803,6 @@ function renderDevicesTable(devices) {
             window.currentConfig &&
             window.currentConfig.syncEnabled !== false
         );
-        let __dupeIdsCache = [];
         const dupesBadge = (() => {
             try {
                 const reasonsById = Object.create(null);
@@ -10679,7 +10832,6 @@ function renderDevicesTable(devices) {
                 }));
                 if (!list.length) return '';
                 const listIds = list.map(x => x.dev && x.dev.id).filter(Boolean);
-                __dupeIdsCache = listIds.slice();
                 const tipList = list
                     .map(x => {
                         const nm =
@@ -10699,16 +10851,7 @@ function renderDevicesTable(devices) {
                 return '';
             }
         })();
-        const mergeSuggestBtn = (() => {
-            try {
-                if (!Array.isArray(__dupeIdsCache) || __dupeIdsCache.length === 0) return '';
-                const ids = [d.id].concat(__dupeIdsCache);
-                const safe = ids.join(',').replace(/"/g, '&quot;');
-                return `<button type="button" class="btn btn-compact btn-merge-suggest" data-merge-suggest="${safe}" title="Merge this device with its duplicates">Merge suggested</button>`;
-            } catch (_) {
-                return '';
-            }
-        })();
+        // Merge suggested button removed per UX request; Dupes badge remains clickable
         const syncedBadge = synced
             ? '<span class="badge is-online badge-synced" title="Device will align to sync ticks">Synced</span>'
             : '';
@@ -10718,22 +10861,19 @@ function renderDevicesTable(devices) {
             overridesBadge,
             groupsBadge,
             dupesBadge,
-            mergeSuggestBtn,
             syncedBadge,
         ]
             .filter(Boolean)
             .join(' ');
         return `<div class="status-badges">${together}</div>`;
     })()}</td>`;
-        // Highlight rows that have duplicates
+        // Mark rows that have duplicates (no background highlight in CSS per UX)
         try {
             const hasHw = d && d.hardwareId && hwMap[d.hardwareId]?.length > 1;
             const hasIid = d && d.installId && iidMap[d.installId]?.length > 1;
-            const key = uaScKey(d);
-            const hasUaSc = key && uaScMap[key] && uaScMap[key].length > 1;
-            if (hasHw || hasIid || hasUaSc) {
-                tr.classList.add('row-dup-suspect');
-            }
+            const key2 = uaScKey(d);
+            const hasUaSc = key2 && uaScMap[key2] && uaScMap[key2].length > 1;
+            tr.classList.toggle('row-dup-suspect', !!(hasHw || hasIid || hasUaSc));
         } catch (_) {}
         tbody.appendChild(tr);
     });
@@ -11640,17 +11780,25 @@ function initDevicesPanel() {
                 const tbody = container.querySelector('#devices-table tbody');
                 const entries = ids.map(id => {
                     const row = tbody.querySelector(`tr[data-id="${id}"]`);
-                    const nameEl = row && row.querySelector('.device-name');
-                    const name = nameEl ? nameEl.textContent.trim() : id;
+                    // Prefer attached device data, then the inline name input, else fallback to ID
+                    const d = row && row.__deviceData;
+                    let name = (d && d.name) || '';
+                    if (!name && row) {
+                        const input = row.querySelector('input.name-input');
+                        if (input && typeof input.value === 'string') name = input.value.trim();
+                    }
+                    if (!name) name = id;
                     return { id, name };
                 });
                 const radios = entries
                     .map(
                         (e, idx) => `
-                        <label class="merge-target">
+                        <label class="merge-target" style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;">
                             <input type="radio" name="merge-target" value="${e.id}" ${idx === 0 ? 'checked' : ''} />
-                            <span class="merge-id">${e.id.slice(0, 8)}</span>
-                            <span class="merge-name">${(e.name || '').replace(/</g, '&lt;')}</span>
+                            <span class="merge-text" style="display:flex;flex-direction:column;line-height:1.2;">
+                                <span class="merge-name" style="font-weight:600;">${(e.name || '').replace(/</g, '&lt;')}</span>
+                                <span class="merge-id" style="opacity:0.85;font-family:monospace;">${e.id.slice(0, 8)}</span>
+                            </span>
                         </label>`
                     )
                     .join('');
@@ -11679,13 +11827,62 @@ function initDevicesPanel() {
                 wrap.innerHTML = html;
                 const modal = wrap.firstElementChild;
                 document.body.appendChild(modal);
-                const close = () => modal && modal.remove();
+                // Accessibility and focus management
+                const activeBefore = document.activeElement;
+                const focusables = () =>
+                    Array.from(
+                        modal.querySelectorAll(
+                            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                        )
+                    ).filter(el => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+                // Helpers return arrays; compute first/last inline to avoid unused vars lint
+                // compute first/last on demand within key handlers; no persistent helpers needed
+
+                const close = () => {
+                    if (!modal) return;
+                    modal.remove();
+                    try {
+                        // restore focus to the element that opened the modal
+                        if (activeBefore && typeof activeBefore.focus === 'function')
+                            activeBefore.focus();
+                    } catch (_) {}
+                };
                 modal
                     .querySelectorAll('[data-close]')
                     .forEach(el => el.addEventListener('click', close));
                 modal.addEventListener('click', e => {
                     if (e.target === modal) close();
                 });
+                // Keyboard handling: trap focus and close on Esc
+                modal.addEventListener('keydown', e => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        close();
+                        return;
+                    }
+                    if (e.key === 'Tab') {
+                        const f = focusables();
+                        if (!f.length) return;
+                        const first = f[0];
+                        const last = f[f.length - 1];
+                        if (e.shiftKey) {
+                            if (document.activeElement === first) {
+                                e.preventDefault();
+                                last.focus();
+                            }
+                        } else {
+                            if (document.activeElement === last) {
+                                e.preventDefault();
+                                first.focus();
+                            }
+                        }
+                    }
+                });
+                // Set initial focus to primary action
+                setTimeout(() => {
+                    const primary = modal.querySelector('#merge-do');
+                    if (primary) primary.focus();
+                }, 0);
                 const doBtn = modal.querySelector('#merge-do');
                 doBtn.addEventListener('click', async () => {
                     try {
@@ -11746,18 +11943,7 @@ function initDevicesPanel() {
                 openMergeModal(Array.from(new Set(ids)));
             });
 
-            // Delegated: Merge suggested button
-            container.addEventListener('click', ev => {
-                const btn = ev.target.closest && ev.target.closest('.btn-merge-suggest');
-                if (!btn) return;
-                ev.preventDefault();
-                ev.stopPropagation();
-                const list = (btn.getAttribute('data-merge-suggest') || '')
-                    .split(',')
-                    .filter(Boolean);
-                if (list.length < 2) return;
-                openMergeModal(Array.from(new Set(list)));
-            });
+            // Merge suggested button removed; Dupes badge remains for opening merge modal
         }
     }
 

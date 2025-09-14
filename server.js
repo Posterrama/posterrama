@@ -1889,7 +1889,7 @@ if (isDeviceMgmtEnabled()) {
         }
     );
 
-    // Admin: queue or live-send command to device
+    // Admin: queue or live-send command to device (optional wait for ack)
     app.post('/api/devices/:id/command', adminAuth, express.json(), async (req, res) => {
         try {
             const { type, payload } = req.body || {};
@@ -1897,6 +1897,29 @@ if (isDeviceMgmtEnabled()) {
             const d = await deviceStore.getById(req.params.id);
             if (!d) return res.status(404).json({ error: 'not_found' });
             // Try live first via WS; fall back to queue if offline
+            const wait = String(req.query.wait || '').toLowerCase() === 'true';
+            if (wait) {
+                try {
+                    const result = await wsHub
+                        .sendCommandAwait(req.params.id, { type, payload, timeoutMs: 3000 })
+                        .catch(err => {
+                            throw err;
+                        });
+                    return res.json({ queued: false, live: true, ack: result || { status: 'ok' } });
+                } catch (e) {
+                    const msg = String(e && e.message ? e.message : e);
+                    if (msg === 'not_connected') {
+                        const cmd = deviceStore.queueCommand(req.params.id, { type, payload });
+                        return res.json({ queued: true, live: false, command: cmd });
+                    }
+                    if (msg === 'ack_timeout') {
+                        return res
+                            .status(202)
+                            .json({ queued: false, live: true, ack: { status: 'timeout' } });
+                    }
+                    return res.status(500).json({ error: 'send_failed', detail: msg });
+                }
+            }
             const liveSent = wsHub.sendCommand(req.params.id, { type, payload });
             if (liveSent) return res.json({ queued: false, live: true });
             const cmd = deviceStore.queueCommand(req.params.id, { type, payload });
@@ -2025,7 +2048,7 @@ if (isDeviceMgmtEnabled()) {
             res.status(500).json({ error: 'group_delete_failed' });
         }
     });
-    // Admin: send command to all devices in a group
+    // Admin: send command to all devices in a group (optional wait for per-device acks)
     app.post('/api/groups/:id/command', adminAuth, express.json(), async (req, res) => {
         try {
             const { type, payload } = req.body || {};
@@ -2035,8 +2058,45 @@ if (isDeviceMgmtEnabled()) {
             // Find devices that belong to this group
             const all = await deviceStore.getAll();
             const members = all.filter(d => Array.isArray(d.groups) && d.groups.includes(g.id));
+            const wait = String(req.query.wait || '').toLowerCase() === 'true';
             let live = 0;
             let queued = 0;
+            if (wait) {
+                const results = [];
+                await Promise.all(
+                    members.map(async d => {
+                        if (wsHub.isConnected(d.id)) {
+                            try {
+                                const ack = await wsHub
+                                    .sendCommandAwait(d.id, { type, payload, timeoutMs: 3000 })
+                                    .catch(err => {
+                                        throw err;
+                                    });
+                                live++;
+                                results.push({ deviceId: d.id, status: ack?.status || 'ok' });
+                            } catch (e) {
+                                const msg = String(e && e.message ? e.message : e);
+                                if (msg === 'ack_timeout') {
+                                    live++;
+                                    results.push({ deviceId: d.id, status: 'timeout' });
+                                } else if (msg === 'not_connected') {
+                                    deviceStore.queueCommand(d.id, { type, payload });
+                                    queued++;
+                                    results.push({ deviceId: d.id, status: 'queued' });
+                                } else {
+                                    results.push({ deviceId: d.id, status: 'error', detail: msg });
+                                }
+                            }
+                        } else {
+                            deviceStore.queueCommand(d.id, { type, payload });
+                            queued++;
+                            results.push({ deviceId: d.id, status: 'queued' });
+                        }
+                    })
+                );
+                return res.json({ ok: true, live, queued, total: members.length, results });
+            }
+            // no-wait: fire-and-forget like before
             for (const d of members) {
                 const sent = wsHub.sendCommand(d.id, { type, payload });
                 if (sent) live++;

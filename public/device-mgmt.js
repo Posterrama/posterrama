@@ -29,6 +29,7 @@
         try {
             return window.localStorage;
         } catch (_) {
+            /* noop: unable to access localStorage */
             return null;
         }
     }
@@ -37,59 +38,80 @@
     async function openIDB() {
         if (!('indexedDB' in window)) throw new Error('no_idb');
         return await new Promise((resolve, reject) => {
-            const req = indexedDB.open('posterrama', 1);
-            req.onupgradeneeded = () => {
-                try {
-                    const db = req.result;
-                    if (!db.objectStoreNames.contains('device')) db.createObjectStore('device');
-                } catch (e) {
-                    // ignore upgrade errors
-                }
-            };
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error || new Error('idb_open_failed'));
+            try {
+                const req = indexedDB.open('posterrama', 1);
+                req.onupgradeneeded = () => {
+                    try {
+                        const db = req.result;
+                        if (!db.objectStoreNames.contains('device')) db.createObjectStore('device');
+                    } catch (_) {
+                        /* noop: ignore upgrade errors */
+                    }
+                };
+                req.onerror = () => reject(req.error || new Error('idb_open_error'));
+                req.onsuccess = () => resolve(req.result);
+            } catch (e) {
+                reject(e);
+            }
         });
     }
+
     async function idbGetIdentity() {
         try {
             const db = await openIDB();
             return await new Promise(resolve => {
-                const tx = db.transaction('device', 'readonly');
-                const store = tx.objectStore('device');
-                const req = store.get('identity');
-                req.onsuccess = () => resolve(req.result || null);
-                req.onerror = () => resolve(null);
+                try {
+                    const tx = db.transaction('device', 'readonly');
+                    const store = tx.objectStore('device');
+                    const req = store.get('identity');
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => resolve(null);
+                } catch (_) {
+                    /* noop: unable to retrieve identity */
+                    resolve(null);
+                }
             });
         } catch (_) {
+            /* noop: unable to open IDB */
             return null;
         }
     }
+
     async function idbSaveIdentity(id, secret) {
         try {
             const db = await openIDB();
             await new Promise((resolve, reject) => {
-                const tx = db.transaction('device', 'readwrite');
-                const store = tx.objectStore('device');
-                const req = store.put({ id, secret }, 'identity');
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error || new Error('idb_put_failed'));
+                try {
+                    const tx = db.transaction('device', 'readwrite');
+                    const store = tx.objectStore('device');
+                    store.put({ id, secret }, 'identity');
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => reject(tx.error || new Error('idb_tx_error'));
+                } catch (e) {
+                    reject(e);
+                }
             });
         } catch (_) {
-            // ignore idb save errors (fallback will hold)
+            /* noop: ignore idb write errors */
         }
     }
+
     async function idbClearIdentity() {
         try {
             const db = await openIDB();
             await new Promise((resolve, reject) => {
-                const tx = db.transaction('device', 'readwrite');
-                const store = tx.objectStore('device');
-                const req = store.delete('identity');
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error || new Error('idb_del_failed'));
+                try {
+                    const tx = db.transaction('device', 'readwrite');
+                    const store = tx.objectStore('device');
+                    store.delete('identity');
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => reject(tx.error || new Error('idb_tx_error'));
+                } catch (e) {
+                    reject(e);
+                }
             });
         } catch (_) {
-            // ignore
+            /* noop: ignore idb delete errors */
         }
     }
     async function loadIdentityAsync() {
@@ -107,7 +129,7 @@
             try {
                 await idbSaveIdentity(id, secret);
             } catch (_) {
-                /* ignore migration errors */
+                /* noop: ignore migration errors */
             }
         }
         return { id, secret };
@@ -118,7 +140,9 @@
             try {
                 if (id) store.setItem(STORAGE_KEYS.id, id);
                 if (secret) store.setItem(STORAGE_KEYS.secret, secret);
-            } catch (_) {}
+            } catch (_) {
+                // ignore localStorage errors
+            }
         }
         await idbSaveIdentity(id, secret);
     }
@@ -128,7 +152,9 @@
             try {
                 store.removeItem(STORAGE_KEYS.id);
                 store.removeItem(STORAGE_KEYS.secret);
-            } catch (_) {}
+            } catch (_) {
+                // ignore localStorage remove errors
+            }
         }
         // Fire-and-forget IDB cleanup
         idbClearIdentity();
@@ -145,12 +171,15 @@
         if (!store) return null;
         let iid = store.getItem('posterrama.installId');
         if (!iid) {
-            iid =
-                (crypto && crypto.randomUUID
-                    ? crypto.randomUUID()
-                    : Math.random().toString(36).slice(2)) +
-                '-' +
-                Date.now().toString(36);
+            try {
+                const rand =
+                    typeof crypto !== 'undefined' && crypto.randomUUID
+                        ? crypto.randomUUID()
+                        : Math.random().toString(36).slice(2) + '-' + Date.now().toString(36);
+                iid = 'inst-' + rand;
+            } catch (_) {
+                iid = 'inst-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36);
+            }
             try {
                 store.setItem('posterrama.installId', iid);
             } catch (_) {
@@ -163,29 +192,28 @@
     // Best-effort hardwareId across browsers on the same machine:
     // - Combine platform, screen metrics, timezone, language, cpu/mem hints, and touch
     // - Include timezone offset to differentiate DST/locale changes less
-    // - Store in localStorage when available to keep stable per browser profile
     function computeHardwareId() {
         try {
             const nav = navigator || {};
             const scr = window.screen || {};
-            const tzOffset = new Date().getTimezoneOffset();
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+            const langs = (nav.languages || []).join(',') || nav.language || '';
             const hints = [
                 nav.platform || '',
                 (scr.width || 0) + 'x' + (scr.height || 0) + '@' + (window.devicePixelRatio || 1),
-                Intl.DateTimeFormat().resolvedOptions().timeZone || '',
-                (nav.language || '') + '|' + (nav.languages || []).join(','),
-                (nav.hardwareConcurrency || 0) + 'c',
-                (nav.deviceMemory || 0) + 'gb',
-                (scr.colorDepth || 0) + 'cd',
-                (scr.pixelDepth || 0) + 'pd',
-                (nav.maxTouchPoints || 0) + 'tp',
-                tzOffset + 'tz',
+                tz,
+                langs,
+                nav.deviceMemory != null ? nav.deviceMemory + 'gb' : '',
+                scr.colorDepth != null ? scr.colorDepth + 'cd' : '',
+                scr.pixelDepth != null ? scr.pixelDepth + 'pd' : '',
+                nav.maxTouchPoints != null ? nav.maxTouchPoints + 'tp' : '',
+                String(new Date().getTimezoneOffset()),
             ].join('|');
-            // Simple, stable hash (FNV-1a)
-            let hash = 2166136261;
+            // FNV-1a 32-bit hash
+            let hash = 0x811c9dc5;
             for (let i = 0; i < hints.length; i++) {
                 hash ^= hints.charCodeAt(i);
-                hash = (hash >>> 0) * 16777619;
+                hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
             }
             return 'hw-' + (hash >>> 0).toString(16);
         } catch (_) {
@@ -203,7 +231,7 @@
             }
             return hw;
         } catch (_) {
-            return computeHardwareId();
+            return null;
         }
     }
 
@@ -216,7 +244,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Install-Id': state.installId,
+                    'X-Install-Id': state.installId || '',
                     'X-Hardware-Id': state.hardwareId || '',
                 },
                 body: JSON.stringify({ installId: state.installId, hardwareId: state.hardwareId }),
@@ -227,9 +255,8 @@
                 return false;
             }
             const data = await res.json();
-            state.deviceId = data.deviceId;
             state.deviceSecret = data.deviceSecret;
-            saveIdentity(state.deviceId, state.deviceSecret);
+            await saveIdentity(state.deviceId, state.deviceSecret);
             return true;
         } catch (e) {
             state.enabled = false;
@@ -288,7 +315,6 @@
         const payload = {
             deviceId: state.deviceId,
             deviceSecret: state.deviceSecret,
-            installId: state.installId || getInstallId(),
             hardwareId: state.hardwareId || getHardwareId(),
             userAgent: navigator.userAgent,
             screen: collectClientInfo().screen,
@@ -356,40 +382,59 @@
             overlay.id = 'pr-welcome-overlay';
             overlay.innerHTML = `
 <style>
-#pr-welcome-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);color:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
-#pr-welcome-card{width:min(92vw,520px);background:#111;border-radius:12px;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
-#pr-welcome-card h2{margin:0 0 12px;font-size:20px}
+#pr-welcome-overlay{position:fixed;inset:0;background:radial-gradient(1200px 600px at 50% -10%, rgba(255,255,255,.08), rgba(0,0,0,.9)), rgba(0,0,0,.85);color:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
+#pr-welcome-card{width:min(96vw,960px);max-width:960px;background:rgba(20,20,20,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px 24px;box-shadow:0 24px 60px rgba(0,0,0,.55);display:grid;grid-template-columns:1.2fr .9fr;gap:18px}
+#pr-welcome-card h2{margin:0 0 6px;font-size:24px;letter-spacing:.2px}
+#pr-sub{margin:0 0 10px;color:#cfd6e4;font-size:14px}
 .pr-field{margin:10px 0}
-.pr-field label{display:block;margin-bottom:6px;font-size:13px;color:#bbb}
-.pr-field input{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#1b1b1b;color:#fff;outline:none}
-.pr-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
-.pr-btn{appearance:none;border:0;border-radius:8px;padding:10px 14px;background:#2d6cdf;color:#fff;cursor:pointer}
-.pr-btn.sec{background:#2b2b2b;color:#ddd}
-.pr-msg{min-height:18px;color:#f88;font-size:13px;margin-top:6px}
-.pr-qr{margin-top:10px}
-.pr-video{width:100%;max-height:240px;border-radius:8px;background:#000}
-.pr-note{font-size:12px;color:#aaa;margin-top:8px}
+.pr-field label{display:block;margin-bottom:6px;font-size:12px;color:#aab3c2}
+.pr-field input{width:100%;padding:12px;border-radius:10px;border:1px solid #2f3642;background:#14161a;color:#fff;outline:none}
+.pr-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.pr-btn{appearance:none;border:0;border-radius:10px;padding:11px 16px;background:#2d6cdf;color:#fff;cursor:pointer;font-weight:600}
+.pr-btn.sec{background:#2b2f36;color:#e6e8eb;border:1px solid #3a414d}
+.pr-btn.warn{background:#3a414d;color:#e6e8eb}
+.pr-msg{min-height:18px;color:#f88;font-size:13px;margin-top:8px}
+.pr-qr{display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pr-qr img{max-width:320px;width:100%;height:auto;background:#fff;border-radius:12px;border:1px solid #2f3642;padding:10px}
+.pr-qr .qr-caption{margin-top:8px;font-size:12px;color:#cfd6e4;text-align:center}
+.pr-video{width:100%;max-height:240px;border-radius:10px;background:#000}
+.pr-note{font-size:12px;color:#aab3c2;margin-top:8px}
+.pr-topbar{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.pr-count{font-size:12px;color:#cfd6e4}
+@media (max-width: 720px){#pr-welcome-card{grid-template-columns:1fr;}}
 </style>
 <div id="pr-welcome-card" role="dialog" aria-modal="true" aria-labelledby="pr-welcome-title">
-  <h2 id="pr-welcome-title">Koppel dit scherm</h2>
-  <p class="pr-note">Voer een pairing code in of scan de QR. Of registreer dit apparaat als nieuw.</p>
-  <div class="pr-field">
-    <label for="pr-pair-code">Pair code</label>
-    <input id="pr-pair-code" placeholder="Bijv. 123456" inputmode="numeric" autocomplete="one-time-code" />
+  <div class="pr-left">
+    <div class="pr-topbar">
+      <div>
+        <h2 id="pr-welcome-title">Set up this screen</h2>
+    <p id="pr-sub">Enter a pairing code, scan the Admin QR, or register this device as new.</p>
+      </div>
+      <div class="pr-count"><span id="pr-countdown">02:00</span></div>
+    </div>
+    <div class="pr-field">
+      <label for="pr-pair-code">Pair code</label>
+      <input id="pr-pair-code" placeholder="e.g. 123456" inputmode="numeric" autocomplete="one-time-code" />
+    </div>
+    <div class="pr-field">
+      <label for="pr-pair-token">Token (if provided)</label>
+      <input id="pr-pair-token" placeholder="Optional" />
+    </div>
+    <div class="pr-actions">
+      <button class="pr-btn" id="pr-do-pair">Pair</button>
+      <button class="pr-btn sec" id="pr-scan">Scan QR</button>
+      <button class="pr-btn sec" id="pr-register">Register as new</button>
+      <button class="pr-btn warn" id="pr-close">Close</button>
+    </div>
+    <div class="pr-msg" id="pr-msg"></div>
+    <div class="pr-qr" id="pr-qr" hidden>
+      <video id="pr-video" class="pr-video" autoplay playsinline></video>
+      <div class="pr-note">Point the camera at a pairing QR. Click Scan again to stop.</div>
+    </div>
   </div>
-  <div class="pr-field">
-    <label for="pr-pair-token">Token (indien vermeld)</label>
-    <input id="pr-pair-token" placeholder="Optioneel" />
-  </div>
-  <div class="pr-actions">
-    <button class="pr-btn" id="pr-do-pair">Koppelen</button>
-    <button class="pr-btn sec" id="pr-scan">Scan QR</button>
-    <button class="pr-btn sec" id="pr-register">Registreer als nieuw</button>
-  </div>
-  <div class="pr-msg" id="pr-msg"></div>
-  <div class="pr-qr" id="pr-qr" hidden>
-    <video id="pr-video" class="pr-video" autoplay playsinline></video>
-    <div class="pr-note">Richt de camera op de QR-code. Sluit het venster of druk nogmaals op Scan om te stoppen.</div>
+  <div class="pr-qr">
+    <img id="pr-qr-img" alt="Admin link QR"/>
+    <div class="qr-caption">Scan to open Admin → Devices</div>
   </div>
 </div>`;
             document.body.appendChild(overlay);
@@ -399,13 +444,28 @@
             const tokenEl = $('#pr-pair-token');
             const video = $('#pr-video');
             const qrWrap = $('#pr-qr');
+            const qrImg = $('#pr-qr-img');
+            const countdownEl = $('#pr-countdown');
             let stream = null;
             let scanning = false;
             let detector = null;
+            let countTimer = null;
+            let remaining = 120; // seconds
 
             function setMsg(t, ok) {
                 msg.style.color = ok ? '#7ad97a' : '#f88';
                 msg.textContent = t || '';
+            }
+            function fmt(n) {
+                return n < 10 ? `0${n}` : `${n}`;
+            }
+            function tickCountdown() {
+                remaining = Math.max(0, remaining - 1);
+                if (countdownEl)
+                    countdownEl.textContent = `${fmt(Math.floor(remaining / 60))}:${fmt(remaining % 60)}`;
+                if (remaining <= 0) {
+                    doClose();
+                }
             }
             async function stopScan() {
                 scanning = false;
@@ -414,13 +474,33 @@
                         for (const tr of stream.getTracks()) tr.stop();
                     }
                     stream = null;
-                } catch (_) {}
+                } catch (_) {
+                    /* noop: ignore stop stream errors */
+                }
                 if (qrWrap) qrWrap.hidden = true;
+            }
+            function doClose() {
+                try {
+                    stopScan();
+                } catch (_) {
+                    /* noop: ignore stopScan */
+                }
+                try {
+                    clearInterval(countTimer);
+                } catch (_) {
+                    /* noop: ignore clearInterval */
+                }
+                try {
+                    document.body.removeChild(overlay);
+                } catch (_) {
+                    /* noop: ignore removeChild */
+                }
+                resolve(true);
             }
             async function startScan() {
                 if (!('BarcodeDetector' in window)) {
                     setMsg(
-                        'QR scannen niet ondersteund in deze browser. Plak de URL of vul de code in.',
+                        'QR scanning is not supported by this browser. Enter the code instead.',
                         false
                     );
                     return;
@@ -428,7 +508,7 @@
                 try {
                     detector = new window.BarcodeDetector({ formats: ['qr_code'] });
                 } catch (_) {
-                    setMsg('QR scannen niet beschikbaar.', false);
+                    setMsg('QR scanning unavailable.', false);
                     return;
                 }
                 try {
@@ -458,26 +538,28 @@
                                 } catch (_) {
                                     codeEl.value = raw.replace(/\D/g, '').slice(0, 12);
                                 }
-                                setMsg('QR gelezen. Klik op Koppelen.', true);
+                                setMsg('QR read. Click Pair.', true);
                                 await stopScan();
                                 return;
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* noop: detector.detect failed */
+                        }
                         requestAnimationFrame(tick);
                     };
                     requestAnimationFrame(tick);
                 } catch (e) {
-                    setMsg('Geen toegang tot camera.', false);
+                    setMsg('No camera access.', false);
                 }
             }
             async function tryPair() {
                 const code = (codeEl.value || '').trim();
                 const token = (tokenEl.value || '').trim();
                 if (!code) {
-                    setMsg('Vul een geldige code in.', false);
+                    setMsg('Please enter a valid code.', false);
                     return;
                 }
-                setMsg('Koppelen...', true);
+                setMsg('Pairing...', true);
                 try {
                     const res = await fetch('/api/devices/pair', {
                         method: 'POST',
@@ -485,20 +567,22 @@
                         body: JSON.stringify({ code, token: token || undefined }),
                     });
                     if (!res.ok) {
-                        setMsg('Code ongeldig of verlopen.', false);
+                        setMsg('Code invalid or expired.', false);
                         return;
                     }
                     const data = await res.json();
                     await saveIdentity(data.deviceId, data.deviceSecret);
-                    setMsg('Gekoppeld! Laden...', true);
+                    setMsg('Paired! Loading...', true);
                     setTimeout(() => {
                         try {
                             document.body.removeChild(overlay);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* noop: overlay removal failed */
+                        }
                         resolve(true);
                     }, 200);
                 } catch (_) {
-                    setMsg('Koppelen mislukt. Probeer opnieuw.', false);
+                    setMsg('Pairing failed. Please try again.', false);
                 }
             }
 
@@ -510,28 +594,49 @@
             });
             $('#pr-do-pair').addEventListener('click', tryPair);
             $('#pr-register').addEventListener('click', async () => {
-                setMsg('Registreren...', true);
+                setMsg('Registering...', true);
                 try {
                     const ok = await registerIfNeeded();
                     if (ok) {
-                        setMsg('Geregistreerd. Laden...', true);
+                        setMsg('Registered. Loading...', true);
                         setTimeout(() => {
                             try {
                                 document.body.removeChild(overlay);
-                            } catch (_) {}
+                            } catch (_) {
+                                /* noop: overlay removal failed */
+                            }
                             resolve(true);
                         }, 200);
                     } else {
-                        setMsg('Registratie niet beschikbaar.', false);
+                        setMsg('Registration not available.', false);
                     }
                 } catch (_) {
-                    setMsg('Registratie mislukt.', false);
+                    setMsg('Registration failed.', false);
                 }
             });
             $('#pr-scan').addEventListener('click', async () => {
                 if (scanning) return void stopScan();
                 await startScan();
             });
+            $('#pr-close').addEventListener('click', doClose);
+            // Inline QR: link to Admin → Devices with hints for this device
+            try {
+                const iid = state.installId || getInstallId();
+                const hw = state.hardwareId || getHardwareId();
+                const adminLink = `${window.location.origin}/admin#devices?setup=1${iid ? `&iid=${encodeURIComponent(iid)}` : ''}${hw ? `&hw=${encodeURIComponent(hw)}` : ''}`;
+                if (qrImg) {
+                    qrImg.src = `/api/qr?format=svg&text=${encodeURIComponent(adminLink)}`;
+                }
+            } catch (_) {
+                /* noop: building admin link failed */
+            }
+            // Start countdown
+            try {
+                if (countdownEl) countdownEl.textContent = '02:00';
+                countTimer = setInterval(tickCountdown, 1000);
+            } catch (_) {
+                /* noop: countdown init failed */
+            }
             // Cleanup on unload
             window.addEventListener('beforeunload', stopScan);
         });
@@ -595,24 +700,40 @@
                     if (msg.kind === 'command') {
                         const t = msg.type || '';
                         liveDbg('[Live] WS command received', { type: t, payload: msg.payload });
+                        // helper to send ack back (best-effort)
+                        const sendAck = (status = 'ok', info = null) => {
+                            try {
+                                if (state.ws && state.ws.readyState === WebSocket.OPEN && msg.id) {
+                                    state.ws.send(
+                                        JSON.stringify({ kind: 'ack', id: msg.id, status, info })
+                                    );
+                                }
+                            } catch (_) {
+                                // ignore ack send errors
+                            }
+                        };
                         // First try runtime playback hooks for immediate action
                         try {
                             const api = window.__posterramaPlayback || {};
                             if (t === 'playback.prev' && api.prev) {
                                 liveDbg('[Live] invoking playback.prev');
-                                return void api.prev();
+                                api.prev();
+                                return void sendAck('ok');
                             }
                             if (t === 'playback.next' && api.next) {
                                 liveDbg('[Live] invoking playback.next');
-                                return void api.next();
+                                api.next();
+                                return void sendAck('ok');
                             }
                             if (t === 'playback.pause' && api.pause) {
                                 liveDbg('[Live] invoking playback.pause');
-                                return void api.pause();
+                                api.pause();
+                                return void sendAck('ok');
                             }
                             if (t === 'playback.resume' && api.resume) {
                                 liveDbg('[Live] invoking playback.resume');
-                                return void api.resume();
+                                api.resume();
+                                return void sendAck('ok');
                             }
                             if (t === 'playback.pinPoster' && api.pinPoster) {
                                 liveDbg('[Live] invoking playback.pinPoster', {
@@ -624,35 +745,59 @@
                                         (typeof window !== 'undefined' &&
                                             window.__posterramaCurrentMediaId) ||
                                         undefined;
-                                    return void api.pinPoster({ mediaId: mediaIdHint });
+                                    api.pinPoster({ mediaId: mediaIdHint });
+                                    return void sendAck('ok');
                                 } catch (_) {
-                                    return void api.pinPoster(msg.payload);
+                                    api.pinPoster(msg.payload);
+                                    return void sendAck('ok');
                                 }
                             }
                             if (t === 'source.switch' && api.switchSource) {
                                 liveDbg('[Live] invoking source.switch', {
                                     sourceKey: msg.payload?.sourceKey,
                                 });
-                                return void api.switchSource(msg.payload?.sourceKey);
+                                api.switchSource(msg.payload?.sourceKey);
+                                return void sendAck('ok');
                             }
                             if (t === 'power.off' && api.powerOff) {
                                 liveDbg('[Live] invoking power.off');
-                                return void api.powerOff();
+                                api.powerOff();
+                                return void sendAck('ok');
                             }
                             if (t === 'power.on' && api.powerOn) {
                                 liveDbg('[Live] invoking power.on');
-                                return void api.powerOn();
+                                api.powerOn();
+                                return void sendAck('ok');
                             }
                             if (t === 'power.toggle' && api.powerToggle) {
                                 liveDbg('[Live] invoking power.toggle');
-                                return void api.powerToggle();
+                                api.powerToggle();
+                                return void sendAck('ok');
                             }
                         } catch (_) {
                             /* ignore playback hook errors */
                         }
                         // Fallback to mgmt command handler
                         liveDbg('[Live] delegating to handleCommand', { type: msg.type });
-                        handleCommand({ type: msg.type, payload: msg.payload });
+                        // For commands that may reload/reset, ack first then perform action
+                        const typ = msg.type || '';
+                        if (
+                            typ === 'core.mgmt.reload' ||
+                            typ === 'core.mgmt.reset' ||
+                            typ === 'core.mgmt.clearCache' ||
+                            typ === 'core.mgmt.swUnregister'
+                        ) {
+                            sendAck('ok');
+                            handleCommand({ type: msg.type, payload: msg.payload });
+                            return;
+                        }
+                        // For others, attempt to execute and then ack
+                        try {
+                            handleCommand({ type: msg.type, payload: msg.payload });
+                            sendAck('ok');
+                        } catch (e) {
+                            sendAck('error', String(e && e.message ? e.message : e));
+                        }
                     } else if (msg.kind === 'sync-tick') {
                         // Forward sync-tick to runtime slideshow for transition alignment
                         try {
@@ -670,6 +815,24 @@
                                     keys: Object.keys(msg.payload || {}),
                                 });
                                 window.applySettings(msg.payload);
+                                // Not a command, but we can optionally ack to log reception
+                                try {
+                                    if (
+                                        state.ws &&
+                                        state.ws.readyState === WebSocket.OPEN &&
+                                        msg.id
+                                    ) {
+                                        state.ws.send(
+                                            JSON.stringify({
+                                                kind: 'ack',
+                                                id: msg.id,
+                                                status: 'ok',
+                                            })
+                                        );
+                                    }
+                                } catch (_) {
+                                    /* noop: ack send after apply-settings failed */
+                                }
                             }
                         } catch (_) {
                             /* ignore applySettings errors */
@@ -1168,5 +1331,7 @@
                 // ignore debugBeat errors
             }
         },
+        getInstallId,
+        getHardwareId,
     };
 })();
