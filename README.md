@@ -133,7 +133,7 @@ In the admin dashboard, you can configure for each source:
   
 </figure>
 
-### 🖥️ Device Management
+### 🖥️ Device Management (BETA)
 
 <figure>
   <img src="./screenshots/devices.png" alt="Device Management" width="740">

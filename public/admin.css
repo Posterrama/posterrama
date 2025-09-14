@@ -7902,8 +7902,8 @@ body:has(.auth-container),
 
 .status-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    grid-template-columns: auto 18ch 18ch 18ch auto auto 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
     margin-top: 1rem;
 }
 
@@ -7912,6 +7912,7 @@ body:has(.auth-container),
     padding: 1rem;
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    min-height: 72px;
 }
 
 .status-item-header {
@@ -7926,6 +7927,7 @@ body:has(.auth-container),
 .status-item-value {
     font-size: 1.1rem;
     font-weight: 600;
+    line-height: 1.4;
 }
 
 .status-success {

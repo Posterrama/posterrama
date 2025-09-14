@@ -1,7 +1,6 @@
 # Device management store
 devices.json
 groups.json
-device-presets.json
 # Environment variables and config files
 # Prevent sensitive data from being committed to Git
 .env
