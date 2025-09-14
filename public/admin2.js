@@ -4918,7 +4918,8 @@
                             if (dev) {
                                 dev.currentState = dev.currentState || {};
                                 dev.currentState.pinned = false;
-                                dev.currentState.pinMediaId = undefined;
+                                // Use empty string to explicitly signal cleared pin to server/UI
+                                dev.currentState.pinMediaId = '';
                             }
                         } else {
                             pinnedUI = pinnedUI || {};

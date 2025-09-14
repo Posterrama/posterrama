@@ -2551,6 +2551,10 @@ if (isDeviceMgmtEnabled()) {
             if (pinned != null) currentState.pinned = !!pinned;
             if (pinMediaId != null) currentState.pinMediaId = pinMediaId;
             if (poweredOff != null) currentState.poweredOff = !!poweredOff;
+            // If the client reports explicitly unpinned, proactively clear any lingering pinMediaId
+            if (pinned === false) {
+                currentState.pinMediaId = '';
+            }
             await deviceStore.updateHeartbeat(deviceId, {
                 clientInfo: { userAgent, screen, mode },
                 currentState,

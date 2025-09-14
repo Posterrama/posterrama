@@ -381,7 +381,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Unpin on explicit resume
         try {
             isPinned = false;
-            pinnedMediaId = null;
+            // Use empty string instead of null so heartbeat can proactively clear server pinMediaId
+            pinnedMediaId = '';
         } catch (_) {}
         // Clear any timed pin
         try {

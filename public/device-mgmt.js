@@ -326,7 +326,8 @@
                     : undefined,
             mediaId,
             pinned,
-            pinMediaId,
+            // When unpinned, force pinMediaId to '' so the server clears lingering values
+            pinMediaId: pinned === false ? '' : pinMediaId,
             poweredOff,
         };
         try {
