@@ -2621,8 +2621,8 @@
 
                                     <div class="device-tools">
                                                 <button class="btn btn-icon btn-sm btn-power" title="Power Toggle"${disabledPower}${poweredOff}><i class="fas fa-power-off"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-reload card-secondary" title="Reload this device"><i class="fas fa-rotate-right"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-clearcache card-secondary" title="Clear caches"><i class="fas fa-broom"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-reload" title="Reload this device"><i class="fas fa-rotate-right"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-clearcache" title="Clear caches"><i class="fas fa-broom"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-pair card-secondary" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control"><i class="fas fa-gamepad"></i></button>
                                                 <button class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
@@ -2701,8 +2701,10 @@
                     if (!moreBtn || !menu) return;
                     const secondary = Array.from(row.querySelectorAll('.card-secondary'));
                     if (!secondary.length) return;
-                    // Determine if actions overflow the row
-                    const tooNarrow = row.scrollWidth > row.clientWidth || window.innerWidth < 720;
+                    // Determine if actions overflow the row; be slightly conservative to avoid wrap
+                    const rowOverflow = row.scrollWidth - row.clientWidth > 2;
+                    // Collapse only on real overflow AND very small screens; otherwise allow wrapping
+                    const tooNarrow = rowOverflow && window.innerWidth < 640;
                     if (tooNarrow) {
                         // Build menu items for hidden actions (use button titles)
                         menu.innerHTML = secondary
@@ -3310,21 +3312,36 @@
                 const nameEl = document.getElementById('remote-target-name');
                 if (nameEl) nameEl.textContent = dev ? `— ${dev.name || dev.id}` : '';
                 const overlay = document.getElementById('modal-remote');
-                overlay?.classList.add('open');
-                overlay?.querySelectorAll('[data-remote]')?.forEach(btn => {
-                    btn.addEventListener(
-                        'click',
-                        async () => {
-                            const key = btn.getAttribute('data-remote');
+                if (!overlay) return;
+                // Stash current device id on overlay for delegated handler
+                overlay.dataset.targetId = id;
+                overlay.classList.add('open');
+                // Attach a single delegated click handler once
+                if (!overlay._remoteBound) {
+                    overlay.addEventListener('click', async ev => {
+                        const btn = ev.target?.closest?.('[data-remote]');
+                        if (!btn || !overlay.contains(btn)) return;
+                        const key = btn.getAttribute('data-remote');
+                        const targetId = overlay.dataset.targetId;
+                        if (!targetId) return;
+                        try {
+                            // Brief pulse feedback
+                            try {
+                                btn.classList.remove('pulse');
+                                // Force reflow to restart animation
+                                // eslint-disable-next-line no-unused-expressions
+                                btn.offsetHeight;
+                                btn.classList.add('pulse');
+                            } catch (_) {}
                             if (key === 'playpause') {
-                                await sendCommand(id, 'playback.toggle');
+                                await sendCommand(targetId, 'playback.toggle');
                             } else {
-                                await sendCommand(id, 'remote.key', { key });
+                                await sendCommand(targetId, 'remote.key', { key });
                             }
-                        },
-                        { once: false }
-                    );
-                });
+                        } catch (_) {}
+                    });
+                    overlay._remoteBound = true;
+                }
             }
             async function openOverrideFor(ids) {
                 if (!Array.isArray(ids) || !ids.length) return;
@@ -3385,7 +3402,56 @@
                 overlay?.classList.add('open');
                 const typeEl = document.getElementById('sendcmd-type');
                 const payloadEl = document.getElementById('sendcmd-payload');
+                const selectEl = document.getElementById('sendcmd-select');
+                const srcWrap = document.getElementById('sendcmd-param-source');
+                const srcEl = document.getElementById('sendcmd-source');
                 const applyBtn = document.getElementById('btn-sendcmd-apply');
+                if (selectEl) {
+                    const newSel = selectEl.cloneNode(true);
+                    selectEl.parentNode.replaceChild(newSel, selectEl);
+                    newSel.addEventListener('change', () => {
+                        const v = newSel.value;
+                        if (!v) return;
+                        if (v === '__custom') {
+                            typeEl.value = '';
+                            if (payloadEl) payloadEl.value = '';
+                            if (srcWrap) srcWrap.style.display = 'none';
+                            return;
+                        }
+                        typeEl.value = v;
+                        // Always refresh payload textarea to match command selection
+                        if (payloadEl) {
+                            let tpl = '';
+                            switch (v) {
+                                case 'remote.key':
+                                    tpl = '{\n  "key": "up"\n}';
+                                    break;
+                                case 'source.switch':
+                                    tpl = '{\n  "source": "' + (srcEl?.value || 'plex') + '"\n}';
+                                    break;
+                                case 'playback.pinPoster':
+                                    tpl = '{\n  "id": "<posterId>"\n}';
+                                    break;
+                                default:
+                                    tpl = '';
+                            }
+                            payloadEl.value = tpl;
+                        }
+                        if (srcWrap) srcWrap.style.display = v === 'source.switch' ? '' : 'none';
+                    });
+                }
+                if (srcEl) {
+                    const newSrc = srcEl.cloneNode(true);
+                    srcEl.parentNode.replaceChild(newSrc, srcEl);
+                    newSrc.addEventListener('change', () => {
+                        // If source.switch is selected, keep payload in sync
+                        const v = document.getElementById('sendcmd-select')?.value;
+                        if (v === 'source.switch' && payloadEl) {
+                            payloadEl.value =
+                                '{\n  "source": "' + (newSrc.value || 'plex') + '"\n}';
+                        }
+                    });
+                }
                 if (applyBtn) {
                     const newBtn = applyBtn.cloneNode(true);
                     applyBtn.parentNode.replaceChild(newBtn, applyBtn);
@@ -3519,7 +3585,11 @@
                 }
                 updateBulkUI();
                 // Re-evaluate per-card action overflow after rendering
-                document.querySelectorAll('#device-grid .device-card').forEach(collapseCardActions);
+                requestAnimationFrame(() => {
+                    document
+                        .querySelectorAll('#device-grid .device-card')
+                        .forEach(collapseCardActions);
+                });
             }
 
             // Reflow handlers for responsive action overflow
@@ -3535,6 +3605,8 @@
                 return debounce(fn, 150);
             })();
             window.addEventListener('resize', reflowActions, { passive: true });
+            // Run once on first paint to set initial overflow state
+            requestAnimationFrame(reflowActions);
 
             // Build toolbar menus dynamically
             function buildActionsMenu() {

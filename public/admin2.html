@@ -190,6 +190,21 @@
     background: rgba(0,0,0,0.18) !important;
     border-color: rgba(0,0,0,0.7) !important;
   }
+  /* Device Management: responsive card grid and header text */
+  #section-devices .device-grid { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: var(--space-lg); }
+  #section-devices .device-card-header { grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-md); }
+  #section-devices .device-title { min-width: 0; }
+  #section-devices .device-title .name-row { min-width: 0; }
+  #section-devices .device-title .name { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #section-devices .device-title .meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Device tools: allow wrapping to avoid clipping; JS still collapses to kebab only when truly needed */
+  #section-devices .device-tools { display: flex; align-items: center; gap: 8px; padding: 8px var(--space-lg) 0 var(--space-lg); flex-wrap: wrap; overflow: visible; row-gap: 6px; }
+  @media (max-width: 600px) { #section-devices .device-tools .card-more { order: 99; margin-left: 0; } }
+  #section-devices .device-tools .btn { flex: 0 0 auto; min-width: 32px; }
+  #section-devices .device-tools .card-more { margin-left: auto; }
+  @media (max-width: 1400px) {
+    #section-devices .device-tools { gap: 6px; }
+  }
   /* No CSS hover-open; JS controls visibility */
 
   /* KPI cards: only the metric number is interactive (not the whole card) */
@@ -2718,6 +2733,81 @@
   </div>
 
   <!-- Remote Control Modal -->
+  <style>
+    /* Scoped remote control styles */
+  #modal-remote .modal { width: min(96vw, 520px); }
+    #modal-remote .modal-body {
+      padding: 14px 16px;
+    }
+  #modal-remote .modal-header .modal-title { font-weight: 500; }
+    #modal-remote #remote-target-name {
+      font-weight: 400;
+      color: var(--color-text-secondary, #b5bcc9);
+      display: inline-block;
+      max-width: 100%;
+      white-space: normal;
+      word-break: break-word;
+      line-height: 1.25;
+      vertical-align: middle;
+    }
+    #modal-remote .remote-panel {
+      display: grid;
+      justify-content: center;
+      gap: 12px;
+    }
+    #modal-remote .remote-nav {
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      grid-auto-rows: 60px;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+    }
+    #modal-remote .remote-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 4px;
+    }
+    #modal-remote .remote-panel .btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-bg-elevated, rgba(255,255,255,0.06));
+      border: 1px solid var(--color-border, rgba(255,255,255,0.12));
+      color: var(--color-text-primary, #e6e6e6);
+      box-shadow: none;
+      transition: transform 100ms ease, background 100ms ease, color 100ms ease, border-color 100ms ease;
+    }
+    #modal-remote .remote-panel .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+    #modal-remote .remote-panel .btn:active {
+      transform: scale(0.96);
+      background: rgba(0, 0, 0, 0.20);
+    }
+    /* Use default theme focus styles (no custom glow) */
+    #modal-remote .remote-panel .btn i {
+      font-size: 18px;
+      pointer-events: none;
+    }
+  /* No special accent/select styling to keep it neutral per theme */
+    /* Click pulse feedback */
+    @keyframes remotePulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(0.92); }
+      100% { transform: scale(1); }
+    }
+    #modal-remote .remote-panel .btn.pulse {
+      animation: remotePulse 180ms ease-out;
+    }
+  </style>
   <div class="modal-overlay" id="modal-remote">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="remote-title">
       <div class="modal-header">
@@ -2725,22 +2815,24 @@
         <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
       </div>
       <div class="modal-body">
-        <div class="remote-grid" style="display:grid;grid-template-columns:repeat(3,60px);gap:10px;justify-content:center;align-items:center;">
-          <div></div>
-          <button class="btn" data-remote="up" title="Up"><i class="fas fa-arrow-up"></i></button>
-          <div></div>
-          <button class="btn" data-remote="left" title="Left"><i class="fas fa-arrow-left"></i></button>
-          <button class="btn btn-primary" data-remote="select" title="Select"><i class="fas fa-dot-circle"></i></button>
-          <button class="btn" data-remote="right" title="Right"><i class="fas fa-arrow-right"></i></button>
-          <div></div>
-          <button class="btn" data-remote="down" title="Down"><i class="fas fa-arrow-down"></i></button>
-          <div></div>
-        </div>
-        <div style="display:flex;justify-content:center;gap:10px;margin-top:14px;">
-          <button class="btn" data-remote="back" title="Back"><i class="fas fa-arrow-rotate-left"></i></button>
-          <button class="btn" data-remote="home" title="Home"><i class="fas fa-house"></i></button>
-          <button class="btn" data-remote="menu" title="Menu"><i class="fas fa-bars"></i></button>
-          <button class="btn" data-remote="playpause" title="Play/Pause"><i class="fas fa-play-pause"></i></button>
+        <!-- Remote panel: only implemented controls (D‑pad + Select + Back/Home + Play/Pause) -->
+        <div class="remote-panel">
+          <div class="remote-nav">
+            <div></div>
+            <button class="btn" data-remote="up" title="Up" aria-label="Up"><i class="fas fa-arrow-up"></i></button>
+            <div></div>
+            <button class="btn" data-remote="left" title="Left" aria-label="Left"><i class="fas fa-arrow-left"></i></button>
+            <button class="btn" data-remote="select" title="Select" aria-label="Select"><i class="fas fa-dot-circle"></i></button>
+            <button class="btn" data-remote="right" title="Right" aria-label="Right"><i class="fas fa-arrow-right"></i></button>
+            <div></div>
+            <button class="btn" data-remote="down" title="Down" aria-label="Down"><i class="fas fa-arrow-down"></i></button>
+            <div></div>
+          </div>
+          <div class="remote-actions">
+            <button class="btn" data-remote="back" title="Back" aria-label="Back"><i class="fas fa-arrow-rotate-left"></i></button>
+            <button class="btn" data-remote="playpause" title="Play/Pause" aria-label="Play or Pause"><i class="fas fa-play"></i></button>
+            <button class="btn" data-remote="home" title="Home" aria-label="Home"><i class="fas fa-house"></i></button>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -2769,18 +2861,76 @@
 
   <!-- Send Command Modal -->
   <div class="modal-overlay" id="modal-sendcmd">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sendcmd-title">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sendcmd-title" style="width:min(96vw, 560px)">
       <div class="modal-header">
         <div class="modal-title" id="sendcmd-title"><i class="fas fa-terminal"></i> Send Command</div>
         <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="padding:14px 16px;">
+        <style>
+          /* Scoped styling for Send Command modal inputs */
+          #modal-sendcmd .form-group label { font-weight: 500; color: var(--color-text-primary, #e6e6e6); }
+          #modal-sendcmd select, #modal-sendcmd input[type="text"], #modal-sendcmd textarea {
+            width: 100%;
+            background: var(--color-bg-elevated, rgba(255,255,255,0.06));
+            color: var(--color-text-primary, #e6e6e6);
+            border: 1px solid var(--color-border, rgba(255,255,255,0.12));
+            border-radius: 8px;
+            padding: 10px 12px;
+          }
+          #modal-sendcmd select:focus, #modal-sendcmd input[type="text"]:focus, #modal-sendcmd textarea:focus {
+            outline: none;
+            border-color: var(--color-border-strong, rgba(255,255,255,0.22));
+          }
+        </style>
         <div class="form-group">
-          <label>Type</label>
-          <input id="sendcmd-type" type="text" placeholder="e.g. playback.pause" />
+          <label for="sendcmd-select">Command</label>
+          <select id="sendcmd-select" style="width:100%">
+            <option value="" selected>— Choose a command —</option>
+            <optgroup label="Playback">
+              <option value="playback.prev">playback.prev</option>
+              <option value="playback.next">playback.next</option>
+              <option value="playback.pause">playback.pause</option>
+              <option value="playback.resume">playback.resume</option>
+              <option value="playback.toggle">playback.toggle</option>
+              <option value="playback.pinPoster">playback.pinPoster</option>
+            </optgroup>
+            <optgroup label="Remote">
+              <option value="remote.key">remote.key</option>
+            </optgroup>
+            <optgroup label="Power">
+              <option value="power.on">power.on</option>
+              <option value="power.off">power.off</option>
+              <option value="power.toggle">power.toggle</option>
+            </optgroup>
+            <optgroup label="Source">
+              <option value="source.switch">source.switch (plex|jellyfin|tmdb|tvdb|all)</option>
+            </optgroup>
+            <optgroup label="Management">
+              <option value="core.mgmt.reload">core.mgmt.reload</option>
+              <option value="core.mgmt.reset">core.mgmt.reset</option>
+              <option value="core.mgmt.clearCache">core.mgmt.clearCache</option>
+              <option value="core.mgmt.swUnregister">core.mgmt.swUnregister</option>
+            </optgroup>
+            <option value="__custom">Custom…</option>
+          </select>
+        </div>
+        <div class="form-group" id="sendcmd-param-source" style="margin-top:10px; display:none;">
+          <label for="sendcmd-source">Source key</label>
+          <select id="sendcmd-source">
+            <option value="plex" selected>plex</option>
+            <option value="jellyfin">jellyfin</option>
+            <option value="tmdb">tmdb</option>
+            <option value="tvdb">tvdb</option>
+            <option value="all">all</option>
+          </select>
         </div>
         <div class="form-group" style="margin-top:10px;">
-          <label>Payload (JSON, optional)</label>
+          <label for="sendcmd-type">Type</label>
+          <input id="sendcmd-type" type="text" placeholder="e.g. playback.toggle" />
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label for="sendcmd-payload">Payload (JSON, optional)</label>
           <textarea id="sendcmd-payload" rows="6" style="width:100%;" placeholder="{ }"></textarea>
         </div>
       </div>
