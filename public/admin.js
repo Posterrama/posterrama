@@ -11,6 +11,8 @@ function apiUrl(path) {
 }
 
 function apiUrlWithCacheBust(path) {
+    // Provide a local alias for widespread references
+    const setButtonState = window.setButtonState;
     try {
         const u = new URL(apiUrl(path), window.location.origin);
         u.searchParams.set('cb', Date.now().toString());
