@@ -4517,15 +4517,15 @@
                                     </div>
 
                                     <div class="device-tools">
-                                                <button class="btn btn-icon btn-sm btn-power${isPoweredOff ? ' is-off' : ''}" title="Power Toggle"${disabledPower}${poweredOff}><i class="fas fa-power-off"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-reload" title="Reload this device"><i class="fas fa-rotate-right"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-clearcache" title="Clear caches"><i class="fas fa-broom"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-pair card-secondary" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-gamepad"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-terminal"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-playpause${ppCls}" title="${ppTitle}" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas ${ppIcon}"></i></button>
-                                                <button class="btn btn-icon btn-sm btn-pin card-secondary${pinCls}" title="${pinTitle}" aria-pressed="${pinPressed}" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas ${pinIcon}"></i></button>
+                                                <button type="button" class="btn btn-icon btn-sm btn-power${isPoweredOff ? ' is-off' : ''}" title="Power Toggle"${disabledPower}${poweredOff}><i class="fas fa-power-off"></i></button>
+                                                <button type="button" class="btn btn-icon btn-sm btn-reload" title="Reload this device"><i class="fas fa-rotate-right"></i></button>
+                                                <button type="button" class="btn btn-icon btn-sm btn-clearcache" title="Clear caches"><i class="fas fa-broom"></i></button>
+                                                <button type="button" class="btn btn-icon btn-sm btn-pair card-secondary" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
+                                                <button type="button" class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-gamepad"></i></button>
+                                                <button type="button" class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
+                                                <button type="button" class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-terminal"></i></button>
+                                                <button type="button" class="btn btn-icon btn-sm btn-playpause${ppCls}" title="${ppTitle}" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas ${ppIcon}"></i></button>
+                                                <button type="button" class="btn btn-icon btn-sm btn-pin card-secondary${pinCls}" title="${pinTitle}" aria-pressed="${pinPressed}" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas ${pinIcon}"></i></button>
                                                 <div class="dropdown card-more" style="position:relative;display:none;">
                                                         <button class="btn btn-icon btn-sm" title="More"><i class="fas fa-ellipsis"></i></button>
                                                         <div class="dropdown-menu"></div>
@@ -4675,15 +4675,26 @@
 
             function bindCardEvents(card) {
                 const cb = card.querySelector('.device-select');
-                cb?.addEventListener('change', () => {
+                cb?.addEventListener('change', e => {
+                    try {
+                        e.stopPropagation();
+                    } catch (_) {}
                     card.classList.toggle('selected', cb.checked);
                     updateBulkUI();
                 });
-                card.querySelector('.btn-power')?.addEventListener('click', async () => {
+                card.querySelector('.btn-power')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
                     const id = card.getAttribute('data-id');
                     await sendCommand(id, 'power.toggle');
                 });
-                card.querySelector('.btn-reload')?.addEventListener('click', async () => {
+                card.querySelector('.btn-reload')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
                     const id = card.getAttribute('data-id');
                     // one-time spin animation on the icon
                     try {
@@ -4702,7 +4713,11 @@
                         message: `${state.all.find(d => d.id === id)?.name || id}: reloading`,
                     });
                 });
-                card.querySelector('.btn-clearcache')?.addEventListener('click', async () => {
+                card.querySelector('.btn-clearcache')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
                     const id = card.getAttribute('data-id');
                     // broom sweep animation
                     try {
@@ -4720,23 +4735,43 @@
                         message: `${state.all.find(d => d.id === id)?.name || id}: cache cleared`,
                     });
                 });
-                card.querySelector('.btn-pair')?.addEventListener('click', async () => {
+                card.querySelector('.btn-pair')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
                     const id = card.getAttribute('data-id');
                     await openPairingFor([id]);
                 });
-                card.querySelector('.btn-remote')?.addEventListener('click', async () => {
+                card.querySelector('.btn-remote')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
                     const id = card.getAttribute('data-id');
                     openRemoteFor(id);
                 });
-                card.querySelector('.btn-override')?.addEventListener('click', async () => {
+                card.querySelector('.btn-override')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
                     const id = card.getAttribute('data-id');
                     openOverrideFor([id]);
                 });
-                card.querySelector('.btn-sendcmd')?.addEventListener('click', async () => {
+                card.querySelector('.btn-sendcmd')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
                     const id = card.getAttribute('data-id');
                     openSendCmdFor([id]);
                 });
-                card.querySelector('.btn-playpause')?.addEventListener('click', async () => {
+                card.querySelector('.btn-playpause')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
                     const id = card.getAttribute('data-id');
                     const btn = card.querySelector('.btn-playpause');
                     const icon = btn?.querySelector('i');
@@ -4776,7 +4811,11 @@
                         }
                     }
                 });
-                card.querySelector('.btn-pin')?.addEventListener('click', async () => {
+                card.querySelector('.btn-pin')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
                     const id = card.getAttribute('data-id');
                     const btn = card.querySelector('.btn-pin');
                     const icon = btn?.querySelector('i');
@@ -4829,7 +4868,13 @@
                 });
                 // Support both inline header pencil and legacy rename button
                 const renameBtn = card.querySelector('.btn-rename, .btn-rename-inline');
-                renameBtn?.addEventListener('click', () => startRename(card));
+                renameBtn?.addEventListener('click', e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
+                    startRename(card);
+                });
                 // per-card merge/group buttons removed; actions available via toolbar
                 // Ensure action row collapses when width is tight
                 collapseCardActions(card);
