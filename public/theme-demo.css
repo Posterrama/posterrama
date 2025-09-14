@@ -162,6 +162,8 @@ body {
     top: var(--navbar-height);
     left: 0;
     width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    max-width: var(--sidebar-width);
     height: calc(100vh - var(--navbar-height));
     background: var(--color-bg-secondary);
     border-right: 1px solid var(--color-border);
@@ -491,6 +493,7 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-md);
+    flex-wrap: wrap; /* allow actions to wrap on smaller screens */
 }
 
 .panel-content {
@@ -1493,6 +1496,7 @@ input[type='range']::-moz-range-thumb {
     .sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s ease;
+        width: var(--sidebar-width); /* keep consistent width */
     }
 
     .sidebar.open {
@@ -1554,7 +1558,9 @@ input[type='range']::-moz-range-thumb {
     }
 
     .panel-actions {
-        justify-content: space-between;
+        justify-content: flex-start;
+        width: 100%;
+        gap: var(--space-sm);
     }
 
     .table-footer {
@@ -1565,6 +1571,37 @@ input[type='range']::-moz-range-thumb {
 
     .action-buttons {
         justify-content: center;
+    }
+
+    /* Device grid and card actions stack to avoid horizontal scroll */
+    .device-grid {
+        grid-template-columns: 1fr;
+    }
+    .device-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-sm);
+    }
+    .device-actions .btn-group {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+    }
+    .device-actions .btn-group .btn,
+    .device-actions .dropdown .btn {
+        width: 100%;
+    }
+
+    /* Toolbars should wrap and fit */
+    .device-toolbar {
+        width: 100%;
+        gap: var(--space-sm);
+    }
+    .device-toolbar .search-box {
+        flex: 1 1 100%;
+    }
+    .panel-actions .search-box {
+        flex: 1 1 100%;
     }
 }
 
@@ -2423,4 +2460,55 @@ input[type='range']::-moz-range-thumb {
 /* Ensure the Device Management panel does not clip floating menus */
 #device-ui.panel {
     overflow: visible;
+}
+
+/* Mobile-specific components */
+/* Hidden by default; shown on mobile via media query */
+.mobile-only {
+    display: none;
+}
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998; /* below sidebar (999), above content */
+}
+
+/* Lock body scroll when sidebar is open */
+body.sidebar-open {
+    overflow: hidden;
+}
+
+/* Make burger visible on tablets/phones and refine sidebar */
+@media (max-width: 1024px) {
+    .mobile-only {
+        display: inline-flex;
+    }
+    .sidebar {
+        box-shadow: var(--shadow-xl);
+    }
+}
+
+/* Touch-friendly controls and mobile form optimizations */
+@media (max-width: 640px) {
+    .btn,
+    .btn-sm,
+    .btn-icon,
+    .ms-control,
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        min-height: 44px;
+    }
+
+    .search-box input {
+        min-width: 0;
+        width: 100%;
+    }
+    .dropdown-menu {
+        max-height: 70vh;
+        overflow: auto;
+    }
 }

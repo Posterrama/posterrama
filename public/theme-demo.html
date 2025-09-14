@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -14,6 +14,9 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-brand">
+            <button class="btn btn-icon mobile-only" id="mobile-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
             <span>Posterrama</span>
             <span class="version">v2.0.3</span>
         </div>
@@ -94,6 +97,9 @@
             </div>
         </div>
     </aside>
+
+    <!-- Mobile overlay for sidebar -->
+    <div class="sidebar-overlay" id="sidebar-overlay" hidden></div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -1279,6 +1285,42 @@ And more text here...</textarea>
                     document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
                     item.classList.add('active');
                 });
+            });
+            // Mobile sidebar toggle
+            const sidebar = document.querySelector('.sidebar');
+            const mobileToggle = document.getElementById('mobile-nav-toggle');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            function isMobile() { return window.matchMedia('(max-width: 1024px)').matches; }
+            function setSidebarOpen(open) {
+                if (!sidebar) return;
+                if (open) {
+                    sidebar.classList.add('open');
+                    sidebarOverlay?.removeAttribute('hidden');
+                    document.body.classList.add('sidebar-open');
+                    mobileToggle?.setAttribute('aria-expanded', 'true');
+                } else {
+                    sidebar.classList.remove('open');
+                    sidebarOverlay?.setAttribute('hidden', '');
+                    document.body.classList.remove('sidebar-open');
+                    mobileToggle?.setAttribute('aria-expanded', 'false');
+                }
+            }
+            mobileToggle?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setSidebarOpen(!sidebar.classList.contains('open'));
+            });
+            sidebarOverlay?.addEventListener('click', () => setSidebarOpen(false));
+            // Close on nav click for mobile
+            document.querySelectorAll('.sidebar .nav-item, .sidebar .nav-subitem').forEach(link => {
+                link.addEventListener('click', () => { if (isMobile()) setSidebarOpen(false); });
+            });
+            // Escape closes sidebar on mobile
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')) setSidebarOpen(false);
+            });
+            // On resize, reset overlay & body lock appropriately
+            window.addEventListener('resize', () => {
+                if (!isMobile()) setSidebarOpen(false);
             });
             
             // Demo notifications
