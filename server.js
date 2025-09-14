@@ -12664,6 +12664,23 @@ app.get('/api/admin/logs', isAuthenticated, (req, res) => {
     res.setHeader('Cache-Control', 'no-store'); // Prevent browser caching of log data
     res.json(logger.getRecentLogs(level, parseInt(limit) || 200));
 });
+
+// Admin Notifications: test logging endpoint to validate SSE + Notification Center
+// Usage: POST /api/admin/notify/test { level?: 'info'|'warn'|'error', message?: string }
+app.post('/api/admin/notify/test', isAuthenticated, express.json(), (req, res) => {
+    try {
+        const lvl = String(req.body?.level || 'warn').toLowerCase();
+        const msg = String(req.body?.message || 'Test notification from Admin');
+        const log = logger[lvl] || logger.warn;
+        log(`[Admin Notify Test] ${msg}`);
+        res.json({ ok: true, level: lvl, message: msg });
+    } catch (e) {
+        res.status(500).json({
+            ok: false,
+            error: e?.message || 'Failed to emit test notification',
+        });
+    }
+});
 // --- Admin SSE (Server-Sent Events) for live updates ---
 const adminSseClients = new Set(); // Set<res>
 

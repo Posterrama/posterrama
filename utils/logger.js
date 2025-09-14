@@ -3,6 +3,10 @@ const { EventEmitter } = require('events');
 const path = require('path');
 const fs = require('fs');
 
+// Create a single, long-lived EventEmitter for admin live events (SSE/WS)
+// This must NOT be re-created per log entry; subscribers rely on a stable instance.
+const events = new EventEmitter();
+
 // Ensure logs directory exists
 const logsDir = path.join(__dirname, '..', 'logs');
 if (!fs.existsSync(logsDir)) {
@@ -11,8 +15,6 @@ if (!fs.existsSync(logsDir)) {
 
 // Format messages to handle objects and arrays
 const formatMessage = winston.format(info => {
-    // Lightweight event bus to signal new logs to any live streams (SSE/WS)
-    logger.events = new EventEmitter();
     if (typeof info.message === 'object' && info.message !== null) {
         try {
             info.message = JSON.stringify(
@@ -119,8 +121,8 @@ const memoryTransport = new winston.transports.Stream({
                 }
                 logger.memoryLogs.push(chunk);
                 try {
-                    // Emit a real-time event to subscribers
-                    logger.events.emit('log', chunk);
+                    // Emit a real-time event to subscribers via the stable emitter
+                    events.emit('log', chunk);
                 } catch (_) {
                     /* ignore */
                 }
@@ -170,6 +172,9 @@ const logger = winston.createLogger({
 
 // Store logs in memory for admin panel access
 logger.memoryLogs = [];
+
+// Expose the stable events emitter on the logger instance
+logger.events = events;
 
 // List of messages to exclude from the admin panel (but still log to files)
 const adminPanelExclusions = ['[Request Logger] Received:', '[Auth] Authenticated via session'];
