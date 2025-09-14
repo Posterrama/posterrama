@@ -11192,7 +11192,7 @@ function showManageGroupsModal() {
     const existing = document.getElementById('manage-groups-modal');
     if (existing) existing.remove();
     const escHtml = s => (s == null ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'));
-    const buildHtml = (groups, devices) => `
+    const buildHtml = groups => `
         <div id="manage-groups-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="groups-title">
             <div class="modal-background" data-close></div>
             <div class="modal-content" style="max-width: 1024px;">
@@ -11286,7 +11286,7 @@ function showManageGroupsModal() {
     const loadAndRender = async () => {
         const [groups, devices] = await Promise.all([fetchGroups(), fetchDevicesLight()]);
         const wrap = document.createElement('div');
-        wrap.innerHTML = buildHtml(groups, devices);
+        wrap.innerHTML = buildHtml(groups);
         const el = wrap.firstElementChild;
         document.body.appendChild(el);
         const status = el.querySelector('.hint');
@@ -11474,10 +11474,7 @@ function showManageGroupsModal() {
                 const next = new Set(Array.isArray(d.groups) ? d.groups : []);
                 if (cb.checked) next.add(gid);
                 else next.delete(gid);
-                await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(did)}`), {
-                    method: 'PATCH',
-                    body: JSON.stringify({ groups: Array.from(next) }),
-                });
+                await patchDeviceGroups(did, Array.from(next));
                 if (status) status.textContent = 'Updated group membership.';
             } catch (_) {
                 if (status) status.textContent = 'Failed to update group membership.';

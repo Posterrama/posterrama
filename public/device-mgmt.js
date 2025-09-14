@@ -483,7 +483,9 @@
                         liveDbg('[Live] invoking playback.prev (queued)');
                         return void api.prev();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
                 break;
             }
             case 'playback.next': {
@@ -494,7 +496,9 @@
                         liveDbg('[Live] invoking playback.next (queued)');
                         return void api.next();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
                 break;
             }
             case 'playback.pause': {
@@ -505,7 +509,9 @@
                         liveDbg('[Live] invoking playback.pause (queued)');
                         return void api.pause();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
                 break;
             }
             case 'playback.resume': {
@@ -516,7 +522,9 @@
                         liveDbg('[Live] invoking playback.resume (queued)');
                         return void api.resume();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
                 break;
             }
             case 'playback.toggle': {
@@ -545,7 +553,9 @@
                         liveDbg('[Live] invoking playback.resume (queued via toggle,fallback)');
                         return void api.resume();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
                 break;
             }
             case 'playback.pinPoster': {
@@ -564,7 +574,9 @@
                             return void api.pinPoster(payload);
                         }
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
                 break;
             }
             case 'source.switch': {
@@ -577,7 +589,9 @@
                         });
                         return void api.switchSource(payload && payload.sourceKey);
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
                 break;
             }
             case 'power.off': {
@@ -588,7 +602,9 @@
                         liveDbg('[Live] invoking power.off (queued)');
                         return void api.powerOff();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
                 break;
             }
             case 'power.on': {
@@ -599,7 +615,9 @@
                         liveDbg('[Live] invoking power.on (queued)');
                         return void api.powerOn();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
                 break;
             }
             case 'power.toggle': {
@@ -610,7 +628,9 @@
                         liveDbg('[Live] invoking power.toggle (queued)');
                         return void api.powerToggle();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore unsupported API or runtime
+                }
                 break;
             }
             default:
