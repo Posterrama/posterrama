@@ -838,24 +838,26 @@ a:hover {
 #display-section .form-section.unified-section {
     /* Do not reserve vertical space; preview is fixed and decoupled */
     min-height: 0 !important;
-    /* Remove extra gap between section title and content for Display page */
-    padding: 0 var(--content-padding-x) 0 var(--content-padding-x) !important;
+    /* Match default section padding for consistency with Security/others */
+    padding: var(--content-padding-y) var(--content-padding-x) !important;
 }
 
-/* Eliminate space between section title and first content block for Display */
+/* Display section title spacing – match default */
 #display-section .section-title {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
+    margin-bottom: 1rem !important;
+    /* Keep default vertical padding from global .section-title */
+    padding-bottom: calc(var(--content-padding-y) - 0.5rem) !important;
 }
 
 /* All subsection headers in Display Settings get standard spacing */
 #display-section .subsection-header {
-    margin-top: 2rem !important;
+    margin-top: 1.5rem !important;
 }
 
 /* CRITICAL FIX: First subsection header (regardless of which one is visible) gets reduced top margin */
 #display-section .subsection-header:first-of-type {
-    margin-top: 0 !important; /* Remove margin since container has top padding */
+    /* Use the same top spacing as other sections for the first visible subsection */
+    margin-top: var(--content-padding-y) !important;
 }
 
 /* Specific fixes for each subsection when it becomes the first visible one */
@@ -4902,10 +4904,9 @@ fieldset:focus-within {
 #devices-section .inputs-line {
     display: grid;
     /* Select | Name | Location | Preset | Mode | Status | spacer */
-    grid-template-columns: auto minmax(12ch, 0.7fr) minmax(12ch, 0.7fr) minmax(
-            14ch,
-            0.7fr
-        ) auto auto 1fr;
+    grid-template-columns:
+        auto minmax(12ch, 0.7fr) minmax(12ch, 0.7fr) minmax(14ch, 0.7fr)
+        auto auto 1fr;
     gap: 10px 14px;
     /* Bottom-align all input fields for a clean baseline */
     align-items: end;
