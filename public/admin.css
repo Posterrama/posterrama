@@ -4853,10 +4853,11 @@ fieldset:focus-within {
 }
 /* Align Status badge vertically with Mode badge */
 #devices-section td.cell-status {
-    vertical-align: middle; /* fallback */
+    vertical-align: bottom; /* table fallback */
     display: flex; /* robust alignment to inputs baseline */
-    align-items: flex-start; /* align with top of inputs area */
-    padding-top: 32px; /* match name cell reserved toolbar space */
+    align-items: flex-end; /* push badges to the bottom to match inputs */
+    padding-top: 32px; /* reserve toolbar space like name cell */
+    padding-bottom: 6px; /* match name cell bottom padding */
     padding-left: 12px; /* breathing room from inputs */
 }
 #devices-section td.cell-status .status-badges {
@@ -4864,9 +4865,9 @@ fieldset:focus-within {
     align-items: center;
     gap: 6px;
     justify-content: flex-start;
-    margin-top: 0; /* let table cell handle vertical centering */
+    margin-top: 0;
     width: 100%;
-    flex-wrap: wrap; /* allow badges to wrap without affecting vertical centering */
+    flex-wrap: wrap; /* allow badges to wrap without affecting vertical alignment */
     row-gap: 4px; /* tighten vertical gap when wrapped */
 }
 #devices-section td.cell-status .status-badges .badge {
