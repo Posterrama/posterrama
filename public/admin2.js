@@ -590,6 +590,10 @@
                     refreshSecurity();
                 } else if (nav === 'dashboard') {
                     showSection('section-dashboard');
+                } else if (nav === 'operations') {
+                    showSection('section-operations');
+                    // ensure latest status/backups when entering
+                    refreshUpdateStatusUI();
                 }
             });
         });
@@ -879,6 +883,232 @@
                     duration: 2000,
                 });
             } catch (_) {}
+        });
+
+        // OPERATIONS: Refresh Media
+        const btnRefreshMedia = document.getElementById('btn-refresh-media');
+        if (btnRefreshMedia) {
+            if (!btnRefreshMedia.querySelector('.spinner')) {
+                const sp = document.createElement('span');
+                sp.className = 'spinner';
+                btnRefreshMedia.insertBefore(sp, btnRefreshMedia.firstChild);
+            }
+            btnRefreshMedia.addEventListener('click', async () => {
+                try {
+                    btnRefreshMedia.classList.add('btn-loading');
+                    const r = await fetch('/api/admin/refresh-media', {
+                        method: 'POST',
+                        credentials: 'include',
+                    });
+                    const j = await r.json().catch(() => ({}));
+                    if (!r.ok) throw new Error(j?.error || 'Refresh failed');
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'Media refreshed',
+                        message: j?.message || 'Sources reloaded',
+                        duration: 3500,
+                    });
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Refresh failed',
+                        message: e?.message || 'Unable to refresh media',
+                        duration: 5000,
+                    });
+                } finally {
+                    btnRefreshMedia.classList.remove('btn-loading');
+                }
+            });
+        }
+
+        // OPERATIONS: Auto-Update controls
+        const btnStartUpdate = document.getElementById('btn-start-update');
+        const btnRollbackUpdate = document.getElementById('btn-rollback-update');
+        const btnListBackups = document.getElementById('btn-list-backups');
+        const btnCleanupBackups = document.getElementById('btn-cleanup-backups');
+
+        const ensureBtnSpinner = btn => {
+            if (!btn) return;
+            if (!btn.querySelector('.spinner')) {
+                const sp = document.createElement('span');
+                sp.className = 'spinner';
+                btn.insertBefore(sp, btn.firstChild);
+            }
+        };
+        [btnStartUpdate, btnRollbackUpdate, btnListBackups, btnCleanupBackups].forEach(
+            ensureBtnSpinner
+        );
+
+        async function pollUpdateStatusOnce() {
+            try {
+                const r = await fetch('/api/admin/update/status', { credentials: 'include' });
+                if (!r.ok) throw new Error('Status failed');
+                const s = await r.json();
+                applyUpdateStatusToUI(s);
+                return s;
+            } catch (e) {
+                // Non-fatal; keep idle
+                return null;
+            }
+        }
+
+        let updatePollTimer = null;
+        function startUpdatePolling() {
+            stopUpdatePolling();
+            updatePollTimer = setInterval(pollUpdateStatusOnce, 1500);
+        }
+        function stopUpdatePolling() {
+            if (updatePollTimer) {
+                clearInterval(updatePollTimer);
+                updatePollTimer = null;
+            }
+        }
+
+        function applyUpdateStatusToUI(status) {
+            const idle = document.getElementById('update-idle-state');
+            const prog = document.getElementById('update-progress-state');
+            if (!idle || !prog) return;
+            const phaseEl = document.getElementById('update-phase-text');
+            const pctEl = document.getElementById('update-progress-percent');
+            const barEl = document.getElementById('update-progress-bar');
+            const msgEl = document.getElementById('update-message');
+            const isUpdating = !!status?.isUpdating;
+            if (isUpdating) {
+                idle.style.display = 'none';
+                prog.style.display = '';
+                const phase = status?.phase || 'working';
+                const pct = Math.max(0, Math.min(100, Number(status?.progress ?? 0)));
+                if (phaseEl) phaseEl.textContent = String(phase);
+                if (pctEl) pctEl.textContent = pct + '%';
+                if (barEl) barEl.style.width = pct + '%';
+                if (msgEl) msgEl.textContent = status?.message || '';
+                startUpdatePolling();
+            } else {
+                prog.style.display = 'none';
+                idle.style.display = '';
+                stopUpdatePolling();
+            }
+        }
+
+        async function refreshUpdateStatusUI() {
+            const s = await pollUpdateStatusOnce();
+            if (!s || !s.isUpdating) stopUpdatePolling();
+        }
+
+        btnStartUpdate?.addEventListener('click', async () => {
+            try {
+                btnStartUpdate.classList.add('btn-loading');
+                const r = await fetch('/api/admin/update/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}),
+                    credentials: 'include',
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(j?.error || 'Failed to start update');
+                window.notify?.toast({
+                    type: 'info',
+                    title: 'Updating…',
+                    message: j?.message || 'Auto-update started',
+                    duration: 0,
+                });
+                await refreshUpdateStatusUI();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Update failed',
+                    message: e?.message || 'Unable to start update',
+                    duration: 5000,
+                });
+            } finally {
+                btnStartUpdate.classList.remove('btn-loading');
+            }
+        });
+
+        btnRollbackUpdate?.addEventListener('click', async () => {
+            try {
+                btnRollbackUpdate.classList.add('btn-loading');
+                const r = await fetch('/api/admin/update/rollback', {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(j?.error || 'Rollback failed');
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Rollback complete',
+                    message: j?.message || 'Application rolled back',
+                    duration: 4000,
+                });
+                await refreshUpdateStatusUI();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Rollback failed',
+                    message: e?.message || 'Unable to rollback',
+                    duration: 5000,
+                });
+            } finally {
+                btnRollbackUpdate.classList.remove('btn-loading');
+            }
+        });
+
+        btnListBackups?.addEventListener('click', async () => {
+            const container = document.getElementById('backups-display');
+            const list = document.getElementById('backups-content');
+            if (!container || !list) return;
+            container.style.display = '';
+            list.innerHTML = '<div class="subtle">Loading…</div>';
+            try {
+                const r = await fetch('/api/admin/update/backups', { credentials: 'include' });
+                const arr = r.ok ? await r.json() : [];
+                if (!Array.isArray(arr) || arr.length === 0) {
+                    list.innerHTML = '<div class="subtle">No backups available</div>';
+                    return;
+                }
+                list.innerHTML = '';
+                arr.forEach(b => {
+                    const row = document.createElement('div');
+                    row.className = 'chip';
+                    row.innerHTML = `<div class="left"><i class="fas fa-archive"></i><span class="title">${b.name || b.version || 'Backup'}</span></div><span class="subtle">${(b.created || b.timestamp || '').toString()}</span>`;
+                    list.appendChild(row);
+                });
+            } catch (e) {
+                list.innerHTML = '<div class="subtle">Failed to load backups</div>';
+            }
+        });
+
+        btnCleanupBackups?.addEventListener('click', async () => {
+            const keepEl = document.getElementById('input-keep-backups');
+            const keepCount = Math.max(1, Math.min(20, Number(keepEl?.value || 5)));
+            try {
+                btnCleanupBackups.classList.add('btn-loading');
+                const r = await fetch('/api/admin/update/cleanup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keepCount }),
+                    credentials: 'include',
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(j?.error || 'Cleanup failed');
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Cleanup completed',
+                    message: j?.message || `Kept ${j?.kept ?? keepCount}`,
+                    duration: 4000,
+                });
+                // refresh list
+                document.getElementById('btn-list-backups')?.click();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Cleanup failed',
+                    message: e?.message || 'Unable to cleanup backups',
+                    duration: 5000,
+                });
+            } finally {
+                btnCleanupBackups.classList.remove('btn-loading');
+            }
         });
     }
 
