@@ -2582,59 +2582,140 @@
 
         // ----- Draggable behavior for the preview (container moves) -----
         (function makeDraggable() {
-            let dragging = false;
-            let startX = 0,
-                startY = 0,
-                startTop = 0,
-                startLeft = 0;
             const grip = container.querySelector('.preview-drag-handle');
-            const onDown = e => {
-                try {
-                    dragging = true;
-                    const evt = e.touches ? e.touches[0] : e;
-                    startX = evt.clientX;
-                    startY = evt.clientY;
-                    // Compute current absolute position in viewport coords (position: fixed)
-                    const rect = container.getBoundingClientRect();
-                    startTop = rect.top;
-                    startLeft = rect.left;
-                    document.addEventListener('mousemove', onMove);
-                    document.addEventListener('mouseup', onUp);
-                    document.addEventListener('touchmove', onMove, { passive: false });
-                    document.addEventListener('touchend', onUp);
-                    e.preventDefault();
-                } catch (_) {}
-            };
-            const onMove = e => {
-                if (!dragging) return;
-                const evt = e.touches ? e.touches[0] : e;
-                const dx = evt.clientX - startX;
-                const dy = evt.clientY - startY;
-                let top = startTop + dy;
-                let left = startLeft + dx;
-                // Clamp within viewport
+            if (!grip) return;
+
+            let dragging = false;
+            let startX = 0;
+            let startY = 0;
+            let startTop = 0;
+            let startLeft = 0;
+            let minTop = 0;
+            let maxTop = 0;
+            let minLeft = 0;
+            let maxLeft = 0;
+            let rafId = null;
+            let pending = null; // {left, top}
+
+            function computeBounds() {
                 const vw = window.innerWidth;
                 const vh = window.innerHeight;
                 const w = container.offsetWidth || 420;
                 const h = container.offsetHeight || 250;
                 const margin = 8;
-                top = Math.min(Math.max(top, margin), vh - h - margin);
-                left = Math.min(Math.max(left, margin), vw - w - margin);
+                minTop = margin;
+                maxTop = Math.max(margin, vh - h - margin);
+                minLeft = margin;
+                maxLeft = Math.max(margin, vw - w - margin);
+            }
+
+            function setPos(left, top) {
                 container.style.top = top + 'px';
                 container.style.left = left + 'px';
                 container.style.right = 'auto';
                 container.style.bottom = 'auto';
-                if (e.cancelable) e.preventDefault();
-            };
-            const onUp = () => {
+            }
+
+            function scheduleMove(left, top) {
+                pending = { left, top };
+                if (rafId) return;
+                rafId = requestAnimationFrame(() => {
+                    rafId = null;
+                    if (!pending) return;
+                    setPos(pending.left, pending.top);
+                    pending = null;
+                });
+            }
+
+            function onPointerDown(e) {
+                try {
+                    // Use pointer events for unified mouse/touch/pen handling
+                    grip.setPointerCapture?.(e.pointerId);
+                    dragging = true;
+                    container.classList.add('dragging');
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    const rect = container.getBoundingClientRect();
+                    startTop = rect.top;
+                    startLeft = rect.left;
+                    computeBounds();
+                    e.preventDefault();
+                } catch (_) {}
+            }
+
+            function onPointerMove(e) {
+                if (!dragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                let left = startLeft + dx;
+                let top = startTop + dy;
+                // Clamp to precomputed bounds
+                if (left < minLeft) left = minLeft;
+                else if (left > maxLeft) left = maxLeft;
+                if (top < minTop) top = minTop;
+                else if (top > maxTop) top = maxTop;
+                scheduleMove(left, top);
+                e.preventDefault();
+            }
+
+            function onPointerUp(e) {
                 dragging = false;
-                document.removeEventListener('mousemove', onMove);
-                document.removeEventListener('mouseup', onUp);
-                document.removeEventListener('touchmove', onMove);
-                document.removeEventListener('touchend', onUp);
-            };
-            grip?.addEventListener('mousedown', onDown);
-            grip?.addEventListener('touchstart', onDown, { passive: false });
+                container.classList.remove('dragging');
+                try {
+                    grip.releasePointerCapture?.(e.pointerId);
+                } catch (_) {}
+            }
+
+            // Prefer Pointer Events; fall back to mouse/touch if not supported
+            const supportsPointer = 'onpointerdown' in window;
+            if (supportsPointer) {
+                grip.addEventListener('pointerdown', onPointerDown);
+                window.addEventListener('pointermove', onPointerMove, { passive: false });
+                window.addEventListener('pointerup', onPointerUp);
+                window.addEventListener('pointercancel', onPointerUp);
+            } else {
+                // Fallback (rare)
+                const onDown = ev => {
+                    dragging = true;
+                    container.classList.add('dragging');
+                    const e = ev.touches ? ev.touches[0] : ev;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    const rect = container.getBoundingClientRect();
+                    startTop = rect.top;
+                    startLeft = rect.left;
+                    computeBounds();
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                    document.addEventListener('touchmove', onMove, { passive: false });
+                    document.addEventListener('touchend', onUp);
+                    ev.preventDefault();
+                };
+                const onMove = ev => {
+                    if (!dragging) return;
+                    const e = ev.touches ? ev.touches[0] : ev;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    let left = startLeft + dx;
+                    let top = startTop + dy;
+                    if (left < minLeft) left = minLeft;
+                    else if (left > maxLeft) left = maxLeft;
+                    if (top < minTop) top = minTop;
+                    else if (top > maxTop) top = maxTop;
+                    scheduleMove(left, top);
+                    if (ev.cancelable) ev.preventDefault();
+                };
+                const onUp = () => {
+                    dragging = false;
+                    container.classList.remove('dragging');
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    document.removeEventListener('touchmove', onMove);
+                    document.removeEventListener('touchend', onUp);
+                };
+                grip.addEventListener('mousedown', onDown);
+                grip.addEventListener('touchstart', onDown, { passive: false });
+            }
         })();
     }
 

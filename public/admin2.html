@@ -1606,6 +1606,7 @@
       top: 16px; /* default top-right */
       z-index: 5000;
       display: none; /* shown when Display section is active */
+      will-change: top, left;
     }
     #display-preview-container .preview-shell {
       position: relative;
@@ -1643,9 +1644,9 @@
     /* Drag handle: a centered, rounded bar spanning ~2/3 width at the top */
     #display-preview-container .preview-drag-handle {
       position: absolute;
-      top: 6px;
+      top: 0;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translate(-50%, -50%); /* half outside, half inside */
       width: 66%;
       max-width: calc(var(--preview-long-side) * 0.66);
       min-width: 120px;
@@ -1662,7 +1663,10 @@
       background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.10));
       border-color: rgba(255,255,255,0.22);
     }
-    #display-preview-container .preview-drag-handle:active { cursor: grabbing; }
+  #display-preview-container .preview-drag-handle:active { cursor: grabbing; }
+  /* While dragging, reflect grabbing cursor and prevent iframe from catching events */
+  #display-preview-container.dragging .preview-drag-handle { cursor: grabbing; }
+  #display-preview-container.dragging .preview-frame { pointer-events: none; }
   #display-preview-container.collapsed .preview-shell { height: 28px; aspect-ratio: auto; }
   #display-preview-container.collapsed .preview-frame { display: none; }
     /* Top-right tool buttons */
