@@ -280,6 +280,25 @@
         runPerfTick();
     }
 
+    // Safe shim for external triggers (e.g., SSE) to refresh notifications badge
+    try {
+        if (!window.refreshAdminBadge) {
+            window.refreshAdminBadge = function () {
+                try {
+                    const fn = (function () {
+                        try {
+                            // Seek the refreshBadge in closure by referencing the bell button scope
+                            return undefined; // placeholder: actual function exists below in initNotifications
+                        } catch (_) {
+                            return undefined;
+                        }
+                    })();
+                    if (typeof fn === 'function') fn();
+                } catch (_) {}
+            };
+        }
+    } catch (_) {}
+
     async function refreshPerfDashboard() {
         // System status chips and resources
         try {
@@ -1069,7 +1088,11 @@
                 window.__adminSSE = src;
                 const pump = debounce(() => {
                     try {
-                        refreshBadge();
+                        if (typeof window.refreshAdminBadge === 'function') {
+                            window.refreshAdminBadge();
+                        } else if (typeof refreshBadge === 'function') {
+                            refreshBadge();
+                        }
                     } catch (_) {}
                 }, 500);
                 src.addEventListener('log', () => pump());
@@ -1417,6 +1440,10 @@
                             '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
                 }
             }
+            // Expose to global shim so SSE can trigger it without scoping issues
+            try {
+                window.refreshAdminBadge = refreshBadge;
+            } catch (_) {}
 
             function openPanel() {
                 const { panel, btn } = getRefs();

@@ -303,7 +303,6 @@ const swaggerUi = require('swagger-ui-express');
 const pkg = require('./package.json');
 const ecosystemConfig = require('./ecosystem.config.js');
 const { shuffleArray } = require('./utils.js');
-const { PassThrough: _PT } = require('stream');
 
 // Asset version (can later be replaced by build hash); fallback to package.json version
 const ASSET_VERSION = pkg.version || '1.0.0';
@@ -12638,7 +12637,9 @@ if (require.main === module) {
                 for (const c of clients) {
                     try {
                         c.res.write(payload);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* ignore SSE write errors (client closed) */
+                    }
                 }
             };
             logger.events.on('log', onLog);
@@ -12647,7 +12648,9 @@ if (require.main === module) {
                 global.__adminSSECleanup = () => {
                     try {
                         logger.events.off('log', onLog);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* ignore */
+                    }
                     clients.clear();
                 };
             }
