@@ -602,42 +602,50 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         await fetchMedia(true);
 
-        // Only apply visual element settings in screensaver mode (not cinema or wallart mode)
-        const isScreensaverMode = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
+        // In preview, avoid applying initial screensaver/cinema/wallart visuals based on
+        // the server config; these can override the admin's live preview payload and cause
+        // flicker back to screensaver. We'll wait for applySettings() messages instead.
+        if (!window.IS_PREVIEW) {
+            // Only apply visual element settings in screensaver mode (not cinema or wallart mode)
+            const isScreensaverMode = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
 
-        if (isScreensaverMode) {
-            // Poster visibility toggles only the poster area, not the entire container
-            if (appConfig.showPoster === false) {
-                posterWrapper?.classList.add('is-hidden');
-            } else {
-                posterWrapper?.classList.remove('is-hidden');
+            if (isScreensaverMode) {
+                // Poster visibility toggles only the poster area, not the entire container
+                if (appConfig.showPoster === false) {
+                    posterWrapper?.classList.add('is-hidden');
+                } else {
+                    posterWrapper?.classList.remove('is-hidden');
+                }
+
+                // Metadata visibility is independent
+                if (appConfig.showMetadata === false) {
+                    textWrapper.classList.add('is-hidden');
+                } else {
+                    textWrapper.classList.remove('is-hidden');
+                }
+
+                // Safety: ensure the main container itself isn't force-hidden
+                infoContainer.classList.remove('is-hidden');
             }
-
-            // Metadata visibility is independent
-            if (appConfig.showMetadata === false) {
-                textWrapper.classList.add('is-hidden');
-            } else {
-                textWrapper.classList.remove('is-hidden');
-            }
-
-            // Safety: ensure the main container itself isn't force-hidden
-            infoContainer.classList.remove('is-hidden');
         }
 
-        // Clock widget logic - only show in screensaver mode
-        const shouldShowClock = appConfig.clockWidget && isScreensaverMode;
+        // Clock widget logic - only show in screensaver mode; skip initial toggle in preview
+        if (!window.IS_PREVIEW) {
+            const isScreensaverMode = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
+            const shouldShowClock = appConfig.clockWidget && isScreensaverMode;
 
-        if (shouldShowClock) {
-            const widgetContainer = document.getElementById('clock-widget-container');
-            if (widgetContainer) {
-                widgetContainer.style.display = 'block';
-                updateClock();
-                setInterval(updateClock, 1000);
-            }
-        } else {
-            const widgetContainer = document.getElementById('clock-widget-container');
-            if (widgetContainer) {
-                widgetContainer.style.display = 'none';
+            if (shouldShowClock) {
+                const widgetContainer = document.getElementById('clock-widget-container');
+                if (widgetContainer) {
+                    widgetContainer.style.display = 'block';
+                    updateClock();
+                    setInterval(updateClock, 1000);
+                }
+            } else {
+                const widgetContainer = document.getElementById('clock-widget-container');
+                if (widgetContainer) {
+                    widgetContainer.style.display = 'none';
+                }
             }
         }
 
@@ -660,16 +668,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(refreshConfig, 1000); // Small delay to ensure any pending saves are complete
         });
 
-        // Apply initial UI scaling (only for screensaver mode)
-        if (!appConfig.cinemaMode && !appConfig.wallartMode?.enabled) {
-            applyUIScaling(appConfig);
+        // Apply initial UI scaling (only for screensaver mode) - skip in preview to avoid overrides
+        if (!window.IS_PREVIEW) {
+            if (!appConfig.cinemaMode && !appConfig.wallartMode?.enabled) {
+                applyUIScaling(appConfig);
+            }
         }
 
-        // Apply cinema mode
-        applyCinemaMode(appConfig);
+        // In preview, don't apply cinema/wallart based on fetched config; await live payload
+        if (!window.IS_PREVIEW) {
+            // Apply cinema mode
+            applyCinemaMode(appConfig);
 
-        // Apply wallart mode
-        applyWallartMode(appConfig);
+            // Apply wallart mode
+            applyWallartMode(appConfig);
+        }
     }
 
     // --- Live Preview support ---
@@ -763,6 +776,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             if (partial.wallartMode) {
                 next.wallartMode = { ...next.wallartMode, ...partial.wallartMode };
+                // If wallart is being enabled via preview, force-disable cinema to avoid fallback
+                if (typeof next.wallartMode.enabled === 'boolean' && next.wallartMode.enabled) {
+                    next.cinemaMode = false;
+                }
                 wallartNeedsApply = true;
             }
             // Map top-level hero controls into wallart layout settings when present
@@ -872,6 +889,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (event.origin !== window.location.origin) return;
             const data = event.data || {};
             if (data && data.type === 'posterrama.preview.update' && data.payload) {
+                // Mark that we've received a live preview payload
+                window.__POSTERRAMA_PREVIEW_ACTIVE = true;
                 applySettings(data.payload);
             }
         } catch (_) {

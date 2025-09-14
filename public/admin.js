@@ -1115,7 +1115,7 @@ function toggleHelpPanel() {
     if (helpPanel.classList.contains('open')) {
         updateHelpContent(sectionName);
     }
-    if (helpPanel.classList.contains('open') && sectionName) {
+    if (helpPanel.classList.contains('open')) {
         updateHelpContent(sectionName);
     }
 }
@@ -2128,6 +2128,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusMessage.textContent = 'Ready to save';
                 statusMessage.className = 'status-message';
                 saveButton.classList.remove('has-changes');
+                // Reset form change tracking baseline when entering Devices to avoid false warnings
+                if (typeof window.resetFormChangeTracking === 'function') {
+                    try {
+                        window.resetFormChangeTracking();
+                    } catch (_) {}
+                }
             }
         }
 
@@ -2436,12 +2442,30 @@ document.addEventListener('DOMContentLoaded', () => {
         let originalFormData = null;
 
         const captureFormState = () => {
-            const formData = new FormData(configForm);
             const state = {};
-            for (const [key, value] of formData.entries()) state[key] = value;
-            // Only include named checkboxes in the state snapshot; ignore transient/unnamed controls (e.g., Devices table)
-            configForm.querySelectorAll('input[type="checkbox"][name]').forEach(cb => {
-                if (cb.name) state[cb.name] = cb.checked;
+            // Build a deterministic snapshot of named controls, excluding anything inside the Devices section
+            const controls = configForm.querySelectorAll(
+                'input[name], select[name], textarea[name]'
+            );
+            controls.forEach(el => {
+                // Skip controls inside the Devices section entirely
+                if (typeof el.closest === 'function' && el.closest('#devices-section')) return;
+                // Skip disabled controls to match FormData behavior
+                if (el.disabled) return;
+                const name = el.name;
+                if (!name) return;
+                const type = (el.type || '').toLowerCase();
+                if (type === 'checkbox') {
+                    state[name] = el.checked;
+                } else if (type === 'radio') {
+                    if (el.checked) state[name] = el.value;
+                } else if (el.tagName === 'SELECT' && el.multiple) {
+                    state[name] = Array.from(el.options)
+                        .filter(o => o.selected)
+                        .map(o => o.value);
+                } else {
+                    state[name] = el.value;
+                }
             });
             return state;
         };
@@ -2452,9 +2476,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         // Expose a global checker so critical actions (like Restart) can enforce "save first"
+        // Use the debounced, event-driven tracker instead of recomputing raw diffs to avoid false positives
         window.hasUnsavedChanges = () => {
             try {
-                return formHasChanged();
+                return !!hasChanges;
             } catch (_) {
                 return false;
             }
@@ -2465,7 +2490,9 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMessage.className = `status-message ${className}`;
         };
 
+        let initializingSnapshotDone = false;
         const handleFormChange = debounce(() => {
+            if (!initializingSnapshotDone) return; // ignore noise during initial population
             if (formHasChanged()) {
                 if (!hasChanges) {
                     hasChanges = true;
@@ -2479,10 +2506,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 400);
 
-        // Initial snapshot after current tick (ensures population done)
+        // Initial snapshot after UI population; allow extra time for async-populated fields
         setTimeout(() => {
             originalFormData = captureFormState();
-        }, 120);
+            // One more micro-baseline after next frame for late async injections
+            requestAnimationFrame(() => {
+                originalFormData = captureFormState();
+                initializingSnapshotDone = true;
+            });
+        }, 250);
 
         const onFormEvent = e => {
             // If Devices section is active, ignore form dirty tracking events entirely
@@ -2490,9 +2522,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 '#devices-section.section-content.active'
             );
             if (devicesActive) return;
-            // Ignore events originating from the Devices panel (not part of config persistence)
+            // Ignore events originating from the Devices panel or its nested UI
             if (e && e.target && typeof e.target.closest === 'function') {
                 if (e.target.closest('#devices-section')) return;
+                if (e.target.closest('#device-settings-modal')) return;
+                if (e.target.closest('.devices-toolbar')) return;
             }
             handleFormChange();
         };
@@ -9892,9 +9926,18 @@ function renderDevicesTable(devices) {
         const rawStatus = (d.status || 'unknown').toLowerCase();
         const hasWs = !!d.wsConnected;
         const isOffline = rawStatus === 'offline';
+        const isPaused = !!(d.currentState && d.currentState.paused === true);
+        // Local UI-pinned memory (decoupled from paused)
+        window.__devicesPinned = window.__devicesPinned || Object.create(null);
+        const isPinnedFromState = !!(
+            d.currentState &&
+            (d.currentState.pinned === true || d.currentState.pin === true)
+        );
+        const isPinnedUI = !!window.__devicesPinned[d.id];
+        const isPinned = isPinnedFromState || isPinnedUI;
 
         tr.innerHTML = `
-            <td class="cell-select"><input type="checkbox" class="row-select" data-id="${d.id}" aria-label="Select device" /></td>
+            <td class="cell-select"></td>
             <td class="cell-name">
                 <div class="actions-inline">
                     <div class="btn-group icon-only">
@@ -9913,14 +9956,14 @@ function renderDevicesTable(devices) {
             <button type="button" class="btn" data-cmd="playback.prev" data-id="${d.id}" title="Previous poster" ${isOffline ? 'disabled' : ''}>
                             <span class="icon"><i class="fas fa-step-backward"></i></span>
                         </button>
-            <button type="button" class="btn playback-toggle${d.currentState && d.currentState.paused === false ? ' is-primary is-playing' : ''}" data-cmd="playback.toggle" data-id="${d.id}" title="Play/Pause" ${isOffline ? 'disabled' : ''}>
+            <button type="button" class="btn playback-toggle${d.currentState && d.currentState.paused === false ? ' is-primary is-playing' : isPaused ? ' is-paused' : ''}" data-cmd="playback.toggle" data-id="${d.id}" title="Play/Pause" ${isOffline ? 'disabled' : ''}>
                             <span class="icon"><i class="fas ${d.currentState && d.currentState.paused === false ? 'fa-pause' : 'fa-play'}"></i></span>
                         </button>
             <button type="button" class="btn" data-cmd="playback.next" data-id="${d.id}" title="Next poster" ${isOffline ? 'disabled' : ''}>
                             <span class="icon"><i class="fas fa-step-forward"></i></span>
                         </button>
-            <button type="button" class="btn" data-cmd="playback.pinPoster" data-id="${d.id}" title="Pin current poster" ${isOffline ? 'disabled' : ''}>
-                            <span class="icon"><i class="fas fa-thumbtack"></i></span>
+            <button type="button" class="btn pin-btn${isPinned ? ' is-pinned' : ''}" data-cmd="playback.pinPoster" data-id="${d.id}" title="Pin current poster" aria-pressed="${isPinned ? 'true' : 'false'}" ${isOffline ? 'disabled' : ''}>
+                            <span class="icon"><i class="fas ${isPinned ? 'fa-map-pin' : 'fa-thumbtack'}" aria-hidden="true"></i></span>
                         </button>
             <button type="button" class="btn btn-danger" data-cmd="delete" data-id="${d.id}" title="Delete this device">
                             <span class="icon"><i class="fas fa-trash"></i></span>
@@ -9928,6 +9971,9 @@ function renderDevicesTable(devices) {
                     </div>
                 </div>
                 <div class="row-top inputs-line">
+                    <div class="field field-select-inline">
+                        <input type="checkbox" class="row-select" data-id="${d.id}" aria-label="Select device" />
+                    </div>
                     <div class="field">
                         <div class="field-label">Name</div>
                         <input class="inline-edit name-input" data-field="name" data-id="${d.id}" value="${esc(d.name)}" placeholder="Name" />
@@ -9936,15 +9982,20 @@ function renderDevicesTable(devices) {
                         <div class="field-label">Location</div>
                         <input class="inline-edit location-input" data-field="location" data-id="${d.id}" value="${esc(d.location)}" placeholder="Location" />
                     </div>
+                    <div class="field">
+                        <div class="field-label">Preset</div>
+                        <select class="inline-edit preset-select" data-field="preset" data-id="${d.id}" title="Assign a display preset to this device" aria-label="Preset">
+                            ${buildPresetOptions(currentPresetKey)}
+                        </select>
+                    </div>
+                    <div class="field field-mode-inline">
+                        <div class="field-label">Mode</div>
+                        <div class="mode-inline">${cellMode}</div>
+                    </div>
                 </div>
                 <div class="row-bottom meta-line">${overridesBadge}</div>
             </td>
-            <td class="cell-preset">
-                <select class="inline-edit preset-select" data-field="preset" data-id="${d.id}" title="Assign a display preset to this device" aria-label="Preset">
-                    ${buildPresetOptions(currentPresetKey)}
-                </select>
-            </td>
-            <td class="cell-mode">${cellMode}</td>
+            <td class="cell-mode"></td>
             <td class="cell-status">${(() => {
                 const raw = (d.status || 'unknown').toLowerCase();
                 const hasWs = !!d.wsConnected;
@@ -9978,9 +10029,11 @@ function renderDevicesTable(devices) {
                     details || '<div class="tip-row"><span class="tip-k">No details</span></div>';
                 return `<span class="badge ${cls}" data-device-tip="1" title="${esc(explain)}">${esc(label)}<div class="device-tip">${statusTip}${detailsHtml}</div></span>`;
             })()}</td>
-            <td class="cell-last">${last ? `<div class="last-date">${esc(last.date)}</div><div class="last-time">${esc(last.time)}</div>` : '—'}</td>`;
+            <td class="cell-last">${last ? `<div class="last-label">Last Seen</div><div class="last-date">${esc(last.date)}</div><div class="last-time">${esc(last.time)}</div>` : '<div class="last-label">Last Seen</div>—'}</td>`;
         tbody.appendChild(tr);
     });
+
+    // Preset select is rendered inline with Name/Location via CSS grid; no JS alignment needed
 
     // Bulk selection controls
     const selectAll = document.getElementById('devices-select-all');
@@ -10205,6 +10258,64 @@ function renderDevicesTable(devices) {
                         const icon = btn.querySelector('i');
                         if (icon) icon.className = `fas ${!isPlaying ? 'fa-pause' : 'fa-play'}`;
                         btn.classList.toggle('is-primary', !isPlaying); // green when playing
+                        // If we just resumed (now playing), clear pin state in sibling pin button
+                        if (!isPlaying) {
+                            // we toggled from paused->playing
+                            const group = btn.closest('.btn-group');
+                            const pinBtn = group && group.querySelector('.pin-btn');
+                            if (pinBtn) {
+                                pinBtn.classList.remove('is-pinned');
+                                pinBtn.setAttribute('aria-pressed', 'false');
+                                const pinIcon = pinBtn.querySelector('i');
+                                if (pinIcon) pinIcon.className = 'fas fa-thumbtack';
+                            }
+                            // update local memory
+                            const id = btn.getAttribute('data-id');
+                            if (id && window.__devicesPinned) delete window.__devicesPinned[id];
+                        }
+                    } else if (type === 'playback.pinPoster') {
+                        const currentlyPinned = btn.classList.contains('is-pinned');
+                        const nextType = currentlyPinned ? 'playback.resume' : 'playback.pinPoster';
+                        await sendDeviceCommand(id, nextType);
+                        const group = btn.closest('.btn-group');
+                        const toggleBtn = group && group.querySelector('.playback-toggle');
+                        const tIcon = toggleBtn && toggleBtn.querySelector('i');
+                        if (currentlyPinned) {
+                            // Unpin: revert UI and set playback to playing
+                            btn.classList.remove('is-pinned');
+                            btn.setAttribute('aria-pressed', 'false');
+                            const pinIcon = btn.querySelector('i');
+                            if (pinIcon) pinIcon.className = 'fas fa-thumbtack';
+                            if (toggleBtn) {
+                                toggleBtn.classList.remove('is-paused');
+                                toggleBtn.classList.add('is-playing', 'is-primary');
+                                if (tIcon) tIcon.className = 'fas fa-pause';
+                            }
+                            // local memory
+                            const id = btn.getAttribute('data-id');
+                            if (id) {
+                                window.__devicesPinned =
+                                    window.__devicesPinned || Object.create(null);
+                                delete window.__devicesPinned[id];
+                            }
+                        } else {
+                            // Pin: apply UI and set playback to paused
+                            btn.classList.add('is-pinned');
+                            btn.setAttribute('aria-pressed', 'true');
+                            const pinIcon = btn.querySelector('i');
+                            if (pinIcon) pinIcon.className = 'fas fa-map-pin';
+                            if (toggleBtn) {
+                                toggleBtn.classList.remove('is-playing', 'is-primary');
+                                toggleBtn.classList.add('is-paused');
+                                if (tIcon) tIcon.className = 'fas fa-play';
+                            }
+                            const id2 = btn.getAttribute('data-id');
+                            if (id2) {
+                                window.__devicesPinned =
+                                    window.__devicesPinned || Object.create(null);
+                                window.__devicesPinned[id2] = true;
+                            }
+                        }
                     } else {
                         await sendDeviceCommand(id, type);
                     }
@@ -10362,6 +10473,63 @@ function initDevicesPanel() {
                             const icon = btn.querySelector('i');
                             if (icon) icon.className = `fas ${!isPlaying ? 'fa-pause' : 'fa-play'}`;
                             btn.classList.toggle('is-primary', !isPlaying);
+                            if (!isPlaying) {
+                                // transitioned to playing, clear pin
+                                const group = btn.closest('.btn-group');
+                                const pinBtn = group && group.querySelector('.pin-btn');
+                                if (pinBtn) {
+                                    pinBtn.classList.remove('is-pinned');
+                                    pinBtn.setAttribute('aria-pressed', 'false');
+                                    const pinIcon = pinBtn.querySelector('i');
+                                    if (pinIcon) pinIcon.className = 'fas fa-thumbtack';
+                                }
+                                // update local memory
+                                const id2 = btn.getAttribute('data-id');
+                                if (id2 && window.__devicesPinned)
+                                    delete window.__devicesPinned[id2];
+                            }
+                        } else if (type === 'playback.pinPoster') {
+                            const currentlyPinned = btn.classList.contains('is-pinned');
+                            const nextType = currentlyPinned
+                                ? 'playback.resume'
+                                : 'playback.pinPoster';
+                            await sendDeviceCommand(id, nextType);
+                            const group = btn.closest('.btn-group');
+                            const toggleBtn = group && group.querySelector('.playback-toggle');
+                            const tIcon = toggleBtn && toggleBtn.querySelector('i');
+                            if (currentlyPinned) {
+                                btn.classList.remove('is-pinned');
+                                btn.setAttribute('aria-pressed', 'false');
+                                const pinIcon = btn.querySelector('i');
+                                if (pinIcon) pinIcon.className = 'fas fa-thumbtack';
+                                if (toggleBtn) {
+                                    toggleBtn.classList.remove('is-paused');
+                                    toggleBtn.classList.add('is-playing', 'is-primary');
+                                    if (tIcon) tIcon.className = 'fas fa-pause';
+                                }
+                                const id2 = btn.getAttribute('data-id');
+                                if (id2) {
+                                    window.__devicesPinned =
+                                        window.__devicesPinned || Object.create(null);
+                                    delete window.__devicesPinned[id2];
+                                }
+                            } else {
+                                btn.classList.add('is-pinned');
+                                btn.setAttribute('aria-pressed', 'true');
+                                const pinIcon = btn.querySelector('i');
+                                if (pinIcon) pinIcon.className = 'fas fa-map-pin';
+                                if (toggleBtn) {
+                                    toggleBtn.classList.remove('is-playing', 'is-primary');
+                                    toggleBtn.classList.add('is-paused');
+                                    if (tIcon) tIcon.className = 'fas fa-play';
+                                }
+                                const id3 = btn.getAttribute('data-id');
+                                if (id3) {
+                                    window.__devicesPinned =
+                                        window.__devicesPinned || Object.create(null);
+                                    window.__devicesPinned[id3] = true;
+                                }
+                            }
                         }
                         if (type !== 'playback.toggle') await sendDeviceCommand(id, type, payload);
                         setButtonState(btn, 'success', { text: 'Queued' });
@@ -10557,10 +10725,11 @@ function showManagePresetsModal() {
     const existing = document.getElementById('manage-presets-modal');
     if (existing) existing.remove();
     const presets = getDevicePresets();
+    const escHtml = s => (s == null ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'));
     const html = `
         <div id="manage-presets-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="presets-title">
             <div class="modal-background" data-close></div>
-            <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-content" style="max-width: 960px;">
                 <span class="close" data-close>&times;</span>
                 <h3 id="presets-title" class="section-title modal-section-title">
                     <i class="fas fa-cog"></i>
@@ -10568,13 +10737,38 @@ function showManagePresetsModal() {
                 </h3>
                 <div class="form-section unified-section">
                     <div class="subsection-content">
-                        <p class="hint">Edit presets as JSON array. Each item should have: key (string), name (string, optional), description (optional), overrides (object, optional).</p>
-                        <textarea id="presets-json-editor" style="width:100%;height:300px;font-family:monospace;"></textarea>
-                        <div class="form-actions" style="margin-top:10px;display:flex;gap:8px;align-items:center;">
-                            <button type="button" id="presets-save" class="btn is-primary"><span class="icon"><i class="fas fa-save"></i></span><span>Save</span></button>
-                            <button type="button" id="presets-close" class="btn" data-close><span class="icon"><i class="fas fa-times"></i></span><span>Close</span></button>
-                            <div id="presets-status" class="hint"></div>
+                        <div class="preset-manager-grid" style="display:grid;grid-template-columns: 280px 1fr;gap:12px;align-items:start;">
+                            <div class="left">
+                                <div class="field">
+                                    <div class="field-label">Select preset</div>
+                                    <select id="presets-select-list" size="10" style="width:100%;min-height:240px;">
+                                        ${presets
+                                            .map(
+                                                p =>
+                                                    `<option value="${escHtml(p.key || '')}">${escHtml(
+                                                        p.name || p.key || ''
+                                                    )}</option>`
+                                            )
+                                            .join('')}
+                                    </select>
+                                </div>
+                                <div class="form-actions" style="display:flex;gap:8px;margin-top:8px;">
+                                    <button type="button" id="preset-delete" class="btn btn-danger"><span class="icon"><i class="fas fa-trash"></i></span><span>Delete</span></button>
+                                    <button type="button" id="preset-save-as-new" class="btn is-primary"><span class="icon"><i class="fas fa-save"></i></span><span>Save as new…</span></button>
+                                    <button type="button" class="btn" data-close><span class="icon"><i class="fas fa-times"></i></span><span>Close</span></button>
+                                </div>
+                            </div>
+                            <div class="right">
+                                <div class="field">
+                                    <div class="field-label">Preset JSON</div>
+                                    <textarea id="preset-json-view" style="width:100%;height:320px;font-family:monospace;white-space:pre;">
+${escHtml(presets.length ? JSON.stringify(presets[0], null, 2) : '')}
+                                    </textarea>
+                                    <div class="hint">Wijzig de JSON indien gewenst; "Save as new" gebruikt deze inhoud.</div>
+                                </div>
+                            </div>
                         </div>
+                        <div id="presets-status" class="hint" style="margin-top:6px;"></div>
                     </div>
                 </div>
             </div>
@@ -10583,35 +10777,280 @@ function showManagePresetsModal() {
     wrap.innerHTML = html;
     const el = wrap.firstElementChild;
     document.body.appendChild(el);
-    const editor = el.querySelector('#presets-json-editor');
-    editor.value = JSON.stringify(presets, null, 2);
     const status = el.querySelector('#presets-status');
+    const listEl = el.querySelector('#presets-select-list');
+    const jsonEl = el.querySelector('#preset-json-view');
+    const saveAsBtn = el.querySelector('#preset-save-as-new');
     const closeEls = el.querySelectorAll('[data-close]');
     closeEls.forEach(c => c.addEventListener('click', () => el.remove()));
     el.classList.add('modal-open');
-    const saveBtn = el.querySelector('#presets-save');
-    saveBtn.addEventListener('click', async () => {
+
+    const getPresets = () => getDevicePresets();
+    const tryParseJson = txt => {
         try {
-            status.textContent = 'Saving...';
-            const next = JSON.parse(editor.value);
-            if (!Array.isArray(next)) throw new Error('Top-level must be an array');
-            const res = await authenticatedFetch(apiUrl('/api/admin/device-presets'), {
-                method: 'PUT',
-                body: JSON.stringify(next),
-                noRedirectOn401: true,
-            });
-            if (!res.ok) throw new Error('Failed to save');
-            setDevicePresets(next);
-            populateBulkPresetPicker();
-            // Re-render devices to update badge names
-            const list = await fetchDevices();
-            renderDevicesTable(list);
-            status.textContent = 'Saved.';
-            setTimeout(() => (status.textContent = ''), 1200);
+            return { ok: true, value: JSON.parse(txt) };
         } catch (e) {
-            status.textContent = 'Failed: ' + (e && e.message ? e.message : 'unknown');
+            return {
+                ok: false,
+                error: 'Invalid JSON: ' + (e && e.message ? e.message : 'parse error'),
+            };
         }
-    });
+    };
+    // Minimal schema/type validation for known override keys; unknown keys are allowed but ignored for strict checks
+    const getByPath = (obj, path) => {
+        return path
+            .split('.')
+            .reduce((acc, k) => (acc && acc[k] != null ? acc[k] : undefined), obj);
+    };
+    const validators = [
+        { path: 'wallartMode.enabled', type: 'boolean' },
+        { path: 'wallartMode.refreshRate', type: 'number', min: 1, max: 10 },
+        { path: 'wallartMode.randomness', type: 'number', min: 0, max: 10 },
+        {
+            path: 'wallartMode.layoutSettings.heroGrid.heroRotationMinutes',
+            type: 'number',
+            min: 1,
+            max: 60,
+        },
+        { path: 'wallartMode.ambientGradient', type: 'boolean' },
+        { path: 'cinemaMode', type: 'boolean' },
+        {
+            path: 'cinemaOrientation',
+            type: 'enum',
+            values: ['auto', 'portrait', 'portrait-flipped', ''],
+        },
+        { path: 'showPoster', type: 'boolean' },
+        { path: 'showMetadata', type: 'boolean' },
+        { path: 'showClearLogo', type: 'boolean' },
+        { path: 'showRottenTomatoes', type: 'boolean' },
+        { path: 'rottenTomatoesMinimumScore', type: 'number', min: 0, max: 10 },
+        { path: 'uiScaling.content', type: 'number', min: 50, max: 200 },
+        { path: 'uiScaling.clearlogo', type: 'number', min: 50, max: 200 },
+        { path: 'uiScaling.clock', type: 'number', min: 50, max: 200 },
+        { path: 'uiScaling.global', type: 'number', min: 50, max: 200 },
+        { path: 'wallartMode.layoutVariant', type: 'string' },
+        {
+            path: 'wallartMode.layoutSettings.heroGrid.heroSide',
+            type: 'enum',
+            values: ['left', 'right', ''],
+        },
+    ];
+    const validatePresetObject = obj => {
+        const errs = [];
+        if (typeof obj !== 'object' || obj == null) errs.push('Preset must be an object');
+        const key = obj && obj.key;
+        if (!key || typeof key !== 'string' || !key.trim())
+            errs.push('Key is required and must be a non-empty string');
+        if (obj && obj.name != null && typeof obj.name !== 'string')
+            errs.push('Name must be a string');
+        if (obj && obj.description != null && typeof obj.description !== 'string')
+            errs.push('Description must be a string');
+        if (obj && obj.overrides != null && typeof obj.overrides !== 'object')
+            errs.push('Overrides must be an object');
+        // Strict top-level keys check
+        const allowedTop = new Set(['key', 'name', 'description', 'overrides']);
+        if (obj && typeof obj === 'object') {
+            Object.keys(obj).forEach(k => {
+                if (!allowedTop.has(k)) errs.push(`Unknown top-level property: ${k}`);
+            });
+        }
+        const ov = obj && obj.overrides;
+        if (ov && typeof ov === 'object') {
+            validators.forEach(v => {
+                const val = getByPath(ov, v.path);
+                if (val === undefined) return; // optional, skip
+                if (v.type === 'boolean' && typeof val !== 'boolean')
+                    errs.push(`${v.path} must be boolean`);
+                if (v.type === 'number') {
+                    if (typeof val !== 'number' || Number.isNaN(val))
+                        errs.push(`${v.path} must be a number`);
+                    if (v.min != null && val < v.min) errs.push(`${v.path} must be >= ${v.min}`);
+                    if (v.max != null && val > v.max) errs.push(`${v.path} must be <= ${v.max}`);
+                }
+                if (v.type === 'enum') {
+                    if (typeof val !== 'string') errs.push(`${v.path} must be a string`);
+                    else if (!v.values.includes(val))
+                        errs.push(`${v.path} must be one of: ${v.values.join(', ')}`);
+                }
+                if (v.type === 'string' && typeof val !== 'string')
+                    errs.push(`${v.path} must be a string`);
+            });
+        }
+        return errs;
+    };
+    const validatePresetsArray = arr => {
+        const errs = [];
+        if (!Array.isArray(arr)) return ['Presets payload must be an array'];
+        const seen = new Set();
+        arr.forEach((p, idx) => {
+            const per = validatePresetObject(p);
+            if (per.length) errs.push(`Item ${idx + 1}: ` + per.join('; '));
+            const k = p && p.key;
+            if (k && seen.has(k)) errs.push(`Duplicate key: ${k}`);
+            if (k) seen.add(k);
+        });
+        return errs;
+    };
+    const putPresets = async next => {
+        const res = await authenticatedFetch(apiUrl('/api/admin/device-presets'), {
+            method: 'PUT',
+            body: JSON.stringify(next),
+            noRedirectOn401: true,
+        });
+        if (!res.ok) throw new Error('Failed to save');
+        setDevicePresets(next);
+        populateBulkPresetPicker();
+        const list = await fetchDevices();
+        renderDevicesTable(list);
+    };
+
+    // Update JSON view on selection
+    const refreshJsonFromSelection = () => {
+        try {
+            const key = listEl && listEl.value;
+            const p = getPresets().find(pp => (pp.key || '') === (key || ''));
+            jsonEl.value = p ? JSON.stringify(p, null, 2) : '';
+        } catch (_) {
+            jsonEl.value = '';
+        }
+    };
+    if (listEl) {
+        listEl.addEventListener('change', refreshJsonFromSelection);
+        // Select first item by default
+        if (listEl.options.length) listEl.selectedIndex = 0;
+        refreshJsonFromSelection();
+    }
+
+    // Delete selected preset
+    const delBtn = el.querySelector('#preset-delete');
+    if (delBtn && listEl) {
+        delBtn.addEventListener('click', async () => {
+            const key = listEl.value;
+            if (!key) return;
+            const ok = await confirmDialog(`Delete preset "${key}"?`, delBtn);
+            if (!ok) return;
+            try {
+                status.textContent = 'Deleting...';
+                const next = getPresets().filter(p => (p.key || '') !== key);
+                await putPresets(next);
+                // Rebuild list
+                listEl.innerHTML = next
+                    .map(
+                        p =>
+                            `<option value="${escHtml(p.key || '')}">${escHtml(p.name || p.key || '')}</option>`
+                    )
+                    .join('');
+                if (listEl.options.length) listEl.selectedIndex = 0;
+                refreshJsonFromSelection();
+                status.textContent = 'Deleted.';
+                setTimeout(() => (status.textContent = ''), 1200);
+            } catch (e) {
+                status.textContent = 'Failed: ' + (e && e.message ? e.message : 'unknown');
+            }
+        });
+    }
+
+    // Save as new preset
+    if (saveAsBtn) {
+        saveAsBtn.addEventListener('click', async () => {
+            try {
+                const src = jsonEl.value || '{}';
+                const parsed = tryParseJson(src);
+                if (!parsed.ok) {
+                    status.textContent = parsed.error;
+                    return;
+                }
+                const obj = parsed.value;
+                const perr = validatePresetObject(obj).filter(
+                    e => !e.startsWith('Key is required')
+                );
+                if (perr.length) {
+                    status.textContent = 'Invalid: ' + perr.join(' | ');
+                    return;
+                }
+                // Ask for new key and optional name
+                const newKey = await promptDialog(
+                    'New preset key (unique, required):',
+                    '',
+                    saveAsBtn
+                );
+                if (!newKey) return;
+                const trimmedKey = String(newKey).trim();
+                if (!trimmedKey) return;
+                const exists = getPresets().some(p => (p.key || '') === trimmedKey);
+                if (exists) {
+                    status.textContent = 'Failed: key already exists';
+                    setTimeout(() => (status.textContent = ''), 1500);
+                    return;
+                }
+                const newName = await promptDialog(
+                    'Display name (optional):',
+                    obj.name || obj.key || trimmedKey,
+                    saveAsBtn
+                );
+                const nextPreset = {
+                    ...obj,
+                    key: trimmedKey,
+                    name: newName || obj.name || trimmedKey,
+                };
+                // Ensure global validation on full list
+                const next = getPresets().concat([nextPreset]);
+                const aerr = validatePresetsArray(next);
+                if (aerr.length) {
+                    status.textContent = 'Invalid: ' + aerr.join(' | ');
+                    return;
+                }
+                status.textContent = 'Saving...';
+                await putPresets(next);
+                // Update UI selection
+                listEl.innerHTML = next
+                    .map(
+                        p =>
+                            `<option value="${escHtml(p.key || '')}">${escHtml(p.name || p.key || '')}</option>`
+                    )
+                    .join('');
+                // Select the new one
+                for (let i = 0; i < listEl.options.length; i++) {
+                    if (listEl.options[i].value === trimmedKey) {
+                        listEl.selectedIndex = i;
+                        break;
+                    }
+                }
+                refreshJsonFromSelection();
+                status.textContent = 'Saved new preset.';
+                setTimeout(() => (status.textContent = ''), 1200);
+            } catch (e) {
+                status.textContent = 'Failed: ' + (e && e.message ? e.message : 'unknown');
+            }
+        });
+    }
+
+    // Live validation on JSON edits
+    const updateValidationUI = () => {
+        if (!saveAsBtn) return;
+        const src = jsonEl.value || '{}';
+        const parsed = tryParseJson(src);
+        if (!parsed.ok) {
+            saveAsBtn.disabled = true;
+            status.textContent = parsed.error;
+            return;
+        }
+        const errs = validatePresetObject(parsed.value).filter(
+            e => !e.startsWith('Key is required')
+        );
+        if (errs.length) {
+            saveAsBtn.disabled = true;
+            status.textContent = 'Invalid: ' + errs.join(' | ');
+        } else {
+            saveAsBtn.disabled = false;
+            status.textContent = '';
+        }
+    };
+    if (jsonEl) {
+        jsonEl.addEventListener('input', updateValidationUI);
+        // Initial validation
+        updateValidationUI();
+    }
 }
 
 // Device Settings Override Modal
@@ -11228,6 +11667,10 @@ function showDeviceSettingsModal(device) {
             v = el.value === '' ? undefined : Number(el.value);
         else v = el.value;
         if (v !== undefined && v !== '' && !Number.isNaN(v)) setDeep(partial, key, v);
+        // When enabling Wallart, explicitly disable Cinema in the preview to avoid conflicts
+        if (key === 'wallartMode.enabled' && v === true) {
+            partial.cinemaMode = false;
+        }
         postPreview(partial);
         setStatus('Edited (unsaved)', true);
     }
@@ -11344,7 +11787,13 @@ function showDeviceSettingsModal(device) {
     try {
         const sendInitial = () => {
             if (!previewFrame || !previewFrame.contentWindow) return;
-            postPreview(overrides || {});
+            const initial = { ...(overrides || {}) };
+            try {
+                if (initial && initial.wallartMode && initial.wallartMode.enabled === true) {
+                    initial.cinemaMode = false;
+                }
+            } catch (_) {}
+            postPreview(initial);
         };
         if (previewFrame) {
             previewFrame.addEventListener('load', sendInitial, { once: true });
@@ -11372,6 +11821,13 @@ function showDeviceSettingsModal(device) {
         wireSliderBubbles(form);
         wireInputs();
         applyModeVisibility();
+        // If effective Wallart is enabled, explicitly assert it in preview (and disable cinema)
+        try {
+            const effWallart = !!getEffective('wallartMode.enabled');
+            if (effWallart) {
+                postPreview({ wallartMode: { enabled: true }, cinemaMode: false });
+            }
+        } catch (_) {}
         // Populate timezone dropdown and wire clock toggle
         try {
             const tzSelect = modal.querySelector('#ovr-clockTimezone');

@@ -1,3 +1,7 @@
+#devices-section .field-mode-inline .mode-inline {
+    display: inline-flex;
+    align-items: center;
+}
 /* === POSTERRAMA ADMIN DARK THEME === */
 
 /* Screen reader only content */
@@ -4621,19 +4625,23 @@ fieldset:focus-within {
 }
 #devices-section .devices-toolbar {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    /* Two zones: left controls + right status */
+    grid-template-columns: 1fr auto;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.25rem 0.25rem 0.5rem 0.25rem;
+    /* Match thead select cell left padding (8px) for perfect alignment */
+    padding: 0.25rem 0.25rem 0.5rem 0.5rem;
 }
 /* Compact presets menu */
 #devices-section .presets-menu {
     position: relative;
 }
 #devices-section .btn.btn-compact {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.9rem;
-    border-radius: 6px;
+    padding: 0.4rem 0.6rem; /* match select vertical rhythm */
+    font-size: 0.9rem; /* match select font size */
+    border-radius: 6px; /* match select radius */
+    min-width: 160px; /* match select min width */
+    text-align: left; /* align label similar to select text */
 }
 #devices-section .btn.btn-compact .caret {
     margin-left: 0.4rem;
@@ -4689,13 +4697,10 @@ fieldset:focus-within {
     gap: 0.5rem;
     justify-content: flex-start;
     align-items: center;
+    /* Fine-tune: minus 4px to move 1px to the right */
+    padding-left: calc(22px + 14px - 4px);
 }
-#devices-section .devices-toolbar .toolbar-middle {
-    display: inline-flex;
-    gap: 0.5rem;
-    justify-content: center;
-    align-items: center;
-}
+/* toolbar-preset wrapper removed; presets button now lives in toolbar-left */
 #devices-section .devices-toolbar .toolbar-right {
     display: inline-flex;
     gap: 0.5rem;
@@ -4714,12 +4719,12 @@ fieldset:focus-within {
         grid-template-columns: 1fr;
     }
     #devices-section .devices-toolbar .toolbar-left,
-    #devices-section .devices-toolbar .toolbar-middle,
+    #devices-section .devices-toolbar .toolbar-preset,
     #devices-section .devices-toolbar .toolbar-right {
         justify-content: stretch;
         flex-wrap: wrap;
     }
-    #devices-section .devices-toolbar .toolbar-middle {
+    #devices-section .devices-toolbar .toolbar-preset {
         justify-content: flex-start;
     }
 }
@@ -4727,36 +4732,53 @@ fieldset:focus-within {
     table-layout: fixed;
     width: 100%;
 }
+/* Show all header columns */
+#devices-section th.col-mode,
+#devices-section th.col-status,
+#devices-section th.col-last {
+    display: table-cell;
+}
+/* (baseline spacing removed to restore original layout) */
 #devices-section th.col-select {
-    width: 36px;
-    padding-left: 8px;
-    padding-right: 0;
-    text-align: left;
+    width: 0;
+    padding: 0;
 }
 #devices-section th.col-select input[type='checkbox'] {
-    display: inline-block;
-    margin: 0;
-    vertical-align: middle;
+    display: none;
 }
 #devices-section td.cell-select {
-    text-align: left;
-    padding-left: 8px;
-    padding-right: 0;
+    width: 0;
+    padding: 0;
 }
 #devices-section th.col-name {
-    width: 44%;
+    width: 70%;
 }
-#devices-section th.col-preset {
-    width: 20%;
+#devices-section th.col-name {
+    text-align: left;
+}
+#devices-section th.col-name .header-with-select {
+    justify-content: flex-start;
+}
+#devices-section th.col-name .header-with-select span {
+    display: inline-block;
+}
+#devices-section th.col-name .header-with-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+#devices-section th.col-name .header-with-select input[type='checkbox'] {
+    margin: 0;
 }
 #devices-section th.col-mode {
-    width: 10%;
+    width: 0;
+    padding: 0;
 }
 #devices-section th.col-status {
-    width: 12%;
+    width: 10%;
 }
 #devices-section th.col-last {
-    width: 12%;
+    width: 10%;
 }
 #devices-section th.col-actions {
     width: 6%;
@@ -4764,27 +4786,66 @@ fieldset:focus-within {
 #devices-section td {
     vertical-align: middle;
 }
+/* Bottom-align input controls across cells using a consistent baseline gap */
+/* Removed absolute positioning to prevent overlap and restore normal flow */
 #devices-section th.col-status,
 #devices-section td.cell-status {
     text-align: center;
 }
+/* Align Status badge vertically with Mode badge */
+#devices-section td.cell-status {
+    vertical-align: top; /* start at top of row like the inputs grid */
+    padding-top: 5px; /* nudge up by 1px */
+}
+#devices-section td.cell-status .badge {
+    /* Align bottoms: actions (22) + actions mb (6) + label (0.75rem) + gap (4) + input height (36) - badge height (~26) + 1px nudge */
+    margin-top: calc(22px + 6px + 0.75rem + 4px + 36px - 25px);
+}
+/* Align Last Seen with the icons row and inputs baseline */
 #devices-section td.cell-last {
+    vertical-align: top;
+    padding-top: 5px;
     white-space: nowrap;
-    color: #e5e7eb;
     text-align: center;
+}
+#devices-section td.cell-last .last-date {
+    /* Push the date/time block down so its bottom aligns with inputs baseline (Mode infobox) */
+    margin-top: calc(22px + 6px + 0.75rem + 4px + 36px - 41px);
+}
+#devices-section td.cell-last .last-label {
+    /* Place label on the same row as the action icons visually */
+    display: block;
+    color: #c7d2fe;
+    opacity: 0.9;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
 }
 #devices-section td.cell-mode,
 #devices-section td.cell-screen {
     text-align: center;
-}
-#devices-section td.cell-preset {
-    white-space: nowrap;
+    width: 0;
+    padding: 0;
 }
 #devices-section td.cell-screen {
     display: none;
 }
+#devices-section .row-preset {
+    margin-top: 6px;
+}
+#devices-section .row-preset .preset-select {
+    min-width: 160px;
+}
+/* When preset is embedded in the inputs-line grid */
+#devices-section .inputs-line .preset-select {
+    min-width: 0;
+    width: 100%;
+}
 #devices-section .actions-inline {
     margin-bottom: 6px;
+    /* Align action icons under the Name column: 22px checkbox + 14px grid gap */
+    padding-left: calc(22px + 14px);
 }
 #devices-section .actions-inline .btn-group.icon-only {
     display: flex;
@@ -4812,18 +4873,66 @@ fieldset:focus-within {
 #devices-section .actions-inline .btn-group.icon-only .btn .icon i {
     font-size: 0.85rem;
 }
+/* Paused state for play/pause button */
+#devices-section .actions-inline .btn-group.icon-only .btn.playback-toggle.is-paused {
+    background: #ffb347; /* light orange */
+    border-color: #ffb347;
+    color: #222;
+}
+#devices-section .actions-inline .btn-group.icon-only .btn.playback-toggle.is-paused .icon i {
+    color: #222;
+}
+/* Pinned state visuals for the pin button */
+#devices-section .actions-inline .btn-group.icon-only .btn.pin-btn.is-pinned {
+    background: #ff00a7; /* magenta */
+    color: #fff;
+    border-color: #ff00a7;
+}
+#devices-section .actions-inline .btn-group.icon-only .btn.pin-btn.is-pinned:focus {
+    outline: 2px solid rgba(255, 0, 167, 0.5);
+    outline-offset: 1px;
+}
+#devices-section .actions-inline .btn-group.icon-only .btn.pin-btn.is-pinned .icon i {
+    color: #fff;
+}
+#devices-section .actions-inline .btn-group.icon-only .btn.pin-btn:not(.is-pinned):hover .icon i {
+    color: #ff00a7;
+}
 /* Device row inputs layout */
 #devices-section .inputs-line {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* Select | Name | Location | Preset | Mode | Status | spacer */
+    grid-template-columns: auto minmax(12ch, 0.7fr) minmax(12ch, 0.7fr) minmax(
+            14ch,
+            0.7fr
+        ) auto auto 1fr;
     gap: 10px 14px;
-    align-items: center;
+    /* Bottom-align all input fields for a clean baseline */
+    align-items: end;
+}
+#devices-section .inputs-line .preset-select {
+    /* Override global min-width to avoid forcing wrap in a tight cell */
+    min-width: 0;
+    width: 100%;
 }
 #devices-section .inputs-line .field {
     min-width: 0;
 }
 #devices-section .inputs-line input.inline-edit {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+/* Responsive fallback: collapse to 2 then 1 column when space is limited */
+@media (max-width: 1200px) {
+    #devices-section .inputs-line {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+@media (max-width: 740px) {
+    #devices-section .inputs-line {
+        grid-template-columns: 1fr;
+    }
 }
 /* Last Seen: unify date/time typography to match app text sizing */
 #devices-section td.cell-last .last-date,
@@ -4836,14 +4945,20 @@ fieldset:focus-within {
     font-weight: 400;
 }
 
+/* Hide textual header content since label moves into rows; keep width for layout */
+#devices-section th.col-last {
+    text-align: center;
+}
+
 /* Reduce bottom whitespace in Devices section */
 div#devices-section.section-content.active .section-main-content {
     min-height: auto !important;
 }
 #devices-section .form-section.unified-section {
-    margin: 0 auto 0.25rem auto !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
+    margin: 0 auto 0.75rem auto !important;
+    /* Extra vertical padding for better breathing room in Devices */
+    padding-top: 1rem !important;
+    padding-bottom: 1.5rem !important;
 }
 #devices-section .form-section.unified-section > .subsection-content {
     margin: 0 !important;
@@ -5234,8 +5349,8 @@ div#devices-section.section-content.active .section-main-content {
     transition: all 0.3s ease;
 }
 #devices-section .inputs-line input.inline-edit {
-    width: auto;
-    max-width: none;
+    width: 100%;
+    max-width: 100%;
 }
 #devices-section input.inline-edit.small {
     padding: 0.45rem 0.6rem;
@@ -5265,7 +5380,7 @@ div#devices-section.section-content.active .section-main-content {
     appearance: none;
     width: 22px;
     height: 22px;
-    margin: 0;
+    margin: 8px 0 0 0; /* nudge down to align with Name input center under label */
     background: linear-gradient(
         180deg,
         rgba(102, 126, 234, 0.05) 0%,
@@ -5329,6 +5444,7 @@ div#devices-section.section-content.active .section-main-content {
     padding-top: 6px;
     padding-bottom: 6px;
 }
+/* removed row-wide/metrics-line experiment */
 #devices-section .row-top,
 #devices-section .row-bottom {
     display: flex;
@@ -5337,12 +5453,40 @@ div#devices-section.section-content.active .section-main-content {
     gap: 10px;
 }
 #devices-section .row-top.inputs-line {
-    gap: 10px;
+    /* Override generic .row-top flex; use grid for inputs line */
+    display: grid;
+    /* Select | Name | Location | Preset | Mode | Status | spacer */
+    grid-template-columns: auto 18ch 18ch 18ch auto auto 1fr;
+    gap: 10px 14px;
+    /* Bottom-align inputs under their labels while allowing specific items to override */
+    align-items: end;
+}
+/* Grid item that contains the row-select checkbox (first column) */
+#devices-section .field-select-inline {
+    display: flex;
+    /* Bottom-align with a padding offset so checkbox sits centered vs 36px inputs */
+    align-self: end;
+    align-items: center; /* keep checkbox inline alignment */
+    justify-content: flex-start; /* left align horizontally */
+    padding-bottom: 7px; /* (36px input - 22px checkbox) / 2 = 7px */
+}
+#devices-section .field-select-inline input[type='checkbox'] {
+    margin: 0; /* cancel global nudge to ensure true centering */
+}
+#devices-section .field-status-inline .status-inline {
+    display: inline-flex;
+    align-items: center;
+}
+/* Establish consistent control height to target alignment */
+#devices-section .row-top.inputs-line .inline-edit {
+    min-height: 36px;
 }
 #devices-section .row-bottom.meta-line {
     margin-top: 4px;
     opacity: 0.95;
     align-items: center;
+    /* Align meta content (Overrides) under the Name column: 22px checkbox + 14px grid gap */
+    padding-left: calc(22px + 14px);
 }
 
 /* Groups field inline help */
@@ -5453,7 +5597,16 @@ div#devices-section.section-content.active .section-main-content {
     max-width: 18ch;
     flex: 0 0 auto; /* fixed width to maintain one line */
 }
+/* But when they live in the device row grid, let them size with the grid to avoid wrapping */
+#devices-section .inputs-line .field .inline-edit.name-input,
+#devices-section .inputs-line .field .inline-edit.location-input,
+#devices-section .inputs-line .field .inline-edit.groups-input {
+    width: 100%;
+    max-width: 100%;
+}
 #devices-section .inputs-line {
+    /* Select | Name | Location | Preset | Mode | Status | spacer */
+    grid-template-columns: auto 18ch 18ch 18ch auto auto 1fr;
     overflow: hidden;
 }
 #devices-section .inputs-line .field {
@@ -7326,7 +7479,7 @@ body:has(.auth-container),
 .status-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
+    grid-template-columns: auto 18ch 18ch 18ch auto auto 1fr;
     margin-top: 1rem;
 }
 

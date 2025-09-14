@@ -33,7 +33,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <!-- Local CSS with versioning -->
-    <link rel="stylesheet" href="/admin.css?v=20250830e&cb=1756867200">
+    <link rel="stylesheet" href="/admin.css?v=20250830f&cb=1756867201">
     
     <!-- Font Awesome with SRI for security -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -555,8 +555,6 @@
                                                 <span class="icon"><i class="fas fa-trash"></i></span>
                                                 <span>Delete Selected</span>
                                             </button>
-                                        </div>
-                                        <div class="toolbar-middle">
                                             <div class="menu presets-menu">
                                                 <button type="button" id="presets-menu-button" class="btn btn-compact" aria-haspopup="true" aria-expanded="false" aria-controls="presets-menu" title="Assign presets">
                                                     <span class="icon"><i class="fas fa-layer-group"></i></span>
@@ -583,12 +581,11 @@
                                         <table class="table" id="devices-table" aria-label="Registered devices">
                                             <thead>
                                                 <tr>
-                                                    <th class="col-select"><input type="checkbox" id="devices-select-all" aria-label="Select all devices" /></th>
-                                                    <th class="col-name">Device</th>
-                                                    <th class="col-preset">Preset</th>
-                                                    <th class="col-mode">Mode</th>
-                                                    <th class="col-status">Status</th>
-                                                    <th class="col-last">Last Seen</th>
+                                                    <th class="col-select"></th>
+                                                    <th class="col-name"><span class="header-with-select"><input type="checkbox" id="devices-select-all" aria-label="Select all devices" /></span></th>
+                                                    <th class="col-mode" aria-hidden="true"></th>
+                                                    <th class="col-status"></th>
+                                                    <th class="col-last" aria-hidden="true"></th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>
