@@ -5421,8 +5421,11 @@
                         ? plex.showLibraryNames.length
                         : 0;
                     const libsEl = document.getElementById('sc-plex-libs');
-                    if (libsEl)
-                        libsEl.textContent = `Libraries: Movies ${libMovie}, Shows ${libShow}`;
+                    if (libsEl) {
+                        const v = libsEl.querySelector('.value');
+                        if (v) v.textContent = `${libMovie + libShow}`;
+                        libsEl.title = `Libraries selected: Movies ${libMovie}, Shows ${libShow}`;
+                    }
                     // Last sync placeholder; will be updated after fetching /api/admin/source-status
                     const tgl = document.getElementById('sc.plex.enabled');
                     if (tgl) tgl.checked = enabled;
@@ -5466,8 +5469,11 @@
                         ? jf.showLibraryNames.length
                         : 0;
                     const libsEl = document.getElementById('sc-jf-libs');
-                    if (libsEl)
-                        libsEl.textContent = `Libraries: Movies ${libMovie}, Shows ${libShow}`;
+                    if (libsEl) {
+                        const v = libsEl.querySelector('.value');
+                        if (v) v.textContent = `${libMovie + libShow}`;
+                        libsEl.title = `Libraries selected: Movies ${libMovie}, Shows ${libShow}`;
+                    }
                     const tgl = document.getElementById('sc.jf.enabled');
                     if (tgl) tgl.checked = enabled;
                     wireToggleOnce('sc.jf.enabled', async e => {
@@ -5496,7 +5502,11 @@
                               : 'Not configured',
                     });
                     const modeEl = document.getElementById('sc-tmdb-mode');
-                    if (modeEl) modeEl.textContent = `Category: ${tmdb.category || 'popular'}`;
+                    if (modeEl) {
+                        const v = modeEl.querySelector('.value');
+                        if (v) v.textContent = `${tmdb.category || 'popular'}`;
+                        modeEl.title = `Category: ${tmdb.category || 'popular'}`;
+                    }
                     const tgl = document.getElementById('sc.tmdb.enabled');
                     if (tgl) tgl.checked = enabled;
                     wireToggleOnce('sc.tmdb.enabled', async e => {
@@ -5564,8 +5574,15 @@
                 const setSync = (id, ms) => {
                     const el = document.getElementById(id);
                     if (!el) return;
-                    el.textContent = `Last sync: ${fmt(ms)}`;
-                    if (ms && typeof ms === 'number') el.title = new Date(ms).toISOString();
+                    const v = el.querySelector('.value');
+                    const pretty = fmt(ms);
+                    if (v) v.textContent = pretty;
+                    if (ms && typeof ms === 'number') {
+                        const iso = new Date(ms).toISOString();
+                        el.title = `Last sync: ${pretty} (exact: ${iso})`;
+                    } else {
+                        el.title = 'Last sync: —';
+                    }
                 };
                 setSync('sc-plex-sync', j?.plex?.lastFetchMs || null);
                 setSync('sc-jf-sync', j?.jellyfin?.lastFetchMs || null);
@@ -5855,11 +5872,16 @@
                 const setCount = (id, n, m, tooltip) => {
                     const el = document.getElementById(id);
                     if (!el) return;
+                    const valEl = el.querySelector('.value');
                     // Always show a number (fallback to 0) to avoid lingering em-dash
                     const nn = Number.isFinite(n) ? n : 0;
                     const mm = Number.isFinite(m) ? m : m === 0 ? 0 : null;
-                    // Only show "of M" for sources with concrete library totals (Plex/Jellyfin)
-                    el.textContent = mm != null ? `Items: ${nn} of ${mm}` : `Items: ${nn}`;
+                    if (valEl) {
+                        valEl.textContent = mm != null ? `${nn}/${mm}` : `${nn}`;
+                    } else {
+                        // Fallback for header pills without inner .value span
+                        el.textContent = mm != null ? `Items: ${nn} of ${mm}` : `Items: ${nn}`;
+                    }
                     if (typeof tooltip === 'string' && tooltip) el.title = tooltip;
                 };
                 // Compute filtered counts from playlist cache (fallback)
@@ -5927,8 +5949,11 @@
                       ? totalJf
                       : filteredJf;
 
-                setCount('sc-plex-count', displayPlex, totalPlex);
-                setCount('sc-jf-count', displayJf, totalJf);
+                const _fmt = v => (Number.isFinite(v) ? Number(v).toLocaleString() : '—');
+                const plexTooltip = `Items — filtered: ${_fmt(filteredPlex)} | total: ${_fmt(totalPlex)}`;
+                const jfTooltip = `Items — filtered: ${_fmt(filteredJf)} | total: ${_fmt(totalJf)}`;
+                setCount('sc-plex-count', displayPlex, totalPlex, plexTooltip);
+                setCount('sc-jf-count', displayJf, totalJf, jfTooltip);
                 // Default display for TMDB/TVDB from cached playlist (X)
                 let tmdbTotal = null;
                 let tvdbTotal = null;
@@ -5981,8 +6006,8 @@
 
                 // Build helpful tooltips for TMDB/TVDB
                 const fmt = v => (Number.isFinite(v) ? Number(v).toLocaleString() : '—');
-                const tmdbTooltip = `Cached: ${fmt(filteredTmdb)} | Total (TMDB): ${fmt(tmdbTotal)}`;
-                const tvdbTooltip = `Cached: ${fmt(filteredTvdb)} | Available (TVDB): ${fmt(tvdbAvailable)}`;
+                const tmdbTooltip = `TMDB items — cached: ${fmt(filteredTmdb)} | total: ${fmt(tmdbTotal)}`;
+                const tvdbTooltip = `TVDB items — cached: ${fmt(filteredTvdb)} | available: ${fmt(tvdbAvailable)}`;
 
                 // Overview tiles
                 setCount('sc-tmdb-count', displayTmdb, null, tmdbTooltip);
@@ -6057,10 +6082,20 @@
                             sel ? Array.from(sel.selectedOptions || []).length : 0;
                         const plexLibsEl = document.getElementById('sc-plex-libs');
                         const jfLibsEl = document.getElementById('sc-jf-libs');
-                        if (plexLibsEl)
-                            plexLibsEl.textContent = `Libraries: Movies ${countSel(plexMovies)}, Shows ${countSel(plexShows)}`;
-                        if (jfLibsEl)
-                            jfLibsEl.textContent = `Libraries: Movies ${countSel(jfMovies)}, Shows ${countSel(jfShows)}`;
+                        if (plexLibsEl) {
+                            const v = plexLibsEl.querySelector('.value');
+                            const mv = countSel(plexMovies),
+                                sv = countSel(plexShows);
+                            if (v) v.textContent = `${mv + sv}`;
+                            plexLibsEl.title = `Libraries selected: Movies ${mv}, Shows ${sv}`;
+                        }
+                        if (jfLibsEl) {
+                            const v = jfLibsEl.querySelector('.value');
+                            const mv = countSel(jfMovies),
+                                sv = countSel(jfShows);
+                            if (v) v.textContent = `${mv + sv}`;
+                            jfLibsEl.title = `Libraries selected: Movies ${mv}, Shows ${sv}`;
+                        }
                     } catch (_) {}
                 };
                 const onLibChange = selId => {

@@ -766,41 +766,43 @@
   #section-media-sources .source-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 18px;
+  gap: 24px;
   }
-  /* At larger widths, prefer a clean 3-column layout */
-  @media (min-width: 1200px) {
-    #section-media-sources .source-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 20px;
-    }
+  /* Prefer 2 columns on medium screens */
+  @media (min-width: 900px) {
+  #section-media-sources .source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px; }
+  }
+  /* On very wide screens, fit all four cards on one row */
+  @media (min-width: 1400px) {
+  #section-media-sources .source-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; }
   }
   #section-media-sources .source-card {
-    background: var(--color-bg-card);
+    position: relative;
+    background: linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
     border: 1px solid var(--color-border);
-    border-radius: 12px;
-    padding: 18px 20px;
-    box-shadow: var(--shadow-md);
-    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    border-radius: 14px;
+  padding: 22px 22px; /* larger, calmer cards */
+    box-shadow: 0 10px 24px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.04);
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, outline-color .16s ease;
   }
-  /* Help tile accent + ensure last position */
-  #section-media-sources .source-grid .source-card.help-card { 
-    order: 999; /* pin to end */
-    border-left: 3px solid var(--color-warning);
-    background: linear-gradient(180deg, var(--color-bg-card), rgba(255,255,255,0.02));
-  }
-  #section-media-sources .source-grid .source-card.help-card .sc-icon i { color: var(--color-warning); }
   #section-media-sources .source-card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05);
     border-color: rgba(255,255,255,0.16);
   }
-  /* Make Help & Tips as wide as two cards when layout supports >=2 columns */
-  @media (min-width: 680px) {
-    #section-media-sources .source-grid .source-card.help-card { grid-column: span 2; }
+  /* Per-card accent color via CSS var */
+  #section-media-sources .source-card { --sc-accent: var(--color-primary); }
+  #section-media-sources .source-card.card-plex { --sc-accent: var(--color-primary); }
+  #section-media-sources .source-card.card-jf   { --sc-accent: var(--color-accent); }
+  #section-media-sources .source-card.card-tmdb { --sc-accent: var(--color-success); }
+  #section-media-sources .source-card.card-tvdb { --sc-accent: var(--color-info); }
+  /* Thin accent bar at the top of each card */
+  #section-media-sources .source-card::before {
+  /* Remove the decorative accent line entirely */
+  content: none !important;
   }
   /* Overview status row */
-  #section-media-sources .sc-status { display:flex; align-items:center; gap:10px; margin: 10px 0 8px; }
+  #section-media-sources .sc-status { display:flex; align-items:center; gap:12px; margin: 12px 0 10px; }
   #section-media-sources .sc-status .status-dot { width: 8px; height: 8px; border-radius: 50%; display:inline-block; }
   #section-media-sources .sc-status .status-dot.status-success { background: #34d399; box-shadow: 0 0 0 0 rgba(52,211,153,.6); }
   #section-media-sources .sc-status .status-dot.status-warning { background: #f59e0b; box-shadow: 0 0 0 0 rgba(245,158,11,.6); }
@@ -811,32 +813,37 @@
   @keyframes pulse-dot { 0%{ box-shadow: 0 0 0 0 rgba(255,255,255,.0);} 70%{ box-shadow: 0 0 0 6px rgba(255,255,255,.05);} 100%{ box-shadow: 0 0 0 0 rgba(255,255,255,.0);} }
   #section-media-sources .sc-status .status-pill { font-size:.75rem; padding: 3px 10px; border-radius:999px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
   #section-media-sources .sc-status .header-toggle { margin-left:auto; }
-  #section-media-sources .sc-meta { display:flex; align-items:center; gap:10px; font-size:.85rem; color: var(--color-text-secondary); margin: 6px 0 12px; }
-  #section-media-sources .sc-meta .sep { opacity:.5; }
-  #section-media-sources .sc-header { display:flex; align-items:center; gap:14px; margin-bottom: 10px; }
+  #section-media-sources .sc-meta { display:flex; align-items:center; flex-wrap: wrap; gap: 10px 10px; font-size:.85rem; color: var(--color-text-secondary); margin: 10px 0 16px; }
+  #section-media-sources .sc-meta > span:not(.sep) { white-space: nowrap; }
+  #section-media-sources .sc-meta .sep { display:none; opacity:.35; }
+  #section-media-sources .sc-meta i { opacity:.8; margin-right: 6px; color: var(--color-text-secondary); }
+  /* Meta chips */
+  #section-media-sources .sc-chip { display:inline-flex; align-items:center; gap:6px; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--color-text-secondary); }
+  #section-media-sources .sc-chip i { margin-right: 0; color: var(--color-text-secondary); opacity: .85; }
+  #section-media-sources .sc-chip:hover { border-color: rgba(255,255,255,0.18); }
+  #section-media-sources .sc-header { display:flex; align-items:center; gap:14px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
   #section-media-sources .sc-icon {
-    width: 36px; height: 36px; border-radius: 50%; display:flex; align-items:center; justify-content:center;
-    background: var(--color-bg-secondary);
+  width: 38px; height: 38px; border-radius: 50%; display:flex; align-items:center; justify-content:center;
+  /* Keep a fixed visual size; do not shrink under tight layouts */
+  flex: 0 0 38px; min-width: 38px; min-height: 38px; flex-shrink: 0;
+  background: radial-gradient(120% 120% at 30% 30%, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  /* Softer inner ring and a lighter outer shadow; remove heavy outline */
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.18);
+  outline: none;
   }
-  #section-media-sources .sc-title { font-size: 1.05rem; font-weight: 600; color: var(--color-text-primary); }
-  #section-media-sources .sc-desc { font-size: .9rem; color: var(--color-text-secondary); margin: 0 0 10px; }
+  #section-media-sources .sc-icon i { color: var(--sc-accent) !important; }
+  #section-media-sources .sc-title { font-size: 1.12rem; font-weight: 700; color: var(--color-text-primary); letter-spacing: .01em; }
+  #section-media-sources .sc-desc { font-size: .9rem; color: var(--color-text-secondary); margin: 0 0 12px; }
+  /* subtle divider under meta */
+  #section-media-sources .source-card .sc-meta { padding-bottom: 12px; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.08); }
   #section-media-sources .sc-points { list-style:none; margin:0 0 12px; padding:0; }
-  #section-media-sources .sc-points li { font-size: .85rem; color: var(--color-text-primary); opacity:.9; margin: 4px 0; padding-left: 14px; position: relative; }
-  #section-media-sources .sc-points li:before { content: "•"; position:absolute; left:0; color: rgba(255,255,255,0.6); }
-  #section-media-sources .sc-actions { display:flex; gap: 10px; align-items:center; }
+  /* Make bullets match the descriptive tone for a calmer look */
+  #section-media-sources .sc-points li { font-size: .85rem; color: var(--color-text-secondary); opacity:.95; margin: 6px 0; padding-left: 20px; position: relative; line-height: 1.55; }
+  /* Use a small chevron as custom bullet for a modern, light look */
+  #section-media-sources .sc-points li:before { content: "\f105"; font-family: "Font Awesome 5 Free"; font-weight: 900; position:absolute; left:0; top: 0.25rem; color: var(--color-text-secondary); opacity: .7; font-size: .8rem; }
+  #section-media-sources .sc-actions { display:flex; gap: 12px; align-items:center; }
   #section-media-sources .btn-ghost { background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-secondary); }
-  /* Help card styles */
-  #section-media-sources .help-card .help-group { margin-top: 8px; }
-  #section-media-sources .help-card .help-title { font-size: .9rem; font-weight: 600; color: var(--color-text-primary); margin: 6px 0 4px; }
-  #section-media-sources .help-card .help-steps { margin: 0; padding-left: 18px; color: var(--color-text-secondary); }
-  #section-media-sources .help-card .help-steps li { margin: 2px 0; line-height: 1.35; }
-  #section-media-sources .help-card .help-list { list-style: disc; margin: 0; padding-left: 18px; color: var(--color-text-secondary); }
-  #section-media-sources .help-card .help-list li { margin: 2px 0; line-height: 1.35; }
-  /* Side-by-side layout inside Help card */
-  #section-media-sources .help-card .help-columns { display: grid; grid-template-columns: 1fr; gap: 12px; }
-  @media (min-width: 680px) {
-    #section-media-sources .help-card .help-columns { grid-template-columns: 1fr 1fr; }
-  }
+  /* Help card styles removed (card deleted) */
   
   </style>
 </head>
@@ -1172,9 +1179,9 @@
           <div class="help-content">
 
             <!-- Sources Overview: modern, calm cards -->
-            <section class="source-grid" style="margin-bottom: 24px;">
+            <section class="source-grid" style="margin-bottom: 32px;">
               <!-- Plex Card -->
-              <div class="source-card">
+              <div class="source-card card-plex">
                 <div class="sc-header">
                   <div class="sc-icon"><i class="fas fa-film" style="color: var(--color-primary);"></i></div>
                   <div class="sc-title">Plex Media Server</div>
@@ -1189,17 +1196,15 @@
                   </label>
                 </div>
                 <div class="sc-meta">
-                  <span id="sc-plex-sync">Last sync: —</span>
-                  <span class="sep">•</span>
-                  <span id="sc-plex-libs">Libraries: —</span>
-                  <span class="sep">•</span>
-                  <span id="sc-plex-count" title="Items after current filters">Items: —</span>
+                  <span class="sc-chip" id="sc-plex-count" title="Items (filtered vs total)"><i class="fas fa-layer-group"></i><span class="value">—</span></span>
+                  <span class="sc-chip" id="sc-plex-sync" title="Last sync time"><i class="fas fa-clock"></i><span class="value">—</span></span>
+                  <span class="sc-chip" id="sc-plex-libs" title="Selected libraries"><i class="fas fa-list"></i><span class="value">—</span></span>
                 </div>
-                <p class="sc-desc">Your personal media hub with rich library management.</p>
+                <p class="sc-desc">Your personal media server for movies and TV.</p>
                 <ul class="sc-points">
-                  <li>Select movie/TV libraries</li>
-                  <li>Apply quality and genre filters</li>
-                  <li>Sync collections in real-time</li>
+                  <li>Pick libraries and connect securely</li>
+                  <li>Filter by genre, rating, and quality</li>
+                  <li>Fast updates with cached playlists</li>
                 </ul>
                 <div class="sc-actions">
                   <a class="btn btn-primary btn-sm" href="#plex"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
@@ -1208,7 +1213,7 @@
               </div>
 
               <!-- Jellyfin Card -->
-              <div class="source-card">
+              <div class="source-card card-jf">
                 <div class="sc-header">
                   <div class="sc-icon"><i class="fas fa-play" style="color: var(--color-accent);"></i></div>
                   <div class="sc-title">Jellyfin Server</div>
@@ -1223,17 +1228,15 @@
                   </label>
                 </div>
                 <div class="sc-meta">
-                  <span id="sc-jf-sync">Last sync: —</span>
-                  <span class="sep">•</span>
-                  <span id="sc-jf-libs">Libraries: —</span>
-                  <span class="sep">•</span>
-                  <span id="sc-jf-count" title="Items after current filters">Items: —</span>
+                  <span class="sc-chip" id="sc-jf-count" title="Items (filtered vs total)"><i class="fas fa-layer-group"></i><span class="value">—</span></span>
+                  <span class="sc-chip" id="sc-jf-sync" title="Last sync time"><i class="fas fa-clock"></i><span class="value">—</span></span>
+                  <span class="sc-chip" id="sc-jf-libs" title="Selected libraries"><i class="fas fa-list"></i><span class="value">—</span></span>
                 </div>
-                <p class="sc-desc">Open-source media system with flexible organization.</p>
+                <p class="sc-desc">Open‑source media server with flexible libraries.</p>
                 <ul class="sc-points">
-                  <li>Connect and authenticate server</li>
-                  <li>Choose available libraries</li>
-                  <li>Organize with genres and metadata</li>
+                  <li>Connect and authenticate</li>
+                  <li>Select movie and TV libraries</li>
+                  <li>Filter by genres and metadata</li>
                 </ul>
                 <div class="sc-actions">
                   <a class="btn btn-primary btn-sm" href="#jellyfin"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
@@ -1242,10 +1245,10 @@
               </div>
 
               <!-- TMDB Card -->
-              <div class="source-card">
+              <div class="source-card card-tmdb">
                 <div class="sc-header">
                   <div class="sc-icon"><i class="fas fa-database" style="color: var(--color-success);"></i></div>
-                  <div class="sc-title">The Movie Database (TMDB)</div>
+                  <div class="sc-title">The Movie Database</div>
                 </div>
                 <div class="sc-status" id="sc-tmdb-status">
                   <span class="status-dot" id="sc-tmdb-dot"></span>
@@ -1257,17 +1260,15 @@
                   </label>
                 </div>
                 <div class="sc-meta">
-                  <span id="sc-tmdb-sync">Last fetch: —</span>
-                  <span class="sep">•</span>
-                  <span id="sc-tmdb-mode">Category: —</span>
-                  <span class="sep">•</span>
-                  <span id="sc-tmdb-count" title="Items from TMDB in current playlist">Items: —</span>
+                  <span class="sc-chip" id="sc-tmdb-count" title="TMDB items"><i class="fas fa-layer-group"></i><span class="value">—</span></span>
+                  <span class="sc-chip" id="sc-tmdb-sync" title="Last fetch time"><i class="fas fa-cloud-download-alt"></i><span class="value">—</span></span>
+                  <span class="sc-chip" id="sc-tmdb-mode" title="Category"><i class="fas fa-stream"></i><span class="value">—</span></span>
                 </div>
-                <p class="sc-desc">Comprehensive movie metadata and discovery features.</p>
+                <p class="sc-desc">Comprehensive metadata and discovery.</p>
                 <ul class="sc-points">
-                  <li>API key for higher rate limits</li>
-                  <li>Multi-language metadata</li>
-                  <li>Trending and discovery endpoints</li>
+                  <li>API key support</li>
+                  <li>Multi‑language data</li>
+                  <li>Trending & discovery</li>
                 </ul>
                 <div class="sc-actions">
                   <a class="btn btn-primary btn-sm" href="#tmdb"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
@@ -1276,7 +1277,7 @@
               </div>
 
               <!-- TVDB Card -->
-              <div class="source-card">
+              <div class="source-card card-tvdb">
                 <div class="sc-header">
                   <div class="sc-icon"><i class="fas fa-tv" style="color: var(--color-info);"></i></div>
                   <div class="sc-title">TheTVDB</div>
@@ -1291,15 +1292,14 @@
                   </label>
                 </div>
                 <div class="sc-meta">
-                  <span id="sc-tvdb-sync">Last fetch: —</span>
-                  <span class="sep">•</span>
-                  <span id="sc-tvdb-count" title="Items from TVDB in current playlist">Items: —</span>
+                  <span class="sc-chip" id="sc-tvdb-count" title="TVDB items"><i class="fas fa-layer-group"></i><span class="value">—</span></span>
+                  <span class="sc-chip" id="sc-tvdb-sync" title="Last fetch time"><i class="fas fa-cloud-download-alt"></i><span class="value">—</span></span>
                 </div>
-                <p class="sc-desc">Detailed series and episode metadata with artwork.</p>
+                <p class="sc-desc">Series and episode metadata with artwork.</p>
                 <ul class="sc-points">
-                  <li>Series, seasons, and episodes</li>
-                  <li>Artwork and thumbnails</li>
-                  <li>Multi-language support</li>
+                  <li>Shows, seasons, episodes</li>
+                  <li>Artwork and thumbs</li>
+                  <li>Multi‑language</li>
                 </ul>
                 <div class="sc-actions">
                   <a class="btn btn-primary btn-sm" href="#tvdb"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
@@ -1307,34 +1307,7 @@
                 </div>
               </div>
 
-              <!-- Help & Tips Card (merged Getting Started + Pro Tips) – pinned last with accent -->
-              <div class="source-card help-card" id="help-tips-tile">
-                <div class="sc-header">
-                  <div class="sc-icon"><i class="fas fa-circle-question"></i></div>
-                  <div class="sc-title">Help & Tips</div>
-                </div>
-                <p class="sc-desc">Quick start and best practices for configuring sources.</p>
-                <div class="help-columns">
-                  <div class="help-group">
-                    <div class="help-title">Getting Started</div>
-                    <ol class="help-steps">
-                      <li>Open a source from the submenu above</li>
-                      <li>Enable the source using the toggle</li>
-                      <li>Enter connection details and save</li>
-                      <li>Test the connection</li>
-                      <li>Select libraries and apply filters</li>
-                    </ol>
-                  </div>
-                  <div class="help-group">
-                    <div class="help-title">Pro Tips</div>
-                    <ul class="help-list">
-                      <li><strong>Performance:</strong> Enable only active sources to speed up loads.</li>
-                      <li><strong>Organization:</strong> Use genre/quality filters for focused galleries.</li>
-                      <li><strong>Discovery:</strong> Mix Plex/Jellyfin with TMDB/TVDB for breadth.</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
+              
             </section>
 
           </div>
