@@ -1627,6 +1627,22 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                 state.deviceSecret = recoveryData.deviceSecret;
 
                                 console.log('  → Local identity restored, skipping setup');
+
+                                // Enable device management and start heartbeat immediately
+                                state.enabled = true;
+
+                                // Send immediate heartbeat to update device status
+                                try {
+                                    console.log('  → Sending heartbeat to update device status');
+                                    await sendHeartbeat();
+                                    startHeartbeat();
+                                } catch (heartbeatError) {
+                                    console.log(
+                                        '  → Initial heartbeat failed:',
+                                        heartbeatError.message
+                                    );
+                                }
+
                                 needsSetup = false;
                             } else {
                                 console.log('  → Automatic recovery failed, will show setup');
