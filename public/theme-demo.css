@@ -1606,7 +1606,7 @@ input[type='range']::-moz-range-thumb {
     box-shadow: var(--shadow-lg);
     padding: var(--space-sm) 0;
     display: none;
-    z-index: 1001;
+    z-index: 1700; /* above hovercards (1600) */
 }
 .dropdown.open .dropdown-menu {
     display: block;
@@ -2272,4 +2272,155 @@ input[type='range']::-moz-range-thumb {
     padding: 10px 12px;
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
+}
+
+/* Device Management - Cards Grid */
+.device-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    align-items: center;
+}
+.device-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--space-lg);
+}
+.device-card {
+    background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: visible; /* allow inner dropdowns to escape */
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+}
+.device-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+}
+.device-id {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+.device-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--color-bg-secondary);
+    display: grid;
+    place-items: center;
+    color: var(--color-text-secondary);
+    box-shadow: inset 0 0 0 1px var(--color-border);
+}
+.device-title {
+    display: grid;
+    gap: 2px;
+}
+.device-title .name {
+    font-weight: var(--font-weight-semibold);
+}
+.device-title .meta {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+.device-card-body {
+    padding: var(--space-lg);
+    display: grid;
+    gap: var(--space-md);
+}
+.device-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.device-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid var(--color-border);
+    background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card));
+}
+.device-actions .btn-group {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+/* Hovercards (modal-on-hover) */
+.hovercard {
+    position: fixed;
+    min-width: 260px;
+    max-width: 360px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-md);
+    z-index: 1600;
+    display: none;
+}
+.hovercard.open {
+    display: block;
+}
+.hovercard .hc-title {
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: 6px;
+}
+.hovercard .hc-meta {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+.hovercard .hc-row {
+    display: grid;
+    grid-template-columns: 20px 1fr auto;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+.hovercard .hc-row:last-child {
+    border-bottom: none;
+}
+.hovercard .hc-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: var(--space-sm);
+}
+.hovercard .hc-list {
+    display: grid;
+    gap: 8px;
+}
+
+/* Minor utilities for device pills */
+.pill-dupes {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(251, 191, 36, 0.12));
+    color: var(--color-warning);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+.pill-room {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(96, 165, 250, 0.12));
+    color: var(--color-info);
+    border-color: rgba(59, 130, 246, 0.35);
+}
+.pill-type {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.12), rgba(156, 163, 175, 0.12));
+    color: var(--color-text-secondary);
+    border-color: rgba(107, 114, 128, 0.35);
+}
+
+/* Pagination tweaks for device section */
+.device-pagination {
+    margin-top: var(--space-lg);
+}
+
+/* Ensure the Device Management panel does not clip floating menus */
+#device-ui.panel {
+    overflow: visible;
 }
