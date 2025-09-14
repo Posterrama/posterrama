@@ -4,6 +4,10 @@
 const CACHE_NAME = 'posterrama-pwa-v2.2.1';
 const MEDIA_CACHE_NAME = 'posterrama-media-v1.1.0';
 
+// Cache limits to avoid QuotaExceededError
+const MEDIA_CACHE_MAX_ITEMS = 800; // cap media entries
+const APP_CACHE_MAX_ITEMS = 200; // cap app/static entries
+
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -99,10 +103,15 @@ self.addEventListener('fetch', event => {
                         .then(networkResponse => {
                             // Only cache successful responses
                             if (networkResponse.ok) {
-                                // Clone response for caching
                                 const responseClone = networkResponse.clone();
-                                cache.put(request, responseClone);
-                                // Cached successfully
+                                return safeCachePut(
+                                    cache,
+                                    request,
+                                    responseClone,
+                                    MEDIA_CACHE_MAX_ITEMS
+                                )
+                                    .catch(() => undefined)
+                                    .then(() => networkResponse);
                             }
                             return networkResponse;
                         })
@@ -126,9 +135,12 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             fetch(request)
                 .then(networkResponse => {
-                    // Cache a fresh copy for offline use
                     const copy = networkResponse.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+                    caches.open(CACHE_NAME).then(cache => {
+                        safeCachePut(cache, request, copy, APP_CACHE_MAX_ITEMS).catch(
+                            () => undefined
+                        );
+                    });
                     return networkResponse;
                 })
                 .catch(() => {
@@ -147,7 +159,11 @@ self.addEventListener('fetch', event => {
                     .then(networkResponse => {
                         if (networkResponse && networkResponse.ok) {
                             const copy = networkResponse.clone();
-                            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+                            caches.open(CACHE_NAME).then(cache => {
+                                safeCachePut(cache, request, copy, APP_CACHE_MAX_ITEMS).catch(
+                                    () => undefined
+                                );
+                            });
                         }
                         return networkResponse;
                     })
@@ -222,27 +238,30 @@ async function preloadPosters(urls) {
     const results = [];
     const cache = await caches.open(MEDIA_CACHE_NAME);
 
-    for (const url of urls) {
-        try {
-            // Check if already cached
-            const cached = await cache.match(url);
-            if (cached) {
-                results.push({ url, success: true, cached: true });
-                continue;
-            }
+    // Throttle concurrency to avoid bursts
+    const BATCH_SIZE = 8;
+    for (let i = 0; i < urls.length; i += BATCH_SIZE) {
+        const batch = urls.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(
+            batch.map(async url => {
+                try {
+                    const cached = await cache.match(url);
+                    if (cached) return { url, success: true, cached: true };
 
-            // Fetch and cache
-            const response = await fetch(url);
-            if (response.ok) {
-                await cache.put(url, response.clone());
-                results.push({ url, success: true, cached: false });
-            } else {
-                results.push({ url, success: false, error: `HTTP ${response.status}` });
-            }
-        } catch (error) {
-            results.push({ url, success: false, error: error.message });
-            console.warn('[SW] Failed to preload:', url, error);
-        }
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        await safeCachePut(cache, url, response.clone(), MEDIA_CACHE_MAX_ITEMS);
+                        return { url, success: true, cached: false };
+                    } else {
+                        return { url, success: false, error: `HTTP ${response.status}` };
+                    }
+                } catch (error) {
+                    console.warn('[SW] Failed to preload:', url, error);
+                    return { url, success: false, error: error.message };
+                }
+            })
+        );
+        results.push(...batchResults);
     }
 
     return results;
@@ -255,4 +274,35 @@ if ('sync' in self.registration) {
             // Handle offline actions when coming back online
         }
     });
+}
+
+// ---- Helper: safe cache put with pruning and item limit ----
+async function safeCachePut(cache, request, response, maxItems) {
+    try {
+        await cache.put(request, response);
+        await enforceCacheLimit(cache, maxItems);
+    } catch (err) {
+        // On quota errors or any failure, prune and retry once
+        try {
+            await enforceCacheLimit(cache, maxItems);
+            await cache.put(request, response);
+        } catch (e) {
+            // Give up silently; avoid crashing the fetch handler
+            // Optional: console.warn('[SW] cache.put failed after prune:', e);
+        }
+    }
+}
+
+async function enforceCacheLimit(cache, maxItems) {
+    try {
+        const keys = await cache.keys();
+        if (keys.length <= maxItems) return;
+        const toDelete = keys.length - maxItems;
+        // Delete oldest entries first (keys() is insertion order in practice)
+        for (let i = 0; i < toDelete; i++) {
+            await cache.delete(keys[i]);
+        }
+    } catch (err) {
+        // Ignore pruning errors
+    }
 }

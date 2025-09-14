@@ -1109,7 +1109,7 @@ function toggleHelpPanel() {
     helpPanel.classList.toggle('open');
 
     // Update content based on active section - do this AFTER opening
-    if (helpPanel.classList.contains('open') && sectionName) {
+    if (helpPanel.classList.contains('open')) {
         updateHelpContent(sectionName);
     }
     if (helpPanel.classList.contains('open') && sectionName) {
@@ -7191,8 +7191,8 @@ document.addEventListener('DOMContentLoaded', () => {
             },
         };
 
-        // Setup click handlers for preset buttons
-        const presetButtons = document.querySelectorAll('.preset-button');
+        // Setup click handlers for preset buttons (scoped to main Display Settings only)
+        const presetButtons = document.querySelectorAll('#display-section .preset-button');
         presetButtons.forEach(button => {
             button.addEventListener('click', async () => {
                 const presetKey = button.dataset.preset;
@@ -10346,75 +10346,47 @@ function showDeviceSettingsModal(device) {
             .replace(/'/g, '&#39;');
     // no JSON view; modal uses the same GUI as main Display Settings
 
+    const cacheBust = Date.now();
+    const previewSrc = `/preview?cb=${cacheBust}`;
     const html = `
         <div id="device-settings-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="device-settings-title">
             <div class="modal-background" data-close></div>
             <div class="modal-content" style="max-width: 980px;">
                 <span class="close" data-close>&times;</span>
-                <h3 id="device-settings-title"><i class="fas fa-sliders-h"></i> Display Settings</h3>
-                <p class="muted">${name ? `<strong>${escapeHtml(name)}</strong>` : 'Unnamed device'}${
-                    loc ? ` &middot; <span class="muted">${escapeHtml(loc)}</span>` : ''
-                }<br/><span class="muted">ID: ${escapeHtml(id)}</span></p>
+                <h3 id="device-settings-title" class="section-title modal-section-title">
+                    <i class="fas fa-tv"></i>
+                    <span>Display Settings</span>
+                </h3>
+                <div class="device-meta">
+                    <span class="device-name"><i class="fas fa-display"></i> ${
+                        name ? escapeHtml(name) : 'Unnamed device'
+                    }</span>
+                    ${loc ? `<span class="device-loc"><i class=\"fas fa-location-dot\"></i> ${escapeHtml(loc)}</span>` : ''}
+                    <span class="device-id" title="Device ID"><i class="fas fa-hashtag"></i> ${escapeHtml(
+                        id
+                    )}</span>
+                </div>
 
-                        <div class="ds-grid" style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:12px; align-items:start;">
+                        <div class="ds-grid" style="display:block; gap:12px; align-items:start;">
+                    <div id="modal-preview-container" class="preview-container pip-mode screensaver-mode compact" style="display:block;">
+                        <button type="button" class="preview-peek-handle" aria-label="Toggle preview visibility" title="Hide/Show Preview"></button>
+                        <button type="button" id="modal-toggle-preview-zoom" class="pip-button preview-zoom-btn" title="Toggle Preview Size (1.5x)">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <div class="preview-controls">
+                            <button type="button" id="modal-toggle-preview-mode" class="pip-button" title="Toggle Preview Mode">
+                                <i class="fas fa-desktop"></i>
+                            </button>
+                        </div>
+                        <iframe id="modal-preview-frame" class="preview-frame" title="Display Settings Live Preview" src="${previewSrc}"></iframe>
+                    </div>
+
                                         <form id="device-settings-form" class="ds-form" autocomplete="off">
                                             <div class="form-section unified-section">
-                                                <div class="subsection-header"><i class="fas fa-eye"></i> Visual elements</div>
-                                                <div class="subsection-content">
-                                                    <div class="checkbox-row">
-                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showPoster" id="ovr-showPoster"><label for="ovr-showPoster">Show poster</label></div>
-                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showMetadata" id="ovr-showMetadata"><label for="ovr-showMetadata">Show metadata</label></div>
-                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showClearLogo" id="ovr-showClearLogo"><label for="ovr-showClearLogo">ClearLogo</label></div>
-                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showRottenTomatoes" id="ovr-showRT"><label for="ovr-showRT">Rotten Tomatoes</label></div>
-                                                    </div>
-                                                    <div class="form-grid-2">
-                                                        <div class="form-group"><label>RT min score</label><input type="number" min="0" max="10" step="0.5" data-key="rottenTomatoesMinimumScore"></div>
-                                                        <div class="form-group"><label>Background refresh (min)</label><input type="number" min="0" max="240" step="1" data-key="backgroundRefreshMinutes"></div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="subsection-header"><i class="fas fa-clock"></i> Clock</div>
-                                                <div class="subsection-content">
-                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="clockWidget" id="ovr-clock"><label for="ovr-clock">Show clock</label></div>
-                                                    <div class="form-grid-2">
-                                                        <div class="form-group"><label>Format</label><select data-key="clockFormat"><option value="">(inherit)</option><option value="24h">24h</option><option value="12h">12h</option></select></div>
-                                                        <div class="form-group"><label>Timezone</label><input type="text" data-key="clockTimezone" placeholder="auto / Europe/Amsterdam"></div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="subsection-header"><i class="fas fa-images"></i> Slideshow</div>
-                                                <div class="subsection-content">
-                                                    <div class="form-grid-3">
-                                                        <div class="form-group"><label>Effect</label><select data-key="transitionEffect"><option value="">(inherit)</option><option value="none">None</option><option value="fade">Fade</option><option value="slide">Slide</option><option value="kenburns">Ken Burns</option></select></div>
-                                                        <div class="form-group"><label>Interval (s)</label><input type="number" min="1" max="600" step="1" data-key="transitionIntervalSeconds"></div>
-                                                        <div class="form-group"><label>Pause time (s)</label><input type="number" min="0" max="10" step="0.5" data-key="effectPauseTime"></div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="subsection-header"><i class="fas fa-film"></i> Cinema mode</div>
-                                                <div class="subsection-content">
-                                                    <div class="form-grid-2">
-                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="cinemaMode" id="ovr-cinema"><label for="ovr-cinema">Enable cinema mode</label></div>
-                                                        <div class="form-group"><label>Orientation</label><select data-key="cinemaOrientation"><option value="">(inherit)</option><option value="auto">Auto</option><option value="portrait">Portrait</option><option value="portrait-flipped">Portrait flipped</option></select></div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="subsection-header"><i class="fas fa-magnifying-glass"></i> UI scaling</div>
-                                                <div class="subsection-content">
-                                                    <div class="form-group"><label>Global</label><div class="slider-wrapper modern-slider"><input type="range" min="50" max="200" step="1" data-key="uiScaling.global"><div class="slider-percentage" data-out="uiScaling.global"></div></div></div>
-                                                    <div class="form-group"><label>% Content</label><div class="slider-wrapper modern-slider"><input type="range" min="50" max="200" step="1" data-key="uiScaling.content"><div class="slider-percentage" data-out="uiScaling.content"></div></div></div>
-                                                    <div class="form-group"><label>% ClearLogo</label><div class="slider-wrapper modern-slider"><input type="range" min="50" max="200" step="1" data-key="uiScaling.clearlogo"><div class="slider-percentage" data-out="uiScaling.clearlogo"></div></div></div>
-                                                    <div class="form-group"><label>% Clock</label><div class="slider-wrapper modern-slider"><input type="range" min="50" max="200" step="1" data-key="uiScaling.clock"><div class="slider-percentage" data-out="uiScaling.clock"></div></div></div>
-                                                </div>
-
-                                                <div class="subsection-header"><i class="fas fa-th-large"></i> Wallart mode</div>
-                                                <div class="subsection-content">
-                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.enabled" id="ovr-wallart"><label for="ovr-wallart">Enable wallart</label></div>
-                                                    <div class="form-grid-3">
-                                                        <div class="form-group"><label>Layout</label><select data-key="wallartMode.layoutVariant"><option value="">(inherit)</option><option value="classic">Classic</option><option value="heroGrid">Hero Grid</option></select></div>
-                                                        <div class="form-group"><label>Density</label><select data-key="wallartMode.density"><option value="">(inherit)</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="ludicrous">Ludicrous</option></select></div>
-                                                        <div class="form-group"><label>Animation</label><select data-key="wallartMode.animationType"><option value="">(inherit)</option><option value="random">Random</option><option value="fade">Fade</option><option value="slideLeft">Slide Left</option><option value="slideUp">Slide Up</option><option value="zoom">Zoom</option><option value="flip">Flip</option><option value="staggered">Staggered</option><option value="ripple">Ripple</option><option value="scanline">Scanline</option><option value="parallax">Parallax</option><option value="neonPulse">Neon Pulse</option><option value="chromaticShift">Chromatic Shift</option><option value="mosaicShatter">Mosaic Shatter</option></select></div>
-                                                    </div>
+                                                <!-- Wallart and Cinema at the top -->
+                                                <div class="subsection-header" id="ovr-wallart-header"><i class="fas fa-images"></i> Wallart Mode</div>
+                                                <div class="subsection-content" id="ovr-wallart-content">
+                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.enabled" id="ovr-wallart"><label for="ovr-wallart">Enable Wallart Mode</label></div>
                                                     <div class="form-grid-3">
                                                         <div class="form-group"><label>Items per screen</label><input type="number" min="4" max="100" step="1" data-key="wallartMode.itemsPerScreen"></div>
                                                         <div class="form-group"><label>Columns</label><input type="number" min="2" max="12" step="1" data-key="wallartMode.columns"></div>
@@ -10431,28 +10403,105 @@ function showDeviceSettingsModal(device) {
                                                     <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.ambientGradient" id="ovr-ambient"><label for="ovr-ambient">Ambient gradient</label></div>
                                                     <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.layoutSettings.heroGrid.biasAmbientToHero" id="ovr-bias"><label for="ovr-bias">Bias ambient to hero</label></div>
                                                 </div>
+
+                        <div class="subsection-header" id="ovr-cinema-header"><i class="fas fa-film"></i> Cinema Mode</div>
+                                                <div class="subsection-content" id="ovr-cinema-content">
+                                                    <div class="form-grid-2">
+                            <div class="form-group checkbox-group"><input type="checkbox" data-key="cinemaMode" id="ovr-cinema"><label for="ovr-cinema">Enable Cinema Mode</label></div>
+                                                        <div class="form-group"><label>Orientation</label><select data-key="cinemaOrientation"><option value="">(inherit)</option><option value="auto">Auto</option><option value="portrait">Portrait</option><option value="portrait-flipped">Portrait flipped</option></select></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="subsection-header" id="ovr-visual-header"><i class="fas fa-eye"></i> Visual elements</div>
+                                                <div class="subsection-content" id="ovr-visual-content">
+                                                    <div class="checkbox-row">
+                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showPoster" id="ovr-showPoster"><label for="ovr-showPoster">Show poster</label></div>
+                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showMetadata" id="ovr-showMetadata"><label for="ovr-showMetadata">Show metadata</label></div>
+                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showClearLogo" id="ovr-showClearLogo"><label for="ovr-showClearLogo">ClearLogo</label></div>
+                                                        <div class="form-group checkbox-group"><input type="checkbox" data-key="showRottenTomatoes" id="ovr-showRT"><label for="ovr-showRT">Rotten Tomatoes</label></div>
+                                                    </div>
+                                                    <div class="form-grid-2">
+                                                        <div class="form-group"><label>RT min score</label><input type="number" min="0" max="10" step="0.5" data-key="rottenTomatoesMinimumScore"></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="subsection-header" id="ovr-uiscaling-header"><i class="fas fa-expand-arrows-alt"></i> UI Element Scaling</div>
+                                                <div class="subsection-content" id="ovr-uiscaling-content">
+                                                    <div class="scaling-grid">
+                                                        <div class="scaling-item">
+                                                            <label>Content</label>
+                                                            <div class="slider-wrapper modern-slider">
+                                                                <input type="range" min="50" max="200" step="5" data-key="uiScaling.content" value="100">
+                                                                <div class="slider-percentage" data-target="uiScaling.content">100%</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="scaling-item">
+                                                            <label>Clearlogo</label>
+                                                            <div class="slider-wrapper modern-slider">
+                                                                <input type="range" min="50" max="200" step="5" data-key="uiScaling.clearlogo" value="100">
+                                                                <div class="slider-percentage" data-target="uiScaling.clearlogo">100%</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="scaling-item">
+                                                            <label>Clock</label>
+                                                            <div class="slider-wrapper modern-slider">
+                                                                <input type="range" min="50" max="200" step="5" data-key="uiScaling.clock" value="100">
+                                                                <div class="slider-percentage" data-target="uiScaling.clock">100%</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="scaling-item">
+                                                            <label>Global</label>
+                                                            <div class="slider-wrapper modern-slider">
+                                                                <input type="range" min="50" max="200" step="5" data-key="uiScaling.global" value="100">
+                                                                <div class="slider-percentage" data-target="uiScaling.global">100%</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="scaling-presets">
+                                                            <div class="preset-buttons">
+                                                                <button type="button" class="preset-button ovr-preset-button" data-preset="4k-tv">
+                                                                    <i class="fas fa-tv"></i> 4K TV
+                                                                </button>
+                                                                <button type="button" class="preset-button ovr-preset-button" data-preset="full-hd">
+                                                                    <i class="fas fa-desktop"></i> Full HD
+                                                                </button>
+                                                                <button type="button" class="preset-button ovr-preset-button" data-preset="ultrawide">
+                                                                    <i class="fas fa-expand-arrows-alt"></i> Ultrawide
+                                                                </button>
+                                                                <button type="button" id="ovr-reset-scaling" class="reset-button">
+                                                                    <i class="fas fa-undo"></i> Reset
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="subsection-header" id="ovr-slideshow-header"><i class="fas fa-magic"></i> Effects & Transitions</div>
+                                                <div class="subsection-content" id="ovr-slideshow-content">
+                                                    <div class="form-grid-3">
+                                                        <div class="form-group"><label>Effect</label><select data-key="transitionEffect"><option value="">(inherit)</option><option value="none">None</option><option value="fade">Fade</option><option value="slide">Slide</option><option value="kenburns">Ken Burns</option></select></div>
+                                                        <div class="form-group"><label>Interval (s)</label><input type="number" min="1" max="600" step="1" data-key="transitionIntervalSeconds"></div>
+                                                        <div class="form-group" id="ovr-pause-group"><label>Pause time (s)</label><input type="number" min="0" max="10" step="0.5" data-key="effectPauseTime"></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="subsection-header" id="ovr-clock-header"><i class="fas fa-clock"></i> Clock</div>
+                                                <div class="subsection-content" id="ovr-clock-content">
+                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="clockWidget" id="ovr-clock"><label for="ovr-clock">Show clock</label></div>
+                                                    <div class="form-grid-2">
+                                                        <div class="form-group"><label>Format</label><select data-key="clockFormat"><option value="">(inherit)</option><option value="24h">24h</option><option value="12h">12h</option></select></div>
+                                                        <div class="form-group" id="ovr-timezone-group"><label>Timezone</label><select data-key="clockTimezone" id="ovr-clockTimezone"><option value="">(inherit)</option><option value="auto">Auto</option></select></div>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                                 <div class="form-actions" style="display:flex; gap: 8px; align-items:center;">
                                                     <button type="button" class="btn is-primary" id="device-settings-save">Save & apply</button>
                                                     <button type="button" class="btn" id="device-settings-clear">Clear overrides</button>
-                                                    <div class="hint" id="device-settings-status" style="margin-left:auto; min-height:1.4em;"></div>
+                                                    <div class="hint" id="device-settings-status"></div>
                                                 </div>
                     </form>
 
-                    <div id="modal-preview-container" class="preview-container pip-mode screensaver-mode compact" style="display:block;">
-                        <button type="button" class="preview-peek-handle" aria-label="Toggle preview visibility" title="Hide/Show Preview"></button>
-                        <button type="button" id="modal-toggle-preview-zoom" class="pip-button preview-zoom-btn" title="Toggle Preview Size (1.5x)">
-                            <i class="fas fa-expand"></i>
-                        </button>
-                        <div class="preview-controls">
-                            <button type="button" id="modal-toggle-preview-mode" class="pip-button" title="Toggle Preview Mode">
-                                <i class="fas fa-desktop"></i>
-                            </button>
-                        </div>
-                        <iframe id="modal-preview-frame" class="preview-frame" title="Display Settings Live Preview" src="/preview"></iframe>
-                    </div>
-                    <div class="hint" style="margin-top:6px;">Changes are applied to the preview automatically.</div>
+                    
                 </div>
             </div>
         </div>`;
@@ -10516,22 +10565,38 @@ function showDeviceSettingsModal(device) {
     }
     // GUI: bind values, track dirty state, preview on change
     const dirty = new Set();
+    function getEffective(path) {
+        // Prefer device override; otherwise inherit from current admin config
+        const ov = getDeep(overrides, path);
+        if (ov !== undefined) return ov;
+        try {
+            const cfg = window.currentConfig || {};
+            return getDeep(cfg, path);
+        } catch (_) {
+            return undefined;
+        }
+    }
     function bindInitialValues() {
         const inputs = form.querySelectorAll('[data-key]');
         inputs.forEach(el => {
             const key = el.getAttribute('data-key');
-            const val = getDeep(overrides, key);
-            if (val !== undefined) {
-                if (el.type === 'checkbox') el.checked = !!val;
-                else el.value = String(val);
-                // reflect range outputs
-                if (el.type === 'range') {
-                    const out = form.querySelector(`[data-out="${key}"]`);
-                    if (out) out.textContent = el.value;
-                }
+            // Show effective value (override -> admin config) without marking dirty
+            const eff = getEffective(key);
+            if (el.type === 'checkbox') {
+                el.checked = !!eff;
+            } else if (el.type === 'range' || el.type === 'number') {
+                el.value =
+                    eff === undefined || eff === null || Number.isNaN(eff) ? '' : String(eff);
+            } else if (el.tagName === 'SELECT' || el.type === 'text') {
+                el.value = eff === undefined || eff === null ? '' : String(eff);
             } else {
-                if (el.type === 'checkbox') el.checked = false;
-                else el.value = '';
+                el.value = eff === undefined ? '' : String(eff);
+            }
+            if (el.type === 'range') {
+                const out =
+                    form.querySelector(`[data-out="${key}"]`) ||
+                    form.querySelector(`[data-target="${key}"]`);
+                if (out) out.textContent = `${el.value}%`;
             }
         });
     }
@@ -10561,13 +10626,32 @@ function showDeviceSettingsModal(device) {
             );
         } catch (_) {}
     }
+    function setStatus(text, asButton = false) {
+        if (!status) return;
+        status.textContent = text || '';
+        status.classList.toggle('btn', !!asButton);
+        status.classList.toggle('btn-info', !!asButton);
+        status.classList.toggle('is-ready', !!asButton);
+        // Accessibility and interaction
+        if (asButton) {
+            status.setAttribute('role', 'button');
+            status.setAttribute('tabindex', '0');
+            status.title = 'Click to save changes';
+        } else {
+            status.removeAttribute('role');
+            status.removeAttribute('tabindex');
+            status.removeAttribute('title');
+        }
+    }
     function onChanged(el) {
         const key = el.getAttribute('data-key');
         if (!key) return;
         dirty.add(key);
         if (el.type === 'range') {
-            const out = form.querySelector(`[data-out="${key}"]`);
-            if (out) out.textContent = el.value;
+            const out =
+                form.querySelector(`[data-out="${key}"]`) ||
+                form.querySelector(`[data-target="${key}"]`);
+            if (out) out.textContent = `${el.value}%`;
         }
         // live preview just for this field
         const partial = {};
@@ -10578,7 +10662,7 @@ function showDeviceSettingsModal(device) {
         else v = el.value;
         if (v !== undefined && v !== '' && !Number.isNaN(v)) setDeep(partial, key, v);
         postPreview(partial);
-        status.textContent = 'Edited (unsaved)';
+        setStatus('Edited (unsaved)', true);
     }
     function wireInputs() {
         const inputs = form.querySelectorAll('[data-key]');
@@ -10586,6 +10670,21 @@ function showDeviceSettingsModal(device) {
             el.addEventListener('change', () => onChanged(el));
             if (el.type === 'range') el.addEventListener('input', () => onChanged(el));
         });
+        // Make status actionable when it shows "Edited (unsaved)"
+        if (status) {
+            const triggerSave = () => {
+                // Only trigger when showing as button (unsaved)
+                if (!status.classList.contains('btn')) return;
+                if (btnSave && !btnSave.disabled) btnSave.click();
+            };
+            status.addEventListener('click', triggerSave);
+            status.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    triggerSave();
+                }
+            });
+        }
     }
 
     function close() {
@@ -10616,9 +10715,299 @@ function showDeviceSettingsModal(device) {
     } catch (_) {
         /* ignore preview init errors */
     }
-    // Initialize GUI
-    bindInitialValues();
-    wireInputs();
+    // Initialize GUI after ensuring admin config is available to inherit from
+    (async function initModalUI() {
+        try {
+            if (!window.currentConfig) {
+                const res = await authenticatedFetch('/api/admin/config', { method: 'GET' });
+                if (res && res.ok) {
+                    const data = await res.json();
+                    if (data && data.config) window.currentConfig = data.config;
+                }
+            }
+        } catch (_) {
+            // ignore; we'll just bind what we can
+        }
+        bindInitialValues();
+        wireInputs();
+        applyModeVisibility();
+        // Populate timezone dropdown and wire clock toggle
+        try {
+            const tzSelect = modal.querySelector('#ovr-clockTimezone');
+            if (tzSelect && tzSelect.options.length < 3) {
+                const zones = [
+                    'Europe/Amsterdam',
+                    'Europe/London',
+                    'Europe/Berlin',
+                    'Europe/Paris',
+                    'UTC',
+                    'America/New_York',
+                    'America/Los_Angeles',
+                    'Asia/Tokyo',
+                    'Asia/Singapore',
+                    'Australia/Sydney',
+                ];
+                zones.forEach(z => {
+                    const opt = document.createElement('option');
+                    opt.value = z;
+                    opt.textContent = z;
+                    tzSelect.appendChild(opt);
+                });
+                const effTz = getEffective('clockTimezone');
+                if (effTz) tzSelect.value = effTz;
+            }
+            const clockCb = form.querySelector('#ovr-clock');
+            const tzGroup = form.querySelector('#ovr-timezone-group');
+            const syncTz = () => {
+                if (!clockCb || !tzGroup) return;
+                tzGroup.style.display = clockCb.checked ? 'block' : 'none';
+            };
+            if (clockCb && tzGroup) {
+                clockCb.addEventListener('change', syncTz);
+                syncTz();
+            }
+        } catch (_) {}
+        // Hide pause time when Ken Burns is selected
+        try {
+            const effectSel = form.querySelector('[data-key="transitionEffect"]');
+            const pauseGroup = form.querySelector('#ovr-pause-group');
+            const updatePauseVis = () => {
+                if (!effectSel || !pauseGroup) return;
+                const val = effectSel.value || '';
+                pauseGroup.style.display = val === 'kenburns' ? 'none' : 'block';
+            };
+            if (effectSel && pauseGroup) {
+                effectSel.addEventListener('change', updatePauseVis);
+                updatePauseVis();
+            }
+        } catch (_) {}
+    })();
+
+    // Mode-based visibility like main Display Settings
+    // Ensure Wallart sub-options follow the state of the override checkbox only
+    function syncWallartSubOptions() {
+        try {
+            const content = modal.querySelector('#ovr-wallart-content');
+            if (!content) return;
+            const enabled = !!modal.querySelector('#ovr-wallart')?.checked;
+            const amb = content.querySelector('#ovr-ambient')?.closest('.form-group');
+            const bias = content.querySelector('#ovr-bias')?.closest('.form-group');
+            const display = enabled ? '' : 'none';
+            if (amb) amb.style.display = display;
+            if (bias) bias.style.display = display;
+        } catch (_) {
+            /* ignore */
+        }
+    }
+    function applyModeVisibility() {
+        const cbCinemaNow = modal.querySelector('#ovr-cinema');
+        const cbWallartNow = modal.querySelector('#ovr-wallart');
+        const cinema = cbCinemaNow ? !!cbCinemaNow.checked : !!getEffective('cinemaMode');
+        const wallart = cbWallartNow
+            ? !!cbWallartNow.checked
+            : !!getEffective('wallartMode.enabled');
+
+        const sections = {
+            visual: [
+                modal.querySelector('#ovr-visual-header'),
+                modal.querySelector('#ovr-visual-content'),
+            ],
+            clock: [
+                modal.querySelector('#ovr-clock-header'),
+                modal.querySelector('#ovr-clock-content'),
+            ],
+            slideshow: [
+                modal.querySelector('#ovr-slideshow-header'),
+                modal.querySelector('#ovr-slideshow-content'),
+            ],
+            cinema: [
+                modal.querySelector('#ovr-cinema-header'),
+                modal.querySelector('#ovr-cinema-content'),
+            ],
+            uiscale: [
+                modal.querySelector('#ovr-uiscaling-header'),
+                modal.querySelector('#ovr-uiscaling-content'),
+            ],
+            wallart: [
+                modal.querySelector('#ovr-wallart-header'),
+                modal.querySelector('#ovr-wallart-content'),
+            ],
+        };
+
+        function showPair([h, c], show) {
+            if (!h || !c) return;
+            h.style.display = show ? 'block' : 'none';
+            c.style.display = show ? 'block' : 'none';
+        }
+
+        // Helpers for selective content visibility
+        function showAllWithin(el) {
+            if (!el) return;
+            el.querySelectorAll('*').forEach(node => {
+                if (node && node.style) node.style.display = '';
+            });
+        }
+        function showOnlyToggle(contentEl, toggleSelector) {
+            if (!contentEl) return;
+            const toggleEl = contentEl.querySelector(toggleSelector);
+            // Hide all form-grids and checkbox groups first
+            contentEl
+                .querySelectorAll('.form-grid-2, .form-grid-3, .form-grid, .form-group')
+                .forEach(node => {
+                    if (node && node.style) node.style.display = 'none';
+                });
+            // Then reveal just the checkbox group that contains the toggle
+            if (toggleEl) {
+                const grp = toggleEl.closest('.form-group');
+                if (grp) {
+                    grp.style.display = 'block';
+                    const grid = grp.closest('.form-grid-2, .form-grid-3, .form-grid');
+                    if (grid) grid.style.display = 'grid';
+                }
+            }
+        }
+
+        if (cinema) {
+            // Show full cinema settings
+            if (sections.cinema[0]) sections.cinema[0].style.display = 'block';
+            if (sections.cinema[1]) {
+                sections.cinema[1].style.display = 'block';
+                showAllWithin(sections.cinema[1]);
+            }
+            // Keep Wallart header visible with only its enable toggle
+            if (sections.wallart[0]) sections.wallart[0].style.display = 'block';
+            if (sections.wallart[1]) {
+                sections.wallart[1].style.display = 'block';
+                showOnlyToggle(sections.wallart[1], '#ovr-wallart');
+            }
+            // Hide non-cinema sections to match main behavior
+            showPair(sections.visual, false);
+            showPair(sections.clock, false);
+            showPair(sections.slideshow, false);
+            showPair(sections.uiscale, false);
+            // preview in cinema layout
+            if (previewContainerEl) {
+                previewContainerEl.classList.add('cinema-mode');
+                previewContainerEl.classList.remove('screensaver-mode');
+                updateModalPreviewScale();
+            }
+        } else if (wallart) {
+            // Show full Wallart settings
+            if (sections.wallart[0]) sections.wallart[0].style.display = 'block';
+            if (sections.wallart[1]) {
+                sections.wallart[1].style.display = 'block';
+                showAllWithin(sections.wallart[1]);
+                // Ensure ambient and bias are visible when enabled
+                syncWallartSubOptions();
+            }
+            // Keep Cinema header visible with only its enable toggle
+            if (sections.cinema[0]) sections.cinema[0].style.display = 'block';
+            if (sections.cinema[1]) {
+                sections.cinema[1].style.display = 'block';
+                showOnlyToggle(sections.cinema[1], '#ovr-cinema');
+            }
+            // Hide other non-wallart sections
+            showPair(sections.visual, false);
+            showPair(sections.clock, false);
+            showPair(sections.slideshow, false);
+            // UI scaling is hidden when wallart is active in main UI
+            showPair(sections.uiscale, false);
+            // preview stays screensaver layout
+            if (previewContainerEl) {
+                previewContainerEl.classList.remove('cinema-mode');
+                previewContainerEl.classList.add('screensaver-mode');
+                updateModalPreviewScale();
+            }
+        } else {
+            // Default screensaver: hide cinema & wallart sections, show others
+            // Show headers and only the enable toggles for cinema/wallart
+            const cinemaHeader = sections.cinema[0];
+            const cinemaContent = sections.cinema[1];
+            const wallartHeader = sections.wallart[0];
+            const wallartContent = sections.wallart[1];
+            if (cinemaHeader) cinemaHeader.style.display = 'block';
+            if (cinemaContent) {
+                cinemaContent.style.display = 'block';
+                showOnlyToggle(cinemaContent, '#ovr-cinema');
+            }
+            if (wallartHeader) wallartHeader.style.display = 'block';
+            if (wallartContent) {
+                wallartContent.style.display = 'block';
+                showOnlyToggle(wallartContent, '#ovr-wallart');
+                // Explicitly hide ambient and bias when wallart not enabled
+                syncWallartSubOptions();
+            }
+            showPair(sections.visual, true);
+            showPair(sections.clock, true);
+            showPair(sections.slideshow, true);
+            showPair(sections.uiscale, true);
+            if (previewContainerEl) {
+                previewContainerEl.classList.remove('cinema-mode');
+                previewContainerEl.classList.add('screensaver-mode');
+                updateModalPreviewScale();
+            }
+        }
+
+        // Mutual exclusivity in UI like main page
+        const cbCinema = cbCinemaNow;
+        const cbWallart = cbWallartNow;
+        if (cbCinema && cbWallart) {
+            if (cinema) {
+                cbWallart.checked = false;
+                cbWallart.disabled = true;
+                cbCinema.disabled = false;
+            } else if (wallart) {
+                cbCinema.checked = false;
+                cbCinema.disabled = true;
+                cbWallart.disabled = false;
+            } else {
+                cbCinema.disabled = false;
+                cbWallart.disabled = false;
+            }
+        }
+        // Final safeguard to keep sub-options in sync with the override checkbox
+        syncWallartSubOptions();
+    }
+
+    // Initial visibility is applied in initModalUI once config is ready
+
+    // React to user toggles
+    const cbCinemaEl = modal.querySelector('#ovr-cinema');
+    const cbWallartEl = modal.querySelector('#ovr-wallart');
+    if (cbCinemaEl) {
+        cbCinemaEl.addEventListener('change', () => {
+            // Mark as dirty and update effective value for subsequent reads
+            dirty.add('cinemaMode');
+            // When enabling cinema, clear wallart checkbox UI state
+            if (cbCinemaEl.checked && cbWallartEl) {
+                cbWallartEl.checked = false;
+                dirty.add('wallartMode.enabled');
+            }
+            if (previewContainerEl) {
+                previewContainerEl.classList.toggle('cinema-mode', cbCinemaEl.checked);
+                previewContainerEl.classList.toggle('screensaver-mode', !cbCinemaEl.checked);
+                updateModalPreviewScale();
+            }
+            applyModeVisibility();
+            syncWallartSubOptions();
+        });
+    }
+    if (cbWallartEl) {
+        cbWallartEl.addEventListener('change', () => {
+            dirty.add('wallartMode.enabled');
+            if (cbWallartEl.checked && cbCinemaEl) {
+                cbCinemaEl.checked = false;
+                dirty.add('cinemaMode');
+            }
+            if (previewContainerEl) {
+                previewContainerEl.classList.remove('cinema-mode');
+                previewContainerEl.classList.add('screensaver-mode');
+                updateModalPreviewScale();
+            }
+            applyModeVisibility();
+            syncWallartSubOptions();
+        });
+    }
 
     // Modal preview: same scaling logic as main preview
     function updateModalPreviewScale() {
@@ -10642,11 +11031,18 @@ function showDeviceSettingsModal(device) {
     }
     // Wire modal preview controls to mimic Display Settings preview
     if (previewToggleMode && previewContainerEl) {
+        const syncModeIcon = () => {
+            const isCinema = previewContainerEl.classList.contains('cinema-mode');
+            const icon = previewToggleMode.querySelector('i');
+            if (icon) icon.className = `fas ${isCinema ? 'fa-mobile-screen' : 'fa-desktop'}`;
+        };
+        syncModeIcon();
         previewToggleMode.addEventListener('click', () => {
             const isCinema = previewContainerEl.classList.contains('cinema-mode');
             previewContainerEl.classList.toggle('cinema-mode', !isCinema);
             previewContainerEl.classList.toggle('screensaver-mode', isCinema);
             updateModalPreviewScale();
+            syncModeIcon();
         });
     }
     if (previewToggleZoom && previewContainerEl) {
@@ -10660,6 +11056,9 @@ function showDeviceSettingsModal(device) {
     // Make the preview draggable within the modal bounds (top-right by default)
     (function enableModalDrag() {
         if (!previewContainerEl) return;
+        // When sticky preview is used in modal, disable dragging to prevent odd jumps on scroll
+        const isSticky = window.getComputedStyle(previewContainerEl).position === 'sticky';
+        if (isSticky) return;
         let dragging = false;
         let offsetFromRight = 0;
         let offsetFromTop = 0;
@@ -10683,6 +11082,9 @@ function showDeviceSettingsModal(device) {
             dragging = true;
             previewContainerEl.classList.add('dragging');
             previewContainerEl.style.cursor = 'grabbing';
+            try {
+                if (previewFrame) previewFrame.style.pointerEvents = 'none';
+            } catch (_) {}
             const rect = previewContainerEl.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -10732,6 +11134,9 @@ function showDeviceSettingsModal(device) {
             startedDragging = false;
             previewContainerEl.style.cursor = 'grab';
             previewContainerEl.classList.remove('dragging');
+            try {
+                if (previewFrame) previewFrame.style.pointerEvents = '';
+            } catch (_) {}
             if (wasDragging && e && e.cancelable) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -10759,11 +11164,50 @@ function showDeviceSettingsModal(device) {
         window.addEventListener('touchend', onUp);
     })();
 
-    // Initial scale and keep scaled on size changes
-    if (previewContainerEl) updateModalPreviewScale();
+    // Initial collapsed state + scale, peek handle toggler, and keep scaled on size changes
+    if (previewContainerEl) {
+        // Expanded by default and slightly lower to align with first subsection
+        previewContainerEl.classList.remove('collapsed');
+        // For sticky preview the CSS controls vertical offset; just recalc scale
+        requestAnimationFrame(() => {
+            try {
+                updateModalPreviewScale();
+            } catch (_) {}
+        });
+        const peekHandle = modal.querySelector('.preview-peek-handle');
+        if (peekHandle) {
+            peekHandle.addEventListener('click', e => {
+                e.stopPropagation();
+                previewContainerEl.classList.toggle('collapsed');
+                updateModalPreviewScale();
+            });
+        }
+    }
     if (window.ResizeObserver && previewContainerEl) {
         const ro = new ResizeObserver(() => updateModalPreviewScale());
         ro.observe(previewContainerEl);
+    }
+
+    // Also allow clicking the left side of the preview to toggle peek, unless interacting with controls
+    if (previewContainerEl) {
+        previewContainerEl.addEventListener('click', e => {
+            const tgt = e.target;
+            // Don't toggle if clicking interactive controls
+            if (
+                tgt.closest &&
+                (tgt.closest('.pip-button') ||
+                    tgt.closest('.preview-controls') ||
+                    tgt.closest('.preview-peek-handle'))
+            ) {
+                return;
+            }
+            const rect = previewContainerEl.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            if (x <= Math.max(40, rect.width * 0.2)) {
+                previewContainerEl.classList.toggle('collapsed');
+                updateModalPreviewScale();
+            }
+        });
     }
 
     // No presets UI
@@ -10849,6 +11293,34 @@ function showDeviceSettingsModal(device) {
     });
 
     // no-op focus for GUI
+    // Per-device UI scaling presets inside modal
+    (function wireOverrideScalingPresets() {
+        const map = {
+            'full-hd': { content: 100, clearlogo: 100, clock: 100, global: 100 },
+            '4k-tv': { content: 150, clearlogo: 140, clock: 140, global: 100 },
+            ultrawide: { content: 115, clearlogo: 120, clock: 110, global: 100 },
+        };
+        const applyPreset = tpl => {
+            const vals = map[tpl];
+            if (!vals) return;
+            Object.entries(vals).forEach(([k, v]) => {
+                const input = form.querySelector(`[data-key="uiScaling.${k}"]`);
+                if (input) {
+                    input.value = String(v);
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        };
+        form.querySelectorAll('.ovr-preset-button, .preset-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.getAttribute('data-preset');
+                applyPreset(key);
+            });
+        });
+        const resetBtn = form.querySelector('#ovr-reset-scaling');
+        if (resetBtn) resetBtn.addEventListener('click', () => applyPreset('full-hd'));
+    })();
 }
 
 // DYNAMIC RATING FILTER FUNCTIONALITY

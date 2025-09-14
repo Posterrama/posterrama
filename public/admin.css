@@ -4667,6 +4667,17 @@ div#devices-section.section-content.active .section-main-content {
     min-height: 200px !important;
     padding: var(--content-padding-y) var(--content-padding-x) 0 var(--content-padding-x) !important;
 }
+/* On desktop, remove reserved min-height since the preview overlays the form */
+@media (min-width: 1024px) {
+    #device-settings-modal .form-section.unified-section {
+        min-height: 0 !important;
+    }
+}
+/* Remove the outer border for form-section inside the modal */
+#device-settings-modal .form-section {
+    border: none !important;
+    box-shadow: none !important;
+}
 #device-settings-modal .subsection-header {
     margin-top: 2rem !important;
 }
@@ -4679,6 +4690,18 @@ div#devices-section.section-content.active .section-main-content {
 
 #device-settings-modal .modal-content {
     position: relative;
+    background: rgba(17, 24, 39, 0.55) !important; /* glass base */
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(12px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
+    border-radius: 14px !important;
+}
+/* Light, neutral overlay for this modal only (no dark scrim) */
+#device-settings-modal .modal-background {
+    background: rgba(0, 0, 0, 0.18) !important;
+    backdrop-filter: blur(2px) saturate(110%) !important;
+    -webkit-backdrop-filter: blur(2px) saturate(110%) !important;
 }
 #device-settings-modal #modal-preview-container.preview-container {
     margin-top: 0.5rem;
@@ -4687,11 +4710,197 @@ div#devices-section.section-content.active .section-main-content {
 }
 /* Inside the device settings modal, the preview should behave like PiP but scoped to the modal */
 #device-settings-modal #modal-preview-container.preview-container.pip-mode {
-    position: absolute !important;
-    right: 12px !important;
-    top: 12px !important;
-    left: auto !important;
+    position: sticky !important;
+    top: 140px !important; /* further down so it sits below headers */
+    margin-left: auto !important; /* push to the right edge within container */
+    margin-right: 16px !important; /* inside container padding */
     z-index: 10002 !important; /* above form fields */
+}
+/* Desktop: lower sticky preview a bit more to align with first subsection */
+@media (min-width: 1024px) {
+    /* Revert to block flow; no grid columns for modal content */
+    #device-settings-modal .ds-grid {
+        display: block !important;
+    }
+    /* Float preview above content, within container, and keep it pinned while scrolling */
+    #device-settings-modal #modal-preview-container.preview-container.pip-mode {
+        position: sticky !important; /* pins within modal scroll */
+        top: 160px !important; /* sit slightly higher below modal header */
+        width: var(--preview-width) !important; /* preserve container dimensions for scaler */
+        height: var(--preview-height) !important; /* preserve proportions for scaler */
+        overflow: visible !important; /* allow overlay over content */
+        /* Remove most reserved space but leave a small gap under the preview (12px) */
+        margin: 0 16px
+            calc(-1 * (var(--preview-height) + 2 * var(--preview-container-padding, 8px)) + 12px)
+            auto !important; /* align right */
+        left: auto !important;
+        right: auto !important;
+        z-index: 10002 !important; /* above form controls */
+    }
+    /* No additional negative shift on the form; preview container handles space cancellation */
+}
+
+/* Align checkbox + label inline like main settings */
+#device-settings-modal .checkbox-group input[type='checkbox'] + label {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 8px;
+}
+/* Ensure the two main enable labels always render inline beside their checkboxes */
+#device-settings-modal #ovr-wallart + label,
+#device-settings-modal #ovr-cinema + label {
+    display: inline-block !important;
+    margin-left: 8px !important;
+    vertical-align: middle !important;
+}
+
+/* Status button bottom-right inside form-actions */
+#device-settings-modal .form-actions {
+    position: relative;
+}
+#device-settings-modal #device-settings-status {
+    margin-left: auto !important;
+    min-height: 1.4em;
+    align-self: flex-end;
+}
+
+/* Make status look/feel interactive when toggled as a button */
+#device-settings-modal #device-settings-status.btn {
+    cursor: pointer;
+    user-select: none;
+}
+#device-settings-modal #device-settings-status.btn.btn-info.is-ready {
+    background: rgba(17, 24, 39, 0.35) !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    color: #e5e7eb !important;
+    backdrop-filter: blur(6px) saturate(120%);
+}
+#device-settings-modal #device-settings-status.btn:hover {
+    filter: brightness(1.05);
+}
+#device-settings-modal #device-settings-status.btn:active {
+    transform: translateY(1px);
+}
+
+/* Subtle sub-section styling to mimic subsection under a main section */
+#device-settings-modal .subsection-header.is-sub {
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+/* Modal title styling to match main section header aesthetics */
+#device-settings-modal .modal-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 4px 0 0.25rem 0;
+    padding: 4px 0;
+    /* Use brand gradient text like main admin title */
+    background-image: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+}
+#device-settings-modal .modal-section-title i {
+    /* Match the gradient on the icon too */
+    color: transparent !important;
+    background-image: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+}
+
+/* Ensure the mobile-like handle is visible and spaced */
+#device-settings-modal .preview-peek-handle {
+    display: inline-flex;
+}
+
+/* Match preset buttons style between modal and main */
+#device-settings-modal .preset-button,
+#device-settings-modal .reset-button {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+}
+
+/* Remove inner borders inside modal content for a cleaner, unified look */
+#device-settings-modal .subsection-content .form-group,
+#device-settings-modal .subsection-content .form-grid-2 .form-group,
+#device-settings-modal .subsection-content .form-grid-3 .form-group,
+#device-settings-modal .subsection-content .checkbox-row .checkbox-group {
+    border: none !important;
+    border-bottom: none !important;
+}
+#device-settings-modal .subsection-content .form-group:hover {
+    border-bottom-color: transparent !important;
+}
+/* Remove left accent on checkbox groups in modal */
+#device-settings-modal .subsection-content .form-group.checkbox-group,
+#device-settings-modal .subsection-content .form-grid-2 .form-group.checkbox-group {
+    border-left: none !important;
+    padding-left: 0 !important;
+}
+
+/* Pretty device meta pills under the modal title */
+#device-settings-modal .device-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 16px 0; /* add extra space below the pills */
+}
+#device-settings-modal .device-meta > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(17, 24, 39, 0.45);
+    color: #e5e7eb;
+    font-weight: 600;
+    font-size: 0.85rem;
+    backdrop-filter: blur(6px);
+}
+#device-settings-modal .device-meta i {
+    opacity: 0.9;
+}
+
+/* Force checkbox label alignment beside checkbox in the modal */
+#device-settings-modal .form-group.checkbox-group {
+    /* Align checkbox and label inline like main settings, but allow explicit hiding */
+    display: inline-flex;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+/* If a checkbox-group is explicitly hidden via inline style, [hidden], or .hidden, keep it hidden */
+#device-settings-modal .form-group.checkbox-group[style*='display: none'],
+#device-settings-modal .form-group.checkbox-group.hidden,
+#device-settings-modal .form-group.checkbox-group[hidden] {
+    display: none !important;
+}
+/* Reset label layout inside modal checkbox groups so label sits inline with checkbox */
+#device-settings-modal .form-group.checkbox-group label {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: auto !important; /* override global width:100% */
+    flex: 0 0 auto !important; /* override global flex:1 */
+    margin: 0 0 0 8px !important; /* space from checkbox */
+    padding-left: 0 !important;
+}
+#device-settings-modal .form-group.checkbox-group input[type='checkbox'] + label {
+    display: inline-flex !important; /* ensure inline behavior even with sibling selector */
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: auto !important;
+    flex: 0 0 auto !important;
+    margin: 0 0 0 8px !important;
+    padding-left: 0 !important;
+    vertical-align: middle !important;
 }
 
 /* Device Status hover tooltip with device details */
@@ -5867,18 +6076,17 @@ div#devices-section.section-content.active .section-main-content {
 
 .modal-content {
     position: relative;
-    background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(20, 20, 20, 0.95) 100%);
-    border: 1px solid rgba(102, 126, 234, 0.3);
-    border-radius: 16px;
+    background: rgba(17, 24, 39, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
     padding: 2rem;
     max-width: 500px;
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
-    backdrop-filter: blur(20px);
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.5),
-        0 8px 32px rgba(102, 126, 234, 0.2);
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
 
 .modal-content h2 {
@@ -7882,6 +8090,10 @@ html.modal-open {
         margin: 10px !important;
         max-height: calc(100vh - 40px) !important;
         overflow-y: auto !important;
+        background: rgba(17, 24, 39, 0.55) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        backdrop-filter: blur(12px) saturate(120%) !important;
+        -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
     }
 
     /* Adjust subsection headers */
