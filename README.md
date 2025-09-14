@@ -133,6 +133,23 @@ In the admin dashboard, you can configure for each source:
   
 </figure>
 
+### 🖥️ Device Management
+
+<figure>
+  <img src="./screenshots/devices.png" alt="Device Management" width="740">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>Manage devices live: status, playback, and per‑device overrides</em></figcaption>
+</figure>
+
+Control all connected displays from the Admin dashboard:
+
+- Live controls per device: previous/next, play/pause toggle, pin current poster, and reload/reset
+- Clear status badge: Offline (grey), Online (green), Live (blue)
+- Controls auto‑disable when a device is offline
+- Per‑device Display Settings override with JSON editor and presets; apply live over WebSocket
+- WebSocket heartbeat keeps status and playback state in sync with the device
+
+Tooltips explain each control and status for quick onboarding. Overrides merge on top of global settings without affecting other devices.
+
 ---
 
 ## 🔊 Coming Soon — turn it up to eleven
@@ -155,8 +172,6 @@ A quick peek at what’s next. We’re actively building these high‑impact upg
 - [ ] Trailer support
 - [ ] Motion posters with AI
 - [ ] Now playing mode (cinema)
-- [ ] Multiple screens with smart sync and coordinated displays
-- [ ] Remote on/off via API
 - [ ] Music library support
 
 And that’s just the beginning — much more is on the way.
@@ -197,13 +212,9 @@ pm2 save
 
 Go to http://your-posterrama-ip:4000/admin to:
 
-- Connect your Plex, Jellyfin, or both
-- Choose your favorite display mode (Screensaver, Wallart, Cinema)
-- Customize transitions, animations, and scaling
-- Show or hide logos, ratings, and metadata
-  Everything is managed through a clear dashboard—no coding required.
+Everything is managed through a clear dashboard—no coding required.
 
-### 📺 Platform Integration
+### 🔌 Platform Integration
 
 #### Android TV
 

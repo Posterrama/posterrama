@@ -4826,6 +4826,7 @@ fieldset:focus-within {
 }
 #devices-section .groups-menu {
     position: relative;
+    padding-left: 11px;
 }
 #devices-section .presets-menu {
     position: relative;
@@ -4882,7 +4883,7 @@ fieldset:focus-within {
 /* Compact spacing for header search */
 #devices-section th.col-name .search-box {
     gap: 0.4rem;
-    margin-left: 8px; /* adjusted by -2px as requested */
+    margin-left: 6px; /* nudged 2px left */
 }
 #devices-section th.col-name .search-box input[type='search'] {
     width: 200px;
@@ -5037,8 +5038,8 @@ fieldset:focus-within {
     gap: 0.5rem;
     justify-content: flex-start;
     align-items: center;
-    /* Fine-tune: add ~2px more left space before first button */
-    padding-left: calc(22px + 14px - 2px);
+    /* Nudge left by 2px so the first button (Refresh Devices) shifts left */
+    padding-left: calc(22px + 14px - 4px);
 }
 /* toolbar-preset wrapper removed; presets button now lives in toolbar-left */
 #devices-section .devices-toolbar .toolbar-right {
@@ -5047,12 +5048,21 @@ fieldset:focus-within {
     justify-content: flex-end;
     align-items: center;
 }
-#devices-section .devices-toolbar .devices-count {
+#devices-section .devices-toolbar .devices-count,
+#devices-section th.col-status .devices-count {
     padding: 0.35rem 0.6rem;
     border-radius: 999px;
     background: rgba(37, 99, 235, 0.15);
     border: 1px solid rgba(37, 99, 235, 0.4);
     color: #c7d2fe;
+}
+/* Left-align the pill in the status header */
+#devices-section th.col-status {
+    text-align: left;
+}
+#devices-section th.col-status .devices-count {
+    display: inline-flex;
+    align-items: center;
 }
 @media (max-width: 960px) {
     #devices-section .devices-toolbar {
@@ -5094,6 +5104,7 @@ fieldset:focus-within {
 }
 #devices-section th.col-name {
     text-align: left;
+    padding-bottom: 30px; /* extra space under the search field */
 }
 #devices-section th.col-name .header-with-select {
     justify-content: flex-start;
@@ -5132,6 +5143,7 @@ fieldset:focus-within {
 #devices-section th.col-status,
 #devices-section td.cell-status {
     text-align: left;
+    padding-bottom: 30px;
 }
 /* Align Status badge vertically with Mode badge */
 #devices-section td.cell-status {
@@ -5139,7 +5151,7 @@ fieldset:focus-within {
     display: flex; /* robust alignment to inputs baseline */
     align-items: flex-end; /* push badges to the bottom to match inputs */
     padding-top: 56px; /* reserve toolbar space like name cell */
-    padding-bottom: 6px; /* match name cell bottom padding */
+    padding-bottom: 30px; /* match requested spacing */
     padding-left: 12px; /* breathing room from inputs */
 }
 #devices-section td.cell-status .status-badges {
@@ -5183,7 +5195,7 @@ fieldset:focus-within {
     /* Toolbar spanning the row, above inputs, across name+status */
     position: absolute;
     top: 0;
-    left: 0;
+    left: 2px; /* nudge toolbar 2px to the right */
     right: 0;
     margin: 0;
     padding: 0 0 0 calc(22px + 14px); /* account for checkbox + gap */

@@ -634,7 +634,7 @@
                                             </div>
                                         </div>
                                         <div class="toolbar-right">
-                                            <div id="devices-status" class="devices-count hint"></div>
+                                            <!-- moved devices-status to status header -->
                                         </div>
                                     </div>
                                     <div class="table-wrapper">
@@ -651,7 +651,9 @@
                                                             </span>
                                                         </span>
                                                     </th>
-                                                    <th class="col-status"></th>
+                                                    <th class="col-status">
+                                                        <div id="devices-status" class="devices-count hint" style="margin-left:auto"></div>
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>
