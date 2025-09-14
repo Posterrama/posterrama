@@ -33,30 +33,105 @@
         }
     }
 
-    function loadIdentity() {
+    // --- IndexedDB-backed identity storage (with localStorage fallback & migration) ---
+    async function openIDB() {
+        if (!('indexedDB' in window)) throw new Error('no_idb');
+        return await new Promise((resolve, reject) => {
+            const req = indexedDB.open('posterrama', 1);
+            req.onupgradeneeded = () => {
+                try {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains('device')) db.createObjectStore('device');
+                } catch (e) {
+                    // ignore upgrade errors
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error || new Error('idb_open_failed'));
+        });
+    }
+    async function idbGetIdentity() {
+        try {
+            const db = await openIDB();
+            return await new Promise(resolve => {
+                const tx = db.transaction('device', 'readonly');
+                const store = tx.objectStore('device');
+                const req = store.get('identity');
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => resolve(null);
+            });
+        } catch (_) {
+            return null;
+        }
+    }
+    async function idbSaveIdentity(id, secret) {
+        try {
+            const db = await openIDB();
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction('device', 'readwrite');
+                const store = tx.objectStore('device');
+                const req = store.put({ id, secret }, 'identity');
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error || new Error('idb_put_failed'));
+            });
+        } catch (_) {
+            // ignore idb save errors (fallback will hold)
+        }
+    }
+    async function idbClearIdentity() {
+        try {
+            const db = await openIDB();
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction('device', 'readwrite');
+                const store = tx.objectStore('device');
+                const req = store.delete('identity');
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error || new Error('idb_del_failed'));
+            });
+        } catch (_) {
+            // ignore
+        }
+    }
+    async function loadIdentityAsync() {
+        // Prefer IndexedDB; migrate from localStorage if present there only
+        const fromIdb = await idbGetIdentity();
+        if (fromIdb && fromIdb.id && fromIdb.secret) {
+            return { id: fromIdb.id, secret: fromIdb.secret };
+        }
         const store = getStorage();
         if (!store) return { id: null, secret: null };
         const id = store.getItem(STORAGE_KEYS.id);
         const secret = store.getItem(STORAGE_KEYS.secret);
+        if (id && secret) {
+            // Migrate to IDB (best-effort)
+            try {
+                await idbSaveIdentity(id, secret);
+            } catch (_) {
+                /* ignore migration errors */
+            }
+        }
         return { id, secret };
     }
-
-    function saveIdentity(id, secret) {
+    async function saveIdentity(id, secret) {
         const store = getStorage();
-        if (!store) return;
-        if (id) store.setItem(STORAGE_KEYS.id, id);
-        if (secret) store.setItem(STORAGE_KEYS.secret, secret);
+        if (store) {
+            try {
+                if (id) store.setItem(STORAGE_KEYS.id, id);
+                if (secret) store.setItem(STORAGE_KEYS.secret, secret);
+            } catch (_) {}
+        }
+        await idbSaveIdentity(id, secret);
     }
-
     function clearIdentity() {
         const store = getStorage();
-        if (!store) return;
-        try {
-            store.removeItem(STORAGE_KEYS.id);
-            store.removeItem(STORAGE_KEYS.secret);
-        } catch (_) {
-            // ignore storage removal errors
+        if (store) {
+            try {
+                store.removeItem(STORAGE_KEYS.id);
+                store.removeItem(STORAGE_KEYS.secret);
+            } catch (_) {}
         }
+        // Fire-and-forget IDB cleanup
+        idbClearIdentity();
     }
 
     function cacheBustUrl(url) {
@@ -271,6 +346,195 @@
         } catch (_) {
             // silent; will retry on next tick
         }
+    }
+
+    // --- Welcome overlay: pairing or register when no identity ---
+    function showWelcomeOverlay() {
+        return new Promise(resolve => {
+            const $ = sel => document.querySelector(sel);
+            const overlay = document.createElement('div');
+            overlay.id = 'pr-welcome-overlay';
+            overlay.innerHTML = `
+<style>
+#pr-welcome-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);color:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
+#pr-welcome-card{width:min(92vw,520px);background:#111;border-radius:12px;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+#pr-welcome-card h2{margin:0 0 12px;font-size:20px}
+.pr-field{margin:10px 0}
+.pr-field label{display:block;margin-bottom:6px;font-size:13px;color:#bbb}
+.pr-field input{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#1b1b1b;color:#fff;outline:none}
+.pr-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.pr-btn{appearance:none;border:0;border-radius:8px;padding:10px 14px;background:#2d6cdf;color:#fff;cursor:pointer}
+.pr-btn.sec{background:#2b2b2b;color:#ddd}
+.pr-msg{min-height:18px;color:#f88;font-size:13px;margin-top:6px}
+.pr-qr{margin-top:10px}
+.pr-video{width:100%;max-height:240px;border-radius:8px;background:#000}
+.pr-note{font-size:12px;color:#aaa;margin-top:8px}
+</style>
+<div id="pr-welcome-card" role="dialog" aria-modal="true" aria-labelledby="pr-welcome-title">
+  <h2 id="pr-welcome-title">Koppel dit scherm</h2>
+  <p class="pr-note">Voer een pairing code in of scan de QR. Of registreer dit apparaat als nieuw.</p>
+  <div class="pr-field">
+    <label for="pr-pair-code">Pair code</label>
+    <input id="pr-pair-code" placeholder="Bijv. 123456" inputmode="numeric" autocomplete="one-time-code" />
+  </div>
+  <div class="pr-field">
+    <label for="pr-pair-token">Token (indien vermeld)</label>
+    <input id="pr-pair-token" placeholder="Optioneel" />
+  </div>
+  <div class="pr-actions">
+    <button class="pr-btn" id="pr-do-pair">Koppelen</button>
+    <button class="pr-btn sec" id="pr-scan">Scan QR</button>
+    <button class="pr-btn sec" id="pr-register">Registreer als nieuw</button>
+  </div>
+  <div class="pr-msg" id="pr-msg"></div>
+  <div class="pr-qr" id="pr-qr" hidden>
+    <video id="pr-video" class="pr-video" autoplay playsinline></video>
+    <div class="pr-note">Richt de camera op de QR-code. Sluit het venster of druk nogmaals op Scan om te stoppen.</div>
+  </div>
+</div>`;
+            document.body.appendChild(overlay);
+
+            const msg = $('#pr-msg');
+            const codeEl = $('#pr-pair-code');
+            const tokenEl = $('#pr-pair-token');
+            const video = $('#pr-video');
+            const qrWrap = $('#pr-qr');
+            let stream = null;
+            let scanning = false;
+            let detector = null;
+
+            function setMsg(t, ok) {
+                msg.style.color = ok ? '#7ad97a' : '#f88';
+                msg.textContent = t || '';
+            }
+            async function stopScan() {
+                scanning = false;
+                try {
+                    if (stream) {
+                        for (const tr of stream.getTracks()) tr.stop();
+                    }
+                    stream = null;
+                } catch (_) {}
+                if (qrWrap) qrWrap.hidden = true;
+            }
+            async function startScan() {
+                if (!('BarcodeDetector' in window)) {
+                    setMsg(
+                        'QR scannen niet ondersteund in deze browser. Plak de URL of vul de code in.',
+                        false
+                    );
+                    return;
+                }
+                try {
+                    detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                } catch (_) {
+                    setMsg('QR scannen niet beschikbaar.', false);
+                    return;
+                }
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' },
+                    });
+                    video.srcObject = stream;
+                    qrWrap.hidden = false;
+                    scanning = true;
+                    const tick = async () => {
+                        if (!scanning) return;
+                        try {
+                            const codes = await detector.detect(video);
+                            if (codes && codes.length) {
+                                const raw = codes[0].rawValue || '';
+                                // Allow full claim URL or just code
+                                try {
+                                    const u = new URL(raw);
+                                    const pc =
+                                        u.searchParams.get('pair') ||
+                                        u.searchParams.get('pairCode');
+                                    const pt =
+                                        u.searchParams.get('pairToken') ||
+                                        u.searchParams.get('token');
+                                    if (pc) codeEl.value = pc;
+                                    if (pt) tokenEl.value = pt;
+                                } catch (_) {
+                                    codeEl.value = raw.replace(/\D/g, '').slice(0, 12);
+                                }
+                                setMsg('QR gelezen. Klik op Koppelen.', true);
+                                await stopScan();
+                                return;
+                            }
+                        } catch (_) {}
+                        requestAnimationFrame(tick);
+                    };
+                    requestAnimationFrame(tick);
+                } catch (e) {
+                    setMsg('Geen toegang tot camera.', false);
+                }
+            }
+            async function tryPair() {
+                const code = (codeEl.value || '').trim();
+                const token = (tokenEl.value || '').trim();
+                if (!code) {
+                    setMsg('Vul een geldige code in.', false);
+                    return;
+                }
+                setMsg('Koppelen...', true);
+                try {
+                    const res = await fetch('/api/devices/pair', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code, token: token || undefined }),
+                    });
+                    if (!res.ok) {
+                        setMsg('Code ongeldig of verlopen.', false);
+                        return;
+                    }
+                    const data = await res.json();
+                    await saveIdentity(data.deviceId, data.deviceSecret);
+                    setMsg('Gekoppeld! Laden...', true);
+                    setTimeout(() => {
+                        try {
+                            document.body.removeChild(overlay);
+                        } catch (_) {}
+                        resolve(true);
+                    }, 200);
+                } catch (_) {
+                    setMsg('Koppelen mislukt. Probeer opnieuw.', false);
+                }
+            }
+
+            overlay.addEventListener('click', e => {
+                if (e.target && e.target.id === 'pr-welcome-overlay') {
+                    // Prevent click-through close; require explicit action
+                    e.stopPropagation();
+                }
+            });
+            $('#pr-do-pair').addEventListener('click', tryPair);
+            $('#pr-register').addEventListener('click', async () => {
+                setMsg('Registreren...', true);
+                try {
+                    const ok = await registerIfNeeded();
+                    if (ok) {
+                        setMsg('Geregistreerd. Laden...', true);
+                        setTimeout(() => {
+                            try {
+                                document.body.removeChild(overlay);
+                            } catch (_) {}
+                            resolve(true);
+                        }, 200);
+                    } else {
+                        setMsg('Registratie niet beschikbaar.', false);
+                    }
+                } catch (_) {
+                    setMsg('Registratie mislukt.', false);
+                }
+            });
+            $('#pr-scan').addEventListener('click', async () => {
+                if (scanning) return void stopScan();
+                await startScan();
+            });
+            // Cleanup on unload
+            window.addEventListener('beforeunload', stopScan);
+        });
     }
 
     // --- WebSocket live control ---
@@ -757,7 +1021,7 @@
     async function init(appConfig) {
         state.appConfig = appConfig || {};
 
-        const { id, secret } = loadIdentity();
+        const { id, secret } = await loadIdentityAsync();
         state.deviceId = id;
         state.deviceSecret = secret;
         state.installId = getInstallId();
@@ -844,13 +1108,17 @@
             // ignore store.setItem errors
         }
 
-        // If no identity yet, try to register once; if register fails, stop silently
+        // If no identity yet, present welcome overlay to pair or register
         if (!hasIdentity) {
-            const ok = await registerIfNeeded();
-            if (!ok) {
+            await showWelcomeOverlay();
+            // After overlay resolves, re-load identity and enable
+            const next = await loadIdentityAsync();
+            if (!next.id || !next.secret) {
                 state.enabled = false;
-                return;
+                return; // user closed or failed; keep idle
             }
+            state.deviceId = next.id;
+            state.deviceSecret = next.secret;
             state.enabled = true;
         }
 
