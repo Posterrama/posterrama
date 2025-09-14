@@ -787,6 +787,17 @@ a:hover {
 }
 
 /* Simple subsection headers - match section-title width and work with dynamic visibility */
+/* When zoomed, increase size and adjust whitespace cancellation accordingly */
+#device-settings-modal #modal-preview-container.preview-container.pip-mode.zoom-2x {
+    width: calc(var(--preview-width) * 1.5) !important;
+    height: calc(var(--preview-height) * 1.5) !important;
+    margin: 0 16px
+        calc(
+            -1 * (calc(var(--preview-height) * 1.5) + 2 * var(--preview-container-padding, 8px)) +
+                12px
+        )
+        auto !important;
+}
 .subsection-header {
     display: flex;
     align-items: center;
