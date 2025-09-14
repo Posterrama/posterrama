@@ -1121,8 +1121,6 @@
                     try {
                         if (typeof window.refreshAdminBadge === 'function') {
                             window.refreshAdminBadge();
-                        } else if (typeof refreshBadge === 'function') {
-                            refreshBadge();
                         }
                     } catch (_) {}
                 }, 2000);
@@ -1231,17 +1229,7 @@
             settingsBtn.setAttribute('aria-expanded', String(willOpen));
             settingsMenu?.setAttribute('aria-hidden', String(!willOpen));
         });
-        // Auto-close with small delay when leaving the settings menu area
-        let settingsCloseTimeout;
-        settingsMenu?.addEventListener('mouseenter', () => {
-            clearTimeout(settingsCloseTimeout);
-        });
-        settingsMenu?.addEventListener('mouseleave', () => {
-            clearTimeout(settingsCloseTimeout);
-            settingsCloseTimeout = setTimeout(() => {
-                if (!settingsMenu.matches(':hover')) closeMenu();
-            }, 120);
-        });
+        // Hover-based auto-close removed; menus are click-to-toggle only
         document.addEventListener('click', e => {
             if (!settingsMenu) return;
             if (!e.target.closest('#settings-dropdown')) closeMenu();
@@ -1737,18 +1725,7 @@
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closeUserMenu();
         });
-        // Allow hover-open for user menu without flicker
-        // Click-to-open only for user; auto-close with small delay on mouseleave
-        let userCloseTimeout;
-        userMenu?.addEventListener('mouseenter', () => {
-            clearTimeout(userCloseTimeout);
-        });
-        userMenu?.addEventListener('mouseleave', () => {
-            clearTimeout(userCloseTimeout);
-            userCloseTimeout = setTimeout(() => {
-                if (!userMenu.matches(':hover')) closeUserMenu();
-            }, 120);
-        });
+        // Hover-based auto-close removed; user menu is click-to-toggle only
         // Route account actions to modals (with graceful fallbacks)
         document.getElementById('user-change-password')?.addEventListener('click', e => {
             e.preventDefault();

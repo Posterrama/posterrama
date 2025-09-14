@@ -236,43 +236,16 @@
     background: transparent;
     transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .12s ease;
   }
-  .nav-actions .dropdown .btn.btn-icon:hover,
   .nav-actions .dropdown .btn.btn-icon:focus-visible {
     outline: none;
   }
   /* (removed empty rules for aria-expanded and icon hover to keep CSS tidy) */
-  /* Minimal hover/active for settings and user buttons (slightly darker bg + dark border, no shadow) */
+  /* Settings and user buttons: no hover visuals; keep base transparent style */
   #settings-btn.btn.btn-icon,
   #user-btn.btn.btn-icon {
-    border: 1px solid transparent !important;
-    border-radius: 10px !important;
-    background: transparent !important;
-    transition: background .12s ease, border-color .12s ease !important;
-  }
-  /* Minimal hover/active for settings and user buttons (slightly darker bg + dark border, no shadow) */
-  #settings-btn.btn.btn-icon,
-  #user-btn.btn.btn-icon {
-    border: 1px solid transparent !important;
-    border-radius: 10px !important;
-    background: transparent !important;
-    transition: background .12s ease, border-color .12s ease !important;
-  }
-  #settings-btn.btn.btn-icon:hover,
-  #settings-btn.btn.btn-icon:focus-visible,
-  #settings-btn.btn.btn-icon[aria-expanded="true"],
-  #user-btn.btn.btn-icon:hover,
-  #user-btn.btn.btn-icon:focus-visible,
-  #user-btn.btn.btn-icon[aria-expanded="true"] {
-    background: rgba(0,0,0,0.18) !important;
-    border-color: rgba(0,0,0,0.7) !important;
-    box-shadow: none !important;
-  }
-  #settings-btn.btn.btn-icon:hover i,
-  #settings-btn.btn.btn-icon[aria-expanded="true"] i,
-  #user-btn.btn.btn-icon:hover i,
-  #user-btn.btn.btn-icon[aria-expanded="true"] i {
-    filter: none !important;
-    transform: none !important;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
   }
   /* Fix: user button shouldn’t be a square when it has text; keep within navbar height */
   .nav-user .btn.btn-icon,
