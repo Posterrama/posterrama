@@ -1963,22 +1963,36 @@
 
         // --- Admin fetch de-dupe + short-lived caching to avoid rate limiter bursts ---
         const inflight = new Map();
-        const miniCache = new Map(); // key -> { ts, data }
+        const miniCache = new Map(); // key -> { ts, data, status }
         const MINI_TTL = 10 * 1000; // 10s
         window.dedupJSON = async function (url, opts = {}) {
             const key = `${url}|${opts.method || 'GET'}`;
             const now = Date.now();
             const cached = miniCache.get(key);
             if (cached && now - cached.ts < MINI_TTL) {
-                return { ok: true, json: async () => cached.data, status: 200, fromCache: true };
+                return {
+                    ok: cached.status >= 200 && cached.status < 300,
+                    json: async () => cached.data,
+                    status: cached.status,
+                    fromCache: true,
+                };
             }
             if (inflight.has(key)) return inflight.get(key);
             const p = (async () => {
                 const res = await fetch(url, { credentials: 'include', ...opts });
-                if (!res.ok) return res; // propagate errors (e.g., 429)
-                const data = await res.json();
-                miniCache.set(key, { ts: Date.now(), data });
-                return { ok: true, json: async () => data, status: 200 };
+                const status = res.status;
+                // Try to parse JSON either way; some 202/4xx may still include JSON payload
+                let data = null;
+                try {
+                    data = await res.json();
+                } catch (_) {
+                    data = null;
+                }
+                // Only cache successful 2xx responses; avoid caching 202-building or errors
+                if (res.ok && status >= 200 && status < 300) {
+                    miniCache.set(key, { ts: Date.now(), data, status });
+                }
+                return { ok: res.ok, json: async () => data, status };
             })()
                 .catch(err => {
                     return { ok: false, status: 0, error: err };
@@ -3538,15 +3552,29 @@
                 // Fetch cached playlist first (fast fallback & used when no filters)
                 const res = await window.dedupJSON('/get-media', { credentials: 'include' });
                 let items = [];
-                if (res && res.ok) {
-                    items = (await res.json().catch(() => [])) || [];
-                    if (!Array.isArray(items)) items = [];
+                if (res) {
+                    if (res.status === 202) {
+                        // Playlist building; schedule a quick retry so counts don't stick at 0
+                        const j = (await res.json().catch(() => ({}))) || {};
+                        const retryIn = Math.min(Math.max(Number(j.retryIn) || 2000, 500), 5000);
+                        setTimeout(() => {
+                            try {
+                                refreshOverviewCounts();
+                            } catch (_) {}
+                        }, retryIn);
+                    } else if (res.ok) {
+                        items = (await res.json().catch(() => [])) || [];
+                        if (!Array.isArray(items)) items = [];
+                    }
                 }
 
                 // Helpers: infer source and apply UI filters
                 const inferSource = it => {
                     const s = (it.source || it.serverType || '').toString().toLowerCase();
                     if (s) return s;
+                    // Best-effort inference for TMDB/TVDB items that may not set source string
+                    if (it.tmdbId != null) return 'tmdb';
+                    if (it.tvdbId != null) return 'tvdb';
                     const k = (it.key || '').toString().toLowerCase();
                     if (k.startsWith('plex-')) return 'plex';
                     if (k.startsWith('jellyfin_')) return 'jellyfin';
@@ -3711,17 +3739,22 @@
                     return true;
                 };
 
-                const setCount = (id, n, m) => {
+                const setCount = (id, n, m, tooltip) => {
                     const el = document.getElementById(id);
                     if (!el) return;
                     // Always show a number (fallback to 0) to avoid lingering em-dash
                     const nn = Number.isFinite(n) ? n : 0;
                     const mm = Number.isFinite(m) ? m : m === 0 ? 0 : null;
-                    el.textContent = `Items: ${nn}${mm != null ? ` of ${mm}` : ''}`;
+                    // Only show "of M" for sources with concrete library totals (Plex/Jellyfin)
+                    el.textContent = mm != null ? `Items: ${nn} of ${mm}` : `Items: ${nn}`;
+                    if (typeof tooltip === 'string' && tooltip) el.title = tooltip;
                 };
                 // Compute filtered counts from playlist cache (fallback)
                 let filteredPlex = items.filter(it => matchWith(it, 'plex')).length;
                 let filteredJf = items.filter(it => matchWith(it, 'jellyfin')).length;
+                // For TMDB/TVDB we don't have per-source filters here; show counts from cached playlist
+                const filteredTmdb = items.filter(it => inferSource(it) === 'tmdb').length;
+                const filteredTvdb = items.filter(it => inferSource(it) === 'tvdb').length;
 
                 // Always ask the server for full-library uncapped counts to ensure Plex/JF filters reflect immediately
                 try {
@@ -3783,10 +3816,70 @@
 
                 setCount('sc-plex-count', displayPlex, totalPlex);
                 setCount('sc-jf-count', displayJf, totalJf);
+                // Default display for TMDB/TVDB from cached playlist (X)
+                let tmdbTotal = null;
+                let tvdbTotal = null;
+                let tvdbAvailable = null;
+                try {
+                    const r = await window.dedupJSON('/api/admin/tmdb-total', {
+                        credentials: 'include',
+                    });
+                    if (r?.ok) {
+                        const j = await r.json();
+                        const tv = j?.total;
+                        if (typeof tv === 'number' && Number.isFinite(tv)) tmdbTotal = tv;
+                        else if (typeof tv === 'string' && /^\d+$/.test(tv))
+                            tmdbTotal = parseInt(tv, 10);
+                    }
+                } catch (_) {}
+                try {
+                    const r = await window.dedupJSON('/api/admin/tvdb-total', {
+                        credentials: 'include',
+                    });
+                    if (r?.ok) {
+                        const j = await r.json();
+                        const tv = j?.total;
+                        if (typeof tv === 'number' && Number.isFinite(tv)) tvdbTotal = tv;
+                        else if (typeof tv === 'string' && /^\d+$/.test(tv))
+                            tvdbTotal = parseInt(tv, 10);
+                        else tvdbTotal = null; // Unknown
+                    }
+                } catch (_) {}
+                try {
+                    const r = await window.dedupJSON('/api/admin/tvdb-available', {
+                        credentials: 'include',
+                    });
+                    if (r?.ok) {
+                        const j = await r.json();
+                        const av = j?.available;
+                        if (typeof av === 'number' && Number.isFinite(av)) tvdbAvailable = av;
+                        else if (typeof av === 'string' && /^\d+$/.test(av))
+                            tvdbAvailable = parseInt(av, 10);
+                    }
+                } catch (_) {}
+
+                // Display counts: for TMDB/TVDB we don't have UI filters, so show a single total number.
+                const displayTmdb = Number.isFinite(tmdbTotal) ? tmdbTotal : filteredTmdb;
+                const displayTvdb = Number.isFinite(tvdbTotal)
+                    ? tvdbTotal
+                    : Number.isFinite(tvdbAvailable)
+                      ? tvdbAvailable
+                      : filteredTvdb;
+
+                // Build helpful tooltips for TMDB/TVDB
+                const fmt = v => (Number.isFinite(v) ? Number(v).toLocaleString() : '—');
+                const tmdbTooltip = `Cached: ${fmt(filteredTmdb)} | Total (TMDB): ${fmt(tmdbTotal)}`;
+                const tvdbTooltip = `Cached: ${fmt(filteredTvdb)} | Available (TVDB): ${fmt(tvdbAvailable)}`;
+
+                // Overview tiles
+                setCount('sc-tmdb-count', displayTmdb, null, tmdbTooltip);
+                setCount('sc-tvdb-count', displayTvdb, null, tvdbTooltip);
                 // Also update per-source panel header pills
                 setCount('plex-count-pill', displayPlex, totalPlex);
                 setCount('jf-count-pill', displayJf, totalJf);
-                // TMDB/TVDB could be shown later if desired
+                // TMDB/TVDB header pills (single total)
+                setCount('tmdb-count-pill', displayTmdb, null, tmdbTooltip);
+                setCount('tvdb-count-pill', displayTvdb, null, tvdbTooltip);
             } catch (_) {
                 // ignore
             }
@@ -3875,6 +3968,49 @@
                 // Initial sync
                 updateLibsMeta();
                 document.body.dataset.msPreviewWired = 'true';
+            } catch (_) {
+                /* no-op */
+            }
+        }
+
+        // Prevent autofill/auto-focus on sensitive fields; require explicit user click to edit
+        function guardSensitiveInputs() {
+            try {
+                const ids = ['plex.token', 'jf.apikey', 'tmdb.apikey'];
+                // If any of these were auto-focused by the browser, blur them immediately
+                try {
+                    const ae = document.activeElement;
+                    if (ae && ids.includes(ae.id)) ae.blur();
+                } catch (_) {}
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el || el.dataset.requireClickWired === 'true') return;
+                    // Make read-only until the user explicitly clicks/taps
+                    el.readOnly = true;
+                    el.title = el.title || 'Click to edit';
+                    const unlock = () => {
+                        if (!el.readOnly) return;
+                        el.readOnly = false;
+                        // focus after unlocking for a smooth experience
+                        setTimeout(() => {
+                            try {
+                                el.focus({ preventScroll: true });
+                            } catch (_) {}
+                        }, 0);
+                    };
+                    // Pointer interactions unlock editing
+                    el.addEventListener('mousedown', unlock);
+                    el.addEventListener('touchstart', unlock, { passive: true });
+                    // If the browser tries to focus without a click (e.g., autofill), immediately blur
+                    el.addEventListener('focus', () => {
+                        if (el.readOnly) {
+                            try {
+                                el.blur();
+                            } catch (_) {}
+                        }
+                    });
+                    el.dataset.requireClickWired = 'true';
+                });
             } catch (_) {
                 /* no-op */
             }
@@ -4444,6 +4580,8 @@
             refreshOverviewCounts();
             // Wire live listeners once per page load
             wireLiveMediaSourcePreview();
+            // Enforce explicit click to edit sensitive fields and suppress auto-focus
+            guardSensitiveInputs();
         }
         // Expose for reuse
         window.admin2 = window.admin2 || {};
@@ -4462,7 +4600,8 @@
                     // This fixes the issue where only pre-selected libraries show as options
                     if (!window.__autoFetchedLibs.plex) {
                         window.__autoFetchedLibs.plex = true;
-                        await fetchPlexLibraries(true);
+                        const silentFirst = window.__plexToastShown === true;
+                        await fetchPlexLibraries(true, silentFirst);
                     }
                 })();
             } catch (_) {
@@ -4524,7 +4663,7 @@
         window.admin2.maybeFetchTmdbOnOpen = maybeFetchTmdbOnOpen;
 
         // Fetch libraries
-        async function fetchPlexLibraries(refreshFilters = false) {
+        async function fetchPlexLibraries(refreshFilters = false, silent = false) {
             // If any caller requests dependent refresh, mark it globally for this flight
             if (refreshFilters) window.__plexLibsRefreshRequested = true;
             // Deduplicate concurrent calls so only one request + toast occurs
@@ -4556,12 +4695,15 @@
                     // Rebuild multiselect options
                     rebuildMsForSelect('plex-ms-movies', 'plex.movies');
                     rebuildMsForSelect('plex-ms-shows', 'plex.shows');
-                    window.notify?.toast({
-                        type: 'success',
-                        title: 'Plex',
-                        message: 'Plex libraries loaded',
-                        duration: 2200,
-                    });
+                    if (!silent) {
+                        window.notify?.toast({
+                            type: 'success',
+                            title: 'Plex',
+                            message: 'Plex libraries loaded',
+                            duration: 2200,
+                        });
+                        window.__plexToastShown = true;
+                    }
                     // Immediately refresh counts to update the header pill
                     try {
                         refreshOverviewCounts();
@@ -5415,7 +5557,7 @@
                     linkPlex.removeAttribute('hidden');
                 }
                 // On success, offer to fetch libraries
-                fetchPlexLibraries();
+                fetchPlexLibraries(true, true);
                 // And refresh available filters using the same connection context
                 const currentGenres = getPlexGenreFilterHidden();
                 loadPlexGenres(currentGenres).catch(() => {});
@@ -6660,7 +6802,7 @@
                 const enabled = !!document.getElementById('plex.enabled')?.checked;
                 const host = document.getElementById('plex.hostname')?.value?.trim();
                 const port = document.getElementById('plex.port')?.value?.trim();
-                if (enabled && host && port) fetchPlexLibraries(true);
+                if (enabled && host && port) fetchPlexLibraries(true, true);
             } catch (_) {
                 /* no-op */
             }

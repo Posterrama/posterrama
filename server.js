@@ -10101,6 +10101,125 @@ app.post(
 
 /**
  * @swagger
+ * /api/admin/tmdb-total:
+ *   get:
+ *     summary: Get uncapped TMDB totals for current configuration
+ *     description: Returns the approximate total number of movies and shows available from TMDB for the configured category/region (not limited to the 150 cached in the playlist).
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: TMDB totals
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 enabled:
+ *                   type: boolean
+ *                 movies:
+ *                   type: number
+ *                 shows:
+ *                   type: number
+ *                 total:
+ *                   type: number
+ *                 note:
+ *                   type: string
+ */
+app.get(
+    '/api/admin/tmdb-total',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const cfg = await readConfig();
+        if (!cfg.tmdbSource || !cfg.tmdbSource.enabled || !cfg.tmdbSource.apiKey) {
+            return res.json({ enabled: false, movies: 0, shows: 0, total: 0 });
+        }
+
+        // Brief in-memory cache to avoid rate limiting
+        global.__tmdbTotalsCache = global.__tmdbTotalsCache || { ts: 0, value: null };
+        const ttlMs = 5 * 60 * 1000; // 5 minutes
+        if (global.__tmdbTotalsCache.value && Date.now() - global.__tmdbTotalsCache.ts < ttlMs) {
+            return res.json(global.__tmdbTotalsCache.value);
+        }
+
+        const tmdbSource = new TMDBSource(
+            { ...cfg.tmdbSource, name: 'TMDB-Totals' },
+            shuffleArray,
+            isDebug
+        );
+        const category = (cfg.tmdbSource.category || '').toString();
+        // Helper to ask TMDB for first page and read total_results; fall back to 0/unknown
+        const fetchTotalFor = async type => {
+            try {
+                let endpoint;
+                if (category.startsWith('trending_')) {
+                    // trending_{all|movie|tv}_{day|week}
+                    const parts = category.split('_');
+                    const timeWindow = parts[2] || 'day';
+                    const mediaType = type === 'tv' ? 'tv' : type === 'movie' ? 'movie' : 'all';
+                    endpoint = `/trending/${mediaType}/${timeWindow}?page=1`;
+                } else {
+                    endpoint = tmdbSource.getEndpoint(type, 1);
+                }
+                // Some categories like 'latest' return a single object and no totals
+                const url = `${tmdbSource.baseUrl}${endpoint}&api_key=${cfg.tmdbSource.apiKey}`;
+                const data = await tmdbSource.cachedApiRequest(url);
+                const total = typeof data?.total_results === 'number' ? data.total_results : null;
+                if (total == null) {
+                    // Heuristic: for latest endpoints, return 1; otherwise 0
+                    if (endpoint.includes('/latest')) return 1;
+                    return 0;
+                }
+                return total;
+            } catch (e) {
+                if (isDebug)
+                    logger.debug('[Admin API] TMDB totals fetch failed', {
+                        error: e?.message,
+                        type,
+                    });
+                return 0;
+            }
+        };
+
+        // For trending_all_<window>, compute movie+tv separately
+        const cat = category;
+        let movies = 0;
+        let shows = 0;
+        if (cat.startsWith('trending_all')) {
+            movies = await fetchTotalFor('movie');
+            shows = await fetchTotalFor('tv');
+        } else if (cat.startsWith('tv_')) {
+            shows = await fetchTotalFor('tv');
+            movies = 0;
+        } else if (cat === 'tv' || cat === 'tv') {
+            shows = await fetchTotalFor('tv');
+            movies = 0;
+        } else if (cat.startsWith('discover_tv')) {
+            shows = await fetchTotalFor('tv');
+            movies = 0;
+        } else if (cat.startsWith('discover_movie')) {
+            movies = await fetchTotalFor('movie');
+            shows = 0;
+        } else {
+            // Default: compute both movie and tv totals
+            [movies, shows] = await Promise.all([fetchTotalFor('movie'), fetchTotalFor('tv')]);
+        }
+
+        const value = {
+            enabled: true,
+            movies,
+            shows,
+            total: (Number(movies) || 0) + (Number(shows) || 0),
+            note: 'Totals reflect TMDB API total_results and may be capped by TMDB pagination limits.',
+        };
+        global.__tmdbTotalsCache = { ts: Date.now(), value };
+        res.json(value);
+    })
+);
+
+/**
+ * @swagger
  * /api/admin/tvdb-genres:
  *   get:
  *     summary: Get available TVDB genres
@@ -10259,6 +10378,95 @@ app.get(
                 enabled: false,
                 message: 'TMDB source not initialized',
             });
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/tvdb-total:
+ *   get:
+ *     summary: Get uncapped TVDB totals (best-effort)
+ *     description: TVDB v4 API doesn’t provide reliable total counts for categories; this returns null totals for now.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: TVDB totals (best-effort)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 enabled:
+ *                   type: boolean
+ *                 total:
+ *                   type: number
+ */
+app.get(
+    '/api/admin/tvdb-total',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const cfg = await readConfig();
+        if (!cfg.tvdbSource || !cfg.tvdbSource.enabled) {
+            return res.json({ enabled: false, total: 0 });
+        }
+        // Placeholder: expose null to indicate unknown
+        res.json({
+            enabled: true,
+            total: null,
+            note: 'TVDB API does not provide total counts per category.',
+        });
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/tvdb-available:
+ *   get:
+ *     summary: Get a best-effort available count for TVDB
+ *     description: Returns the number of TVDB items that would be returned for the current configuration (up to internal per-type caps). Used for admin display only.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: TVDB available count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 enabled:
+ *                   type: boolean
+ *                 available:
+ *                   type: number
+ */
+app.get(
+    '/api/admin/tvdb-available',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const cfg = await readConfig();
+        if (!cfg.tvdbSource || !cfg.tvdbSource.enabled) {
+            return res.json({ enabled: false, available: 0 });
+        }
+        try {
+            const tvdbSource = new TVDBSource({
+                ...cfg.tvdbSource,
+                movieCount: FIXED_LIMITS.TVDB_MOVIES,
+                showCount: FIXED_LIMITS.TVDB_SHOWS,
+            });
+            const [movies, shows] = await Promise.all([
+                tvdbSource.getMovies().catch(() => []),
+                tvdbSource.getShows().catch(() => []),
+            ]);
+            const available = (movies?.length || 0) + (shows?.length || 0);
+            res.json({ enabled: true, available });
+        } catch (e) {
+            if (isDebug)
+                logger.debug('[Admin API] TVDB available count failed', { error: e?.message });
+            res.json({ enabled: true, available: 0 });
         }
     })
 );

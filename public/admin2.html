@@ -1208,6 +1208,8 @@
                   <span id="sc-tmdb-sync">Last fetch: —</span>
                   <span class="sep">•</span>
                   <span id="sc-tmdb-mode">Category: —</span>
+                  <span class="sep">•</span>
+                  <span id="sc-tmdb-count" title="Items from TMDB in current playlist">Items: —</span>
                 </div>
                 <p class="sc-desc">Comprehensive movie metadata and discovery features.</p>
                 <ul class="sc-points">
@@ -1238,6 +1240,8 @@
                 </div>
                 <div class="sc-meta">
                   <span id="sc-tvdb-sync">Last fetch: —</span>
+                  <span class="sep">•</span>
+                  <span id="sc-tvdb-count" title="Items from TVDB in current playlist">Items: —</span>
                 </div>
                 <p class="sc-desc">Detailed series and episode metadata with artwork.</p>
                 <ul class="sc-points">
@@ -1312,15 +1316,15 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="plex.hostname">Hostname</label>
-              <input type="text" id="plex.hostname" placeholder="e.g. 192.168.1.10">
+              <input type="text" id="plex.hostname" placeholder="e.g. 192.168.1.10" autocomplete="off" autocapitalize="off" spellcheck="false">
             </div>
             <div class="form-group">
               <label for="plex.port">Port</label>
-              <input type="number" id="plex.port" min="1" max="65535" placeholder="32400">
+              <input type="number" id="plex.port" min="1" max="65535" placeholder="32400" autocomplete="off">
             </div>
             <div class="form-group">
               <label for="plex.token">API Token</label>
-              <input type="password" id="plex.token" placeholder="X-Plex-Token">
+              <input type="password" id="plex.token" placeholder="X-Plex-Token" autocomplete="new-password">
               <small class="form-help">Stored in environment. Not shown after save.</small>
             </div>
           </div>
@@ -1497,15 +1501,15 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="jf.hostname">Hostname</label>
-              <input type="text" id="jf.hostname" placeholder="e.g. 192.168.1.20">
+              <input type="text" id="jf.hostname" placeholder="e.g. 192.168.1.20" autocomplete="off" autocapitalize="off" spellcheck="false">
             </div>
             <div class="form-group">
               <label for="jf.port">Port</label>
-              <input type="number" id="jf.port" min="1" max="65535" placeholder="8096">
+              <input type="number" id="jf.port" min="1" max="65535" placeholder="8096" autocomplete="off">
             </div>
             <div class="form-group">
               <label for="jf.apikey">API Key</label>
-              <input type="password" id="jf.apikey" placeholder="Jellyfin API Key">
+              <input type="password" id="jf.apikey" placeholder="Jellyfin API Key" autocomplete="new-password">
               <small class="form-help">Stored in environment. Not shown after save.</small>
             </div>
             <div class="form-group">
@@ -1646,6 +1650,7 @@
           <h2><i class="fas fa-database"></i> TMDB</h2>
           <div class="panel-actions">
             <span class="status-pill" id="tmdb-status-pill-header" title="TMDB configuration status">Not configured</span>
+            <span class="status-pill" id="tmdb-count-pill" title="Items from TMDB in the current playlist">Items: —</span>
             <label class="header-toggle" for="tmdb.enabled" title="Enable TMDB source">
               <input type="checkbox" id="tmdb.enabled" />
               <span class="ht-switch" aria-hidden="true"></span>
@@ -1663,7 +1668,7 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="tmdb.apikey">API Key</label>
-              <input type="password" id="tmdb.apikey" placeholder="TMDB API Key">
+              <input type="password" id="tmdb.apikey" placeholder="TMDB API Key" autocomplete="new-password">
             </div>
             <div class="form-group">
               <label for="tmdb.category">Category</label>
@@ -1860,6 +1865,7 @@
         <header class="panel-header">
           <h2><i class="fas fa-tv"></i> TVDB</h2>
           <div class="panel-actions">
+            <span class="status-pill" id="tvdb-count-pill" title="Items from TVDB in the current playlist">Items: —</span>
             <label class="header-toggle" for="tvdb.enabled" title="Enable TVDB source">
               <input type="checkbox" id="tvdb.enabled" />
               <span class="ht-switch" aria-hidden="true"></span>
@@ -2651,7 +2657,7 @@
   </div>
 
   <script src="/notify.js?v=20250906-1"></script>
-  <script src="/admin2.js?v=20250907-03"></script>
+  <script src="/admin2.js?v=20250907-04"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
     if ('serviceWorker' in navigator) {
