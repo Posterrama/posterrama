@@ -3117,6 +3117,12 @@
                 if (!Array.isArray(ids) || !ids.length) return;
                 const container = document.getElementById('pairing-list');
                 if (container) container.innerHTML = '';
+                const fmtExp = ms => {
+                    const s = Math.max(0, Math.round(ms / 1000));
+                    const m = Math.floor(s / 60);
+                    const r = s % 60;
+                    return m ? `${m}m ${r}s` : `${r}s`;
+                };
                 for (const id of ids) {
                     try {
                         const r = await fetchJSON(
@@ -3131,14 +3137,36 @@
                         const name = dev?.name || id;
                         const claimUrl = `${location.origin}/?pair=${encodeURIComponent(r?.code || '')}`;
                         const qrUrl = `/api/qr?text=${encodeURIComponent(claimUrl)}&format=svg`;
+                        const expMs =
+                            r?.expiresInMs ||
+                            Math.max(0, Date.parse(r?.expiresAt || 0) - Date.now());
                         const html = `
-                            <div class="pairing-item" style="display:flex; gap:12px; align-items:center;">
-                                <div style="flex:1;">
-                                    <div style="font-weight:600;">${escapeHtml(name)}</div>
-                    <div class="subtle">Code: <code>${escapeHtml(r?.code || '—')}</code> · Expires in ${Math.round((r?.expiresInMs || Math.max(0, Date.parse(r?.expiresAt || 0) - Date.now())) / 1000)}s</div>
-                    <div class="subtle"><a href="${claimUrl}" target="_blank" rel="noopener">Claim URL</a></div>
+                            <div class="pairing-item">
+                                <div class="pairing-meta">
+                                    <div class="pairing-title">${escapeHtml(name)}</div>
+                                    <div class="pairing-row">
+                                        <div class="pairing-label">Code</div>
+                                        <div class="pairing-copy">
+                                            <code class="pairing-code">${escapeHtml(r?.code || '—')}</code>
+                                            <button class="btn btn-outline btn-sm" data-copy="${escapeHtml(
+                                                r?.code || ''
+                                            )}"><i class="fas fa-copy"></i> Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="pairing-row">
+                                        <div class="pairing-label">Claim URL</div>
+                                        <div class="pairing-copy">
+                                            <input type="text" readonly value="${escapeHtml(
+                                                claimUrl
+                                            )}" class="pairing-input" />
+                                            <button class="btn btn-outline btn-sm" data-copy="${escapeHtml(
+                                                claimUrl
+                                            )}"><i class="fas fa-copy"></i> Copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="pairing-exp subtle">Expires in ${fmtExp(expMs)}</div>
                                 </div>
-                <div><img src="${qrUrl}" alt="QR" style="width:96px;height:96px;background:#fff;padding:6px;border-radius:8px;"/></div>
+                                <div class="pairing-qr"><img src="${qrUrl}" alt="QR"/></div>
                             </div>`;
                         if (container) container.insertAdjacentHTML('beforeend', html);
                     } catch (e) {
@@ -3148,6 +3176,26 @@
                             message: `Failed for ${id}`,
                         });
                     }
+                }
+                if (container && !container._copyBound) {
+                    container.addEventListener('click', async ev => {
+                        const btn = ev.target?.closest('[data-copy]');
+                        if (!btn) return;
+                        const val = btn.getAttribute('data-copy') || '';
+                        try {
+                            await navigator.clipboard.writeText(val);
+                            window.notify?.toast({ type: 'success', title: 'Copied to clipboard' });
+                        } catch (_) {
+                            // Fallback: select the adjacent input if any
+                            const inp = btn.parentElement?.querySelector('input');
+                            if (inp) {
+                                inp.select();
+                                document.execCommand?.('copy');
+                                window.getSelection()?.removeAllRanges?.();
+                            }
+                        }
+                    });
+                    container._copyBound = true;
                 }
                 document.getElementById('modal-pairing')?.classList.add('open');
             }
@@ -3749,6 +3797,80 @@
                     if (act === 'create-device') {
                         const overlay = document.getElementById('modal-create-device');
                         const close = () => overlay?.classList.remove('open');
+                        // Prepare fields: suggested name + location dropdown
+                        const nameEl = document.getElementById('create-device-name');
+                        const locSel = document.getElementById('create-device-location-select');
+                        const locNew = document.getElementById('create-device-location-new');
+                        const devices = state.all || [];
+                        const rooms = Array.from(
+                            new Set(
+                                devices
+                                    .map(d =>
+                                        d && d.location != null ? String(d.location).trim() : ''
+                                    )
+                                    .filter(Boolean)
+                            )
+                        ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+                        // Most common room (fallback to last used)
+                        const counts = new Map();
+                        for (const r of devices.map(d => (d.location || '').trim()).filter(Boolean))
+                            counts.set(r, (counts.get(r) || 0) + 1);
+                        let popular = '';
+                        for (const [k, v] of counts.entries())
+                            if (!popular || v > (counts.get(popular) || 0)) popular = k;
+                        const lastLoc = (localStorage.getItem('admin2:last-location') || '').trim();
+                        const defaultLoc = lastLoc || popular || '';
+                        if (locSel) {
+                            const opts = ['<option value="">Unassigned</option>']
+                                .concat(
+                                    rooms.map(
+                                        r =>
+                                            `<option value="${r.replace(/"/g, '&quot;')}">${r.replace(/</g, '&lt;')}</option>`
+                                    )
+                                )
+                                .concat(['<option value="__new__">+ Add new location…</option>']);
+                            locSel.innerHTML = opts.join('');
+                            locSel.value = rooms.includes(defaultLoc) ? defaultLoc : '';
+                            locSel.onchange = () => {
+                                if (locSel.value === '__new__') {
+                                    if (locNew) {
+                                        locNew.style.display = '';
+                                        setTimeout(() => locNew.focus(), 30);
+                                    }
+                                } else if (locNew) {
+                                    locNew.style.display = 'none';
+                                    locNew.value = '';
+                                }
+                            };
+                            // Ensure hidden by default
+                            if (locNew) {
+                                locNew.style.display = 'none';
+                                locNew.value = '';
+                            }
+                        }
+                        // Suggest a friendly default name
+                        const suggestName = loc => {
+                            const base = (loc ? `${loc} Screen` : 'Screen').trim();
+                            let maxN = 0;
+                            for (const d of devices) {
+                                const nm = (d?.name || '').trim();
+                                if (!nm.toLowerCase().startsWith(base.toLowerCase())) continue;
+                                const m = nm.match(/(\d+)\s*$/);
+                                const n = m
+                                    ? parseInt(m[1], 10)
+                                    : nm.toLowerCase() === base.toLowerCase()
+                                      ? 1
+                                      : 0;
+                                if (n > maxN) maxN = n;
+                            }
+                            return `${base} ${maxN + 1}`.trim();
+                        };
+                        if (nameEl)
+                            nameEl.value = suggestName(
+                                locSel?.value && locSel.value !== '__new__'
+                                    ? locSel.value
+                                    : defaultLoc
+                            );
                         overlay?.classList.add('open');
                         const confirmBtn = document.getElementById('btn-create-device-confirm');
                         const onConfirm = async () => {
@@ -3756,8 +3878,12 @@
                             try {
                                 const name =
                                     document.getElementById('create-device-name')?.value || '';
-                                const location =
-                                    document.getElementById('create-device-location')?.value || '';
+                                let location = '';
+                                if (locSel) {
+                                    const v = locSel.value;
+                                    if (v === '__new__') location = (locNew?.value || '').trim();
+                                    else location = v;
+                                }
                                 const genPair =
                                     document.getElementById('create-generate-pair')?.checked;
                                 const r = await fetchJSON('/api/devices/register', {
@@ -3769,6 +3895,8 @@
                                 const newId = r?.deviceId || r?.device?.id || r?.id;
                                 if (!newId) throw new Error('No device id returned');
                                 close();
+                                if (location)
+                                    localStorage.setItem('admin2:last-location', location);
                                 if (genPair) await openPairingFor([newId]);
                                 window.notify?.toast({
                                     type: 'success',

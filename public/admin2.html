@@ -91,6 +91,19 @@
     .custom-options { transition: opacity .12s ease, transform .12s ease; }
     .custom-select.open .custom-options { opacity: 1; transform: translateY(0); }
   }
+  /* Pairing modal layout */
+  #modal-pairing .modal-body { padding-top: 12px; }
+  .pairing-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--color-border); background: rgba(255,255,255,0.03); }
+  .pairing-meta { flex: 1; min-width: 0; }
+  .pairing-title { font-weight: 600; margin-bottom: 6px; }
+  .pairing-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+  .pairing-label { width: 96px; color: var(--color-text-muted); flex: 0 0 auto; }
+  .pairing-copy { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+  .pairing-code { background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--color-border); }
+  .pairing-input { width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-card); color: var(--color-text-primary); }
+  .pairing-input:focus { outline: none; border-color: var(--color-info); box-shadow: 0 0 0 3px rgba(102,126,234,0.25); }
+  .pairing-exp { margin-top: 6px; opacity: .85; }
+  .pairing-qr img { width: 104px; height: 104px; background: #fff; padding: 8px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.25); }
     /* Status tiles styling */
     .status-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
     .status-tile { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
@@ -2689,7 +2702,7 @@
         <div class="modal-title" id="pairing-title"><i class="fas fa-qrcode"></i> Pairing Codes</div>
         <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
       </div>
-      <div class="modal-body" id="pairing-list" style="display:grid; gap:12px;">
+  <div class="modal-body" id="pairing-list" style="display:grid; gap:12px;">
         <!-- dynamically filled: per device code + QR image -->
       </div>
       <div class="modal-footer">
@@ -2712,8 +2725,9 @@
             <input id="create-device-name" type="text" placeholder="Optional" />
           </div>
           <div class="form-group">
-            <label for="create-device-location">Location</label>
-            <input id="create-device-location" type="text" placeholder="Optional" />
+            <label for="create-device-location-select">Location</label>
+            <select id="create-device-location-select"></select>
+            <input id="create-device-location-new" type="text" placeholder="New location" style="display:none; margin-top:8px;" />
           </div>
           <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:6px;">
             <input id="create-generate-pair" type="checkbox" checked />
