@@ -396,15 +396,40 @@ const githubService = require('./utils/github');
 const autoUpdater = require('./utils/updater');
 
 // Session middleware setup (must come BEFORE any middleware/routes that access req.session)
+// Create a session store that gracefully ignores missing files (ENOENT)
+const __fileStore = new FileStore({
+    path: './sessions', // Sessions will be stored in a 'sessions' directory
+    logFn: isDebug ? logger.debug : () => {},
+    ttl: 86400 * 7, // Session TTL in seconds (7 days)
+    reapInterval: 86400, // Clean up expired sessions once a day
+    retries: 3, // Retry file operations up to 3 times
+});
+
+if (typeof __fileStore.get === 'function') {
+    const __origGet = __fileStore.get.bind(__fileStore);
+    __fileStore.get = (sid, cb) => {
+        try {
+            __origGet(sid, (err, sess) => {
+                if (err && (err.code === 'ENOENT' || /ENOENT/.test(String(err.message)))) {
+                    // Treat missing session file as no session instead of an error
+                    logger.debug?.(`[Session] ENOENT for sid ${sid} — treating as no session`);
+                    return cb(null, null);
+                }
+                return cb(err, sess);
+            });
+        } catch (e) {
+            if (e && (e.code === 'ENOENT' || /ENOENT/.test(String(e.message)))) {
+                logger.debug?.(`[Session] ENOENT (thrown) for sid ${sid} — treating as no session`);
+                return cb(null, null);
+            }
+            return cb(e);
+        }
+    };
+}
+
 app.use(
     session({
-        store: new FileStore({
-            path: './sessions', // Sessions will be stored in a 'sessions' directory
-            logFn: isDebug ? logger.debug : () => {},
-            ttl: 86400 * 7, // Session TTL in seconds (7 days)
-            reapInterval: 86400, // Clean up expired sessions once a day
-            retries: 3, // Retry file operations up to 3 times
-        }),
+        store: __fileStore,
         name: 'posterrama.sid',
         secret: process.env.SESSION_SECRET,
         resave: false,

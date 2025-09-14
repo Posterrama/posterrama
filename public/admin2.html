@@ -17,7 +17,13 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
   <link rel="stylesheet" href="/theme-demo.css?v=20250909-1" />
   <style>
   /* Themed dropdowns */
@@ -4028,6 +4034,14 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
+    </div>
+    <div class="notify-subheader">
+      <label for="notify-min-level" class="sr-only">Minimum level</label>
+      <select id="notify-min-level" title="Minimum level" style="appearance:auto; font:inherit; padding:6px 8px; border-radius:8px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--color-border);">
+        <option value="info">Info</option>
+        <option value="warn">Warn</option>
+        <option value="error" selected>Error</option>
+      </select>
     </div>
     <div class="notify-list" id="notify-list"></div>
   </div>

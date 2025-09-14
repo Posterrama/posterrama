@@ -98,14 +98,41 @@ function error(err, req, res, _next) {
         }
     }
 
-    // Log the error
-    logger.error(`[Error Handler] Caught error for ${req.method} ${req.path}: ${err.message}`, {
-        stack: err.stack,
-        timestamp,
-    });
-
-    // Determine status code
+    // Determine status code early for log level
     let statusCode = err.statusCode || err.status || 500;
+    const isSessionENOENT =
+        ((err && err.code === 'ENOENT') || /ENOENT/.test(String(err && err.message))) &&
+        /sessions\//.test(String(err && err.message));
+
+    // Log the error with appropriate severity
+    const logPayload = { stack: err.stack, timestamp };
+    if (isSessionENOENT) {
+        // Benign/ephemeral in file-session-store; treat as warning to reduce noise
+        logger.warn(
+            `[Error Handler] Caught (session ENOENT) for ${req.method} ${req.path}: ${err.message}`,
+            logPayload
+        );
+    } else if (statusCode < 500) {
+        logger.warn(
+            `[Error Handler] Caught error for ${req.method} ${req.path}: ${err.message}`,
+            logPayload
+        );
+    } else {
+        logger.error(
+            `[Error Handler] Caught error for ${req.method} ${req.path}: ${err.message}`,
+            logPayload
+        );
+    }
+
+    // If headers are already sent, avoid double-send; log-only and exit
+    if (res.headersSent) {
+        logger.debug('[Error Handler] Response headers already sent; logging only', {
+            path: req.path,
+            method: req.method,
+            statusCode,
+        });
+        return; // do not call next(err) to avoid default handler noise
+    }
 
     // Handle specific error types
     if (err.name === 'ValidationError') {

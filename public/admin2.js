@@ -2512,7 +2512,9 @@
             // Keep a dismissed set (persisted) so items don't bounce back after refresh
             const dismissed = new Set();
             const DISMISS_STORE = 'admin2:dismissedNotifications';
-            const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+            // Dismiss TTLs: alerts linger longer; logs (repetitive) return sooner
+            const DISMISS_TTL_ALERT_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+            const DISMISS_TTL_LOG_MS = 60 * 60 * 1000; // 1 hour for logs (prevents long-term suppression of WARN spam)
             const CLEAR_SUPPRESS_KEY = 'admin2:notifClearedUntil';
             const CLEAR_SUPPRESS_MS = 15000; // 15s grace to avoid racey repaints
             // Notification data cache to avoid hammering endpoints
@@ -2545,12 +2547,17 @@
                     const now = Date.now();
                     if (Array.isArray(list)) {
                         list.forEach(entry => {
-                            if (
-                                entry &&
-                                typeof entry.key === 'string' &&
-                                now - (entry.t || 0) < DISMISS_TTL_MS
-                            ) {
-                                dismissed.add(entry.key);
+                            if (!entry || typeof entry.key !== 'string') return;
+                            const k = entry.key;
+                            const isAlert = k.startsWith('A|');
+                            const isLog = k.startsWith('L|');
+                            const ttl = isAlert
+                                ? DISMISS_TTL_ALERT_MS
+                                : isLog
+                                  ? DISMISS_TTL_LOG_MS
+                                  : DISMISS_TTL_ALERT_MS; // default to longer
+                            if (now - (entry.t || 0) < ttl) {
+                                dismissed.add(k);
                             }
                         });
                     }
@@ -2634,7 +2641,13 @@
                         alerts = Array.isArray(data?.alerts) ? data.alerts : [];
                     } catch (_) {}
                     try {
-                        const r = await fetch(`/api/admin/logs?level=warn&limit=20`, {
+                        // Respect user-selected minimum level for logs in the bell
+                        const levelKey = 'admin2:notifMinLevel';
+                        const minLevel = (localStorage.getItem(levelKey) || 'error').toLowerCase();
+                        const levelParam = ['info', 'warn', 'error'].includes(minLevel)
+                            ? minLevel
+                            : 'warn';
+                        const r = await fetch(`/api/admin/logs?level=${levelParam}&limit=20`, {
                             credentials: 'include',
                         });
                         if (r.ok) {
@@ -2772,6 +2785,25 @@
                 window.__closeNotifyCenter = closePanel;
                 window.__openNotifyCenter = openPanel;
             } catch (_) {}
+
+            // Initialize min-level selector and bindings
+            (function initMinLevelControl() {
+                try {
+                    const key = 'admin2:notifMinLevel';
+                    const sel = document.getElementById('notify-min-level');
+                    if (!sel) return;
+                    const saved = (localStorage.getItem(key) || 'error').toLowerCase();
+                    if ([...sel.options].some(o => o.value === saved)) sel.value = saved;
+                    sel.addEventListener('change', () => {
+                        try {
+                            const v = sel.value;
+                            localStorage.setItem(key, v);
+                            // Force-refresh the badge and panel to reflect new min level immediately
+                            refreshBadge(true);
+                        } catch (_) {}
+                    });
+                } catch (_) {}
+            })();
 
             // Guard to avoid duplicate bindings if init runs again
             if (!window.__notifHandlersAdded) {

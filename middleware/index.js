@@ -103,10 +103,15 @@ function requestLoggingMiddleware() {
         const startTime = Date.now();
         const originalJson = res.json;
 
-        // Override res.json to capture response size
+        // Override res.json to capture response size safely (avoid throwing on circulars)
         res.json = function (data) {
-            const responseSize = JSON.stringify(data).length;
-            res.locals.responseSize = responseSize;
+            try {
+                const str = typeof data === 'string' ? data : JSON.stringify(data);
+                res.locals.responseSize = Buffer.byteLength(str);
+            } catch (_) {
+                // Fallback: unknown size; don't block the response
+                res.locals.responseSize = 0;
+            }
             return originalJson.call(this, data);
         };
 
@@ -140,9 +145,10 @@ function requestLoggingMiddleware() {
                 }
 
                 // Configurable log level and sampling for API access logs
-                const level = (process.env.API_REQUEST_LOG_LEVEL || 'debug').toLowerCase(); // info|debug|warn
+                const levelRaw = process.env.API_REQUEST_LOG_LEVEL || 'debug';
+                const level = String(levelRaw).trim().toLowerCase(); // info|debug|warn
                 const sample = Number(process.env.API_REQUEST_LOG_SAMPLE || 0); // 0..1 (e.g., 0.1 = 10%)
-                const logFn = logger[level] || logger.debug;
+                const logFn = typeof logger[level] === 'function' ? logger[level] : logger.info;
                 if (sample > 0) {
                     if (Math.random() < sample) logFn('API request completed', logData);
                 } else {

@@ -2095,6 +2095,13 @@ input[type='range']::-moz-range-thumb {
     max-height: 60vh;
     overflow: auto;
 }
+.notify-subheader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+}
 .notify-item {
     display: grid;
     grid-template-columns: 24px 1fr auto;
