@@ -1632,6 +1632,8 @@
                 [heroSideRow, heroRotRow, heroBiasRow].forEach(row => {
                     if (row) row.style.display = isHero ? '' : 'none';
                 });
+                const heroCard = document.getElementById('wallart-hero-card');
+                if (heroCard) heroCard.style.display = isHero ? '' : 'none';
             };
             layoutSel?.addEventListener('change', applyHeroVis);
             applyHeroVis();

@@ -1487,6 +1487,13 @@
   #section-display .status-pill.status-info { background: rgba(59,130,246,0.18); color:#bfdbfe; border-color: rgba(59,130,246,0.35); }
   /* Grids */
   #section-display .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
+  /* Masonry utility for mini-card groups (neat stacking without row gaps) */
+  #section-display .masonry { display: block; column-width: 320px; column-gap: 12px; }
+  @media (max-width: 1600px) { #section-display .masonry { column-width: 300px; } }
+  @media (max-width: 1400px) { #section-display .masonry { column-width: 280px; } }
+  @media (max-width: 1200px) { #section-display .masonry { column-width: 260px; } }
+  @media (max-width: 900px)  { #section-display .masonry { column-width: 100%; } }
+  #section-display .masonry > .mode-card { display: inline-block; width: 100%; margin: 0 0 12px; break-inside: avoid; }
     #section-display .form-row { display:flex; flex-direction:column; gap:6px; }
     #section-display .form-row.inline { flex-direction:row; align-items:center; gap:10px; }
     #section-display .form-row label { font-size:.9rem; color: var(--color-text-secondary); }
@@ -1570,7 +1577,7 @@
                 <div class="card-subtext" style="margin-bottom:10px; color: var(--color-text-secondary);">
                   A calm, full-screen slideshow of your posters. Use presets below or fine‑tune Effects & Playback above.
                 </div>
-                <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                <div class="form-grid masonry">
                   <!-- Presets card -->
                   <div class="mode-card" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-sliders-h"></i> Presets</div>
@@ -1698,7 +1705,7 @@
                   </div>
 
                   <!-- Hero settings card (shown for Hero Grid) -->
-                  <div class="mode-card" style="padding:12px;">
+                  <div class="mode-card" id="wallart-hero-card" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-user-astronaut"></i> Hero Settings</div>
                     <div class="form-grid">
                       <div class="form-row">
