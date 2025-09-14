@@ -1488,14 +1488,14 @@
     }
 
     function updateModeBadges(active) {
-        // Only show the active card; hide others entirely
+        // Show only the active mode card; others are hidden and disabled
         const cs = document.getElementById('card-screensaver');
         const cw = document.getElementById('card-wallart');
         const cc = document.getElementById('card-cinema');
         if (cs) cs.hidden = active !== 'screensaver';
         if (cw) cw.hidden = active !== 'wallart';
         if (cc) cc.hidden = active !== 'cinema';
-        // Ensure fieldsets are enabled for the active card
+
         document
             .getElementById('fs-screensaver')
             ?.toggleAttribute('disabled', active !== 'screensaver');
@@ -1513,33 +1513,8 @@
                       : 'Cinema';
             pill.textContent = `Mode: ${label}`;
         }
-
-        // Show/hide top sections per mode (mirror legacy admin)
-        // - Screensaver: Visual Elements, Clock, Scaling, Effects, Playback, Sync
-        // - Wallart: Visual Elements, Clock, Scaling, Effects (grid ignores Playback interval), Sync
-        // - Cinema: Visual Elements, Clock, Scaling (optional), Effects (transitions apply), Playback, Sync
-        const sec = id => document.getElementById(id);
-        const show = (el, on) => {
-            if (el) el.style.display = on ? '' : 'none';
-        };
-        const showCommon = on => {
-            show(sec('sec-visual'), on);
-            show(sec('sec-clock'), on);
-            show(sec('sec-scaling'), on);
-            show(sec('sec-effects'), on);
-            show(sec('sec-sync'), on);
-        };
-        if (active === 'screensaver') {
-            showCommon(true);
-            show(sec('sec-playback'), true);
-        } else if (active === 'wallart') {
-            showCommon(true);
-            // In legacy, grid timing uses its own interval; keep global Playback visible only if needed
-            show(sec('sec-playback'), false);
-        } else if (active === 'cinema') {
-            showCommon(true);
-            show(sec('sec-playback'), true);
-        }
+        // Note: Screensaver now contains its own cards (Visual, Clock, Scaling, Effects, Playback, Sync).
+        // No separate shared container toggling is needed anymore.
     }
 
     async function loadAdminConfig() {
@@ -1573,14 +1548,17 @@
         setIf('showMetadata', c.showMetadata !== false);
         setIf('showClearLogo', c.showClearLogo !== false);
         setIf('showRottenTomatoes', c.showRottenTomatoes === true);
-        // Map 0–100 schema -> 0–10 UI (one decimal). If value looks like 0–10 already, keep it.
+        // Map 0–100 schema -> 0–10 UI (snap to .0 or .5). If value looks like 0–10 already, keep it.
         (function () {
             const raw = c.rottenTomatoesMinimumScore;
             if (raw == null) return setIf('rottenTomatoesMinimumScore', 0);
             const num = Number(raw);
             if (!Number.isFinite(num)) return setIf('rottenTomatoesMinimumScore', 0);
-            const uiVal = num > 10 ? Math.round((num / 10) * 10) / 10 : num;
-            setIf('rottenTomatoesMinimumScore', uiVal);
+            const uiRaw = num > 10 ? num / 10 : num;
+            // Clamp 0..10 and snap to nearest 0.5
+            const clamped = Math.min(10, Math.max(0, uiRaw));
+            const snapped = Math.round(clamped * 2) / 2;
+            setIf('rottenTomatoesMinimumScore', snapped);
         })();
         const us = c.uiScaling || {};
         setIf('uiScaling.global', us.global ?? 100);
@@ -1766,6 +1744,323 @@
             applyClock();
         } catch (_) {}
 
+        // Screensaver cards (including Presets): customizable two-column layout
+        try {
+            const initModeCustomize = ({
+                scope,
+                containerId,
+                btnStartId,
+                btnDoneId,
+                btnResetId,
+                colLeftId,
+                colRightId,
+                cardSelector,
+                keyAttr = 'data-card-key',
+            }) => {
+                const container = document.getElementById(containerId);
+                const btnStart = document.getElementById(btnStartId);
+                const btnDone = document.getElementById(btnDoneId);
+                const btnReset = document.getElementById(btnResetId);
+                const colL = document.getElementById(colLeftId);
+                const colR = document.getElementById(colRightId);
+                if (!container || !btnStart || !btnDone || !btnReset || !colL || !colR) return;
+
+                const STORAGE_KEY = `display.${scope}.layout.v1`;
+                const readLayout = () => {
+                    try {
+                        const raw = localStorage.getItem(STORAGE_KEY);
+                        return raw ? JSON.parse(raw) : null;
+                    } catch (_) {
+                        return null;
+                    }
+                };
+                const writeLayout = layout => {
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+                    } catch (_) {}
+                };
+                const getCards = () => Array.from(container.querySelectorAll(cardSelector));
+
+                let dragEl = null;
+                const enableDrag = () => {
+                    getCards().forEach(el => {
+                        el.setAttribute('draggable', 'true');
+                        el.addEventListener('dragstart', e => {
+                            dragEl = el;
+                            el.classList.add('dragging');
+                            e.dataTransfer?.setData(
+                                'text/plain',
+                                el.id || el.getAttribute(keyAttr) || ''
+                            );
+                        });
+                        el.addEventListener('dragend', () => {
+                            el.classList.remove('dragging');
+                            dragEl = null;
+                        });
+                    });
+                    [colL, colR].forEach(col => {
+                        col.addEventListener('dragover', e => {
+                            e.preventDefault();
+                            col.classList.add('drag-over');
+                        });
+                        col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+                        col.addEventListener('drop', e => {
+                            e.preventDefault();
+                            col.classList.remove('drag-over');
+                            if (!dragEl) return;
+                            const after = Array.from(col.children).find(
+                                child =>
+                                    e.clientY <=
+                                    child.getBoundingClientRect().top +
+                                        child.getBoundingClientRect().height / 2
+                            );
+                            if (after) col.insertBefore(dragEl, after);
+                            else col.appendChild(dragEl);
+                        });
+                    });
+                };
+
+                const enterCustomize = () => {
+                    container.classList.add('customizing');
+                    colL.style.display = '';
+                    colR.style.display = '';
+                    btnStart.style.display = 'none';
+                    btnDone.style.display = '';
+                    const saved = readLayout();
+                    colL.innerHTML = '';
+                    colR.innerHTML = '';
+                    if (saved) {
+                        const all = new Map(getCards().map(el => [el.getAttribute(keyAttr), el]));
+                        (saved.left || []).forEach(k => {
+                            const el = all.get(k);
+                            if (el) colL.appendChild(el);
+                        });
+                        (saved.right || []).forEach(k => {
+                            const el = all.get(k);
+                            if (el) colR.appendChild(el);
+                        });
+                    } else {
+                        // Default: put Presets first on the left, rest balanced by current DOM order
+                        const cards = getCards();
+                        const presets = cards.find(el => el.getAttribute(keyAttr) === 'presets');
+                        const rest = cards.filter(el => el !== presets);
+                        if (presets) colL.appendChild(presets);
+                        const mid = Math.ceil(rest.length / 2);
+                        rest.slice(0, mid).forEach(el => colL.appendChild(el));
+                        rest.slice(mid).forEach(el => colR.appendChild(el));
+                    }
+                    enableDrag();
+                };
+
+                const exitCustomize = (persist = true) => {
+                    if (persist) {
+                        const left = Array.from(colL.children).map(ch => ch.getAttribute(keyAttr));
+                        const right = Array.from(colR.children).map(ch => ch.getAttribute(keyAttr));
+                        writeLayout({ left, right });
+                    }
+                    const all = [...Array.from(colL.children), ...Array.from(colR.children)];
+                    all.forEach(el => container.appendChild(el));
+                    container.classList.remove('customizing');
+                    colL.style.display = 'none';
+                    colR.style.display = 'none';
+                    btnStart.style.display = '';
+                    btnDone.style.display = 'none';
+                };
+
+                const applySaved = () => {
+                    const saved = readLayout();
+                    if (!saved) return;
+                    const all = new Map(getCards().map(el => [el.getAttribute(keyAttr), el]));
+                    const append = keys =>
+                        keys.forEach(k => {
+                            const el = all.get(k);
+                            if (el) container.appendChild(el);
+                        });
+                    append(saved.left || []);
+                    append(saved.right || []);
+                };
+                applySaved();
+
+                btnStart.addEventListener('click', () => enterCustomize());
+                btnDone.addEventListener('click', () => exitCustomize(true));
+                btnReset.addEventListener('click', () => {
+                    try {
+                        localStorage.removeItem(`display.${scope}.layout.v1`);
+                    } catch (_) {}
+                    if (container.classList.contains('customizing')) enterCustomize();
+                });
+            };
+
+            // Screensaver no longer supports custom layout; initializer removed.
+        } catch (_) {}
+
+        // Wallart & Cinema: add the same customizable layout behavior to their mini-cards
+        try {
+            const initModeCustomize = ({
+                scope,
+                containerId,
+                btnStartId,
+                btnDoneId,
+                btnResetId,
+                colLeftId,
+                colRightId,
+                cardSelector,
+                keyAttr = 'data-card-key',
+            }) => {
+                const container = document.getElementById(containerId);
+                const btnStart = document.getElementById(btnStartId);
+                const btnDone = document.getElementById(btnDoneId);
+                const btnReset = document.getElementById(btnResetId);
+                const colL = document.getElementById(colLeftId);
+                const colR = document.getElementById(colRightId);
+                if (!container || !btnStart || !btnDone || !btnReset || !colL || !colR) return;
+
+                const STORAGE_KEY = `display.${scope}.layout.v1`;
+                const readLayout = () => {
+                    try {
+                        const raw = localStorage.getItem(STORAGE_KEY);
+                        return raw ? JSON.parse(raw) : null;
+                    } catch (_) {
+                        return null;
+                    }
+                };
+                const writeLayout = layout => {
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+                    } catch (_) {}
+                };
+
+                const getCards = () => Array.from(container.querySelectorAll(cardSelector));
+
+                let dragEl = null;
+                const enableDrag = () => {
+                    getCards().forEach(el => {
+                        el.setAttribute('draggable', 'true');
+                        el.addEventListener('dragstart', e => {
+                            dragEl = el;
+                            el.classList.add('dragging');
+                            e.dataTransfer?.setData(
+                                'text/plain',
+                                el.id || el.getAttribute(keyAttr) || ''
+                            );
+                        });
+                        el.addEventListener('dragend', () => {
+                            el.classList.remove('dragging');
+                            dragEl = null;
+                        });
+                    });
+                    [colL, colR].forEach(col => {
+                        col.addEventListener('dragover', e => {
+                            e.preventDefault();
+                            col.classList.add('drag-over');
+                        });
+                        col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+                        col.addEventListener('drop', e => {
+                            e.preventDefault();
+                            col.classList.remove('drag-over');
+                            if (!dragEl) return;
+                            const after = Array.from(col.children).find(
+                                child =>
+                                    e.clientY <=
+                                    child.getBoundingClientRect().top +
+                                        child.getBoundingClientRect().height / 2
+                            );
+                            if (after) col.insertBefore(dragEl, after);
+                            else col.appendChild(dragEl);
+                        });
+                    });
+                };
+
+                const enterCustomize = () => {
+                    container.classList.add('customizing');
+                    colL.style.display = '';
+                    colR.style.display = '';
+                    btnStart.style.display = 'none';
+                    btnDone.style.display = '';
+                    const saved = readLayout();
+                    colL.innerHTML = '';
+                    colR.innerHTML = '';
+                    if (saved) {
+                        const all = new Map(getCards().map(el => [el.getAttribute(keyAttr), el]));
+                        (saved.left || []).forEach(k => {
+                            const el = all.get(k);
+                            if (el) colL.appendChild(el);
+                        });
+                        (saved.right || []).forEach(k => {
+                            const el = all.get(k);
+                            if (el) colR.appendChild(el);
+                        });
+                    } else {
+                        // Split current DOM order evenly
+                        const cards = getCards();
+                        const mid = Math.ceil(cards.length / 2);
+                        cards.slice(0, mid).forEach(el => colL.appendChild(el));
+                        cards.slice(mid).forEach(el => colR.appendChild(el));
+                    }
+                    enableDrag();
+                };
+
+                const exitCustomize = (persist = true) => {
+                    if (persist) {
+                        const left = Array.from(colL.children).map(ch => ch.getAttribute(keyAttr));
+                        const right = Array.from(colR.children).map(ch => ch.getAttribute(keyAttr));
+                        writeLayout({ left, right });
+                    }
+                    const all = [...Array.from(colL.children), ...Array.from(colR.children)];
+                    all.forEach(el => container.appendChild(el));
+                    container.classList.remove('customizing');
+                    colL.style.display = 'none';
+                    colR.style.display = 'none';
+                    btnStart.style.display = '';
+                    btnDone.style.display = 'none';
+                };
+
+                const applySaved = () => {
+                    const saved = readLayout();
+                    if (!saved) return;
+                    const all = new Map(getCards().map(el => [el.getAttribute(keyAttr), el]));
+                    const append = keys =>
+                        keys.forEach(k => {
+                            const el = all.get(k);
+                            if (el) container.appendChild(el);
+                        });
+                    append(saved.left || []);
+                    append(saved.right || []);
+                };
+                applySaved();
+
+                btnStart.addEventListener('click', () => enterCustomize());
+                btnDone.addEventListener('click', () => exitCustomize(true));
+                btnReset.addEventListener('click', () => {
+                    try {
+                        localStorage.removeItem(STORAGE_KEY);
+                    } catch (_) {}
+                    if (container.classList.contains('customizing')) enterCustomize();
+                });
+            };
+
+            initModeCustomize({
+                scope: 'wallart',
+                containerId: 'wallart-cards',
+                btnStartId: 'btn-wallart-customize',
+                btnDoneId: 'btn-wallart-done',
+                btnResetId: 'btn-wallart-reset',
+                colLeftId: 'wallart-col-left',
+                colRightId: 'wallart-col-right',
+                cardSelector: '#wallart-cards > .mode-card[data-card-key]',
+            });
+            initModeCustomize({
+                scope: 'cinema',
+                containerId: 'cinema-cards',
+                btnStartId: 'btn-cinema-customize',
+                btnDoneId: 'btn-cinema-done',
+                btnResetId: 'btn-cinema-reset',
+                colLeftId: 'cinema-col-left',
+                colRightId: 'cinema-col-right',
+                cardSelector: '#cinema-cards > .mode-card[data-card-key]',
+            });
+        } catch (_) {}
+
         // Number steppers: inc/dec handlers for all .number-input-wrapper blocks in Display section
         try {
             const panel = document.getElementById('section-display');
@@ -1801,6 +2096,28 @@
             }
         } catch (_) {}
 
+        // Rotten Tomatoes: live snap to 0.5 and clamp 0..10 while typing
+        try {
+            const el = document.getElementById('rottenTomatoesMinimumScore');
+            if (el) {
+                const snap = () => {
+                    const raw = el.value;
+                    if (raw == null || raw === '') return; // allow clearing while editing
+                    const n = Number(raw);
+                    if (!Number.isFinite(n)) return;
+                    // If users paste a 0–100 value, downscale to 0–10 UX first
+                    const ui = n <= 10 ? n : n / 10;
+                    const clamped = Math.min(10, Math.max(0, ui));
+                    const snapped = Math.round(clamped * 2) / 2; // .0 or .5
+                    if (Math.abs(snapped - n) > 1e-9) {
+                        // Keep consistent formatting: one decimal place at most
+                        el.value = String(snapped);
+                    }
+                };
+                ['input', 'change', 'blur'].forEach(ev => el.addEventListener(ev, snap));
+            }
+        } catch (_) {}
+
         // Screensaver: live summary + presets (affect global Effect/Playback/Clock)
         try {
             const elInterval = document.getElementById('transitionIntervalSeconds');
@@ -1824,22 +2141,36 @@
                         return String(val || '—');
                 }
             };
+            const pauseRow = elPause?.closest('.form-row') || null;
+            const applyPauseVisibility = () => {
+                const isKB = String(elEffect?.value || '').toLowerCase() === 'kenburns';
+                if (pauseRow) pauseRow.style.display = isKB ? 'none' : '';
+                if (elPause) elPause.disabled = isKB;
+            };
             const applySummary = () => {
                 if (pillInt && elInterval)
                     pillInt.textContent = `Every ${elInterval.value || '—'} s`;
                 if (pillEff && elEffect)
                     pillEff.textContent = `Effect: ${effLabel(elEffect.value)}`;
-                if (pillPause && elPause)
-                    pillPause.textContent = `Pause: ${elPause.value != null && elPause.value !== '' ? elPause.value : '—'} s`;
+                if (pillPause && elPause) {
+                    const isKB = String(elEffect?.value || '').toLowerCase() === 'kenburns';
+                    pillPause.textContent = isKB
+                        ? 'Pause: —'
+                        : `Pause: ${elPause.value != null && elPause.value !== '' ? elPause.value : '—'} s`;
+                }
                 if (pillClock && elClock)
                     pillClock.textContent = `Clock: ${elClock.checked ? 'On' : 'Off'}`;
             };
             ['input', 'change'].forEach(ev => {
                 elInterval?.addEventListener(ev, applySummary);
-                elEffect?.addEventListener(ev, applySummary);
+                elEffect?.addEventListener(ev, () => {
+                    applyPauseVisibility();
+                    applySummary();
+                });
                 elPause?.addEventListener(ev, applySummary);
                 elClock?.addEventListener(ev, applySummary);
             });
+            applyPauseVisibility();
             applySummary();
 
             // Presets
@@ -1903,13 +2234,16 @@
             showMetadata: val('showMetadata'),
             showClearLogo: val('showClearLogo'),
             showRottenTomatoes: val('showRottenTomatoes'),
-            // Map 0–10 UI -> 0–100 schema; tolerate already-100 scale
+            // Map 0–10 UI -> 0–100 schema; snap to nearest 0.5 and clamp 0..10; tolerate already-100 scale
             rottenTomatoesMinimumScore: (function () {
                 const v = val('rottenTomatoesMinimumScore');
                 if (v == null) return 0;
                 const n = Number(v);
                 if (!Number.isFinite(n)) return 0;
-                return n <= 10 ? Math.round(n * 10) : Math.round(n);
+                const ui = n <= 10 ? n : n / 10;
+                const clamped = Math.min(10, Math.max(0, ui));
+                const snapped = Math.round(clamped * 2) / 2;
+                return Math.round(snapped * 10);
             })(),
             uiScaling: {
                 global: val('uiScaling.global'),

@@ -1487,6 +1487,17 @@
   #section-display .status-pill.status-info { background: rgba(59,130,246,0.18); color:#bfdbfe; border-color: rgba(59,130,246,0.35); }
   /* Grids */
   #section-display .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
+  /* spacing below mode cards */
+  #section-display .mode-card + .content-grid,
+  #section-display .mode-card + .form-grid { margin-top: 12px; }
+  /* Utility to force a single-column full-width stack */
+  #section-display .form-grid.fullwidth-stack { grid-template-columns: 1fr !important; }
+  /* Clock Widget: checkbox spans full width; timezone + format align on the next row */
+  #section-display #sec-clock .form-grid { grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+  #section-display #sec-clock .form-grid .form-row:first-child { grid-column: 1 / -1; }
+  @media (max-width: 800px) {
+    #section-display #sec-clock .form-grid { grid-template-columns: 1fr; }
+  }
   /* Masonry utility for mini-card groups (neat stacking without row gaps) */
   #section-display .masonry { display: block; column-width: 320px; column-gap: 12px; }
   @media (max-width: 1600px) { #section-display .masonry { column-width: 300px; } }
@@ -1494,12 +1505,56 @@
   @media (max-width: 1200px) { #section-display .masonry { column-width: 260px; } }
   @media (max-width: 900px)  { #section-display .masonry { column-width: 100%; } }
   #section-display .masonry > .mode-card { display: inline-block; width: 100%; margin: 0 0 12px; break-inside: avoid; }
+  /* Make generic form-section items behave like cards inside masonry as well */
+  #section-display .masonry > .form-section { display: inline-block; width: 100%; margin: 0 0 12px; break-inside: avoid; }
+
+  /* Clock Widget: keep all rows in one compact card, two columns for controls */
+  #section-display #sec-clock .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+  #section-display #sec-clock .form-grid > .form-row:first-child { grid-column: 1 / -1; }
+  @media (max-width: 900px) { #section-display #sec-clock .form-grid { grid-template-columns: 1fr; } }
+
+  /* UI Element Scaling: compact two-column layout for 4 sliders */
+  #section-display #sec-scaling .form-grid { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 12px; }
+  @media (max-width: 900px) { #section-display #sec-scaling .form-grid { grid-template-columns: 1fr; } }
+  /* Wallart: force exactly two masonry columns so we can target the rightmost column reliably */
+  #section-display #card-wallart .masonry { column-count: 2; column-width: auto; column-gap: 12px; }
+  @media (max-width: 1200px) { #section-display #card-wallart .masonry { column-count: 1; } }
+
+  /* Force exactly two columns for Screensaver and Cinema card groups as well */
+  #section-display #saver-cards.masonry { column-count: 2; column-width: auto; column-gap: 12px; }
+  #section-display #cinema-cards.masonry { column-count: 2; column-width: auto; column-gap: 12px; }
+  @media (max-width: 1200px) {
+    #section-display #saver-cards.masonry,
+    #section-display #cinema-cards.masonry { column-count: 1; }
+  }
+  /* (removed) Utility that forced next-column placement; kept for reference */
+  /* #section-display .push-right { break-before: column; -webkit-column-break-before: always; } */
     #section-display .form-row { display:flex; flex-direction:column; gap:6px; }
     #section-display .form-row.inline { flex-direction:row; align-items:center; gap:10px; }
     #section-display .form-row label { font-size:.9rem; color: var(--color-text-secondary); }
   /* Two-column container for Display sections (like Operations) */
   #section-display .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
   @media (max-width: 1200px) { #section-display .content-grid { grid-template-columns: 1fr; } }
+  /* Gapless variant using CSS columns for masonry packing */
+  #section-display .content-grid.masonry { display: block; column-count: 2; column-gap: 12px; }
+  @media (max-width: 1200px) { #section-display .content-grid.masonry { column-count: 1; } }
+  #section-display .content-grid.masonry > .form-section { display: inline-block; width: 100%; margin: 0 0 12px; break-inside: avoid; }
+  /* (removed) Utility that forced column-break after an element to avoid auto reordering interfering */
+  /* #section-display .break-after { break-after: column; -webkit-column-break-after: always; } */
+  /* Custom layout mode: Screensaver cards */
+  /* Screensaver no longer supports customize layout; rules removed */
+
+  /* Custom layout mode: Wallart & Cinema mini-cards */
+  #section-display #wallart-cards.customizing,
+  #section-display #cinema-cards.customizing { display: grid; grid-template-columns: 1fr 1fr; column-count: initial; column-gap: 12px; gap: 12px; }
+  #section-display #wallart-cards.customizing .col,
+  #section-display #cinema-cards.customizing .col { display:flex; flex-direction:column; gap:12px; min-height: 40px; border: 1px dashed rgba(255,255,255,0.15); border-radius: 10px; padding: 8px; background: rgba(255,255,255,0.03); }
+  #section-display #wallart-cards.customizing .col.drag-over,
+  #section-display #cinema-cards.customizing .col.drag-over { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.45); }
+  #section-display #wallart-cards.customizing > .mode-card,
+  #section-display #cinema-cards.customizing > .mode-card { width: 100%; margin: 0; display:block; break-inside: auto; cursor: move; }
+  #section-display #wallart-cards.customizing > .mode-card.dragging,
+  #section-display #cinema-cards.customizing > .mode-card.dragging { opacity: .65; }
     /* Mode cards aligned with perf-card look */
   #section-display .mode-card { position: relative; background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04); align-self: start; height: auto; }
         #section-display .mode-card.inactive { opacity: .6; }
@@ -1563,7 +1618,7 @@
                   <i class="fas fa-mobile-alt"></i> Cinema
                 </label>
               </div>
-              <div class="card-subtext" style="margin-top:6px; color: var(--color-text-secondary);">Only one mode can be active at a time. Inactive modes remain visible but disabled.</div>
+
             </div>
           </div>
           <!-- Mode-specific settings placed directly under Active Mode for better hierarchy -->
@@ -1575,11 +1630,11 @@
               </div>
               <fieldset id="fs-screensaver">
                 <div class="card-subtext" style="margin-bottom:10px; color: var(--color-text-secondary);">
-                  A calm, full-screen slideshow of your posters. Use presets below or fine‑tune Effects & Playback above.
+                  A calm, full-screen slideshow of your posters. Use presets or fine‑tune Effects & Playback.
                 </div>
-                <div class="form-grid masonry">
-                  <!-- Presets card -->
-                  <div class="mode-card" style="padding:12px;">
+                <div class="form-grid masonry" id="saver-cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                  <!-- Presets + Summary card (first by default) -->
+                  <div class="mode-card" id="saver-presets-card" data-card-key="presets" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-sliders-h"></i> Presets</div>
                     <div class="scaling-presets" style="display:flex; flex-wrap:wrap; gap:8px;">
                       <button type="button" class="btn btn-secondary btn-sm" id="saver-preset-chill" title="Ken Burns, slower cadence"><i class="fas fa-wind"></i> <span>Chill</span></button>
@@ -1587,10 +1642,7 @@
                       <button type="button" class="btn btn-secondary btn-sm" id="saver-preset-lively" title="Slide, faster cadence"><i class="fas fa-bolt"></i> <span>Lively</span></button>
                       <button type="button" class="btn btn-outline btn-sm" id="saver-preset-reset" title="Reset to sensible defaults"><i class="fas fa-undo"></i> <span>Reset</span></button>
                     </div>
-                  </div>
-                  <!-- Summary card -->
-                  <div class="mode-card" style="padding:12px;">
-                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-info-circle"></i> Current Experience</div>
+                    <div class="card-title" style="font-size:.95rem; margin:10px 0 6px;"><i class="fas fa-info-circle"></i> Current Experience</div>
                     <div id="saver-summary" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
                       <span class="status-pill" id="saver-summary-interval" title="Poster change interval">Every — s</span>
                       <span class="status-pill" id="saver-summary-effect" title="Visual transition">Effect: —</span>
@@ -1598,7 +1650,113 @@
                       <span class="status-pill" id="saver-summary-clock" title="Clock widget status">Clock: —</span>
                     </div>
                   </div>
-                </div>
+                  
+                  <!-- MOVED: Shared sections now live inside Screensaver -->
+                  <!-- Visual Elements -->
+                  <div class="form-section" id="sec-visual" data-card-key="visual">
+                    <div class="section-title"><i class="fas fa-eye"></i> Visual Elements</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label class="checkbox" for="showPoster">
+                          <input type="checkbox" id="showPoster" />
+                          <span class="checkmark"></span>
+                          <span>Show poster</span>
+                        </label>
+                      </div>
+                      <div class="form-row">
+                        <label class="checkbox" for="showMetadata" style="margin-bottom:4px;">
+                          <input type="checkbox" id="showMetadata" />
+                          <span class="checkmark"></span>
+                          <span>Show metadata</span>
+                        </label>
+                        <div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>Depends on “Show poster”. Turn that on to enable metadata.</span></div>
+                      </div>
+                      <div class="form-row">
+                        <label class="checkbox" for="showClearLogo">
+                          <input type="checkbox" id="showClearLogo" />
+                          <span class="checkmark"></span>
+                          <span>Show clearlogo</span>
+                        </label>
+                      </div>
+                      <div class="form-row">
+                        <label class="checkbox" for="showRottenTomatoes">
+                          <input type="checkbox" id="showRottenTomatoes" />
+                          <span class="checkmark"></span>
+                          <span>Show Rotten Tomatoes</span>
+                        </label>
+                      </div>
+                      <div class="form-row"><label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes (0–10)</label><div class="number-input-wrapper"><input type="number" min="0" max="10" step="0.5" id="rottenTomatoesMinimumScore" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
+                    </div>
+                  </div>
+
+                  <!-- Clock Widget -->
+                  <div class="form-section" id="sec-clock" data-card-key="clock">
+                    <div class="section-title"><i class="fas fa-clock"></i> Clock Widget</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label class="checkbox" for="clockWidget">
+                          <input type="checkbox" id="clockWidget" />
+                          <span class="checkmark"></span>
+                          <span>Show clock</span>
+                        </label>
+                      </div>
+                      <div class="form-row"><label for="clockTimezone">Clock timezone</label><select id="clockTimezone"><option value="auto">Auto (System Timezone)</option><optgroup label="Common Timezones"><option value="Europe/Amsterdam">Europe/Amsterdam (CET/CEST)</option><option value="Europe/London">Europe/London (GMT/BST)</option><option value="Europe/Berlin">Europe/Berlin (CET/CEST)</option><option value="Europe/Paris">Europe/Paris (CET/CEST)</option><option value="America/New_York">America/New_York (EST/EDT)</option><option value="America/Chicago">America/Chicago (CST/CDT)</option><option value="America/Denver">America/Denver (MST/MDT)</option><option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option><option value="Asia/Tokyo">Asia/Tokyo (JST)</option><option value="Asia/Shanghai">Asia/Shanghai (CST)</option><option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option></optgroup><optgroup label="Additional Timezones"><option value="UTC">UTC (Coordinated Universal Time)</option><option value="Africa/Cairo">Africa/Cairo (EET)</option><option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option><option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires (ART)</option><option value="America/Mexico_City">America/Mexico_City (CST/CDT)</option><option value="America/Sao_Paulo">America/Sao_Paulo (BRT/BRST)</option><option value="America/Toronto">America/Toronto (EST/EDT)</option><option value="America/Vancouver">America/Vancouver (PST/PDT)</option><option value="Asia/Bangkok">Asia/Bangkok (ICT)</option><option value="Asia/Dubai">Asia/Dubai (GST)</option><option value="Asia/Hong_Kong">Asia/Hong_Kong (HKT)</option><option value="Asia/Jakarta">Asia/Jakarta (WIB)</option><option value="Asia/Kolkata">Asia/Kolkata (IST)</option><option value="Asia/Seoul">Asia/Seoul (KST)</option><option value="Asia/Singapore">Asia/Singapore (SGT)</option><option value="Asia/Taipei">Asia/Taipei (CST)</option><option value="Australia/Brisbane">Australia/Brisbane (AEST)</option><option value="Australia/Melbourne">Australia/Melbourne (AEST/AEDT)</option><option value="Australia/Perth">Australia/Perth (AWST)</option><option value="Europe/Athens">Europe/Athens (EET/EEST)</option><option value="Europe/Istanbul">Europe/Istanbul (TRT)</option><option value="Europe/Moscow">Europe/Moscow (MSK)</option><option value="Europe/Rome">Europe/Rome (CET/CEST)</option><option value="Europe/Stockholm">Europe/Stockholm (CET/CEST)</option><option value="Europe/Zurich">Europe/Zurich (CET/CEST)</option><option value="Pacific/Auckland">Pacific/Auckland (NZST/NZDT)</option><option value="Pacific/Honolulu">Pacific/Honolulu (HST)</option></optgroup></select></div>
+                      <div class="form-row"><label for="clockFormat">Clock format</label><select id="clockFormat"><option value="24h">24-hour</option><option value="12h">12-hour</option></select></div>
+                    </div>
+                  </div>
+
+                  <!-- UI Element Scaling -->
+                  <div class="form-section" id="sec-scaling" data-card-key="scaling">
+                    <div class="section-title"><i class="fas fa-expand-arrows-alt"></i> UI Element Scaling</div>
+                    <div class="form-grid">
+                      <div class="form-row"><label for="uiScaling.content">Content</label><div class="modern-slider"><input type="range" id="uiScaling.content" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.content">100%</div></div></div>
+                      <div class="form-row"><label for="uiScaling.clearlogo">Clearlogo</label><div class="modern-slider"><input type="range" id="uiScaling.clearlogo" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.clearlogo">100%</div></div></div>
+                      <div class="form-row"><label for="uiScaling.clock">Clock</label><div class="modern-slider"><input type="range" id="uiScaling.clock" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.clock">100%</div></div></div>
+                      <div class="form-row"><label for="uiScaling.global">Global</label><div class="modern-slider"><input type="range" id="uiScaling.global" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.global">100%</div></div></div>
+                    </div>
+                    <!-- Presets -->
+                    <div class="form-row" style="margin-top:8px;">
+                      <div class="scaling-presets" style="display:flex; flex-wrap:wrap; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="preset-4k-tv"><i class="fas fa-tv"></i> <span>4K TV</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="preset-full-hd"><i class="fas fa-desktop"></i> <span>Full HD</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="preset-ultrawide"><i class="fas fa-expand-arrows-alt"></i> <span>Ultrawide</span></button>
+                        <button type="button" class="btn btn-outline btn-sm" id="reset-ui-scaling"><i class="fas fa-undo"></i> <span>Reset</span></button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Sync -->
+                  <div class="form-section" id="sec-sync" data-card-key="sync">
+                    <div class="section-title"><i class="fas fa-link"></i> Sync</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label class="checkbox" for="syncEnabled">
+                          <input type="checkbox" id="syncEnabled" />
+                          <span class="checkmark"></span>
+                          <span>Enable device sync</span>
+                        </label>
+                      </div>
+                      <div class="form-row"><label for="syncAlignMaxDelayMs">Max align delay (ms)</label><div class="number-input-wrapper"><input type="number" id="syncAlignMaxDelayMs" min="0" step="50" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
+                    </div>
+                  </div>
+
+                  <!-- Effects & Transitions -->
+                  <div class="form-section" id="sec-effects" data-card-key="effects">
+                    <div class="section-title"><i class="fas fa-magic"></i> Effects & Transitions</div>
+                    <div class="form-grid">
+                      <div class="form-row"><label for="transitionEffect">Transition effect</label><select id="transitionEffect"><option value="kenburns">Ken Burns</option><option value="fade">Fade In/Out</option><option value="slide">Slide Transition</option></select></div>
+                      <div class="form-row"><label for="effectPauseTime">Effect pause (seconds)</label><div class="number-input-wrapper"><input type="number" min="0" max="10" step="0.5" id="effectPauseTime" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
+                    </div>
+                  </div>
+
+                  <!-- Playback Timing -->
+                  <div class="form-section" id="sec-playback" data-card-key="playback">
+                    <div class="section-title"><i class="fas fa-cogs"></i> Playback Timing</div>
+                    <div class="form-grid">
+                      <div class="form-row"><label for="transitionIntervalSeconds">Transition interval (seconds)</label><div class="number-input-wrapper"><input type="number" min="1" max="300" step="1" id="transitionIntervalSeconds" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div><div class="form-help">Time in seconds between poster transitions (1-300).</div></div>
+                    </div>
+                  </div>
+
               </fieldset>
             </div>
 
@@ -1608,9 +1766,18 @@
                 <div class="card-title"><i class="fas fa-border-all"></i> Wallart</div>
               </div>
               <fieldset id="fs-wallart">
-                <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                <!-- Wallart layout tools -->
+                <div id="wallart-tools" style="display:flex; justify-content:flex-end; gap:8px; margin: 4px 0 8px;">
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-wallart-customize" title="Reorder/move Wallart cards"><i class="fas fa-arrows-alt"></i> <span>Customize layout</span></button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-wallart-done" style="display:none;" title="Finish customizing"><i class="fas fa-check"></i> <span>Done</span></button>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-wallart-reset" title="Reset Wallart layout"><i class="fas fa-undo"></i> <span>Reset</span></button>
+                </div>
+                <div class="form-grid masonry" id="wallart-cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                  <!-- Customizing columns; only used when #wallart-cards has .customizing -->
+                  <div class="col" id="wallart-col-left" style="display:none"></div>
+                  <div class="col" id="wallart-col-right" style="display:none"></div>
                   <!-- Tempo card -->
-                  <div class="mode-card" style="padding:12px;">
+                  <div class="mode-card" data-card-key="tempo" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-tachometer-alt"></i> Tempo</div>
                     <div class="form-grid">
                       <div class="form-row">
@@ -1631,7 +1798,7 @@
                   </div>
 
                   <!-- Animation card -->
-                  <div class="mode-card" style="padding:12px;">
+                  <div class="mode-card" data-card-key="animation" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-magic"></i> Animation</div>
                     <div class="form-grid">
                       <div class="form-row">
@@ -1656,7 +1823,7 @@
                   </div>
 
                   <!-- Layout card -->
-                  <div class="mode-card" style="padding:12px;">
+                  <div class="mode-card" data-card-key="layout" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-th-large"></i> Layout</div>
                     <div class="form-grid">
                       <div class="form-row">
@@ -1691,7 +1858,7 @@
                   </div>
 
                   <!-- Ambience card -->
-                  <div class="mode-card" style="padding:12px;">
+                  <div class="mode-card" data-card-key="ambience" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-lightbulb"></i> Ambience</div>
                     <div class="form-grid">
                       <div class="form-row">
@@ -1705,7 +1872,7 @@
                   </div>
 
                   <!-- Hero settings card (shown for Hero Grid) -->
-                  <div class="mode-card" id="wallart-hero-card" style="padding:12px;">
+                  <div class="mode-card" id="wallart-hero-card" data-card-key="hero" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-user-astronaut"></i> Hero Settings</div>
                     <div class="form-grid">
                       <div class="form-row">
@@ -1738,9 +1905,18 @@
                 <div class="card-title"><i class="fas fa-mobile-alt"></i> Cinema</div>
               </div>
               <fieldset id="fs-cinema">
-                <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                <!-- Cinema layout tools -->
+                <div id="cinema-tools" style="display:flex; justify-content:flex-end; gap:8px; margin: 4px 0 8px;">
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-cinema-customize" title="Reorder/move Cinema cards"><i class="fas fa-arrows-alt"></i> <span>Customize layout</span></button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-cinema-done" style="display:none;" title="Finish customizing"><i class="fas fa-check"></i> <span>Done</span></button>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-cinema-reset" title="Reset Cinema layout"><i class="fas fa-undo"></i> <span>Reset</span></button>
+                </div>
+                <div class="form-grid masonry" id="cinema-cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                  <!-- Customizing columns; only used when #cinema-cards has .customizing -->
+                  <div class="col" id="cinema-col-left" style="display:none"></div>
+                  <div class="col" id="cinema-col-right" style="display:none"></div>
                   <!-- Orientation card -->
-                  <div class="mode-card" style="padding:12px;">
+                  <div class="mode-card" data-card-key="orientation" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Orientation</div>
                     <div class="form-grid">
                       <div class="form-row">
@@ -1758,115 +1934,9 @@
             </div>
           </div>
 
-          <div class="content-grid">
-          <!-- Visual Elements -->
-          <div class="form-section" id="sec-visual">
-            <div class="section-title"><i class="fas fa-eye"></i> Visual Elements</div>
-            <div class="form-grid">
-              <div class="form-row">
-                <label class="checkbox" for="showPoster">
-                  <input type="checkbox" id="showPoster" />
-                  <span class="checkmark"></span>
-                  <span>Show poster</span>
-                </label>
-              </div>
-              <div class="form-row">
-                <label class="checkbox" for="showMetadata" style="margin-bottom:4px;">
-                  <input type="checkbox" id="showMetadata" />
-                  <span class="checkmark"></span>
-                  <span>Show metadata</span>
-                </label>
-                <div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>Depends on “Show poster”. Turn that on to enable metadata.</span></div>
-              </div>
-              <div class="form-row">
-                <label class="checkbox" for="showClearLogo">
-                  <input type="checkbox" id="showClearLogo" />
-                  <span class="checkmark"></span>
-                  <span>Show clearlogo</span>
-                </label>
-              </div>
-              <div class="form-row">
-                <label class="checkbox" for="showRottenTomatoes">
-                  <input type="checkbox" id="showRottenTomatoes" />
-                  <span class="checkmark"></span>
-                  <span>Show Rotten Tomatoes</span>
-                </label>
-              </div>
-              <div class="form-row"><label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes (0–10)</label><div class="number-input-wrapper"><input type="number" min="0" max="10" step="0.1" id="rottenTomatoesMinimumScore" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div><div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>UI is 0–10; saved as 0–100 in config. Set to 0 to disable.</span></div></div>
-            </div>
-          </div>
-
-          <!-- Clock Widget -->
-          <div class="form-section" id="sec-clock">
-            <div class="section-title"><i class="fas fa-clock"></i> Clock Widget</div>
-            <div class="form-grid">
-              <div class="form-row">
-                <label class="checkbox" for="clockWidget">
-                  <input type="checkbox" id="clockWidget" />
-                  <span class="checkmark"></span>
-                  <span>Show clock</span>
-                </label>
-              </div>
-              <div class="form-row"><label for="clockTimezone">Clock timezone</label><select id="clockTimezone"><option value="auto">Auto (System Timezone)</option><optgroup label="Common Timezones"><option value="Europe/Amsterdam">Europe/Amsterdam (CET/CEST)</option><option value="Europe/London">Europe/London (GMT/BST)</option><option value="Europe/Berlin">Europe/Berlin (CET/CEST)</option><option value="Europe/Paris">Europe/Paris (CET/CEST)</option><option value="America/New_York">America/New_York (EST/EDT)</option><option value="America/Chicago">America/Chicago (CST/CDT)</option><option value="America/Denver">America/Denver (MST/MDT)</option><option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option><option value="Asia/Tokyo">Asia/Tokyo (JST)</option><option value="Asia/Shanghai">Asia/Shanghai (CST)</option><option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option></optgroup><optgroup label="Additional Timezones"><option value="UTC">UTC (Coordinated Universal Time)</option><option value="Africa/Cairo">Africa/Cairo (EET)</option><option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option><option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires (ART)</option><option value="America/Mexico_City">America/Mexico_City (CST/CDT)</option><option value="America/Sao_Paulo">America/Sao_Paulo (BRT/BRST)</option><option value="America/Toronto">America/Toronto (EST/EDT)</option><option value="America/Vancouver">America/Vancouver (PST/PDT)</option><option value="Asia/Bangkok">Asia/Bangkok (ICT)</option><option value="Asia/Dubai">Asia/Dubai (GST)</option><option value="Asia/Hong_Kong">Asia/Hong_Kong (HKT)</option><option value="Asia/Jakarta">Asia/Jakarta (WIB)</option><option value="Asia/Kolkata">Asia/Kolkata (IST)</option><option value="Asia/Seoul">Asia/Seoul (KST)</option><option value="Asia/Singapore">Asia/Singapore (SGT)</option><option value="Asia/Taipei">Asia/Taipei (CST)</option><option value="Australia/Brisbane">Australia/Brisbane (AEST)</option><option value="Australia/Melbourne">Australia/Melbourne (AEST/AEDT)</option><option value="Australia/Perth">Australia/Perth (AWST)</option><option value="Europe/Athens">Europe/Athens (EET/EEST)</option><option value="Europe/Istanbul">Europe/Istanbul (TRT)</option><option value="Europe/Moscow">Europe/Moscow (MSK)</option><option value="Europe/Rome">Europe/Rome (CET/CEST)</option><option value="Europe/Stockholm">Europe/Stockholm (CET/CEST)</option><option value="Europe/Zurich">Europe/Zurich (CET/CEST)</option><option value="Pacific/Auckland">Pacific/Auckland (NZST/NZDT)</option><option value="Pacific/Honolulu">Pacific/Honolulu (HST)</option></optgroup></select></div>
-              <div class="form-row"><label for="clockFormat">Clock format</label><select id="clockFormat"><option value="24h">24-hour</option><option value="12h">12-hour</option></select></div>
-            </div>
-          </div>
-
-          <!-- UI Element Scaling -->
-          <div class="form-section" id="sec-scaling">
-            <div class="section-title"><i class="fas fa-expand-arrows-alt"></i> UI Element Scaling</div>
-            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
-              <div class="form-row"><label for="uiScaling.content">Content</label><div class="modern-slider"><input type="range" id="uiScaling.content" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.content">100%</div></div></div>
-              <div class="form-row"><label for="uiScaling.clearlogo">Clearlogo</label><div class="modern-slider"><input type="range" id="uiScaling.clearlogo" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.clearlogo">100%</div></div></div>
-              <div class="form-row"><label for="uiScaling.clock">Clock</label><div class="modern-slider"><input type="range" id="uiScaling.clock" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.clock">100%</div></div></div>
-              <div class="form-row"><label for="uiScaling.global">Global</label><div class="modern-slider"><input type="range" id="uiScaling.global" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.global">100%</div></div></div>
-            </div>
-            <!-- Presets -->
-            <div class="form-row" style="margin-top:8px;">
-              <div class="scaling-presets" style="display:flex; flex-wrap:wrap; gap:8px;">
-                <button type="button" class="btn btn-secondary btn-sm" id="preset-4k-tv"><i class="fas fa-tv"></i> <span>4K TV</span></button>
-                <button type="button" class="btn btn-secondary btn-sm" id="preset-full-hd"><i class="fas fa-desktop"></i> <span>Full HD</span></button>
-                <button type="button" class="btn btn-secondary btn-sm" id="preset-ultrawide"><i class="fas fa-expand-arrows-alt"></i> <span>Ultrawide</span></button>
-                <button type="button" class="btn btn-outline btn-sm" id="reset-ui-scaling"><i class="fas fa-undo"></i> <span>Reset</span></button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Effects & Transitions -->
-          <div class="form-section" id="sec-effects">
-            <div class="section-title"><i class="fas fa-magic"></i> Effects & Transitions</div>
-            <div class="form-grid">
-              <div class="form-row"><label for="transitionEffect">Transition effect</label><select id="transitionEffect"><option value="kenburns">Ken Burns</option><option value="fade">Fade In/Out</option><option value="slide">Slide Transition</option></select></div>
-              <div class="form-row"><label for="effectPauseTime">Effect pause (seconds)</label><div class="number-input-wrapper"><input type="number" min="0" max="10" step="0.5" id="effectPauseTime" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div><div class="micro-hint"><i class="fas fa-info-circle"></i><span>Not applied to Ken Burns effect.</span></div></div>
-            </div>
-          </div>
-
-          <!-- Playback Timing -->
-          <div class="form-section" id="sec-playback">
-            <div class="section-title"><i class="fas fa-cogs"></i> Playback Timing</div>
-            <div class="form-grid">
-              <div class="form-row"><label for="transitionIntervalSeconds">Transition interval (seconds)</label><div class="number-input-wrapper"><input type="number" min="1" max="300" step="1" id="transitionIntervalSeconds" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div><div class="form-help">Time in seconds between poster transitions (1-300). <strong>Note:</strong> Does not apply to Wallart Mode — use Wallart refresh instead.</div></div>
-            </div>
-          </div>
-
-          <!-- Sync -->
-          <div class="form-section" id="sec-sync">
-            <div class="section-title"><i class="fas fa-link"></i> Sync</div>
-            <div class="form-grid">
-              <div class="form-row">
-                <label class="checkbox" for="syncEnabled">
-                  <input type="checkbox" id="syncEnabled" />
-                  <span class="checkmark"></span>
-                  <span>Enable device sync</span>
-                </label>
-              </div>
-              <div class="form-row"><label for="syncAlignMaxDelayMs">Max align delay (ms)</label><div class="number-input-wrapper"><input type="number" id="syncAlignMaxDelayMs" min="0" step="50" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
-            </div>
-          </div>
-          </div>
-
         </div>
       </div>
+
     </section>
 
     <!-- Media Sources Section (top-level sibling, not nested under dashboard) -->
