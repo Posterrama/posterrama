@@ -3160,12 +3160,27 @@
                                   })
                                   .filter(Boolean)
                             : [];
-                        const claimUrl = `${location.origin}/?pair=${encodeURIComponent(r?.code || '')}`;
+                        // Determine a safe origin for Claim URL. Prefer current window.origin when location is not an absolute URL
+                        let baseOrigin = '';
+                        try {
+                            // If location looks like a full URL, use that; else fallback to current origin
+                            if (typeof location === 'string' && /^https?:\/\//i.test(location)) {
+                                baseOrigin = new URL(location).origin;
+                            } else if (location && location.origin) {
+                                baseOrigin = String(location.origin);
+                            } else {
+                                baseOrigin = window.location.origin;
+                            }
+                        } catch (_) {
+                            baseOrigin = window.location.origin;
+                        }
+                        const claimUrl = `${baseOrigin}/?pair=${encodeURIComponent(r?.code || '')}`;
                         const qrUrl = `/api/qr?text=${encodeURIComponent(claimUrl)}&format=svg`;
-                        const expMs =
-                            r?.expiresInMs ||
+                        const ttlMs =
+                            Number(r?.expiresInMs) ||
                             Math.max(0, Date.parse(r?.expiresAt || 0) - Date.now());
-                        const expAt = Date.now() + (r?.expiresInMs || 0);
+                        const expMs = Math.max(0, ttlMs);
+                        const expAt = Date.now() + expMs;
                         const tagHtml = `
                             <div class="pairing-tags" aria-label="Device attributes">
                                 ${location ? `<span class="pill" title="Location"><i class=\"fas fa-location-dot\"></i> ${escapeHtml(String(location))}</span>` : ''}
@@ -3174,8 +3189,10 @@
                         const html = `
                             <div class="pairing-item" data-expires-at="${String(expAt)}">
                                 <div class="pairing-meta">
-                                    <div class="pairing-title">${escapeHtml(name)}</div>
-                                    ${tagHtml}
+                                    <div class="pairing-header">
+                                        <div class="pairing-name">${escapeHtml(name)}</div>
+                                        ${tagHtml}
+                                    </div>
                                     <div class="pairing-row">
                                         <div class="pairing-label">Code</div>
                                         <div class="pairing-copy">
@@ -3188,9 +3205,7 @@
                                     <div class="pairing-row">
                                         <div class="pairing-label">Claim URL</div>
                                         <div class="pairing-copy">
-                                            <input type="text" readonly value="${escapeHtml(
-                                                claimUrl
-                                            )}" class="pairing-input" />
+                                            <input type="text" readonly value="${escapeHtml(claimUrl)}" class="pairing-input" />
                                             <button class="btn btn-outline btn-sm" data-copy="${escapeHtml(
                                                 claimUrl
                                             )}"><i class="fas fa-copy"></i> Copy</button>

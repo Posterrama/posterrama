@@ -95,12 +95,17 @@
   #modal-pairing .modal-body { padding-top: 12px; }
   .pairing-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--color-border); background: rgba(255,255,255,0.03); }
   .pairing-meta { flex: 1; min-width: 0; }
-  .pairing-title { font-weight: 700; margin-bottom: 8px; font-size: 1.05rem; }
+  /* Header: device name + pills on one line (wraps gracefully) */
+  .pairing-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pairing-name { font-weight: 800; font-size: 1.05rem; letter-spacing: .01em; }
   .pairing-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
   .pairing-label { width: 96px; color: var(--color-text-muted); flex: 0 0 auto; }
   .pairing-copy { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-  .pairing-code { background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--color-border); }
-  .pairing-input { width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-card); color: var(--color-text-primary); }
+  /* Align values and copy buttons to a clean right edge */
+  .pairing-copy .btn { margin-left: auto; min-width: 84px; }
+  .pairing-code, .pairing-input { height: 36px; display: flex; align-items: center; }
+  .pairing-code { flex: 1; background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--color-border); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 700; letter-spacing: .04em; }
+  .pairing-input { flex: 1; width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-card); color: var(--color-text-primary); }
   .pairing-input:focus { outline: none; border-color: var(--color-info); box-shadow: 0 0 0 3px rgba(102,126,234,0.25); }
   .pairing-exp { margin-top: 6px; opacity: .85; }
   .pairing-qr img { width: 176px; height: 176px; background: #fff; padding: 10px; border-radius: 14px; box-shadow: 0 3px 14px rgba(0,0,0,0.3); }
