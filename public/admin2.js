@@ -1825,6 +1825,9 @@
                             `#section-display .slider-percentage[data-target="${CSS.escape('uiScaling.' + key)}"]`
                         );
                         if (lab) lab.textContent = `${vals[key]}%`;
+                        // Fire events so live preview picks up the changes
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 });
             };
@@ -2163,17 +2166,24 @@
                 }
                 applySummary();
             };
+            const onPreset = vals => {
+                setVals(vals);
+                // Nudge preview update if initialized
+                try {
+                    window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                } catch (_) {}
+            };
             btnChill?.addEventListener('click', () =>
-                setVals({ interval: 30, effect: 'kenburns', pause: 0 })
+                onPreset({ interval: 30, effect: 'kenburns', pause: 0 })
             );
             btnStd?.addEventListener('click', () =>
-                setVals({ interval: 15, effect: 'fade', pause: 2 })
+                onPreset({ interval: 15, effect: 'fade', pause: 2 })
             );
             btnLively?.addEventListener('click', () =>
-                setVals({ interval: 8, effect: 'slide', pause: 0.5 })
+                onPreset({ interval: 8, effect: 'slide', pause: 0.5 })
             );
             btnReset?.addEventListener('click', () =>
-                setVals({ interval: 12, effect: 'kenburns', pause: 1 })
+                onPreset({ interval: 12, effect: 'kenburns', pause: 1 })
             );
         } catch (_) {}
     }
@@ -2341,6 +2351,22 @@
 
         function setVisible(on) {
             container.style.display = on ? 'block' : 'none';
+            if (on) positionAtActiveMode();
+        }
+
+        // Position the preview near the top-right of the Active Mode card
+        function positionAtActiveMode() {
+            try {
+                const activeCard = document.getElementById('section-display');
+                if (!activeCard) return;
+                const r = activeCard.getBoundingClientRect();
+                // Anchor a bit inset from the panel header (screenshot reference)
+                const inset = 16;
+                container.style.top = Math.max(window.scrollY + r.top + inset, 16) + 'px';
+                container.style.right = 16 + 'px';
+                container.style.left = 'auto';
+                container.style.bottom = 'auto';
+            } catch (_) {}
         }
 
         function collectPreviewPayload() {
@@ -2421,6 +2447,12 @@
                 );
             } catch (_) {}
         }
+        // Expose a minimal hook for other UI parts to nudge the preview
+        window.__forcePreviewUpdate = () => {
+            try {
+                sendUpdate();
+            } catch (_) {}
+        };
 
         function debouncedSend() {
             if (debounceTimer) clearTimeout(debounceTimer);
@@ -2431,6 +2463,7 @@
             previewWin = frame.contentWindow;
             // Initial sync after iframe is ready
             sendUpdate();
+            positionAtActiveMode();
             // Listen to container/shell size changes for smooth updates
             try {
                 if (window.ResizeObserver) {
@@ -2509,6 +2542,7 @@
                     applyContainerMode(payload);
                 } catch (_) {}
                 requestAnimationFrame(updateFrameScale);
+                positionAtActiveMode();
                 // Update the preview content too
                 sendUpdate();
             });
@@ -2523,6 +2557,7 @@
             // Avoid initial pop: disable transitions for a tick
             container.classList.add('no-transition');
             setTimeout(() => container.classList.remove('no-transition'), 80);
+            positionAtActiveMode();
         }
         // Initialize container classes based on current form for correct aspect immediately
         try {
@@ -2531,6 +2566,56 @@
         } catch (_) {}
         // Initial scale sync
         requestAnimationFrame(updateFrameScale);
+
+        // ----- Draggable behavior for the preview (container moves) -----
+        (function makeDraggable() {
+            let dragging = false;
+            let startX = 0,
+                startY = 0,
+                startTop = 0,
+                startLeft = 0;
+            const shell = container.querySelector('.preview-shell');
+            const onDown = e => {
+                try {
+                    dragging = true;
+                    const evt = e.touches ? e.touches[0] : e;
+                    startX = evt.clientX;
+                    startY = evt.clientY;
+                    const cs = window.getComputedStyle(container);
+                    // Compute current absolute position
+                    const rect = container.getBoundingClientRect();
+                    startTop = rect.top + window.scrollY;
+                    startLeft = rect.left + window.scrollX;
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                    document.addEventListener('touchmove', onMove, { passive: false });
+                    document.addEventListener('touchend', onUp);
+                    e.preventDefault();
+                } catch (_) {}
+            };
+            const onMove = e => {
+                if (!dragging) return;
+                const evt = e.touches ? e.touches[0] : e;
+                const dx = evt.clientX - startX;
+                const dy = evt.clientY - startY;
+                const top = Math.max(0, startTop + dy);
+                const left = Math.max(0, startLeft + dx);
+                container.style.top = top + 'px';
+                container.style.left = left + 'px';
+                container.style.right = 'auto';
+                container.style.bottom = 'auto';
+                if (e.cancelable) e.preventDefault();
+            };
+            const onUp = () => {
+                dragging = false;
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onUp);
+            };
+            shell?.addEventListener('mousedown', onDown);
+            shell?.addEventListener('touchstart', onDown, { passive: false });
+        })();
     }
 
     async function refreshApiKeyStatus() {

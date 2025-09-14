@@ -1601,9 +1601,9 @@
 
     /* Live Preview (floating PiP inside Display section) */
     #display-preview-container {
-      position: fixed; /* keep anchored while scrolling Display */
+      position: fixed; /* floating PiP */
       right: 16px;
-      bottom: 16px;
+      top: 16px; /* default top-right */
       z-index: 5000;
       display: none; /* shown when Display section is active */
     }
@@ -1618,10 +1618,11 @@
       border: 1px solid var(--color-border);
       box-shadow: var(--shadow-lg);
       background: #000;
-      transform-origin: bottom right;
+      transform-origin: center;
       transition: transform 160ms ease, width 160ms ease, height 160ms ease;
       /* Default visual scale ~1.1x */
       transform: scale(1.1);
+      cursor: move; /* draggable hint */
     }
     /* Landscape vs Portrait shell sizing (aspect-ratio approach) */
     #display-preview-container.landscape .preview-shell { width: var(--preview-long-side); height: auto; aspect-ratio: 16 / 9; }

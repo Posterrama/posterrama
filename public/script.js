@@ -1035,7 +1035,43 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         const currentMedia = mediaQueue[currentIndex];
                         if (currentMedia && currentMedia.posterUrl) {
-                            applyPosterTransitionEffect(currentMedia.posterUrl);
+                            // In preview, reflect the chosen transition effect immediately
+                            const eff = (next.transitionEffect || '').toLowerCase();
+                            if (window.IS_PREVIEW) {
+                                if (eff === 'slide') {
+                                    try {
+                                        const pw = document.getElementById('poster-wrapper');
+                                        if (pw) {
+                                            pw.style.transition =
+                                                'transform 0.45s ease, opacity 0.45s ease';
+                                            pw.style.transform = 'translateX(18px)';
+                                            pw.style.opacity = '0.6';
+                                            setTimeout(() => {
+                                                pw.style.transform = 'translateX(0)';
+                                                pw.style.opacity = '1';
+                                            }, 10);
+                                        }
+                                    } catch (_) {}
+                                } else if (eff === 'kenburns') {
+                                    try {
+                                        const pw = document.getElementById('poster-wrapper');
+                                        if (pw) {
+                                            pw.style.transition =
+                                                'transform 2.4s ease, opacity 0.6s ease';
+                                            pw.style.transform = 'scale(1.035)';
+                                            pw.style.opacity = '1';
+                                            setTimeout(() => {
+                                                pw.style.transform = 'scale(1)';
+                                            }, 2400);
+                                        }
+                                    } catch (_) {}
+                                } else {
+                                    // default to fade
+                                    applyPosterTransitionEffect(currentMedia.posterUrl);
+                                }
+                            } else {
+                                applyPosterTransitionEffect(currentMedia.posterUrl);
+                            }
                         }
                     } catch (_) {
                         // ignore
