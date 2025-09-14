@@ -11980,6 +11980,13 @@ app.get(
                 },
             };
 
+            // Include effective cache config for UI (max size, min free space)
+            try {
+                response.cacheConfig = getCacheConfig();
+            } catch (_) {
+                /* ignore */
+            }
+
             if (isDebug) logger.debug('[Admin API] Cache stats calculated:', response);
             res.json(response);
         } catch (error) {
@@ -11988,6 +11995,84 @@ app.get(
                 500,
                 'Failed to get cache statistics. Check server logs for details.'
             );
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/config:
+ *   get:
+ *     summary: Get current server configuration
+ *     tags: ['Admin']
+ *     security:
+ *       - isAuthenticated: []
+ *     responses:
+ *       200:
+ *         description: Current configuration
+ */
+app.get(
+    '/api/admin/config',
+    isAuthenticated,
+    asyncHandler(async (_req, res) => {
+        try {
+            const cfg = await readConfig();
+            res.json({ config: cfg });
+        } catch (e) {
+            res.status(500).json({ error: 'config_read_failed', message: e?.message || 'error' });
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/config:
+ *   post:
+ *     summary: Update server configuration (partial)
+ *     tags: ['Admin']
+ *     security:
+ *       - isAuthenticated: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               config:
+ *                 type: object
+ *                 description: Partial config to deep-merge into config.json
+ *     responses:
+ *       200:
+ *         description: Configuration updated
+ */
+app.post(
+    '/api/admin/config',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            const body = req.body || {};
+            const incoming = body.config || {};
+            // Load current config and deep-merge
+            const current = await readConfig();
+            const merged = deepMerge({}, current, incoming);
+            await writeConfig(merged);
+
+            // If cache section changed, update CacheDiskManager live
+            if (incoming && Object.prototype.hasOwnProperty.call(incoming, 'cache')) {
+                try {
+                    const c = merged.cache || {};
+                    if (cacheDiskManager && typeof cacheDiskManager.updateConfig === 'function') {
+                        cacheDiskManager.updateConfig(c);
+                    }
+                } catch (e2) {
+                    logger.warn('Live cache config update failed', { error: e2?.message });
+                }
+            }
+
+            res.json({ success: true, config: merged });
+        } catch (e) {
+            res.status(500).json({ error: 'config_write_failed', message: e?.message || 'error' });
         }
     })
 );
@@ -12068,18 +12153,25 @@ app.get(
     })
 );
 
-// Cache configuration is now hardcoded for simplicity and security
-const CACHE_CONFIG = {
-    maxSizeGB: 2,
-    minFreeDiskSpaceMB: 500,
-};
-
 /**
- * Get hardcoded cache configuration
- * @returns {Object} Cache configuration with maxSizeGB and minFreeDiskSpaceMB
+ * Get the effective cache configuration used by the running instance.
+ * Prefer live values from CacheDiskManager; fall back to loaded config.json defaults.
  */
 function getCacheConfig() {
-    return { ...CACHE_CONFIG };
+    try {
+        const maxSizeGB = cacheDiskManager?.maxSizeBytes
+            ? cacheDiskManager.maxSizeBytes / (1024 * 1024 * 1024)
+            : Number(config?.cache?.maxSizeGB ?? 2);
+        const minFreeDiskSpaceMB = cacheDiskManager?.minFreeDiskSpaceBytes
+            ? Math.round(cacheDiskManager.minFreeDiskSpaceBytes / (1024 * 1024))
+            : Number(config?.cache?.minFreeDiskSpaceMB ?? 500);
+        return { maxSizeGB, minFreeDiskSpaceMB };
+    } catch (_) {
+        return {
+            maxSizeGB: Number(config?.cache?.maxSizeGB ?? 2),
+            minFreeDiskSpaceMB: Number(config?.cache?.minFreeDiskSpaceMB ?? 500),
+        };
+    }
 }
 
 /**
@@ -12120,7 +12212,7 @@ app.post(
 
         try {
             const cacheConfig = getCacheConfig();
-            const maxSizeGB = cacheConfig.maxSizeGB;
+            const maxSizeGB = Number(cacheConfig.maxSizeGB);
 
             let totalFilesRemoved = 0;
             let totalSpaceSaved = 0;

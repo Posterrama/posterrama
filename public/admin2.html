@@ -1119,10 +1119,13 @@
   <span class="nav-badge" id="update-available-pill" hidden title="" style="margin-left:6px;">Update available</span>
     </div>
     <div class="nav-actions">
-      <button class="btn btn-icon" id="notif-btn" title="Notifications">
-        <i class="fas fa-bell"></i>
-        <span class="badge" id="notif-count" hidden>0</span>
-      </button>
+      <div class="dropdown" id="notif-dropdown">
+        <button class="btn btn-icon dropdown-toggle" id="notif-btn" title="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="notif-menu">
+          <i class="fas fa-bell"></i>
+          <span class="badge" id="notif-count" hidden>0</span>
+        </button>
+        <div class="dropdown-menu" id="notif-menu" role="menu" aria-hidden="true"></div>
+      </div>
   <div class="dropdown" id="settings-dropdown">
         <button class="btn btn-icon dropdown-toggle" id="settings-btn" title="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">
           <i class="fas fa-cog"></i>
@@ -1291,9 +1294,9 @@
               <span class="label">Application</span>
               <span class="value">Running</span>
             </span>
-            <span class="header-pill" id="perf-db-status" title="Database connection status" style="background: rgba(59, 130, 246, 0.15); color: #93c5fd; border-color: rgba(59, 130, 246, 0.25);">
-              <i class="fas fa-server"></i>
-              <span class="label">Database</span>
+            <span class="header-pill" id="perf-db-status" title="Storage status" style="background: rgba(59, 130, 246, 0.15); color: #93c5fd; border-color: rgba(59, 130, 246, 0.25);">
+              <i class="fas fa-hdd"></i>
+              <span class="label">Storage</span>
               <span class="value">Connected</span>
             </span>
             <span class="header-pill status-warning" id="perf-cache-status" title="Cache system status">
@@ -3479,6 +3482,23 @@
   </div>
 
   <script src="/notify.js?v=20250906-1"></script>
+  
+  <!-- Notification Center (themed, matches theme-demo Device Management example) -->
+  <div class="notify-center" id="notify-center" aria-live="polite" aria-label="Notifications panel">
+    <div class="notify-header">
+      <strong>Notifications</strong>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn btn-outline btn-sm" id="notify-mark-all" title="Mark all as read">
+          <i class="fas fa-check-double"></i>
+          Mark all
+        </button>
+        <button class="btn btn-icon btn-sm" id="notify-close" title="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <div class="notify-list" id="notify-list"></div>
+  </div>
   <script src="/admin2.js?v=20250909-01"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>

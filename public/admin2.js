@@ -97,6 +97,16 @@
         return `${b.toFixed(1)} ${units[i]}`;
     }
 
+    // Simple HTML escaper available at module scope for safe rendering
+    function escapeHtml(s) {
+        return String(s || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     // Small helper for JSON fetch with credentials and error propagation
     async function fetchJSON(url, opts = {}) {
         const res = await fetch(url, { credentials: 'include', ...opts });
@@ -315,9 +325,15 @@
             setChip('chip-db-dot', 'perf-db-status', dbCls, db);
             setChip('chip-cache-dot', 'perf-cache-status', cacheCls, cache);
 
-            // Uptime and memory percent (fallback from status)
-            const uptimeTxt = String(status?.uptime || '—');
-            setText('perf-uptime', uptimeTxt);
+            // Uptime (prefer numeric seconds → compact format Xd Xh Xm)
+            (function () {
+                const u = status?.uptime;
+                let txt = '—';
+                if (typeof u === 'number' && Number.isFinite(u)) txt = formatUptime(u);
+                else if (/^\d+$/.test(String(u || ''))) txt = formatUptime(Number(u));
+                else if (u) txt = String(u);
+                setText('perf-uptime', txt);
+            })();
             const memPct = Number(status?.memory?.percent);
             if (Number.isFinite(memPct)) {
                 setText(
@@ -371,7 +387,14 @@
             );
             // Update disk progress bar similar to CPU/Memory
             setMeter('meter-disk', diskPct);
-            setText('perf-uptime', perf?.uptime || '—');
+            (function () {
+                const u = perf?.uptime;
+                let txt = '—';
+                if (typeof u === 'number' && Number.isFinite(u)) txt = formatUptime(u);
+                else if (/^\d+$/.test(String(u || ''))) txt = formatUptime(Number(u));
+                else if (u) txt = String(u);
+                setText('perf-uptime', txt);
+            })();
 
             // Load Average display (1, 5, 15 mins)
             try {
@@ -431,7 +454,11 @@
             } catch (_) {
                 /* ignore */
             }
-            const fromCfg = cfg?.config?.cache?.maxSizeGB ?? cfg?.cache?.maxSizeGB;
+            // Prefer value returned by stats.cacheConfig; fall back to config.json
+            const fromCfg =
+                stats?.cacheConfig?.maxSizeGB ??
+                cfg?.config?.cache?.maxSizeGB ??
+                cfg?.cache?.maxSizeGB;
             if (fromCfg != null) {
                 stats.cacheConfig = stats.cacheConfig || {};
                 stats.cacheConfig.maxSizeGB = Number(fromCfg);
@@ -455,8 +482,12 @@
         const totalSize = data.diskUsage?.total || 0;
         const imageCacheSize = data.diskUsage?.imageCache || 0;
         const logSize = data.diskUsage?.logFiles || 0;
-        // Read server-side cache config if exposed; fallback to known default 2GB
-        const maxSizeGB = (data.cacheConfig && data.cacheConfig.maxSizeGB) || 2;
+        // Read server-side cache config if exposed; fallback to 2GB if not available
+        const maxSizeGB = Number(
+            (data.cacheConfig && data.cacheConfig.maxSizeGB) != null
+                ? data.cacheConfig.maxSizeGB
+                : 2
+        );
         const maxSizeBytes = maxSizeGB * 1024 * 1024 * 1024;
         const usagePct = maxSizeBytes > 0 ? Math.round((imageCacheSize / maxSizeBytes) * 100) : 0;
         diskEl.innerHTML = `
@@ -739,12 +770,19 @@
     // format uptime helper (not used everywhere but kept for parity/UI)
     // eslint-disable-next-line no-unused-vars
     function formatUptime(sec) {
-        const d = Math.floor(sec / 86400);
-        const h = Math.floor((sec % 86400) / 3600);
-        const m = Math.floor((sec % 3600) / 60);
-        if (d) return `${d}d ${h}h`;
-        if (h) return `${h}h ${m}m`;
-        return `${m}m`;
+        const s = Math.max(0, Math.floor(Number(sec) || 0));
+        // Show seconds for sub-minute uptimes (e.g., 45s)
+        if (s < 60) return `${s}s`;
+        const d = Math.floor(s / 86400);
+        const h = Math.floor((s % 86400) / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const parts = [];
+        // Most significant first; hide zero units and cap to two units
+        if (d) parts.push(`${d}d`);
+        if (h && parts.length < 2) parts.push(`${h}h`);
+        // Ensure at least minutes are shown; fill remaining slot with minutes if available
+        if (parts.length < 2 && (m || parts.length === 0)) parts.push(`${m}m`);
+        return parts.join(' ');
     }
 
     // Debug helper
@@ -1020,6 +1058,9 @@
     }
 
     function wireEvents() {
+        // Prevent duplicate wiring (DOMContentLoaded + immediate call race)
+        if (window.__admin2Wired) return;
+        window.__admin2Wired = true;
         // No manual performance refresh: updates are automatic
         // Mobile sidebar toggle demo behavior
         const toggle = $('#mobile-nav-toggle');
@@ -1140,6 +1181,371 @@
             if (!item) return;
             if (item.id !== 'menu-restart') closeMenu();
         });
+
+        // Notifications bell: themed Notification Center panel (matches theme-demo)
+        (function initNotifications() {
+            const btn = document.getElementById('notif-btn');
+            const badge = document.getElementById('notif-count');
+            const menu = document.getElementById('notif-menu'); // legacy, unused
+            const panel = document.getElementById('notify-center');
+            const list = document.getElementById('notify-list');
+            const btnMarkAll = document.getElementById('notify-mark-all');
+            const btnClose = document.getElementById('notify-close');
+            if (!btn || !badge || !panel || !list) return;
+
+            // Helper to always get fresh references (soft refresh safe)
+            function getRefs() {
+                return {
+                    btn: document.getElementById('notif-btn'),
+                    badge: document.getElementById('notif-count'),
+                    panel: document.getElementById('notify-center'),
+                    list: document.getElementById('notify-list'),
+                };
+            }
+
+            // Keep a dismissed set (persisted) so items don't bounce back after refresh
+            const dismissed = new Set();
+            const DISMISS_STORE = 'admin2:dismissedNotifications';
+            const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+            const CLEAR_SUPPRESS_KEY = 'admin2:notifClearedUntil';
+            const CLEAR_SUPPRESS_MS = 15000; // 15s grace to avoid racey repaints
+            // Unified badge updater to avoid lingering empty badge visuals
+            function setBadge(count) {
+                try {
+                    const { badge } = getRefs();
+                    if (!badge) return;
+                    const n = Math.max(0, Number(count) || 0);
+                    if (n > 0) {
+                        badge.textContent = String(n);
+                        badge.hidden = false;
+                        badge.style.display = '';
+                        badge.setAttribute('aria-hidden', 'false');
+                    } else {
+                        badge.textContent = '';
+                        badge.hidden = true;
+                        badge.style.display = 'none';
+                        badge.setAttribute('aria-hidden', 'true');
+                    }
+                } catch (_) {}
+            }
+            function loadDismissed() {
+                try {
+                    const raw = localStorage.getItem(DISMISS_STORE);
+                    const list = raw ? JSON.parse(raw) : [];
+                    const now = Date.now();
+                    if (Array.isArray(list)) {
+                        list.forEach(entry => {
+                            if (
+                                entry &&
+                                typeof entry.key === 'string' &&
+                                now - (entry.t || 0) < DISMISS_TTL_MS
+                            ) {
+                                dismissed.add(entry.key);
+                            }
+                        });
+                    }
+                } catch (_) {}
+            }
+            function persistDismissed() {
+                try {
+                    const now = Date.now();
+                    const arr = Array.from(dismissed).map(key => ({ key, t: now }));
+                    localStorage.setItem(DISMISS_STORE, JSON.stringify(arr));
+                } catch (_) {}
+            }
+            // Load persisted dismissed notifications on init
+            loadDismissed();
+
+            const normalize = s =>
+                String(s || '')
+                    .toLowerCase()
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            const makeAlertKey = a => {
+                const base = String(a?.id || a?.name || '');
+                const msg = normalize(a?.message || a?.description || '');
+                return `A|${base}|${msg}`;
+            };
+            // Use level + normalized message for log key to avoid duplicates due to whitespace/casing/timestamps
+            const makeLogKey = l =>
+                `L|${String(l?.level || 'warn')}|${normalize(l?.message || '')}`;
+            function applyDismissedFilter(alerts, logs) {
+                const fa = (Array.isArray(alerts) ? alerts : []).filter(
+                    a => !dismissed.has(makeAlertKey(a))
+                );
+                const fl = (Array.isArray(logs) ? logs : []).filter(
+                    l => !dismissed.has(makeLogKey(l))
+                );
+                return { alerts: fa, logs: fl };
+            }
+            function updateBadgeFromList() {
+                const { list } = getRefs();
+                if (!list) return setBadge(0);
+                const unread = list.querySelectorAll('.notify-item[data-unread="true"]').length;
+                setBadge(unread);
+            }
+
+            async function fetchAlertsAndLogs() {
+                let alerts = [];
+                let logs = [];
+                try {
+                    const d = await fetchJSON('/api/v1/metrics/dashboard').catch(() => null);
+                    alerts = Array.isArray(d?.alerts) ? d.alerts : [];
+                } catch (_) {}
+                try {
+                    const r = await fetch(`/api/admin/logs?level=warn&limit=20`, {
+                        credentials: 'include',
+                    });
+                    if (r.ok) {
+                        const jr = (await r.json()) || [];
+                        logs = Array.isArray(jr)
+                            ? jr
+                            : Array.isArray(jr.logs)
+                              ? jr.logs
+                              : Array.isArray(jr.items)
+                                ? jr.items
+                                : [];
+                    }
+                } catch (_) {}
+                return { alerts, logs };
+            }
+
+            function renderPanel({ alerts, logs }) {
+                const items = [];
+                if (Array.isArray(alerts) && alerts.length) {
+                    for (const a of alerts.slice(0, 10)) {
+                        const st = String(a?.status || 'warn').toLowerCase();
+                        const icon = st === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-info';
+                        const title = escapeHtml(String(a?.name || a?.id || 'Alert'));
+                        const msg = escapeHtml(String(a?.message || a?.description || ''));
+                        const rawKey = makeAlertKey(a);
+                        const key = encodeURIComponent(rawKey);
+                        items.push(
+                            `<div class="notify-item notify-${st}" data-unread="true" data-key="${key}">
+                                <i class="fas ${icon}" aria-hidden="true"></i>
+                                <div>
+                                    <div class="notify-title">${title}</div>
+                                    ${msg ? `<div class=\"notify-meta\">${msg}</div>` : ''}
+                                </div>
+                                <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
+                             </div>`
+                        );
+                    }
+                }
+                if (Array.isArray(logs) && logs.length) {
+                    for (const l of logs.slice(0, 10)) {
+                        const msg = escapeHtml(String(l?.message || ''));
+                        const when = escapeHtml(
+                            String(l?.timestamp || '')
+                                .replace('T', ' ')
+                                .replace('Z', '')
+                        );
+                        const rawKey = makeLogKey(l);
+                        const key = encodeURIComponent(rawKey);
+                        items.push(
+                            `<div class="notify-item notify-warning" data-unread="true" data-key="${key}">
+                                <i class="fas fa-scroll" aria-hidden="true"></i>
+                                <div>
+                                    <div class="notify-title">${msg || 'Warning'}</div>
+                                    ${when ? `<div class=\"notify-meta\">${when}</div>` : ''}
+                                </div>
+                                <button class="notify-close" title="Dismiss"><i class="fas fa-xmark"></i></button>
+                             </div>`
+                        );
+                    }
+                }
+                const { list } = getRefs();
+                if (list) {
+                    if (items.length) {
+                        list.innerHTML = items.join('');
+                    } else {
+                        list.innerHTML =
+                            '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
+                    }
+                } else {
+                    setBadge(0);
+                }
+            }
+
+            async function refreshBadge() {
+                try {
+                    // Suppression window after user clears notifications (avoid bounce-back)
+                    try {
+                        const until = Number(localStorage.getItem(CLEAR_SUPPRESS_KEY) || 0);
+                        if (Date.now() < until) {
+                            setBadge(0);
+                            const { list } = getRefs();
+                            if (list)
+                                list.innerHTML =
+                                    '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
+                            return;
+                        }
+                    } catch (_) {}
+                    let { alerts, logs } = await fetchAlertsAndLogs();
+                    // Apply session dismissals so cleared items don't bounce back immediately
+                    ({ alerts, logs } = applyDismissedFilter(alerts, logs));
+                    const shownAlerts = Math.min(Array.isArray(alerts) ? alerts.length : 0, 10);
+                    const shownLogs = Math.min(Array.isArray(logs) ? logs.length : 0, 10);
+                    const count = shownAlerts + shownLogs;
+                    setBadge(count);
+                    renderPanel({ alerts, logs });
+                } catch (_) {
+                    setBadge(0);
+                    const { list } = getRefs();
+                    if (list)
+                        list.innerHTML =
+                            '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
+                }
+            }
+
+            function openPanel() {
+                const { panel, btn } = getRefs();
+                panel?.classList.add('open');
+                btn?.setAttribute('aria-expanded', 'true');
+            }
+            function closePanel() {
+                const { panel, btn } = getRefs();
+                panel?.classList.remove('open');
+                btn?.setAttribute('aria-expanded', 'false');
+            }
+
+            // Guard to avoid duplicate bindings if init runs again
+            if (!window.__notifHandlersAdded) {
+                window.__notifHandlersAdded = true;
+                // Delegated toggle open on bell
+                document.addEventListener('click', async e => {
+                    const notifBtn = e.target.closest?.('#notif-btn');
+                    if (notifBtn) {
+                        e.stopPropagation();
+                        await refreshBadge();
+                        openPanel();
+                        return;
+                    }
+                    // Close when clicking outside
+                    const { panel } = getRefs();
+                    if (panel && !panel.contains(e.target) && !e.target.closest('#notif-btn')) {
+                        closePanel();
+                    }
+                    // Close via header X
+                    const closeBtn = e.target.closest?.('#notify-close');
+                    if (closeBtn) {
+                        e.preventDefault();
+                        closePanel();
+                        return;
+                    }
+                });
+                document.addEventListener('keydown', e => {
+                    if (e.key === 'Escape') closePanel();
+                });
+                // Refresh when tab becomes visible again (soft refresh/resume)
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') {
+                        try {
+                            refreshBadge();
+                        } catch (_) {}
+                    }
+                });
+                // Refresh on pageshow (including back/forward cache restores)
+                window.addEventListener('pageshow', () => {
+                    try {
+                        refreshBadge();
+                    } catch (_) {}
+                });
+
+                // Observe DOM mutations to handle soft DOM swaps (e.g., partial renders)
+                try {
+                    if (!window.__notifMO) {
+                        const mo = new MutationObserver(
+                            debounce(() => {
+                                // If our key nodes exist (or re-appeared), re-sync the badge and list
+                                const center = document.getElementById('notify-center');
+                                const countEl = document.getElementById('notif-count');
+                                if (center || countEl) {
+                                    try {
+                                        refreshBadge();
+                                    } catch (_) {}
+                                }
+                            }, 120)
+                        );
+                        mo.observe(document.body, { childList: true, subtree: true });
+                        window.__notifMO = mo;
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
+            }
+
+            // Delegated actions for dismiss and mark-all to survive soft refreshes/DOM swaps
+            document.addEventListener('click', e => {
+                const dismissBtn = e.target.closest?.('.notify-item .notify-close');
+                if (dismissBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const item = dismissBtn.closest('.notify-item');
+                    const { list } = getRefs();
+                    if (item) {
+                        const keyAttr = item.getAttribute('data-key');
+                        const key = keyAttr ? decodeURIComponent(keyAttr) : null;
+                        if (key) dismissed.add(key);
+                        item.remove();
+                        // If list is now empty, show the empty state explicitly
+                        if (list && !list.querySelector('.notify-item[data-unread="true"]')) {
+                            list.innerHTML =
+                                '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
+                        }
+                        updateBadgeFromList();
+                        persistDismissed();
+                    }
+                    return;
+                }
+                const markAllBtn = e.target.closest?.('#notify-mark-all');
+                if (markAllBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const { list } = getRefs();
+                    list?.querySelectorAll('.notify-item[data-unread="true"]').forEach(item => {
+                        const keyAttr = item.getAttribute('data-key');
+                        const key = keyAttr ? decodeURIComponent(keyAttr) : null;
+                        if (key) dismissed.add(key);
+                    });
+                    persistDismissed();
+                    if (list)
+                        list.innerHTML =
+                            '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
+                    // Hide and clear the badge explicitly after marking all
+                    setBadge(0);
+                    updateBadgeFromList();
+                    try {
+                        localStorage.setItem(
+                            CLEAR_SUPPRESS_KEY,
+                            String(Date.now() + CLEAR_SUPPRESS_MS)
+                        );
+                    } catch (_) {}
+                    // Re-sync from source after a short delay to respect suppression
+                    setTimeout(() => {
+                        try {
+                            refreshBadge();
+                        } catch (_) {}
+                    }, 250);
+                }
+            });
+            // The delegated handler above covers mark-all; avoid double-binding here
+
+            // Periodically refresh the badge while on the dashboard
+            setInterval(() => {
+                try {
+                    const active = document.getElementById('section-dashboard');
+                    const visible =
+                        !!active && active.classList.contains('active') && !active.hidden;
+                    if (visible) refreshBadge();
+                } catch (_) {}
+            }, 30000);
+
+            // Initial paint so users see counts without clicking
+            try {
+                refreshBadge();
+            } catch (_) {}
+        })();
 
         // User dropdown (Account)
         const userBtn = document.getElementById('user-btn');
@@ -2189,17 +2595,11 @@
 
         // Auto-format 2FA token input (123 456 format)
         input2faToken?.addEventListener('input', e => {
-            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-            if (value.length > 6) value = value.slice(0, 6); // Max 6 digits
-
-            // Format as "123 456"
-            if (value.length > 3) {
-                value = value.slice(0, 3) + ' ' + value.slice(3);
-            }
-
+            let value = String(e.target.value || '')
+                .replace(/\D/g, '')
+                .slice(0, 6);
+            if (value.length > 3) value = value.slice(0, 3) + ' ' + value.slice(3);
             e.target.value = value;
-
-            // Auto-focus to verify button when 6 digits entered
             if (value.replace(/\s/g, '').length === 6) {
                 btn2faVerify?.focus();
             }
