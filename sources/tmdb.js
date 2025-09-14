@@ -107,7 +107,9 @@ class TMDBSource {
                 try {
                     this.lastFetch = cached.timestamp;
                     this.metrics.lastRequestTime = new Date();
-                } catch (_) {}
+                } catch (_) {
+                    /* update lastFetch best-effort */
+                }
                 return cached.data;
             }
         }
@@ -142,7 +144,9 @@ class TMDBSource {
             });
             try {
                 this.lastFetch = ts;
-            } catch (_) {}
+            } catch (_) {
+                /* update lastFetch best-effort */
+            }
 
             if (this.isDebug) {
                 logger.debug(
@@ -195,7 +199,9 @@ class TMDBSource {
                 try {
                     this.lastFetch = cached.timestamp;
                     this.metrics.lastRequestTime = new Date();
-                } catch (_) {}
+                } catch (_) {
+                    /* update lastFetch best-effort */
+                }
                 return cached.data;
             }
         }
@@ -254,7 +260,9 @@ class TMDBSource {
                 this.metrics.requestCount = (this.metrics.requestCount || 0) + 1;
                 this.metrics.lastRequestTime = new Date();
                 this.lastFetch = ts;
-            } catch (_) {}
+            } catch (_) {
+                /* update metrics best-effort */
+            }
             return data;
         } catch (error) {
             // Network or parsing errors - retry for certain types
@@ -593,7 +601,9 @@ class TMDBSource {
                 try {
                     this.lastFetch = cached.timestamp;
                     this.metrics.lastRequestTime = new Date();
-                } catch (_) {}
+                } catch (_) {
+                    /* update lastFetch best-effort */
+                }
                 return cached.data;
             }
         }
@@ -622,7 +632,9 @@ class TMDBSource {
             });
             try {
                 this.lastFetch = ts;
-            } catch (_) {}
+            } catch (_) {
+                /* update lastFetch best-effort */
+            }
 
             return data;
         } catch (error) {

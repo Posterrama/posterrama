@@ -134,7 +134,9 @@ class TVDBSource {
                 this.metrics.requestCount = (this.metrics.requestCount || 0) + 1;
                 this.metrics.lastRequestTime = new Date();
                 this.lastFetch = Date.now();
-            } catch (_) {}
+            } catch (_) {
+                /* update metrics best-effort */
+            }
             return response.data;
         } catch (error) {
             if (error.response?.status === 401) {
@@ -156,7 +158,9 @@ class TVDBSource {
                         this.metrics.requestCount = (this.metrics.requestCount || 0) + 1;
                         this.metrics.lastRequestTime = new Date();
                         this.lastFetch = Date.now();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* update metrics best-effort */
+                    }
                     return retryResponse.data;
                 } catch (retryError) {
                     logger.error('TVDB API retry failed:', retryError.message);

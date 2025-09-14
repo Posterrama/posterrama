@@ -11,10 +11,11 @@ let pkgVersion = '1.0.0';
 try {
     // Resolve version for User-Agent / authorization metadata
     // Falls back silently if package.json cannot be loaded
-    // eslint-disable-next-line import/no-extraneous-dependencies
     // eslint-disable-next-line global-require
     pkgVersion = require('../package.json').version || pkgVersion;
-} catch (_) {}
+} catch (_) {
+    // package.json not available; keep default version
+}
 
 class JellyfinHttpClient {
     constructor({

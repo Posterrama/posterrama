@@ -1,4 +1,6 @@
 /* Admin v2 Dashboard (theme-based) */
+/* eslint-disable no-empty */
+/* global saveConfigPatch, miniCache, inflight, refreshOverviewLastSync, tvdb */
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -574,14 +576,7 @@
                 try {
                     const diskEl = document.getElementById('cache-disk-usage');
                     if (diskEl) {
-                        const txt = diskEl.innerHTML || '';
-                        // Replace the "/ XXX" part to reflect new GB value; fallback to full refresh afterwards
-                        const gbBytes = val * 1024 * 1024 * 1024;
-                        const tmp = document.createElement('div');
-                        tmp.innerHTML = `\n      <div>${(function () {
-                            return txt.replace(/\/\s*([\d\.]+\s*(?:B|KB|MB|GB|TB))\)/, '');
-                        })()}</div>`;
-                        // Not robust to parse; rely on refresh below primarily
+                        // Skip brittle inline DOM/Text replacement; a full refresh occurs below
                     }
                 } catch (_) {
                     /* ignore */
@@ -803,7 +798,7 @@
             } else {
                 // Default (Dashboard and any other sections using the big header)
                 pageHeader.style.display = '';
-                h1.innerHTML = '<i class=\"fas fa-gauge-high\"></i> Dashboard';
+                h1.innerHTML = '<i class="fas fa-gauge-high"></i> Dashboard';
                 if (subtitle) subtitle.textContent = 'Devices, media, and health at a glance';
             }
         }
@@ -1322,11 +1317,11 @@
 
         // Build avatar initials for user button (fallback to AD) with theme-friendly cool palette
         try {
-            function hashCode(str) {
+            const hashCode = str => {
                 let h = 0;
                 for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i);
                 return h >>> 0;
-            }
+            };
             const btn = document.getElementById('user-btn');
             if (btn) {
                 (async () => {
@@ -2332,7 +2327,7 @@
                     .trim()
                     .toLowerCase()
                     .replace(/\s+/g, '-')
-                    .replace(/[^a-z0-9\-]/g, '');
+                    .replace(/[^a-z0-9-]/g, '');
 
             function getStatusClass(d) {
                 const st = String(d?.status || '').toLowerCase();
@@ -3165,7 +3160,6 @@
                         );
                         const dev = (state.all || []).find(d => d.id === id);
                         const meta = (overrides && overrides[id]) || {};
-                        const name = meta.name || dev?.name || id;
                         const location =
                             meta.location != null ? meta.location : dev?.location || '';
                         const groupIds = Array.isArray(meta.groups)
@@ -3199,7 +3193,6 @@
                             baseOrigin = window.location.origin;
                         }
                         const claimUrl = `${baseOrigin}/?pair=${encodeURIComponent(r?.code || '')}`;
-                        const qrUrl = `/api/qr?text=${encodeURIComponent(claimUrl)}&format=svg`;
                         const ttlMs =
                             Number(r?.expiresInMs) ||
                             Math.max(0, Date.parse(r?.expiresAt || 0) - Date.now());
@@ -3207,8 +3200,8 @@
                         const expAt = Date.now() + expMs;
                         const tagHtml = `
                             <div class="pairing-tags" aria-label="Device attributes">
-                                ${location ? `<span class="pill" title="Location"><i class=\"fas fa-location-dot\"></i> ${escapeHtml(String(location))}</span>` : ''}
-                                ${groups.map(g => `<span class=\"pill\" title=\"Group\"><i class=\"fas fa-layer-group\"></i> ${escapeHtml(String(g))}</span>`).join(' ')}
+                                ${location ? `<span class="pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(String(location))}</span>` : ''}
+                                ${groups.map(g => `<span class="pill" title="Group"><i class="fas fa-layer-group"></i> ${escapeHtml(String(g))}</span>`).join(' ')}
                             </div>`;
                         const html = `
                             <div class="pairing-item" data-expires-at="${String(expAt)}">
@@ -3657,7 +3650,7 @@
                 rooms.forEach(r => {
                     const slug = slugify(r);
                     parts.push(
-                        `<div class="dropdown-item" data-device-filter="location:${slug}"><i class=\"fas fa-location-dot\"></i> ${r.replace(/</g, '&lt;')}</div>`
+                        `<div class="dropdown-item" data-device-filter="location:${slug}"><i class="fas fa-location-dot"></i> ${r.replace(/</g, '&lt;')}</div>`
                     );
                 });
                 if (hasUnassigned) {
@@ -5104,7 +5097,7 @@
         }
 
         // Real-time confirm password checking
-        confirmPwInput?.addEventListener('input', e => {
+        confirmPwInput?.addEventListener('input', () => {
             checkPasswordMatch();
         });
 
@@ -6129,7 +6122,6 @@
                         if (v) v.textContent = `${libMovie + libShow}`;
                         libsEl.title = `Libraries selected: Movies ${libMovie}, Shows ${libShow}`;
                     }
-                    // Last sync placeholder; will be updated after fetching /api/admin/source-status
                     const tgl = document.getElementById('sc.plex.enabled');
                     if (tgl) tgl.checked = enabled;
                     wireToggleOnce('sc.plex.enabled', async e => {
@@ -8342,7 +8334,7 @@
                 chips.innerHTML = '<div class="subtle">Failed to load genres</div>';
             }
         }
-        async function loadJellyfinQualities(currentCsv = '') {
+        async function loadJellyfinQualities(_currentCsv = '') {
             // Disable Jellyfin quality filtering in UI; clear state and show notice
             const root = document.getElementById('jf-ms-qualities');
             const chips = document.getElementById('jf-ms-qualities-chips');
@@ -8377,7 +8369,7 @@
             btn.removeAttribute('aria-busy');
         }
 
-        function setPlexStatus(text, variant = '', url = '') {
+        function setPlexStatus(text, variant = '', _url = '') {
             const pill = document.getElementById('plex-status-pill-header');
             if (pill) {
                 pill.textContent = text;

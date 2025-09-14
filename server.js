@@ -957,7 +957,9 @@ app.post(
                                     source: label,
                                     timeoutMs: ms,
                                 });
-                            } catch (_) {}
+                            } catch (_) {
+                                /* noop */
+                            }
                             resolve(0);
                         }
                     }, ms);
@@ -976,7 +978,9 @@ app.post(
                                         source: label,
                                         error: e?.message,
                                     });
-                            } catch (_) {}
+                            } catch (_) {
+                                /* noop */
+                            }
                             if (!settled) {
                                 settled = true;
                                 clearTimeout(to);
@@ -1074,7 +1078,9 @@ app.post(
                         filtersPlex: Fp,
                         filtersJellyfin: Fj,
                     });
-                } catch (_) {}
+                } catch (_) {
+                    /* noop */
+                }
             }
 
             const [plexCount, jfCount] = await Promise.all([
@@ -1315,7 +1321,9 @@ app.post(
                     logger.debug('[Admin Preview] Computed counts', {
                         counts: { plex: plexCount, jellyfin: jfCount },
                     });
-                } catch (_) {}
+                } catch (_) {
+                    /* fire-and-forget */
+                }
             }
             res.json({ success: true, counts: { plex: plexCount, jellyfin: jfCount } });
         } catch (e) {
@@ -2141,7 +2149,9 @@ const avatarStorage = multer.diskStorage({
     destination: function (_req, _file, cb) {
         try {
             fs.mkdirSync(avatarDir, { recursive: true });
-        } catch (_) {}
+        } catch (_) {
+            /* noop */
+        }
         cb(null, avatarDir);
     },
     filename: function (req, file, cb) {
@@ -2217,7 +2227,7 @@ app.get('/api/admin/profile/photo', adminAuth, (req, res) => {
  *       400:
  *         description: Invalid input
  */
-app.post('/api/admin/profile/photo', adminAuth, (req, res, next) => {
+app.post('/api/admin/profile/photo', adminAuth, (req, res, _next) => {
     avatarUpload.single('avatar')(req, res, err => {
         if (err) {
             return res.status(400).json({ error: err.message || 'Upload failed' });
@@ -5143,7 +5153,9 @@ async function getPlaylistMedia() {
             if (lf && !isNaN(lf)) {
                 latestLastFetch.tmdb = Math.max(latestLastFetch.tmdb || 0, lf.getTime());
             }
-        } catch (_) {}
+        } catch (_) {
+            /* mkdir may already exist */
+        }
         const tmdbMedia = tmdbMovies.concat(tmdbShows);
 
         if (isDebug) logger.debug(`[Debug] Fetched ${tmdbMedia.length} items from TMDB.`);
@@ -5232,7 +5244,9 @@ async function getPlaylistMedia() {
             if (lf && !isNaN(lf)) {
                 latestLastFetch.tvdb = Math.max(latestLastFetch.tvdb || 0, lf.getTime());
             }
-        } catch (_) {}
+        } catch (_) {
+            /* metrics unavailable */
+        }
         const tvdbMedia = tvdbMovies.concat(tvdbShows);
 
         if (isDebug) logger.debug(`[Debug] Fetched ${tvdbMedia.length} items from TVDB.`);
@@ -5246,7 +5260,9 @@ async function getPlaylistMedia() {
         if (latestLastFetch.jellyfin) global.sourceLastFetch.jellyfin = latestLastFetch.jellyfin;
         if (latestLastFetch.tmdb) global.sourceLastFetch.tmdb = latestLastFetch.tmdb;
         if (latestLastFetch.tvdb) global.sourceLastFetch.tvdb = latestLastFetch.tvdb;
-    } catch (_) {}
+    } catch (_) {
+        /* capture lastFetch best-effort */
+    }
     return allMedia;
 }
 
@@ -8391,7 +8407,7 @@ app.post(
                             );
                         }
                         const re = new RegExp(
-                            `^${jellyfinServerConfig.tokenEnvVar}\\s*=\\s*\"?([^\"\n]*)\"?`,
+                            `^${jellyfinServerConfig.tokenEnvVar}\\s*=\\s*"?([^"\n]*)"?`,
                             'm'
                         );
                         const m = envText.match(re);
@@ -12447,7 +12463,9 @@ if (require.main === module) {
             setTimeout(() => {
                 try {
                     refreshPlaylistCache();
-                } catch (_) {}
+                } catch (_) {
+                    /* fire-and-forget */
+                }
             }, 0);
         } else if (result && result.error) {
             logger.error('Initial playlist fetch failed during startup:', result.error);
@@ -12496,7 +12514,9 @@ if (require.main === module) {
             setTimeout(() => {
                 try {
                     refreshPlaylistCache();
-                } catch (_) {}
+                } catch (_) {
+                    /* optional logging only */
+                }
             }, 5000);
         });
         // Initialize WebSocket hub once server is listening

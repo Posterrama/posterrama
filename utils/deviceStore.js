@@ -219,7 +219,6 @@ async function revokePairingCode(id) {
     const idx = all.findIndex(d => d.id === id);
     if (idx === -1) return false;
     const nowIso = new Date().toISOString();
-    const prev = all[idx].pairing || {};
     // Clear pairing details to immediately revoke
     const nextPairing = {};
     all[idx] = { ...all[idx], pairing: nextPairing, updatedAt: nowIso };

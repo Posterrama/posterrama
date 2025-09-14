@@ -37,8 +37,6 @@ function loadEnvFile() {
     return envVars;
 }
 
-const envVars = loadEnvFile();
-
 module.exports = {
     apps: [
         {
