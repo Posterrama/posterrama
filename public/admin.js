@@ -3228,11 +3228,9 @@
 
         // Click-to-open only; hover-open removed
         settingsBtn?.addEventListener('click', e => {
-            console.log('Settings button clicked!');
             e.stopPropagation();
             if (!settingsMenu) return;
             const willOpen = !settingsMenu?.classList.contains('show');
-            console.log('Settings menu will open:', willOpen);
             if (willOpen) {
                 // Ensure the user menu is closed when opening settings
                 try {
@@ -3289,7 +3287,6 @@
                         settingsMenu.style.opacity = '1';
                         settingsMenu.style.pointerEvents = 'auto';
                         settingsMenu?.classList.add('show');
-                        console.log('Settings menu opened');
                     });
                 });
             } else {
@@ -3933,11 +3930,9 @@
             unportalize(userMenu);
         }
         userBtn?.addEventListener('click', e => {
-            console.log('User button clicked!');
             e.stopPropagation();
             if (!userMenu) return;
             const willOpen = !userMenu?.classList.contains('show');
-            console.log('User menu will open:', willOpen);
             if (willOpen) {
                 // Ensure the settings menu is closed when opening user menu
                 try {
@@ -3994,7 +3989,6 @@
                         userMenu.style.opacity = '1';
                         userMenu.style.pointerEvents = 'auto';
                         userMenu.classList.add('show');
-                        console.log('User menu opened');
                     });
                 });
             } else {
