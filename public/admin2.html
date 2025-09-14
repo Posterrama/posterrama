@@ -659,25 +659,50 @@
           </div>
           <div class="form-grid">
             <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="plex.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
+              <label for="plex.ratingFilter">Ratings</label>
+              <input type="hidden" id="plex.ratingFilter-hidden" value="">
+              <div class="multiselect" id="plex-ms-ratings">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="plex-ms-ratings-chips"></div>
+                  <button class="ms-clear" id="plex-ms-ratings-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="plex-ms-ratings-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="plex-ms-ratings-search" type="text" placeholder="Search ratings…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="plex-ms-ratings-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="plex-ms-ratings-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="plex-ms-ratings-options"></div>
+                </div>
+              </div>
+              <small class="form-help">Select one or more content ratings. Populated from Plex.</small>
             </div>
             <div class="form-group">
-              <label for="plex.recentDays">Recently added days</label>
-              <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
-            </div>
-            <div class="form-group">
-              <label for="plex.ratingFilter">Rating filter</label>
-              <input type="text" id="plex.ratingFilter" placeholder="e.g. PG-13, R">
-            </div>
-            <div class="form-group">
-              <label for="plex.qualityFilter">Quality filter</label>
-              <select id="plex.qualityFilter">
-                <option value="">Any</option>
-                <option value="SD">SD</option>
-                <option value="720p">720p</option>
-                <option value="1080p">1080p</option>
-                <option value="4K">4K</option>
-              </select>
+              <label for="plex.qualityFilter">Qualities</label>
+              <input type="hidden" id="plex.qualityFilter-hidden" value="">
+              <div class="multiselect" id="plex-ms-qualities">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="plex-ms-qualities-chips"></div>
+                  <button class="ms-clear" id="plex-ms-qualities-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="plex-ms-qualities-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="plex-ms-qualities-search" type="text" placeholder="Search qualities…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="plex-ms-qualities-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="plex-ms-qualities-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="plex-ms-qualities-options"></div>
+                </div>
+              </div>
+              <small class="form-help">Select one or more qualities (e.g., 720p, 1080p, 4K). Populated from Plex.</small>
             </div>
           </div>
           <div class="form-grid">
@@ -709,6 +734,16 @@
                   </div>
                 </div>
                 <small id="plex-genre-help" class="form-help">Select one or more genres. Populated from Plex.</small>
+              </div>
+            </div>
+            <!-- Recently-added controls moved to bottom of Plex panel -->
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="checkbox"><input type="checkbox" id="plex.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
+              </div>
+              <div class="form-group">
+                <label for="plex.recentDays">Recently added days</label>
+                <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
               </div>
             </div>
         </div>
@@ -757,6 +792,87 @@
               <select id="jf.shows" multiple></select>
             </div>
           </div>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="jf.yearFilter">Release Years</label>
+              <input type="text" id="jf.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="jf.ratingFilter">Ratings</label>
+              <input type="hidden" id="jf.ratingFilter-hidden" value="">
+              <div class="multiselect" id="jf-ms-ratings">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="jf-ms-ratings-chips"></div>
+                  <button class="ms-clear" id="jf-ms-ratings-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="jf-ms-ratings-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="jf-ms-ratings-search" type="text" placeholder="Search ratings…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="jf-ms-ratings-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="jf-ms-ratings-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="jf-ms-ratings-options"></div>
+                </div>
+              </div>
+              <small class="form-help">Select one or more content ratings. Populated from Jellyfin.</small>
+            </div>
+            <div class="form-group">
+              <label for="jf.genreFilter">Genres</label>
+              <input type="hidden" id="jf.genreFilter-hidden" value="">
+              <div class="multiselect" id="jf-ms-genres">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="jf-ms-genres-chips"></div>
+                  <button class="ms-clear" id="jf-ms-genres-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="jf-ms-genres-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="jf-ms-genres-search" type="text" placeholder="Search genres…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="jf-ms-genres-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="jf-ms-genres-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="jf-ms-genres-options"></div>
+                </div>
+              </div>
+              <small class="form-help">Select one or more genres. Populated from selected Jellyfin libraries.</small>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="jf.qualityFilter">Qualities</label>
+              <input type="hidden" id="jf.qualityFilter-hidden" value="">
+              <div class="multiselect" id="jf-ms-qualities">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="jf-ms-qualities-chips"></div>
+                  <button class="ms-clear" id="jf-ms-qualities-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="jf-ms-qualities-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="jf-ms-qualities-search" type="text" placeholder="Search qualities…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="jf-ms-qualities-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="jf-ms-qualities-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="jf-ms-qualities-options"></div>
+                </div>
+              </div>
+              <small class="form-help">Select one or more qualities (e.g., 720p, 1080p, 4K). Populated from Jellyfin.</small>
+            </div>
+          </div>
+          <!-- Recently-added controls moved to bottom of Jellyfin panel -->
           <div class="form-grid">
             <div class="form-group">
               <label class="checkbox"><input type="checkbox" id="jf.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
@@ -764,12 +880,6 @@
             <div class="form-group">
               <label for="jf.recentDays">Recently added days</label>
               <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
-            </div>
-          </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="jf.yearFilter">Release Years</label>
-              <input type="text" id="jf.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
             </div>
           </div>
         </div>

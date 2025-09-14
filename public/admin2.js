@@ -1863,11 +1863,16 @@
                 getInput('plex.recentOnly').checked = !!plex.recentlyAddedOnly;
             if (getInput('plex.recentDays'))
                 getInput('plex.recentDays').value = plex.recentlyAddedDays ?? 30;
-            if (getInput('plex.ratingFilter'))
-                getInput('plex.ratingFilter').value = (plex.ratingFilter || []).join(', ');
-            // Quality filter (single-select string like "SD", "720p", "1080p", "4K")
-            if (getInput('plex.qualityFilter'))
-                getInput('plex.qualityFilter').value = plex.qualityFilter || '';
+            // Plex ratings/qualities multiselects (theme-demo)
+            try {
+                const ratingsCsv = Array.isArray(plex.ratingFilter)
+                    ? plex.ratingFilter.join(',')
+                    : plex.ratingFilter || '';
+                await loadPlexRatings(ratingsCsv);
+            } catch (_) {}
+            try {
+                await loadPlexQualities(plex.qualityFilter || '');
+            } catch (_) {}
             if (getInput('plex.yearFilter')) {
                 const v = plex.yearFilter;
                 getInput('plex.yearFilter').value = v == null ? '' : String(v);
@@ -1910,6 +1915,20 @@
                 const v = jf.yearFilter;
                 getInput('jf.yearFilter').value = v == null ? '' : String(v);
             }
+            // Preload Jellyfin rating/genre/quality selectors using config values
+            try {
+                await loadJellyfinRatings(
+                    Array.isArray(jf.ratingFilter)
+                        ? jf.ratingFilter.join(',')
+                        : jf.ratingFilter || ''
+                );
+            } catch (_) {}
+            try {
+                await loadJellyfinGenres(jf.genreFilter || '');
+            } catch (_) {}
+            try {
+                await loadJellyfinQualities(jf.qualityFilter || '');
+            } catch (_) {}
             setMultiSelect(
                 'jf.movies',
                 (jf.movieLibraryNames || []).map(n => ({ value: n, label: n })),
@@ -2377,6 +2396,261 @@
             }
         }
 
+        // ------- Jellyfin Multiselect Helpers (ratings/genres/qualities) -------
+        function setJfHidden(id, val) {
+            const el = document.getElementById(id);
+            if (el) el.value = val || '';
+        }
+        function getJfHidden(id) {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        }
+        function jfMsOption(name, checked) {
+            const row = document.createElement('div');
+            row.className = 'ms-option';
+            row.setAttribute('role', 'option');
+            row.dataset.value = name;
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = !!checked;
+            const label = document.createElement('span');
+            label.textContent = name;
+            row.appendChild(cb);
+            row.appendChild(label);
+            return row;
+        }
+        function jfAttachMsHandlers(baseId, options, selected, onUpdate) {
+            const root = document.getElementById(baseId);
+            if (!root || root.dataset.msWired === 'true') return;
+            const control = root.querySelector('.ms-control');
+            const menu = document.getElementById(baseId + '-menu');
+            const search = document.getElementById(baseId + '-search');
+            const selectAll = document.getElementById(baseId + '-select-all');
+            const clearAll = document.getElementById(baseId + '-clear-all');
+            const clearBtn = document.getElementById(baseId + '-clear');
+            const optsEl = document.getElementById(baseId + '-options');
+            const chips = document.getElementById(baseId + '-chips');
+            if (!control || !menu || !search || !selectAll || !clearAll || !optsEl || !chips)
+                return;
+
+            const renderChips = () => {
+                chips.innerHTML = '';
+                Array.from(selected).forEach(v => {
+                    const chip = document.createElement('span');
+                    chip.className = 'ms-chip';
+                    chip.dataset.value = v;
+                    chip.innerHTML = `${v} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                    chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                        e.stopPropagation();
+                        selected.delete(v);
+                        onUpdate(selected);
+                        syncOptions();
+                        renderChips();
+                        control.classList.toggle('has-selection', selected.size > 0);
+                    });
+                    chips.appendChild(chip);
+                });
+                control.classList.toggle('has-selection', selected.size > 0);
+            };
+            const syncOptions = () => {
+                Array.from(optsEl.children).forEach(row => {
+                    const v = row.dataset.value;
+                    const cb = row.querySelector('input[type="checkbox"]');
+                    if (cb) cb.checked = selected.has(v);
+                });
+            };
+            const openMenu = open => {
+                root.classList.toggle('ms-open', !!open);
+                control.setAttribute('aria-expanded', open ? 'true' : 'false');
+            };
+            const filterOptions = q => {
+                const qq = (q || '').toLowerCase();
+                Array.from(optsEl.children).forEach(child => {
+                    const match = child.dataset.value?.toLowerCase().includes(qq);
+                    child.style.display = match ? '' : 'none';
+                });
+            };
+
+            control.addEventListener('mousedown', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                const willOpen = !root.classList.contains('ms-open');
+                openMenu(willOpen);
+                if (willOpen) setTimeout(() => search.focus(), 0);
+            });
+            document.addEventListener('click', e => {
+                if (!root.contains(e.target)) openMenu(false);
+            });
+            search.addEventListener('focus', () => openMenu(true));
+            search.addEventListener('keydown', e => {
+                if (e.key === 'Escape') openMenu(false);
+            });
+            search.addEventListener('input', () => filterOptions(search.value));
+            selectAll.addEventListener('click', e => {
+                e.preventDefault();
+                options.forEach(n => selected.add(n));
+                onUpdate(selected);
+                syncOptions();
+                renderChips();
+            });
+            clearAll.addEventListener('click', e => {
+                e.preventDefault();
+                selected.clear();
+                onUpdate(selected);
+                syncOptions();
+                renderChips();
+                search.value = '';
+                filterOptions('');
+            });
+            clearBtn?.addEventListener('click', e => {
+                e.preventDefault();
+                selected.clear();
+                onUpdate(selected);
+                syncOptions();
+                renderChips();
+                search.value = '';
+                filterOptions('');
+            });
+            optsEl.addEventListener('click', e => {
+                const row = e.target.closest('.ms-option');
+                if (!row) return;
+                const v = row.dataset.value;
+                if (selected.has(v)) selected.delete(v);
+                else selected.add(v);
+                onUpdate(selected);
+                syncOptions();
+                renderChips();
+            });
+            root.dataset.msWired = 'true';
+            renderChips();
+        }
+        async function loadJellyfinRatings(currentCsv = '') {
+            const chips = document.getElementById('jf-ms-ratings-chips');
+            const optsEl = document.getElementById('jf-ms-ratings-options');
+            const control = document.querySelector('#jf-ms-ratings .ms-control');
+            if (!chips || !optsEl || !control) return;
+            chips.innerHTML = '<div class="subtle">Loading ratings…</div>';
+            try {
+                const res = await fetch('/api/sources/jellyfin/ratings-with-counts', {
+                    credentials: 'include',
+                });
+                const data = await res.json().catch(() => ({}));
+                const arr = Array.isArray(data?.data) ? data.data : [];
+                // Map to rating strings
+                const ratings = arr
+                    .map(r => r.rating)
+                    .filter(Boolean)
+                    .sort();
+                const selected = new Set(
+                    String(currentCsv || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean)
+                );
+                optsEl.innerHTML = '';
+                ratings.forEach(n => optsEl.appendChild(jfMsOption(n, selected.has(n))));
+                setJfHidden('jf.ratingFilter-hidden', Array.from(selected).join(','));
+                jfAttachMsHandlers('jf-ms-ratings', ratings, selected, sel =>
+                    setJfHidden('jf.ratingFilter-hidden', Array.from(sel).join(','))
+                );
+            } catch (e) {
+                chips.innerHTML = '<div class="subtle">Failed to load ratings</div>';
+            }
+        }
+        async function loadJellyfinGenres(currentCsv = '') {
+            const chips = document.getElementById('jf-ms-genres-chips');
+            const optsEl = document.getElementById('jf-ms-genres-options');
+            const control = document.querySelector('#jf-ms-genres .ms-control');
+            if (!chips || !optsEl || !control) return;
+            chips.innerHTML = '<div class="subtle">Loading genres…</div>';
+            try {
+                const hostname = getInput('jf.hostname')?.value;
+                const port = getInput('jf.port')?.value;
+                const apiKey = getInput('jf.apikey')?.value;
+                const movieLibraries = getMultiSelectValues('jf.movies');
+                const showLibraries = getMultiSelectValues('jf.shows');
+                if (
+                    !hostname ||
+                    !port ||
+                    (!apiKey && !movieLibraries.length && !showLibraries.length)
+                ) {
+                    // Basic guard; we'll still try server fallback below if available
+                }
+                const res = await fetch('/api/admin/jellyfin-genres-with-counts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        hostname,
+                        port,
+                        apiKey: apiKey || undefined,
+                        movieLibraries,
+                        showLibraries,
+                    }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data?.error || 'Failed');
+                const names = (data?.genres || [])
+                    .map(g => g.genre || g.name || g.value || String(g))
+                    .filter(Boolean)
+                    .sort((a, b) => a.localeCompare(b));
+                const selected = new Set(
+                    String(currentCsv || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean)
+                );
+                optsEl.innerHTML = '';
+                names.forEach(n => optsEl.appendChild(jfMsOption(n, selected.has(n))));
+                setJfHidden('jf.genreFilter-hidden', Array.from(selected).join(','));
+                jfAttachMsHandlers('jf-ms-genres', names, selected, sel =>
+                    setJfHidden('jf.genreFilter-hidden', Array.from(sel).join(','))
+                );
+            } catch (e) {
+                chips.innerHTML = '<div class="subtle">Failed to load genres</div>';
+            }
+        }
+        async function loadJellyfinQualities(currentCsv = '') {
+            const chips = document.getElementById('jf-ms-qualities-chips');
+            const optsEl = document.getElementById('jf-ms-qualities-options');
+            const control = document.querySelector('#jf-ms-qualities .ms-control');
+            if (!chips || !optsEl || !control) return;
+            chips.innerHTML = '<div class="subtle">Loading qualities…</div>';
+            try {
+                const res = await fetch('/api/admin/jellyfin-qualities-with-counts', {
+                    credentials: 'include',
+                });
+                const data = await res.json().catch(() => ({}));
+                const arr = Array.isArray(data?.qualities) ? data.qualities : [];
+                const names = arr
+                    .map(q => q.quality || q)
+                    .filter(Boolean)
+                    .sort((a, b) => {
+                        const order = ['SD', '720p', '1080p', '4K'];
+                        const ai = order.indexOf(a);
+                        const bi = order.indexOf(b);
+                        if (ai !== -1 && bi !== -1) return ai - bi;
+                        if (ai !== -1) return -1;
+                        if (bi !== -1) return 1;
+                        return a.localeCompare(b);
+                    });
+                const selected = new Set(
+                    String(currentCsv || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean)
+                );
+                optsEl.innerHTML = '';
+                names.forEach(n => optsEl.appendChild(jfMsOption(n, selected.has(n))));
+                setJfHidden('jf.qualityFilter-hidden', Array.from(selected).join(','));
+                jfAttachMsHandlers('jf-ms-qualities', names, selected, sel =>
+                    setJfHidden('jf.qualityFilter-hidden', Array.from(sel).join(','))
+                );
+            } catch (e) {
+                chips.innerHTML = '<div class="subtle">Failed to load qualities</div>';
+            }
+        }
+
         // Test connections
         // Small helper to show a spinner on icon-only buttons
         function startBtnSpinner(btn) {
@@ -2422,9 +2696,11 @@
                 });
                 // On success, offer to fetch libraries
                 fetchPlexLibraries();
-                // And refresh available genres list using the same connection context
+                // And refresh available filters using the same connection context
                 const currentGenres = getPlexGenreFilterHidden();
                 loadPlexGenres(currentGenres).catch(() => {});
+                loadPlexRatings(getPlexHidden('plex.ratingFilter-hidden'));
+                loadPlexQualities(getPlexHidden('plex.qualityFilter-hidden'));
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -2459,6 +2735,10 @@
                     duration: 2200,
                 });
                 fetchJellyfinLibraries();
+                // Refresh dependent filters
+                loadJellyfinRatings(getJfHidden('jf.ratingFilter-hidden'));
+                loadJellyfinGenres(getJfHidden('jf.genreFilter-hidden'));
+                loadJellyfinQualities(getJfHidden('jf.qualityFilter-hidden'));
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -2613,8 +2893,30 @@
                 plex.enabled = !!getInput('plex.enabled')?.checked;
                 plex.recentlyAddedOnly = !!getInput('plex.recentOnly')?.checked;
                 plex.recentlyAddedDays = toInt(getInput('plex.recentDays')?.value) ?? 30;
-                plex.ratingFilter = parseCsvList(getInput('plex.ratingFilter')?.value);
-                plex.qualityFilter = (getInput('plex.qualityFilter')?.value || '').trim();
+                // From multiselect hidden fields
+                plex.ratingFilter = parseCsvList(getPlexHidden('plex.ratingFilter-hidden'));
+                // Plex backend expects a single quality; pick the highest selected if multiple
+                const qCsv = (getPlexHidden('plex.qualityFilter-hidden') || '').trim();
+                if (qCsv) {
+                    const order = ['SD', '720p', '1080p', '4K'];
+                    const selected = qCsv
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                    // choose the highest by order index
+                    let best = '';
+                    let bestIdx = -1;
+                    for (const q of selected) {
+                        const idx = order.indexOf(q);
+                        if (idx > bestIdx) {
+                            bestIdx = idx;
+                            best = q;
+                        }
+                    }
+                    plex.qualityFilter = best || selected[0] || '';
+                } else {
+                    plex.qualityFilter = '';
+                }
                 {
                     const expr = parseYearExpression(getInput('plex.yearFilter')?.value);
                     plex.yearFilter = expr;
@@ -2658,6 +2960,8 @@
                     .then(() => {
                         const r = getPlexGenreFilterHidden();
                         loadPlexGenres(r).catch(() => {});
+                        loadPlexRatings(getPlexHidden('plex.ratingFilter-hidden'));
+                        loadPlexQualities(getPlexHidden('plex.qualityFilter-hidden'));
                     })
                     .catch(() => {});
             }
@@ -2683,6 +2987,11 @@
                     const expr = parseYearExpression(getInput('jf.yearFilter')?.value);
                     jf.yearFilter = expr;
                 }
+                // Collect multiselect values
+                const ratingCsv = getJfHidden('jf.ratingFilter-hidden');
+                jf.ratingFilter = parseCsvList(ratingCsv);
+                jf.genreFilter = getJfHidden('jf.genreFilter-hidden');
+                jf.qualityFilter = getJfHidden('jf.qualityFilter-hidden');
                 jf.movieLibraryNames = getMultiSelectValues('jf.movies');
                 jf.showLibraryNames = getMultiSelectValues('jf.shows');
                 jf.hostnameEnvVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
@@ -2955,6 +3264,205 @@
                 tmdbAttachMsHandlers(names, selected);
             } catch (e) {
                 chipsContainer.innerHTML = '<div class="subtle">Failed to load genres</div>';
+            }
+        }
+
+        // ------- Plex Ratings/Qualities (theme-demo multiselects) -------
+        function setPlexHidden(id, val) {
+            const el = document.getElementById(id);
+            if (el) el.value = val || '';
+        }
+        function getPlexHidden(id) {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        }
+        function plexMsOption(name, checked) {
+            const row = document.createElement('div');
+            row.className = 'ms-option';
+            row.setAttribute('role', 'option');
+            row.dataset.value = name;
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = !!checked;
+            const label = document.createElement('span');
+            label.textContent = name;
+            row.appendChild(cb);
+            row.appendChild(label);
+            return row;
+        }
+        function plexAttachMsHandlers(baseId, options, selected, onUpdate) {
+            const root = document.getElementById(baseId);
+            if (!root || root.dataset.msWired === 'true') return;
+            const control = root.querySelector('.ms-control');
+            const menu = document.getElementById(baseId + '-menu');
+            const search = document.getElementById(baseId + '-search');
+            const selectAll = document.getElementById(baseId + '-select-all');
+            const clearAll = document.getElementById(baseId + '-clear-all');
+            const clearBtn = document.getElementById(baseId + '-clear');
+            const optsEl = document.getElementById(baseId + '-options');
+            const chips = document.getElementById(baseId + '-chips');
+            if (!control || !menu || !search || !selectAll || !clearAll || !optsEl || !chips)
+                return;
+            const renderChips = () => {
+                chips.innerHTML = '';
+                Array.from(selected).forEach(v => {
+                    const chip = document.createElement('span');
+                    chip.className = 'ms-chip';
+                    chip.dataset.value = v;
+                    chip.innerHTML = `${v} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                    chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                        e.stopPropagation();
+                        selected.delete(v);
+                        onUpdate(selected);
+                        syncOptions();
+                        renderChips();
+                        control.classList.toggle('has-selection', selected.size > 0);
+                    });
+                    chips.appendChild(chip);
+                });
+                control.classList.toggle('has-selection', selected.size > 0);
+            };
+            const syncOptions = () => {
+                Array.from(optsEl.children).forEach(row => {
+                    const v = row.dataset.value;
+                    const cb = row.querySelector('input[type="checkbox"]');
+                    if (cb) cb.checked = selected.has(v);
+                });
+            };
+            const openMenu = open => {
+                root.classList.toggle('ms-open', !!open);
+                control.setAttribute('aria-expanded', open ? 'true' : 'false');
+            };
+            const filterOptions = q => {
+                const qq = (q || '').toLowerCase();
+                Array.from(optsEl.children).forEach(child => {
+                    const match = child.dataset.value?.toLowerCase().includes(qq);
+                    child.style.display = match ? '' : 'none';
+                });
+            };
+            control.addEventListener('mousedown', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                const willOpen = !root.classList.contains('ms-open');
+                openMenu(willOpen);
+                if (willOpen) setTimeout(() => search.focus(), 0);
+            });
+            document.addEventListener('click', e => {
+                if (!root.contains(e.target)) openMenu(false);
+            });
+            search.addEventListener('focus', () => openMenu(true));
+            search.addEventListener('keydown', e => {
+                if (e.key === 'Escape') openMenu(false);
+            });
+            search.addEventListener('input', () => filterOptions(search.value));
+            selectAll.addEventListener('click', e => {
+                e.preventDefault();
+                options.forEach(n => selected.add(n));
+                onUpdate(selected);
+                syncOptions();
+                renderChips();
+            });
+            clearAll.addEventListener('click', e => {
+                e.preventDefault();
+                selected.clear();
+                onUpdate(selected);
+                syncOptions();
+                renderChips();
+                search.value = '';
+                filterOptions('');
+            });
+            clearBtn?.addEventListener('click', e => {
+                e.preventDefault();
+                selected.clear();
+                onUpdate(selected);
+                syncOptions();
+                renderChips();
+                search.value = '';
+                filterOptions('');
+            });
+            optsEl.addEventListener('click', e => {
+                const row = e.target.closest('.ms-option');
+                if (!row) return;
+                const v = row.dataset.value;
+                if (selected.has(v)) selected.delete(v);
+                else selected.add(v);
+                onUpdate(selected);
+                syncOptions();
+                renderChips();
+            });
+            root.dataset.msWired = 'true';
+            renderChips();
+        }
+        async function loadPlexRatings(currentCsv = '') {
+            const chips = document.getElementById('plex-ms-ratings-chips');
+            const optsEl = document.getElementById('plex-ms-ratings-options');
+            const control = document.querySelector('#plex-ms-ratings .ms-control');
+            if (!chips || !optsEl || !control) return;
+            chips.innerHTML = '<div class="subtle">Loading ratings…</div>';
+            try {
+                const res = await fetch('/api/sources/plex/ratings-with-counts', {
+                    credentials: 'include',
+                });
+                const data = await res.json().catch(() => ({}));
+                const arr = Array.isArray(data?.data) ? data.data : [];
+                const ratings = arr
+                    .map(r => r.rating)
+                    .filter(Boolean)
+                    .sort();
+                const selected = new Set(
+                    String(currentCsv || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean)
+                );
+                optsEl.innerHTML = '';
+                ratings.forEach(n => optsEl.appendChild(plexMsOption(n, selected.has(n))));
+                setPlexHidden('plex.ratingFilter-hidden', Array.from(selected).join(','));
+                plexAttachMsHandlers('plex-ms-ratings', ratings, selected, sel =>
+                    setPlexHidden('plex.ratingFilter-hidden', Array.from(sel).join(','))
+                );
+            } catch (e) {
+                chips.innerHTML = '<div class="subtle">Failed to load ratings</div>';
+            }
+        }
+        async function loadPlexQualities(currentCsv = '') {
+            const chips = document.getElementById('plex-ms-qualities-chips');
+            const optsEl = document.getElementById('plex-ms-qualities-options');
+            const control = document.querySelector('#plex-ms-qualities .ms-control');
+            if (!chips || !optsEl || !control) return;
+            chips.innerHTML = '<div class="subtle">Loading qualities…</div>';
+            try {
+                const res = await fetch('/api/admin/plex-qualities-with-counts', {
+                    credentials: 'include',
+                });
+                const data = await res.json().catch(() => ({}));
+                const arr = Array.isArray(data?.qualities) ? data.qualities : [];
+                const names = arr
+                    .map(q => q.quality || q)
+                    .filter(Boolean)
+                    .sort((a, b) => {
+                        const order = ['SD', '720p', '1080p', '4K'];
+                        const ai = order.indexOf(a);
+                        const bi = order.indexOf(b);
+                        if (ai !== -1 && bi !== -1) return ai - bi;
+                        if (ai !== -1) return -1;
+                        if (bi !== -1) return 1;
+                        return a.localeCompare(b);
+                    });
+                const selected = new Set(
+                    String(currentCsv || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean)
+                );
+                optsEl.innerHTML = '';
+                names.forEach(n => optsEl.appendChild(plexMsOption(n, selected.has(n))));
+                setPlexHidden('plex.qualityFilter-hidden', Array.from(selected).join(','));
+                plexAttachMsHandlers('plex-ms-qualities', names, selected, sel =>
+                    setPlexHidden('plex.qualityFilter-hidden', Array.from(sel).join(','))
+                );
+            } catch (e) {
+                chips.innerHTML = '<div class="subtle">Failed to load qualities</div>';
             }
         }
 
@@ -3429,6 +3937,8 @@
         document.getElementById('btn-plex-libraries')?.addEventListener('click', () => {
             const current = getPlexGenreFilterHidden();
             loadPlexGenres(current).catch(() => {});
+            loadPlexRatings(getPlexHidden('plex.ratingFilter-hidden'));
+            loadPlexQualities(getPlexHidden('plex.qualityFilter-hidden'));
         });
 
         // Initial population
