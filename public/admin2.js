@@ -855,6 +855,342 @@
             }
         });
     }
+
+    // --- Config Backups UI (Operations) ---
+    async function renderConfigBackups() {
+        const list = document.getElementById('cfg-backup-list');
+        if (!list) return;
+        list.innerHTML = '<div class="subtle">Loading…</div>';
+        try {
+            const r = await fetch('/api/admin/config-backups', {
+                credentials: 'include',
+                cache: 'no-store',
+            });
+            const arr = r.ok ? await r.json() : [];
+            if (!Array.isArray(arr) || !arr.length) {
+                list.innerHTML = '<div class="subtle">No backups found</div>';
+                return;
+            }
+            list.innerHTML = '';
+            arr.forEach(b => {
+                const item = document.createElement('div');
+                item.className = 'backup-item';
+                const created = new Date(b.createdAt || Date.now());
+                const count = (b.files || []).length;
+                const summary = document.createElement('div');
+                summary.className = 'backup-summary';
+                summary.innerHTML = `
+                                        <div class="left">
+                    <i class="fas fa-archive"></i>
+                    <strong>${b.id}</strong>
+                                        <span class="subtle">${created.toLocaleString()}</span>
+                                        <span class="subtle">• ${count} files</span>
+                  </div>
+                  <div class="right">
+                                        <button class="btn btn-link btn-sm" title="Toggle details"><i class="fas fa-chevron-down"></i></button>
+                                        <button class="btn btn-link btn-sm" title="Delete"><i class="fas fa-trash"></i></button>
+                  </div>`;
+                item.appendChild(summary);
+                const details = document.createElement('div');
+                details.className = 'backup-details';
+                details.style.display = 'none';
+                // Group files by Core/Data visual buckets
+                const buckets = { Core: [], Data: [] };
+                (b.files || []).forEach(f => {
+                    const coreNames = ['config.json', 'device-presets.json', '.env'];
+                    buckets[coreNames.includes(f.name) ? 'Core' : 'Data'].push(f);
+                });
+                const makeGroup = (title, files) => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'backup-group';
+                    wrap.setAttribute('data-group', title);
+                    wrap.innerHTML = `<div class="group-title">${title}</div>`;
+                    const listWrap = document.createElement('div');
+                    listWrap.className = 'backup-files';
+                    files.forEach(f => {
+                        const row = document.createElement('div');
+                        row.className = 'backup-file-row';
+                        const base = f.name.split('/').pop();
+                        const label = base.replace('.json', '').replace(/-/g, ' ');
+                        const icon =
+                            f.name === 'config.json' || f.name.startsWith('config/')
+                                ? 'fa-sliders-h'
+                                : f.name === 'device-presets.json'
+                                  ? 'fa-layer-group'
+                                  : f.name === 'devices.json'
+                                    ? 'fa-display'
+                                    : f.name === 'groups.json'
+                                      ? 'fa-object-group'
+                                      : f.name === '.env'
+                                        ? 'fa-key'
+                                        : 'fa-file-alt';
+                        const subtitle =
+                            f.name === 'config.json'
+                                ? 'Application settings'
+                                : f.name === 'device-presets.json'
+                                  ? 'Default device configuration'
+                                  : f.name === 'devices.json'
+                                    ? 'Registered devices list'
+                                    : f.name === 'groups.json'
+                                      ? 'Device groups and assignments'
+                                      : f.name === '.env'
+                                        ? 'Environment variables (API keys, secrets)'
+                                        : f.name;
+                        row.innerHTML = `
+                            <div class="file-left">
+                                <i class="fas ${icon}"></i>
+                                <div class="file-text">
+                                    <div class="file-title">${label}</div>
+                                    <div class="file-subtle">${subtitle}</div>
+                                </div>
+                            </div>
+                            <div class="file-right">
+                                <button class="btn btn-secondary btn-xs">Restore</button>
+                            </div>`;
+                        const btn = row.querySelector('button');
+                        btn.addEventListener('click', async () => {
+                            const ok = await confirmAction({
+                                title: 'Restore file',
+                                message: `Restore ${label}?`,
+                                okText: 'Restore',
+                                okClass: 'btn-secondary',
+                            });
+                            if (!ok) return;
+                            btn.disabled = true;
+                            try {
+                                const r2 = await fetch('/api/admin/config-backups/restore', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify({ backupId: b.id, file: f.name }),
+                                });
+                                const j2 = await r2.json().catch(() => ({}));
+                                if (!r2.ok) throw new Error(j2?.error || 'Restore failed');
+                                window.notify?.toast({
+                                    type: 'success',
+                                    title: 'Restored',
+                                    message: label,
+                                    duration: 2500,
+                                });
+                            } catch (e) {
+                                window.notify?.toast({
+                                    type: 'error',
+                                    title: 'Restore failed',
+                                    message: e?.message || 'Please try again',
+                                    duration: 4000,
+                                });
+                            } finally {
+                                btn.disabled = false;
+                            }
+                        });
+                        listWrap.appendChild(row);
+                    });
+                    wrap.appendChild(listWrap);
+                    return wrap;
+                };
+                details.appendChild(makeGroup('Core', buckets.Core));
+                details.appendChild(makeGroup('Data', buckets.Data));
+                item.appendChild(details);
+                const [btnToggle, btnDelete] = summary.querySelectorAll('button');
+                btnToggle.addEventListener('click', () => {
+                    const open = details.style.display !== 'none';
+                    details.style.display = open ? 'none' : '';
+                    const ic = btnToggle.querySelector('i');
+                    ic?.classList.toggle('fa-chevron-down', open);
+                    ic?.classList.toggle('fa-chevron-up', !open);
+                });
+                btnDelete.addEventListener('click', async () => {
+                    const ok = await confirmAction({
+                        title: 'Delete backup',
+                        message: 'Delete this backup?',
+                        okText: 'Delete',
+                        okClass: 'btn-error',
+                    });
+                    if (!ok) return;
+                    btnDelete.disabled = true;
+                    try {
+                        const rdel = await fetch(
+                            `/api/admin/config-backups/${encodeURIComponent(b.id)}`,
+                            { method: 'DELETE', credentials: 'include' }
+                        );
+                        const jdel = await rdel.json().catch(() => ({}));
+                        if (!rdel.ok) throw new Error(jdel?.error || 'Delete failed');
+                        window.notify?.toast({
+                            type: 'success',
+                            title: 'Deleted',
+                            message: b.id,
+                            duration: 2000,
+                        });
+                        await renderConfigBackups();
+                    } catch (e) {
+                        window.notify?.toast({
+                            type: 'error',
+                            title: 'Delete failed',
+                            message: e?.message || 'Please try again',
+                            duration: 4000,
+                        });
+                    } finally {
+                        btnDelete.disabled = false;
+                    }
+                });
+                list.appendChild(item);
+            });
+        } catch (_) {
+            list.innerHTML = '<div class="subtle">Failed to load</div>';
+        }
+    }
+
+    // Wire buttons and schedule controls
+    const btnCreateCfgBackup = document.getElementById('btn-create-cfg-backup');
+    const btnCleanupCfgBackups = document.getElementById('btn-cleanup-cfg-backups');
+    btnCreateCfgBackup?.addEventListener('click', async () => {
+        try {
+            btnCreateCfgBackup.classList.add('btn-loading');
+            const r = await fetch('/api/admin/config-backups', {
+                method: 'POST',
+                credentials: 'include',
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j?.error || 'Backup failed');
+            window.notify?.toast({
+                type: 'success',
+                title: 'Backup created',
+                message: j?.id || '',
+                duration: 2500,
+            });
+            await renderConfigBackups();
+        } catch (e) {
+            window.notify?.toast({
+                type: 'error',
+                title: 'Backup failed',
+                message: e?.message || 'Please try again',
+                duration: 4000,
+            });
+        } finally {
+            btnCreateCfgBackup.classList.remove('btn-loading');
+        }
+    });
+    btnCleanupCfgBackups?.addEventListener('click', async () => {
+        const keepEl = document.getElementById('input-keep-cfg-backups');
+        const keep = Math.max(1, Math.min(60, Number(keepEl?.value || 7)));
+        try {
+            btnCleanupCfgBackups.classList.add('btn-loading');
+            const r = await fetch('/api/admin/config-backups/cleanup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ keep }),
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j?.error || 'Cleanup failed');
+            window.notify?.toast({
+                type: 'success',
+                title: 'Cleaned up',
+                message: `Kept ${j?.kept ?? keep}`,
+                duration: 2200,
+            });
+            await renderConfigBackups();
+        } catch (e) {
+            window.notify?.toast({
+                type: 'error',
+                title: 'Cleanup failed',
+                message: e?.message || 'Please try again',
+                duration: 4000,
+            });
+        } finally {
+            btnCleanupCfgBackups.classList.remove('btn-loading');
+        }
+    });
+    async function loadCfgBackupSchedule() {
+        try {
+            const r = await fetch('/api/admin/config-backups/schedule', {
+                credentials: 'include',
+                cache: 'no-store',
+            });
+            const j = r.ok ? await r.json() : { enabled: true, time: '02:30', retention: 7 };
+            const en = document.getElementById('input-cfg-backup-enabled');
+            const time = document.getElementById('input-cfg-backup-time');
+            const ret = document.getElementById('input-keep-cfg-backups');
+            const pill = document.getElementById('cfg-backup-schedule-pill');
+            if (en) en.checked = j.enabled !== false;
+            if (time) time.value = String(j.time || '02:30');
+            if (ret && (j.retention || j.retention === 0)) ret.value = String(j.retention);
+            if (pill) {
+                const enabled = j.enabled !== false;
+                pill.textContent = enabled ? `Daily • ${String(j.time || '02:30')}` : 'Disabled';
+                pill.classList.toggle('status-success', enabled);
+                pill.classList.toggle('status-warning', !enabled);
+            }
+        } catch (_) {}
+    }
+    async function saveCfgBackupSchedule() {
+        const en = document.getElementById('input-cfg-backup-enabled');
+        const time = document.getElementById('input-cfg-backup-time');
+        const ret = document.getElementById('input-keep-cfg-backups');
+        try {
+            const payload = {
+                enabled: !!en?.checked,
+                time: (time?.value || '02:30').slice(0, 5),
+                retention: Math.max(1, Math.min(60, Number(ret?.value || 7))),
+            };
+            const r = await fetch('/api/admin/config-backups/schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            });
+            if (!r.ok) throw new Error('Save failed');
+            window.notify?.toast({ type: 'success', title: 'Schedule saved', duration: 2000 });
+            try {
+                await loadCfgBackupSchedule();
+            } catch (_) {}
+        } catch (e) {
+            window.notify?.toast({
+                type: 'error',
+                title: 'Save failed',
+                message: e?.message || 'Please try again',
+                duration: 4000,
+            });
+        }
+    }
+    document
+        .getElementById('btn-save-cfg-backup-schedule')
+        ?.addEventListener('click', saveCfgBackupSchedule);
+    // Load list and schedule when Operations becomes visible
+    (function observeOpsForBackups() {
+        const sec = document.getElementById('section-operations');
+        if (!sec) return;
+        const obs = new MutationObserver(() => {
+            if (sec.classList.contains('active') && !sec.hidden) {
+                renderConfigBackups();
+                loadCfgBackupSchedule();
+            }
+        });
+        obs.observe(sec, { attributes: true, attributeFilter: ['class', 'hidden'] });
+        if (sec.classList.contains('active') && !sec.hidden) {
+            renderConfigBackups();
+            loadCfgBackupSchedule();
+        }
+    })();
+
+    // Auto-refresh the backups list on relevant SSE events
+    try {
+        if (window.__adminSSE) {
+            const s = window.__adminSSE;
+            const refresh = debounce(() => {
+                const sec = document.getElementById('section-operations');
+                if (sec && sec.classList.contains('active') && !sec.hidden) {
+                    renderConfigBackups();
+                    loadCfgBackupSchedule();
+                }
+            }, 500);
+            s.addEventListener('backup-created', refresh);
+            s.addEventListener('backup-deleted', refresh);
+            s.addEventListener('backup-restored', refresh);
+            s.addEventListener('backup-cleanup', refresh);
+        }
+    } catch (_) {}
+
     // format uptime helper (not used everywhere but kept for parity/UI)
     // eslint-disable-next-line no-unused-vars
     function formatUptime(sec) {
@@ -1143,6 +1479,46 @@
         const m = document.getElementById(id);
         if (!m) return;
         m.classList.remove('open');
+    }
+    async function confirmAction({
+        title = 'Confirm',
+        message = 'Are you sure?',
+        okText = 'Confirm',
+        okClass = 'btn-primary',
+    } = {}) {
+        return new Promise(resolve => {
+            const overlay = document.getElementById('modal-confirm');
+            if (!overlay) return resolve(false);
+            overlay.removeAttribute('hidden');
+            const titleEl = document.getElementById('modal-confirm-title');
+            const bodyEl = document.getElementById('modal-confirm-body');
+            const okBtn = document.getElementById('modal-confirm-ok');
+            if (titleEl) titleEl.innerHTML = `<i class="fas fa-question-circle"></i> ${title}`;
+            if (bodyEl) bodyEl.textContent = message;
+            if (okBtn) {
+                okBtn.className = `btn ${okClass}`;
+                okBtn.innerHTML = `<i class="fas fa-check"></i><span>${okText}</span>`;
+            }
+            function cleanup(val) {
+                overlay.classList.remove('open');
+                overlay.setAttribute('hidden', '');
+                okBtn?.removeEventListener('click', onOk);
+                cancelBtn?.removeEventListener('click', onCancel);
+                closeBtns.forEach(b => b.removeEventListener('click', onCancel));
+                resolve(val);
+            }
+            function onOk() {
+                cleanup(true);
+            }
+            function onCancel() {
+                cleanup(false);
+            }
+            const cancelBtn = overlay.querySelector('[data-close-modal]');
+            const closeBtns = overlay.querySelectorAll('[data-close-modal]');
+            okBtn?.addEventListener('click', onOk);
+            closeBtns.forEach(b => b.addEventListener('click', onCancel));
+            overlay.classList.add('open');
+        });
     }
 
     function wireEvents() {

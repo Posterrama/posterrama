@@ -304,6 +304,16 @@ const fetch = require('node-fetch');
 const config = require('./config.json');
 const swaggerUi = require('swagger-ui-express');
 const pkg = require('./package.json');
+const {
+    FILE_WHITELIST: CFG_FILES,
+    createBackup: cfgCreateBackup,
+    listBackups: cfgListBackups,
+    cleanupOldBackups: cfgCleanupOld,
+    restoreFile: cfgRestoreFile,
+    deleteBackup: cfgDeleteBackup,
+    readScheduleConfig: cfgReadSchedule,
+    writeScheduleConfig: cfgWriteSchedule,
+} = require('./utils/configBackup');
 const ecosystemConfig = require('./ecosystem.config.js');
 const { shuffleArray } = require('./utils.js');
 
@@ -12586,6 +12596,153 @@ function broadcastAdminEvent(event, payload) {
         }
     }
 }
+
+// --- Config Backups API (Operations) ---
+// List backups
+app.get('/api/admin/config-backups', isAuthenticated, async (req, res) => {
+    try {
+        const list = await cfgListBackups();
+        res.set('Cache-Control', 'no-store');
+        res.json(list);
+    } catch (e) {
+        res.status(500).json({ error: e?.message || 'Failed to list backups' });
+    }
+});
+
+// Create backup now
+app.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
+    try {
+        const meta = await cfgCreateBackup();
+        try {
+            broadcastAdminEvent?.('backup-created', meta);
+        } catch (_) {}
+        res.json(meta);
+    } catch (e) {
+        res.status(500).json({ error: e?.message || 'Failed to create backup' });
+    }
+});
+
+// Cleanup old backups, keep N
+app.post('/api/admin/config-backups/cleanup', isAuthenticated, async (req, res) => {
+    try {
+        const keep = Math.max(1, Math.min(60, Number(req.body?.keep || 7)));
+        const result = await cfgCleanupOld(keep);
+        try {
+            broadcastAdminEvent?.('backup-cleanup', { keep, ...result });
+        } catch (_) {}
+        res.json({ keep, ...result });
+    } catch (e) {
+        res.status(500).json({ error: e?.message || 'Cleanup failed' });
+    }
+});
+
+// Restore a specific file from a backup
+app.post('/api/admin/config-backups/restore', isAuthenticated, async (req, res) => {
+    const id = String(req.body?.backupId || '');
+    const file = String(req.body?.file || '');
+    try {
+        if (!id) throw new Error('Missing backupId');
+        if (!CFG_FILES.includes(file)) throw new Error('Invalid file');
+        await cfgRestoreFile(id, file);
+        try {
+            broadcastAdminEvent?.('backup-restored', { id, file });
+        } catch (_) {}
+        // If config.json changed, also broadcast a config-updated event
+        if (file === 'config.json') {
+            try {
+                broadcastAdminEvent?.('config-updated', { t: Date.now(), source: 'restore' });
+            } catch (_) {}
+        }
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(400).json({ error: e?.message || 'Restore failed' });
+    }
+});
+
+// Delete a specific backup folder
+app.delete('/api/admin/config-backups/:id', isAuthenticated, async (req, res) => {
+    const id = String(req.params.id || '');
+    try {
+        if (!id) throw new Error('Missing id');
+        await cfgDeleteBackup(id);
+        try {
+            broadcastAdminEvent?.('backup-deleted', { id });
+        } catch (_) {}
+        res.json({ ok: true, id });
+    } catch (e) {
+        res.status(400).json({ error: e?.message || 'Delete failed' });
+    }
+});
+
+// Read schedule config
+app.get('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) => {
+    try {
+        const cfg = await cfgReadSchedule();
+        res.set('Cache-Control', 'no-store');
+        res.json(cfg);
+    } catch (e) {
+        res.status(500).json({ error: e?.message || 'Failed to read schedule' });
+    }
+});
+
+// Save schedule config
+app.post('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) => {
+    try {
+        const out = await cfgWriteSchedule(req.body || {});
+        // Re-align scheduler after saving
+        try {
+            await scheduleConfigBackups();
+        } catch (_) {}
+        res.json(out);
+    } catch (e) {
+        res.status(400).json({ error: e?.message || 'Failed to save schedule' });
+    }
+});
+
+// --- Simple daily scheduler for config backups ---
+let __cfgBackupTimer = null;
+async function scheduleConfigBackups() {
+    try {
+        if (__cfgBackupTimer) clearTimeout(__cfgBackupTimer);
+    } catch (_) {}
+    const parseTime = t => {
+        const m = String(t || '02:30').match(/^(\d{1,2}):(\d{2})$/);
+        const hh = Math.max(0, Math.min(23, Number(m?.[1] || 2)));
+        const mm = Math.max(0, Math.min(59, Number(m?.[2] || 30)));
+        return { hh, mm };
+    };
+    const cfg = await cfgReadSchedule();
+    if (cfg.enabled === false) {
+        logger.info('[cfg-backup] scheduler disabled');
+        return;
+    }
+    const { hh, mm } = parseTime(cfg.time);
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(hh, mm, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    const ms = next - now;
+    __cfgBackupTimer = setTimeout(async function runBackup() {
+        try {
+            const meta = await cfgCreateBackup();
+            try {
+                await cfgCleanupOld(cfg.retention || 7);
+            } catch (_) {}
+            try {
+                broadcastAdminEvent('backup-created', meta);
+            } catch (_) {}
+        } catch (e) {
+            logger.warn('[cfg-backup] scheduled backup failed', e?.message || e);
+        } finally {
+            // schedule next run
+            scheduleConfigBackups();
+        }
+    }, ms);
+    logger.info(`[cfg-backup] next backup scheduled at ${next.toISOString()}`);
+}
+
+// Kick off scheduler at startup
+scheduleConfigBackups().catch(() => {});
 
 app.get(
     '/api/admin/events',

@@ -892,6 +892,74 @@
   }
   #panel-sources-overview .panel-title h2 i { color: inherit; }
   /* Generic subtitle style for panel headers (used by Media Sources and Operations) */
+  /* Config backups compact list */
+  .compact-backup-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .compact-backup-list .backup-item { border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.02); }
+  .compact-backup-list .backup-summary { display:flex; align-items:center; justify-content: space-between; gap: 10px; padding: 8px 10px; }
+  .compact-backup-list .backup-summary .left { display:flex; align-items:center; gap: 8px; }
+  .compact-backup-list .backup-summary .subtle { opacity: .7; font-size: .85em; }
+  .compact-backup-list .backup-summary .right { display:flex; align-items:center; gap: 6px; }
+  /* Ensure backup action icons (chevron/trash) are readable on dark backgrounds */
+  .compact-backup-list .backup-summary .right .btn,
+  .compact-backup-list .backup-summary .right .btn i { color: #fff !important; }
+  .compact-backup-list .backup-summary .right .btn:hover i { color: #fff !important; }
+  /* Keep the archive icon on the left white as well */
+  .compact-backup-list .backup-summary .left i { color: #fff !important; }
+  .compact-backup-list .backup-details { padding: 8px 10px 12px 14px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .compact-backup-list .backup-group { margin: 6px 0 10px; }
+  .compact-backup-list .backup-group .group-title {
+    font-size: .78rem;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    opacity: .9;
+    margin: 0 0 8px 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .compact-backup-list .backup-group .group-title:before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    display: inline-block;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  }
+  /* Specialize bullets by group using data attribute */
+  .compact-backup-list .backup-group[data-group="Core"] .group-title:before { 
+    background: var(--color-warning); 
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-warning) 25%, transparent); 
+  }
+  .compact-backup-list .backup-group[data-group="Data"] .group-title:before { 
+    background: var(--color-success); 
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-success) 20%, transparent); 
+  }
+  .compact-backup-list .backup-files { display: flex; flex-direction: column; gap: 8px; }
+  .compact-backup-list .backup-file-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+  }
+  .compact-backup-list .backup-file-row .file-left { display:flex; align-items:center; gap: 10px; min-width: 0; }
+  .compact-backup-list .backup-file-row .file-left i { color: #fff; opacity: .9; }
+  .compact-backup-list .backup-file-row .file-text { display:flex; flex-direction:column; gap: 2px; min-width: 0; }
+  .compact-backup-list .backup-file-row .file-title { font-weight: 600; opacity: .95; }
+  .compact-backup-list .backup-file-row .file-subtle { font-size: .8rem; color: var(--color-text-secondary); opacity: .85; }
+  .compact-backup-list .backup-file-row .btn-xs { padding: 4px 10px; font-size: .78rem; border-radius: 8px; }
+
+  /* Themed time input with clock icon */
+  .time-input { display:inline-flex; align-items:center; gap:8px; padding: 6px 10px; border-radius: 8px; background: var(--color-bg-tertiary); border: 1px solid var(--color-border); margin: 0 8px; }
+  .time-input i { color: var(--color-text-secondary); opacity: .85; }
+  .time-input input[type="time"] { background: transparent; border: none; outline: none; color: var(--color-text-primary); font: inherit; }
+  .time-input input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.7); }
+
   .panel-header .panel-subtitle {
     font-size: 0.95rem;
     color: var(--color-text-secondary);
@@ -2329,6 +2397,46 @@
                 </div>
               </div>
       </section>
+            <!-- Backups Group Title -->
+            <div class="ops-group">
+              <div class="ops-group-title"><i class="fas fa-folder-open"></i> Backups</div>
+            </div>
+            <!-- Config Backups (compact list) -->
+            <section class="perf-card" aria-label="Config Backups">
+              <h3><i class="fas fa-archive"></i> Config Backups</h3>
+              <div class="card-pill-spot">
+                <span id="cfg-backup-schedule-pill" class="status-pill status-warning">Disabled</span>
+              </div>
+              <div class="card-subtext">Create daily configuration backups and restore per file.</div>
+
+              <div class="actions main-actions">
+                <button type="button" id="btn-create-cfg-backup" class="btn btn-success btn-sm"><i class="fas fa-plus-circle"></i><span>Backup now</span></button>
+                <div class="input-row">
+                  <div class="form-group" style="margin:0;">
+                    <input type="number" id="input-keep-cfg-backups" min="1" max="60" value="7" class="w-90" title="Number of backups to keep" />
+                  </div>
+                  <button type="button" id="btn-cleanup-cfg-backups" class="btn btn-secondary btn-sm"><i class="fas fa-broom"></i><span>Cleanup</span></button>
+                </div>
+              </div>
+
+              <div class="actions sub-actions">
+                <div class="inline-field">
+                  <label for="input-cfg-backup-enabled" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Daily schedule</label>
+                  <label class="checkbox" style="margin-right:8px;">
+                    <input type="checkbox" id="input-cfg-backup-enabled" />
+                    <span class="checkmark"></span>
+                    <span>Enabled</span>
+                  </label>
+                  <div class="time-input" title="Run time">
+                    <i class="fas fa-clock" aria-hidden="true"></i>
+                    <input type="time" id="input-cfg-backup-time" value="02:30" class="w-110" aria-label="Backup time" />
+                  </div>
+                  <button type="button" id="btn-save-cfg-backup-schedule" class="btn btn-primary btn-sm"><i class="fas fa-save"></i><span>Save</span></button>
+                </div>
+              </div>
+
+              <div id="cfg-backup-list" class="compact-backup-list"></div>
+            </section>
             <!-- Media Group Title -->
             <div class="ops-group">
               <div class="ops-group-title"><i class="fas fa-photo-video"></i> Media</div>
@@ -3470,6 +3578,22 @@
     </div>
     <div class="notify-list" id="notify-list"></div>
   </div>
+    <!-- Generic Confirm Modal -->
+    <div class="modal-overlay" id="modal-confirm" hidden>
+      <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-title">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-confirm-title"><i class="fas fa-question-circle"></i> Confirm</div>
+          <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" id="modal-confirm-body" style="padding: 16px 20px;">
+          Are you sure?
+        </div>
+        <div class="modal-footer" style="display:flex; gap:10px; justify-content:flex-end; padding: 14px 20px;">
+          <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
+          <button type="button" class="btn btn-primary" id="modal-confirm-ok"><i class="fas fa-check"></i><span>Confirm</span></button>
+        </div>
+      </div>
+    </div>
   <script src="/admin2.js?v=20250909-01"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
