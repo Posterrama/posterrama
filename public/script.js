@@ -408,7 +408,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             background: '#000',
             zIndex: '1000000',
             display: 'none',
+            pointerEvents: 'auto',
+            cursor: 'none',
+            userSelect: 'none',
         });
+        blackoutEl.setAttribute('aria-hidden', 'true');
+        // Prevent any interaction while powered off
+        const block = ev => {
+            try {
+                ev.preventDefault();
+                ev.stopImmediatePropagation();
+                ev.stopPropagation();
+            } catch (_) {}
+            return false;
+        };
+        [
+            'click',
+            'dblclick',
+            'contextmenu',
+            'mousedown',
+            'mouseup',
+            'mousemove',
+            'wheel',
+            'touchstart',
+            'touchmove',
+            'touchend',
+            'keydown',
+            'keyup',
+            'keypress',
+            'scroll',
+        ].forEach(t => blackoutEl.addEventListener(t, block, { capture: true, passive: false }));
         document.body.appendChild(blackoutEl);
         return blackoutEl;
     }
@@ -417,6 +446,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             ensureBlackoutEl().style.display = 'block';
             // Pause any playback timers
             setPaused(true);
+            // Lock page scroll to avoid any visual movement
+            try {
+                if (!document.body.__prevOverflow)
+                    document.body.__prevOverflow = document.body.style.overflow;
+                document.body.style.overflow = 'hidden';
+            } catch (_) {}
             // Notify heartbeat of poweredOff state (best effort)
             try {
                 window.__posterramaPoweredOff = true;
@@ -430,6 +465,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             ensureBlackoutEl().style.display = 'none';
             setPaused(false);
+            try {
+                document.body.style.overflow = document.body.__prevOverflow || '';
+                delete document.body.__prevOverflow;
+            } catch (_) {}
             try {
                 window.__posterramaPoweredOff = false;
                 window.PosterramaDevice &&
