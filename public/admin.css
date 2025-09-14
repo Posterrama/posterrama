@@ -4808,7 +4808,7 @@ fieldset:focus-within {
     padding: 0;
 }
 #devices-section th.col-name {
-    width: 50%;
+    width: 40%;
 }
 #devices-section th.col-name {
     text-align: left;
@@ -4832,7 +4832,7 @@ fieldset:focus-within {
     padding: 0;
 }
 #devices-section th.col-status {
-    width: 50%;
+    width: 60%;
     padding-left: 12px;
 }
 #devices-section th.col-actions {
@@ -4840,6 +4840,10 @@ fieldset:focus-within {
 }
 #devices-section td {
     vertical-align: middle;
+}
+/* Make each device row a positioning context */
+#devices-section tbody tr {
+    position: relative;
 }
 /* Bottom-align input controls across cells using a consistent baseline gap */
 /* Removed absolute positioning to prevent overlap and restore normal flow */
@@ -4893,16 +4897,18 @@ fieldset:focus-within {
     width: 100%;
 }
 #devices-section .actions-inline {
-    /* Float toolbar inside the name cell header area so it doesn't push the row */
+    /* Toolbar spanning the row, above inputs, across name+status */
     position: absolute;
     top: 0;
-    left: calc(22px + 14px);
+    left: 0;
     right: 0;
     margin: 0;
-    padding: 0;
+    padding: 0 0 0 calc(22px + 14px); /* account for checkbox + gap */
     height: 26px;
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* two equal halves across name+status */
     align-items: center;
+    z-index: 2; /* keep above inputs */
 }
 #devices-section .actions-inline .btn-group.icon-only {
     display: flex;
@@ -5482,7 +5488,6 @@ div#devices-section.section-content.active .section-main-content {
 
 /* Two-line device cell layout */
 #devices-section td.cell-name {
-    position: relative;
     padding-top: 32px; /* reserve space for toolbar above inputs */
     padding-bottom: 6px;
 }
