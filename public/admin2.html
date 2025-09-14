@@ -130,15 +130,9 @@
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
     pointer-events: none !important;
   }
-  /* Hover bridge above menu */
-  #settings-menu::before, #user-menu::before {
-    content: '' !important;
-    position: absolute !important;
-    left: 0 !important; right: 0 !important;
-    top: -10px !important; height: 10px !important;
-    background: transparent !important;
-    pointer-events: auto !important;
-  }
+  /* Disable hover bridges; menus are click-open, JS-managed */
+  #settings-menu::before,
+  #user-menu::before { content: none !important; }
   /* Remove arrow/anchor notch above dropdowns */
   #settings-menu::after, #user-menu::after,
   .dropdown.dropdown-left .dropdown-menu::after,
@@ -151,17 +145,7 @@
     transform: translateY(0) scale(1) !important;
     pointer-events: auto !important;
   }
-  /* Hover-to-open behavior on pointer devices */
-  @media (hover: hover) {
-    #settings-dropdown:hover #settings-menu,
-    #user-dropdown:hover #user-menu,
-    #settings-menu:hover,
-    #user-menu:hover {
-      opacity: 1 !important;
-      transform: translateY(0) scale(1) !important;
-      pointer-events: auto !important;
-    }
-  }
+  /* No CSS hover-open; JS controls visibility */
 
   /* Trigger buttons: modern hover/active visuals */
   .nav-actions .dropdown .btn.btn-icon {
@@ -175,6 +159,14 @@
     outline: none;
   }
   /* (removed empty rules for aria-expanded and icon hover to keep CSS tidy) */
+  /* Minimal hover/active for settings and user buttons (slightly darker bg + dark border, no shadow) */
+  #settings-btn.btn.btn-icon,
+  #user-btn.btn.btn-icon {
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    transition: background .12s ease, border-color .12s ease !important;
+  }
   /* Minimal hover/active for settings and user buttons (slightly darker bg + dark border, no shadow) */
   #settings-btn.btn.btn-icon,
   #user-btn.btn.btn-icon {
@@ -211,13 +203,7 @@
     align-self: center !important;
   }
   
-  /* Settings menu (left) positioning - MORE SPECIFIC */
-  #settings-dropdown #settings-menu,
-  #settings-menu {
-    left: 12px !important;
-    right: auto !important;
-    transform-origin: left top !important;
-  }
+  /* Settings menu positioning is handled via JS to avoid viewport overflow */
   /* Limit dropdown container size to its contents (avoid oversized hitbox) */
   .nav-actions .dropdown,
   #user-dropdown.dropdown.nav-user {
@@ -253,16 +239,7 @@
     left: auto !important;
   }
   
-  /* Force settings menu to left with extreme specificity */
-  body .dropdown #settings-menu,
-  body #settings-dropdown #settings-menu {
-    left: 0 !important;
-    right: auto !important;
-    margin-top: 0 !important;
-    margin-right: 0 !important;
-    top: calc(100% + 4px) !important;
-    position: absolute !important;
-  }
+  /* (removed forced-left rules; JS sets left/right per available space) */
   
   /* Force user menu to right with extreme specificity */  
   body .dropdown #user-menu,
@@ -723,7 +700,7 @@
         <i class="fas fa-bell"></i>
         <span class="badge" id="notif-count" hidden>0</span>
       </button>
-  <div class="dropdown dropdown-left" id="settings-dropdown">
+  <div class="dropdown" id="settings-dropdown">
         <button class="btn btn-icon dropdown-toggle" id="settings-btn" title="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">
           <i class="fas fa-cog"></i>
         </button>
@@ -888,18 +865,24 @@
           <div style="display: flex; gap: 16px; align-items: center;">
             <span class="header-pill status-success" id="perf-app-status" title="Application server status">
               <i class="fas fa-rocket"></i>
-              <span class="label">Status</span>
+              <span class="label">Application</span>
               <span class="value">Running</span>
             </span>
             <span class="header-pill" id="perf-db-status" title="Database connection status" style="background: rgba(59, 130, 246, 0.15); color: #93c5fd; border-color: rgba(59, 130, 246, 0.25);">
               <i class="fas fa-server"></i>
-              <span class="label">Status</span>
+              <span class="label">Database</span>
               <span class="value">Connected</span>
             </span>
             <span class="header-pill status-warning" id="perf-cache-status" title="Cache system status">
               <i class="fas fa-bolt"></i>
-              <span class="label">Status</span>
+              <span class="label">Cache</span>
               <span class="value">Active</span>
+            </span>
+            <!-- Uptime moved here as a pill only -->
+            <span class="header-pill" id="perf-uptime-pill" title="Server uptime">
+              <i class="fas fa-clock"></i>
+              <span class="label">Uptime</span>
+              <span class="value" id="perf-uptime">—</span>
             </span>
           </div>
         </header>
@@ -937,18 +920,36 @@
                     <div style="height: 100%; background: linear-gradient(90deg, var(--color-success), var(--color-success-dark)); border-radius: 4px; transition: width 0.6s ease; width: 0%;" id="meter-mem"></div>
                   </div>
                 </div>
-                
-                <!-- Other metrics -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px;">
-                  <div style="padding: 12px; background: var(--color-bg-tertiary); border-radius: 8px; border: 1px solid var(--color-border);">
-                    <div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 4px;">Disk Usage</div>
-                    <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);" id="perf-disk">—</div>
+
+                <!-- Disk Usage: full-width bar like CPU/Memory -->
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 0.9rem; color: var(--color-text-secondary); font-weight: 500;">Disk Usage</span>
+                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary);" id="perf-disk">—</span>
                   </div>
-                  <div style="padding: 12px; background: var(--color-bg-tertiary); border-radius: 8px; border: 1px solid var(--color-border);">
-                    <div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 4px;">Uptime</div>
-                    <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);" id="perf-uptime">—</div>
+                  <div style="width: 100%; height: 8px; background: var(--color-bg-secondary); border-radius: 4px; overflow: hidden;">
+                    <div style="height: 100%; background: linear-gradient(90deg, var(--color-info), var(--color-info-dark)); border-radius: 4px; transition: width 0.6s ease; width: 0%;" id="meter-disk"></div>
                   </div>
                 </div>
+
+                <!-- Load Average under Disk Usage -->
+                <div id="perf-loadavg-container" style="margin-top: 8px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary);">
+                      <i class="fas fa-chart-line" style="color: var(--color-info);"></i>
+                      <span style="font-size: 0.9rem; font-weight: 500;">Load Average</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <span style="background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600;" id="perf-loadavg-1">—</span>
+                      <span style="background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600;" id="perf-loadavg-5">—</span>
+                      <span style="background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600;" id="perf-loadavg-15">—</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; justify-content: flex-end;">
+                    <span style="font-size: 0.75rem; color: var(--color-text-secondary);">1min • 5min • 15min averages</span>
+                  </div>
+                </div>
+                
               </div>
             </div>
 

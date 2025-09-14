@@ -354,7 +354,46 @@
                 'perf-disk',
                 `${diskPct}% (${perf?.disk?.used || '—'} / ${perf?.disk?.total || '—'})`
             );
+            // Update disk progress bar similar to CPU/Memory
+            setMeter('meter-disk', diskPct);
             setText('perf-uptime', perf?.uptime || '—');
+
+            // Load Average display (1, 5, 15 mins)
+            try {
+                const laStr = String(perf?.cpu?.loadAverage || '').trim();
+                const parts = laStr ? laStr.split(',').map(s => s.trim()) : [];
+                const [la1, la5, la15] = [parts[0], parts[1], parts[2]];
+                const setChip = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const num = Number(val);
+                    el.textContent = val || '—';
+                    // simple thresholds: <1 good, 1-2 busy, >2 overloaded
+                    el.style.background = '';
+                    el.style.color = '';
+                    el.style.borderColor = '';
+                    if (Number.isFinite(num)) {
+                        if (num < 1) {
+                            el.style.background = 'rgba(34,197,94,0.15)'; // green
+                            el.style.color = '#86efac';
+                            el.style.borderColor = 'rgba(34,197,94,0.25)';
+                        } else if (num <= 2) {
+                            el.style.background = 'rgba(234,179,8,0.15)'; // amber
+                            el.style.color = '#fde68a';
+                            el.style.borderColor = 'rgba(234,179,8,0.25)';
+                        } else {
+                            el.style.background = 'rgba(239,68,68,0.15)'; // red
+                            el.style.color = '#fca5a5';
+                            el.style.borderColor = 'rgba(239,68,68,0.25)';
+                        }
+                    }
+                };
+                setChip('perf-loadavg-1', la1);
+                setChip('perf-loadavg-5', la5);
+                setChip('perf-loadavg-15', la15);
+            } catch (_) {
+                /* non-fatal */
+            }
         } catch (_) {
             // ignore
         }
@@ -998,6 +1037,7 @@
             settingsMenu.style.pointerEvents = 'none';
         }
 
+        // Click-to-open only; hover-open removed
         settingsBtn?.addEventListener('click', e => {
             console.log('Settings button clicked!');
             e.stopPropagation();
@@ -1005,23 +1045,67 @@
             const willOpen = !settingsMenu?.classList.contains('show');
             console.log('Settings menu will open:', willOpen);
             if (willOpen) {
+                // Ensure the user menu is closed when opening settings
+                try {
+                    typeof closeUserMenu === 'function' && closeUserMenu();
+                } catch (_) {}
                 settingsMenu?.classList.add('show');
-                // Simple, reliable positioning with negative margin trick
+                // Show and dynamically position within viewport
+                const dd = document.getElementById('settings-dropdown');
                 settingsMenu.style.display = 'block';
                 settingsMenu.style.position = 'absolute';
                 settingsMenu.style.top = 'calc(100% + 8px)';
-                // Force left anchoring for settings menu
-                settingsMenu.style.left = '0';
-                settingsMenu.style.right = 'auto';
                 settingsMenu.style.zIndex = '2000';
                 settingsMenu.style.opacity = '1';
                 settingsMenu.style.pointerEvents = 'auto';
+                // Reset anchors
+                settingsMenu.style.left = 'auto';
+                settingsMenu.style.right = 'auto';
+                // Default: align left edge with button
+                settingsMenu.style.left = '0';
+                // Compute overflow and flip if needed
+                requestAnimationFrame(() => {
+                    try {
+                        const menuRect = settingsMenu.getBoundingClientRect();
+                        const dropdownRect = dd?.getBoundingClientRect();
+                        const vw = Math.max(
+                            document.documentElement.clientWidth,
+                            window.innerWidth || 0
+                        );
+                        // If the right edge overflows, anchor to the right of the dropdown instead
+                        if (menuRect.right > vw && dropdownRect) {
+                            settingsMenu.style.left = 'auto';
+                            settingsMenu.style.right = '0';
+                        }
+                        // If still overflowing left, clamp width and stick to viewport
+                        const updatedRect = settingsMenu.getBoundingClientRect();
+                        if (updatedRect.left < 0) {
+                            const maxWidth = Math.min(280, vw - 16);
+                            settingsMenu.style.maxWidth = maxWidth + 'px';
+                            settingsMenu.style.left = '8px';
+                            settingsMenu.style.right = 'auto';
+                        }
+                    } catch (err) {
+                        console.warn('Settings menu positioning error', err);
+                    }
+                });
                 console.log('Settings menu opened');
             } else {
                 closeMenu();
             }
             settingsBtn.setAttribute('aria-expanded', String(willOpen));
             settingsMenu?.setAttribute('aria-hidden', String(!willOpen));
+        });
+        // Auto-close with small delay when leaving the settings menu area
+        let settingsCloseTimeout;
+        settingsMenu?.addEventListener('mouseenter', () => {
+            clearTimeout(settingsCloseTimeout);
+        });
+        settingsMenu?.addEventListener('mouseleave', () => {
+            clearTimeout(settingsCloseTimeout);
+            settingsCloseTimeout = setTimeout(() => {
+                if (!settingsMenu.matches(':hover')) closeMenu();
+            }, 120);
         });
         document.addEventListener('click', e => {
             if (!settingsMenu) return;
@@ -1046,6 +1130,10 @@
             userBtn?.setAttribute('aria-expanded', 'false');
             userMenu?.setAttribute('aria-hidden', 'true');
             userMenu?.classList.remove('show');
+            // Hide the menu properly
+            userMenu.style.display = 'none';
+            userMenu.style.opacity = '0';
+            userMenu.style.pointerEvents = 'none';
         }
         userBtn?.addEventListener('click', e => {
             console.log('User button clicked!');
@@ -1054,6 +1142,10 @@
             const willOpen = !userMenu?.classList.contains('show');
             console.log('User menu will open:', willOpen);
             if (willOpen) {
+                // Ensure the settings menu is closed when opening user menu
+                try {
+                    typeof closeMenu === 'function' && closeMenu();
+                } catch (_) {}
                 userMenu.classList.add('show');
                 // Add same inline styles as settings menu
                 userMenu.style.display = 'block';
@@ -1075,6 +1167,18 @@
         });
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closeUserMenu();
+        });
+        // Allow hover-open for user menu without flicker
+        // Click-to-open only for user; auto-close with small delay on mouseleave
+        let userCloseTimeout;
+        userMenu?.addEventListener('mouseenter', () => {
+            clearTimeout(userCloseTimeout);
+        });
+        userMenu?.addEventListener('mouseleave', () => {
+            clearTimeout(userCloseTimeout);
+            userCloseTimeout = setTimeout(() => {
+                if (!userMenu.matches(':hover')) closeUserMenu();
+            }, 120);
         });
         // Route account actions to modals
         document.getElementById('user-change-password')?.addEventListener('click', e => {
