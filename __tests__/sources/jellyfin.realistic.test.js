@@ -163,9 +163,12 @@ describe('Jellyfin Source', () => {
                     'OriginalTitle',
                     'ImageTags',
                     'BackdropImageTags',
+                    'MediaStreams',
+                    'MediaSources',
                 ],
-                sortBy: ['Random'],
-                limit: 4, // count * 2
+                sortBy: [],
+                limit: 1000,
+                startIndex: 0,
             });
             expect(mockProcessJellyfinItem).toHaveBeenCalledTimes(2);
             expect(result).toHaveLength(2);
@@ -198,9 +201,12 @@ describe('Jellyfin Source', () => {
                     'OriginalTitle',
                     'ImageTags',
                     'BackdropImageTags',
+                    'MediaStreams',
+                    'MediaSources',
                 ],
-                sortBy: ['Random'],
-                limit: 4, // count * 2
+                sortBy: [],
+                limit: 1000,
+                startIndex: 0,
             });
             expect(result).toHaveLength(2);
         });

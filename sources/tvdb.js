@@ -129,7 +129,12 @@ class TVDBSource {
                 },
                 params,
             });
-
+            // Record basic request metrics and last successful fetch time
+            try {
+                this.metrics.requestCount = (this.metrics.requestCount || 0) + 1;
+                this.metrics.lastRequestTime = new Date();
+                this.lastFetch = Date.now();
+            } catch (_) {}
             return response.data;
         } catch (error) {
             if (error.response?.status === 401) {
@@ -146,6 +151,12 @@ class TVDBSource {
                         },
                         params,
                     });
+                    // Record basic request metrics and last successful fetch time on retry
+                    try {
+                        this.metrics.requestCount = (this.metrics.requestCount || 0) + 1;
+                        this.metrics.lastRequestTime = new Date();
+                        this.lastFetch = Date.now();
+                    } catch (_) {}
                     return retryResponse.data;
                 } catch (retryError) {
                     logger.error('TVDB API retry failed:', retryError.message);
@@ -163,6 +174,9 @@ class TVDBSource {
             const cacheKey = `tvdb_artwork_${itemType}_${itemId}`;
             const cached = this.getCachedData(cacheKey);
             if (cached) {
+                // Reflect last data readiness time even when served from cache
+                const entry = this.cache.get(cacheKey);
+                if (entry && entry.timestamp) this.lastFetch = entry.timestamp;
                 return cached;
             }
 
@@ -271,6 +285,9 @@ class TVDBSource {
             const cacheKey = `tvdb_shows_${this.category}_${this.showCount}_${this.minRating}_${this.yearFilter}`;
             const cached = this.getCachedData(cacheKey);
             if (cached) {
+                // Reflect last data readiness time even when served from cache
+                const entry = this.cache.get(cacheKey);
+                if (entry && entry.timestamp) this.lastFetch = entry.timestamp;
                 return cached;
             }
 
@@ -350,6 +367,8 @@ class TVDBSource {
                 }
             }
 
+            // Mark last successful fetch time (used by admin UI)
+            this.lastFetch = Date.now();
             this.setCachedData(cacheKey, shows);
             return shows;
         } catch (error) {
@@ -445,6 +464,8 @@ class TVDBSource {
                 }
             }
 
+            // Mark last successful fetch time (used by admin UI)
+            this.lastFetch = Date.now();
             this.setCachedData(cacheKey, movies);
             return movies;
         } catch (error) {

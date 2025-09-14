@@ -56,13 +56,40 @@ class JellyfinHttpClient {
             }
         }
         this.baseUrl = `${protocol}://${hostname}:${port}${normalizedBasePath}`;
-        if (process.env.DEBUG === 'true' || process.env.DEBUG === '1') {
+        // Dedicated debug flag for the Jellyfin HTTP client
+        const jfDebug =
+            process.env.JELLYFIN_HTTP_DEBUG === 'true' || process.env.DEBUG_JELLYFIN === 'true';
+        this.__jfDebug = jfDebug;
+        // Opt-in flag specifically for retry attempt logging (very noisy)
+        this.__retryLogEnabled = process.env.JELLYFIN_RETRY_LOGS === 'true';
+        if (jfDebug) {
             // Minimal debug to aid field diagnostics (no secrets)
             // eslint-disable-next-line no-console
             console.debug(
                 `[JellyfinHttpClient] baseUrl=${this.baseUrl}, insecure=${this.insecure}`
             );
         }
+
+        // Simple throttled warning tracker to avoid log spam per-key
+        this.__lastWarnAt = new Map();
+        this.__warnIntervalMs = 60_000; // default 60s throttle window
+
+        this.debug = (...args) => {
+            if (this.__jfDebug) {
+                // eslint-disable-next-line no-console
+                console.debug(...args);
+            }
+        };
+
+        this.warnThrottled = (key, ...args) => {
+            const now = Date.now();
+            const last = this.__lastWarnAt.get(key) || 0;
+            if (now - last >= this.__warnIntervalMs) {
+                this.__lastWarnAt.set(key, now);
+                // eslint-disable-next-line no-console
+                console.warn(...args);
+            }
+        };
 
         // Compose Jellyfin/Emby authorization metadata header
         const deviceName = process.env.POSTERRAMA_DEVICE_NAME || os.hostname() || 'Posterrama';
@@ -93,11 +120,30 @@ class JellyfinHttpClient {
 
         // Append api_key to all requests as a reverse-proxy friendly fallback if headers are stripped
         this.http.interceptors.request.use(config => {
-            if (process.env.DEBUG === 'true') {
+            if (this.__jfDebug) {
+                const masked = val =>
+                    typeof val === 'string' && val.length > 6
+                        ? `${val.slice(0, 3)}…${val.slice(-2)}`
+                        : '[redacted]';
+                const hdrKeys = Object.keys(config.headers || {});
+                // eslint-disable-next-line no-console
                 console.debug(
-                    `[JellyfinHttpClient] Interceptor: apiKey="${this.apiKey}", url="${config.url}"`
+                    `[JellyfinHttpClient] Request: ${String(config.method || 'GET').toUpperCase()} ${config.url}`
                 );
-                console.debug(`[JellyfinHttpClient] Headers:`, config.headers);
+                // eslint-disable-next-line no-console
+                console.debug('[JellyfinHttpClient] Header keys:', hdrKeys);
+                if (
+                    config.headers &&
+                    (config.headers['X-Emby-Token'] || config.headers['X-MediaBrowser-Token'])
+                ) {
+                    // eslint-disable-next-line no-console
+                    console.debug(
+                        '[JellyfinHttpClient] Token (masked):',
+                        masked(
+                            config.headers['X-Emby-Token'] || config.headers['X-MediaBrowser-Token']
+                        )
+                    );
+                }
             }
             try {
                 const url = new URL((config.baseURL || '') + (config.url || ''));
@@ -114,8 +160,11 @@ class JellyfinHttpClient {
                     config.params.api_key = this.apiKey;
                 }
             }
-            if (process.env.DEBUG === 'true') {
-                console.debug(`[JellyfinHttpClient] Final params:`, config.params);
+            if (this.__jfDebug) {
+                const paramsSafe = { ...(config.params || {}) };
+                if ('api_key' in paramsSafe) paramsSafe.api_key = '[redacted]';
+                // eslint-disable-next-line no-console
+                console.debug('[JellyfinHttpClient] Params:', paramsSafe);
             }
             return config;
         });
@@ -148,10 +197,13 @@ class JellyfinHttpClient {
 
                 // Exponential backoff: wait longer between retries
                 const delay = baseDelay * Math.pow(2, attempt);
-                console.warn(
-                    `[JellyfinClient] Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms:`,
-                    error.message
-                );
+                if (this.__jfDebug && this.__retryLogEnabled) {
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                        `[JellyfinClient] Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms:`,
+                        error.message
+                    );
+                }
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
@@ -178,14 +230,16 @@ class JellyfinHttpClient {
             // 2) Validate token by calling an authenticated endpoint accessible to normal users
             //    Use /Users which requires a valid token and lists users the token can access
             try {
-                if (process.env.DEBUG === 'true') {
+                if (this.__jfDebug) {
+                    // eslint-disable-next-line no-console
                     console.debug(
                         `[JellyfinHttpClient] Testing auth with /Users, apiKey length: ${this.apiKey ? this.apiKey.length : 0}`
                     );
                 }
                 await this.http.get('/Users');
             } catch (e) {
-                if (process.env.DEBUG === 'true') {
+                if (this.__jfDebug) {
+                    // eslint-disable-next-line no-console
                     console.debug(
                         `[JellyfinHttpClient] /Users failed:`,
                         e.response?.status,
@@ -195,7 +249,8 @@ class JellyfinHttpClient {
                 if (e.response && (e.response.status === 401 || e.response.status === 403)) {
                     // Some reverse proxies can strip X-Emby-Token headers; try query-param fallback
                     try {
-                        if (process.env.DEBUG === 'true') {
+                        if (this.__jfDebug) {
+                            // eslint-disable-next-line no-console
                             console.debug(
                                 `[JellyfinHttpClient] Retrying with query param fallback`
                             );
@@ -352,7 +407,8 @@ class JellyfinHttpClient {
                         });
                     }
                 } catch (error) {
-                    console.warn(
+                    this.warnThrottled(
+                        `genres:${libraryId}`,
                         `Failed to fetch genres from library ${libraryId}:`,
                         error.message
                     );
@@ -402,7 +458,8 @@ class JellyfinHttpClient {
                         });
                     }
                 } catch (error) {
-                    console.warn(
+                    this.warnThrottled(
+                        `genresCounts:${libraryId}`,
                         `Failed to fetch genres from library ${libraryId}:`,
                         error.message
                     );
@@ -449,7 +506,8 @@ class JellyfinHttpClient {
                         });
                     }
                 } catch (error) {
-                    console.warn(
+                    this.warnThrottled(
+                        `ratings:${libraryId}`,
                         `Failed to fetch ratings from library ${libraryId}:`,
                         error.message
                     );
@@ -492,7 +550,8 @@ class JellyfinHttpClient {
                         });
                     }
                 } catch (error) {
-                    console.warn(
+                    this.warnThrottled(
+                        `ratingsCounts:${libraryId}`,
                         `Failed to fetch ratings from library ${libraryId}:`,
                         error.message
                     );
@@ -542,12 +601,12 @@ class JellyfinHttpClient {
                         parentId: libraryId,
                         includeItemTypes: ['Movie', 'Series'], // Fixed: was ['Movie', 'Episode']
                         fields: ['MediaStreams', 'MediaSources'], // Get both for maximum compatibility
-                        limit: 50, // Reduced to 50 for testing - was 1000
+                        limit: 1000, // Increase limit for better coverage (matches Plex side)
                         recursive: true,
                     });
 
-                    console.log(
-                        `[DEBUG] Library ${libraryId}: Found ${response.Items ? response.Items.length : 0} items (includeItemTypes: ['Movie', 'Series']) - LIMIT: 50`
+                    this.debug(
+                        `[JellyfinHttpClient] Library ${libraryId}: Found ${response.Items ? response.Items.length : 0} items (includeItemTypes: ['Movie', 'Series']) - LIMIT: 50`
                     );
 
                     if (response.Items) {
@@ -601,16 +660,16 @@ class JellyfinHttpClient {
                         });
                     }
                 } catch (error) {
-                    console.warn(
+                    this.warnThrottled(
+                        `qualities:${libraryId}`,
                         `Failed to fetch qualities from library ${libraryId}:`,
                         error.message
                     );
                 }
             }
 
-            console.log(
-                `[DEBUG] Final quality counts across all libraries:`,
-                Array.from(qualityCounts.entries())
+            this.debug(
+                `[JellyfinHttpClient] Final quality counts across all libraries: ${JSON.stringify(Array.from(qualityCounts.entries()))}`
             );
 
             // Convert to array of objects and sort by quality preference

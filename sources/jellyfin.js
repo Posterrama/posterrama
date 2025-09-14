@@ -128,6 +128,7 @@ class JellyfinSource {
             const client = await this.getJellyfinClient(this.server);
             const allLibraries = await this.getJellyfinLibraries(this.server);
 
+            // Fetch ALL items for selected libraries (paginated), then filter across the full set
             let allItems = [];
             for (const name of libraryNames) {
                 const library = allLibraries.get(name);
@@ -139,36 +140,44 @@ class JellyfinSource {
                 }
 
                 try {
-                    // Use our new HTTP client for better reliability
-                    const items = await client.getItems({
-                        parentId: library.id,
-                        includeItemTypes: type === 'movie' ? ['Movie'] : ['Series'],
-                        recursive: true,
-                        fields: [
-                            'Genres',
-                            'Overview',
-                            'CommunityRating',
-                            'OfficialRating',
-                            'UserData',
-                            'ProductionYear',
-                            'RunTimeTicks',
-                            'Taglines',
-                            'OriginalTitle',
-                            'ImageTags',
-                            'BackdropImageTags',
-                        ],
-                        sortBy: ['Random'],
-                        limit: count * 2,
-                    });
-
-                    if (items && items.Items) {
-                        allItems = allItems.concat(items.Items);
+                    const pageSize = 1000;
+                    let startIndex = 0;
+                    let fetched = 0;
+                    do {
+                        const page = await client.getItems({
+                            parentId: library.id,
+                            includeItemTypes: type === 'movie' ? ['Movie'] : ['Series'],
+                            recursive: true,
+                            fields: [
+                                'Genres',
+                                'Overview',
+                                'CommunityRating',
+                                'OfficialRating',
+                                'UserData',
+                                'ProductionYear',
+                                'RunTimeTicks',
+                                'Taglines',
+                                'OriginalTitle',
+                                'ImageTags',
+                                'BackdropImageTags',
+                                // Include media info so quality filtering can work
+                                'MediaStreams',
+                                'MediaSources',
+                            ],
+                            sortBy: [], // deterministic fetch; we will shuffle after filtering
+                            limit: pageSize,
+                            startIndex,
+                        });
+                        const items = (page && page.Items) || [];
+                        allItems = allItems.concat(items);
+                        fetched = items.length;
+                        startIndex += pageSize;
                         if (this.isDebug) {
                             logger.debug(
-                                `[JellyfinSource:${this.server.name}] Library "${name}" provided ${items.Items.length} items`
+                                `[JellyfinSource:${this.server.name}] Library "${name}" page @${startIndex - pageSize} -> +${items.length}`
                             );
                         }
-                    }
+                    } while (fetched === pageSize);
                 } catch (libraryError) {
                     logger.error(
                         `[JellyfinSource:${this.server.name}] Failed to fetch from library "${name}":`,
@@ -186,6 +195,13 @@ class JellyfinSource {
                 logger.debug(
                     `[JellyfinSource:${this.server.name}] Found ${allItems.length} total items in specified libraries.`
                 );
+                if (allItems.length === 0) {
+                    logger.debug(
+                        `[JellyfinSource:${this.server.name}] No items returned. Check that library names exist and contain ${
+                            type === 'movie' ? 'Movie' : 'Series'
+                        } items. Names: ${libraryNames.join(', ')}`
+                    );
+                }
             }
 
             // First stage: Year and Genre filters (apply early for performance)
@@ -289,6 +305,10 @@ class JellyfinSource {
 
                 // Apply quality filter if configured
                 if (this.server.qualityFilter && this.server.qualityFilter.trim() !== '') {
+                    // Jellyfin Series items rarely contain stream info; skip quality filter for shows
+                    if (type === 'show') {
+                        return true;
+                    }
                     const qualityList = this.server.qualityFilter.split(',').map(q => q.trim());
 
                     // Get quality information from media sources
@@ -337,26 +357,28 @@ class JellyfinSource {
 
                 // Handle simple string rating filter (new approach)
                 if (ratingFilter) {
-                    // Convert string to array for consistent handling
-                    const allowedRatings = Array.isArray(ratingFilter)
-                        ? ratingFilter
-                        : [ratingFilter];
+                    // Convert to normalized array for consistent handling
+                    const allowedRatings = (
+                        Array.isArray(ratingFilter) ? ratingFilter : [ratingFilter]
+                    )
+                        .filter(Boolean)
+                        .map(r => String(r).trim().toUpperCase());
 
-                    if (!item.OfficialRating) {
-                        // If a rating filter is set, exclude items without official rating
-                        if (this.isDebug) {
-                            logger.debug(
-                                `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - No OfficialRating when filter "${allowedRatings.join(', ')}" is required`
-                            );
+                    const itemRating = item.OfficialRating
+                        ? String(item.OfficialRating).trim().toUpperCase()
+                        : null;
+
+                    // If filter is present but empty after normalization, skip filtering
+                    if (allowedRatings.length > 0) {
+                        // If item has no rating, allow it unless the filter explicitly excludes unrated content
+                        if (itemRating && !allowedRatings.includes(itemRating)) {
+                            if (this.isDebug) {
+                                logger.debug(
+                                    `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - OfficialRating "${item.OfficialRating}" not in allowed list: ${allowedRatings.join(', ')}`
+                                );
+                            }
+                            return false;
                         }
-                        return false;
-                    } else if (!allowedRatings.includes(item.OfficialRating)) {
-                        if (this.isDebug) {
-                            logger.debug(
-                                `[JellyfinSource:${this.server.name}] Filtered out "${item.Name}" - OfficialRating "${item.OfficialRating}" not in allowed list: ${allowedRatings.join(', ')}`
-                            );
-                        }
-                        return false;
                     }
                 }
 
@@ -455,7 +477,18 @@ class JellyfinSource {
                 );
             }
 
-            // Shuffle and limit to requested count
+            // If we ended up with zero after filters, emit a helpful debug line
+            if (this.isDebug && filteredItems.length === 0) {
+                logger.debug(
+                    `[JellyfinSource:${this.server.name}] All items filtered out. Check ratingFilter (current: ${JSON.stringify(
+                        this.server.ratingFilter || this.server.ratingFilters || 'none'
+                    )}) and qualityFilter (current: ${JSON.stringify(
+                        this.server.qualityFilter || 'none'
+                    )}).`
+                );
+            }
+
+            // Shuffle and limit to requested count (apply cap AFTER filtering)
             const selectedItems = this.shuffleArray([...filteredItems]).slice(0, count);
 
             // Process items
@@ -473,6 +506,9 @@ class JellyfinSource {
                 (this.metrics.averageProcessingTime + processingTime) / 2;
             this.metrics.itemsProcessed += allItems.length;
             this.metrics.itemsFiltered += validItems.length;
+
+            // Mark successful fetch time for admin UI
+            this.lastFetch = Date.now();
 
             if (this.isDebug) {
                 logger.info(`[JellyfinSource:${this.server.name}] Processing completed`, {

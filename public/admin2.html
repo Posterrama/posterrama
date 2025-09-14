@@ -362,6 +362,7 @@
     padding: 8px 14px 4px !important;
     margin-bottom: 4px !important;
   }
+
   
   /* Dropdown items */
   .dropdown-menu .dropdown-item {
@@ -496,6 +497,8 @@
   .app-section[hidden] { display: none !important; }
   /* Safety: ensure Plex panel content is visible */
   #panel-plex .panel-content { display: block !important; visibility: visible !important; }
+  /* Consistent inner padding for Media Sources panels (Plex/Jellyfin/TMDB/TVDB) */
+  #section-media-sources .panel > .panel-content { padding: 16px 20px; }
   /* Operations panel polish (align with theme-demo) */
   /* Ensure Operations panel uses the same panel background as theme-demo */
   .operations-panel {
@@ -601,6 +604,31 @@
       transition: none !important;
     }
   }
+
+  /* Media Sources header with elegant subtitle */
+  #panel-sources-overview > .panel-header { 
+    display: flex; 
+    align-items: flex-start; 
+    justify-content: space-between; 
+    gap: 12px; 
+  }
+  #panel-sources-overview .panel-title { display: flex; flex-direction: column; gap: 4px; }
+  #panel-sources-overview .panel-title h2 { 
+    margin: 0; 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    line-height: 1.2; 
+  }
+  #panel-sources-overview .panel-title h2 i { color: inherit; }
+  /* Generic subtitle style for panel headers (used by Media Sources and Operations) */
+  .panel-header .panel-subtitle {
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+    opacity: 0.9;
+    max-width: 70ch;
+    margin-top: 2px;
+  }
   
   /* Media Sources Help Cards */
   .card-description {
@@ -680,6 +708,82 @@
   }
   #section-media-sources .status-card.status-error {
     border-left-color: var(--color-error) !important;
+  }
+
+  /* Media Sources – Modern overview cards */
+  #section-media-sources .source-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 18px;
+  }
+  /* At larger widths, prefer a clean 3-column layout */
+  @media (min-width: 1200px) {
+    #section-media-sources .source-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+  }
+  #section-media-sources .source-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow-md);
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  }
+  /* Help tile accent + ensure last position */
+  #section-media-sources .source-grid .source-card.help-card { 
+    order: 999; /* pin to end */
+    border-left: 3px solid var(--color-warning);
+    background: linear-gradient(180deg, var(--color-bg-card), rgba(255,255,255,0.02));
+  }
+  #section-media-sources .source-grid .source-card.help-card .sc-icon i { color: var(--color-warning); }
+  #section-media-sources .source-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(255,255,255,0.16);
+  }
+  /* Make Help & Tips as wide as two cards when layout supports >=2 columns */
+  @media (min-width: 680px) {
+    #section-media-sources .source-grid .source-card.help-card { grid-column: span 2; }
+  }
+  /* Overview status row */
+  #section-media-sources .sc-status { display:flex; align-items:center; gap:10px; margin: 10px 0 8px; }
+  #section-media-sources .sc-status .status-dot { width: 8px; height: 8px; border-radius: 50%; display:inline-block; }
+  #section-media-sources .sc-status .status-dot.status-success { background: #34d399; box-shadow: 0 0 0 0 rgba(52,211,153,.6); }
+  #section-media-sources .sc-status .status-dot.status-warning { background: #f59e0b; box-shadow: 0 0 0 0 rgba(245,158,11,.6); }
+  #section-media-sources .sc-status .status-dot.status-error { background: #ef4444; box-shadow: 0 0 0 0 rgba(239,68,68,.6); }
+  @media (prefers-reduced-motion: no-preference) {
+    #section-media-sources .sc-status .status-dot { animation: pulse-dot 2.2s ease-out infinite; }
+  }
+  @keyframes pulse-dot { 0%{ box-shadow: 0 0 0 0 rgba(255,255,255,.0);} 70%{ box-shadow: 0 0 0 6px rgba(255,255,255,.05);} 100%{ box-shadow: 0 0 0 0 rgba(255,255,255,.0);} }
+  #section-media-sources .sc-status .status-pill { font-size:.75rem; padding: 3px 10px; border-radius:999px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
+  #section-media-sources .sc-status .header-toggle { margin-left:auto; }
+  #section-media-sources .sc-meta { display:flex; align-items:center; gap:10px; font-size:.85rem; color: var(--color-text-secondary); margin: 6px 0 12px; }
+  #section-media-sources .sc-meta .sep { opacity:.5; }
+  #section-media-sources .sc-header { display:flex; align-items:center; gap:14px; margin-bottom: 10px; }
+  #section-media-sources .sc-icon {
+    width: 36px; height: 36px; border-radius: 50%; display:flex; align-items:center; justify-content:center;
+    background: var(--color-bg-secondary);
+  }
+  #section-media-sources .sc-title { font-size: 1.05rem; font-weight: 600; color: var(--color-text-primary); }
+  #section-media-sources .sc-desc { font-size: .9rem; color: var(--color-text-secondary); margin: 0 0 10px; }
+  #section-media-sources .sc-points { list-style:none; margin:0 0 12px; padding:0; }
+  #section-media-sources .sc-points li { font-size: .85rem; color: var(--color-text-primary); opacity:.9; margin: 4px 0; padding-left: 14px; position: relative; }
+  #section-media-sources .sc-points li:before { content: "•"; position:absolute; left:0; color: rgba(255,255,255,0.6); }
+  #section-media-sources .sc-actions { display:flex; gap: 10px; align-items:center; }
+  #section-media-sources .btn-ghost { background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-secondary); }
+  /* Help card styles */
+  #section-media-sources .help-card .help-group { margin-top: 8px; }
+  #section-media-sources .help-card .help-title { font-size: .9rem; font-weight: 600; color: var(--color-text-primary); margin: 6px 0 4px; }
+  #section-media-sources .help-card .help-steps { margin: 0; padding-left: 18px; color: var(--color-text-secondary); }
+  #section-media-sources .help-card .help-steps li { margin: 2px 0; line-height: 1.35; }
+  #section-media-sources .help-card .help-list { list-style: disc; margin: 0; padding-left: 18px; color: var(--color-text-secondary); }
+  #section-media-sources .help-card .help-list li { margin: 2px 0; line-height: 1.35; }
+  /* Side-by-side layout inside Help card */
+  #section-media-sources .help-card .help-columns { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 680px) {
+    #section-media-sources .help-card .help-columns { grid-template-columns: 1fr 1fr; }
   }
   
   </style>
@@ -802,8 +906,8 @@
   <main class="main-content">
     <header class="page-header">
       <div class="page-title">
-        <h1><i class="fas fa-gauge-high"></i> Dashboard</h1>
-        <p>Overview of devices, media and system health</p>
+  <h1><i class="fas fa-gauge-high"></i> Dashboard</h1>
+  <p>Devices, media, and health at a glance</p>
       </div>
       <div class="page-actions">
         <span class="header-pill" id="perf-activity" title="Overall system activity (CPU and memory)">
@@ -1004,137 +1108,174 @@
     <section id="section-media-sources" class="app-section" hidden>
       <section class="panel" id="panel-sources-overview">
         <header class="panel-header">
-          <h2><i class="fas fa-database"></i> Media Sources</h2>
-          <div class="panel-actions"></div>
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; width:100%;">
+            <div class="panel-title">
+              <h2><i class="fas fa-database"></i> Media Sources</h2>
+              <div class="panel-subtitle">Combine media across platforms into a unified poster gallery</div>
+            </div>
+            <div class="panel-actions"></div>
+          </div>
         </header>
         <div class="panel-content">
           <div class="help-content">
 
-            <!-- Sources Card Grid -->
-            <section class="card-grid" style="margin-bottom: 24px;">
+            <!-- Sources Overview: modern, calm cards -->
+            <section class="source-grid" style="margin-bottom: 24px;">
               <!-- Plex Card -->
-              <div class="status-card status-primary">
-                <div class="card-icon">
-                  <i class="fas fa-film"></i>
+              <div class="source-card">
+                <div class="sc-header">
+                  <div class="sc-icon"><i class="fas fa-film" style="color: var(--color-primary);"></i></div>
+                  <div class="sc-title">Plex Media Server</div>
                 </div>
-                <div class="card-content">
-                  <h3>Plex Media Server</h3>
-                  <div class="card-description">Your personal media library</div>
-                  <ul class="card-features">
-                    <li>Server URL and authentication token</li>
-                    <li>Select specific movie/TV libraries</li>
-                    <li>Quality filters (4K, 1080p, 720p, SD)</li>
-                    <li>Genre and content rating filters</li>
-                    <li>Real-time sync with collections</li>
-                  </ul>
+                <div class="sc-status" id="sc-plex-status">
+                  <span class="status-dot" id="sc-plex-dot"></span>
+                  <span class="status-pill" id="sc-plex-pill">—</span>
+                  <label class="header-toggle" for="sc.plex.enabled" title="Enable Plex">
+                    <input type="checkbox" id="sc.plex.enabled" />
+                    <span class="ht-switch" aria-hidden="true"></span>
+                    <span class="ht-text">Enabled</span>
+                  </label>
+                </div>
+                <div class="sc-meta">
+                  <span id="sc-plex-sync">Last sync: —</span>
+                  <span class="sep">•</span>
+                  <span id="sc-plex-libs">Libraries: —</span>
+                  <span class="sep">•</span>
+                  <span id="sc-plex-count" title="Items after current filters">Items: —</span>
+                </div>
+                <p class="sc-desc">Your personal media hub with rich library management.</p>
+                <ul class="sc-points">
+                  <li>Select movie/TV libraries</li>
+                  <li>Apply quality and genre filters</li>
+                  <li>Sync collections in real-time</li>
+                </ul>
+                <div class="sc-actions">
+                  <a class="btn btn-primary btn-sm" href="#plex"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
+                  <a class="btn btn-sm btn-ghost" href="https://support.plex.tv/" target="_blank" rel="noopener"><i class="fas fa-book"></i> <span>Docs</span></a>
                 </div>
               </div>
 
               <!-- Jellyfin Card -->
-              <div class="status-card status-accent">
-                <div class="card-icon">
-                  <i class="fas fa-play"></i>
+              <div class="source-card">
+                <div class="sc-header">
+                  <div class="sc-icon"><i class="fas fa-play" style="color: var(--color-accent);"></i></div>
+                  <div class="sc-title">Jellyfin Server</div>
                 </div>
-                <div class="card-content">
-                  <h3>Jellyfin Server</h3>
-                  <div class="card-description">Open-source media system</div>
-                  <ul class="card-features">
-                    <li>Server connection and credentials</li>
-                    <li>Choose from available libraries</li>
-                    <li>Quality-based content filtering</li>
-                    <li>Genre and metadata organization</li>
-                    <li>User permission integration</li>
-                  </ul>
+                <div class="sc-status" id="sc-jf-status">
+                  <span class="status-dot" id="sc-jf-dot"></span>
+                  <span class="status-pill" id="sc-jf-pill">—</span>
+                  <label class="header-toggle" for="sc.jf.enabled" title="Enable Jellyfin">
+                    <input type="checkbox" id="sc.jf.enabled" />
+                    <span class="ht-switch" aria-hidden="true"></span>
+                    <span class="ht-text">Enabled</span>
+                  </label>
+                </div>
+                <div class="sc-meta">
+                  <span id="sc-jf-sync">Last sync: —</span>
+                  <span class="sep">•</span>
+                  <span id="sc-jf-libs">Libraries: —</span>
+                  <span class="sep">•</span>
+                  <span id="sc-jf-count" title="Items after current filters">Items: —</span>
+                </div>
+                <p class="sc-desc">Open-source media system with flexible organization.</p>
+                <ul class="sc-points">
+                  <li>Connect and authenticate server</li>
+                  <li>Choose available libraries</li>
+                  <li>Organize with genres and metadata</li>
+                </ul>
+                <div class="sc-actions">
+                  <a class="btn btn-primary btn-sm" href="#jellyfin"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
+                  <a class="btn btn-sm btn-ghost" href="https://jellyfin.org/docs/" target="_blank" rel="noopener"><i class="fas fa-book"></i> <span>Docs</span></a>
                 </div>
               </div>
 
               <!-- TMDB Card -->
-              <div class="status-card status-success">
-                <div class="card-icon">
-                  <i class="fas fa-database"></i>
+              <div class="source-card">
+                <div class="sc-header">
+                  <div class="sc-icon"><i class="fas fa-database" style="color: var(--color-success);"></i></div>
+                  <div class="sc-title">The Movie Database (TMDB)</div>
                 </div>
-                <div class="card-content">
-                  <h3>The Movie Database</h3>
-                  <div class="card-description">Comprehensive movie metadata</div>
-                  <ul class="card-features">
-                    <li>Millions of movie titles and data</li>
-                    <li>API key for enhanced rate limits</li>
-                    <li>Multi-language support</li>
-                    <li>Discovery features for trending</li>
-                    <li>Rich poster artwork and details</li>
-                  </ul>
+                <div class="sc-status" id="sc-tmdb-status">
+                  <span class="status-dot" id="sc-tmdb-dot"></span>
+                  <span class="status-pill" id="sc-tmdb-pill">—</span>
+                  <label class="header-toggle" for="sc.tmdb.enabled" title="Enable TMDB">
+                    <input type="checkbox" id="sc.tmdb.enabled" />
+                    <span class="ht-switch" aria-hidden="true"></span>
+                    <span class="ht-text">Enabled</span>
+                  </label>
+                </div>
+                <div class="sc-meta">
+                  <span id="sc-tmdb-sync">Last fetch: —</span>
+                  <span class="sep">•</span>
+                  <span id="sc-tmdb-mode">Category: —</span>
+                </div>
+                <p class="sc-desc">Comprehensive movie metadata and discovery features.</p>
+                <ul class="sc-points">
+                  <li>API key for higher rate limits</li>
+                  <li>Multi-language metadata</li>
+                  <li>Trending and discovery endpoints</li>
+                </ul>
+                <div class="sc-actions">
+                  <a class="btn btn-primary btn-sm" href="#tmdb"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
+                  <a class="btn btn-sm btn-ghost" href="https://developer.themoviedb.org/" target="_blank" rel="noopener"><i class="fas fa-book"></i> <span>Docs</span></a>
                 </div>
               </div>
 
               <!-- TVDB Card -->
-              <div class="status-card status-info">
-                <div class="card-icon">
-                  <i class="fas fa-tv"></i>
+              <div class="source-card">
+                <div class="sc-header">
+                  <div class="sc-icon"><i class="fas fa-tv" style="color: var(--color-info);"></i></div>
+                  <div class="sc-title">TheTVDB</div>
                 </div>
-                <div class="card-content">
-                  <h3>TheTVDB</h3>
-                  <div class="card-description">Television series database</div>
-                  <ul class="card-features">
-                    <li>Detailed TV show and episodes</li>
-                    <li>Series artwork and thumbnails</li>
-                    <li>Season and episode metadata</li>
-                    <li>Air dates, cast, and crew info</li>
-                    <li>Multi-language series support</li>
-                  </ul>
+                <div class="sc-status" id="sc-tvdb-status">
+                  <span class="status-dot" id="sc-tvdb-dot"></span>
+                  <span class="status-pill" id="sc-tvdb-pill">—</span>
+                  <label class="header-toggle" for="sc.tvdb.enabled" title="Enable TVDB">
+                    <input type="checkbox" id="sc.tvdb.enabled" />
+                    <span class="ht-switch" aria-hidden="true"></span>
+                    <span class="ht-text">Enabled</span>
+                  </label>
+                </div>
+                <div class="sc-meta">
+                  <span id="sc-tvdb-sync">Last fetch: —</span>
+                </div>
+                <p class="sc-desc">Detailed series and episode metadata with artwork.</p>
+                <ul class="sc-points">
+                  <li>Series, seasons, and episodes</li>
+                  <li>Artwork and thumbnails</li>
+                  <li>Multi-language support</li>
+                </ul>
+                <div class="sc-actions">
+                  <a class="btn btn-primary btn-sm" href="#tvdb"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
+                  <a class="btn btn-sm btn-ghost" href="https://thetvdb.com/" target="_blank" rel="noopener"><i class="fas fa-book"></i> <span>Docs</span></a>
                 </div>
               </div>
-            </section>
 
-            <!-- Getting Started and Pro Tips Grid -->
-            <section class="card-grid">
-              <!-- Getting Started Card -->
-              <div class="status-card status-secondary">
-                <div class="card-icon">
-                  <i class="fas fa-rocket"></i>
+              <!-- Help & Tips Card (merged Getting Started + Pro Tips) – pinned last with accent -->
+              <div class="source-card help-card" id="help-tips-tile">
+                <div class="sc-header">
+                  <div class="sc-icon"><i class="fas fa-circle-question"></i></div>
+                  <div class="sc-title">Help & Tips</div>
                 </div>
-                <div class="card-content">
-                  <h3>Getting Started</h3>
-                  <div class="card-description">Quick setup guide</div>
-                  <div class="card-steps">
-                    <div class="step">1. Click on a source in the submenu above</div>
-                    <div class="step">2. Enable the source with the toggle</div>
-                    <div class="step">3. Configure connection settings</div>
-                    <div class="step">4. Test the connection</div>
-                    <div class="step">5. Select libraries and apply filters</div>
+                <p class="sc-desc">Quick start and best practices for configuring sources.</p>
+                <div class="help-columns">
+                  <div class="help-group">
+                    <div class="help-title">Getting Started</div>
+                    <ol class="help-steps">
+                      <li>Open a source from the submenu above</li>
+                      <li>Enable the source using the toggle</li>
+                      <li>Enter connection details and save</li>
+                      <li>Test the connection</li>
+                      <li>Select libraries and apply filters</li>
+                    </ol>
                   </div>
-                </div>
-              </div>
-
-              <!-- Advanced Features Card -->
-              <div class="status-card status-error">
-                <div class="card-icon">
-                  <i class="fas fa-tools"></i>
-                </div>
-                <div class="card-content">
-                  <h3>Advanced Features</h3>
-                  <div class="card-description">Powerful capabilities</div>
-                  <ul class="card-features">
-                    <li>Library-specific filtering and organization</li>
-                    <li>Quality-based content curation</li>
-                    <li>Multi-source content aggregation</li>
-                    <li>Real-time status monitoring</li>
-                    <li>Automated metadata synchronization</li>
-                  </ul>
-                </div>
-              </div>
-
-              <!-- Pro Tips Card -->
-              <div class="status-card status-warning">
-                <div class="card-icon">
-                  <i class="fas fa-lightbulb"></i>
-                </div>
-                <div class="card-content">
-                  <h3>Pro Tips</h3>
-                  <div class="card-description">Best practices</div>
-                  <div class="card-tips">
-                    <div class="tip"><strong>Performance:</strong> Enable only the sources you actively use to optimize loading times.</div>
-                    <div class="tip"><strong>Organization:</strong> Use library filters to create focused collections.</div>
-                    <div class="tip"><strong>Discovery:</strong> Combine personal libraries (Plex/Jellyfin) with public databases (TMDB/TVDB).</div>
+                  <div class="help-group">
+                    <div class="help-title">Pro Tips</div>
+                    <ul class="help-list">
+                      <li><strong>Performance:</strong> Enable only active sources to speed up loads.</li>
+                      <li><strong>Organization:</strong> Use genre/quality filters for focused galleries.</li>
+                      <li><strong>Discovery:</strong> Mix Plex/Jellyfin with TMDB/TVDB for breadth.</li>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -1150,6 +1291,7 @@
           <h2><i class="fas fa-film"></i> Plex</h2>
           <div class="panel-actions">
             <span class="status-pill" id="plex-status-pill-header" title="Plex configuration status">Not configured</span>
+            <span class="status-pill" id="plex-count-pill" title="Change ratings/genres/quality chips or year fields → the “Items: N” pill updates immediately using the cached playlist">Items: —</span>
             <a href="#" id="plex-open-link" class="header-link" title="Open Plex Web UI" hidden aria-label="Open Plex Web UI" target="_blank" rel="noopener"><i class="fas fa-globe"></i></a>
             <label class="header-toggle" for="plex.enabled" title="Enable Plex source">
               <input type="checkbox" id="plex.enabled" />
@@ -1166,7 +1308,7 @@
             <div class="glass"></div>
             <div class="loader"><span class="spinner"></span></div>
           </div>
-          <!-- header status pill replaces the inline status-line; URL chip moved to header-less view if needed -->
+          <!-- Connection -->
           <div class="form-grid">
             <div class="form-group">
               <label for="plex.hostname">Hostname</label>
@@ -1177,11 +1319,13 @@
               <input type="number" id="plex.port" min="1" max="65535" placeholder="32400">
             </div>
             <div class="form-group">
-              <label for="plex.token">Token</label>
+              <label for="plex.token">API Token</label>
               <input type="password" id="plex.token" placeholder="X-Plex-Token">
               <small class="form-help">Stored in environment. Not shown after save.</small>
             </div>
           </div>
+
+          <!-- Libraries -->
           <div class="form-grid">
             <div class="form-group">
               <label for="plex.movies">Movie Libraries</label>
@@ -1228,6 +1372,16 @@
               </div>
             </div>
           </div>
+
+          <!-- Years -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="plex.yearFilter">Release Years</label>
+              <input type="text" id="plex.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
+            </div>
+          </div>
+
+          <!-- Ratings + Genres -->
           <div class="form-grid">
             <div class="form-group">
               <label for="plex.ratingFilter">Ratings</label>
@@ -1253,6 +1407,33 @@
               <small class="form-help">Select one or more content ratings. Populated from Plex.</small>
             </div>
             <div class="form-group">
+              <label for="plex.genreFilter">Genres</label>
+              <input type="hidden" id="plex.genreFilter-hidden" value="">
+              <div class="multiselect" id="plex-ms-genres">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="plex-ms-genres-chips"></div>
+                  <button class="ms-clear" id="plex-ms-genres-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="plex-ms-genres-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="plex-ms-genres-search" type="text" placeholder="Search genres…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="plex-ms-genres-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="plex-ms-genres-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="plex-ms-genres-options"></div>
+                </div>
+              </div>
+              <small id="plex-genre-help" class="form-help">Select one or more genres. Populated from Plex.</small>
+            </div>
+          </div>
+
+          <!-- Qualities -->
+          <div class="form-grid">
+            <div class="form-group">
               <label for="plex.qualityFilter">Qualities</label>
               <input type="hidden" id="plex.qualityFilter-hidden" value="">
               <div class="multiselect" id="plex-ms-qualities">
@@ -1276,37 +1457,7 @@
               <small class="form-help">Select one or more qualities (e.g., 720p, 1080p, 4K). Populated from Plex.</small>
             </div>
           </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="plex.yearFilter">Release Years</label>
-              <input type="text" id="plex.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
-            </div>
-          </div>
-            <div class="form-grid">
-              <div class="form-group" style="grid-column: 1 / -1;">
-                <label>Genres</label>
-                <input type="hidden" id="plex.genreFilter-hidden" value="">
-                <div class="multiselect" id="plex-ms-genres">
-                  <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-                    <div class="ms-chips" id="plex-ms-genres-chips"></div>
-                    <button class="ms-clear" id="plex-ms-genres-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
-                    <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
-                  </div>
-                  <div class="ms-menu" id="plex-ms-genres-menu" role="listbox">
-                    <div class="ms-search">
-                      <i class="fas fa-search"></i>
-                      <input id="plex-ms-genres-search" type="text" placeholder="Search genres…">
-                    </div>
-                    <div class="ms-actions">
-                      <button class="btn btn-outline btn-sm" id="plex-ms-genres-select-all"><i class="fas fa-square-check"></i> Select all</button>
-                      <button class="btn btn-outline btn-sm" id="plex-ms-genres-clear-all"><i class="fas fa-eraser"></i> Clear</button>
-                    </div>
-                    <div class="ms-options" id="plex-ms-genres-options"></div>
-                  </div>
-                </div>
-                <small id="plex-genre-help" class="form-help">Select one or more genres. Populated from Plex.</small>
-              </div>
-            </div>
+          
             <!-- Recently-added controls moved to bottom of Plex panel -->
             <div class="form-grid">
               <div class="form-group">
@@ -1326,6 +1477,7 @@
           <h2><i class="fas fa-play"></i> Jellyfin</h2>
           <div class="panel-actions">
             <span class="status-pill" id="jf-status-pill-header" title="Jellyfin configuration status">Not configured</span>
+            <span class="status-pill" id="jf-count-pill" title="Change ratings/genres/quality chips or year fields → the “Items: N” pill updates immediately using the cached playlist">Items: —</span>
             <a href="#" id="jf-open-link" class="header-link" title="Open Jellyfin Web UI" hidden aria-label="Open Jellyfin Web UI" target="_blank" rel="noopener"><i class="fas fa-globe"></i></a>
             <label class="header-toggle" for="jf.enabled" title="Enable Jellyfin source">
               <input type="checkbox" id="jf.enabled" />
@@ -1466,29 +1618,13 @@
               <small class="form-help">Select one or more genres. Populated from selected Jellyfin libraries.</small>
             </div>
           </div>
-          <div class="form-grid">
+          <!-- Jellyfin Qualities hidden (disabled feature) -->
+          <div class="form-grid" style="display:none">
             <div class="form-group">
               <label for="jf.qualityFilter">Qualities</label>
               <input type="hidden" id="jf.qualityFilter-hidden" value="">
-              <div class="multiselect" id="jf-ms-qualities">
-                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-                  <div class="ms-chips" id="jf-ms-qualities-chips"></div>
-                  <button class="ms-clear" id="jf-ms-qualities-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
-                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
-                </div>
-                <div class="ms-menu" id="jf-ms-qualities-menu" role="listbox">
-                  <div class="ms-search">
-                    <i class="fas fa-search"></i>
-                    <input id="jf-ms-qualities-search" type="text" placeholder="Search qualities…">
-                  </div>
-                  <div class="ms-actions">
-                    <button class="btn btn-outline btn-sm" id="jf-ms-qualities-select-all"><i class="fas fa-square-check"></i> Select all</button>
-                    <button class="btn btn-outline btn-sm" id="jf-ms-qualities-clear-all"><i class="fas fa-eraser"></i> Clear</button>
-                  </div>
-                  <div class="ms-options" id="jf-ms-qualities-options"></div>
-                </div>
-              </div>
-              <small class="form-help">Select one or more qualities (e.g., 720p, 1080p, 4K). Populated from Jellyfin.</small>
+              <div class="multiselect" id="jf-ms-qualities"></div>
+              <small class="form-help">Qualities disabled for Jellyfin</small>
             </div>
           </div>
           <!-- Recently-added controls moved to bottom of Jellyfin panel -->
@@ -1781,11 +1917,16 @@
   <section id="section-operations" class="app-section" hidden>
     <section class="panel operations-panel">
         <header class="panel-header">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;">
-            <h2 style="margin:0; display:flex; align-items:center; gap:10px;"><i class="fas fa-screwdriver-wrench"></i> Operations</h2>
-            <button type="button" id="btn-save-operations" class="btn btn-primary btn-sm" title="Save all operation settings">
-              <i class="fas fa-save"></i><span>Save Settings</span>
-            </button>
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; width:100%;">
+            <div class="panel-title">
+              <h2><i class="fas fa-screwdriver-wrench"></i> Operations</h2>
+              <div class="panel-subtitle">Run media refresh and manage auto-updates</div>
+            </div>
+            <div class="panel-actions">
+              <button type="button" id="btn-save-operations" class="btn btn-primary btn-sm" title="Save all operation settings">
+                <i class="fas fa-save"></i><span>Save Settings</span>
+              </button>
+            </div>
           </div>
         </header>
         <div class="panel-content">
@@ -2510,7 +2651,7 @@
   </div>
 
   <script src="/notify.js?v=20250906-1"></script>
-  <script src="/admin2.js?v=20250906-51"></script>
+  <script src="/admin2.js?v=20250907-03"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
     if ('serviceWorker' in navigator) {

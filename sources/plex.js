@@ -138,17 +138,33 @@ class PlexSource {
                 }
             }
 
-            if (this.isDebug)
+            if (this.isDebug) {
                 logger.debug(
                     `[PlexSource:${this.server.name}] Found ${allItems.length} total items in specified libraries.`
                 );
+                if (allItems.length === 0) {
+                    logger.debug(
+                        `[PlexSource:${this.server.name}] No items returned. Check that library names exist and contain media. Names: ${libraryNames.join(', ')}`
+                    );
+                }
+            }
 
             // Apply content filtering
             const filteredItems = this.applyContentFiltering(allItems);
-            if (this.isDebug)
+            if (this.isDebug) {
                 logger.debug(
                     `[PlexSource:${this.server.name}] After filtering: ${filteredItems.length} items remaining.`
                 );
+                if (filteredItems.length === 0) {
+                    logger.debug(
+                        `[PlexSource:${this.server.name}] All items filtered out. Check ratingFilter (${JSON.stringify(
+                            this.server.ratingFilter || 'none'
+                        )}), qualityFilter (${JSON.stringify(
+                            this.server.qualityFilter || 'none'
+                        )}), yearFilter (${JSON.stringify(this.server.yearFilter || 'none')}).`
+                    );
+                }
+            }
 
             const shuffledItems = this.shuffleArray(filteredItems);
             const selectedItems = count > 0 ? shuffledItems.slice(0, count) : shuffledItems;
@@ -164,6 +180,9 @@ class PlexSource {
                 }
                 return true;
             });
+
+            // Mark successful fetch time
+            this.lastFetch = Date.now();
 
             if (this.isDebug)
                 logger.debug(
@@ -253,20 +272,21 @@ class PlexSource {
 
             if (hasValidRatingFilter) {
                 // Convert string to array for consistent handling
-                const allowedRatings = Array.isArray(this.server.ratingFilter)
-                    ? this.server.ratingFilter
-                    : [this.server.ratingFilter];
+                const allowedRatings = (
+                    Array.isArray(this.server.ratingFilter)
+                        ? this.server.ratingFilter
+                        : [this.server.ratingFilter]
+                )
+                    .filter(Boolean)
+                    .map(r => String(r).trim().toUpperCase());
 
                 filteredItems = filteredItems.filter(item => {
-                    if (!item.contentRating) {
-                        // If a rating filter is set, exclude items without content rating
-                        if (this.isDebug) {
-                            logger.debug(
-                                `[PlexSource:${this.server.name}] Filtered out "${item.title}" - No contentRating when filter "${allowedRatings.join(', ')}" is required`
-                            );
-                        }
-                        return false;
-                    } else if (!allowedRatings.includes(item.contentRating)) {
+                    const itemRating = item.contentRating
+                        ? String(item.contentRating).trim().toUpperCase()
+                        : null;
+
+                    // If item has a rating and it's not in the list, exclude; if unrated, allow
+                    if (itemRating && !allowedRatings.includes(itemRating)) {
                         if (this.isDebug) {
                             logger.debug(
                                 `[PlexSource:${this.server.name}] Filtered out "${item.title}" - contentRating "${item.contentRating}" not in allowed list: ${allowedRatings.join(', ')}`
@@ -312,24 +332,33 @@ class PlexSource {
                 );
         }
 
-        // Quality filter
+        // Quality filter (supports comma-separated list: e.g., "1080p,4K")
         if (this.server.qualityFilter && this.server.qualityFilter.trim() !== '') {
+            const rawList = this.server.qualityFilter
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+            const allowed = new Set(rawList);
+            const known = new Set(['SD', '720p', '1080p', '4K']);
+            const hasUnknown = rawList.some(v => !known.has(v));
+
+            const mapResolutionToLabel = res => {
+                const r = (res || '').toString().toLowerCase();
+                // Treat unknown/empty as SD (legacy behavior expected by tests/UI)
+                if (!r || r === 'sd') return 'SD';
+                if (r === '720' || r === 'hd' || r === '720p') return '720p';
+                if (r === '1080' || r === '1080p' || r === 'fullhd') return '1080p';
+                if (r === '4k' || r === '2160' || r === '2160p' || r === 'uhd') return '4K';
+                return r;
+            };
+
             filteredItems = filteredItems.filter(item => {
                 if (!item.Media || !Array.isArray(item.Media)) return false;
                 return item.Media.some(media => {
-                    const resolution = media.videoResolution;
-                    switch (this.server.qualityFilter) {
-                        case 'SD':
-                            return !resolution || resolution === 'sd';
-                        case '720p':
-                            return resolution === '720' || resolution === 'hd';
-                        case '1080p':
-                            return resolution === '1080';
-                        case '4K':
-                            return resolution === '4k';
-                        default:
-                            return true;
-                    }
+                    if (hasUnknown) return true; // If unknown quality specified, act as pass-through
+                    const label = mapResolutionToLabel(media.videoResolution);
+                    // Unknown or empty resolutions are considered SD for filtering purposes
+                    return allowed.has(label);
                 });
             });
             if (this.isDebug)

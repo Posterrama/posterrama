@@ -104,6 +104,10 @@ class TMDBSource {
                         `[TMDBSource:${this.source.name}] Using cached genre mapping for ${type}`
                     );
                 }
+                try {
+                    this.lastFetch = cached.timestamp;
+                    this.metrics.lastRequestTime = new Date();
+                } catch (_) {}
                 return cached.data;
             }
         }
@@ -131,10 +135,14 @@ class TMDBSource {
             }
 
             // Cache the result
+            const ts = Date.now();
             this.genreCache.set(cacheKey, {
                 data: genreMap,
-                timestamp: Date.now(),
+                timestamp: ts,
             });
+            try {
+                this.lastFetch = ts;
+            } catch (_) {}
 
             if (this.isDebug) {
                 logger.debug(
@@ -183,6 +191,11 @@ class TMDBSource {
                         `[TMDBSource:${this.source.name}] Using cached response for ${url}`
                     );
                 }
+                // Reflect last data readiness time even when served from cache
+                try {
+                    this.lastFetch = cached.timestamp;
+                    this.metrics.lastRequestTime = new Date();
+                } catch (_) {}
                 return cached.data;
             }
         }
@@ -231,11 +244,17 @@ class TMDBSource {
             const data = await response.json();
 
             // Cache successful response
+            const ts = Date.now();
             this.responseCache.set(url, {
                 data: data,
-                timestamp: Date.now(),
+                timestamp: ts,
             });
-
+            // Update metrics and lastFetch
+            try {
+                this.metrics.requestCount = (this.metrics.requestCount || 0) + 1;
+                this.metrics.lastRequestTime = new Date();
+                this.lastFetch = ts;
+            } catch (_) {}
             return data;
         } catch (error) {
             // Network or parsing errors - retry for certain types
@@ -571,6 +590,10 @@ class TMDBSource {
         if (this.responseCache.has(cacheKey)) {
             const cached = this.responseCache.get(cacheKey);
             if (Date.now() - cached.timestamp < this.cacheTTL) {
+                try {
+                    this.lastFetch = cached.timestamp;
+                    this.metrics.lastRequestTime = new Date();
+                } catch (_) {}
                 return cached.data;
             }
         }
@@ -592,10 +615,14 @@ class TMDBSource {
             const data = await response.json();
 
             // Cache the response
+            const ts = Date.now();
             this.responseCache.set(cacheKey, {
                 data,
-                timestamp: Date.now(),
+                timestamp: ts,
             });
+            try {
+                this.lastFetch = ts;
+            } catch (_) {}
 
             return data;
         } catch (error) {

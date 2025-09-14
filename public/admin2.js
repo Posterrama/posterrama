@@ -774,20 +774,20 @@
             target.hidden = false;
         }
         // Update header title for basic context switch
-        const h1 = document.querySelector('.page-header h1');
-        const subtitle = document.querySelector('.page-header p');
-        if (h1) {
+        const pageHeader = document.querySelector('.page-header');
+        const h1 = pageHeader?.querySelector('h1');
+        const subtitle = pageHeader?.querySelector('p');
+        if (pageHeader && h1) {
             if (id === 'section-media-sources') {
-                h1.innerHTML = '<i class="fas fa-server"></i> Media Sources';
-                if (subtitle)
-                    subtitle.textContent =
-                        'Configure your media sources to aggregate content from multiple platforms into a unified poster gallery';
+                // Hide the big page header for Media Sources (we use a compact in-panel header)
+                pageHeader.style.display = 'none';
             } else if (id === 'section-operations') {
-                h1.innerHTML = '<i class="fas fa-screwdriver-wrench"></i> Operations';
-                if (subtitle) subtitle.textContent = 'Run media refresh and manage auto-updates';
+                // Hide the big page header for Operations (use compact in-panel header)
+                pageHeader.style.display = 'none';
             } else {
-                h1.innerHTML = '<i class="fas fa-gauge-high"></i> Dashboard';
-                if (subtitle) subtitle.textContent = 'Overview of devices, media and system health';
+                pageHeader.style.display = '';
+                h1.innerHTML = '<i class=\"fas fa-gauge-high\"></i> Dashboard';
+                if (subtitle) subtitle.textContent = 'Devices, media, and health at a glance';
             }
         }
         dbg('showSection() applied', { activeId: id, sections: sections.length });
@@ -1778,14 +1778,20 @@
             } else {
                 dbg('panel not found', { panelId });
             }
-            // Ensure inputs are populated, then clear loading state only for the visible panel
-            Promise.resolve(window.admin2?.loadMediaSources?.())
-                .catch(() => {})
-                .finally(() => {
-                    const active = document.getElementById(panelId);
-                    active?.classList.remove('is-loading');
-                    dbg('showSourcePanel() applied', { panelId, visible: !active?.hidden });
-                });
+            // Kick off background init without blocking the panel UI spinner.
+            // Some sources (e.g., Jellyfin) can be slow; don't keep Plex panel loading.
+            try {
+                const p = window.admin2?.loadMediaSources?.();
+                if (p && typeof p.then === 'function') p.catch(() => {});
+            } catch (_) {
+                /* ignore */
+            }
+            // Always clear loading state shortly after making the panel visible
+            setTimeout(() => {
+                const active = document.getElementById(panelId);
+                active?.classList.remove('is-loading');
+                dbg('showSourcePanel() applied', { panelId, visible: !active?.hidden });
+            }, 60);
         }
 
         mediaGroup?.querySelectorAll('.nav-subitem').forEach(sub => {
@@ -2719,6 +2725,12 @@
                         message: j?.message || 'Sources reloaded',
                         duration: 3500,
                     });
+                    // Update "Last sync" values on the Media Sources overview immediately
+                    try {
+                        await refreshOverviewLastSync();
+                    } catch (_) {
+                        /* non-fatal */
+                    }
                 } catch (e) {
                     window.notify?.toast({
                         type: 'error',
@@ -3172,6 +3184,702 @@
                 .filter(Boolean);
         }
 
+        // ----- Media Sources Overview (cards) -----
+        // Update a single card's dot/pill status
+        function setCardStatus(prefix, { enabled, configured, pillText }) {
+            try {
+                const dot = document.getElementById(`${prefix}-dot`);
+                const pill = document.getElementById(`${prefix}-pill`);
+                const cls = !enabled ? 'error' : configured ? 'success' : 'warning';
+                if (dot) {
+                    dot.classList.remove('status-success', 'status-warning', 'status-error');
+                    dot.classList.add(`status-${cls}`);
+                }
+                if (pill) {
+                    pill.textContent =
+                        pillText ||
+                        (configured ? 'Configured' : enabled ? 'Not configured' : 'Disabled');
+                    pill.classList.remove('status-success', 'status-warning', 'status-error');
+                    pill.classList.add(`status-${cls}`);
+                }
+            } catch (_) {
+                /* no-op */
+            }
+        }
+
+        async function patchSourceEnabled(sourceKey, enabled) {
+            try {
+                const cfgRes = await window.dedupJSON('/api/admin/config', {
+                    credentials: 'include',
+                });
+                const base = cfgRes.ok ? await cfgRes.json() : {};
+                const currentCfg = base?.config || base || {};
+                const envPatch = {}; // no env changes for toggle
+
+                if (sourceKey === 'plex' || sourceKey === 'jellyfin') {
+                    const servers = Array.isArray(currentCfg.mediaServers)
+                        ? [...currentCfg.mediaServers]
+                        : [];
+                    const idx = servers.findIndex(s => s?.type === sourceKey);
+                    const s = idx >= 0 ? { ...servers[idx] } : { type: sourceKey };
+                    s.enabled = !!enabled;
+                    if (idx >= 0) servers[idx] = s;
+                    else servers.push(s);
+                    await saveConfigPatch({ mediaServers: servers }, envPatch);
+                } else if (sourceKey === 'tmdb') {
+                    const tmdb = { ...(currentCfg.tmdbSource || {}) };
+                    tmdb.enabled = !!enabled;
+                    await saveConfigPatch({ tmdbSource: tmdb }, envPatch);
+                } else if (sourceKey === 'tvdb') {
+                    const tvdb = { ...(currentCfg.tvdbSource || {}) };
+                    tvdb.enabled = !!enabled;
+                    await saveConfigPatch({ tvdbSource: tvdb }, envPatch);
+                }
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Saved',
+                    message: `${sourceKey.toUpperCase()} ${enabled ? 'enabled' : 'disabled'}`,
+                    duration: 1800,
+                });
+                return true;
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Unable to save setting',
+                    duration: 4200,
+                });
+                return false;
+            }
+        }
+
+        function wireToggleOnce(id, handler) {
+            const el = document.getElementById(id);
+            if (!el || el.dataset.wired === 'true') return;
+            el.addEventListener('change', handler);
+            el.dataset.wired = 'true';
+        }
+
+        function updateOverviewCards(cfg, env) {
+            try {
+                const mediaServers = Array.isArray(cfg?.mediaServers) ? cfg.mediaServers : [];
+                const plex = mediaServers.find(s => s?.type === 'plex') || {};
+                const jf = mediaServers.find(s => s?.type === 'jellyfin') || {};
+                const tmdb = cfg?.tmdbSource || {};
+                const tvdb = cfg?.tvdbSource || {};
+
+                // Plex
+                try {
+                    const enabled = !!plex.enabled;
+                    const hostVar = plex.hostnameEnvVar || 'PLEX_HOSTNAME';
+                    const portVar = plex.portEnvVar || 'PLEX_PORT';
+                    const tokenVar = plex.tokenEnvVar || 'PLEX_TOKEN';
+                    const host = env[hostVar];
+                    const port = env[portVar];
+                    const tokenVal = env[tokenVar]; // may be boolean true if sensitive
+                    const hasToken = !!tokenVal; // cope with boolean masked value
+                    const configured = !!(host && port && hasToken);
+                    setCardStatus('sc-plex', {
+                        enabled,
+                        configured,
+                        pillText: !enabled
+                            ? 'Disabled'
+                            : configured
+                              ? 'Configured'
+                              : 'Not configured',
+                    });
+                    const libMovie = Array.isArray(plex.movieLibraryNames)
+                        ? plex.movieLibraryNames.length
+                        : 0;
+                    const libShow = Array.isArray(plex.showLibraryNames)
+                        ? plex.showLibraryNames.length
+                        : 0;
+                    const libsEl = document.getElementById('sc-plex-libs');
+                    if (libsEl)
+                        libsEl.textContent = `Libraries: Movies ${libMovie}, Shows ${libShow}`;
+                    // Last sync placeholder; will be updated after fetching /api/admin/source-status
+                    const tgl = document.getElementById('sc.plex.enabled');
+                    if (tgl) tgl.checked = enabled;
+                    wireToggleOnce('sc.plex.enabled', async e => {
+                        const el = e.currentTarget;
+                        el.disabled = true;
+                        const ok = await patchSourceEnabled('plex', !!el.checked);
+                        if (!ok) el.checked = !el.checked;
+                        el.disabled = false;
+                        // Mirror panel toggle if present
+                        const mirror = document.getElementById('plex.enabled');
+                        if (mirror) mirror.checked = el.checked;
+                        loadMediaSources(true).catch(() => {});
+                    });
+                } catch (_) {}
+
+                // Jellyfin
+                try {
+                    const enabled = !!jf.enabled;
+                    const hostVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
+                    const portVar = jf.portEnvVar || 'JELLYFIN_PORT';
+                    const keyVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
+                    const host = env[hostVar];
+                    const port = env[portVar];
+                    const keyVal = env[keyVar];
+                    const hasKey = !!keyVal; // maybe boolean masked
+                    const configured = !!(host && port && hasKey);
+                    setCardStatus('sc-jf', {
+                        enabled,
+                        configured,
+                        pillText: !enabled
+                            ? 'Disabled'
+                            : configured
+                              ? 'Configured'
+                              : 'Not configured',
+                    });
+                    const libMovie = Array.isArray(jf.movieLibraryNames)
+                        ? jf.movieLibraryNames.length
+                        : 0;
+                    const libShow = Array.isArray(jf.showLibraryNames)
+                        ? jf.showLibraryNames.length
+                        : 0;
+                    const libsEl = document.getElementById('sc-jf-libs');
+                    if (libsEl)
+                        libsEl.textContent = `Libraries: Movies ${libMovie}, Shows ${libShow}`;
+                    const tgl = document.getElementById('sc.jf.enabled');
+                    if (tgl) tgl.checked = enabled;
+                    wireToggleOnce('sc.jf.enabled', async e => {
+                        const el = e.currentTarget;
+                        el.disabled = true;
+                        const ok = await patchSourceEnabled('jellyfin', !!el.checked);
+                        if (!ok) el.checked = !el.checked;
+                        el.disabled = false;
+                        const mirror = document.getElementById('jf.enabled');
+                        if (mirror) mirror.checked = el.checked;
+                        loadMediaSources(true).catch(() => {});
+                    });
+                } catch (_) {}
+
+                // TMDB
+                try {
+                    const enabled = !!tmdb.enabled;
+                    const configured = !!tmdb.apiKey;
+                    setCardStatus('sc-tmdb', {
+                        enabled,
+                        configured,
+                        pillText: !enabled
+                            ? 'Disabled'
+                            : configured
+                              ? 'Configured'
+                              : 'Not configured',
+                    });
+                    const modeEl = document.getElementById('sc-tmdb-mode');
+                    if (modeEl) modeEl.textContent = `Category: ${tmdb.category || 'popular'}`;
+                    const tgl = document.getElementById('sc.tmdb.enabled');
+                    if (tgl) tgl.checked = enabled;
+                    wireToggleOnce('sc.tmdb.enabled', async e => {
+                        const el = e.currentTarget;
+                        el.disabled = true;
+                        const ok = await patchSourceEnabled('tmdb', !!el.checked);
+                        if (!ok) el.checked = !el.checked;
+                        el.disabled = false;
+                        const mirror = document.getElementById('tmdb.enabled');
+                        if (mirror) mirror.checked = el.checked;
+                        loadMediaSources(true).catch(() => {});
+                    });
+                } catch (_) {}
+
+                // TVDB
+                try {
+                    const enabled = !!tvdb.enabled;
+                    // No API key required in our config model; treat configured as enabled
+                    setCardStatus('sc-tvdb', {
+                        enabled,
+                        configured: enabled,
+                        pillText: enabled ? 'Configured' : 'Disabled',
+                    });
+                    const tgl = document.getElementById('sc.tvdb.enabled');
+                    if (tgl) tgl.checked = enabled;
+                    wireToggleOnce('sc.tvdb.enabled', async e => {
+                        const el = e.currentTarget;
+                        el.disabled = true;
+                        const ok = await patchSourceEnabled('tvdb', !!el.checked);
+                        if (!ok) el.checked = !el.checked;
+                        el.disabled = false;
+                        const mirror = document.getElementById('tvdb.enabled');
+                        if (mirror) mirror.checked = el.checked;
+                        loadMediaSources(true).catch(() => {});
+                    });
+                } catch (_) {}
+            } catch (_) {
+                /* non-fatal */
+            }
+        }
+
+        async function refreshOverviewLastSync() {
+            try {
+                const r = await window.dedupJSON('/api/admin/source-status', {
+                    credentials: 'include',
+                });
+                if (!r.ok) return;
+                const j = await r.json();
+                const fmt = ms => {
+                    if (!ms || typeof ms !== 'number') return '—';
+                    const d = new Date(ms);
+                    if (Number.isNaN(d.getTime())) return '—';
+                    // Show relative first, with ISO title for exact time
+                    const now = Date.now();
+                    const diff = Math.max(0, now - ms);
+                    const mins = Math.floor(diff / 60000);
+                    if (mins < 1) return 'just now';
+                    if (mins < 60) return `${mins} min ago`;
+                    const hrs = Math.floor(mins / 60);
+                    if (hrs < 24) return `${hrs} hr${hrs === 1 ? '' : 's'} ago`;
+                    const days = Math.floor(hrs / 24);
+                    return `${days} day${days === 1 ? '' : 's'} ago`;
+                };
+                const setSync = (id, ms) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.textContent = `Last sync: ${fmt(ms)}`;
+                    if (ms && typeof ms === 'number') el.title = new Date(ms).toISOString();
+                };
+                setSync('sc-plex-sync', j?.plex?.lastFetchMs || null);
+                setSync('sc-jf-sync', j?.jellyfin?.lastFetchMs || null);
+                setSync('sc-tmdb-sync', j?.tmdb?.lastFetchMs || null);
+                setSync('sc-tvdb-sync', j?.tvdb?.lastFetchMs || null);
+            } catch (_) {
+                // ignore
+            }
+        }
+
+        // Simple in-memory cache for library counts to avoid spamming admin APIs
+        const __libCountsCache = {
+            ts: 0,
+            plex: null,
+            jf: null,
+        };
+
+        async function fetchLibraryCounts(kind) {
+            const now = Date.now();
+            // Reuse cache for 15s
+            if (now - __libCountsCache.ts < 15000 && __libCountsCache[kind]) {
+                return __libCountsCache[kind];
+            }
+            try {
+                let res;
+                if (kind === 'plex') {
+                    // Use current UI values if present (even if not yet saved)
+                    const hostname = document.getElementById('plex.hostname')?.value?.trim();
+                    const port = document.getElementById('plex.port')?.value?.trim();
+                    const token = document.getElementById('plex.token')?.value?.trim();
+                    res = await fetch('/api/admin/plex-libraries', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            hostname: hostname || undefined,
+                            port: port || undefined,
+                            token: token || undefined,
+                        }),
+                    });
+                } else if (kind === 'jf' || kind === 'jellyfin') {
+                    const hostname = document.getElementById('jf.hostname')?.value?.trim();
+                    const port = document.getElementById('jf.port')?.value?.trim();
+                    const apiKey = document.getElementById('jf.apikey')?.value?.trim();
+                    res = await fetch('/api/admin/jellyfin-libraries', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            hostname: hostname || undefined,
+                            port: port || undefined,
+                            apiKey: apiKey || undefined,
+                        }),
+                    });
+                }
+                const j = res && res.ok ? await res.json().catch(() => ({})) : {};
+                const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                const byName = new Map();
+                for (const l of libs) {
+                    byName.set(l.name, { type: l.type, itemCount: Number(l.itemCount) || 0 });
+                }
+                __libCountsCache[kind] = byName;
+                __libCountsCache.ts = now;
+                return byName;
+            } catch (_) {
+                return new Map();
+            }
+        }
+
+        function getSelectedLibraries(kind) {
+            // kind: 'plex' | 'jellyfin'
+            if (kind === 'plex') {
+                return {
+                    movies: getMultiSelectValues('plex.movies'),
+                    shows: getMultiSelectValues('plex.shows'),
+                };
+            }
+            return {
+                movies: getMultiSelectValues('jf.movies'),
+                shows: getMultiSelectValues('jf.shows'),
+            };
+        }
+
+        function isAnyFilterActive(filters) {
+            return (
+                !!(filters.years && filters.years.trim()) ||
+                !!(filters.genres && filters.genres.trim()) ||
+                !!(filters.ratings && filters.ratings.trim()) ||
+                !!(filters.qualities && filters.qualities.trim()) ||
+                !!(filters.recentOnly && filters.recentDays > 0)
+            );
+        }
+
+        // Compute live filtered counts per source; when filters are active, use server-side uncapped preview
+        async function refreshOverviewCounts() {
+            try {
+                // Fetch cached playlist first (fast fallback & used when no filters)
+                const res = await window.dedupJSON('/get-media', { credentials: 'include' });
+                let items = [];
+                if (res && res.ok) {
+                    items = (await res.json().catch(() => [])) || [];
+                    if (!Array.isArray(items)) items = [];
+                }
+
+                // Helpers: infer source and apply UI filters
+                const inferSource = it => {
+                    const s = (it.source || it.serverType || '').toString().toLowerCase();
+                    if (s) return s;
+                    const k = (it.key || '').toString().toLowerCase();
+                    if (k.startsWith('plex-')) return 'plex';
+                    if (k.startsWith('jellyfin_')) return 'jellyfin';
+                    if (k.startsWith('tmdb-')) return 'tmdb';
+                    if (k.startsWith('tvdb-')) return 'tvdb';
+                    return '';
+                };
+                const parseCsv = v =>
+                    String(v || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                const yearInExpr = (year, expr) => {
+                    if (!expr) return true;
+                    const y = Number(year);
+                    if (!Number.isFinite(y) || y <= 0) return false;
+                    const parts = String(expr)
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                    for (const p of parts) {
+                        if (/^\d{4}$/.test(p)) {
+                            if (y === Number(p)) return true;
+                        } else {
+                            const m = p.match(/^(\d{4})\s*-\s*(\d{4})$/);
+                            if (m) {
+                                const a = Number(m[1]);
+                                const b = Number(m[2]);
+                                if (Number.isFinite(a) && Number.isFinite(b) && a <= b) {
+                                    if (y >= a && y <= b) return true;
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                };
+                const anyGenreMatch = (itemGenres, selectedCsv) => {
+                    const need = parseCsv(selectedCsv);
+                    if (!need.length) return true;
+                    const have = Array.isArray(itemGenres)
+                        ? itemGenres.map(g => String(g).toLowerCase())
+                        : [];
+                    return need.some(n => have.includes(String(n).toLowerCase()));
+                };
+                const ratingIncluded = (itemRating, selectedCsv) => {
+                    const need = parseCsv(selectedCsv);
+                    if (!need.length) return true;
+                    if (!itemRating) return false;
+                    const norm = String(itemRating).toLowerCase();
+                    return need.some(r => String(r).toLowerCase() === norm);
+                };
+                // Map backend resolution strings to quality labels like the server does
+                const mapResToLabel = res => {
+                    const r = (res || '').toString().toLowerCase();
+                    if (!r || r === 'sd') return 'SD';
+                    if (r === '720' || r === 'hd' || r === '720p') return '720p';
+                    if (r === '1080' || r === '1080p' || r === 'fullhd') return '1080p';
+                    if (r === '4k' || r === '2160' || r === '2160p' || r === 'uhd') return '4K';
+                    return r.toUpperCase();
+                };
+                // Try to infer Jellyfin quality label from originalData MediaStreams
+                const inferJfQuality = it => {
+                    const od = it && (it.originalData || it._raw);
+                    const sources = od && Array.isArray(od.MediaSources) ? od.MediaSources : [];
+                    for (const source of sources) {
+                        const streams = Array.isArray(source.MediaStreams)
+                            ? source.MediaStreams
+                            : [];
+                        const vid = streams.find(s => s.Type === 'Video');
+                        if (vid && Number.isFinite(Number(vid.Height))) {
+                            const h = Number(vid.Height);
+                            if (h <= 576) return 'SD';
+                            if (h <= 720) return '720p';
+                            if (h <= 1080) return '1080p';
+                            if (h >= 2160) return '4K';
+                            return `${h}p`;
+                        }
+                    }
+                    return null;
+                };
+                // Try to infer Plex quality label from raw Media videoResolution when available
+                const inferPlexQuality = it => {
+                    const raw = it && it._raw;
+                    const mediaArr = raw && Array.isArray(raw.Media) ? raw.Media : [];
+                    for (const m of mediaArr) {
+                        if (m && m.videoResolution) return mapResToLabel(m.videoResolution);
+                    }
+                    return null;
+                };
+
+                // Read current UI filters (live, unsaved)
+                const plexFilters = {
+                    years: (document.getElementById('plex.yearFilter')?.value || '').trim(),
+                    genres: (typeof getPlexGenreFilterHidden === 'function'
+                        ? getPlexGenreFilterHidden()
+                        : ''
+                    ).trim(),
+                    // MPAA/TV ratings
+                    ratings: (typeof getPlexHidden === 'function'
+                        ? getPlexHidden('plex.ratingFilter-hidden')
+                        : ''
+                    ).trim(),
+                    qualities: (typeof getPlexHidden === 'function'
+                        ? getPlexHidden('plex.qualityFilter-hidden')
+                        : ''
+                    ).trim(),
+                    recentOnly: !!document.getElementById('plex.recentOnly')?.checked,
+                    recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
+                };
+                const jfFilters = {
+                    years: (document.getElementById('jf.yearFilter')?.value || '').trim(),
+                    genres: (typeof getJfHidden === 'function'
+                        ? getJfHidden('jf.genreFilter-hidden')
+                        : ''
+                    ).trim(),
+                    ratings: (typeof getJfHidden === 'function'
+                        ? getJfHidden('jf.ratingFilter-hidden')
+                        : ''
+                    ).trim(),
+                    qualities: (typeof getJfHidden === 'function'
+                        ? getJfHidden('jf.qualityFilter-hidden')
+                        : ''
+                    ).trim(),
+                    recentOnly: !!document.getElementById('jf.recentOnly')?.checked,
+                    recentDays: Number(document.getElementById('jf.recentDays')?.value) || 0,
+                };
+
+                const matchWith = (it, src) => {
+                    const s = inferSource(it);
+                    if (s !== src) return false;
+                    const f = src === 'plex' ? plexFilters : src === 'jellyfin' ? jfFilters : null;
+                    if (!f) return true;
+                    // Year
+                    if (f.years && !yearInExpr(it.year, f.years)) return false;
+                    // Genres
+                    if (!anyGenreMatch(it.genres, f.genres)) return false;
+                    // Content rating (MPAA/TV)
+                    const itemRating = src === 'plex' ? it.contentRating : it.officialRating;
+                    if (!ratingIncluded(itemRating, f.ratings)) return false;
+                    // Quality (best-effort; skip when unknown on item)
+                    const allowedQ = parseCsv(f.qualities);
+                    if (allowedQ.length) {
+                        // Prefer explicit qualityLabel when present (set by backend), else infer
+                        const qLabel = (it.qualityLabel || '').toString();
+                        const q = qLabel
+                            ? qLabel
+                            : src === 'plex'
+                              ? inferPlexQuality(it)
+                              : inferJfQuality(it);
+                        if (q) {
+                            const allowedLower = allowedQ.map(a => a.toLowerCase());
+                            if (!allowedLower.includes(q.toLowerCase())) return false;
+                        }
+                    }
+                    // Recently added only
+                    if (f.recentOnly && f.recentDays > 0) {
+                        const ts = Number(it.addedAtMs);
+                        if (!Number.isFinite(ts)) return false;
+                        const daysAgo = Date.now() - f.recentDays * 24 * 60 * 60 * 1000;
+                        if (ts < daysAgo) return false;
+                    }
+                    return true;
+                };
+
+                const setCount = (id, n, m) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    // Always show a number (fallback to 0) to avoid lingering em-dash
+                    const nn = Number.isFinite(n) ? n : 0;
+                    const mm = Number.isFinite(m) ? m : m === 0 ? 0 : null;
+                    el.textContent = `Items: ${nn}${mm != null ? ` of ${mm}` : ''}`;
+                };
+                // Compute filtered counts from playlist cache (fallback)
+                let filteredPlex = items.filter(it => matchWith(it, 'plex')).length;
+                let filteredJf = items.filter(it => matchWith(it, 'jellyfin')).length;
+
+                // Always ask the server for full-library uncapped counts to ensure Plex/JF filters reflect immediately
+                try {
+                    const body = {
+                        plex: getSelectedLibraries('plex'),
+                        jellyfin: getSelectedLibraries('jellyfin'),
+                        // Send filters per source, matching server-side logic
+                        filtersPlex: plexFilters,
+                        filtersJellyfin: jfFilters,
+                    };
+                    const r = await fetch('/api/admin/filter-preview', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                    });
+                    if (r.ok) {
+                        const j = await r.json().catch(() => ({}));
+                        const c = j?.counts || {};
+                        if (Number.isFinite(c.plex)) filteredPlex = c.plex;
+                        if (Number.isFinite(c.jellyfin)) filteredJf = c.jellyfin;
+                    }
+                } catch (_) {
+                    // ignore and fall back to cached playlist derived counts
+                }
+
+                // Always compute true totals (sum of selected library counts)
+                let totalPlex = null;
+                let totalJf = null;
+                try {
+                    const map = await fetchLibraryCounts('plex');
+                    const { movies, shows } = getSelectedLibraries('plex');
+                    const sum = arr =>
+                        (arr || []).reduce((acc, name) => acc + (map.get(name)?.itemCount || 0), 0);
+                    totalPlex = sum(movies) + sum(shows);
+                } catch (_) {}
+                try {
+                    const map = await fetchLibraryCounts('jellyfin');
+                    const { movies, shows } = getSelectedLibraries('jellyfin');
+                    const sum = arr =>
+                        (arr || []).reduce((acc, name) => acc + (map.get(name)?.itemCount || 0), 0);
+                    totalJf = sum(movies) + sum(shows);
+                } catch (_) {}
+
+                // If no filters are active, prefer true totals; if unavailable, fall back to filtered (playlist-derived)
+                // Determine whether any filters are currently active (for display preference only)
+                const plexFiltersActive = isAnyFilterActive(plexFilters);
+                const jfFiltersActive = isAnyFilterActive(jfFilters);
+                const displayPlex = plexFiltersActive
+                    ? filteredPlex
+                    : Number.isFinite(totalPlex)
+                      ? totalPlex
+                      : filteredPlex;
+                const displayJf = jfFiltersActive
+                    ? filteredJf
+                    : Number.isFinite(totalJf)
+                      ? totalJf
+                      : filteredJf;
+
+                setCount('sc-plex-count', displayPlex, totalPlex);
+                setCount('sc-jf-count', displayJf, totalJf);
+                // Also update per-source panel header pills
+                setCount('plex-count-pill', displayPlex, totalPlex);
+                setCount('jf-count-pill', displayJf, totalJf);
+                // TMDB/TVDB could be shown later if desired
+            } catch (_) {
+                // ignore
+            }
+        }
+
+        // Wire live listeners so count badges and library labels update while editing
+        function wireLiveMediaSourcePreview() {
+            try {
+                if (document.body.dataset.msPreviewWired === 'true') return;
+                const safeOn = (id, evt = 'change') => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (el.dataset.countWired === 'true') return;
+                    el.addEventListener(evt, () => refreshOverviewCounts());
+                    el.dataset.countWired = 'true';
+                };
+                // Plex filters
+                safeOn('plex.yearFilter', 'input');
+                safeOn('plex.ratingFilter-hidden');
+                safeOn('plex.genreFilter-hidden');
+                safeOn('plex.qualityFilter-hidden');
+                safeOn('plex.recentOnly');
+                safeOn('plex.recentDays', 'input');
+                // Toggle Plex days enabled state when checkbox changes
+                try {
+                    const pcb = document.getElementById('plex.recentOnly');
+                    const pdy = document.getElementById('plex.recentDays');
+                    if (pcb && !pcb.dataset.daysToggleWired) {
+                        pcb.addEventListener('change', () => {
+                            if (pdy) pdy.disabled = !pcb.checked;
+                        });
+                        pcb.dataset.daysToggleWired = 'true';
+                    }
+                } catch (_) {}
+                // Jellyfin filters
+                safeOn('jf.yearFilter', 'input');
+                safeOn('jf.ratingFilter-hidden');
+                safeOn('jf.genreFilter-hidden');
+                safeOn('jf.qualityFilter-hidden');
+                safeOn('jf.recentOnly');
+                safeOn('jf.recentDays', 'input');
+                // Toggle Jellyfin days enabled state when checkbox changes
+                try {
+                    const jcb = document.getElementById('jf.recentOnly');
+                    const jdy = document.getElementById('jf.recentDays');
+                    if (jcb && !jcb.dataset.daysToggleWired) {
+                        jcb.addEventListener('change', () => {
+                            if (jdy) jdy.disabled = !jcb.checked;
+                        });
+                        jcb.dataset.daysToggleWired = 'true';
+                    }
+                } catch (_) {}
+
+                // Keep overview "Libraries: Movies X, Shows Y" in sync with current selections
+                const updateLibsMeta = () => {
+                    try {
+                        const plexMovies = document.getElementById('plex.movies');
+                        const plexShows = document.getElementById('plex.shows');
+                        const jfMovies = document.getElementById('jf.movies');
+                        const jfShows = document.getElementById('jf.shows');
+                        const countSel = sel =>
+                            sel ? Array.from(sel.selectedOptions || []).length : 0;
+                        const plexLibsEl = document.getElementById('sc-plex-libs');
+                        const jfLibsEl = document.getElementById('sc-jf-libs');
+                        if (plexLibsEl)
+                            plexLibsEl.textContent = `Libraries: Movies ${countSel(plexMovies)}, Shows ${countSel(plexShows)}`;
+                        if (jfLibsEl)
+                            jfLibsEl.textContent = `Libraries: Movies ${countSel(jfMovies)}, Shows ${countSel(jfShows)}`;
+                    } catch (_) {}
+                };
+                const onLibChange = selId => {
+                    const sel = document.getElementById(selId);
+                    if (!sel) return;
+                    if (sel.dataset.countWired === 'true') return;
+                    sel.addEventListener('change', () => {
+                        updateLibsMeta();
+                        // Recompute counts too; we cannot filter by library in playlist, but keep it reactive
+                        refreshOverviewCounts();
+                    });
+                    sel.dataset.countWired = 'true';
+                };
+                onLibChange('plex.movies');
+                onLibChange('plex.shows');
+                onLibChange('jf.movies');
+                onLibChange('jf.shows');
+                // Initial sync
+                updateLibsMeta();
+                document.body.dataset.msPreviewWired = 'true';
+            } catch (_) {
+                /* no-op */
+            }
+        }
+
         // Generic theme-demo multiselect (chips + dropdown) for backing <select multiple>
         function initMsForSelect(idBase, selectId) {
             const sel = document.getElementById(selectId);
@@ -3461,6 +4169,12 @@
                 getInput('plex.recentOnly').checked = !!plex.recentlyAddedOnly;
             if (getInput('plex.recentDays'))
                 getInput('plex.recentDays').value = plex.recentlyAddedDays ?? 30;
+            // Sync enabled/disabled state of days input with checkbox
+            try {
+                const cb = getInput('plex.recentOnly');
+                const days = getInput('plex.recentDays');
+                if (days) days.disabled = !(cb && cb.checked);
+            } catch (_) {}
             // Plex ratings/qualities multiselects (theme-demo)
             try {
                 const ratingsCsv = Array.isArray(plex.ratingFilter)
@@ -3562,6 +4276,12 @@
                 getInput('jf.recentOnly').checked = !!jf.recentlyAddedOnly;
             if (getInput('jf.recentDays'))
                 getInput('jf.recentDays').value = jf.recentlyAddedDays ?? 30;
+            // Sync enabled/disabled state of days input with checkbox
+            try {
+                const cb = getInput('jf.recentOnly');
+                const days = getInput('jf.recentDays');
+                if (days) days.disabled = !(cb && cb.checked);
+            } catch (_) {}
             if (getInput('jf.yearFilter')) {
                 const v = jf.yearFilter;
                 getInput('jf.yearFilter').value = v == null ? '' : String(v);
@@ -3597,7 +4317,8 @@
                 dbg('loadJellyfinGenres failed', e);
             }
             try {
-                await loadJellyfinQualities(jf.qualityFilter || '');
+                // Jellyfin qualities disabled
+                await loadJellyfinQualities('');
             } catch (e) {
                 dbg('loadJellyfinQualities failed', e);
             }
@@ -3714,6 +4435,15 @@
             if (getInput('tvdb.yearFilter'))
                 getInput('tvdb.yearFilter').value =
                     tvdb.yearFilter == null ? '' : String(tvdb.yearFilter);
+
+            // Finally, paint overview cards (status + toggles + meta)
+            updateOverviewCards(cfg, env);
+            // Then fetch and paint last sync times
+            refreshOverviewLastSync();
+            // And compute current playlist counts per source
+            refreshOverviewCounts();
+            // Wire live listeners once per page load
+            wireLiveMediaSourcePreview();
         }
         // Expose for reuse
         window.admin2 = window.admin2 || {};
@@ -3832,6 +4562,10 @@
                         message: 'Plex libraries loaded',
                         duration: 2200,
                     });
+                    // Immediately refresh counts to update the header pill
+                    try {
+                        refreshOverviewCounts();
+                    } catch (_) {}
                     // Optionally refresh dependent filters now that libraries are known
                     if (window.__plexLibsRefreshRequested) {
                         try {
@@ -3863,7 +4597,13 @@
         // ------- Plex Genre Filter (chips with hidden input) -------
         function setPlexGenreFilterHidden(val) {
             const hidden = document.getElementById('plex.genreFilter-hidden');
-            if (hidden) hidden.value = val || '';
+            if (hidden) {
+                hidden.value = val || '';
+                // Ensure live counts update: trigger change so wireLiveMediaSourcePreview refreshes pills
+                try {
+                    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (_) {}
+            }
         }
         function getPlexGenreFilterHidden() {
             const hidden = document.getElementById('plex.genreFilter-hidden');
@@ -4227,7 +4967,8 @@
                         try {
                             loadJellyfinRatings?.(getJfHidden?.('jf.ratingFilter-hidden'));
                             loadJellyfinGenres?.(getJfHidden?.('jf.genreFilter-hidden'));
-                            loadJellyfinQualities?.(getJfHidden?.('jf.qualityFilter-hidden'));
+                            // Jellyfin qualities disabled
+                            loadJellyfinQualities?.('');
                         } catch (_) {
                             /* no-op */
                         }
@@ -4252,7 +4993,12 @@
         // ------- Jellyfin Multiselect Helpers (ratings/genres/qualities) -------
         function setJfHidden(id, val) {
             const el = document.getElementById(id);
-            if (el) el.value = val || '';
+            if (el) {
+                el.value = val || '';
+                try {
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (_) {}
+            }
         }
         function getJfHidden(id) {
             const el = document.getElementById(id);
@@ -4437,7 +5183,6 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 const arr = Array.isArray(data?.data) ? data.data : [];
-                // Map to rating strings
                 const ratings = arr
                     .map(r => r.rating)
                     .filter(Boolean)
@@ -4451,7 +5196,6 @@
                 optsEl.innerHTML = '';
                 ratings.forEach(n => optsEl.appendChild(jfMsOption(n, selected.has(n))));
                 setJfHidden('jf.ratingFilter-hidden', Array.from(selected).join(','));
-                // If already wired, just re-render chips and sync options; otherwise attach handlers
                 if (root?.dataset.msWired === 'true') {
                     const syncOptions = () => {
                         Array.from(optsEl.children).forEach(row => {
@@ -4493,6 +5237,7 @@
                 chips.innerHTML = '<div class="subtle">Failed to load ratings</div>';
             }
         }
+        // (No loadJellyfinQualities here — defined later)
         async function loadJellyfinGenres(currentCsv = '') {
             const chips = document.getElementById('jf-ms-genres-chips');
             const optsEl = document.getElementById('jf-ms-genres-options');
@@ -4583,79 +5328,17 @@
             }
         }
         async function loadJellyfinQualities(currentCsv = '') {
+            // Disable Jellyfin quality filtering in UI; clear state and show notice
+            const root = document.getElementById('jf-ms-qualities');
             const chips = document.getElementById('jf-ms-qualities-chips');
             const optsEl = document.getElementById('jf-ms-qualities-options');
-            const control = document.querySelector('#jf-ms-qualities .ms-control');
-            const root = document.getElementById('jf-ms-qualities');
-            if (!chips || !optsEl || !control) return;
-            chips.innerHTML = '<div class="subtle">Loading qualities…</div>';
-            try {
-                const res = await window.dedupJSON('/api/admin/jellyfin-qualities-with-counts', {
-                    credentials: 'include',
-                });
-                const data = await res.json().catch(() => ({}));
-                const arr = Array.isArray(data?.qualities) ? data.qualities : [];
-                const names = arr
-                    .map(q => q.quality || q)
-                    .filter(Boolean)
-                    .sort((a, b) => {
-                        const order = ['SD', '720p', '1080p', '4K'];
-                        const ai = order.indexOf(a);
-                        const bi = order.indexOf(b);
-                        if (ai !== -1 && bi !== -1) return ai - bi;
-                        if (ai !== -1) return -1;
-                        if (bi !== -1) return 1;
-                        return a.localeCompare(b);
-                    });
-                const selected = new Set(
-                    String(currentCsv || '')
-                        .split(',')
-                        .map(s => s.trim())
-                        .filter(Boolean)
-                );
-                optsEl.innerHTML = '';
-                names.forEach(n => optsEl.appendChild(jfMsOption(n, selected.has(n))));
-                setJfHidden('jf.qualityFilter-hidden', Array.from(selected).join(','));
-                if (root?.dataset.msWired === 'true') {
-                    const syncOptions = () => {
-                        Array.from(optsEl.children).forEach(row => {
-                            const v = row.dataset.value;
-                            const cb = row.querySelector('input[type="checkbox"]');
-                            if (cb) cb.checked = selected.has(v);
-                        });
-                    };
-                    const renderChips = () => {
-                        chips.innerHTML = '';
-                        Array.from(selected).forEach(v => {
-                            const chip = document.createElement('span');
-                            chip.className = 'ms-chip';
-                            chip.dataset.value = v;
-                            chip.innerHTML = `${v} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
-                            chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
-                                e.stopPropagation();
-                                selected.delete(v);
-                                setJfHidden(
-                                    'jf.qualityFilter-hidden',
-                                    Array.from(selected).join(',')
-                                );
-                                syncOptions();
-                                renderChips();
-                                control.classList.toggle('has-selection', selected.size > 0);
-                            });
-                            chips.appendChild(chip);
-                        });
-                        control.classList.toggle('has-selection', selected.size > 0);
-                    };
-                    syncOptions();
-                    renderChips();
-                } else {
-                    jfAttachMsHandlers('jf-ms-qualities', names, selected, sel =>
-                        setJfHidden('jf.qualityFilter-hidden', Array.from(sel).join(','))
-                    );
-                }
-            } catch (e) {
-                chips.innerHTML = '<div class="subtle">Failed to load qualities</div>';
-            }
+            if (root) root.classList.add('disabled');
+            if (chips)
+                chips.innerHTML =
+                    '<div class="subtle">Qualiteitsfilter is uitgeschakeld voor Jellyfin</div>';
+            if (optsEl) optsEl.innerHTML = '';
+            if (typeof setJfHidden === 'function') setJfHidden('jf.qualityFilter-hidden', '');
+            return;
         }
 
         // Test connections
@@ -4809,7 +5492,8 @@
                 // Refresh dependent filters
                 loadJellyfinRatings(getJfHidden('jf.ratingFilter-hidden'));
                 loadJellyfinGenres(getJfHidden('jf.genreFilter-hidden'));
-                loadJellyfinQualities(getJfHidden('jf.qualityFilter-hidden'));
+                // Jellyfin qualities disabled
+                loadJellyfinQualities('');
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -4985,28 +5669,8 @@
                 plex.recentlyAddedDays = toInt(getInput('plex.recentDays')?.value) ?? 30;
                 // From multiselect hidden fields
                 plex.ratingFilter = parseCsvList(getPlexHidden('plex.ratingFilter-hidden'));
-                // Plex backend expects a single quality; pick the highest selected if multiple
-                const qCsv = (getPlexHidden('plex.qualityFilter-hidden') || '').trim();
-                if (qCsv) {
-                    const order = ['SD', '720p', '1080p', '4K'];
-                    const selected = qCsv
-                        .split(',')
-                        .map(s => s.trim())
-                        .filter(Boolean);
-                    // choose the highest by order index
-                    let best = '';
-                    let bestIdx = -1;
-                    for (const q of selected) {
-                        const idx = order.indexOf(q);
-                        if (idx > bestIdx) {
-                            bestIdx = idx;
-                            best = q;
-                        }
-                    }
-                    plex.qualityFilter = best || selected[0] || '';
-                } else {
-                    plex.qualityFilter = '';
-                }
+                // Save Plex qualities as CSV (supports multiple)
+                plex.qualityFilter = (getPlexHidden('plex.qualityFilter-hidden') || '').trim();
                 {
                     const expr = parseYearExpression(getInput('plex.yearFilter')?.value);
                     plex.yearFilter = expr;
@@ -5084,7 +5748,8 @@
                 const ratingCsv = getJfHidden('jf.ratingFilter-hidden');
                 jf.ratingFilter = parseCsvList(ratingCsv);
                 jf.genreFilter = getJfHidden('jf.genreFilter-hidden');
-                jf.qualityFilter = getJfHidden('jf.qualityFilter-hidden');
+                // Jellyfin qualities disabled
+                jf.qualityFilter = '';
                 jf.movieLibraryNames = getMultiSelectValues('jf.movies');
                 jf.showLibraryNames = getMultiSelectValues('jf.shows');
                 jf.hostnameEnvVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
@@ -5379,7 +6044,12 @@
         // ------- Plex Ratings/Qualities (theme-demo multiselects) -------
         function setPlexHidden(id, val) {
             const el = document.getElementById(id);
-            if (el) el.value = val || '';
+            if (el) {
+                el.value = val || '';
+                try {
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (_) {}
+            }
         }
         function getPlexHidden(id) {
             const el = document.getElementById(id);
