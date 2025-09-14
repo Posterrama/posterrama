@@ -1,0 +1,31 @@
+[
+    {
+        "id": "c1f3c67e-f783-48ab-bc31-ad8ebb81742a",
+        "installId": "iid-pair-happy",
+        "hardwareId": "hw-pair-happy",
+        "secretHash": "sha256:88c3699884f9dbc20e20c66ae6a77d3101bdc421825d5d8d46e9aafb66828671",
+        "name": "Paired",
+        "location": "Lab",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-15T12:03:27.683Z",
+        "updatedAt": "2025-09-15T12:03:27.733Z",
+        "lastSeenAt": "2025-09-15T12:03:27.733Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "jest",
+            "screen": {
+                "w": 1280,
+                "h": 720,
+                "dpr": 1
+            },
+            "mode": "screensaver"
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {
+            "lastPairedAt": "2025-09-15T12:03:27.716Z"
+        }
+    }
+]

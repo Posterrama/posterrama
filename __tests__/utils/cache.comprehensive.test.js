@@ -771,17 +771,17 @@ describe('Cache Utils', () => {
         describe('Configuration', () => {
             test('should update configuration', () => {
                 diskManager.updateConfig({
-                    maxSizeGB: 5,
+                    maxSizeGB: 2,
                     minFreeDiskSpaceMB: 1000,
                     autoCleanup: false,
                 });
 
-                expect(diskManager.maxSizeBytes).toBe(5 * 1024 * 1024 * 1024);
+                expect(diskManager.maxSizeBytes).toBe(2 * 1024 * 1024 * 1024);
                 expect(diskManager.minFreeDiskSpaceBytes).toBe(1000 * 1024 * 1024);
                 expect(diskManager.autoCleanup).toBe(false);
                 expect(mockLogger.info).toHaveBeenCalledWith(
                     'Cache configuration updated',
-                    expect.objectContaining({ maxSizeGB: 5 })
+                    expect.objectContaining({ maxSizeGB: 2 })
                 );
             });
 

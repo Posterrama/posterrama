@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearFilterButton = document.getElementById('clearFilter');
 
     let lastLogCount = 0;
+    // Track scroll state within checkScroll(); initialized true
     let isScrolledToBottom = true;
     let isPaused = false;
     let currentLogs = [];
@@ -116,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Auto-scroll behavior: if user was at top (viewing the latest), keep them at top
-        if (autoScrollCheckbox.checked) {
+        if (autoScrollCheckbox.checked && isScrolledToBottom) {
             if (atTop) {
                 container.scrollTop = 0;
             }

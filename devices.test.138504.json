@@ -1,0 +1,169 @@
+[
+    {
+        "id": "dad319a5-d1e9-4437-9ddc-3cfd02288b02",
+        "installId": "test-iid-vffwodlwti9",
+        "hardwareId": "hw-test-123",
+        "secretHash": "sha256:6636281d39483e3bb13996f1148531eda1285553a232e53628e82cca0e587ab7",
+        "name": "",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-15T11:53:19.790Z",
+        "updatedAt": "2025-09-15T11:53:19.865Z",
+        "lastSeenAt": "2025-09-15T11:53:19.865Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "jest",
+            "screen": {
+                "w": 1920,
+                "h": 1080,
+                "dpr": 1
+            },
+            "mode": "screensaver"
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "8b7e1495-f7cf-41b2-b3fe-1d41f3ffc9d5",
+        "installId": "test-iid-0p12e3085ee",
+        "hardwareId": "hw-test-abc",
+        "secretHash": "sha256:36c3d29cb1e25607dfee91155691d757833b30ab61fbd04432a8f77c9aed8faa",
+        "name": "",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-15T11:53:20.000Z",
+        "updatedAt": "2025-09-15T11:53:20.119Z",
+        "lastSeenAt": "2025-09-15T11:53:20.119Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "jest",
+            "screen": {
+                "w": 1024,
+                "h": 768,
+                "dpr": 1
+            },
+            "mode": "screensaver"
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "d3607fda-3923-4c4a-8404-559fcbd53fd3",
+        "installId": "test-iid-lvpuohaeymb",
+        "hardwareId": "hw-test-queue",
+        "secretHash": "sha256:7e795d7a38a3af9f5cd4e1224367a17333d3758c1273975bb1b91d78c911701f",
+        "name": "",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-15T11:53:20.233Z",
+        "updatedAt": "2025-09-15T11:53:20.354Z",
+        "lastSeenAt": "2025-09-15T11:53:20.354Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "jest",
+            "screen": {
+                "w": 800,
+                "h": 600,
+                "dpr": 1
+            },
+            "mode": "screensaver"
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "7debf718-ade6-4e41-9514-6491b37cd42b",
+        "installId": "iid-wait-offline",
+        "hardwareId": "hw-wait-offline",
+        "secretHash": "sha256:630cdadedef6f89ab3e01411ef0744b7e0a2d0d11e753ca0a30b33dacefd7023",
+        "name": "",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-15T11:53:22.765Z",
+        "updatedAt": "2025-09-15T11:53:22.765Z",
+        "lastSeenAt": null,
+        "status": "unknown",
+        "clientInfo": {},
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "7abd6217-c098-478e-91b8-ac9e1ecd2d41",
+        "installId": "iid-wait-timeout",
+        "hardwareId": "hw-wait-timeout",
+        "secretHash": "sha256:e1e3c6ff4d0ddd65280a99153d784706d93cfd9f6d60381c7f8031c005e0fc79",
+        "name": "",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-15T11:53:23.115Z",
+        "updatedAt": "2025-09-15T11:53:23.115Z",
+        "lastSeenAt": null,
+        "status": "unknown",
+        "clientInfo": {},
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "b54c82c7-5f3b-4bcf-a0bb-53a493f4654c",
+        "installId": "iid-a",
+        "hardwareId": "hw-a",
+        "secretHash": "sha256:6dc98308a101cf1d1a13a0d3a39dc59115cf9e2c5451f093335c8b8f0bbf3efe",
+        "name": "",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-15T11:53:23.681Z",
+        "updatedAt": "2025-09-15T11:53:23.701Z",
+        "lastSeenAt": null,
+        "status": "unknown",
+        "clientInfo": {},
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "65cf778d-1b0f-4789-95e6-79c2afe5f28a",
+        "installId": "iid-pair-happy",
+        "hardwareId": "hw-pair-happy",
+        "secretHash": "sha256:5c5396fcf843b86dad4e86b15baa6decaf8eee53cda9d025c4bd365e2559f4ed",
+        "name": "Paired",
+        "location": "Lab",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-15T11:53:24.286Z",
+        "updatedAt": "2025-09-15T11:53:24.311Z",
+        "lastSeenAt": "2025-09-15T11:53:24.311Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "jest",
+            "screen": {
+                "w": 1280,
+                "h": 720,
+                "dpr": 1
+            },
+            "mode": "screensaver"
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {
+            "lastPairedAt": "2025-09-15T11:53:24.305Z"
+        }
+    }
+]

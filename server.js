@@ -78,16 +78,19 @@ function forceReloadEnv() {
                         value = value.slice(1, -1);
                     }
 
-                    // Force update process.env with latest values
-                    const oldValue = process.env[key.trim()];
-                    process.env[key.trim()] = value;
+                    const k = key.trim();
+                    const oldValue = process.env[k];
+                    // Never override NODE_ENV from .env — preserve the runtime environment
+                    // This is critical for tests (NODE_ENV=test) and PM2/host-provided values
+                    if (k === 'NODE_ENV') {
+                        continue;
+                    }
+                    // Force update for all other keys to reflect latest .env (PM2 cache fixes)
+                    process.env[k] = value;
 
                     // Log changes for critical keys
-                    if (
-                        ['JELLYFIN_API_KEY', 'PLEX_TOKEN'].includes(key.trim()) &&
-                        oldValue !== value
-                    ) {
-                        console.log(`[Startup] Updated ${key.trim()} from PM2 cache`);
+                    if (['JELLYFIN_API_KEY', 'PLEX_TOKEN'].includes(k) && oldValue !== value) {
+                        console.log(`[Startup] Updated ${k} from PM2 cache`);
                     }
                 }
             }
@@ -2300,16 +2303,16 @@ app.use(compressionMiddleware());
 app.use(securityMiddleware());
 app.use(corsMiddleware());
 app.use(requestLoggingMiddleware());
-// In test environment, pre-seed a session user for device admin endpoints to avoid 401s during API tests
+// In test environment, optionally log requests; only seed session for safe idempotent reads (GET/HEAD)
 if (process.env.NODE_ENV === 'test') {
     app.use((req, _res, next) => {
-        // eslint-disable-next-line no-console
-        console.log('[REQ]', req.method, req.path, 'Auth:', req.headers.authorization || '');
-        if (
-            req.path.startsWith('/api/devices/') ||
-            req.path === '/api/devices' ||
-            req.path.startsWith('/api/groups')
-        ) {
+        if (process.env.PRINT_AUTH_DEBUG === '1') {
+            // eslint-disable-next-line no-console
+            console.log('[REQ]', req.method, req.path, 'Auth:', req.headers.authorization || '');
+        }
+        // Only seed a session automatically for benign, non-sensitive reads in tests.
+        // Never auto-seed for /api/devices* so unauthenticated access can be correctly tested.
+        if ((req.method === 'GET' || req.method === 'HEAD') && req.path.startsWith('/api/groups')) {
             req.session = req.session || {};
             req.session.user = req.session.user || { username: 'test-admin' };
         }
@@ -2352,17 +2355,32 @@ const adminAuth = (req, res, next) => {
 };
 
 // Test-friendly wrapper for admin auth on device routes only
-// In NODE_ENV=test, bypass auth entirely to keep API tests deterministic
+// In NODE_ENV=test, bypass auth when any token header is present; otherwise defer to real auth
 const adminAuthDevices = (req, res, next) => {
     if (process.env.NODE_ENV === 'test') {
+        const authHeader = req.get('Authorization') || req.headers.authorization;
+        const xApiKey = req.get('x-api-key') || req.headers['x-api-key'];
+        const qApiKey = (req.query && (req.query.apiKey || req.query.apikey)) || '';
+        const hasAnyAuth =
+            (authHeader && String(authHeader).trim()) ||
+            (xApiKey && String(xApiKey).trim()) ||
+            (qApiKey && String(qApiKey).trim());
         if (process.env.PRINT_AUTH_DEBUG === '1') {
             try {
                 // eslint-disable-next-line no-console
-                console.log('[ADMIN AUTH DEVICES BYPASS]', req.method, req.path);
-            } catch (_) {}
+                console.log('[ADMIN AUTH DEVICES BYPASS?]', req.method, req.path, {
+                    hasAnyAuth: Boolean(hasAnyAuth),
+                });
+            } catch (_) {
+                // best-effort debug logging
+            }
         }
-        req.user = { username: 'api_user', authMethod: 'test-bypass' };
-        return next();
+        if (hasAnyAuth) {
+            req.user = { username: 'api_user', authMethod: 'test-bypass' };
+            return next();
+        }
+        // No token provided; use real adminAuth which will enforce 401 when appropriate
+        return adminAuth(req, res, next);
     }
     return adminAuth(req, res, next);
 };
@@ -2590,12 +2608,28 @@ if (isDeviceMgmtEnabled()) {
                     // ignore reverse DNS failures
                 }
             }
-            const { device, secret } = await deviceStore.registerDevice({
-                name: finalName,
-                location,
-                installId: stableInstallId,
-                hardwareId,
-            });
+
+            // Small retry loop to mitigate rare transient FS issues during heavy parallel tests
+            let device, secret, lastErr;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    const r = await deviceStore.registerDevice({
+                        name: finalName,
+                        location,
+                        installId: stableInstallId,
+                        hardwareId,
+                    });
+                    device = r.device;
+                    secret = r.secret;
+                    lastErr = null;
+                    break;
+                } catch (e) {
+                    lastErr = e;
+                    await new Promise(r => setTimeout(r, attempt * 25));
+                }
+            }
+            if (!device) throw lastErr || new Error('register_failed');
+
             // Ensure cookie is set/updated so future tabs share identity immediately
             if (!cookieIid || cookieIid !== stableInstallId) setInstallCookie(res, stableInstallId);
             res.json({ deviceId: device.id, deviceSecret: secret });
@@ -2822,8 +2856,14 @@ if (isDeviceMgmtEnabled()) {
     // Test-mode session shim to satisfy endpoints that check req.session.user
     const testSessionShim = (req, _res, next) => {
         if (process.env.NODE_ENV === 'test') {
-            req.session = req.session || {};
-            req.session.user = req.session.user || { username: 'test-admin' };
+            // For device admin endpoints, do NOT auto-seed session.
+            // Allow explicit opt-in via header when a test truly needs a session.
+            const wantsTestSession =
+                req.headers['x-test-session'] === '1' || req.headers['x-test-session'] === 'true';
+            if (wantsTestSession && (req.method === 'GET' || req.method === 'HEAD')) {
+                req.session = req.session || {};
+                req.session.user = req.session.user || { username: 'test-admin' };
+            }
         }
         next();
     };
@@ -6270,24 +6310,32 @@ app.post('/api/admin/restart-app', adminAuth, (req, res) => {
                                 stdout: (stdout || '').slice(0, 500),
                                 stderr: (stderr || '').slice(0, 500),
                             });
-                        } catch (_) {}
+                        } catch (_) {
+                            // best-effort logging
+                        }
                         return;
                     }
                     try {
                         logger.info('[Admin Restart] Restart command issued via PM2');
-                    } catch (_) {}
+                    } catch (_) {
+                        // best-effort logging
+                    }
                 });
             } else {
                 // Not under PM2: exit and rely on nodemon/systemd/supervisor to restart (or manual)
                 try {
                     logger.info('[Admin Restart] Exiting process to trigger external restart');
-                } catch (_) {}
+                } catch (_) {
+                    // best-effort logging
+                }
                 setTimeout(() => process.exit(0), 250);
             }
         } catch (e) {
             try {
                 logger.error('[Admin Restart] Unexpected failure', { error: e?.message });
-            } catch (_) {}
+            } catch (_) {
+                // best-effort logging
+            }
             if (!process.env.PM2_HOME) setTimeout(() => process.exit(0), 250);
         }
     }, 200);

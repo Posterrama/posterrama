@@ -5,11 +5,14 @@ const crypto = require('crypto');
 const logger = require('./logger');
 const deepMerge = require('lodash.merge');
 
+// In tests, isolate the device store per worker to avoid concurrent write contention
+const testSuffix = process.env.NODE_ENV === 'test' ? `.test.${process.pid}` : '';
+const defaultStore = path.join(__dirname, '..', `devices${testSuffix}.json`);
 const storePath = process.env.DEVICES_STORE_PATH
     ? path.isAbsolute(process.env.DEVICES_STORE_PATH)
         ? process.env.DEVICES_STORE_PATH
         : path.join(__dirname, '..', process.env.DEVICES_STORE_PATH)
-    : path.join(__dirname, '..', 'devices.json');
+    : defaultStore;
 
 let writeQueue = Promise.resolve();
 let cache = null; // in-memory cache of devices

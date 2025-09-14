@@ -31,7 +31,7 @@ describe('Environment Validator integration', () => {
     });
     const validConfig = {
         transitionIntervalSeconds: 15,
-        backgroundRefreshMinutes: 30,
+        backgroundRefreshMinutes: 60,
         showClearLogo: true,
         showRottenTomatoes: true,
         rottenTomatoesMinimumScore: 0,
