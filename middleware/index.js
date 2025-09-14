@@ -130,6 +130,8 @@ function requestLoggingMiddleware() {
             } else if (req.url.includes('/api/')) {
                 // Reduce noise: skip ultra-chatty streams (SSE) and demote to debug by default
                 if (req.url.startsWith('/api/admin/events')) return; // SSE stream
+                if (req.url.startsWith('/api/admin/logs')) return; // avoid self-referential log spam
+                if (req.url.startsWith('/api/devices/heartbeat')) return; // frequent pings
 
                 // Keep original behavior for tests to satisfy assertions
                 if (process.env.NODE_ENV === 'test') {
