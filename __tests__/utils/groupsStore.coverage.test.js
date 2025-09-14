@@ -1,52 +1,75 @@
-const fs = require('fs');
 const path = require('path');
 
 describe('utils/groupsStore coverage', () => {
     let tmpStore;
     let groupsStore;
+    let mockFs;
 
     beforeAll(() => {
         // Create unique temp file path
         const unique = `groups-store-test-${process.pid}-${Date.now()}-${Math.random()
             .toString(36)
             .slice(2)}.json`;
-        tmpStore = path.join(__dirname, '..', '..', 'sessions', unique);
-        const dir = path.dirname(tmpStore);
-        fs.mkdirSync(dir, { recursive: true });
-        // Ensure clean slate
-        try {
-            fs.unlinkSync(tmpStore);
-        } catch (_) {}
-        // Pre-create with valid empty array to avoid type surprises
-        try {
-            fs.writeFileSync(tmpStore, '[]', 'utf8');
-        } catch (_) {}
+        tmpStore = path.join(require('os').tmpdir(), unique);
     });
 
     beforeEach(() => {
-        // Fresh module instance each test to avoid cache/mocking interference
+        // Create a completely isolated in-memory fs mock to prevent interference
+        mockFs = {
+            data: new Map(),
+            existsSync: jest.fn(filePath => mockFs.data.has(filePath)),
+            readFileSync: jest.fn((filePath, _encoding) => {
+                const content = mockFs.data.get(filePath);
+                if (!content)
+                    throw new Error(`ENOENT: no such file or directory, open '${filePath}'`);
+                return content;
+            }),
+            writeFileSync: jest.fn((filePath, data) => {
+                mockFs.data.set(filePath, data);
+            }),
+            promises: {
+                access: jest.fn(async filePath => {
+                    if (!mockFs.data.has(filePath)) {
+                        throw new Error(`ENOENT: no such file or directory, access '${filePath}'`);
+                    }
+                }),
+                readFile: jest.fn(async (filePath, _encoding) => {
+                    const content = mockFs.data.get(filePath);
+                    if (!content)
+                        throw new Error(`ENOENT: no such file or directory, open '${filePath}'`);
+                    return content;
+                }),
+                writeFile: jest.fn(async (filePath, data) => {
+                    mockFs.data.set(filePath, data);
+                }),
+                rename: jest.fn(async (oldPath, newPath) => {
+                    const content = mockFs.data.get(oldPath);
+                    if (content) {
+                        mockFs.data.set(newPath, content);
+                        mockFs.data.delete(oldPath);
+                    }
+                }),
+            },
+        };
+
+        // Fresh module instance with complete isolation
         jest.resetModules();
-        // Ensure the file is a clean array before loading the module
-        try {
-            fs.mkdirSync(path.dirname(tmpStore), { recursive: true });
-            fs.writeFileSync(tmpStore, '[]', 'utf8');
-        } catch (_) {}
         jest.isolateModules(() => {
             const prev = process.env.GROUPS_STORE_PATH;
             process.env.GROUPS_STORE_PATH = tmpStore;
-            jest.doMock('fs', () => jest.requireActual('fs'));
+
+            // Mock fs completely to prevent any file system interference
+            jest.doMock('fs', () => mockFs);
             groupsStore = require('../../utils/groupsStore');
+
+            // Restore env
             if (prev === undefined) delete process.env.GROUPS_STORE_PATH;
             else process.env.GROUPS_STORE_PATH = prev;
         });
     });
 
     afterAll(() => {
-        // Cleanup file and env
-        try {
-            fs.unlinkSync(tmpStore);
-        } catch (_) {}
-        // No env var cleanup needed; we restore within isolateModules
+        // Cleanup handled by in-memory mock, no real files to remove
     });
 
     test('getAll returns [] on fresh store', async () => {
@@ -54,7 +77,7 @@ describe('utils/groupsStore coverage', () => {
         expect(Array.isArray(all)).toBe(true);
         expect(all.length).toBe(0);
         // File should be created lazily
-        expect(fs.existsSync(tmpStore)).toBe(true);
+        expect(mockFs.existsSync(tmpStore)).toBe(true);
     });
 
     test('createGroup assigns incremental order and getById works; duplicate id throws', async () => {

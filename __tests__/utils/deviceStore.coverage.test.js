@@ -1,6 +1,4 @@
-const fs = require('fs');
 const path = require('path');
-const os = require('os');
 
 // Small helper to wait real time without fake timers
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -8,59 +6,86 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 describe('utils/deviceStore coverage', () => {
     let tmpStore;
     let deviceStore;
+    let mockFs;
 
     beforeAll(() => {
         // Create a unique temp file per worker to avoid collisions
         const unique = `devices-store-test-${process.pid}-${Date.now()}-${Math.random()
             .toString(36)
             .slice(2)}.json`;
-        tmpStore = path.join(__dirname, '..', '..', 'sessions', unique);
-        fs.mkdirSync(path.dirname(tmpStore), { recursive: true });
-        try {
-            fs.unlinkSync(tmpStore);
-        } catch (_) {}
-        try {
-            fs.writeFileSync(tmpStore, '[]', 'utf8');
-        } catch (_) {}
+        tmpStore = path.join(require('os').tmpdir(), unique);
     });
 
     beforeEach(() => {
-        // Fresh module instance each test to avoid interference from global cache clearing
+        // Create a completely isolated in-memory fs mock to prevent interference
+        mockFs = {
+            data: new Map(),
+            existsSync: jest.fn(filePath => mockFs.data.has(filePath)),
+            readFileSync: jest.fn((filePath, _encoding) => {
+                const content = mockFs.data.get(filePath);
+                if (!content)
+                    throw new Error(`ENOENT: no such file or directory, open '${filePath}'`);
+                return content;
+            }),
+            writeFileSync: jest.fn((filePath, data) => {
+                mockFs.data.set(filePath, data);
+            }),
+            promises: {
+                access: jest.fn(async filePath => {
+                    if (!mockFs.data.has(filePath)) {
+                        throw new Error(`ENOENT: no such file or directory, access '${filePath}'`);
+                    }
+                }),
+                readFile: jest.fn(async (filePath, _encoding) => {
+                    const content = mockFs.data.get(filePath);
+                    if (!content)
+                        throw new Error(`ENOENT: no such file or directory, open '${filePath}'`);
+                    return content;
+                }),
+                writeFile: jest.fn(async (filePath, data) => {
+                    mockFs.data.set(filePath, data);
+                }),
+                rename: jest.fn(async (oldPath, newPath) => {
+                    const content = mockFs.data.get(oldPath);
+                    if (content) {
+                        mockFs.data.set(newPath, content);
+                        mockFs.data.delete(oldPath);
+                    }
+                }),
+            },
+        };
+
+        // Fresh module instance with complete isolation
         jest.resetModules();
-        // Reset the backing file to a clean array to guard against any external writes
-        try {
-            fs.mkdirSync(path.dirname(tmpStore), { recursive: true });
-            fs.writeFileSync(tmpStore, '[]', 'utf8');
-        } catch (_) {}
         jest.isolateModules(() => {
             const prev = process.env.DEVICES_STORE_PATH;
             process.env.DEVICES_STORE_PATH = tmpStore;
-            // Ensure real fs, not any global mock from other test files
-            jest.doMock('fs', () => jest.requireActual('fs'));
+
+            // Mock fs completely to prevent any file system interference
+            jest.doMock('fs', () => mockFs);
             jest.doMock('../../utils/logger', () => ({
                 info: jest.fn(),
                 warn: jest.fn(),
                 error: jest.fn(),
             }));
+
             deviceStore = require('../../utils/deviceStore');
-            // Restore env to avoid leaking into other suites running in parallel
+
+            // Restore env
             if (prev === undefined) delete process.env.DEVICES_STORE_PATH;
             else process.env.DEVICES_STORE_PATH = prev;
         });
     });
 
     afterAll(() => {
-        try {
-            fs.unlinkSync(tmpStore);
-        } catch (_) {}
-        // No env var cleanup needed; we restore within isolateModules
+        // Cleanup handled by in-memory mock, no real files to remove
     });
 
     test('fresh store initializes empty', async () => {
         const all = await deviceStore.getAll();
         expect(Array.isArray(all)).toBe(true);
         expect(all.length).toBe(0);
-        expect(fs.existsSync(tmpStore)).toBe(true);
+        expect(mockFs.existsSync(tmpStore)).toBe(true);
     });
 
     test('registerDevice: by installId rotates secret; by hardwareId prefers existing', async () => {
