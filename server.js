@@ -274,6 +274,7 @@ const PlexSource = require('./sources/plex');
 const JellyfinSource = require('./sources/jellyfin');
 const TMDBSource = require('./sources/tmdb');
 const TVDBSource = require('./sources/tvdb');
+const deepMerge = require('lodash.merge');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const rateLimit = require('express-rate-limit');
@@ -1715,6 +1716,14 @@ if (isDeviceMgmtEnabled()) {
                     wsHub.sendApplySettings(req.params.id, patch.settingsOverride);
                 } catch (_) {
                     /* ignore ws push errors */
+                }
+                // Invalidate cached /get-config entries so devices see updated overrides on next fetch
+                try {
+                    if (cacheManager && typeof cacheManager.clear === 'function') {
+                        cacheManager.clear('GET:/get-config');
+                    }
+                } catch (_) {
+                    /* ignore cache clear errors */
                 }
             }
             res.json(d);
@@ -3768,11 +3777,28 @@ app.get(
     '/get-config',
     validateGetConfigQuery,
     cacheMiddleware({
-        ttl: 30000, // 30 seconds instead of 10 minutes
+        ttl: 30000, // 30 seconds
         cacheControl: 'public, max-age=30',
-        varyHeaders: ['Accept-Encoding', 'User-Agent'], // Add User-Agent to vary headers
+        // Vary on device-identifying headers so cache doesn't bleed across devices
+        varyHeaders: [
+            'Accept-Encoding',
+            'User-Agent',
+            'X-Device-Id',
+            'X-Install-Id',
+            'X-Hardware-Id',
+        ],
+        // Include a device discriminator in the cache key for correctness
+        keyGenerator: req => {
+            const devPart = (
+                req.headers['x-device-id'] ||
+                req.headers['x-install-id'] ||
+                req.headers['x-hardware-id'] ||
+                ''
+            ).toString();
+            return `${req.method}:${req.originalUrl}${devPart ? `#${devPart}` : ''}`;
+        },
     }),
-    (req, res) => {
+    async (req, res) => {
         const userAgent = req.get('user-agent') || '';
         const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
 
@@ -3782,7 +3808,8 @@ app.get(
             );
         }
 
-        res.json({
+        // Base public config
+        const baseConfig = {
             clockWidget: config.clockWidget !== false,
             clockTimezone: config.clockTimezone || 'auto',
             clockFormat: config.clockFormat || '24h',
@@ -3810,7 +3837,49 @@ app.get(
                 clock: 100,
                 global: 100,
             },
-            // Debug info for mobile genre filtering issue
+        };
+
+        // Try to identify device and merge settingsOverride if present
+        let merged = baseConfig;
+        try {
+            const deviceId = req.get('X-Device-Id');
+            const installId = req.get('X-Install-Id');
+            const hardwareId = req.get('X-Hardware-Id');
+
+            let device = null;
+            // Prefer exact id match when provided, but avoid requiring secret on GET
+            if (deviceId) {
+                device = await deviceStore.getById(deviceId);
+            }
+            if (!device && installId && deviceStore.findByInstallId) {
+                device = await deviceStore.findByInstallId(installId);
+            }
+            if (!device && hardwareId && deviceStore.findByHardwareId) {
+                device = await deviceStore.findByHardwareId(hardwareId);
+            }
+
+            const overrides =
+                device && device.settingsOverride && typeof device.settingsOverride === 'object'
+                    ? device.settingsOverride
+                    : null;
+            if (overrides && Object.keys(overrides).length) {
+                merged = deepMerge({}, baseConfig, overrides);
+                if (isDebug) {
+                    logger.debug('[get-config] Applied device overrides', {
+                        deviceId: device?.id,
+                        keys: Object.keys(overrides),
+                    });
+                }
+            }
+        } catch (e) {
+            if (isDebug) {
+                logger.debug('[get-config] Device override merge failed', { error: e?.message });
+            }
+        }
+
+        res.json({
+            ...merged,
+            // Debug info can help verify device-aware config
             _debug: isDebug
                 ? {
                       isMobile,

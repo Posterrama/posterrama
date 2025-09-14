@@ -525,12 +525,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             // Enhanced cache-busting for initial config load
             const cacheBuster = `?_t=${Date.now()}&_r=${Math.random().toString(36).substring(7)}`;
+            const deviceHeaders = (function () {
+                try {
+                    const ls = window.localStorage;
+                    const id = ls && ls.getItem('posterrama.device.id');
+                    // Only send identifiers that are non-sensitive; do NOT read or send device secret here
+                    const installId = ls && ls.getItem('posterrama.installId');
+                    const hardwareId = ls && ls.getItem('posterrama.hardwareId');
+                    const h = {};
+                    if (id) h['X-Device-Id'] = id;
+                    if (installId) h['X-Install-Id'] = installId;
+                    if (hardwareId) h['X-Hardware-Id'] = hardwareId;
+                    return h;
+                } catch (_) {
+                    return {};
+                }
+            })();
             const configResponse = await fetch('/get-config' + cacheBuster, {
                 cache: 'no-cache',
                 headers: {
                     'Cache-Control': 'no-cache, no-store, must-revalidate',
                     Pragma: 'no-cache',
                     Expires: '0',
+                    ...deviceHeaders,
                 },
             });
             appConfig = await configResponse.json();
@@ -3354,12 +3371,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Enhanced cache-busting with timestamp and random parameter
             const cacheBuster = `?_t=${Date.now()}&_r=${Math.random().toString(36).substring(7)}`;
+            const deviceHeaders = (function () {
+                try {
+                    const ls = window.localStorage;
+                    const id = ls && ls.getItem('posterrama.device.id');
+                    const installId = ls && ls.getItem('posterrama.installId');
+                    const hardwareId = ls && ls.getItem('posterrama.hardwareId');
+                    const h = {};
+                    if (id) h['X-Device-Id'] = id;
+                    if (installId) h['X-Install-Id'] = installId;
+                    if (hardwareId) h['X-Hardware-Id'] = hardwareId;
+                    return h;
+                } catch (_) {
+                    return {};
+                }
+            })();
             const configResponse = await fetch('/get-config' + cacheBuster, {
                 cache: 'no-cache',
                 headers: {
                     'Cache-Control': 'no-cache, no-store, must-revalidate',
                     Pragma: 'no-cache',
                     Expires: '0',
+                    ...deviceHeaders,
                 },
             });
 
