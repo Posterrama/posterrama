@@ -280,6 +280,189 @@
         </div>
       </div>
     </section>
+
+    <!-- Media Sources Section -->
+    <section id="section-media-sources" class="app-section" hidden>
+      <section class="panel">
+        <header class="panel-header">
+          <h2><i class="fas fa-database"></i> Media Sources</h2>
+          <div class="panel-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-save-sources">
+              <i class="fas fa-save"></i><span>Save Sources</span>
+            </button>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="subtle">Configure Plex, Jellyfin, TMDB, and TVDB exactly like the current admin. Test connections and select libraries.</div>
+        </div>
+      </section>
+
+      <!-- Plex Panel -->
+      <section class="panel" id="panel-plex">
+        <header class="panel-header">
+          <h2><i class="fas fa-film"></i> Plex</h2>
+          <div class="panel-actions">
+            <button class="btn btn-icon btn-sm" id="btn-plex-test" title="Test connection"><i class="fas fa-vial"></i></button>
+            <button class="btn btn-icon btn-sm" id="btn-plex-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="plex.enabled"><span class="checkmark"></span><span>Enabled</span></label>
+            </div>
+            <div class="form-group">
+              <label for="plex.hostname">Hostname</label>
+              <input type="text" id="plex.hostname" placeholder="e.g. 192.168.1.10">
+            </div>
+            <div class="form-group">
+              <label for="plex.port">Port</label>
+              <input type="number" id="plex.port" min="1" max="65535" placeholder="32400">
+            </div>
+            <div class="form-group">
+              <label for="plex.token">Token</label>
+              <input type="password" id="plex.token" placeholder="X-Plex-Token">
+              <small class="form-help">Stored in environment. Not shown after save.</small>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="plex.movies">Movie Libraries</label>
+              <select id="plex.movies" multiple></select>
+            </div>
+            <div class="form-group">
+              <label for="plex.shows">Show Libraries</label>
+              <select id="plex.shows" multiple></select>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="plex.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
+            </div>
+            <div class="form-group">
+              <label for="plex.recentDays">Recently added days</label>
+              <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
+            </div>
+            <div class="form-group">
+              <label for="plex.ratingFilter">Rating filter</label>
+              <input type="text" id="plex.ratingFilter" placeholder="e.g. PG-13, R">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Jellyfin Panel -->
+      <section class="panel" id="panel-jellyfin">
+        <header class="panel-header">
+          <h2><i class="fas fa-play"></i> Jellyfin</h2>
+          <div class="panel-actions">
+            <button class="btn btn-icon btn-sm" id="btn-jf-test" title="Test connection"><i class="fas fa-vial"></i></button>
+            <button class="btn btn-icon btn-sm" id="btn-jf-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="jf.enabled"><span class="checkmark"></span><span>Enabled</span></label>
+            </div>
+            <div class="form-group">
+              <label for="jf.hostname">Hostname</label>
+              <input type="text" id="jf.hostname" placeholder="e.g. 192.168.1.20">
+            </div>
+            <div class="form-group">
+              <label for="jf.port">Port</label>
+              <input type="number" id="jf.port" min="1" max="65535" placeholder="8096">
+            </div>
+            <div class="form-group">
+              <label for="jf.apikey">API Key</label>
+              <input type="password" id="jf.apikey" placeholder="Jellyfin API Key">
+              <small class="form-help">Stored in environment. Not shown after save.</small>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="jf.movies">Movie Libraries</label>
+              <select id="jf.movies" multiple></select>
+            </div>
+            <div class="form-group">
+              <label for="jf.shows">Show Libraries</label>
+              <select id="jf.shows" multiple></select>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="jf.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
+            </div>
+            <div class="form-group">
+              <label for="jf.recentDays">Recently added days</label>
+              <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TMDB Panel -->
+      <section class="panel" id="panel-tmdb">
+        <header class="panel-header">
+          <h2><i class="fas fa-database"></i> TMDB</h2>
+          <div class="panel-actions">
+            <button class="btn btn-icon btn-sm" id="btn-tmdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="tmdb.enabled"><span class="checkmark"></span><span>Enabled</span></label>
+            </div>
+            <div class="form-group">
+              <label for="tmdb.apikey">API Key</label>
+              <input type="password" id="tmdb.apikey" placeholder="TMDB API Key">
+            </div>
+            <div class="form-group">
+              <label for="tmdb.category">Category</label>
+              <select id="tmdb.category">
+                <option value="popular">Popular</option>
+                <option value="top_rated">Top Rated</option>
+                <option value="trending">Trending</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="tmdb.minRating">Min Rating</label>
+              <input type="number" id="tmdb.minRating" min="0" max="10" step="0.1" placeholder="0">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TVDB Panel -->
+      <section class="panel" id="panel-tvdb">
+        <header class="panel-header">
+          <h2><i class="fas fa-tv"></i> TVDB</h2>
+          <div class="panel-actions">
+            <button class="btn btn-icon btn-sm" id="btn-tvdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
+          </div>
+        </header>
+        <div class="panel-content">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="checkbox"><input type="checkbox" id="tvdb.enabled"><span class="checkmark"></span><span>Enabled</span></label>
+            </div>
+            <div class="form-group">
+              <label for="tvdb.category">Category</label>
+              <select id="tvdb.category">
+                <option value="popular">Popular</option>
+                <option value="trending">Trending</option>
+                <option value="top">Top</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="tvdb.minRating">Min Rating</label>
+              <input type="number" id="tvdb.minRating" min="0" max="10" step="0.1" placeholder="0">
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
     
 
   <section class="content-grid" style="margin-top: 16px;">

@@ -406,9 +406,15 @@
 
     function showSection(id) {
         const sections = document.querySelectorAll('.app-section');
-        sections.forEach(s => s.classList.remove('active'));
+        sections.forEach(s => {
+            s.classList.remove('active');
+            s.hidden = s.id !== id; // ensure visibility aligns with active section
+        });
         const target = document.getElementById(id);
-        if (target) target.classList.add('active');
+        if (target) {
+            target.classList.add('active');
+            target.hidden = false;
+        }
         // Update header title for basic context switch
         const h1 = document.querySelector('.page-header h1');
         const subtitle = document.querySelector('.page-header p');
@@ -416,6 +422,9 @@
             if (id === 'section-security') {
                 h1.innerHTML = '<i class="fas fa-shield-alt"></i> Security';
                 if (subtitle) subtitle.textContent = 'Manage password, 2FA, and API access';
+            } else if (id === 'section-media-sources') {
+                h1.innerHTML = '<i class="fas fa-server"></i> Media Sources';
+                if (subtitle) subtitle.textContent = 'Configure Plex, Jellyfin, TMDB, and TVDB';
             } else if (id === 'section-operations') {
                 h1.innerHTML = '<i class="fas fa-screwdriver-wrench"></i> Operations';
                 if (subtitle) subtitle.textContent = 'Run media refresh and manage auto-updates';
@@ -633,7 +642,33 @@
                     // ensure latest status/backups when entering
                     refreshUpdateStatusUI();
                     refreshOperationsPanels();
+                } else if (nav === 'media-sources') {
+                    showSection('section-media-sources');
                 }
+            });
+        });
+
+        // Media Sources group: toggle and sub-navigation
+        const mediaGroup = document.querySelector('.nav-group');
+        const toggleLink = mediaGroup?.querySelector('.nav-toggle');
+        toggleLink?.addEventListener('click', e => {
+            e.preventDefault();
+            mediaGroup.classList.toggle('open');
+        });
+        mediaGroup?.querySelectorAll('.nav-subitem').forEach((sub, idx) => {
+            sub.addEventListener('click', e => {
+                e.preventDefault();
+                // Mark parent group active and open section
+                document
+                    .querySelectorAll('.sidebar-nav .nav-item')
+                    .forEach(n => n.classList.remove('active'));
+                toggleLink?.classList.add('active');
+                showSection('section-media-sources');
+                // Scroll to panel
+                const panelIds = ['panel-plex', 'panel-jellyfin', 'panel-tmdb', 'panel-tvdb'];
+                const id = panelIds[idx] || 'panel-plex';
+                const el = document.getElementById(id);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
         });
 
@@ -1268,10 +1303,11 @@
         }
     }
 
-    // Server Settings + Promobox save
+    // Server Settings + Promobox save + Media Sources wiring
     document.addEventListener('DOMContentLoaded', () => {
         const btnSaveServer = document.getElementById('btn-save-server-settings');
         const btnSavePromo = document.getElementById('btn-save-promobox');
+        const btnSaveSources = document.getElementById('btn-save-sources');
         // Helper to fetch config, patch minimal keys, and POST back
         async function saveConfigPatch(patchConfig, patchEnv) {
             const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
@@ -1290,6 +1326,413 @@
             if (!r.ok) throw new Error(j?.error || j?.message || 'Save failed');
             return j;
         }
+
+        // Helpers for Media Sources
+        const getInput = id => document.getElementById(id);
+        const toInt = v => {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : undefined;
+        };
+        function setMultiSelect(id, options, selected) {
+            const sel = getInput(id);
+            if (!sel) return;
+            const prev = new Set(Array.from(sel.selectedOptions).map(o => o.value));
+            sel.innerHTML = '';
+            const chosen = new Set(selected || Array.from(prev));
+            (options || []).forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt.value ?? opt.name ?? opt;
+                o.textContent = opt.label ?? opt.name ?? String(opt);
+                if (opt.count != null) o.textContent += ` (${opt.count})`;
+                if (chosen.has(o.value)) o.selected = true;
+                sel.appendChild(o);
+            });
+        }
+        function getMultiSelectValues(id) {
+            const sel = getInput(id);
+            if (!sel) return [];
+            return Array.from(sel.selectedOptions).map(o => o.value);
+        }
+        function parseCsvList(str) {
+            return String(str || '')
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+        }
+
+        async function loadMediaSources() {
+            const r = await fetch('/api/admin/config', { credentials: 'include' });
+            const j = r.ok ? await r.json() : {};
+            const env = j?.env || {};
+            const cfg = j?.config || j || {};
+            // Plex/Jellyfin server entries
+            const plex = (cfg.mediaServers || []).find(s => s.type === 'plex') || {};
+            const jf = (cfg.mediaServers || []).find(s => s.type === 'jellyfin') || {};
+            // Plex
+            const plexEnabled = !!plex.enabled;
+            const plexHostVar = plex.hostnameEnvVar || 'PLEX_HOSTNAME';
+            const plexPortVar = plex.portEnvVar || 'PLEX_PORT';
+            const plexTokenVar = plex.tokenEnvVar || 'PLEX_TOKEN';
+            getInput('plex.enabled') && (getInput('plex.enabled').checked = plexEnabled);
+            if (getInput('plex.hostname')) getInput('plex.hostname').value = env[plexHostVar] || '';
+            if (getInput('plex.port')) getInput('plex.port').value = env[plexPortVar] || '';
+            if (getInput('plex.token')) {
+                getInput('plex.token').value = '';
+                getInput('plex.token').setAttribute(
+                    'placeholder',
+                    env[plexTokenVar] ? '••••••••' : 'X-Plex-Token'
+                );
+            }
+            if (getInput('plex.recentOnly'))
+                getInput('plex.recentOnly').checked = !!plex.recentlyAddedOnly;
+            if (getInput('plex.recentDays'))
+                getInput('plex.recentDays').value = plex.recentlyAddedDays ?? 30;
+            if (getInput('plex.ratingFilter'))
+                getInput('plex.ratingFilter').value = (plex.ratingFilter || []).join(', ');
+            setMultiSelect(
+                'plex.movies',
+                (plex.movieLibraryNames || []).map(n => ({ value: n, label: n })),
+                plex.movieLibraryNames || []
+            );
+            setMultiSelect(
+                'plex.shows',
+                (plex.showLibraryNames || []).map(n => ({ value: n, label: n })),
+                plex.showLibraryNames || []
+            );
+            // Jellyfin
+            const jfEnabled = !!jf.enabled;
+            const jfHostVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
+            const jfPortVar = jf.portEnvVar || 'JELLYFIN_PORT';
+            const jfKeyVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
+            if (getInput('jf.enabled')) getInput('jf.enabled').checked = jfEnabled;
+            if (getInput('jf.hostname')) getInput('jf.hostname').value = env[jfHostVar] || '';
+            if (getInput('jf.port')) getInput('jf.port').value = env[jfPortVar] || '';
+            if (getInput('jf.apikey')) {
+                getInput('jf.apikey').value = '';
+                getInput('jf.apikey').setAttribute(
+                    'placeholder',
+                    env[jfKeyVar] ? '••••••••' : 'Jellyfin API Key'
+                );
+            }
+            if (getInput('jf.recentOnly'))
+                getInput('jf.recentOnly').checked = !!jf.recentlyAddedOnly;
+            if (getInput('jf.recentDays'))
+                getInput('jf.recentDays').value = jf.recentlyAddedDays ?? 30;
+            setMultiSelect(
+                'jf.movies',
+                (jf.movieLibraryNames || []).map(n => ({ value: n, label: n })),
+                jf.movieLibraryNames || []
+            );
+            setMultiSelect(
+                'jf.shows',
+                (jf.showLibraryNames || []).map(n => ({ value: n, label: n })),
+                jf.showLibraryNames || []
+            );
+            // TMDB
+            const tmdb = cfg.tmdbSource || {};
+            if (getInput('tmdb.enabled')) getInput('tmdb.enabled').checked = !!tmdb.enabled;
+            if (getInput('tmdb.apikey'))
+                getInput('tmdb.apikey').value = tmdb.apiKey ? '••••••••' : '';
+            if (getInput('tmdb.category'))
+                getInput('tmdb.category').value = tmdb.category || 'popular';
+            if (getInput('tmdb.minRating')) getInput('tmdb.minRating').value = tmdb.minRating ?? 0;
+            // TVDB
+            const tvdb = cfg.tvdbSource || {};
+            if (getInput('tvdb.enabled')) getInput('tvdb.enabled').checked = !!tvdb.enabled;
+            if (getInput('tvdb.category'))
+                getInput('tvdb.category').value = tvdb.category || 'popular';
+            if (getInput('tvdb.minRating')) getInput('tvdb.minRating').value = tvdb.minRating ?? 0;
+        }
+
+        // Fetch libraries
+        async function fetchPlexLibraries() {
+            try {
+                const hostname = getInput('plex.hostname')?.value || undefined;
+                const port = getInput('plex.port')?.value || undefined;
+                const token = getInput('plex.token')?.value || undefined;
+                const res = await fetch('/api/admin/plex-libraries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ hostname, port, token }),
+                });
+                const j = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(j?.error || 'Failed to load Plex libraries');
+                const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                const movies = libs
+                    .filter(l => l.type === 'movie')
+                    .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                const shows = libs
+                    .filter(l => l.type === 'show')
+                    .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                const prevMovies = new Set(getMultiSelectValues('plex.movies'));
+                const prevShows = new Set(getMultiSelectValues('plex.shows'));
+                setMultiSelect('plex.movies', movies, Array.from(prevMovies));
+                setMultiSelect('plex.shows', shows, Array.from(prevShows));
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Plex',
+                    message: 'Libraries loaded',
+                    duration: 2200,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Plex',
+                    message: e?.message || 'Failed to fetch libraries',
+                    duration: 4200,
+                });
+            }
+        }
+        async function fetchJellyfinLibraries() {
+            try {
+                const hostname = getInput('jf.hostname')?.value || undefined;
+                const port = getInput('jf.port')?.value || undefined;
+                const apiKey = getInput('jf.apikey')?.value || undefined;
+                const res = await fetch('/api/admin/jellyfin-libraries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ hostname, port, apiKey }),
+                });
+                const j = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(j?.error || 'Failed to load Jellyfin libraries');
+                const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                const movies = libs
+                    .filter(l => l.type === 'movie')
+                    .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                const shows = libs
+                    .filter(l => l.type === 'show')
+                    .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                const prevMovies = new Set(getMultiSelectValues('jf.movies'));
+                const prevShows = new Set(getMultiSelectValues('jf.shows'));
+                setMultiSelect('jf.movies', movies, Array.from(prevMovies));
+                setMultiSelect('jf.shows', shows, Array.from(prevShows));
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Jellyfin',
+                    message: 'Libraries loaded',
+                    duration: 2200,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Jellyfin',
+                    message: e?.message || 'Failed to fetch libraries',
+                    duration: 4200,
+                });
+            }
+        }
+
+        // Test connections
+        async function testPlex() {
+            const btn = document.getElementById('btn-plex-test');
+            btn?.classList.add('btn-loading');
+            try {
+                const hostname = getInput('plex.hostname')?.value || '';
+                const port = getInput('plex.port')?.value || '';
+                const token = getInput('plex.token')?.value || '';
+                if (!hostname || !port) throw new Error('Hostname and port are required');
+                const res = await fetch('/api/admin/test-plex', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ hostname, port, token: token || undefined }),
+                });
+                const j = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(j?.error || 'Connection failed');
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Plex',
+                    message: 'Connection successful',
+                    duration: 2200,
+                });
+                // On success, offer to fetch libraries
+                fetchPlexLibraries();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Plex',
+                    message: e?.message || 'Connection failed',
+                    duration: 4200,
+                });
+            } finally {
+                btn?.classList.remove('btn-loading');
+            }
+        }
+        async function testJellyfin() {
+            const btn = document.getElementById('btn-jf-test');
+            btn?.classList.add('btn-loading');
+            try {
+                const hostname = getInput('jf.hostname')?.value || '';
+                const port = getInput('jf.port')?.value || '';
+                const apiKey = getInput('jf.apikey')?.value || '';
+                if (!hostname || !port) throw new Error('Hostname and port are required');
+                const res = await fetch('/api/admin/test-jellyfin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ hostname, port, apiKey: apiKey || undefined }),
+                });
+                const j = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(j?.error || 'Connection failed');
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Jellyfin',
+                    message: 'Connection successful',
+                    duration: 2200,
+                });
+                fetchJellyfinLibraries();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Jellyfin',
+                    message: e?.message || 'Connection failed',
+                    duration: 4200,
+                });
+            } finally {
+                btn?.classList.remove('btn-loading');
+            }
+        }
+        async function testTMDB() {
+            const btn = document.getElementById('btn-tmdb-test');
+            btn?.classList.add('btn-loading');
+            try {
+                let apiKey = getInput('tmdb.apikey')?.value || '';
+                // If no key provided, try stored key on server
+                if (!apiKey) apiKey = 'stored_key';
+                const res = await fetch('/api/admin/test-tmdb', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ apiKey: apiKey || undefined }),
+                });
+                const j = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(j?.error || 'TMDB test failed');
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'TMDB',
+                    message: 'Connection successful',
+                    duration: 2200,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'TMDB',
+                    message: e?.message || 'Connection failed',
+                    duration: 4200,
+                });
+            } finally {
+                btn?.classList.remove('btn-loading');
+            }
+        }
+
+        // Save Sources
+        btnSaveSources?.addEventListener('click', async () => {
+            try {
+                btnSaveSources.classList.add('btn-loading');
+                const cfgRes = await fetch('/api/admin/config', { credentials: 'include' });
+                const base = cfgRes.ok ? await cfgRes.json() : {};
+                const currentCfg = base?.config || base || {};
+                const currentEnv = base?.env || {};
+                const servers = Array.isArray(currentCfg.mediaServers)
+                    ? [...currentCfg.mediaServers]
+                    : [];
+                const plexIdx = servers.findIndex(s => s.type === 'plex');
+                const jfIdx = servers.findIndex(s => s.type === 'jellyfin');
+                const plex = plexIdx >= 0 ? { ...servers[plexIdx] } : { type: 'plex' };
+                const jf = jfIdx >= 0 ? { ...servers[jfIdx] } : { type: 'jellyfin' };
+                // Plex fields
+                plex.enabled = !!getInput('plex.enabled')?.checked;
+                plex.recentlyAddedOnly = !!getInput('plex.recentOnly')?.checked;
+                plex.recentlyAddedDays = toInt(getInput('plex.recentDays')?.value) ?? 30;
+                plex.ratingFilter = parseCsvList(getInput('plex.ratingFilter')?.value);
+                plex.movieLibraryNames = getMultiSelectValues('plex.movies');
+                plex.showLibraryNames = getMultiSelectValues('plex.shows');
+                plex.hostnameEnvVar = plex.hostnameEnvVar || 'PLEX_HOSTNAME';
+                plex.portEnvVar = plex.portEnvVar || 'PLEX_PORT';
+                plex.tokenEnvVar = plex.tokenEnvVar || 'PLEX_TOKEN';
+                // Jellyfin fields
+                jf.enabled = !!getInput('jf.enabled')?.checked;
+                jf.recentlyAddedOnly = !!getInput('jf.recentOnly')?.checked;
+                jf.recentlyAddedDays = toInt(getInput('jf.recentDays')?.value) ?? 30;
+                jf.movieLibraryNames = getMultiSelectValues('jf.movies');
+                jf.showLibraryNames = getMultiSelectValues('jf.shows');
+                jf.hostnameEnvVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
+                jf.portEnvVar = jf.portEnvVar || 'JELLYFIN_PORT';
+                jf.tokenEnvVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
+                // Update array
+                if (plexIdx >= 0) servers[plexIdx] = plex;
+                else servers.push(plex);
+                if (jfIdx >= 0) servers[jfIdx] = jf;
+                else servers.push(jf);
+                // TMDB/TVDB
+                const tmdb = { ...(currentCfg.tmdbSource || {}) };
+                tmdb.enabled = !!getInput('tmdb.enabled')?.checked;
+                tmdb.category = getInput('tmdb.category')?.value || 'popular';
+                tmdb.minRating = toInt(getInput('tmdb.minRating')?.value) ?? 0;
+                const tmdbApiKeyVal = getInput('tmdb.apikey')?.value || '';
+                if (tmdbApiKeyVal && tmdbApiKeyVal !== '••••••••') tmdb.apiKey = tmdbApiKeyVal;
+                const tvdb = { ...(currentCfg.tvdbSource || {}) };
+                tvdb.enabled = !!getInput('tvdb.enabled')?.checked;
+                tvdb.category = getInput('tvdb.category')?.value || 'popular';
+                tvdb.minRating = toInt(getInput('tvdb.minRating')?.value) ?? 0;
+                // Env updates for servers
+                const envPatch = { ...currentEnv };
+                const setIfProvided = (key, val) => {
+                    if (val != null && String(val).trim() !== '')
+                        envPatch[key] = String(val).trim();
+                };
+                setIfProvided(plex.hostnameEnvVar, getInput('plex.hostname')?.value);
+                setIfProvided(plex.portEnvVar, getInput('plex.port')?.value);
+                // Only overwrite token if user typed something
+                const plexToken = getInput('plex.token')?.value;
+                if (plexToken && plexToken !== '••••••••')
+                    setIfProvided(plex.tokenEnvVar, plexToken);
+                setIfProvided(jf.hostnameEnvVar, getInput('jf.hostname')?.value);
+                setIfProvided(jf.portEnvVar, getInput('jf.port')?.value);
+                const jfKey = getInput('jf.apikey')?.value;
+                if (jfKey && jfKey !== '••••••••') setIfProvided(jf.tokenEnvVar, jfKey);
+
+                const patch = {
+                    mediaServers: servers,
+                    tmdbSource: tmdb,
+                    tvdbSource: tvdb,
+                };
+                await saveConfigPatch(patch, envPatch);
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Saved',
+                    message: 'Media sources updated',
+                    duration: 2500,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Unable to save sources',
+                    duration: 4500,
+                });
+            } finally {
+                btnSaveSources?.classList.remove('btn-loading');
+                // Refresh fields after save
+                loadMediaSources().catch(() => {});
+            }
+        });
+
+        // Wire buttons
+        document
+            .getElementById('btn-plex-libraries')
+            ?.addEventListener('click', fetchPlexLibraries);
+        document
+            .getElementById('btn-jf-libraries')
+            ?.addEventListener('click', fetchJellyfinLibraries);
+        document.getElementById('btn-plex-test')?.addEventListener('click', testPlex);
+        document.getElementById('btn-jf-test')?.addEventListener('click', testJellyfin);
+        document.getElementById('btn-tmdb-test')?.addEventListener('click', testTMDB);
+
+        // Initial population
+        loadMediaSources().catch(() => {});
 
         btnSaveServer?.addEventListener('click', async () => {
             const debugEl = document.getElementById('DEBUG');
