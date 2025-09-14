@@ -9974,9 +9974,7 @@ function renderDevicesTable(devices) {
                     if (!res.ok) throw new Error('Failed to get code');
                     const data = await res.json();
                     setButtonState(btn, 'success', { text: 'Code' });
-                    const claimUrl = `${location.origin}${location.pathname}?pair=${encodeURIComponent(
-                        data.code
-                    )}`;
+                    const claimUrl = `${location.origin}/?pair=${encodeURIComponent(data.code)}`;
                     showPairingModal({ code: data.code, expiresAt: data.expiresAt, claimUrl });
                     setTimeout(() => setButtonState(btn, 'revert'), 1500);
                 } else if (type) {
@@ -10066,7 +10064,7 @@ function initDevicesPanel() {
                         if (!res.ok) throw new Error('Failed to get code');
                         const data = await res.json();
                         setButtonState(btn, 'success', { text: 'Code' });
-                        const claimUrl = `${location.origin}${location.pathname}?pair=${encodeURIComponent(
+                        const claimUrl = `${location.origin}/?pair=${encodeURIComponent(
                             data.code
                         )}`;
                         showPairingModal({ code: data.code, expiresAt: data.expiresAt, claimUrl });
@@ -10210,9 +10208,7 @@ function initDevicesPanel() {
                     if (!res.ok) throw new Error('Failed to get code');
                     const data = await res.json();
                     setButtonState(btn, 'success', { text: 'Code' });
-                    const claimUrl = `${location.origin}${location.pathname}?pair=${encodeURIComponent(
-                        data.code
-                    )}`;
+                    const claimUrl = `${location.origin}/?pair=${encodeURIComponent(data.code)}`;
                     showPairingModal({ code: data.code, expiresAt: data.expiresAt, claimUrl });
                     setTimeout(() => setButtonState(btn, 'revert'), 1500);
                 } else if (type) {
