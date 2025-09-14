@@ -10401,7 +10401,6 @@ function showDeviceSettingsModal(device) {
                                                         <div class="form-group"><label>Hero rotation (min)</label><input type="number" min="1" max="60" step="1" data-key="wallartMode.layoutSettings.heroGrid.heroRotationMinutes"></div>
                                                     </div>
                                                     <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.ambientGradient" id="ovr-ambient"><label for="ovr-ambient">Ambient gradient</label></div>
-                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.layoutSettings.heroGrid.biasAmbientToHero" id="ovr-bias"><label for="ovr-bias">Bias ambient to hero</label></div>
                                                 </div>
 
                         <div class="subsection-header" id="ovr-cinema-header"><i class="fas fa-film"></i> Cinema Mode</div>
@@ -10791,10 +10790,8 @@ function showDeviceSettingsModal(device) {
             if (!content) return;
             const enabled = !!modal.querySelector('#ovr-wallart')?.checked;
             const amb = content.querySelector('#ovr-ambient')?.closest('.form-group');
-            const bias = content.querySelector('#ovr-bias')?.closest('.form-group');
             const display = enabled ? '' : 'none';
             if (amb) amb.style.display = display;
-            if (bias) bias.style.display = display;
         } catch (_) {
             /* ignore */
         }
