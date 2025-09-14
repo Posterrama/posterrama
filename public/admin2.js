@@ -2362,17 +2362,31 @@
                     document.getElementById('section-display');
                 if (!activeCard) return;
                 const r = activeCard.getBoundingClientRect();
-                const inset = 12;
-                const w = container.offsetWidth || 420;
-                const h = container.offsetHeight || 250;
-                const top = r.top + inset;
-                const left = Math.max(0, r.right - w - inset);
+                const inset = 8; // slightly tighter padding top/right
+                const shell = container.querySelector('.preview-shell');
+                const Lw = shell?.clientWidth || container.offsetWidth || 420; // layout width
+                const Lh = shell?.clientHeight || container.offsetHeight || 250; // layout height
+                // Visual size (includes CSS transform scale)
+                const srect = shell?.getBoundingClientRect?.() || { width: Lw, height: Lh };
+                const Vw = srect.width || Lw;
+                const Vh = srect.height || Lh;
+                // Offset of visual box within layout box due to center-origin scale
+                const offsetX = (Lw - Vw) / 2;
+                const offsetY = (Lh - Vh) / 2;
+                // Place so the visual top aligns with card top+inset, and visual right aligns with card right-inset
+                const top = r.top + inset - offsetY;
+                const left = r.right - Vw - inset - offsetX;
                 // Clamp within viewport with a small margin
                 const vw = window.innerWidth;
                 const vh = window.innerHeight;
                 const margin = 8;
-                const clampedTop = Math.min(Math.max(top, margin), vh - h - margin);
-                const clampedLeft = Math.min(Math.max(left, margin), vw - w - margin);
+                // Clamp based on the visual box so it never goes outside
+                const minLeft = margin - offsetX;
+                const maxLeft = vw - margin - offsetX - Vw;
+                const minTop = margin - offsetY;
+                const maxTop = vh - margin - offsetY - Vh;
+                const clampedTop = Math.min(Math.max(top, minTop), maxTop);
+                const clampedLeft = Math.min(Math.max(left, minLeft), maxLeft);
                 container.style.top = clampedTop + 'px';
                 container.style.left = clampedLeft + 'px';
                 container.style.right = 'auto';
@@ -2450,7 +2464,11 @@
             // Reflect mode/orientation on the container so aspect and scale update smoothly
             applyContainerMode(payload);
             // Wait a frame then rescale to accommodate CSS transitions
-            requestAnimationFrame(updateFrameScale);
+            requestAnimationFrame(() => {
+                updateFrameScale();
+                // After scale change, re-anchor to corner to account for visual size
+                positionAtActiveMode();
+            });
             try {
                 previewWin.postMessage(
                     { type: 'posterrama.preview.update', payload },
@@ -2554,8 +2572,10 @@
                     const payload = collectPreviewPayload();
                     applyContainerMode(payload);
                 } catch (_) {}
-                requestAnimationFrame(updateFrameScale);
-                positionAtActiveMode();
+                requestAnimationFrame(() => {
+                    updateFrameScale();
+                    positionAtActiveMode();
+                });
                 // Update the preview content too
                 sendUpdate();
             });
@@ -2600,13 +2620,20 @@
             function computeBounds() {
                 const vw = window.innerWidth;
                 const vh = window.innerHeight;
-                const w = container.offsetWidth || 420;
-                const h = container.offsetHeight || 250;
+                const shell = container.querySelector('.preview-shell');
+                const Lw = shell?.clientWidth || container.offsetWidth || 420;
+                const Lh = shell?.clientHeight || container.offsetHeight || 250;
+                const srect = shell?.getBoundingClientRect?.() || { width: Lw, height: Lh };
+                const Vw = srect.width || Lw;
+                const Vh = srect.height || Lh;
+                const offsetX = (Lw - Vw) / 2;
+                const offsetY = (Lh - Vh) / 2;
                 const margin = 8;
-                minTop = margin;
-                maxTop = Math.max(margin, vh - h - margin);
-                minLeft = margin;
-                maxLeft = Math.max(margin, vw - w - margin);
+                // Bounds for container so the visual box remains inside margins
+                minTop = margin - offsetY;
+                maxTop = Math.max(minTop, vh - margin - offsetY - Vh);
+                minLeft = margin - offsetX;
+                maxLeft = Math.max(minLeft, vw - margin - offsetX - Vw);
             }
 
             function setPos(left, top) {
