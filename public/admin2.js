@@ -2363,25 +2363,16 @@
                 if (!activeCard) return;
                 const r = activeCard.getBoundingClientRect();
                 const inset = 12;
-                const top = window.scrollY + r.top + inset;
-                const left = Math.max(
-                    0,
-                    window.scrollX + r.right - (container.offsetWidth || 420) - inset
-                );
+                const w = container.offsetWidth || 420;
+                const h = container.offsetHeight || 250;
+                const top = r.top + inset;
+                const left = Math.max(0, r.right - w - inset);
                 // Clamp within viewport with a small margin
                 const vw = window.innerWidth;
                 const vh = window.innerHeight;
-                const w = container.offsetWidth || 420;
-                const h = container.offsetHeight || 250;
                 const margin = 8;
-                const clampedTop = Math.min(
-                    Math.max(top, window.scrollY + margin),
-                    window.scrollY + vh - h - margin
-                );
-                const clampedLeft = Math.min(
-                    Math.max(left, window.scrollX + margin),
-                    window.scrollX + vw - w - margin
-                );
+                const clampedTop = Math.min(Math.max(top, margin), vh - h - margin);
+                const clampedLeft = Math.min(Math.max(left, margin), vw - w - margin);
                 container.style.top = clampedTop + 'px';
                 container.style.left = clampedLeft + 'px';
                 container.style.right = 'auto';
@@ -2596,18 +2587,17 @@
                 startY = 0,
                 startTop = 0,
                 startLeft = 0;
-            const grip = container.querySelector('.preview-peek-handle');
+            const grip = container.querySelector('.preview-drag-handle');
             const onDown = e => {
                 try {
                     dragging = true;
                     const evt = e.touches ? e.touches[0] : e;
                     startX = evt.clientX;
                     startY = evt.clientY;
-                    const cs = window.getComputedStyle(container);
-                    // Compute current absolute position
+                    // Compute current absolute position in viewport coords (position: fixed)
                     const rect = container.getBoundingClientRect();
-                    startTop = rect.top + window.scrollY;
-                    startLeft = rect.left + window.scrollX;
+                    startTop = rect.top;
+                    startLeft = rect.left;
                     document.addEventListener('mousemove', onMove);
                     document.addEventListener('mouseup', onUp);
                     document.addEventListener('touchmove', onMove, { passive: false });
@@ -2628,14 +2618,8 @@
                 const w = container.offsetWidth || 420;
                 const h = container.offsetHeight || 250;
                 const margin = 8;
-                top = Math.min(
-                    Math.max(top, window.scrollY + margin),
-                    window.scrollY + vh - h - margin
-                );
-                left = Math.min(
-                    Math.max(left, window.scrollX + margin),
-                    window.scrollX + vw - w - margin
-                );
+                top = Math.min(Math.max(top, margin), vh - h - margin);
+                left = Math.min(Math.max(left, margin), vw - w - margin);
                 container.style.top = top + 'px';
                 container.style.left = left + 'px';
                 container.style.right = 'auto';
