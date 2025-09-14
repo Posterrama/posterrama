@@ -4036,8 +4036,20 @@
       </div>
     </div>
     <div class="notify-subheader">
+      <div class="notify-filter" id="notify-min-level-icons" role="radiogroup" aria-label="Minimum level">
+        <button class="nf-btn" data-level="info" role="radio" aria-checked="false" title="Info" aria-label="Info">
+          <i class="fas fa-info-circle"></i>
+        </button>
+        <button class="nf-btn" data-level="warn" role="radio" aria-checked="false" title="Warn" aria-label="Warn">
+          <i class="fas fa-exclamation-triangle"></i>
+        </button>
+        <button class="nf-btn" data-level="error" role="radio" aria-checked="true" title="Error" aria-label="Error">
+          <i class="fas fa-circle-exclamation"></i>
+        </button>
+      </div>
+      <!-- SR-only fallback select for accessibility and legacy binding -->
       <label for="notify-min-level" class="sr-only">Minimum level</label>
-      <select id="notify-min-level" title="Minimum level" style="appearance:auto; font:inherit; padding:6px 8px; border-radius:8px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--color-border);">
+      <select id="notify-min-level" class="sr-only" tabindex="-1" aria-hidden="true">
         <option value="info">Info</option>
         <option value="warn">Warn</option>
         <option value="error" selected>Error</option>

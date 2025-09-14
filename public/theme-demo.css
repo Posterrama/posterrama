@@ -2095,12 +2095,52 @@ input[type='range']::-moz-range-thumb {
     max-height: 60vh;
     overflow: auto;
 }
+/* Enforce wrapping and no horizontal scroll for notification items */
+.notify-list,
+.notify-item,
+.notify-title,
+.notify-meta {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+}
 .notify-subheader {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-lg);
     border-bottom: 1px solid var(--color-border);
+}
+/* Compact level filter (icon buttons) */
+.notify-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.notify-filter .nf-btn {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+.notify-filter .nf-btn[aria-checked='true'] {
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+    color: var(--color-text);
+}
+.notify-filter .nf-btn[data-level='info'] i {
+    color: var(--color-info);
+}
+.notify-filter .nf-btn[data-level='warn'] i {
+    color: var(--color-warning);
+}
+.notify-filter .nf-btn[data-level='error'] i {
+    color: var(--color-error);
 }
 .notify-item {
     display: grid;

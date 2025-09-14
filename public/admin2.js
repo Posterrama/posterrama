@@ -2786,19 +2786,43 @@
                 window.__openNotifyCenter = openPanel;
             } catch (_) {}
 
-            // Initialize min-level selector and bindings
+            // Initialize min-level selector (hidden) + compact icon filter bindings
             (function initMinLevelControl() {
                 try {
                     const key = 'admin2:notifMinLevel';
                     const sel = document.getElementById('notify-min-level');
-                    if (!sel) return;
+                    const container = document.getElementById('notify-min-level-icons');
                     const saved = (localStorage.getItem(key) || 'error').toLowerCase();
-                    if ([...sel.options].some(o => o.value === saved)) sel.value = saved;
-                    sel.addEventListener('change', () => {
+                    // Sync hidden select if present
+                    if (sel && [...sel.options].some(o => o.value === saved)) sel.value = saved;
+                    // Helper to update aria-checked on icon buttons
+                    function paint(v) {
+                        if (!container) return;
+                        container.querySelectorAll('.nf-btn').forEach(btn => {
+                            btn.setAttribute('aria-checked', String(btn.dataset.level === v));
+                        });
+                    }
+                    paint(saved);
+                    // Click handling on compact icons
+                    container?.addEventListener('click', e => {
+                        const btn = e.target.closest?.('.nf-btn');
+                        if (!btn) return;
+                        const v = String(btn.dataset.level || '').toLowerCase();
+                        if (!v) return;
+                        localStorage.setItem(key, v);
+                        if (sel) sel.value = v;
+                        paint(v);
+                        // Force-refresh to reflect new min level immediately
+                        try {
+                            refreshBadge(true);
+                        } catch (_) {}
+                    });
+                    // Keep existing change binding on hidden select as fallback (e.g., accessibility tools)
+                    sel?.addEventListener('change', () => {
                         try {
                             const v = sel.value;
                             localStorage.setItem(key, v);
-                            // Force-refresh the badge and panel to reflect new min level immediately
+                            paint(v);
                             refreshBadge(true);
                         } catch (_) {}
                     });
