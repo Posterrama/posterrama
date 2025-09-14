@@ -945,6 +945,332 @@
             if (e.key === 'Escape') closeMenu();
         });
 
+        // User dropdown (Account)
+        const userDropdown = document.getElementById('user-dropdown');
+        const userBtn = document.getElementById('user-btn');
+        const userMenu = document.getElementById('user-menu');
+        function closeUserMenu() {
+            if (!userMenu) return;
+            userBtn?.setAttribute('aria-expanded', 'false');
+            userMenu?.setAttribute('aria-hidden', 'true');
+            userDropdown?.classList.remove('open');
+        }
+        userBtn?.addEventListener('click', e => {
+            e.stopPropagation();
+            if (!userMenu) return;
+            const willOpen = !userDropdown?.classList.contains('open');
+            if (willOpen) userDropdown?.classList.add('open');
+            else userDropdown?.classList.remove('open');
+            userBtn.setAttribute('aria-expanded', String(willOpen));
+            userMenu?.setAttribute('aria-hidden', String(!willOpen));
+        });
+        document.addEventListener('click', e => {
+            if (!userDropdown || !userMenu) return;
+            if (!userDropdown.contains(e.target)) closeUserMenu();
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeUserMenu();
+        });
+        // Route account actions to existing flows
+        document.getElementById('user-change-password')?.addEventListener('click', e => {
+            e.preventDefault();
+            closeUserMenu();
+            // Focus password inputs if present in Security section
+            const el = document.getElementById('sec-current-pw');
+            if (el) el.focus();
+            else {
+                window.notify?.toast({
+                    type: 'info',
+                    title: 'Security',
+                    message: 'Use the Change Password form below',
+                    duration: 2500,
+                });
+            }
+        });
+        document.getElementById('user-two-fa')?.addEventListener('click', e => {
+            e.preventDefault();
+            closeUserMenu();
+            // When opened from user menu, proactively generate QR if not already enabled
+            (async () => {
+                try {
+                    const cfg = await fetch('/api/admin/config', { credentials: 'include' })
+                        .then(r => r.json())
+                        .catch(() => ({}));
+                    const is2FA = !!cfg?.env?.ADMIN_2FA_SECRET || !!cfg?.ADMIN_2FA_SECRET;
+                    if (!is2FA) {
+                        const r = await fetch('/api/admin/2fa/generate', {
+                            method: 'POST',
+                            credentials: 'include',
+                        });
+                        const j = await r.json().catch(() => ({}));
+                        const qr = document.getElementById('qr-code-container');
+                        if (qr)
+                            qr.innerHTML = j.qrCodeDataUrl
+                                ? `<img src="${j.qrCodeDataUrl}" alt="Scan QR code" style="background:#fff;padding:8px;border-radius:8px;" />`
+                                : '<span>QR unavailable</span>';
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
+                openModal('modal-2fa');
+            })();
+        });
+
+        // Profile photo menu
+        document.getElementById('user-profile-photo')?.addEventListener('click', async e => {
+            e.preventDefault();
+            closeUserMenu();
+            // Reset input
+            const input = document.getElementById('avatar-file');
+            if (input) input.value = '';
+            // Load current avatar preview
+            try {
+                const resp = await fetch('/api/admin/profile/photo', {
+                    cache: 'no-store',
+                    credentials: 'include',
+                });
+                const img = document.getElementById('avatar-image-preview');
+                const fallback = document.getElementById('avatar-initials-fallback');
+                if (resp.status === 200 && img) {
+                    const blob = await resp.blob();
+                    img.src = URL.createObjectURL(blob);
+                    img.style.display = 'block';
+                    if (fallback) fallback.style.display = 'none';
+                } else {
+                    if (img) {
+                        img.removeAttribute('src');
+                        img.style.display = 'none';
+                    }
+                    if (fallback) fallback.style.display = '';
+                }
+            } catch (_) {
+                // ignore
+            }
+            openModal('modal-avatar');
+        });
+
+        // Build avatar initials for user button (fallback to AD) with theme-friendly cool palette
+        try {
+            function hashCode(str) {
+                let h = 0;
+                for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i);
+                return h >>> 0;
+            }
+            const btn = document.getElementById('user-btn');
+            if (btn) {
+                (async () => {
+                    const nameEl = btn.querySelector('span');
+                    const label = (nameEl?.textContent || 'Admin').trim();
+                    try {
+                        const r = await fetch('/api/admin/profile/photo', {
+                            cache: 'no-store',
+                            credentials: 'include',
+                        });
+                        if (r.status === 200) {
+                            const blob = await r.blob();
+                            const url = URL.createObjectURL(blob);
+                            const icon = btn.querySelector('i.fas.fa-user-circle');
+                            const existingInitials = btn.querySelector('.avatar-initials');
+                            if (icon || existingInitials) {
+                                const img = document.createElement('img');
+                                img.className = 'avatar-img';
+                                img.alt = 'Profile photo';
+                                img.src = url;
+                                (icon || existingInitials).replaceWith(img);
+                                return;
+                            }
+                        }
+                    } catch (_) {
+                        /* ignore */
+                    }
+                    // Fallback to initials if no image available
+                    const parts = label.split(/\s+/).filter(Boolean);
+                    const initials =
+                        parts.length >= 2
+                            ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                            : (label.slice(0, 2) || 'AD').toUpperCase();
+                    const icon = btn.querySelector('i.fas.fa-user-circle');
+                    if (icon && !btn.querySelector('.avatar-initials')) {
+                        const av = document.createElement('span');
+                        av.className = 'avatar-initials';
+                        av.textContent = initials;
+                        const palette = [
+                            'hsl(226 72% 52%)',
+                            'hsl(248 65% 55%)',
+                            'hsl(210 80% 52%)',
+                            'hsl(262 55% 52%)',
+                            'hsl(192 60% 42%)',
+                            'hsl(222 50% 40%)',
+                        ];
+                        const idx = hashCode(label) % palette.length;
+                        av.style.backgroundColor = palette[idx];
+                        av.style.color = '#ffffff';
+                        av.style.border = '1px solid var(--color-border)';
+                        icon.replaceWith(av);
+                    }
+                })();
+            }
+        } catch (_) {
+            /* ignore */
+        }
+
+        // Avatar modal actions
+        const uploadBtn = document.getElementById('avatar-upload-btn');
+        const removeBtn = document.getElementById('avatar-remove-btn');
+        const fileInput = document.getElementById('avatar-file');
+        const fileTrigger = document.getElementById('avatar-file-trigger');
+        const fileNameEl = document.getElementById('avatar-file-name');
+        const previewImg = document.getElementById('avatar-image-preview');
+        const previewFallback = document.getElementById('avatar-initials-fallback');
+
+        // Open native file picker from themed button
+        fileTrigger?.addEventListener('click', () => fileInput?.click());
+
+        // Live preview when selecting a file
+        fileInput?.addEventListener('change', () => {
+            const f = fileInput.files?.[0];
+            if (!f) return;
+            const url = URL.createObjectURL(f);
+            if (previewImg) {
+                previewImg.src = url;
+                previewImg.style.display = 'block';
+            }
+            if (previewFallback) previewFallback.style.display = 'none';
+            if (fileNameEl) fileNameEl.textContent = f.name;
+        });
+        uploadBtn?.addEventListener('click', async () => {
+            const fileInput = document.getElementById('avatar-file');
+            const files = fileInput?.files;
+            if (!files || !files[0]) {
+                window.notify?.toast({
+                    type: 'warning',
+                    title: 'Profile',
+                    message: 'Select an image first',
+                    duration: 2000,
+                });
+                return;
+            }
+            const form = new FormData();
+            form.append('avatar', files[0]);
+            uploadBtn.setAttribute('aria-busy', 'true');
+            try {
+                const r = await fetch('/api/admin/profile/photo', {
+                    method: 'POST',
+                    body: form,
+                    credentials: 'include',
+                });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err?.error || 'Upload failed');
+                }
+                // Update navbar image immediately
+                try {
+                    const navBtn = document.getElementById('user-btn');
+                    const imgExisting = navBtn?.querySelector('img.avatar-img');
+                    const resp = await fetch('/api/admin/profile/photo', {
+                        cache: 'no-store',
+                        credentials: 'include',
+                    });
+                    if (resp.status === 200) {
+                        const blob = await resp.blob();
+                        const url = URL.createObjectURL(blob);
+                        if (imgExisting) {
+                            imgExisting.src = url;
+                        } else if (navBtn) {
+                            const icon =
+                                navBtn.querySelector('i.fas.fa-user-circle') ||
+                                navBtn.querySelector('.avatar-initials');
+                            const img = document.createElement('img');
+                            img.className = 'avatar-img';
+                            img.alt = 'Profile photo';
+                            img.src = url;
+                            if (icon) icon.replaceWith(img);
+                        }
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Profile',
+                    message: 'Photo updated',
+                    duration: 1800,
+                });
+                closeModal('modal-avatar');
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Profile',
+                    message: e.message || 'Upload failed',
+                    duration: 3000,
+                });
+            } finally {
+                uploadBtn.removeAttribute('aria-busy');
+            }
+        });
+        removeBtn?.addEventListener('click', async () => {
+            removeBtn.setAttribute('aria-busy', 'true');
+            try {
+                const r = await fetch('/api/admin/profile/photo', {
+                    method: 'DELETE',
+                    credentials: 'include',
+                });
+                if (!r.ok) throw new Error('Remove failed');
+                // Swap navbar to initials
+                const navBtn = document.getElementById('user-btn');
+                if (navBtn) {
+                    const existing = navBtn.querySelector('img.avatar-img');
+                    if (existing) {
+                        const nameEl = navBtn.querySelector('span');
+                        const label = (nameEl?.textContent || 'Admin').trim();
+                        const parts = label.split(/\s+/).filter(Boolean);
+                        const initials =
+                            parts.length >= 2
+                                ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                                : (label.slice(0, 2) || 'AD').toUpperCase();
+                        const span = document.createElement('span');
+                        span.className = 'avatar-initials';
+                        span.textContent = initials;
+                        const palette = [
+                            'hsl(226 72% 52%)',
+                            'hsl(248 65% 55%)',
+                            'hsl(210 80% 52%)',
+                            'hsl(262 55% 52%)',
+                            'hsl(192 60% 42%)',
+                            'hsl(222 50% 40%)',
+                        ];
+                        const idx =
+                            (function hc(s) {
+                                let h = 0;
+                                for (let i = 0; i < s.length; i++)
+                                    h = (h << 5) - h + s.charCodeAt(i);
+                                return h >>> 0;
+                            })(label) % palette.length;
+                        span.style.backgroundColor = palette[idx];
+                        span.style.color = '#ffffff';
+                        span.style.border = '1px solid var(--color-border)';
+                        existing.replaceWith(span);
+                    }
+                }
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Profile',
+                    message: 'Photo removed',
+                    duration: 1800,
+                });
+                closeModal('modal-avatar');
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Profile',
+                    message: e.message || 'Remove failed',
+                    duration: 2500,
+                });
+            } finally {
+                removeBtn.removeAttribute('aria-busy');
+            }
+        });
+
         // Restart action under settings
         const restartLink = document.getElementById('menu-restart');
         restartLink?.addEventListener('click', async e => {

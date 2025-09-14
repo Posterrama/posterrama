@@ -4693,7 +4693,13 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const hostname = document.getElementById('mediaServers[1].hostname').value;
             const port = document.getElementById('mediaServers[1].port').value;
-            const apiKey = document.getElementById('mediaServers[1].apiKey').value;
+            const apiKeyField = document.getElementById('mediaServers[1].apiKey');
+
+            // Don't send masked tokens - let backend use .env fallback
+            let apiKey = apiKeyField?.value;
+            if (apiKey && apiKey.includes('•')) {
+                apiKey = undefined; // Force backend to use .env
+            }
 
             const response = await fetch('/api/admin/jellyfin-libraries', {
                 method: 'POST',

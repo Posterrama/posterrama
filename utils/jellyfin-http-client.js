@@ -17,13 +17,28 @@ try {
 } catch (_) {}
 
 class JellyfinHttpClient {
-    constructor({ hostname, port, apiKey, timeout = 15000, basePath = '' }) {
+    constructor({
+        hostname,
+        port,
+        apiKey,
+        timeout = 15000,
+        basePath = '',
+        insecure = false,
+        insecureHttps = false,
+        retryMaxRetries = 2,
+        retryBaseDelay = 1000,
+    }) {
         this.hostname = hostname;
         this.port = port;
         this.apiKey = apiKey;
         this.timeout = timeout;
         this.basePath = basePath;
-        this.insecure = process.env.JELLYFIN_INSECURE_HTTPS === 'true';
+        this.retryMaxRetries = retryMaxRetries;
+        this.retryBaseDelay = retryBaseDelay;
+        // Honor explicit flags and fall back to env var
+        this.insecure = Boolean(
+            insecureHttps || insecure || process.env.JELLYFIN_INSECURE_HTTPS === 'true'
+        );
 
         // Build base URL with protocol detection
         // Build base URL with protocol detection (Jellyfin defaults: 8096 http, 8920 https)
@@ -41,6 +56,13 @@ class JellyfinHttpClient {
             }
         }
         this.baseUrl = `${protocol}://${hostname}:${port}${normalizedBasePath}`;
+        if (process.env.DEBUG === 'true' || process.env.DEBUG === '1') {
+            // Minimal debug to aid field diagnostics (no secrets)
+            // eslint-disable-next-line no-console
+            console.debug(
+                `[JellyfinHttpClient] baseUrl=${this.baseUrl}, insecure=${this.insecure}`
+            );
+        }
 
         // Compose Jellyfin/Emby authorization metadata header
         const deviceName = process.env.POSTERRAMA_DEVICE_NAME || os.hostname() || 'Posterrama';
@@ -68,12 +90,45 @@ class JellyfinHttpClient {
                 'User-Agent': `Posterrama/${pkgVersion}`,
             },
         });
+
+        // Append api_key to all requests as a reverse-proxy friendly fallback if headers are stripped
+        this.http.interceptors.request.use(config => {
+            if (process.env.DEBUG === 'true') {
+                console.debug(
+                    `[JellyfinHttpClient] Interceptor: apiKey="${this.apiKey}", url="${config.url}"`
+                );
+                console.debug(`[JellyfinHttpClient] Headers:`, config.headers);
+            }
+            try {
+                const url = new URL((config.baseURL || '') + (config.url || ''));
+                if (!url.searchParams.has('api_key')) {
+                    if (!config.params) config.params = {};
+                    if (!('api_key' in config.params)) {
+                        config.params.api_key = this.apiKey;
+                    }
+                }
+            } catch (_) {
+                // If URL parsing fails (relative complex paths), fallback to params only
+                if (!config.params) config.params = {};
+                if (!('api_key' in config.params)) {
+                    config.params.api_key = this.apiKey;
+                }
+            }
+            if (process.env.DEBUG === 'true') {
+                console.debug(`[JellyfinHttpClient] Final params:`, config.params);
+            }
+            return config;
+        });
     }
 
     /**
      * Helper method to retry requests with exponential backoff
      */
-    async retryRequest(requestFn, maxRetries = 2, baseDelay = 1000) {
+    async retryRequest(
+        requestFn,
+        maxRetries = this.retryMaxRetries,
+        baseDelay = this.retryBaseDelay
+    ) {
         let lastError;
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -109,12 +164,94 @@ class JellyfinHttpClient {
      */
     async testConnection() {
         return this.retryRequest(async () => {
-            const response = await this.http.get('/System/Info');
+            // 1) Try public system info first (works even if auth is required elsewhere)
+            let serverInfo;
+            try {
+                const respPublic = await this.http.get('/System/Info/Public');
+                serverInfo = respPublic.data;
+            } catch (e) {
+                // Fallback to /System/Info for older servers or when public endpoint is restricted
+                const resp = await this.http.get('/System/Info');
+                serverInfo = resp.data;
+            }
+
+            // 2) Validate token by calling an authenticated endpoint accessible to normal users
+            //    Use /Users which requires a valid token and lists users the token can access
+            try {
+                if (process.env.DEBUG === 'true') {
+                    console.debug(
+                        `[JellyfinHttpClient] Testing auth with /Users, apiKey length: ${this.apiKey ? this.apiKey.length : 0}`
+                    );
+                }
+                await this.http.get('/Users');
+            } catch (e) {
+                if (process.env.DEBUG === 'true') {
+                    console.debug(
+                        `[JellyfinHttpClient] /Users failed:`,
+                        e.response?.status,
+                        e.message
+                    );
+                }
+                if (e.response && (e.response.status === 401 || e.response.status === 403)) {
+                    // Some reverse proxies can strip X-Emby-Token headers; try query-param fallback
+                    try {
+                        if (process.env.DEBUG === 'true') {
+                            console.debug(
+                                `[JellyfinHttpClient] Retrying with query param fallback`
+                            );
+                        }
+                        await this.http.get(`/Users?api_key=${encodeURIComponent(this.apiKey)}`);
+                    } catch (e2) {
+                        if (
+                            e2.response &&
+                            (e2.response.status === 401 || e2.response.status === 403)
+                        ) {
+                            const err = new Error('401 Unauthorized: Jellyfin API key rejected');
+                            err.code = 'EJELLYFIN_UNAUTHORIZED';
+                            throw err;
+                        }
+                        if (e2.response && e2.response.status === 404) {
+                            const err = new Error('404 Not Found: Check Jellyfin base path');
+                            err.code = 'EJELLYFIN_NOT_FOUND';
+                            throw err;
+                        }
+                        // TLS issues often surface here
+                        if (
+                            (e2.code &&
+                                (e2.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' ||
+                                    e2.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE')) ||
+                            (e2.message && /self[- ]signed|unable to verify/i.test(e2.message))
+                        ) {
+                            const err = new Error('TLS certificate error');
+                            err.code = 'EJELLYFIN_CERT';
+                            throw err;
+                        }
+                        throw e2;
+                    }
+                } else if (e.response && e.response.status === 404) {
+                    const err = new Error('404 Not Found: Check Jellyfin base path');
+                    err.code = 'EJELLYFIN_NOT_FOUND';
+                    throw err;
+                } else if (
+                    (e.code &&
+                        (e.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' ||
+                            e.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE')) ||
+                    (e.message && /self[- ]signed|unable to verify/i.test(e.message))
+                ) {
+                    const err = new Error('TLS certificate error');
+                    err.code = 'EJELLYFIN_CERT';
+                    throw err;
+                } else {
+                    // Re-throw other errors to be handled by retry/backoff
+                    throw e;
+                }
+            }
+
             return {
                 success: true,
-                serverName: response.data.ServerName,
-                version: response.data.Version,
-                id: response.data.Id,
+                serverName: serverInfo.ServerName || serverInfo.serverName || 'Jellyfin',
+                version: serverInfo.Version || serverInfo.version,
+                id: serverInfo.Id || serverInfo.id,
             };
         });
     }

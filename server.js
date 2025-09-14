@@ -52,9 +52,55 @@ console.warn = (...args) => {
 };
 
 const path = require('path');
+const multer = require('multer');
 const QRCode = require('qrcode');
 const fs = require('fs');
 require('dotenv').config();
+
+// Force reload .env on startup to ensure latest values (prevents PM2 cache issues)
+function forceReloadEnv() {
+    try {
+        const envPath = path.join(__dirname, '.env');
+        if (fs.existsSync(envPath)) {
+            const envContent = fs.readFileSync(envPath, 'utf8');
+            const lines = envContent.split('\n');
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine && !trimmedLine.startsWith('#') && trimmedLine.includes('=')) {
+                    const [key, ...valueParts] = trimmedLine.split('=');
+                    let value = valueParts.join('=');
+
+                    // Remove quotes if present
+                    if (
+                        (value.startsWith('"') && value.endsWith('"')) ||
+                        (value.startsWith("'") && value.endsWith("'"))
+                    ) {
+                        value = value.slice(1, -1);
+                    }
+
+                    // Force update process.env with latest values
+                    const oldValue = process.env[key.trim()];
+                    process.env[key.trim()] = value;
+
+                    // Log changes for critical keys
+                    if (
+                        ['JELLYFIN_API_KEY', 'PLEX_TOKEN'].includes(key.trim()) &&
+                        oldValue !== value
+                    ) {
+                        console.log(`[Startup] Updated ${key.trim()} from PM2 cache`);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('[Startup] Failed to force reload .env:', error.message);
+    }
+}
+
+// Force reload environment on startup to prevent PM2 cache issues
+forceReloadEnv();
+
 const crypto = require('crypto');
 const { PassThrough } = require('stream');
 const fsp = fs.promises;
@@ -134,6 +180,7 @@ if (!fs.existsSync(configPath)) {
 
 // Define paths early
 const imageCacheDir = path.join(__dirname, 'image_cache');
+const avatarDir = path.join(__dirname, 'sessions', 'avatars');
 
 // --- Environment Initialization ---
 // Automatically create and configure the .env file on first run.
@@ -153,6 +200,7 @@ const imageCacheDir = path.join(__dirname, 'image_cache');
         fs.mkdirSync(imageCacheDir, { recursive: true });
         fs.mkdirSync(cacheDir, { recursive: true });
         fs.mkdirSync(logsDir, { recursive: true });
+        fs.mkdirSync(avatarDir, { recursive: true });
 
         logger.info(
             '✓ All required directories created/verified: sessions, image_cache, cache, logs'
@@ -1692,6 +1740,119 @@ app.use(corsMiddleware());
 app.use(requestLoggingMiddleware());
 // Admin guard alias (module-scope so routes outside feature blocks can use it)
 const adminAuth = isAuthenticated; // reuse existing admin guard
+
+// --- Profile Photo (Avatar) Storage & Endpoints ---
+// Configure multer for small avatar uploads (PNG/JPEG/WebP; 2MB limit)
+const avatarStorage = multer.diskStorage({
+    destination: function (_req, _file, cb) {
+        try {
+            fs.mkdirSync(avatarDir, { recursive: true });
+        } catch (_) {}
+        cb(null, avatarDir);
+    },
+    filename: function (req, file, cb) {
+        // Use a deterministic filename per user (session username) to keep one file
+        const username = (req.session?.user?.username || 'admin').replace(/[^a-z0-9_-]+/gi, '_');
+        const ext =
+            file.mimetype === 'image/png'
+                ? '.png'
+                : file.mimetype === 'image/webp'
+                  ? '.webp'
+                  : '.jpg';
+        cb(null, `${username}${ext}`);
+    },
+});
+const avatarUpload = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: function (_req, file, cb) {
+        const ok = ['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype);
+        if (!ok) return cb(new Error('Unsupported file type'));
+        cb(null, true);
+    },
+});
+
+function getAvatarPath(username) {
+    const base = (username || 'admin').replace(/[^a-z0-9_-]+/gi, '_');
+    const exts = ['.png', '.webp', '.jpg', '.jpeg'];
+    for (const ext of exts) {
+        const p = path.join(avatarDir, base + ext);
+        if (fs.existsSync(p)) return p;
+    }
+    return null;
+}
+
+/**
+ * @swagger
+ * /api/admin/profile/photo:
+ *   get:
+ *     summary: Get current user's profile photo
+ *     tags: ['Admin']
+ *     responses:
+ *       200:
+ *         description: Image file
+ *       204:
+ *         description: No avatar set
+ */
+app.get('/api/admin/profile/photo', adminAuth, (req, res) => {
+    const username = req.session?.user?.username || 'admin';
+    const p = getAvatarPath(username);
+    if (!p) return res.status(204).end();
+    res.sendFile(p);
+});
+
+/**
+ * @swagger
+ * /api/admin/profile/photo:
+ *   post:
+ *     summary: Upload/update current user's profile photo
+ *     tags: ['Admin']
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Upload successful
+ *       400:
+ *         description: Invalid input
+ */
+app.post('/api/admin/profile/photo', adminAuth, (req, res, next) => {
+    avatarUpload.single('avatar')(req, res, err => {
+        if (err) {
+            return res.status(400).json({ error: err.message || 'Upload failed' });
+        }
+        // Success
+        res.json({ success: true });
+    });
+});
+
+/**
+ * @swagger
+ * /api/admin/profile/photo:
+ *   delete:
+ *     summary: Remove current user's profile photo
+ *     tags: ['Admin']
+ *     responses:
+ *       200:
+ *         description: Deleted
+ */
+app.delete('/api/admin/profile/photo', adminAuth, async (req, res) => {
+    try {
+        const username = req.session?.user?.username || 'admin';
+        const p = getAvatarPath(username);
+        if (p) await fsp.unlink(p).catch(() => {});
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to delete avatar' });
+    }
+});
 // --- Feature flag: device management ---
 function isDeviceMgmtEnabled() {
     try {
@@ -3640,7 +3801,7 @@ async function testServerConnection(serverConfig) {
             });
 
             // A lightweight query to check reachability and authentication
-            await testClient.systemApi.getPublicSystemInfo();
+            await testClient.testConnection();
 
             // Calculate response time
             const [seconds, nanoseconds] = process.hrtime(startTime);
@@ -3982,6 +4143,34 @@ async function getPlexQualitiesWithCounts(serverConfig) {
  * @type {Object.<string, Object>}
  */
 const jellyfinClients = {};
+/**
+ * Tracks the creation config for each cached Jellyfin client so we can detect changes
+ * and recreate clients when hostname/port/token/insecure flag changes.
+ * @type {Object.<string, { hash: string, createdAt: number }>}
+ */
+const jellyfinClientMeta = {};
+
+/**
+ * Compute a stable hash of Jellyfin connection parameters.
+ */
+function hashJellyfinConfig({ hostname, port, apiKey, insecureFlag }) {
+    const crypto = require('crypto');
+    const basis = `${hostname || ''}|${port || ''}|${String(apiKey || '').trim()}|${insecureFlag ? '1' : '0'}`;
+    return crypto.createHash('sha256').update(basis).digest('hex');
+}
+
+/**
+ * Invalidate one or all cached Jellyfin clients.
+ */
+function invalidateJellyfinClient(name) {
+    if (name) {
+        delete jellyfinClients[name];
+        delete jellyfinClientMeta[name];
+    } else {
+        Object.keys(jellyfinClients).forEach(k => delete jellyfinClients[k]);
+        Object.keys(jellyfinClientMeta).forEach(k => delete jellyfinClientMeta[k]);
+    }
+}
 
 /**
  * Creates and caches a Jellyfin API client instance.
@@ -3994,14 +4183,61 @@ async function getJellyfinClient(serverConfig) {
         return serverConfig._directClient;
     }
 
-    if (!jellyfinClients[serverConfig.name]) {
-        // Support both environment variables and direct values (for testing)
-        const hostname = serverConfig.hostname || process.env[serverConfig.hostnameEnvVar];
-        const port = serverConfig.port || process.env[serverConfig.portEnvVar];
-        const apiKey = serverConfig.apiKey || process.env[serverConfig.tokenEnvVar];
+    // Support both environment variables and direct values (for testing)
+    const hostname = serverConfig.hostname || process.env[serverConfig.hostnameEnvVar];
+    const port = serverConfig.port || process.env[serverConfig.portEnvVar];
+    let apiKey = serverConfig.apiKey || process.env[serverConfig.tokenEnvVar];
 
-        // Create Jellyfin client
-        jellyfinClients[serverConfig.name] = await createJellyfinClient({ hostname, port, apiKey });
+    // If apiKey is still not found, try reading directly from .env file
+    if (!apiKey && serverConfig.tokenEnvVar) {
+        try {
+            const envText = require('fs').readFileSync('.env', 'utf8');
+            const re = new RegExp(`^${serverConfig.tokenEnvVar}\\s*=\\s*"?([^"\\n]*)"?`, 'm');
+            const match = envText.match(re);
+            if (match && match[1]) {
+                apiKey = match[1].trim();
+                // Update process.env for consistency
+                process.env[serverConfig.tokenEnvVar] = apiKey;
+                if (isDebug) {
+                    logger.debug(
+                        `[getJellyfinClient] Loaded ${serverConfig.tokenEnvVar} from .env file (len=${apiKey.length})`
+                    );
+                }
+            }
+        } catch (e) {
+            if (isDebug) {
+                logger.debug(`[getJellyfinClient] Failed to read .env: ${e.message}`);
+            }
+        }
+    }
+
+    const insecureFlag = process.env.JELLYFIN_INSECURE_HTTPS === 'true';
+
+    if (isDebug) {
+        logger.debug(`[getJellyfinClient] Creating client for ${serverConfig.name}:`);
+        logger.debug(`[getJellyfinClient] - hostname: ${hostname}`);
+        logger.debug(`[getJellyfinClient] - port: ${port}`);
+        logger.debug(`[getJellyfinClient] - apiKey length: ${apiKey ? apiKey.length : 0}`);
+        logger.debug(`[getJellyfinClient] - insecure: ${insecureFlag}`);
+    }
+
+    const desiredHash = hashJellyfinConfig({ hostname, port, apiKey, insecureFlag });
+    const meta = jellyfinClientMeta[serverConfig.name];
+
+    if (!jellyfinClients[serverConfig.name] || !meta || meta.hash !== desiredHash) {
+        // Config changed or no client yet: (re)create Jellyfin client
+        if (isDebug && meta && meta.hash !== desiredHash) {
+            logger.debug(
+                `[Jellyfin Client] Detected config change for "${serverConfig.name}"; recreating client.`
+            );
+        }
+        jellyfinClients[serverConfig.name] = await createJellyfinClient({
+            hostname,
+            port,
+            apiKey,
+            insecureHttps: insecureFlag,
+        });
+        jellyfinClientMeta[serverConfig.name] = { hash: desiredHash, createdAt: Date.now() };
     }
     return jellyfinClients[serverConfig.name];
 }
@@ -4044,6 +4280,8 @@ async function createJellyfinClient({
     apiKey,
     timeout = 15000,
     insecureHttps = false,
+    retryMaxRetries = 1,
+    retryBaseDelay = 500,
 }) {
     if (!hostname || !port || !apiKey) {
         throw new ApiError(
@@ -4084,10 +4322,41 @@ async function createJellyfinClient({
         timeout,
         basePath,
         insecure: !!insecureHttps,
+        insecureHttps: !!insecureHttps,
+        retryMaxRetries,
+        retryBaseDelay,
     });
 
-    // Test connection to ensure it works
-    await client.testConnection();
+    // Basic token sanity check early (avoid obvious empty/placeholder)
+    if (!client.apiKey || client.apiKey === 'changeme' || client.apiKey.length < 8) {
+        throw new ApiError(400, 'Jellyfin API key appears invalid or missing.');
+    }
+    // Test connection to ensure it works; if base path looks wrong, try a sensible fallback
+    try {
+        await client.testConnection();
+    } catch (err) {
+        const looksLikeBasePathIssue =
+            err && (err.code === 'EJELLYFIN_NOT_FOUND' || /404/.test(err.message));
+        const noBasePathSet = !basePath || basePath === '' || basePath === '/';
+        if (looksLikeBasePathIssue && noBasePathSet) {
+            if (isDebug)
+                logger.debug('[Jellyfin Client] 404 on test, retrying with basePath="/jellyfin"');
+            const clientWithBase = new JellyfinHttpClient({
+                hostname: sanitizedHostname,
+                port,
+                apiKey: String(apiKey).trim(),
+                timeout,
+                basePath: '/jellyfin',
+                insecure: !!insecureHttps,
+                insecureHttps: !!insecureHttps,
+                retryMaxRetries,
+                retryBaseDelay,
+            });
+            await clientWithBase.testConnection();
+            return clientWithBase;
+        }
+        throw err;
+    }
 
     return client;
 }
@@ -7515,6 +7784,81 @@ app.post(
 
             if (jellyfinServerConfig && jellyfinServerConfig.tokenEnvVar) {
                 apiKey = process.env[jellyfinServerConfig.tokenEnvVar];
+                if (isDebug) {
+                    logger.debug(
+                        `[Jellyfin Test] Found config with tokenEnvVar: ${jellyfinServerConfig.tokenEnvVar}`
+                    );
+                    logger.debug(
+                        `[Jellyfin Test] process.env value exists: ${!!apiKey}, length: ${apiKey ? apiKey.length : 0}`
+                    );
+                    if (!apiKey) {
+                        logger.debug(
+                            `[Jellyfin Test] process.env.${jellyfinServerConfig.tokenEnvVar} is undefined, checking .env file...`
+                        );
+                    }
+                }
+                // Fallback: read from .env if process.env is not yet updated
+                if (!apiKey) {
+                    try {
+                        const envText = await readEnvFile();
+                        if (isDebug) {
+                            logger.debug(
+                                `[Jellyfin Test] Reading .env file, looking for ${jellyfinServerConfig.tokenEnvVar}`
+                            );
+                        }
+                        const re = new RegExp(
+                            `^${jellyfinServerConfig.tokenEnvVar}\\s*=\\s*\"?([^\"\n]*)\"?`,
+                            'm'
+                        );
+                        const m = envText.match(re);
+                        if (m && m[1]) {
+                            apiKey = m[1].trim();
+                            // Update process.env for future use
+                            process.env[jellyfinServerConfig.tokenEnvVar] = apiKey;
+                            if (isDebug)
+                                logger.debug(
+                                    `[Jellyfin Test] Successfully loaded ${jellyfinServerConfig.tokenEnvVar} from .env (len=${apiKey.length}).`
+                                );
+                        } else {
+                            if (isDebug) {
+                                logger.debug(
+                                    `[Jellyfin Test] .env regex failed to match. Raw .env content for ${jellyfinServerConfig.tokenEnvVar}:`
+                                );
+                                const lines = envText
+                                    .split('\n')
+                                    .filter(line =>
+                                        line.includes(jellyfinServerConfig.tokenEnvVar)
+                                    );
+                                lines.forEach(line =>
+                                    logger.debug(`[Jellyfin Test] .env line: "${line}"`)
+                                );
+
+                                // Try a more flexible regex
+                                const flexibleRe = new RegExp(
+                                    `${jellyfinServerConfig.tokenEnvVar}\\s*=\\s*(.*)`,
+                                    'm'
+                                );
+                                const flexMatch = envText.match(flexibleRe);
+                                if (flexMatch) {
+                                    logger.debug(
+                                        `[Jellyfin Test] Flexible regex matched: "${flexMatch[1]}"`
+                                    );
+                                    apiKey = flexMatch[1]
+                                        .replace(/^["']/, '')
+                                        .replace(/["']$/, '')
+                                        .trim();
+                                    process.env[jellyfinServerConfig.tokenEnvVar] = apiKey;
+                                    logger.debug(
+                                        `[Jellyfin Test] Used flexible parsing, got key (len=${apiKey.length})`
+                                    );
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        if (isDebug)
+                            logger.debug('[Jellyfin Test] .env fallback failed:', e.message);
+                    }
+                }
                 if (!apiKey) {
                     throw new ApiError(
                         400,
@@ -7535,12 +7879,26 @@ app.post(
         }
 
         try {
+            if (isDebug) {
+                logger.debug(`[Jellyfin Test] About to create client with:`);
+                logger.debug(`[Jellyfin Test] - hostname: ${hostname}`);
+                logger.debug(`[Jellyfin Test] - port: ${port}`);
+                logger.debug(`[Jellyfin Test] - apiKey length: ${apiKey ? apiKey.length : 0}`);
+                logger.debug(
+                    `[Jellyfin Test] - insecureHttps: ${typeof insecureHttps !== 'undefined' ? !!insecureHttps : process.env.JELLYFIN_INSECURE_HTTPS === 'true'}`
+                );
+            }
             const client = await createJellyfinClient({
                 hostname,
                 port,
                 apiKey,
-                timeout: 10000,
-                insecureHttps: !!insecureHttps,
+                timeout: 6000,
+                insecureHttps:
+                    typeof insecureHttps !== 'undefined'
+                        ? !!insecureHttps
+                        : process.env.JELLYFIN_INSECURE_HTTPS === 'true',
+                retryMaxRetries: 0,
+                retryBaseDelay: 300,
             });
 
             // Test connection with our HTTP client
@@ -7559,6 +7917,12 @@ app.post(
             let userMessage = 'Could not connect to Jellyfin. Please check the connection details.';
             if (error.message.includes('401') || error.message.includes('Unauthorized')) {
                 userMessage = 'Unauthorized. Is the API key correct?';
+            } else if (error.code === 'EJELLYFIN_NOT_FOUND' || /404/.test(error.message)) {
+                userMessage =
+                    'Not found. If Jellyfin is behind a base path (e.g. /jellyfin), include it in the hostname field.';
+            } else if (error.code === 'EJELLYFIN_CERT') {
+                userMessage =
+                    'TLS certificate error. If using a self-signed cert, enable Insecure HTTPS for the test.';
             } else if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
                 userMessage = 'Connection refused. Is the hostname and port correct?';
             } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
@@ -7661,7 +8025,13 @@ app.post(
                 hostname,
                 port,
                 apiKey,
-                timeout: 10000,
+                timeout: 6000,
+                insecureHttps:
+                    typeof req.body.insecureHttps !== 'undefined'
+                        ? !!req.body.insecureHttps
+                        : process.env.JELLYFIN_INSECURE_HTTPS === 'true',
+                retryMaxRetries: 0,
+                retryBaseDelay: 300,
             });
 
             // Step 1: Get user views (libraries)
@@ -8103,15 +8473,53 @@ app.post(
             );
         }
 
+        // Before writing env, preserve sensitive token vars if the UI sent empty/masked values
+        const sensitiveEnvKeys = new Set();
+        try {
+            if (mergedConfig && Array.isArray(mergedConfig.mediaServers)) {
+                mergedConfig.mediaServers.forEach(s => {
+                    if (s && s.tokenEnvVar) sensitiveEnvKeys.add(s.tokenEnvVar);
+                });
+            }
+            // Common legacy keys, just in case
+            ['PLEX_TOKEN', 'JELLYFIN_API_KEY'].forEach(k => sensitiveEnvKeys.add(k));
+        } catch (e) {
+            // Non-fatal; proceed with what we have
+        }
+
+        const maskedPattern = /^\*{3,}$/; // e.g., *** or ******
+        const sanitizedEnv = { ...newEnv };
+        for (const key of sensitiveEnvKeys) {
+            if (!(key in sanitizedEnv)) continue; // not being updated
+            const val = sanitizedEnv[key];
+            const str = val == null ? '' : String(val).trim();
+            if (str === '' || maskedPattern.test(str)) {
+                // Drop the key so writeEnvFile preserves existing value
+                if (process.env[key]) {
+                    if (isDebug) logger.debug(`[Admin API] Preserving sensitive env var ${key}`);
+                    delete sanitizedEnv[key];
+                }
+            }
+        }
+
         // Write to config.json and .env
         await writeConfig(mergedConfig);
         if (isDebug) logger.debug('[Admin API] Successfully wrote to config.json.');
-        await writeEnvFile(newEnv);
+        await writeEnvFile(sanitizedEnv);
         if (isDebug) logger.debug('[Admin API] Successfully wrote to .env file.');
 
         // Clear caches to reflect changes without a full restart
         playlistCache = null;
         Object.keys(plexClients).forEach(key => delete plexClients[key]);
+        // Also clear Jellyfin clients so updated hostname/port/token/insecure flag take effect
+        if (typeof invalidateJellyfinClient === 'function') {
+            invalidateJellyfinClient();
+        } else {
+            // Fallback in case function is not available in certain builds
+            if (typeof jellyfinClients === 'object') {
+                Object.keys(jellyfinClients).forEach(key => delete jellyfinClients[key]);
+            }
+        }
 
         // Clear the /get-config cache so changes are immediately visible
         cacheManager.delete('GET:/get-config');
@@ -8557,7 +8965,13 @@ app.post(
                 hostname,
                 port: parseInt(port),
                 apiKey,
-                timeout: 15000,
+                timeout: 8000,
+                insecureHttps:
+                    typeof req.body.insecureHttps !== 'undefined'
+                        ? !!req.body.insecureHttps
+                        : process.env.JELLYFIN_INSECURE_HTTPS === 'true',
+                retryMaxRetries: 0,
+                retryBaseDelay: 300,
             });
 
             const allLibraries = await fetchJellyfinLibraries(client);
@@ -11470,11 +11884,34 @@ if (require.main === module) {
             res.sendFile(path.join(__dirname, 'public', 'promo.html'));
         });
 
-        siteApp.listen(sitePort, () => {
-            logger.debug(
-                `Public site server is enabled and running on http://localhost:${sitePort}`
-            );
-        });
+        // Start the optional public site server, but don't let failures crash the main app
+        let siteServerInstance;
+        try {
+            siteServerInstance = siteApp.listen(sitePort, () => {
+                logger.debug(
+                    `Public site server is enabled and running on http://localhost:${sitePort}`
+                );
+            });
+            // Also handle async errors emitted by the server after listen
+            siteServerInstance.on('error', err => {
+                if (err && err.code === 'EADDRINUSE') {
+                    logger.error(
+                        `Public site server failed to bind to port ${sitePort} (address in use). Continuing without the site server.`
+                    );
+                } else {
+                    logger.error(`[Site Server] listen error: ${err?.message || err}`);
+                }
+            });
+        } catch (err) {
+            // Catch synchronous listen errors
+            if (err && err.code === 'EADDRINUSE') {
+                logger.error(
+                    `Public site server failed to bind to port ${sitePort} (address in use). Continuing without the site server.`
+                );
+            } else {
+                logger.error(`[Site Server] listen threw: ${err?.message || err}`);
+            }
+        }
     }
 }
 

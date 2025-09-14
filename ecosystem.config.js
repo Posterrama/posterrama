@@ -51,8 +51,11 @@ module.exports = {
             env: {
                 NODE_ENV: 'production',
                 APP_VERSION: pkg.version,
-                ...envVars, // Load all environment variables from .env file
+                ...loadEnvFile(), // Always load fresh .env values
             },
+            // Force environment update on restart
+            restart_delay: 1000,
+            max_memory_restart: '512M',
         },
     ],
 };
