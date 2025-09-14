@@ -11568,14 +11568,24 @@ app.get(
     asyncHandler(async (req, res) => {
         try {
             const os = require('os');
-
-            // CPU information - use load average as more reliable indicator
-            const loadAvg = os.loadavg();
-            const numCPUs = os.cpus().length;
-
-            // Convert load average to percentage (first minute load)
-            // Load average of 1.0 means 100% CPU utilization on single core
-            const cpuUsage = Math.min(100, Math.round((loadAvg[0] / numCPUs) * 100));
+            // Prefer sampled CPU metrics from metricsManager for better parity with OS tools
+            const sysMetrics = metricsManager.getSystemMetrics();
+            // Backward compatible "usage" remains the overall system CPU percent
+            const cpuUsage = Math.max(
+                0,
+                Math.min(
+                    100,
+                    Math.round(Number(sysMetrics?.cpu?.percent ?? sysMetrics?.cpu?.usage ?? 0))
+                )
+            );
+            const systemPercent = Math.max(
+                0,
+                Math.min(100, Math.round(Number(sysMetrics?.cpu?.system ?? cpuUsage)))
+            );
+            const processPercent = Math.max(
+                0,
+                Math.min(100, Math.round(Number(sysMetrics?.cpu?.process ?? 0)))
+            );
 
             // Load average
             const loadAverage = os
@@ -11624,6 +11634,9 @@ app.get(
             const performanceData = {
                 cpu: {
                     usage: cpuUsage,
+                    percent: cpuUsage,
+                    system: systemPercent,
+                    process: processPercent,
                     loadAverage: loadAverage,
                 },
                 memory: {

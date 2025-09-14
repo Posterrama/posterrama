@@ -421,10 +421,16 @@
         // Detailed performance (CPU, Disk) and show meters
         try {
             const perf = await fetchJSON('/api/admin/performance');
-            const cpu = Math.max(0, Math.min(100, Number(perf?.cpu?.usage || 0)));
+            const cpu = Math.max(
+                0,
+                Math.min(100, Number(perf?.cpu?.usage ?? perf?.cpu?.percent ?? 0))
+            );
+            const cpuProc = Math.max(0, Math.min(100, Number(perf?.cpu?.process ?? 0)));
+            const cpuSys = Math.max(0, Math.min(100, Number(perf?.cpu?.system ?? cpu)));
             const mem = Math.max(0, Math.min(100, Number(perf?.memory?.usage || 0)));
             const diskPct = Math.max(0, Math.min(100, Number(perf?.disk?.usage || 0)));
-            setText('perf-cpu', `${cpu}%`);
+            // Show overall and process CPU for clarity
+            setText('perf-cpu', `${cpu}% (proc ${cpuProc}%)`);
             setMeter('meter-cpu', cpu, 'cpu');
             setText(
                 'perf-mem',
@@ -481,6 +487,17 @@
                 setChip('perf-loadavg-15', la15);
             } catch (_) {
                 /* non-fatal */
+            }
+
+            // Update tooltip/context for CPU meter to clarify meaning
+            try {
+                const cpuLabel = document.getElementById('perf-cpu');
+                const meter = document.getElementById('meter-cpu');
+                const tip = `CPU (system): ${cpuSys}%\nCPU (process): ${cpuProc}%`;
+                if (cpuLabel) cpuLabel.setAttribute('title', tip);
+                if (meter) meter.setAttribute('title', tip);
+            } catch (_) {
+                /* ignore */
             }
         } catch (_) {
             // ignore
