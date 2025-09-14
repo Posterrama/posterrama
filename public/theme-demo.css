@@ -2198,7 +2198,7 @@ input[type='range']::-moz-range-thumb {
 }
 .notify-item {
     display: grid;
-    grid-template-columns: 24px 1fr auto;
+    grid-template-columns: 26px 1fr auto;
     gap: var(--space-md);
     align-items: start;
     padding: var(--space-md) var(--space-lg);
@@ -2257,6 +2257,28 @@ input[type='range']::-moz-range-thumb {
 }
 .notify-info i {
     color: var(--color-info);
+}
+/* Circular tinted icon backgrounds per type */
+.notify-item i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 9999px;
+}
+.notify-info i {
+    background: color-mix(in srgb, var(--color-info) 18%, transparent);
+}
+.notify-warning i {
+    color: var(--color-warning);
+    background: color-mix(in srgb, var(--color-warning) 18%, transparent);
+}
+.notify-error i {
+    background: color-mix(in srgb, var(--color-error) 18%, transparent);
+}
+.notify-success i {
+    background: color-mix(in srgb, var(--color-success) 18%, transparent);
 }
 
 /* Modals & Dialogs */
