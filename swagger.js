@@ -775,8 +775,9 @@ function generateSwaggerSpec() {
                         properties: {
                             name: {
                                 type: 'string',
-                                description: 'Name of the health check',
-                                example: 'configuration',
+                                description:
+                                    'Name of the health check (e.g., configuration, filesystem, cache, plex_connectivity, jellyfin_connectivity, device_sla, cache_efficiency, performance, update_available)',
+                                example: 'jellyfin_connectivity',
                             },
                             status: {
                                 type: 'string',

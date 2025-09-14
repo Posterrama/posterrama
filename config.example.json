@@ -92,6 +92,9 @@
         "enabled": true,
         "port": 4001
     },
+    "deviceMgmt": {
+        "enabled": true
+    },
     "cache": {
         "maxSizeGB": 5
     },

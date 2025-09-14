@@ -2340,9 +2340,7 @@
         // Live updates via SSE (logs). Falls back to polling below.
         (function initAdminEvents() {
             try {
-                if (window.__adminSSE) return;
-                const src = new EventSource('/api/admin/events');
-                window.__adminSSE = src;
+                // Debounced notifier used by all SSE events
                 const pump = debounce(() => {
                     try {
                         if (typeof window.refreshAdminBadge === 'function') {
@@ -2350,21 +2348,72 @@
                         }
                     } catch (_) {}
                 }, 2000);
-                src.addEventListener('log', () => pump());
-                src.addEventListener('hello', () => pump());
-                // When config changes (e.g., cache size), refresh cache stats panel immediately
-                src.addEventListener('config-updated', async () => {
+
+                // Create/restore SSE with backoff when closed
+                let reconnectTimer = null;
+                function establishSSE() {
                     try {
-                        await refreshCacheStatsV2();
+                        const existing = window.__adminSSE;
+                        if (existing && existing.readyState !== 2 /* CLOSED */) return;
+                    } catch (_) {}
+
+                    try {
+                        const src = new EventSource('/api/admin/events');
+                        window.__adminSSE = src;
+
+                        src.addEventListener('log', () => pump());
+                        src.addEventListener('hello', () => pump());
+                        // Generic message fallback
+                        src.addEventListener('message', () => pump());
+                        // Some servers emit keepalive pings; treat as an update nudge
+                        src.addEventListener('ping', () => pump());
+                        src.onopen = () => {
+                            // Clear any planned reconnect attempts and nudge UI
+                            if (reconnectTimer) {
+                                clearTimeout(reconnectTimer);
+                                reconnectTimer = null;
+                            }
+                            pump();
+                        };
+                        // When config changes (e.g., cache size), refresh cache stats panel immediately
+                        src.addEventListener('config-updated', async () => {
+                            try {
+                                await refreshCacheStatsV2();
+                            } catch (_) {
+                                /* ignore */
+                            }
+                        });
+                        src.onerror = () => {
+                            // If the stream is fully closed, clear handle and try to re-establish
+                            try {
+                                if (src.readyState === 2 /* CLOSED */) {
+                                    try {
+                                        src.close();
+                                    } catch (_) {}
+                                    if (window.__adminSSE === src) window.__adminSSE = null;
+                                    if (!reconnectTimer) {
+                                        reconnectTimer = setTimeout(() => {
+                                            reconnectTimer = null;
+                                            establishSSE();
+                                        }, 3000);
+                                    }
+                                }
+                            } catch (_) {}
+                        };
                     } catch (_) {
-                        /* ignore */
+                        // If creation fails (e.g., endpoint down), retry with backoff
+                        if (!reconnectTimer) {
+                            reconnectTimer = setTimeout(() => {
+                                reconnectTimer = null;
+                                establishSSE();
+                            }, 5000);
+                        }
                     }
-                });
-                src.onerror = () => {
-                    // Auto-reconnect handled by EventSource; if it fully fails, polling remains
-                };
+                }
+
+                establishSSE();
             } catch (_) {
-                // Ignore if EventSource not available or endpoint not reachable
+                // Ignore if EventSource not available or endpoint not reachable; polling remains
             }
         })();
 
@@ -2583,9 +2632,17 @@
                 const msg = normalize(a?.message || a?.description || '');
                 return `A|${base}|${msg}`;
             };
-            // Use level + normalized message for log key to avoid duplicates due to whitespace/casing/timestamps
-            const makeLogKey = l =>
-                `L|${String(l?.level || 'warn')}|${normalize(l?.message || '')}`;
+            // Use level + normalized message + minute bucket so dismissing doesn't hide future occurrences forever
+            const makeLogKey = l => {
+                let ms = 0;
+                try {
+                    const t = l?.timestamp;
+                    ms = typeof t === 'number' ? t : Date.parse(String(t));
+                    if (!Number.isFinite(ms)) ms = 0;
+                } catch (_) {}
+                const bucket = Math.floor(ms / 60000); // minute-level bucket
+                return `L|${String(l?.level || 'warn')}|${normalize(l?.message || '')}|${bucket}`;
+            };
             function applyDismissedFilter(alerts, logs) {
                 const fa = (Array.isArray(alerts) ? alerts : []).filter(
                     a => !dismissed.has(makeAlertKey(a))
@@ -2600,6 +2657,15 @@
                 if (!list) return setBadge(0);
                 const unread = list.querySelectorAll('.notify-item[data-unread="true"]').length;
                 setBadge(unread);
+            }
+
+            const NOTIF_MAX_ITEMS_KEY = 'admin2:notifMaxItems';
+            function getNotifMaxItems() {
+                try {
+                    const v = Number(localStorage.getItem(NOTIF_MAX_ITEMS_KEY));
+                    if (Number.isFinite(v) && v > 0 && v <= 100) return Math.floor(v);
+                } catch (_) {}
+                return 100; // default increased
             }
 
             async function fetchAlertsAndLogs(opts = {}) {
@@ -2643,13 +2709,18 @@
                     try {
                         // Respect user-selected minimum level for logs in the bell
                         const levelKey = 'admin2:notifMinLevel';
-                        const minLevel = (localStorage.getItem(levelKey) || 'error').toLowerCase();
+                        let minLevel = (localStorage.getItem(levelKey) || 'warn').toLowerCase();
+                        if (minLevel === 'warning') minLevel = 'warn';
                         const levelParam = ['info', 'warn', 'error'].includes(minLevel)
                             ? minLevel
                             : 'warn';
-                        const r = await fetch(`/api/admin/logs?level=${levelParam}&limit=20`, {
-                            credentials: 'include',
-                        });
+                        const limit = getNotifMaxItems();
+                        const r = await fetch(
+                            `/api/admin/logs?level=${levelParam}&limit=${limit}`,
+                            {
+                                credentials: 'include',
+                            }
+                        );
                         if (r.ok) {
                             const jr = (await r.json()) || [];
                             logs = Array.isArray(jr)
@@ -2679,6 +2750,7 @@
 
             function renderPanel({ alerts, logs }) {
                 const parts = [];
+                const maxItems = getNotifMaxItems();
                 // Local time formatter for this panel
                 function fmtAgoLite(ms) {
                     if (!ms || Number.isNaN(ms)) return '';
@@ -2717,7 +2789,7 @@
                     }
                 }
                 if (Array.isArray(alerts) && alerts.length) {
-                    for (const a of alerts.slice(0, 10)) {
+                    for (const a of alerts.slice(0, maxItems)) {
                         const raw = String(a?.status || 'warn').toLowerCase();
                         const st =
                             raw === 'error'
@@ -2749,7 +2821,7 @@
                     }
                 }
                 if (Array.isArray(logs) && logs.length) {
-                    for (const l of logs.slice(0, 10)) {
+                    for (const l of logs.slice(0, maxItems)) {
                         const raw = String(l?.level || l?.severity || 'warn').toLowerCase();
                         const st = raw === 'error' ? 'error' : raw === 'info' ? 'info' : 'warning';
                         const icon = iconForLevel(st);
@@ -2805,8 +2877,12 @@
                     let { alerts, logs } = await fetchAlertsAndLogs({ force });
                     // Apply session dismissals so cleared items don't bounce back immediately
                     ({ alerts, logs } = applyDismissedFilter(alerts, logs));
-                    const shownAlerts = Math.min(Array.isArray(alerts) ? alerts.length : 0, 10);
-                    const shownLogs = Math.min(Array.isArray(logs) ? logs.length : 0, 10);
+                    const maxItems = getNotifMaxItems();
+                    const shownAlerts = Math.min(
+                        Array.isArray(alerts) ? alerts.length : 0,
+                        maxItems
+                    );
+                    const shownLogs = Math.min(Array.isArray(logs) ? logs.length : 0, maxItems);
                     const count = shownAlerts + shownLogs;
                     setBadge(count);
                     renderPanel({ alerts, logs });
@@ -2846,7 +2922,8 @@
                     const key = 'admin2:notifMinLevel';
                     const sel = document.getElementById('notify-min-level');
                     const container = document.getElementById('notify-min-level-icons');
-                    const saved = (localStorage.getItem(key) || 'error').toLowerCase();
+                    let saved = (localStorage.getItem(key) || 'warn').toLowerCase();
+                    if (saved === 'warning') saved = 'warn';
                     // Sync hidden select if present
                     if (sel && [...sel.options].some(o => o.value === saved)) sel.value = saved;
                     // Helper to update aria-checked on icon buttons
@@ -3020,22 +3097,46 @@
             });
             // The delegated handler above covers mark-all; avoid double-binding here
 
-            // Periodically refresh the badge while on the dashboard (debounced)
+            // Periodically refresh the badge regardless of active section (tab-visible only)
             const badgeTick = debounce(() => {
                 try {
-                    const active = document.getElementById('section-dashboard');
-                    const visible =
-                        !!active && active.classList.contains('active') && !active.hidden;
-                    if (!visible) return;
+                    if (document.visibilityState !== 'visible') return;
                     if (typeof window.refreshAdminBadge === 'function') window.refreshAdminBadge();
                     else refreshBadge();
                 } catch (_) {}
             }, 500);
-            setInterval(badgeTick, 30000);
+            setInterval(badgeTick, 15000);
+
+            // While the notification panel is open, refresh more frequently for a live feel
+            setInterval(() => {
+                try {
+                    if (document.visibilityState !== 'visible') return;
+                    const { panel } = getRefs();
+                    if (panel && panel.classList.contains('open')) {
+                        if (typeof window.refreshAdminBadge === 'function')
+                            window.refreshAdminBadge();
+                        else refreshBadge();
+                    }
+                } catch (_) {}
+            }, 5000);
 
             // Initial paint so users see counts without clicking
             try {
                 refreshBadge();
+            } catch (_) {}
+
+            // Refresh aggressively on network regain and window focus
+            try {
+                window.addEventListener('online', () => {
+                    try {
+                        refreshBadge(true);
+                    } catch (_) {}
+                });
+                window.addEventListener('focus', () => {
+                    try {
+                        refreshBadge();
+                    } catch (_) {}
+                });
             } catch (_) {}
         })();
 

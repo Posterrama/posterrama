@@ -509,13 +509,14 @@ app.use((req, res, next) => {
             contentLength: res.get('content-length'),
         });
 
-        // Log slow requests
-        if (duration > 1000) {
-            // 1 second threshold
+        // Log slow requests (configurable threshold)
+        const slowReqMs = Number(process.env.SLOW_REQUEST_WARN_MS || 3000);
+        if (duration > slowReqMs) {
             logger.warn('Slow request detected', {
                 ...requestLog,
                 duration: `${duration.toFixed(2)}ms`,
                 status: res.statusCode,
+                thresholdMs: slowReqMs,
             });
         }
     });
@@ -943,6 +944,10 @@ const asyncHandler = fn => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
 };
 
+// Small in-memory cache for Admin filter preview results to avoid repeated work
+// TTL is short to keep UI responsive to recent changes.
+const adminFilterPreviewCache = new Map(); // key -> { ts, value }
+
 /**
  * @swagger
  * /api/v1/admin/config/validate:
@@ -983,7 +988,32 @@ app.post(
     express.json(),
     asyncHandler(async (req, res) => {
         try {
+            const perfTrace = String(process.env.PERF_TRACE_ADMIN || '').toLowerCase() === 'true';
+            const reqStart = Date.now();
             const timeoutMs = Number(process.env.ADMIN_FILTER_PREVIEW_TIMEOUT_MS) || 8000;
+            // Fast-path cache (15s TTL) keyed by the normalized request body
+            const cacheKey = (() => {
+                try {
+                    return JSON.stringify(req.body || {});
+                } catch (_) {
+                    return null;
+                }
+            })();
+            const now = Date.now();
+            if (cacheKey && adminFilterPreviewCache.has(cacheKey)) {
+                const cached = adminFilterPreviewCache.get(cacheKey);
+                if (cached && now - cached.ts < 15000) {
+                    try {
+                        res.setHeader('X-Preview-Cache', 'hit');
+                    } catch (_) {}
+                    if (perfTrace) {
+                        try {
+                            res.setHeader('Server-Timing', `cache;dur=${Date.now() - reqStart}`);
+                        } catch (_) {}
+                    }
+                    return res.json(cached.value);
+                }
+            }
             const withTimeout = (promise, ms, label) =>
                 new Promise(resolve => {
                     let settled = false;
@@ -1120,6 +1150,9 @@ app.post(
                     /* noop */
                 }
             }
+            // Perf collection containers
+            const plexPerf = { tGetLibs: 0, libs: [] };
+            const jfPerf = { tGetLibs: 0, libs: [] };
 
             const [plexCount, jfCount] = await Promise.all([
                 withTimeout(
@@ -1135,20 +1168,29 @@ app.post(
                         );
                         if (!pServer) return 0;
                         const plexClient = getPlexClient(pServer);
+                        const _tLibsStart = Date.now();
                         const libsMap = await getPlexLibraries(pServer);
+                        plexPerf.tGetLibs = Date.now() - _tLibsStart;
 
                         const countForLib = async libName => {
                             const lib = libsMap.get(libName);
                             if (!lib) return 0;
                             let start = 0;
-                            const pageSize = 200;
+                            const pageSize = Math.max(
+                                1,
+                                Number(process.env.PLEX_PREVIEW_PAGE_SIZE || 200)
+                            );
                             let total = 0;
                             let matched = 0;
+                            let scanned = 0;
+                            let pages = 0;
+                            const _tStart = Date.now();
                             do {
                                 const q = `/library/sections/${lib.key}/all?X-Plex-Container-Start=${start}&X-Plex-Container-Size=${pageSize}`;
                                 const resp = await plexClient.query(q);
                                 const mc = resp?.MediaContainer;
                                 const items = Array.isArray(mc?.Metadata) ? mc.Metadata : [];
+                                scanned += items.length;
                                 total = Number(mc?.totalSize || mc?.size || start + items.length);
                                 for (const it of items) {
                                     // Years
@@ -1211,7 +1253,21 @@ app.post(
                                     matched++;
                                 }
                                 start += items.length;
+                                pages += 1;
                             } while (start < total && pageSize > 0);
+                            if (perfTrace) {
+                                try {
+                                    plexPerf.libs.push({
+                                        library: libName,
+                                        durationMs: Date.now() - _tStart,
+                                        pages,
+                                        scanned,
+                                        matched,
+                                    });
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            }
                             return matched;
                         };
 
@@ -1244,14 +1300,22 @@ app.post(
                         );
                         if (!jServer) return 0;
                         const jf = await getJellyfinClient(jServer);
+                        const _tJLibsStart = Date.now();
                         const libsMap = await getJellyfinLibraries(jServer);
+                        jfPerf.tGetLibs = Date.now() - _tJLibsStart;
 
                         const countForLib = async (libName, kind) => {
                             const lib = libsMap.get(libName);
                             if (!lib) return 0;
-                            const pageSize = 1000;
+                            const pageSize = Math.max(
+                                1,
+                                Number(process.env.JF_PREVIEW_PAGE_SIZE || 1000)
+                            );
                             let startIndex = 0;
                             let matched = 0;
+                            let scanned = 0;
+                            let pages = 0;
+                            const _tStart = Date.now();
                             let fetched;
                             do {
                                 const page = await jf.getItems({
@@ -1272,6 +1336,7 @@ app.post(
                                 });
                                 const items = Array.isArray(page?.Items) ? page.Items : [];
                                 fetched = items.length;
+                                scanned += items.length;
                                 startIndex += fetched;
                                 for (const it of items) {
                                     // Years
@@ -1320,7 +1385,22 @@ app.post(
                                     }
                                     matched++;
                                 }
+                                pages += 1;
                             } while (fetched === pageSize);
+                            if (perfTrace) {
+                                try {
+                                    jfPerf.libs.push({
+                                        library: libName,
+                                        kind,
+                                        durationMs: Date.now() - _tStart,
+                                        pages,
+                                        scanned,
+                                        matched,
+                                    });
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            }
                             return matched;
                         };
 
@@ -1363,7 +1443,34 @@ app.post(
                     /* fire-and-forget */
                 }
             }
-            res.json({ success: true, counts: { plex: plexCount, jellyfin: jfCount } });
+            // Optional perf trace output and Server-Timing header
+            if (perfTrace) {
+                try {
+                    const totalMs = Date.now() - reqStart;
+                    const st = [
+                        `total;dur=${totalMs}`,
+                        `plex-libs;dur=${plexPerf.tGetLibs}`,
+                        `jf-libs;dur=${jfPerf.tGetLibs}`,
+                    ].join(', ');
+                    res.setHeader('Server-Timing', st);
+                    logger.info('[Admin Preview][perf]', {
+                        totalMs,
+                        plex: plexPerf,
+                        jellyfin: jfPerf,
+                        result: { plex: plexCount, jellyfin: jfCount },
+                    });
+                } catch (_) {
+                    /* noop */
+                }
+            }
+            const payload = { success: true, counts: { plex: plexCount, jellyfin: jfCount } };
+            if (cacheKey) {
+                adminFilterPreviewCache.set(cacheKey, { ts: Date.now(), value: payload });
+                try {
+                    res.setHeader('X-Preview-Cache', 'miss');
+                } catch (_) {}
+            }
+            res.json(payload);
         } catch (e) {
             if (isDebug)
                 logger.debug('[Admin Preview] Error computing filtered counts', {
@@ -1855,8 +1962,10 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
         return value;
     };
 
-    // Decide whether to include detailed health (expensive: may probe Plex/Jellyfin)
-    const includeDetailedHealth = process.env.DASHBOARD_INCLUDE_DETAILED_HEALTH === 'true';
+    // Decide whether to include detailed health (may probe Plex/Jellyfin)
+    // Default: enabled. Set DASHBOARD_INCLUDE_DETAILED_HEALTH="false" to disable.
+    const includeDetailedHealth =
+        (process.env.DASHBOARD_INCLUDE_DETAILED_HEALTH || '').toLowerCase() !== 'false';
 
     // Build response; compute library totals and optionally health alerts asynchronously
     Promise.all([
@@ -4276,9 +4385,9 @@ async function testServerConnection(serverConfig) {
                 },
             });
 
-            // Log warning if connection was slow
-            if (responseTime > 1000) {
-                //  1 second threshold
+            // Log warning if connection was slow (configurable threshold)
+            const plexSlowMs = Number(process.env.PLEX_SLOW_WARN_MS || 3000);
+            if (responseTime > plexSlowMs) {
                 logger.warn('Slow Plex server response detected', {
                     action: 'plex_connection_slow',
                     server: {
@@ -4287,6 +4396,7 @@ async function testServerConnection(serverConfig) {
                         port: port,
                     },
                     responseTime: `${responseTime.toFixed(2)}ms`,
+                    thresholdMs: plexSlowMs,
                 });
             }
 
@@ -4365,9 +4475,9 @@ async function testServerConnection(serverConfig) {
                 },
             });
 
-            // Log warning if connection was slow
-            if (responseTime > 1000) {
-                //  1 second threshold
+            // Log warning if connection was slow (configurable threshold)
+            const jfSlowMs = Number(process.env.JELLYFIN_SLOW_WARN_MS || 3000);
+            if (responseTime > jfSlowMs) {
                 logger.warn('Slow Jellyfin server response detected', {
                     action: 'jellyfin_connection_slow',
                     server: {
@@ -4376,6 +4486,7 @@ async function testServerConnection(serverConfig) {
                         port: port,
                     },
                     responseTime: `${responseTime.toFixed(2)}ms`,
+                    thresholdMs: jfSlowMs,
                 });
             }
 
