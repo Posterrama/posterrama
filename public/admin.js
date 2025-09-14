@@ -10717,6 +10717,11 @@ function renderDevicesTable(devices) {
             }
             const list = await fetchDevices();
             renderDevicesTable(list);
+            try {
+                if (typeof showNotification === 'function') {
+                    showNotification(`Deleted ${ids.length} device(s)`, 'success');
+                }
+            } catch (_) {}
         });
     }
     // Bulk assign preset
@@ -10741,6 +10746,18 @@ function renderDevicesTable(devices) {
             const list = await fetchDevices();
             renderDevicesTable(list);
             if (status) status.textContent = 'Preset assigned to selected device(s).';
+            try {
+                if (typeof showNotification === 'function') {
+                    const name = (() => {
+                        const opt = bulkPresetSelect.options[bulkPresetSelect.selectedIndex];
+                        return opt ? opt.textContent.trim() : key || '(none)';
+                    })();
+                    showNotification(
+                        `Applied preset "${name}" to ${ids.length} device(s)`,
+                        'success'
+                    );
+                }
+            } catch (_) {}
         });
     }
     // Removed "delete offline" functionality by request.
