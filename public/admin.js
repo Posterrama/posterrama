@@ -1031,6 +1031,369 @@ window.scrollToSubsection = function (id) {
     });
 })();
 
+// (Groups routing hooks are integrated into the existing activateSection below)
+
+// --- Groups Management ---
+let __groupsCache = [];
+async function fetchGroups() {
+    const res = await authenticatedFetch(apiUrl('/api/groups'), { noRedirectOn401: true });
+    if (!res.ok) throw new Error('Failed to load groups');
+    const list = await res.json();
+    __groupsCache = Array.isArray(list)
+        ? list.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        : [];
+    return __groupsCache;
+}
+
+async function createGroup(payload) {
+    const res = await authenticatedFetch(apiUrl('/api/groups'), {
+        method: 'POST',
+        body: JSON.stringify(payload || {}),
+    });
+    if (!res.ok) throw new Error('Create failed');
+    return res.json();
+}
+
+async function patchGroup(id, payload) {
+    const res = await authenticatedFetch(apiUrl(`/api/groups/${encodeURIComponent(id)}`), {
+        method: 'PATCH',
+        body: JSON.stringify(payload || {}),
+    });
+    if (!res.ok) throw new Error('Patch failed');
+    return res.json();
+}
+
+async function deleteGroup(id) {
+    const res = await authenticatedFetch(apiUrl(`/api/groups/${encodeURIComponent(id)}`), {
+        method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Delete failed');
+    return res.json();
+}
+
+async function sendGroupCommand(id, type, payload) {
+    const res = await authenticatedFetch(apiUrl(`/api/groups/${encodeURIComponent(id)}/command`), {
+        method: 'POST',
+        body: JSON.stringify({ type, payload }),
+    });
+    if (!res.ok) throw new Error('Command failed');
+    return res.json();
+}
+
+async function fetchDevicesLight() {
+    // Use existing endpoint and map into minimal data for counts and assignment UI
+    const res = await authenticatedFetch(apiUrl('/api/devices'), { noRedirectOn401: true });
+    if (!res.ok) throw new Error('Failed to load devices');
+    const list = await res.json();
+    return Array.isArray(list)
+        ? list.map(d => ({
+              id: d.id,
+              name: d.name || d.id,
+              groups: Array.isArray(d.groups) ? d.groups : [],
+              wsConnected: !!d.wsConnected,
+          }))
+        : [];
+}
+
+function renderGroupsTable(groups, devices) {
+    const tbody = document.querySelector('#groups-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    const esc = s => (s == null ? '' : String(s));
+    const devByGroup = Object.create(null);
+    (devices || []).forEach(d => {
+        (d.groups || []).forEach(gid => {
+            devByGroup[gid] = (devByGroup[gid] || 0) + 1;
+        });
+    });
+    (groups || []).forEach(g => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="col-select"><input type="checkbox" class="row-select" data-id="${g.id}" aria-label="Select group"/></td>
+            <td class="col-name">
+                <div class="name">${esc(g.name || '(unnamed)')}</div>
+                <div class="muted small">${esc(g.description || '')}</div>
+                <div class="muted tiny">ID: ${esc(g.id)}</div>
+            </td>
+            <td class="col-order">
+                <div class="order-controls" data-id="${g.id}">
+                    <button type="button" class="btn btn-compact" data-act="ord-dec" title="Move up"><i class="fas fa-chevron-up"></i></button>
+                    <input type="number" class="inline-order" value="${Number.isFinite(g.order) ? g.order : 0}" min="0" step="1" style="width:72px" />
+                    <button type="button" class="btn btn-compact" data-act="ord-inc" title="Move down"><i class="fas fa-chevron-down"></i></button>
+                </div>
+            </td>
+            <td class="col-members">
+                <span class="badge">${devByGroup[g.id] || 0} device(s)</span>
+            </td>
+            <td class="col-actions">
+                <div class="btn-row">
+                    <button type="button" class="btn" data-act="edit" data-id="${g.id}"><i class="fas fa-pen"></i> Edit</button>
+                    <button type="button" class="btn" data-act="cmd" data-id="${g.id}"><i class="fas fa-bolt"></i> Command</button>
+                    <button type="button" class="btn btn-danger" data-act="del" data-id="${g.id}"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function openGroupEditor(group) {
+    const modal = document.getElementById('group-editor-modal');
+    if (!modal) return;
+    const title = document.getElementById('group-editor-title');
+    const nameEl = document.getElementById('group-name');
+    const descEl = document.getElementById('group-description');
+    const orderEl = document.getElementById('group-order');
+    const tplEl = document.getElementById('group-template');
+    const membersBox = document.getElementById('group-members');
+    title.textContent = group && group.id ? 'Edit Group' : 'New Group';
+    nameEl.value = group?.name || '';
+    descEl.value = group?.description || '';
+    orderEl.value = Number.isFinite(group?.order) ? group.order : __groupsCache.length || 0;
+    tplEl.value =
+        group && group.settingsTemplate ? JSON.stringify(group.settingsTemplate, null, 2) : '';
+    modal.classList.remove('is-hidden');
+    modal.style.display = 'flex';
+
+    const onCancel = () => {
+        modal.classList.add('is-hidden');
+        modal.style.display = 'none';
+        modal
+            .querySelectorAll('[data-group-cancel]')
+            .forEach(btn => btn.removeEventListener('click', onCancel));
+        form.removeEventListener('submit', onSubmit);
+    };
+    modal
+        .querySelectorAll('[data-group-cancel]')
+        .forEach(btn => btn.addEventListener('click', onCancel));
+    const form = document.getElementById('group-editor-form');
+    // Populate members list
+    (async () => {
+        try {
+            const devices = await fetchDevicesLight();
+            if (membersBox) {
+                const gid = group && group.id;
+                membersBox.innerHTML = devices
+                    .map(d => {
+                        const checked = gid && Array.isArray(d.groups) && d.groups.includes(gid);
+                        const safe = s => (s == null ? '' : String(s).replace(/</g, '&lt;'));
+                        return `<label class="checkbox-label" style="display:block;margin:.25rem 0;">
+                            <input type="checkbox" class="group-member" data-id="${safe(d.id)}" ${checked ? 'checked' : ''} />
+                            <span>${safe(d.name || d.id)}</span>
+                        </label>`;
+                    })
+                    .join('');
+            }
+        } catch (_) {}
+    })();
+    async function onSubmit(e) {
+        e.preventDefault();
+        const status = document.getElementById('groups-status');
+        try {
+            const payload = {
+                name: nameEl.value.trim(),
+                description: descEl.value.trim(),
+                order: Number(orderEl.value || 0),
+            };
+            const txt = tplEl.value.trim();
+            if (txt) {
+                try {
+                    payload.settingsTemplate = JSON.parse(txt);
+                } catch (err) {
+                    throw new Error('Invalid JSON in template');
+                }
+            } else {
+                payload.settingsTemplate = {};
+            }
+            let gid = group && group.id;
+            if (gid) await patchGroup(gid, payload);
+            else {
+                const created = await createGroup(payload);
+                gid = created && created.id;
+            }
+            // Save members if present
+            if (gid && membersBox) {
+                try {
+                    const devices = await fetchDevicesLight();
+                    const selected = Array.from(
+                        membersBox.querySelectorAll('.group-member:checked')
+                    ).map(el => el.getAttribute('data-id'));
+                    const selectedSet = new Set(selected);
+                    // Compute per-device desired groups
+                    for (const d of devices) {
+                        const has = Array.isArray(d.groups) && d.groups.includes(gid);
+                        const should = selectedSet.has(d.id);
+                        if (has === should) continue;
+                        const nextGroups = new Set(Array.isArray(d.groups) ? d.groups : []);
+                        if (should) nextGroups.add(gid);
+                        else nextGroups.delete(gid);
+                        await patchDeviceGroups(d.id, Array.from(nextGroups));
+                    }
+                } catch (e2) {
+                    // non-fatal
+                }
+            }
+            const [groups, devices] = await Promise.all([fetchGroups(), fetchDevicesLight()]);
+            renderGroupsTable(groups, devices);
+            status && (status.textContent = 'Saved.');
+            onCancel();
+        } catch (err) {
+            status && (status.textContent = err.message || 'Save failed');
+        }
+    }
+    form.addEventListener('submit', onSubmit);
+}
+
+function openGroupCommand(groupId) {
+    const modal = document.getElementById('group-command-modal');
+    if (!modal) return;
+    const typeEl = document.getElementById('group-command-type');
+    const payloadEl = document.getElementById('group-command-payload');
+    modal.classList.remove('is-hidden');
+    modal.style.display = 'flex';
+    const onCancel = () => {
+        modal.classList.add('is-hidden');
+        modal.style.display = 'none';
+        modal
+            .querySelectorAll('[data-gcmd-cancel]')
+            .forEach(btn => btn.removeEventListener('click', onCancel));
+        form.removeEventListener('submit', onSubmit);
+    };
+    modal
+        .querySelectorAll('[data-gcmd-cancel]')
+        .forEach(btn => btn.addEventListener('click', onCancel));
+    const form = document.getElementById('group-command-form');
+    async function onSubmit(e) {
+        e.preventDefault();
+        const status = document.getElementById('groups-status');
+        try {
+            let payload = undefined;
+            const txt = payloadEl.value.trim();
+            if (txt) payload = JSON.parse(txt);
+            await sendGroupCommand(groupId, typeEl.value, payload);
+            status && (status.textContent = 'Command sent.');
+            onCancel();
+        } catch (err) {
+            status && (status.textContent = err.message || 'Command failed');
+        }
+    }
+    form.addEventListener('submit', onSubmit);
+}
+
+async function initGroupsPanel() {
+    const container = document.getElementById('groups-subsection');
+    if (!container || container.__groupsInit) return;
+    container.__groupsInit = true;
+    const status = document.getElementById('groups-status');
+    const refreshBtn = document.getElementById('groups-refresh');
+    const createBtn = document.getElementById('group-create');
+    const deleteBtn = document.getElementById('groups-delete-selected');
+
+    async function reload() {
+        const [groups, devices] = await Promise.all([fetchGroups(), fetchDevicesLight()]);
+        renderGroupsTable(groups, devices);
+        status && (status.textContent = `${groups.length} group(s)`);
+    }
+
+    refreshBtn && refreshBtn.addEventListener('click', () => reload().catch(() => {}));
+    createBtn && createBtn.addEventListener('click', () => openGroupEditor(null));
+
+    const table = document.getElementById('groups-table');
+    if (table) {
+        table.addEventListener('click', async e => {
+            const actBtn = e.target.closest('[data-act]');
+            if (actBtn) {
+                const row = actBtn.closest('.order-controls');
+                const id = actBtn.dataset.id || (row && row.dataset.id);
+                if (!id) return;
+                try {
+                    if (actBtn.dataset.act === 'edit') {
+                        const group = (__groupsCache || []).find(g => g.id === id);
+                        openGroupEditor(group || { id });
+                    } else if (actBtn.dataset.act === 'cmd') {
+                        openGroupCommand(id);
+                    } else if (actBtn.dataset.act === 'del') {
+                        const ok = await confirmDialog('Delete this group?');
+                        if (!ok) return;
+                        await deleteGroup(id);
+                        await reload();
+                    } else if (
+                        actBtn.dataset.act === 'ord-dec' ||
+                        actBtn.dataset.act === 'ord-inc'
+                    ) {
+                        const g = (__groupsCache || []).find(x => x.id === id);
+                        if (!g) return;
+                        const delta = actBtn.dataset.act === 'ord-dec' ? -1 : 1;
+                        await patchGroup(id, { order: (Number(g.order) || 0) + delta });
+                        await reload();
+                    }
+                } catch (err) {
+                    status && (status.textContent = err.message || 'Action failed');
+                }
+                return;
+            }
+            // Inline order change
+            const input = e.target.closest('.inline-order');
+            if (input) {
+                const parent = input.closest('.order-controls');
+                const id = parent && parent.dataset.id;
+                if (!id) return;
+                const val = Number(input.value || 0);
+                try {
+                    await patchGroup(id, { order: val });
+                    await reload();
+                } catch (err) {
+                    status && (status.textContent = err.message || 'Order update failed');
+                }
+            }
+        });
+    }
+
+    // Bulk selection
+    const selectAll = document.getElementById('groups-select-all');
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            const rows = container.querySelectorAll('.row-select');
+            rows.forEach(cb => (cb.checked = selectAll.checked));
+            deleteBtn.disabled = !selectAll.checked;
+        });
+    }
+    container.addEventListener('change', e => {
+        if (e.target.classList.contains('row-select')) {
+            const any = !!container.querySelector('.row-select:checked');
+            deleteBtn.disabled = !any;
+        }
+    });
+    deleteBtn &&
+        deleteBtn.addEventListener('click', async () => {
+            const ids = Array.from(container.querySelectorAll('.row-select:checked')).map(
+                el => el.dataset.id
+            );
+            if (!ids.length) return;
+            const ok = await confirmDialog(`Delete ${ids.length} group(s)?`);
+            if (!ok) return;
+            for (const id of ids) {
+                try {
+                    await deleteGroup(id);
+                } catch (_) {}
+            }
+            await reload();
+        });
+
+    // Initial load
+    try {
+        await reload();
+    } catch (e) {
+        status && (status.textContent = 'Failed to load groups');
+    }
+}
+
+async function patchDeviceGroups(id, groups) {
+    await authenticatedFetch(apiUrl(`/api/devices/${encodeURIComponent(id)}`), {
+        method: 'PATCH',
+        body: JSON.stringify({ groups: Array.isArray(groups) ? groups : [] }),
+    });
+}
+
 // Debug function to test config save with different methods
 window.testConfigSave = async function () {
     const testConfig = {
@@ -2170,6 +2533,17 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 try {
                     initDevicesPanel();
+                } catch (e) {
+                    // ignore
+                }
+            }, 50);
+        }
+
+        // Initialize Groups panel when Groups section is activated
+        if (targetSection === 'groups') {
+            setTimeout(() => {
+                try {
+                    initGroupsPanel();
                 } catch (e) {
                     // ignore
                 }

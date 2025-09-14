@@ -5290,6 +5290,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Removed verbose timer logs to keep console clean
     }
 
+    // --- Sync alignment debug indicator ----
+    (function setupSyncIndicator() {
+        function isDebug() {
+            try {
+                const qs = new URLSearchParams(window.location.search);
+                if (qs.get('syncDebug') === '1') localStorage.setItem('syncDebug', '1');
+                if (qs.get('syncDebug') === '0') localStorage.removeItem('syncDebug');
+            } catch (_) {}
+            return (
+                localStorage.getItem('syncDebug') === '1' ||
+                !!(window.appConfig && window.appConfig.DEBUG)
+            );
+        }
+        const el = document.createElement('div');
+        el.id = 'sync-indicator';
+        el.style.cssText =
+            'position:fixed;right:8px;bottom:8px;z-index:9999;font:12px/1.2 system-ui,Arial,sans-serif;background:rgba(0,0,0,.45);color:#fff;padding:6px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.35);display:none;pointer-events:none;';
+        el.setAttribute('aria-hidden', 'true');
+        const dot = document.createElement('span');
+        dot.style.cssText =
+            'display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#aaa;vertical-align:middle;';
+        const text = document.createElement('span');
+        el.appendChild(dot);
+        el.appendChild(text);
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.appendChild(el);
+        });
+        function update(delay, maxDelay, periodMs) {
+            if (!isDebug()) {
+                el.style.display = 'none';
+                return;
+            }
+            const d = Math.max(0, Math.round(delay));
+            const ok = d <= maxDelay;
+            const near = d <= Math.max(150, Math.round(maxDelay * 0.5));
+            dot.style.background = ok ? (near ? '#4caf50' : '#ffb300') : '#e53935';
+            text.textContent = `sync ${d}ms (<= ${maxDelay}ms), T=${periodMs}ms`;
+            el.style.display = 'inline-block';
+        }
+        window.__updateSyncIndicator = update;
+    })();
+
     // Sync-tick alignment: called by device-mgmt when server broadcasts a tick
     window.__posterramaOnSyncTick = payload => {
         try {
@@ -5305,8 +5347,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const now = Date.now();
             const delay = Math.max(0, nextAt - now);
+            const maxDelay = Number(appConfig.syncAlignMaxDelayMs || 1200);
             // Realign only when we're reasonably near the boundary to avoid jitter
-            if (delay <= 1200) {
+            if (typeof window.__updateSyncIndicator === 'function') {
+                try {
+                    window.__updateSyncIndicator(delay, maxDelay, periodMs);
+                } catch (_) {}
+            }
+            if (delay <= maxDelay) {
                 // Debounce frequent ticks
                 if (window.__posterramaSyncTimer) clearTimeout(window.__posterramaSyncTimer);
                 window.__posterramaSyncTimer = setTimeout(() => {

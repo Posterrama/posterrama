@@ -1793,8 +1793,14 @@ if (isDeviceMgmtEnabled()) {
     });
     app.post('/api/groups', adminAuth, express.json(), async (req, res) => {
         try {
-            const { id, name, description, settingsTemplate } = req.body || {};
-            const g = await groupsStore.createGroup({ id, name, description, settingsTemplate });
+            const { id, name, description, settingsTemplate, order } = req.body || {};
+            const g = await groupsStore.createGroup({
+                id,
+                name,
+                description,
+                settingsTemplate,
+                order,
+            });
             // Invalidate cached /get-config so group templates take effect
             try {
                 if (cacheManager && typeof cacheManager.clear === 'function') {
