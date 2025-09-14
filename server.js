@@ -1822,7 +1822,7 @@ if (isDeviceMgmtEnabled()) {
         '/api/devices/:id/merge',
         adminAuth,
         adminMergeLimiter,
-        newValidationMiddleware(validationRules.devicesMerge),
+        ...newValidationMiddleware(validationRules.devicesMerge),
         express.json(),
         async (req, res) => {
             try {
