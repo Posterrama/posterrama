@@ -10388,19 +10388,19 @@ function showDeviceSettingsModal(device) {
                                                 <div class="subsection-content" id="ovr-wallart-content">
                                                     <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.enabled" id="ovr-wallart"><label for="ovr-wallart">Enable Wallart Mode</label></div>
                                                     <div class="form-grid-3">
-                                                        <div class="form-group"><label>Items per screen</label><input type="number" min="4" max="100" step="1" data-key="wallartMode.itemsPerScreen"></div>
-                                                        <div class="form-group"><label>Columns</label><input type="number" min="2" max="12" step="1" data-key="wallartMode.columns"></div>
-                                                        <div class="form-group"><label>Transition interval (s)</label><input type="number" min="5" max="300" step="1" data-key="wallartMode.transitionInterval"></div>
+                                                        <div class="form-group"><label>Layout variant</label><select data-key="wallartMode.layoutVariant"><option value="">(inherit)</option><option value="classic">Classic</option><option value="heroGrid">Hero grid</option></select></div>
+                                                        <div class="form-group"><label>Poster Density</label><select data-key="wallartMode.density"><option value="">(inherit)</option><option value="low">Few (low)</option><option value="medium">Medium</option><option value="high">Many (high)</option><option value="ludicrous">Ludicrous</option></select></div>
+                                                        <div class="form-group"><label>Animation Type</label><select data-key="wallartMode.animationType"><option value="">(inherit)</option><option value="random">Random</option><option value="fade">Fade</option><option value="slideLeft">Slide Left</option><option value="slideUp">Slide Up</option><option value="zoom">Zoom</option><option value="flip">Flip</option><option value="staggered">Staggered</option><option value="ripple">Ripple</option><option value="scanline">Scanline</option><option value="parallax">Parallax</option><option value="neonPulse">Neon Pulse</option><option value="chromaticShift">Chromatic Shift</option><option value="mosaicShatter">Mosaic Shatter</option></select></div>
                                                     </div>
                                                     <div class="form-grid-2">
-                                                        <div class="form-group"><label>Refresh rate</label><div class="slider-wrapper modern-slider"><input type="range" min="1" max="10" step="1" data-key="wallartMode.refreshRate"><div class="slider-percentage" data-out="wallartMode.refreshRate"></div></div></div>
-                                                        <div class="form-group"><label>Randomness</label><div class="slider-wrapper modern-slider"><input type="range" min="0" max="10" step="1" data-key="wallartMode.randomness"><div class="slider-percentage" data-out="wallartMode.randomness"></div></div></div>
+                                                        <div class="form-group"><label>Poster Refresh Rate</label><div class="slider-wrapper modern-slider"><input type="range" min="1" max="10" step="1" data-key="wallartMode.refreshRate"><div class="slider-percentage" data-out="wallartMode.refreshRate"></div></div></div>
+                                                        <div class="form-group"><label>Timing Randomness</label><div class="slider-wrapper modern-slider"><input type="range" min="0" max="10" step="1" data-key="wallartMode.randomness"><div class="slider-percentage" data-out="wallartMode.randomness"></div></div></div>
                                                     </div>
-                                                    <div class="form-grid-2">
+                                                    <div class="form-grid-2" id="ovr-hero-grid">
                                                         <div class="form-group"><label>Hero side</label><select data-key="wallartMode.layoutSettings.heroGrid.heroSide"><option value="">(inherit)</option><option value="left">Left</option><option value="right">Right</option></select></div>
-                                                        <div class="form-group"><label>Hero rotation (min)</label><input type="number" min="1" max="60" step="1" data-key="wallartMode.layoutSettings.heroGrid.heroRotationMinutes"></div>
+                                                        <div class="form-group"><label>Hero rotation (minutes)</label><input type="number" min="1" max="60" step="1" data-key="wallartMode.layoutSettings.heroGrid.heroRotationMinutes"></div>
                                                     </div>
-                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.ambientGradient" id="ovr-ambient"><label for="ovr-ambient">Ambient gradient</label></div>
+                                                    <div class="form-group checkbox-group"><input type="checkbox" data-key="wallartMode.ambientGradient" id="ovr-ambient"><label for="ovr-ambient">Ambient gradient background</label></div>
                                                 </div>
 
                         <div class="subsection-header" id="ovr-cinema-header"><i class="fas fa-film"></i> Cinema Mode</div>
@@ -10790,8 +10790,18 @@ function showDeviceSettingsModal(device) {
             if (!content) return;
             const enabled = !!modal.querySelector('#ovr-wallart')?.checked;
             const amb = content.querySelector('#ovr-ambient')?.closest('.form-group');
+            const heroGridGroup = content.querySelector('#ovr-hero-grid');
             const display = enabled ? '' : 'none';
             if (amb) amb.style.display = display;
+            if (heroGridGroup) {
+                // Only show hero controls when layoutVariant is heroGrid
+                const variantSel = content.querySelector('[data-key="wallartMode.layoutVariant"]');
+                const variant = variantSel
+                    ? variantSel.value
+                    : getEffective('wallartMode.layoutVariant');
+                heroGridGroup.style.display =
+                    enabled && (variant === 'heroGrid' || variant === '') ? '' : 'none';
+            }
         } catch (_) {
             /* ignore */
         }
@@ -11005,6 +11015,17 @@ function showDeviceSettingsModal(device) {
             syncWallartSubOptions();
         });
     }
+
+    // React when layout variant is changed inside device settings form
+    (function wireLayoutVariantWatcher() {
+        try {
+            const variantSel = form.querySelector('[data-key="wallartMode.layoutVariant"]');
+            if (!variantSel) return;
+            variantSel.addEventListener('change', () => {
+                syncWallartSubOptions();
+            });
+        } catch (_) {}
+    })();
 
     // Modal preview: same scaling logic as main preview
     function updateModalPreviewScale() {
