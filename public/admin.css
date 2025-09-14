@@ -788,8 +788,9 @@ a:hover {
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
     color: #ffffff !important;
+    transition: all 0.2s ease-in-out;
 }
 
 .nav-item.active {
@@ -4500,9 +4501,10 @@ fieldset:focus-within {
 }
 
 .btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 1);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.95);
+    transition: all 0.2s ease-in-out;
 }
 
 .btn:active {
@@ -4516,9 +4518,10 @@ fieldset:focus-within {
 }
 
 .btn-secondary:hover {
-    background: rgba(52, 211, 153, 0.15);
-    border-color: rgba(52, 211, 153, 0.3);
-    color: rgba(52, 211, 153, 1);
+    background: rgba(52, 211, 153, 0.12);
+    border-color: rgba(52, 211, 153, 0.25);
+    color: rgba(52, 211, 153, 0.95);
+    transition: all 0.2s ease-in-out;
 }
 
 .btn-danger {
@@ -4528,9 +4531,10 @@ fieldset:focus-within {
 }
 
 .btn-danger:hover {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: rgba(239, 68, 68, 1);
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: rgba(239, 68, 68, 0.95);
+    transition: all 0.2s ease-in-out;
 }
 
 /* Help button specific styling */

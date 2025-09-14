@@ -218,10 +218,11 @@
   }
   
   .dropdown-menu .dropdown-item:hover {
-    background: var(--color-bg-hover) !important;
-    border-color: var(--color-border-hover) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: var(--shadow-sm) !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03)) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    transform: none !important;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.03) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
   
   .dropdown-menu .dropdown-item i {
@@ -239,6 +240,8 @@
   .dropdown-menu .dropdown-item:hover i {
     opacity: 1 !important;
     color: var(--color-text-primary) !important;
+    transform: scale(1.05) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
   
   /* Special styling for danger items */
@@ -311,10 +314,11 @@
   }
   
   .dropdown-menu .dropdown-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+    border-color: rgba(255, 255, 255, 0.08);
+    transform: none;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.03);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .dropdown-menu .dropdown-item i {
@@ -330,13 +334,17 @@
   
   .dropdown-menu .dropdown-item:hover i {
     opacity: 1;
+    transform: scale(1.05);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   /* Special styling for danger items */
   .dropdown-menu .dropdown-item.text-danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.2);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.05));
+    border-color: rgba(239, 68, 68, 0.15);
     color: #fca5a5;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.05);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   /* Dropdown divider */
@@ -890,12 +898,12 @@
               </div>
               
               <!-- Actions -->
-              <div style="display: flex; flex-direction: column; gap: 8px;">
-                <button type="button" id="cleanup-cache-button" style="width: 100%; padding: 10px 16px; background: var(--color-bg-tertiary); border: 1px solid var(--color-border); border-radius: 8px; font-size: 0.85rem; font-weight: 500; color: var(--color-text-primary); display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <div style="display: flex !important; flex-direction: row !important; gap: 8px !important;">
+                <button type="button" id="cleanup-cache-button" style="flex: 1; padding: 10px 16px; background: var(--color-bg-tertiary); border: 1px solid var(--color-border); border-radius: 8px; font-size: 0.85rem; font-weight: 500; color: var(--color-text-primary); display: flex; align-items: center; justify-content: center; gap: 8px;">
                   <i class="fas fa-compress-alt"></i>
                   <span>Run Cleanup</span>
                 </button>
-                <button type="button" id="clear-cache-button" style="width: 100%; padding: 10px 16px; background: var(--color-error); border: 1px solid var(--color-error); border-radius: 8px; font-size: 0.85rem; font-weight: 500; color: white; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <button type="button" id="clear-cache-button" style="flex: 1; padding: 10px 16px; background: var(--color-error); border: 1px solid var(--color-error); border-radius: 8px; font-size: 0.85rem; font-weight: 500; color: white; display: flex; align-items: center; justify-content: center; gap: 8px;">
                   <i class="fas fa-broom"></i>
                   <span>Clear Cache</span>
                 </button>

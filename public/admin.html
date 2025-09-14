@@ -33,7 +33,131 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <!-- Local CSS with versioning -->
-    <link rel="stylesheet" href="/admin.css?v=20250831b&cb=1756867201">
+    <link rel="stylesheet" href="/admin.css?v=20250906&cb=1725652702">
+    
+    <!-- Force cache buttons to display side by side -->
+    <style>
+        /* Ultra-specific CSS override for cache buttons container */
+        #cleanup-cache-button + #clear-cache-button {
+            margin-left: 8px !important;
+        }
+        
+        #cleanup-cache-button {
+            width: calc(50% - 4px) !important;
+            display: inline-block !important;
+            vertical-align: top !important;
+        }
+        
+        #clear-cache-button {
+            width: calc(50% - 4px) !important;
+            display: inline-block !important;
+            vertical-align: top !important;
+        }
+        
+        /* Force container to never use column layout */
+        div[style*="cleanup-cache-button"],
+        div:has(#cleanup-cache-button),
+        *:has(#cleanup-cache-button),
+        #cleanup-cache-button:parent {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 8px !important;
+            width: 100% !important;
+        }
+        
+        /* Fallback using attribute selectors */
+        div[style*="display: flex"]:has(button#cleanup-cache-button) {
+            flex-direction: row !important;
+        }
+        
+        /* Nuclear option - override everything */
+        * {
+            --cache-container-direction: row !important;
+        }
+    </style>
+    
+    <script>
+        // Debug cache buttons layout issue - IMMEDIATE GLOBAL EXECUTION
+        console.log('=== CACHE BUTTONS DEBUG SCRIPT LOADED v20250906-GLOBAL ===');
+        
+        // Define functions in global scope immediately
+        window.debugCacheButtons = function() {
+            console.log('=== DEBUG CACHE BUTTONS ===');
+            const cleanup = document.getElementById('cleanup-cache-button');
+            const clear = document.getElementById('clear-cache-button');
+            
+            console.log('Cleanup button:', cleanup);
+            console.log('Clear button:', clear);
+            
+            if (cleanup && clear) {
+                const container = cleanup.parentElement;
+                console.log('Container:', container);
+                console.log('Container HTML:', container.outerHTML.substring(0, 200) + '...');
+                console.log('Container inline style:', container.style.cssText);
+                
+                const containerComputed = window.getComputedStyle(container);
+                console.log('Container computed display:', containerComputed.display);
+                console.log('Container computed flex-direction:', containerComputed.flexDirection);
+                console.log('Container computed gap:', containerComputed.gap);
+                
+                console.log('Cleanup button computed width:', window.getComputedStyle(cleanup).width);
+                console.log('Clear button computed width:', window.getComputedStyle(clear).width);
+            } else {
+                console.log('Buttons not found!');
+            }
+        };
+        
+        window.forceCacheButtonsRow = function() {
+            console.log('=== FORCING ROW LAYOUT ===');
+            const cleanup = document.getElementById('cleanup-cache-button');
+            const clear = document.getElementById('clear-cache-button');
+            
+            if (cleanup && clear && cleanup.parentElement) {
+                const container = cleanup.parentElement;
+                console.log('Before - container style:', container.style.cssText);
+                console.log('Before - computed flex-direction:', window.getComputedStyle(container).flexDirection);
+                
+                // Try replacing the entire style
+                container.setAttribute('style', 'display: flex !important; flex-direction: row !important; gap: 8px !important;');
+                
+                // Also try on buttons
+                cleanup.setAttribute('style', cleanup.getAttribute('style') + '; width: 50% !important;');
+                clear.setAttribute('style', clear.getAttribute('style') + '; width: 50% !important;');
+                
+                console.log('After - container style:', container.style.cssText);
+                console.log('After - computed flex-direction:', window.getComputedStyle(container).flexDirection);
+                
+                return true;
+            }
+            console.log('Buttons not found for forcing!');
+            return false;
+        };
+        
+        // Verify functions are available
+        console.log('Global functions set:', {
+            debugCacheButtons: typeof window.debugCacheButtons,
+            forceCacheButtonsRow: typeof window.forceCacheButtonsRow
+        });
+        
+        console.log('Functions available: debugCacheButtons(), forceCacheButtonsRow()');
+        
+        // Also run when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('DOM loaded, running initial debug...');
+                setTimeout(() => {
+                    window.debugCacheButtons();
+                    window.forceCacheButtonsRow();
+                }, 2000);
+            });
+        } else {
+            console.log('DOM already loaded, running initial debug...');
+            setTimeout(() => {
+                window.debugCacheButtons();
+                window.forceCacheButtonsRow();
+            }, 2000);
+        }
+    </script>
     
     <!-- Font Awesome with SRI for security -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -1353,21 +1477,25 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Cache Actions - 2x2 Grid Layout -->
-                                    <div class="form-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                                        <button type="button" id="refresh-cache-stats" class="btn btn-secondary">
-                                            <i class="fas fa-sync-alt icon"></i>
-                                            <span>Refresh Stats</span>
-                                        </button>
-                                        <button type="button" id="cleanup-cache-button" class="btn btn-secondary">
-                                            <i class="fas fa-compress-alt icon"></i>
+                                    <!-- Cache Actions -->
+                                    <div style="display: block !important; width: 100% !important;">
+                                        <button type="button" id="cleanup-cache-button" style="width: calc(50% - 4px) !important; display: inline-block !important; vertical-align: top !important; margin-right: 8px !important; padding: 10px 16px; background: var(--color-bg-tertiary); border: 1px solid var(--color-border); border-radius: 8px; font-size: 0.85rem; font-weight: 500; color: var(--color-text-primary); text-align: center; cursor: pointer;" onclick="document.getElementById('cleanup-cache-button-real').click()">
+                                            <i class="fas fa-compress-alt"></i>
                                             <span>Run Cleanup</span>
-                                        </button>
-                                        <button type="button" id="clear-cache-button" class="btn btn-primary">
-                                            <i class="fas fa-broom icon"></i>
+                                        </button><button type="button" id="clear-cache-button" style="width: calc(50% - 4px) !important; display: inline-block !important; vertical-align: top !important; padding: 10px 16px; background: var(--color-error); border: 1px solid var(--color-error); border-radius: 8px; font-size: 0.85rem; font-weight: 500; color: white; text-align: center; cursor: pointer;" onclick="document.getElementById('clear-cache-button-real').click()">
+                                            <i class="fas fa-broom"></i>
                                             <span>Clear Cache</span>
                                         </button>
                                     </div>
+                                    <!-- Hidden actual buttons for functionality -->
+                                    <button type="button" id="cleanup-cache-button-real" class="btn btn-secondary" style="display: none;">
+                                        <i class="fas fa-compress-alt icon"></i>
+                                        <span>Run Cleanup</span>
+                                    </button>
+                                    <button type="button" id="clear-cache-button-real" class="btn btn-primary" style="display: none;">
+                                        <i class="fas fa-broom icon"></i>
+                                        <span>Clear Cache</span>
+                                    </button>
                                 </div>
                                 
                                 
