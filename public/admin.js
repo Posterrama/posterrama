@@ -2237,8 +2237,7 @@
         const zoomBtn = document.getElementById('toggle-preview-zoom');
         if (!container || !frame) return; // HTML not present, nothing to do
 
-        // Debug instrumentation was temporary; keep a no-op to avoid edits elsewhere
-        const dlog = () => {};
+        // Debug instrumentation removed
 
         let previewWin = null;
         let lastPayload = null;
