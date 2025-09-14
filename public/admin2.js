@@ -2391,7 +2391,9 @@
             // shell content box
             const cw = shell.clientWidth;
             const ch = shell.clientHeight;
-            const scale = Math.max(0.01, Math.min(cw / baseW, ch / baseH));
+            // Slight overscan to hide thin black edges and make the switch seamless
+            const overscan = 1.015; // ~1.5%
+            const scale = Math.max(0.01, Math.min(cw / baseW, ch / baseH)) * overscan;
             frameEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
             frameEl.style.transformOrigin = 'center center';
             frameEl.style.left = '50%';
@@ -2517,6 +2519,11 @@
             .getElementById('section-display')
             ?.classList.contains('active');
         setVisible(!!isDisplayActive);
+        if (isDisplayActive) {
+            // Avoid initial pop: disable transitions for a tick
+            container.classList.add('no-transition');
+            setTimeout(() => container.classList.remove('no-transition'), 80);
+        }
         // Initialize container classes based on current form for correct aspect immediately
         try {
             const payload0 = collectPreviewPayload();
