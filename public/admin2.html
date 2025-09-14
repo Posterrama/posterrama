@@ -1609,7 +1609,9 @@
     }
     #display-preview-container .preview-shell {
       position: relative;
-      width: 420px;
+      /* Use a single long-side size for both orientations */
+      --preview-long-side: 420px;
+      width: var(--preview-long-side);
       aspect-ratio: 16 / 9;
       border-radius: 12px;
       overflow: hidden;
@@ -1618,12 +1620,16 @@
       background: #000;
       transform-origin: bottom right;
       transition: transform 160ms ease, width 160ms ease, height 160ms ease;
-      /* Default visual scale ~1.2x */
-      transform: scale(1.2);
+      /* Default visual scale ~1.1x */
+      transform: scale(1.1);
     }
-    /* Simulate device aspect: landscape vs portrait */
-    #display-preview-container.landscape .preview-shell { aspect-ratio: 16 / 9; }
-    #display-preview-container.portrait .preview-shell { aspect-ratio: 9 / 16; }
+    /* Landscape vs Portrait shell sizing (aspect-ratio approach) */
+    #display-preview-container.landscape .preview-shell { width: var(--preview-long-side); height: auto; aspect-ratio: 16 / 9; }
+    #display-preview-container.portrait .preview-shell { width: auto; height: var(--preview-long-side); aspect-ratio: 9 / 16; }
+
+    /* Disable transitions during initial show to avoid ugly zoom/pop */
+    #display-preview-container.no-transition .preview-shell { transition: none !important; }
+    #display-preview-container.no-transition .preview-frame { transition: none !important; }
     #display-preview-container .preview-frame {
       position: absolute;
       border: 0;
@@ -1631,6 +1637,7 @@
       z-index: 1; /* keep below controls */
       /* JS sets width/height (1920x1080 or 1080x1920) and centers via translate(-50%, -50%) */
       transform-origin: center center;
+      transition: transform 200ms ease;
     }
     /* Peek handle (collapse/expand) */
     #display-preview-container .preview-peek-handle {
