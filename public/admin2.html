@@ -18,7 +18,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="/theme-demo.css?v=20250907-1" />
+  <link rel="stylesheet" href="/theme-demo.css?v=20250907-3" />
   <style>
   /* Themed dropdowns */
   select { 
@@ -237,6 +237,13 @@
     right: 12px !important;
     left: auto !important;
     transform-origin: right top !important;
+  }
+  /* Play/Pause stateful styling: make paused state yellow per theme */
+  #section-devices .device-card .btn-playpause.is-paused i {
+    color: var(--color-warning) !important;
+  }
+  #section-devices .device-card .btn-playpause.is-playing i {
+    color: var(--color-text-primary);
   }
   /* Utility classes for explicit dropdown alignment */
   .dropdown.dropdown-left .dropdown-menu {
@@ -2589,7 +2596,7 @@
         <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-remote" title="Open remote control"><i class="fas fa-gamepad"></i></button>
         <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-override" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
         <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-sendcmd" title="Send command"><i class="fas fa-terminal"></i></button>
-        <button class="btn btn-secondary btn-sm" id="bulk-playpause" title="Play/Pause"><i class="fas fa-play-pause"></i></button>
+  <button class="btn btn-secondary btn-sm" id="bulk-playpause" title="Play/Pause"><i class="fas fa-play"></i></button>
         <button class="btn btn-error btn-sm" id="bulk-delete" title="Delete selected"><i class="fas fa-trash"></i></button>
         <button class="btn btn-outline btn-sm" id="bulk-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
         <div class="dropdown">
@@ -2761,7 +2768,8 @@
         <p>Set or clear the location for the selected devices.</p>
         <div class="form-group" style="margin-top: var(--space-md);">
           <label for="location-input">Location</label>
-          <input id="location-input" type="text" placeholder="e.g. Living Room" />
+          <input id="location-input" type="text" list="location-list" placeholder="e.g. Living Room" />
+          <datalist id="location-list"></datalist>
         </div>
       </div>
       <div class="modal-footer">
@@ -3032,12 +3040,35 @@
   </div>
 
   <script src="/notify.js?v=20250906-1"></script>
-  <script src="/admin2.js?v=20250907-06"></script>
+  <script src="/admin2.js?v=20250907-07"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => { /* silent */ });
+        navigator.serviceWorker
+          .register('/sw.js')
+          .then(reg => {
+            // Listen for new SW installing and force refresh on activation
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            reg.addEventListener('updatefound', () => {
+              const sw = reg.installing;
+              if (!sw) return;
+              sw.addEventListener('statechange', () => {
+                if (sw.state === 'installed') {
+                  if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
+            });
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (refreshing) return;
+              refreshing = true;
+              try { window.location.reload(); } catch (_) { /* ignore */ }
+            });
+          })
+          .catch(() => { /* silent */ });
       });
     }
   </script>

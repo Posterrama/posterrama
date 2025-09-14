@@ -669,6 +669,14 @@ body {
     border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
 }
+.status-pill i,
+.status-pill .fa,
+.status-pill .fas,
+.status-pill .far,
+.status-pill .fal,
+.status-pill .fab {
+    color: inherit;
+}
 .header-link {
     display: inline-flex;
     align-items: center;
@@ -727,6 +735,41 @@ body {
         0 0 0 2px rgba(16, 185, 129, 0.3),
         0 0 18px rgba(16, 185, 129, 0.55);
     animation: live-pulse 2s infinite;
+}
+
+/* Status-pill variants for type/mode/sync that keep exact sizing */
+.status-pill.sp-browser {
+    /* blue tone for client/browser */
+    background: rgba(59, 130, 246, 0.15); /* blue-500 */
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #bfdbfe; /* blue-200 */
+}
+.status-pill.sp-screensaver {
+    background: rgba(102, 126, 234, 0.15);
+    border-color: rgba(102, 126, 234, 0.5);
+    color: var(--color-info-light);
+}
+.status-pill.sp-wallart {
+    /* purple tone for wall art */
+    background: rgba(168, 85, 247, 0.15); /* purple-500 */
+    border-color: rgba(168, 85, 247, 0.45);
+    color: #e9d5ff; /* purple-200 */
+}
+.status-pill.sp-cinema {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.45);
+    color: #fde68a;
+}
+.status-pill.sp-mode {
+    /* fallback for generic mode labels */
+    background: rgba(6, 182, 212, 0.15); /* cyan-500 */
+    border-color: rgba(6, 182, 212, 0.45);
+    color: #a5f3fc; /* cyan-200 */
+}
+.status-pill.sp-synced {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    border-color: rgba(16, 185, 129, 0.7);
+    color: #fff;
 }
 
 /* Dedicated variants for configuration state */
@@ -795,7 +838,12 @@ body {
 
 .btn-icon i,
 .action-buttons .btn i {
-    color: var(--color-text-secondary);
+    color: var(--color-text-secondary) !important;
+}
+
+/* On hover, align action row icon color with other buttons */
+.action-buttons .btn:hover i {
+    color: var(--color-text-primary) !important;
 }
 
 .btn-primary i,
@@ -1264,15 +1312,22 @@ input[type='range']::-moz-range-thumb {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 12px;
+    /* Match status pill sizing exactly */
+    padding: 4px 10px; /* same as .status-pill */
     background: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
-    border-radius: 16px;
+    border-radius: 999px; /* same as .status-pill */
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     border: 1px solid var(--color-border);
     transition: all 0.2s ease;
-    line-height: 1; /* keep pill height consistent across cards */
+    /* inherit line-height (matches .status-pill) */
+}
+
+/* Make icons inside pills inherit the text color and align nicely */
+.pill i {
+    color: currentColor;
+    line-height: 1;
 }
 
 .pill:hover {
@@ -1321,6 +1376,13 @@ input[type='range']::-moz-range-thumb {
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.1));
     color: var(--color-success);
     border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* Synced pill (green, matches size/shape of other pills) */
+.pill-synced {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color: #fff;
+    border-color: rgba(16, 185, 129, 0.7);
 }
 
 .pill-unavailable {
@@ -2659,9 +2721,10 @@ input[type='range']::-moz-range-thumb {
     grid-template-rows: auto 1fr auto;
 }
 .device-card-header {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: 'check title res';
     align-items: center;
-    justify-content: space-between;
     gap: var(--space-md);
     padding: var(--space-md) var(--space-lg);
     border-bottom: 1px solid var(--color-border);
@@ -2674,46 +2737,103 @@ input[type='range']::-moz-range-thumb {
     display: grid;
     place-items: center;
     margin-right: var(--space-sm);
+    grid-area: check;
+}
+.device-card {
+    /* Title color for name text */
+    --device-title-color: color-mix(in srgb, var(--color-text-secondary) 92%, white 8%);
+    /* Accent matches the client/browser pill blue */
+    --device-accent: #3b82f6; /* blue-500 */
 }
 .device-card.selected {
-    /* Use ring-style box-shadows that respect border-radius instead of outline */
+    /* Change the actual border to blue (no extra ring) */
+    border-color: var(--device-accent);
+    /* Very dark blue-tinted drop shadow */
     box-shadow:
-        0 0 0 2px var(--color-primary),
-        0 0 0 6px color-mix(in srgb, var(--color-primary) 25%, transparent);
+        0 4px 6px -1px rgba(30, 58, 138, 0.45),
+        /* blue-900 */ 0 2px 4px -2px rgba(30, 58, 138, 0.35);
 }
 .device-id {
     display: flex;
     align-items: center;
     gap: var(--space-md);
+    grid-area: title;
 }
 .device-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: var(--color-bg-secondary);
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    border-radius: 50%;
+    background: transparent;
     display: grid;
     place-items: center;
-    color: var(--color-text-secondary);
-    box-shadow: inset 0 0 0 1px var(--color-border);
+    /* Softer icon color for device avatar */
+    color: var(--color-text-muted);
+    box-shadow: none;
+    border: none;
+}
+.device-avatar i {
+    font-size: 18px;
+    line-height: 1;
+    font-style: normal; /* prevent default italic style on <i> */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+.device-avatar i,
+.device-avatar .fa,
+.device-avatar .fas,
+.device-avatar .far,
+.device-avatar .fal,
+.device-avatar .fab {
+    color: inherit;
+    opacity: 0.95;
 }
 .device-title {
     display: grid;
-    gap: 2px;
+    gap: 0px;
+}
+.device-title .name-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 .device-title .name {
-    font-weight: var(--font-weight-semibold);
+    font-weight: 400; /* ensure not bold */
+    color: var(--device-title-color);
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.25);
 }
 .device-title .meta {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
+    font-weight: var(--font-weight-regular);
+}
+.device-res {
+    grid-area: res;
+}
+.device-res .badge {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+/* Tiny icon button for inline rename (uses theme sizes/colors) */
+.btn-xxs {
+    --_p: 4px;
+    padding: var(--_p);
+    min-width: 28px;
+    height: 28px;
+    border-radius: 999px;
+}
+.btn-xxs i {
+    font-size: 12px;
 }
 /* Inline rename input - matches theme inputs and device title look */
 .device-title .inline-rename-input,
 .inline-rename-input {
     display: inline-block;
     font: inherit;
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-text-primary);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
@@ -2763,6 +2883,18 @@ input[type='range']::-moz-range-thumb {
     border-bottom-left-radius: var(--border-radius-lg);
     border-bottom-right-radius: var(--border-radius-lg);
     overflow: hidden;
+}
+.device-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px var(--space-lg) 0 var(--space-lg);
+}
+.device-tools .btn {
+    min-width: 34px;
+}
+.device-tools .card-more {
+    margin-left: auto;
 }
 .device-actions .btn-group {
     display: flex;
@@ -2878,10 +3010,35 @@ input[type='range']::-moz-range-thumb {
     background: linear-gradient(135deg, rgba(107, 114, 128, 0.12), rgba(156, 163, 175, 0.12));
     color: var(--color-text-primary);
     border-color: rgba(107, 114, 128, 0.35);
-    border-radius: 999px;
-    padding: 6px 14px;
-    min-height: 28px;
-    line-height: 1.1;
+    /* Inherit common pill sizing (matches status pill) */
+}
+
+/* New explicit variants that only change colors, not size */
+.pill-browser {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.12), rgba(156, 163, 175, 0.12));
+    color: var(--color-text-primary);
+    border-color: rgba(107, 114, 128, 0.35);
+}
+.pill-screensaver {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(59, 130, 246, 0.15));
+    color: var(--color-info-light);
+    border-color: rgba(102, 126, 234, 0.45);
+}
+.pill-wallart {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.12), rgba(156, 163, 175, 0.12));
+    color: var(--color-text-secondary);
+    border-color: rgba(107, 114, 128, 0.35);
+}
+.pill-cinema {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(251, 191, 36, 0.12));
+    color: var(--color-warning);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+.pill-synced {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color: #fff;
+    border-color: rgba(16, 185, 129, 0.7);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 /* tighten icon sizing/spacing inside type pill for balance */

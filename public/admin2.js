@@ -1133,6 +1133,12 @@
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closeMenu();
         });
+        // Close settings menu when any item (except restart confirmation flow) is clicked
+        settingsMenu?.addEventListener('click', e => {
+            const item = e.target.closest('a.dropdown-item');
+            if (!item) return;
+            if (item.id !== 'menu-restart') closeMenu();
+        });
 
         // User dropdown (Account)
         const userBtn = document.getElementById('user-btn');
@@ -1199,11 +1205,21 @@
                 if (!userMenu.matches(':hover')) closeUserMenu();
             }, 120);
         });
-        // Route account actions to modals
+        // Route account actions to modals (with graceful fallbacks)
         document.getElementById('user-change-password')?.addEventListener('click', e => {
             e.preventDefault();
             closeUserMenu();
-            openModal('modal-change-password');
+            const modal = document.getElementById('modal-change-password');
+            if (modal) {
+                openModal('modal-change-password');
+            } else {
+                window.notify?.toast?.({
+                    type: 'info',
+                    title: 'Account',
+                    message: 'Change password is not available in this build.',
+                    duration: 2400,
+                });
+            }
         });
         document.getElementById('user-two-fa')?.addEventListener('click', e => {
             e.preventDefault();
@@ -1218,7 +1234,15 @@
 
                     if (is2FA) {
                         // 2FA is enabled, open disable modal
-                        openModal('modal-2fa-disable');
+                        const m = document.getElementById('modal-2fa-disable');
+                        if (m) openModal('modal-2fa-disable');
+                        else
+                            window.notify?.toast?.({
+                                type: 'info',
+                                title: 'Two‑Factor',
+                                message: '2FA disable UI is not available in this build.',
+                                duration: 2400,
+                            });
                     } else {
                         // 2FA is disabled, generate QR and open enable modal
                         const r = await fetch('/api/admin/2fa/generate', {
@@ -1234,7 +1258,15 @@
                                     : '<span>QR unavailable</span>';
                             }
                         }
-                        openModal('modal-2fa');
+                        const m = document.getElementById('modal-2fa');
+                        if (m) openModal('modal-2fa');
+                        else
+                            window.notify?.toast?.({
+                                type: 'info',
+                                title: 'Two‑Factor',
+                                message: '2FA setup UI is not available in this build.',
+                                duration: 2400,
+                            });
                     }
                 } catch (e) {
                     console.warn('2FA menu action failed:', e);
@@ -1274,7 +1306,15 @@
             } catch (_) {
                 // ignore
             }
-            openModal('modal-avatar');
+            const m = document.getElementById('modal-avatar');
+            if (m) openModal('modal-avatar');
+            else
+                window.notify?.toast?.({
+                    type: 'info',
+                    title: 'Profile',
+                    message: 'Profile photo editor is not available in this build.',
+                    duration: 2400,
+                });
         });
 
         // Build avatar initials for user button (fallback to AD) with theme-friendly cool palette
@@ -2505,53 +2545,91 @@
                           })
                           .filter(Boolean)
                     : [];
+                // Playback state helpers for toolbar play/pause button
+                const pausedFlag = d?.currentState?.paused;
+                const ppCls =
+                    pausedFlag === true ? ' is-paused' : pausedFlag === false ? ' is-playing' : '';
+                const ppIcon =
+                    pausedFlag === false
+                        ? 'fa-pause'
+                        : pausedFlag === true
+                          ? 'fa-play'
+                          : 'fa-play-pause';
                 return `
-                                <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
-                                    <div class="device-card-header">
-                                        <div class="device-select-wrap">
-                                            <label class="checkbox" aria-label="Select device: ${escapeHtml(d.name || d.id)}">
-                                                <input type="checkbox" class="device-select">
-                                                <span class="checkmark"></span>
-                                            </label>
+                                                                <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
+                                                                        <div class="device-card-header">
+                                                                                <div class="device-select-wrap">
+                                                                                        <label class="checkbox" aria-label="Select device: ${escapeHtml(d.name || d.id)}">
+                                                                                                <input type="checkbox" class="device-select">
+                                                                                                <span class="checkmark"></span>
+                                                                                        </label>
+                                                                                </div>
+                                        <div class="device-id">
+                                            <div class="device-avatar"><i class="fas ${icon}"></i></div>
+                                            <div class="device-title">
+                                                <div class="name-row">
+                                                    <span class="name">${escapeHtml(d.name || 'Unnamed')}</span>
+                                                    <button class="btn btn-icon btn-xxs btn-rename-inline" title="Rename device"><i class="fas fa-pen"></i></button>
+                                                </div>
+                                                <span class="meta">${escapeHtml(meta)}</span>
+                                            </div>
                                         </div>
-                    <div class="device-id">
-                      <div class="device-avatar"><i class="fas ${icon}"></i></div>
-                      <div class="device-title">
-                        <span class="name">${escapeHtml(d.name || 'Unnamed')}</span>
-                        <span class="meta">${escapeHtml(meta)}</span>
-                      </div>
-                    </div>
-                                                                                <div class="action-buttons">
-                                            <button class="btn btn-icon btn-sm btn-power" title="Power Toggle"${disabledPower}${poweredOff}><i class="fas fa-power-off"></i></button>
-                                                                                        <button class="btn btn-icon btn-sm btn-reload card-secondary" title="Reload this device"><i class="fas fa-rotate-right"></i></button>
-                                                                                        <button class="btn btn-icon btn-sm btn-clearcache card-secondary" title="Clear caches"><i class="fas fa-broom"></i></button>
-                                                                                        <button class="btn btn-icon btn-sm btn-pair card-secondary" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
-                                                                                        <button class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control"><i class="fas fa-gamepad"></i></button>
-                                                                                        <button class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
-                                                                                        <button class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command"><i class="fas fa-terminal"></i></button>
-                                                                                        <button class="btn btn-icon btn-sm btn-playpause" title="Play/Pause"><i class="fas fa-play-pause"></i></button>
-                                                                                        <button class="btn btn-icon btn-sm btn-pin card-secondary" title="Pin current poster"><i class="fas fa-thumbtack"></i></button>
-                                                                                        <div class="dropdown card-more" style="position:relative;display:none;">
-                                                                                            <button class="btn btn-icon btn-sm" title="More"><i class="fas fa-ellipsis"></i></button>
-                                                                                            <div class="dropdown-menu"></div>
-                                                                                        </div>
-                                            <button class="btn btn-icon btn-sm btn-rename" title="Rename device"><i class="fas fa-pen"></i></button>
-                                        </div>
-                  </div>
-                  <div class="device-card-body">
+                                        <div class="device-res">${resolutionIcon(d)}</div>
+                                    </div>
+
+                                    <div class="device-tools">
+                                                <button class="btn btn-icon btn-sm btn-power" title="Power Toggle"${disabledPower}${poweredOff}><i class="fas fa-power-off"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-reload card-secondary" title="Reload this device"><i class="fas fa-rotate-right"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-clearcache card-secondary" title="Clear caches"><i class="fas fa-broom"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-pair card-secondary" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control"><i class="fas fa-gamepad"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command"><i class="fas fa-terminal"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-playpause${ppCls}" title="Play/Pause"><i class="fas ${ppIcon}"></i></button>
+                                                <button class="btn btn-icon btn-sm btn-pin card-secondary" title="Pin current poster"><i class="fas fa-thumbtack"></i></button>
+                                                <div class="dropdown card-more" style="position:relative;display:none;">
+                                                        <button class="btn btn-icon btn-sm" title="More"><i class="fas fa-ellipsis"></i></button>
+                                                        <div class="dropdown-menu"></div>
+                                                </div>
+                                    </div>
+
+                                    <div class="device-card-body">
                                                       <div class="device-badges">
                                                                                         <span class="status-pill status-${status} js-status-hover" tabindex="0">
                                                                                                 <i class="${iconForStatus(status)}"></i> ${statusLabel}
                                                                                         </span>
-                                                          <span class="pill pill-type"><i class="${iconForType(type)}"></i> ${escapeHtml(type)}</span>
+                                                          <span class="status-pill sp-browser"><i class="${iconForType(type)}"></i> ${escapeHtml(type)}</span>
                                                           ${dupesPill}
-                                                                                      ${modeLabel(mode) ? `<span class="pill pill-mode"><i class="${iconForMode(mode)}"></i> ${escapeHtml(modeLabel(mode))}</span>` : ''}
-                                                                                      ${d.wsConnected && state.syncEnabled !== false ? `<span class="badge badge-success" title="Device will align to sync ticks">Synced</span>` : ''}
+                                                                                      ${(() => {
+                                                                                          const m =
+                                                                                              String(
+                                                                                                  mode ||
+                                                                                                      ''
+                                                                                              ).toLowerCase();
+                                                                                          const mClass =
+                                                                                              m ===
+                                                                                              'screensaver'
+                                                                                                  ? 'pill-screensaver'
+                                                                                                  : m ===
+                                                                                                      'wallart'
+                                                                                                    ? 'pill-wallart'
+                                                                                                    : m ===
+                                                                                                            'cinema' ||
+                                                                                                        m ===
+                                                                                                            'cinema mode'
+                                                                                                      ? 'pill-cinema'
+                                                                                                      : 'pill-mode';
+                                                                                          return modeLabel(
+                                                                                              mode
+                                                                                          )
+                                                                                              ? `<span class="status-pill ${mClass.replace('pill-', 'sp-')}"><i class="${iconForMode(mode)}"></i> ${escapeHtml(modeLabel(mode))}</span>`
+                                                                                              : '';
+                                                                                      })()}
+                                                                                     ${d.wsConnected && state.syncEnabled !== false ? `<span class="status-pill sp-synced" title="Device will align to sync ticks">Synced</span>` : ''}
                                                                                 </div>
-                    <div class="pill-grid">
-                      ${resolutionIcon(d)}
-                      ${Number.isFinite(Number(d?.currentState?.rating)) ? `<span class="pill pill-rating">${Number(d.currentState.rating).toFixed(1)}</span>` : ''}
-                    </div>
+                                        <div class="pill-grid">
+                                            ${Number.isFinite(Number(d?.currentState?.rating)) ? `<span class="pill pill-rating">${Number(d.currentState.rating).toFixed(1)}</span>` : ''}
+                                        </div>
                                     </div>
                                     <div class="device-actions">
                                         <div class="meta-pills" style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -2573,11 +2651,12 @@
             // Collapse secondary per-card actions into a kebab menu when space is tight
             function collapseCardActions(card) {
                 try {
-                    const row = card.querySelector('.action-buttons');
+                    const row = card.querySelector('.device-tools');
                     const moreWrap = card.querySelector('.card-more');
                     if (!row || !moreWrap) return;
                     const moreBtn = moreWrap.querySelector('button');
                     const menu = moreWrap.querySelector('.dropdown-menu');
+                    if (!moreBtn || !menu) return;
                     const secondary = Array.from(row.querySelectorAll('.card-secondary'));
                     if (!secondary.length) return;
                     // Determine if actions overflow the row
@@ -2618,22 +2697,33 @@
                                 if (!menu.contains(ev.target) && ev.target !== moreBtn)
                                     menu.style.display = 'none';
                             });
+                            // Basic keyboard support for accessibility
+                            menu.addEventListener('keydown', e => {
+                                if (e.key === 'Escape') {
+                                    menu.style.display = 'none';
+                                    moreBtn.focus();
+                                }
+                            });
                             menu.addEventListener('click', ev => {
                                 const item = ev.target.closest('.dropdown-item');
                                 if (!item) return;
                                 const idx = Number(item.getAttribute('data-card-idx'));
-                                const target = secondary[idx];
-                                if (target) target.click();
+                                // Use the latest snapshot of hidden buttons
+                                const list = moreWrap._secondary || secondary;
+                                const target = list && list[idx];
+                                if (target) {
+                                    target.click();
+                                }
                                 menu.style.display = 'none';
                             });
                         }
-                        // Store current secondary reference for this menu scope
+                        // Store current secondary reference for this menu scope (refresh each time)
                         moreWrap._secondary = secondary;
                     } else {
                         // Restore inline buttons and hide kebab
                         secondary.forEach(btn => (btn.style.display = ''));
                         menu.innerHTML = '';
-                        menu.style.display = 'none';
+                        if (menu.style.display !== 'none') menu.style.display = 'none';
                         moreWrap.style.display = 'none';
                     }
                 } catch (_) {
@@ -2687,13 +2777,44 @@
                 });
                 card.querySelector('.btn-playpause')?.addEventListener('click', async () => {
                     const id = card.getAttribute('data-id');
-                    await sendCommand(id, 'playback.toggle');
+                    const btn = card.querySelector('.btn-playpause');
+                    const icon = btn?.querySelector('i');
+                    // Optimistic UI toggle
+                    if (btn) {
+                        const wasPaused = btn.classList.contains('is-paused');
+                        btn.classList.toggle('is-paused', !wasPaused);
+                        btn.classList.toggle('is-playing', wasPaused);
+                        if (icon) icon.className = `fas ${wasPaused ? 'fa-pause' : 'fa-play'}`;
+                        btn.title = wasPaused ? 'Pause' : 'Play';
+                    }
+                    try {
+                        await sendCommand(id, 'playback.toggle');
+                        // Attempt to update local device state if present
+                        const dev = state.all.find(d => d.id === id);
+                        if (dev) {
+                            dev.currentState = dev.currentState || {};
+                            const nowPaused = btn?.classList.contains('is-paused');
+                            dev.currentState.paused = nowPaused;
+                        }
+                    } catch (_) {
+                        // revert optimistic change on failure
+                        if (btn) {
+                            const nowPaused = btn.classList.contains('is-paused');
+                            const revertToPaused = !nowPaused; // revert to previous
+                            btn.classList.toggle('is-paused', revertToPaused);
+                            btn.classList.toggle('is-playing', !revertToPaused);
+                            if (icon)
+                                icon.className = `fas ${revertToPaused ? 'fa-play' : 'fa-pause'}`;
+                            btn.title = revertToPaused ? 'Play' : 'Pause';
+                        }
+                    }
                 });
                 card.querySelector('.btn-pin')?.addEventListener('click', async () => {
                     const id = card.getAttribute('data-id');
                     await sendCommand(id, 'playback.pinPoster');
                 });
-                const renameBtn = card.querySelector('.btn-rename');
+                // Support both inline header pencil and legacy rename button
+                const renameBtn = card.querySelector('.btn-rename, .btn-rename-inline');
                 renameBtn?.addEventListener('click', () => startRename(card));
                 // per-card merge/group buttons removed; actions available via toolbar
                 // Ensure action row collapses when width is tight
@@ -3211,6 +3332,7 @@
 
             // Assign Location modal logic
             const locationInput = document.getElementById('location-input');
+            const locationList = document.getElementById('location-list');
             const btnLocationApply = document.getElementById('btn-location-apply');
             const btnLocationClear = document.getElementById('btn-location-clear');
             function openAssignLocationModal() {
@@ -3228,6 +3350,20 @@
                     )
                 );
                 if (locationInput) locationInput.value = locs.size === 1 ? Array.from(locs)[0] : '';
+                // Populate datalist with existing unique locations across all devices
+                try {
+                    if (locationList) {
+                        const roomsSet = new Set();
+                        (state.all || []).forEach(d => {
+                            const loc = (d && d.location != null ? String(d.location) : '').trim();
+                            if (loc) roomsSet.add(loc);
+                        });
+                        const rooms = Array.from(roomsSet).sort((a, b) => a.localeCompare(b));
+                        locationList.innerHTML = rooms
+                            .map(r => `<option value="${escapeHtml(r)}"></option>`)
+                            .join('');
+                    }
+                } catch (_) {}
                 overlay.classList.add('open');
                 setTimeout(() => locationInput?.focus(), 50);
             }
@@ -3489,8 +3625,13 @@
 
             // Toolbar actions menu (merge, group, preset, location, selection tools)
             buildActionsMenu();
-            document.querySelectorAll('#device-actions-menu .dropdown-item').forEach(item => {
-                item.addEventListener('click', async () => {
+            // Use event delegation so rebuilt menus keep working
+            const actionsMenuEl = document.getElementById('device-actions-menu');
+            if (actionsMenuEl) {
+                actionsMenuEl.addEventListener('click', async ev => {
+                    const item = ev.target?.closest('.dropdown-item');
+                    if (!item || !actionsMenuEl.contains(item)) return;
+                    ev.stopPropagation();
                     const act = item.getAttribute('data-device-action');
                     if (act === 'select-all') {
                         document.querySelectorAll('#device-grid .device-card').forEach(card => {
@@ -3519,10 +3660,43 @@
                             message: 'Selection cleared',
                         });
                     } else if (act === 'location') {
+                        const selected = Array.from(
+                            document.querySelectorAll('#device-grid .device-card.selected')
+                        );
+                        if (!selected.length) {
+                            window.notify?.toast({
+                                type: 'info',
+                                title: 'No devices selected',
+                                message: 'Select one or more devices first',
+                            });
+                            return;
+                        }
                         openAssignLocationModal();
                     } else if (act === 'groups') {
+                        const selected = Array.from(
+                            document.querySelectorAll('#device-grid .device-card.selected')
+                        );
+                        if (!selected.length) {
+                            window.notify?.toast({
+                                type: 'info',
+                                title: 'No devices selected',
+                                message: 'Select one or more devices first',
+                            });
+                            return;
+                        }
                         openGroupModal();
                     } else if (act === 'presets') {
+                        const selected = Array.from(
+                            document.querySelectorAll('#device-grid .device-card.selected')
+                        );
+                        if (!selected.length) {
+                            window.notify?.toast({
+                                type: 'info',
+                                title: 'No devices selected',
+                                message: 'Select one or more devices first',
+                            });
+                            return;
+                        }
                         openAssignPresetModal();
                     } else if (act === 'merge') {
                         const selected = Array.from(
@@ -3546,7 +3720,8 @@
                             if (srcId && srcId !== tgt) mergeSource.value = srcId;
                         }
                         document.getElementById('modal-merge')?.classList.add('open');
-                    } else if (act === 'group') {
+                    } else if (act === 'preset') {
+                        // Deprecated singular action id; treat like 'presets'
                         const selected = Array.from(
                             document.querySelectorAll('#device-grid .device-card.selected')
                         );
@@ -3558,14 +3733,7 @@
                             });
                             return;
                         }
-                        openGroupModal();
-                    } else if (act === 'preset') {
-                        // Open Assign Preset modal instead of toolbar dropdown
-                        document
-                            .querySelectorAll('#section-devices .dropdown')
-                            .forEach(x => x.classList.remove('open'));
                         openAssignPresetModal();
-                        return;
                     } else if (act === 'delete') {
                         const selectedCards = Array.from(
                             document.querySelectorAll('#device-grid .device-card.selected')
@@ -3649,7 +3817,7 @@
                         .querySelectorAll('#section-devices .dropdown')
                         .forEach(x => x.classList.remove('open'));
                 });
-            });
+            }
 
             // Filter menu (toolbar)
             function updateFilterMenuUI() {

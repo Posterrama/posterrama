@@ -58,6 +58,18 @@ self.addEventListener('activate', event => {
     );
 });
 
+// Allow page to request immediate activation of a new SW
+self.addEventListener('message', event => {
+    try {
+        const data = event?.data || {};
+        if (data && data.type === 'SKIP_WAITING') {
+            event.waitUntil(self.skipWaiting());
+        }
+    } catch (_) {
+        // ignore
+    }
+});
+
 // Fetch event - enhanced caching strategy
 self.addEventListener('fetch', event => {
     const { request } = event;
@@ -78,8 +90,12 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // Always fetch latest admin scripts from network (no SW cache). Fallback to cache only if offline.
-    if (url.pathname === '/admin.js' || url.pathname === '/admin2.js') {
+    // Always fetch latest admin assets from network (no SW cache). Fallback to cache only if offline.
+    if (
+        url.pathname === '/admin.js' ||
+        url.pathname === '/admin2.js' ||
+        url.pathname === '/theme-demo.css'
+    ) {
         event.respondWith(fetch(request, { cache: 'no-store' }).catch(() => caches.match(request)));
         return;
     }
