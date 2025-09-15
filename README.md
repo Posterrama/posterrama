@@ -7,7 +7,7 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 <div align="center">
 
 <p style="margin: 0; line-height: 1.1;">
-  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.5.0-blue.svg"></a>
+  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.5.1-blue.svg"></a>
   <a href="https://github.com/Posterrama/posterrama/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Posterrama/posterrama/total.svg"></a>
   <a href="https://github.com/Posterrama/posterrama/actions/workflows/ci.yml"><img alt="Tests" src="https://github.com/Posterrama/posterrama/actions/workflows/ci.yml/badge.svg"></a>
   <a href="./coverage/lcov-report/index.html"><img alt="Coverage" src="https://img.shields.io/badge/coverage-80.72%25-green.svg"></a>
