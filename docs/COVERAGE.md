@@ -10,7 +10,7 @@ To regenerate: npm run coverage:table
 | File | Statements (cov/total) | Statements % | Branches (cov/total) | Branches % | Functions (cov/total) | Functions % | Lines (cov/total) | Lines % | Meets thresholds |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|:--:|
 | utils/healthCheck.js | 166/335 | 49.55 | 78/228 | 34.21 | 27/45 | 60 | 153/311 | 49.2 | ✅ |
-| utils/deviceStore.js | 243/346 | 70.23 | 167/311 | 53.7 | 38/51 | 74.51 | 218/288 | 75.69 | ✅ |
+| utils/deviceStore.js | 242/346 | 69.94 | 166/311 | 53.38 | 38/51 | 74.51 | 217/288 | 75.35 | ✅ |
 | sources/jellyfin.js | 156/221 | 70.59 | 130/220 | 59.09 | 18/22 | 81.82 | 153/209 | 73.21 | ✅ |
 | utils/updater.js | 265/374 | 70.86 | 71/130 | 54.62 | 29/41 | 70.73 | 260/367 | 70.84 | ✅ |
 | sources/tvdb.js | 242/317 | 76.34 | 154/235 | 65.53 | 28/39 | 71.79 | 233/302 | 77.15 | ✅ |
