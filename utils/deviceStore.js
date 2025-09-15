@@ -5,6 +5,33 @@ const crypto = require('crypto');
 const logger = require('./logger');
 const deepMerge = require('lodash.merge');
 
+// Helper function for mkdir with recursive option (compatible with older Node versions)
+async function ensureDir(dirPath) {
+    try {
+        // Try using the synchronous version for better compatibility
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+        }
+    } catch (error) {
+        // If recursive option not supported, try creating parent directories manually
+        try {
+            const parentDir = path.dirname(dirPath);
+            if (parentDir !== dirPath && !fs.existsSync(parentDir)) {
+                await ensureDir(parentDir);
+            }
+            if (!fs.existsSync(dirPath)) {
+                fs.mkdirSync(dirPath);
+            }
+        } catch (fallbackError) {
+            // Directory might already exist, check if it's accessible
+            if (!fs.existsSync(dirPath)) {
+                logger.error(`[Devices] Failed to create directory ${dirPath}:`, fallbackError);
+                throw fallbackError;
+            }
+        }
+    }
+}
+
 // In tests, isolate the device store per worker to avoid concurrent write contention
 const testSuffix = process.env.NODE_ENV === 'test' ? `.test.${process.pid}` : '';
 const defaultStore = path.join(__dirname, '..', `devices${testSuffix}.json`);
@@ -21,7 +48,7 @@ async function ensureStore() {
     try {
         // Ensure the directory exists first
         const storeDir = path.dirname(storePath);
-        await fsp.mkdir(storeDir, { recursive: true });
+        await ensureDir(storeDir);
 
         // Check if store exists
         await fsp.access(storePath);
@@ -66,7 +93,7 @@ async function writeAll(devices) {
         try {
             // Ensure directory exists
             const storeDir = path.dirname(storePath);
-            await fsp.mkdir(storeDir, { recursive: true });
+            await ensureDir(storeDir);
 
             const tmp = storePath + '.tmp';
             await fsp.writeFile(tmp, JSON.stringify(devices, null, 2), 'utf8');
