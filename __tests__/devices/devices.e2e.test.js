@@ -19,6 +19,10 @@ async function startServer() {
     const uniquePort = 10000 + Math.floor(Math.random() * 10000);
     process.env.SERVER_PORT = uniquePort.toString();
 
+    // Set unique device store path for this test
+    const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+    process.env.DEVICES_STORE_PATH = `devices.test.e2e.${unique}.json`;
+
     // Clear require cache to ensure fresh server instance
     Object.keys(require.cache).forEach(key => {
         if (key.includes('/server.js') || key.includes('/app.js')) {

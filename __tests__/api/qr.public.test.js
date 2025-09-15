@@ -1,9 +1,19 @@
 const request = require('supertest');
-const app = require('../../server');
 
 jest.mock('../../utils/logger');
 
 describe('Public QR endpoint', () => {
+    let app;
+
+    beforeAll(() => {
+        // Set required environment variables
+        process.env.NODE_ENV = 'test';
+        process.env.API_ACCESS_TOKEN = 'test-token';
+
+        // Initialize app with proper environment
+        jest.resetModules();
+        app = require('../../server');
+    });
     test('returns SVG by default', async () => {
         const res = await request(app).get('/api/qr?text=https%3A%2F%2Fexample.com');
         expect([200, 429]).toContain(res.status);

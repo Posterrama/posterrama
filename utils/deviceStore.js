@@ -19,31 +19,62 @@ let cache = null; // in-memory cache of devices
 
 async function ensureStore() {
     try {
+        // Ensure the directory exists first
+        const storeDir = path.dirname(storePath);
+        await fsp.mkdir(storeDir, { recursive: true });
+
+        // Check if store exists
         await fsp.access(storePath);
     } catch (e) {
-        await fsp.writeFile(storePath, '[]', 'utf8');
-        logger.info(`[Devices] Created store at ${storePath}`);
+        try {
+            await fsp.writeFile(storePath, '[]', 'utf8');
+            logger.info(`[Devices] Created store at ${storePath}`);
+        } catch (writeError) {
+            logger.error(`[Devices] Failed to create store at ${storePath}:`, writeError);
+            throw writeError;
+        }
     }
 }
 
 async function readAll() {
     if (cache) return cache;
-    await ensureStore();
-    const raw = await fsp.readFile(storePath, 'utf8');
+
     try {
-        cache = JSON.parse(raw);
-    } catch (e) {
+        await ensureStore();
+        const raw = await fsp.readFile(storePath, 'utf8');
+        try {
+            cache = JSON.parse(raw);
+            if (!Array.isArray(cache)) {
+                logger.warn(`[Devices] Store content is not an array, resetting`);
+                cache = [];
+            }
+        } catch (parseError) {
+            logger.warn(`[Devices] Failed to parse store, resetting:`, parseError);
+            cache = [];
+        }
+    } catch (error) {
+        logger.error(`[Devices] Failed to read store, using empty array:`, error);
         cache = [];
     }
+
     return cache;
 }
 
 async function writeAll(devices) {
     cache = devices;
     writeQueue = writeQueue.then(async () => {
-        const tmp = storePath + '.tmp';
-        await fsp.writeFile(tmp, JSON.stringify(devices, null, 2), 'utf8');
-        await fsp.rename(tmp, storePath);
+        try {
+            // Ensure directory exists
+            const storeDir = path.dirname(storePath);
+            await fsp.mkdir(storeDir, { recursive: true });
+
+            const tmp = storePath + '.tmp';
+            await fsp.writeFile(tmp, JSON.stringify(devices, null, 2), 'utf8');
+            await fsp.rename(tmp, storePath);
+        } catch (error) {
+            logger.error(`[Devices] Failed to write store:`, error);
+            throw error;
+        }
     });
     return writeQueue;
 }

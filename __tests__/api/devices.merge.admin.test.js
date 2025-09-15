@@ -7,7 +7,11 @@ describe('Admin Devices Merge API', () => {
         process.env.NODE_ENV = 'test';
         process.env.DEVICE_MGMT_ENABLED = 'true';
         process.env.API_ACCESS_TOKEN = 'test-token';
-        process.env.DEVICES_STORE_PATH = `devices.test.${process.pid}.merge.json`;
+
+        // Set unique device store path for each test
+        const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+        process.env.DEVICES_STORE_PATH = `devices.test.merge.${unique}.json`;
+
         jest.resetModules();
         app = require('../../server');
     });

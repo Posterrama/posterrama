@@ -7,6 +7,10 @@ describe('Admin Group Command wait=true', () => {
         process.env.DEVICE_MGMT_ENABLED = 'true';
         process.env.API_ACCESS_TOKEN = 'test-token';
 
+        // Set unique device store path for each test
+        const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+        process.env.DEVICES_STORE_PATH = `devices.test.groups.${unique}.json`;
+
         // Clean up any existing modules to ensure fresh state
         Object.keys(require.cache).forEach(key => {
             if (key.includes('/server.js') || key.includes('/utils/wsHub')) {
