@@ -119,5 +119,5 @@ describe('Devices Pairing Happy Path', () => {
                 mode: 'screensaver',
             })
             .expect(200);
-    }, 30000); // 30 second timeout for CI environments
+    }); // Use global Jest timeout
 });

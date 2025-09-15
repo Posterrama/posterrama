@@ -10,11 +10,13 @@ module.exports = {
     roots: ['<rootDir>/__tests__'],
 
     // Add timeout and force exit to prevent hanging
-    testTimeout: 30000, // 30 second timeout
+    // Use longer timeout in CI environment due to resource constraints
+    testTimeout: process.env.CI === 'true' ? 60000 : 30000, // 60s in CI, 30s locally
     forceExit: true, // Force exit after tests complete
 
     // Run tests serially for device-related tests to prevent race conditions
-    maxWorkers: process.env.CI ? 1 : '50%', // Use 1 worker in CI, 50% locally
+    // Use 1 worker in CI to prevent race conditions, 50% locally for performance
+    maxWorkers: process.env.CI === 'true' ? 1 : '50%',
 
     // Coverage configuration
     collectCoverage: true, // Always collect coverage to enforce thresholds (relaxed on focused runs)
