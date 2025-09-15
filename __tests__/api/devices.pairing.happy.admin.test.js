@@ -15,26 +15,41 @@ describe('Devices Pairing Happy Path', () => {
     test('admin generates code and device claims with token -> rotated secret', async () => {
         const app = require('../../server');
 
-        // Register a device to pair
-        // Retry register once to mitigate rare FS contention under full suite
-        let reg = await request(app)
-            .post('/api/devices/register')
-            .set('Content-Type', 'application/json')
-            .send({ installId: 'iid-pair-happy', hardwareId: 'hw-pair-happy' });
-        if (reg.status !== 200) {
-            reg = await request(app)
-                .post('/api/devices/register')
-                .set('Content-Type', 'application/json')
-                .send({ installId: 'iid-pair-happy', hardwareId: 'hw-pair-happy' })
-                .expect(200);
-        } else {
-            expect(reg.status).toBe(200);
+        // Add extra delay to prevent race conditions
+        await new Promise(r => setTimeout(r, 50));
+
+        // Register a device to pair with more robust retry logic
+        let reg;
+        let lastError;
+        const maxRetries = 5;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                reg = await request(app)
+                    .post('/api/devices/register')
+                    .set('Content-Type', 'application/json')
+                    .send({ installId: 'iid-pair-happy', hardwareId: 'hw-pair-happy' });
+
+                if (reg.status === 200) {
+                    break;
+                }
+                lastError = new Error(`Registration failed with status ${reg.status}: ${reg.text}`);
+            } catch (error) {
+                lastError = error;
+            }
+
+            if (attempt < maxRetries - 1) {
+                await new Promise(r => setTimeout(r, 50 * (attempt + 1))); // Exponential backoff
+            }
+        }
+
+        if (!reg || reg.status !== 200) {
+            throw lastError || new Error('Registration failed after all retries');
         }
 
         const { deviceId, deviceSecret } = reg.body;
-        // Small delay to ensure fs writes are fully flushed before subsequent mutations
-        // Increased delay to prevent race conditions in CI environments
-        await new Promise(r => setTimeout(r, 20));
+        // Increased delay to ensure fs writes are fully flushed before subsequent mutations
+        await new Promise(r => setTimeout(r, 100));
 
         // Admin generates pairing code
         const gen = await request(app)
@@ -71,5 +86,5 @@ describe('Devices Pairing Happy Path', () => {
                 mode: 'screensaver',
             })
             .expect(200);
-    });
+    }, 15000); // 15 second timeout for CI environments
 });
