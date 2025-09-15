@@ -7,7 +7,8 @@ describe('Devices Pairing Happy Path', () => {
         process.env.DEVICE_MGMT_ENABLED = 'true';
         process.env.API_ACCESS_TOKEN = 'test-token';
         // Isolate device store per test to avoid coverage-run interference
-        const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+        // Add extra randomness and timestamp to prevent race conditions in parallel runs
+        const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.${performance.now()}`;
         process.env.DEVICES_STORE_PATH = `devices.test.${unique}.pair.json`;
     });
 
@@ -32,7 +33,8 @@ describe('Devices Pairing Happy Path', () => {
 
         const { deviceId, deviceSecret } = reg.body;
         // Small delay to ensure fs writes are fully flushed before subsequent mutations
-        await new Promise(r => setTimeout(r, 10));
+        // Increased delay to prevent race conditions in CI environments
+        await new Promise(r => setTimeout(r, 20));
 
         // Admin generates pairing code
         const gen = await request(app)
