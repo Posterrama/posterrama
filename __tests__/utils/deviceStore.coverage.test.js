@@ -21,9 +21,9 @@ describe('utils/deviceStore coverage', () => {
         mockFs = {
             data: new Map(),
             existsSync: jest.fn(filePath => mockFs.data.has(filePath)),
-            mkdirSync: jest.fn((dirPath, options) => {
+            mkdirSync: jest.fn((_dirPath, _options) => {
                 // Mock mkdir - just mark the directory as existing
-                mockFs.data.set(dirPath, ''); // Empty string to indicate directory
+                mockFs.data.set(_dirPath, ''); // Empty string to indicate directory
             }),
             readFileSync: jest.fn((filePath, _encoding) => {
                 const content = mockFs.data.get(filePath);
