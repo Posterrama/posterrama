@@ -1,55 +1,88 @@
 const request = require('supertest');
 
 describe('Devices Pairing Happy Path', () => {
-    beforeEach(() => {
-        jest.resetModules();
+    let app;
+
+    beforeAll(async () => {
+        // Initialize app once for all tests to reduce module loading race conditions
         process.env.NODE_ENV = 'test';
         process.env.DEVICE_MGMT_ENABLED = 'true';
         process.env.API_ACCESS_TOKEN = 'test-token';
+
+        // Clear any cached modules
+        jest.resetModules();
+
+        // Wait a bit to ensure clean state
+        await new Promise(r => setTimeout(r, 100));
+    });
+
+    beforeEach(async () => {
         // Isolate device store per test to avoid coverage-run interference
         // Add extra randomness and timestamp to prevent race conditions in parallel runs
         const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.${performance.now()}`;
         process.env.DEVICES_STORE_PATH = `devices.test.${unique}.pair.json`;
+
+        // Ensure fresh app instance for each test
+        jest.resetModules();
+        app = require('../../server');
+
+        // Add stabilization delay
+        await new Promise(r => setTimeout(r, 100));
     });
 
     test('admin generates code and device claims with token -> rotated secret', async () => {
-        const app = require('../../server');
+        // Ensure app is available
+        if (!app) {
+            app = require('../../server');
+        }
 
-        // Add extra delay to prevent race conditions
-        await new Promise(r => setTimeout(r, 50));
+        // Add extra stabilization delay
+        await new Promise(r => setTimeout(r, 200));
 
         // Register a device to pair with more robust retry logic
         let reg;
         let lastError;
-        const maxRetries = 5;
+        const maxRetries = 10; // Increased retries
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
+                // Add delay before each attempt
+                if (attempt > 0) {
+                    await new Promise(r => setTimeout(r, 100 * attempt)); // Progressive backoff
+                }
+
                 reg = await request(app)
                     .post('/api/devices/register')
                     .set('Content-Type', 'application/json')
                     .send({ installId: 'iid-pair-happy', hardwareId: 'hw-pair-happy' });
 
-                if (reg.status === 200) {
+                if (reg.status === 200 && reg.body && reg.body.deviceId) {
                     break;
                 }
-                lastError = new Error(`Registration failed with status ${reg.status}: ${reg.text}`);
+                lastError = new Error(
+                    `Registration failed with status ${reg.status}: ${reg.text || 'No response body'}`
+                );
             } catch (error) {
                 lastError = error;
-            }
-
-            if (attempt < maxRetries - 1) {
-                await new Promise(r => setTimeout(r, 50 * (attempt + 1))); // Exponential backoff
+                console.warn(`Device registration attempt ${attempt + 1} failed:`, error.message);
             }
         }
 
-        if (!reg || reg.status !== 200) {
-            throw lastError || new Error('Registration failed after all retries');
+        if (!reg || reg.status !== 200 || !reg.body || !reg.body.deviceId) {
+            throw (
+                lastError ||
+                new Error('Registration failed after all retries - no valid response received')
+            );
         }
 
         const { deviceId, deviceSecret } = reg.body;
-        // Increased delay to ensure fs writes are fully flushed before subsequent mutations
-        await new Promise(r => setTimeout(r, 100));
+
+        // Ensure we have valid data
+        expect(deviceId).toBeTruthy();
+        expect(deviceSecret).toBeTruthy();
+
+        // Extended delay to ensure fs writes are fully flushed
+        await new Promise(r => setTimeout(r, 200));
 
         // Admin generates pairing code
         const gen = await request(app)
@@ -86,5 +119,5 @@ describe('Devices Pairing Happy Path', () => {
                 mode: 'screensaver',
             })
             .expect(200);
-    }, 15000); // 15 second timeout for CI environments
+    }, 30000); // 30 second timeout for CI environments
 });

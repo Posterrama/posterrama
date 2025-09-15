@@ -13,6 +13,9 @@ module.exports = {
     testTimeout: 30000, // 30 second timeout
     forceExit: true, // Force exit after tests complete
 
+    // Run tests serially for device-related tests to prevent race conditions
+    maxWorkers: process.env.CI ? 1 : '50%', // Use 1 worker in CI, 50% locally
+
     // Coverage configuration
     collectCoverage: true, // Always collect coverage to enforce thresholds (relaxed on focused runs)
     collectCoverageFrom: [
