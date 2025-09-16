@@ -124,6 +124,8 @@ function generateSwaggerSpec() {
                     },
                 },
                 schemas: {
+                    // TODO(new-source): If your new source exposes new request/response shapes
+                    // add minimal schemas here and reference them from JSDoc blocks in server.js.
                     // --- Device Management ---
                     Device: {
                         type: 'object',

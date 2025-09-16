@@ -340,6 +340,8 @@ const PlexSource = require('./sources/plex');
 const JellyfinSource = require('./sources/jellyfin');
 const TMDBSource = require('./sources/tmdb');
 const TVDBSource = require('./sources/tvdb');
+// TODO(new-source): If you add a new source adapter under sources/<name>.js, require it here
+// const MyNewSource = require('./sources/mynew');
 const deepMerge = require('lodash.merge');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
@@ -5358,6 +5360,17 @@ async function getPlaylistMedia() {
                     config.rottenTomatoesMinimumScore,
                     isDebug
                 );
+                // TODO(new-source): Wire your adapter here. Example:
+                // } else if (server.type === 'mynew') {
+                //     source = new MyNewSource(
+                //         server,
+                //         getMyNewClient,
+                //         processMyNewItem,
+                //         getMyNewLibraries,
+                //         shuffleArray,
+                //         config.rottenTomatoesMinimumScore,
+                //         isDebug
+                //     );
             } else {
                 if (isDebug)
                     logger.debug(
