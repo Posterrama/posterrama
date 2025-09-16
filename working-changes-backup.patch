@@ -1,0 +1,788 @@
+diff --git a/.github/copilot-instructions.md b/.github/copilot-instructions.md
+index 9134992..c327667 100644
+--- a/.github/copilot-instructions.md
++++ b/.github/copilot-instructions.md
+@@ -98,3 +98,15 @@ Reference map: server.js, sources/, utils/logger.js, utils/cache.js, utils/wsHub
+ Last verified: 2025‑09 (repo v2.5.2). If anything seems off (paths/endpoints), search the named files first, then adjust here.
+ 
+ - **utils/cache.js**: Multi-tier caching (memory/disk) with TTL and size management
++
++## Policy Addendum (2025-09-16)
++
++The AI assistant MUST:
++
++1. Respond only in English (no automatic language switching, even if the user uses another language, unless explicitly instructed to translate or answer in that language).
++2. NOT modify `README.md` or other top-level docs automatically. Documentation changes must be explicitly requested by the user each time.
++3. Prefer implementing code + tests over documentation edits when both are possible and the user has not explicitly requested docs.
++4. When a feature impacts the README, propose the diff in the response (English) and wait for explicit confirmation before applying, unless the user explicitly said to update the README now.
++5. Treat configuration schema changes as requiring: (a) schema edit, (b) example config consistency check, (c) validation path review, (d) at least one test covering new validation logic.
++
++Enforcement: If an instruction conflicts with this addendum, clarify with the user before proceeding.
+diff --git a/README.md b/README.md
+index 63d273b..2e9f996 100644
+--- a/README.md
++++ b/README.md
+@@ -64,18 +64,10 @@ Turn any screen into a cinematic slideshow. Enjoy smooth, full-screen poster tra
+ 
+ <figure>
+   <img src="./screenshots/wallart.png" alt="Wallart Grid" width="740">
+-  <figcaption style="text-align:left; color:#6a6a6a;"><em>Wallart Mode: multi-poster grid with smooth animations</em></figcaption>
+-  
+-</figure>
+-
+-Display a beautiful grid of posters, updating dynamically with new content. Choose between a full grid or a hero+grid layout (one large featured poster with a 4x4 grid). Posters slide in smoothly, and you can choose between preset grid sizes.
+ 
+ **Key features:**
+ 
+-- 13+ animation styles for grid transitions
+-- Hero+Grid layout or full grid
+ - Customizable grid size and spacing
+-
+ <figure>
+   <img src="./screenshots/wallart_hero.png" alt="Wallart Hero + Grid" width="740">
+   <figcaption style="text-align:left; color:#6a6a6a;"><em>Hero+Grid layout variant</em></figcaption>
+@@ -94,14 +86,9 @@ Perfect for vertical screens or digital signage. Show a rotating selection of po
+ 
+ ### Dashboard
+ 
+-<figure>
+-  <img src="./screenshots/dashboard.png" alt="Admin Dashboard" width="740">
+-  <figcaption style="text-align:left; color:#6a6a6a;"><em>At‑a‑glance status, KPIs, recent activity, and quick actions</em></figcaption>
+-  
+ </figure>
+ 
+ Get a clear overview of your setup the moment you sign in. The Dashboard highlights system health, key metrics, recent events, connected devices, and quick links to common tasks — so you can spot issues and act fast.
+-
+ <!-- Realtime preview moved into Display Settings as a bullet point -->
+ 
+ ### Multiple content sources
+@@ -122,10 +109,6 @@ Connect your Plex or Jellyfin server, or add popular sources like TMDB and TVDB.
+ - Filter by genre, rating, or quality
+ 
+ ---
+-
+-### Display Settings
+-
+-<figure>
+   <img src="./screenshots/display_settings.png" alt="Display Settings" width="740">
+   <figcaption style="text-align:left; color:#6a6a6a;"><em>Fine-tune your display settings</em></figcaption>
+   
+@@ -144,42 +127,41 @@ Orchestrate every Posterrama screen from a single, real‑time dashboard. Device
+ 
+ What you can do:
+ 
+-- Live controls per device: previous/next, play/pause toggle, pin current poster, and reload/reset
+-- Clear status badges: Offline (grey), Online (green), Live (blue)
+-- Controls auto‑disable when a device is offline
+-- Per‑device Display Settings override with JSON editor and presets; apply live over WebSocket
+-- WebSocket heartbeat keeps status and playback state in sync with the device
+ 
+ Where it shines:
+ 
+-- At home — Quickly pause a screen when you get a call, pin a specific poster for a movie night, or tailor one display’s look (mode, grid density, info overlays) without touching the others.
+-- In commercial cinemas and venues — Keep foyer and hallway displays fresh and on‑brand. Swap promos in seconds, verify screens are healthy at a glance, and minimize downtime with one‑click reload/reset.
+ 
+----
+ 
+-### Bypass mode (IP allow list)
++### Device Management Bypass
+ 
+-Want certain kiosk / signage screens to load silently without registration overlays, device IDs, heartbeats, or WebSocket control? Add their IPs or CIDR ranges to `deviceMgmt.bypass.ipAllowList`.
++Skip the entire device pairing & control layer for trusted kiosk / signage screens based on their IPv4 address or CIDR range.
+ 
+-Example `config.json` fragment:
++Configure (Admin UI):
++1. Open the Device Management section
++2. Expand “Device Management Bypass”
++3. Toggle Enabled on/off (does not clear entries)
++4. Enter one IPv4 or CIDR per line (e.g. `192.168.0.10`, `192.168.0.0/24`)
++5. Save allow-list
+ 
++Example `config.json` fragment (manual edit alternative):
+ ```jsonc
+ {
+-    "deviceMgmt": {
+-        "enabled": true,
+-        "bypass": { "ipAllowList": ["127.0.0.1", "::1", "192.168.0.0/16", "10.10.5.42"] },
+-    },
++  "deviceMgmt": {
++    "enabled": true,
++    "bypass": { "enabled": true, "ipAllowList": ["127.0.0.1", "192.168.0.0/24", "10.10.5.42"] }
++  }
+ }
+ ```
+ 
+-When a client matches the list:
+-
+-- Server sets `req.deviceBypass`
+-- `/api/devices/bypass-check` returns `{ "bypass": true }`
+-- `/get-config` includes `deviceMgmt.bypassActive = true`
+-- `public/device-mgmt.js` exits early (no overlay, no registration, no WebSocket)
++Server behavior when matched:
++- Sets `req.deviceBypass`
++- Frontend skips registration overlay, heartbeats, and WebSocket control
+ 
+-Perfect for permanently mounted displays or phased rollouts. Remove the IP/range and the feature re‑enables at next reload.
++Notes:
++- IPv4 only (/0–/32). IPv6 not supported.
++- Empty list or `enabled:false` disables bypass
++- Server normalizes, deduplicates and sorts entries
++- Debug log key: `bypassDeviceMgmt`
+ 
+ ---
+ 
+diff --git a/config.schema.json b/config.schema.json
+index 2f1a56f..16c1105 100644
+--- a/config.schema.json
++++ b/config.schema.json
+@@ -384,18 +384,19 @@
+             "properties": {
+                 "enabled": { "type": "boolean", "default": true },
+                 "bypass": {
+-                    "description": "Optional bypass configuration. When a client IP matches ipAllowList, the frontend will skip device management (no registration, no heartbeats, no websocket). Useful for kiosk screens or trusted internal dashboards.",
++                    "description": "Optional bypass configuration. When a client IPv4 address matches ipAllowList and 'enabled' is true, the frontend will skip device management (no registration, no heartbeats, no websocket). Useful for kiosk screens or trusted internal dashboards.",
+                     "type": "object",
+                     "properties": {
++                        "enabled": { "type": "boolean", "default": true },
+                         "ipAllowList": {
+-                            "description": "Array of IP addresses or CIDR ranges (IPv4/IPv6) that should bypass device management.",
++                            "description": "Array of IPv4 addresses or CIDR ranges (e.g. 192.168.0.10, 192.168.0.0/24) that should bypass device management. IPv6 is not supported.",
+                             "type": "array",
+                             "items": { "type": "string" },
+                             "default": []
+                         }
+                     },
+                     "additionalProperties": false,
+-                    "default": { "ipAllowList": [] }
++                    "default": { "enabled": true, "ipAllowList": [] }
+                 }
+             }
+         },
+diff --git a/middleware/deviceBypass.js b/middleware/deviceBypass.js
+index 1f37d05..a9b0e19 100644
+--- a/middleware/deviceBypass.js
++++ b/middleware/deviceBypass.js
+@@ -3,57 +3,95 @@ const path = require('path');
+ const ipaddr = require('ipaddr.js');
+ const logger = require('../utils/logger');
+ 
+-/**
+- * Parse an IP or CIDR entry. Returns a predicate fn(ip: string)=>boolean.
+- * Supports single IPv4/IPv6 addresses or CIDR ranges (e.g. 192.168.0.0/16, 2001:db8::/32).
+- */
++// IPv4 only utility validation (returns canonical form or null)
++function normalizeIPv4(input) {
++    const m = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/.exec(input);
++    if (!m) return null;
++    // Canonical: no leading zeros
++    return input
++        .split('.')
++        .map(o => String(Number(o)))
++        .join('.');
++}
++
++function normalizeIPv4Cidr(input) {
++    const parts = input.split('/');
++    if (parts.length !== 2) return null;
++    const base = normalizeIPv4(parts[0]);
++    if (!base) return null;
++    const mask = Number(parts[1]);
++    if (!Number.isInteger(mask) || mask < 0 || mask > 32) return null;
++    return `${base}/${mask}`;
++}
++
+ function buildMatcher(entry) {
+-    if (!entry || typeof entry !== 'string') return () => false;
++    if (!entry || typeof entry !== 'string') return null;
+     const raw = entry.trim();
+-    if (!raw) return () => false;
+-    try {
+-        if (raw.includes('/')) {
+-            // CIDR
+-            const [networkStr, prefixLenStr] = raw.split('/');
+-            const network = ipaddr.parse(networkStr);
+-            const kind = network.kind();
+-            const prefix = parseInt(prefixLenStr, 10);
+-            if (!Number.isFinite(prefix)) return () => false;
+-            return ip => {
+-                try {
+-                    const addr = ipaddr.parse(ip);
+-                    if (addr.kind() !== kind) return false;
+-                    return addr.match(network, prefix);
+-                } catch (_) {
+-                    return false;
++    if (!raw) return null;
++    let canonical = normalizeIPv4(raw);
++    let isSingle = true;
++    if (!canonical && raw.includes('/')) {
++        canonical = normalizeIPv4Cidr(raw);
++        isSingle = false;
++    }
++    if (!canonical) {
++        logger.debug('[DeviceBypass] Invalid IPv4 entry ignored', { entry: raw });
++        return null;
++    }
++    if (!isSingle) {
++        const [networkStr, prefixLenStr] = canonical.split('/');
++        const prefix = parseInt(prefixLenStr, 10);
++        const networkOctets = networkStr.split('.').map(x => Number(x));
++        return {
++            raw: canonical,
++            match(ip) {
++                const norm = normalizeIPv4(ip);
++                if (!norm) return false;
++                const ipOctets = norm.split('.').map(x => Number(x));
++                // Create bit strings up to prefix length
++                const bitsNeeded = prefix;
++                let ipBits = '';
++                let netBits = '';
++                for (let i = 0; i < 4; i++) {
++                    ipBits += ipOctets[i].toString(2).padStart(8, '0');
++                    netBits += networkOctets[i].toString(2).padStart(8, '0');
+                 }
+-            };
+-        }
+-        // Single IP
+-        const single = ipaddr.parse(raw);
+-        return ip => {
+-            try {
+-                const addr = ipaddr.parse(ip);
+-                return (
+-                    addr.kind() === single.kind() &&
+-                    addr.toNormalizedString() === single.toNormalizedString()
+-                );
+-            } catch (_) {
+-                return false;
+-            }
++                return ipBits.substring(0, bitsNeeded) === netBits.substring(0, bitsNeeded);
++            },
+         };
+-    } catch (e) {
+-        logger.debug('[DeviceBypass] Invalid entry ignored', { entry: raw, error: e.message });
+-        return () => false;
+     }
++    // Single IP matcher
++    return {
++        raw: canonical,
++        match(ip) {
++            const norm = normalizeIPv4(ip);
++            return norm === canonical;
++        },
++    };
+ }
+ 
+ function loadAllowList() {
+     try {
+         const cfgPath = path.join(__dirname, '..', 'config.json');
+         const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+-        const list = cfg?.deviceMgmt?.bypass?.ipAllowList;
+-        if (Array.isArray(list)) return list.filter(x => typeof x === 'string');
++        const bypassCfg = cfg?.deviceMgmt?.bypass || {};
++        if (bypassCfg.enabled === false) return [];
++        const list = bypassCfg.ipAllowList;
++        if (Array.isArray(list)) {
++            // Normalize, filter invalid, dedupe, and sort
++            const seen = new Set();
++            const cleaned = [];
++            for (const entry of list) {
++                const m = buildMatcher(entry);
++                if (m && !seen.has(m.raw)) {
++                    seen.add(m.raw);
++                    cleaned.push(m.raw);
++                }
++            }
++            cleaned.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
++            // Re-write config in-memory? (Avoid side-effects; only return cleaned list for matching)
++            return cleaned;
++        }
+     } catch (e) {
+         logger.debug('[DeviceBypass] Failed to load config', { error: e.message });
+     }
+@@ -69,7 +107,9 @@ function refreshIfNeeded() {
+     if (now - lastLoad < RELOAD_INTERVAL_MS) return;
+     lastLoad = now;
+     const allow = loadAllowList();
+-    matchers = allow.map(buildMatcher);
++    matchers = allow
++        .map(buildMatcher)
++        .filter(Boolean);
+ }
+ 
+ function extractClientIp(req) {
+@@ -86,7 +126,7 @@ function deviceBypassMiddleware(req, _res, next) {
+     try {
+         refreshIfNeeded();
+         const ip = extractClientIp(req);
+-        const bypass = matchers.some(fn => fn(ip));
++        const bypass = matchers.some(m => m.match(ip));
+         if (bypass) {
+             req.deviceBypass = true; // flag for downstream handlers
+         }
+diff --git a/public/admin.js b/public/admin.js
+index 5fc03cc..a96007f 100644
+--- a/public/admin.js
++++ b/public/admin.js
+@@ -1,113 +1,217 @@
+-/* Admin v2 Dashboard (theme-based) */
++// --- Device Management Bypass (moved under Device Management section) ---
+ /* eslint-disable no-empty */
+-/* global saveConfigPatch, miniCache, inflight, refreshOverviewLastSync, tvdb */
+-(function () {
+-    const $ = (sel, root = document) => root.querySelector(sel);
+-
+-    // Small utility: debounce
+-    function debounce(fn, wait = 120) {
+-        let t;
+-        return function debounced(...args) {
+-            const self = this;
+-            if (t) clearTimeout(t);
+-            t = setTimeout(() => fn.apply(self, args), wait);
+-        };
+-    }
++(function(){
++// Lightweight DOM helpers & utilities (polyfills if not already defined)
++if (typeof window.$ !== 'function') {
++    window.$ = function $(sel, root) { return (root || document).querySelector(sel); };
++}
++if (typeof window.$$ !== 'function') {
++    window.$$ = function $$(sel, root) { return Array.from((root || document).querySelectorAll(sel)); };
++}
++if (typeof window.formatBytes !== 'function') {
++    window.formatBytes = function formatBytes(num) {
++        const n = Number(num);
++        if (!Number.isFinite(n)) return '0 B';
++        if (n < 1024) return `${n} B`;
++        const units = ['KB','MB','GB','TB','PB'];
++        let v = n / 1024;
++        let u = 0;
++        while (v >= 1024 && u < units.length - 1) { v /= 1024; u++; }
++        return `${v.toFixed(v >= 100 || v < 10 ? 1 : 2)} ${units[u]}`;
++    };
++}
++// Existing bypass panel initialization
++(function initDeviceBypassPanel(){
++    try {
++        const deviceMgmtSection = document.getElementById('section-device-management') || document.body;
++        if (!document.getElementById('bypass-settings-container')) {
++                const container = document.createElement('div');
++                container.id = 'bypass-settings-container';
++                container.style.marginTop = '24px';
++                container.innerHTML = `
++                  <div class="panel" style="position:relative;">
++                    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" id="bypass-settings-toggle">
++                      <h3 style="margin:0;font-size:1.05rem;display:flex;gap:6px;align-items:center;">
++                        <i class="fas fa-shield-alt"></i>
++                        Device Management Bypass
++                      </h3>
++                      <i class="fas fa-chevron-down" id="bypass-settings-caret" style="transition:transform .25s ease;"></i>
++                    </div>
++                    <div id="bypass-settings-body" style="margin-top:14px;display:none;">
++                      <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">
++                        <label for="deviceMgmt.bypass.enabled" style="font-weight:600;">Enabled</label>
++                        <label class="switch">
++                          <input type="checkbox" id="deviceMgmt.bypass.enabled" checked />
++                          <span class="slider"></span>
++                        </label>
++                        <span class="subtle" style="font-size:.75rem;">Toggle bypass without clearing the list</span>
++                      </div>
++                      <label for="deviceMgmt.bypass.ipAllowList" style="font-weight:600;display:flex;align-items:center;gap:6px;">
++                        IPv4 allow-list (one per line)
++                        <span class="help subtle" style="font-weight:400;">Examples: 192.168.0.10, 192.168.0.0/24</span>
++                      </label>
++                      <textarea id="deviceMgmt.bypass.ipAllowList" placeholder="192.168.0.10\n192.168.0.0/24" style="width:100%;min-height:110px;resize:vertical;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:#fff;padding:8px;border-radius:6px;font-family:monospace;font-size:.85rem;line-height:1.3;"></textarea>
++                      <div id="deviceMgmt.bypass.ipAllowList.feedback" class="subtle" style="margin-top:6px;font-size:.65rem;">
++                        Enter IPv4 addresses or CIDR ranges. Empty list disables bypass.
++                      </div>
++                      <div style="margin-top:10px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
++                        <button id="btn-format-bypass" class="btn btn-sm" style="background:#475569;">
++                          <i class="fas fa-wand-magic-sparkles"></i> Format
++                        </button>
++                        <button id="btn-save-bypass" class="btn btn-sm" style="background:#2563eb;">
++                          <i class="fas fa-save"></i> Save allow-list
++                        </button>
++                      </div>
++                    </div>
++                  </div>`;
++                deviceMgmtSection.appendChild(container);
+ 
+-    // Fallback for update polling if not provided by this build
+-    if (typeof window.pollUpdateStatusOnce !== 'function') {
+-        window.pollUpdateStatusOnce = async function () {
+-            return null;
+-        };
+-    }
++                const toggle = container.querySelector('#bypass-settings-toggle');
++                const body = container.querySelector('#bypass-settings-body');
++                const caret = container.querySelector('#bypass-settings-caret');
++                toggle?.addEventListener('click', () => {
++                    const open = body.style.display !== 'none';
++                    body.style.display = open ? 'none' : 'block';
++                    caret.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
++                });
+ 
+-    function setText(id, val) {
+-        const el = typeof id === 'string' ? document.getElementById(id) : id;
+-        if (el) el.textContent = val;
+-    }
+-    function formatNumber(n) {
+-        const num = Number(n);
+-        return Number.isFinite(num) ? num.toLocaleString() : '—';
+-    }
++                // Load current settings
++                setTimeout(() => {
++                    try {
++                        const cfg = (window.__CONFIG__ || {}).deviceMgmt || {};
++                        const bypass = cfg.bypass || {};
++                        const list = bypass.ipAllowList || [];
++                        const enabled = bypass.enabled !== false; // default true
++                        const ta = document.getElementById('deviceMgmt.bypass.ipAllowList');
++                        const cb = document.getElementById('deviceMgmt.bypass.enabled');
++                        if (Array.isArray(list) && ta && !ta.value.trim()) ta.value = list.join('\n');
++                        if (cb) cb.checked = !!enabled;
++                    } catch (_) {}
++                }, 50);
++
++                // IPv4 validation & formatting
++                function parseAndValidate(lines) {
++                    const ipv4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
++                    const results = [];
++                    const errors = [];
++                    for (let i = 0; i < lines.length; i++) {
++                        const raw = lines[i].trim();
++                        if (!raw) continue;
++                        let valid = false;
++                        if (raw.includes('/')) {
++                            const [base, mask] = raw.split('/');
++                            const maskNum = Number(mask);
++                            if (ipv4.test(base) && Number.isInteger(maskNum) && maskNum >= 0 && maskNum <= 32) {
++                                valid = true;
++                                const canonicalBase = base
++                                    .split('.')
++                                    .map(o => String(Number(o)))
++                                    .join('.');
++                                results.push(`${canonicalBase}/${maskNum}`);
++                            }
++                        } else if (ipv4.test(raw)) {
++                            const canonical = raw
++                                .split('.')
++                                .map(o => String(Number(o)))
++                                .join('.');
++                            valid = true;
++                            results.push(canonical);
++                        }
++                        if (!valid) errors.push({ line: i + 1, value: raw });
++                    }
++                    // Deduplicate & sort
++                    const unique = Array.from(new Set(results));
++                    unique.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
++                    return { values: unique, errors };
++                }
++
++                function updateFeedback(errors, count) {
++                    const feedback = document.getElementById('deviceMgmt.bypass.ipAllowList.feedback');
++                    if (!feedback) return;
++                    if (errors.length) {
++                        feedback.innerHTML = `<span style=\"color:#f87171;\">${errors.length} invalid line(s): ${errors
++                            .slice(0, 5)
++                            .map(e => e.line)
++                            .join(', ')}${errors.length > 5 ? '…' : ''}</span>`;
++                    } else {
++                        feedback.innerHTML = `<span style=\"color:#34d399;\">${count} valid entr${
++                            count === 1 ? 'y' : 'ies'
++                        }</span>`;
++                    }
++                }
+ 
+-    // Returns true when the given ISO date falls on the current local day
+-    /* eslint-disable no-unused-vars */
+-    function isToday(iso) {
+-        if (!iso) return false;
+-        const d = new Date(iso);
+-        if (Number.isNaN(d.getTime())) return false;
+-        const now = new Date();
+-        return (
+-            d.getFullYear() === now.getFullYear() &&
+-            d.getMonth() === now.getMonth() &&
+-            d.getDate() === now.getDate()
+-        );
+-    }
+-    /* eslint-enable no-unused-vars */
+-
+-    // Safe fallback meter renderer used by cache/perf panels
+-    function setMeter(id, pct /* 0-100 */, kind = 'default') {
+-        const el = typeof id === 'string' ? document.getElementById(id) : id;
+-        if (!el) return;
+-        const v = Math.max(0, Math.min(100, Number(pct) || 0));
+-
+-        // Set width for progress bar
+-        el.style.width = `${v}%`;
+-
+-        // Dynamic color based on percentage and kind
+-        let gradient = '';
+-        if (kind === 'cpu') {
+-            if (v < 50) {
+-                gradient =
+-                    'linear-gradient(90deg, var(--color-success), var(--color-success-dark))';
+-            } else if (v < 80) {
+-                gradient =
+-                    'linear-gradient(90deg, var(--color-warning), var(--color-warning-dark))';
+-            } else {
+-                gradient = 'linear-gradient(90deg, var(--color-error), var(--color-error-dark))';
+-            }
+-        } else if (kind === 'mem') {
+-            if (v < 60) {
+-                gradient = 'linear-gradient(90deg, var(--color-info), var(--color-info-dark))';
+-            } else if (v < 85) {
+-                gradient =
+-                    'linear-gradient(90deg, var(--color-warning), var(--color-warning-dark))';
+-            } else {
+-                gradient = 'linear-gradient(90deg, var(--color-error), var(--color-error-dark))';
+-            }
+-        } else {
+-            // Default gradient
+-            gradient = 'linear-gradient(90deg, var(--color-info), var(--color-info-dark))';
+-        }
++                const ta = container.querySelector('#deviceMgmt.bypass.ipAllowList');
++                ta?.addEventListener('input', () => {
++                    const lines = ta.value.split(/\n+/);
++                    const { values, errors } = parseAndValidate(lines);
++                    updateFeedback(errors, values.length);
++                });
+ 
+-        el.style.background = gradient;
+-        el.setAttribute?.('aria-valuenow', String(v));
+-        if (kind) el.setAttribute?.('data-kind', kind);
+-    }
++                container.querySelector('#btn-format-bypass')?.addEventListener('click', () => {
++                    if (!ta) return;
++                    const lines = ta.value.split(/\n+/);
++                    const { values, errors } = parseAndValidate(lines);
++                    if (errors.length) {
++                        updateFeedback(errors, values.length);
++                        window.notify?.toast({
++                            type: 'error',
++                            title: 'Format blocked',
++                            message: 'Resolve invalid lines first.',
++                            duration: 3500,
++                        });
++                        return;
++                    }
++                    ta.value = values.join('\n');
++                    updateFeedback([], values.length);
++                });
+ 
+-    function formatBytes(bytes) {
+-        if (!bytes && bytes !== 0) return '—';
+-        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+-        let i = 0;
+-        let b = bytes;
+-        while (b >= 1024 && i < units.length - 1) {
+-            b /= 1024;
+-            i++;
++                const btnSaveBypass = container.querySelector('#btn-save-bypass');
++                btnSaveBypass?.addEventListener('click', async () => {
++                    if (!ta) return;
++                    const lines = ta.value.split(/\n+/);
++                    const { values, errors } = parseAndValidate(lines);
++                    if (errors.length) {
++                        updateFeedback(errors, values.length);
++                        window.notify?.toast({
++                            type: 'error',
++                            title: 'Validation failed',
++                            message: 'Fix invalid IPv4 entries before saving.',
++                            duration: 4000,
++                        });
++                        return;
++                    }
++                    const enabledCb = document.getElementById('deviceMgmt.bypass.enabled');
++                    const enabled = !!(enabledCb && enabledCb.checked);
++                    try {
++                        btnSaveBypass.disabled = true;
++                        btnSaveBypass.classList.add('btn-loading');
++                        const patch = { deviceMgmt: { bypass: { enabled, ipAllowList: values } } };
++                        await saveConfigPatch(patch, {});
++                        updateFeedback([], values.length);
++                        window.notify?.toast({
++                            type: 'success',
++                            title: 'Saved',
++                            message: 'Bypass configuration updated.',
++                            duration: 2500,
++                        });
++                    } catch (e) {
++                        window.notify?.toast({
++                            type: 'error',
++                            title: 'Save failed',
++                            message: e?.message || 'Could not update bypass settings',
++                            duration: 5000,
++                        });
++                    } finally {
++                        btnSaveBypass.disabled = false;
++                        btnSaveBypass.classList.remove('btn-loading');
++                    }
++                });
+         }
+-        return `${b.toFixed(1)} ${units[i]}`;
+-    }
+-
+-    // Simple HTML escaper available at module scope for safe rendering
+-    function escapeHtml(s) {
+-        return String(s || '')
+-            .replace(/&/g, '&amp;')
+-            .replace(/</g, '&lt;')
+-            .replace(/>/g, '&gt;')
+-            .replace(/"/g, '&quot;')
+-            .replace(/'/g, '&#039;');
++    } catch(e) {
++        try { console.warn('Bypass panel init failed', e); } catch(_) {}
+     }
++})();
+ 
+-    // Small helper for JSON fetch with credentials and error propagation
+     async function fetchJSON(url, opts = {}) {
+         const res = await fetch(url, { credentials: 'include', ...opts });
+         const text = await res.text();
+@@ -9149,6 +9253,144 @@
+         const btnSaveServer = document.getElementById('btn-save-server-settings');
+         const btnSavePromo = document.getElementById('btn-save-promobox');
+         const btnSaveOps = document.getElementById('btn-save-operations');
++                // --- General Settings (dynamic container) ---
++                try {
++                        const advancedPanel = document.getElementById('section-server-settings') || document.body;
++                        if (!document.getElementById('general-settings-container')) {
++                                const container = document.createElement('div');
++                                container.id = 'general-settings-container';
++                                container.style.marginTop = '32px';
++                                container.innerHTML = `
++                                    <div class="panel" style="position:relative;">
++                                        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" id="general-settings-toggle">
++                                            <h3 style="margin:0;font-size:1.1rem;display:flex;gap:6px;align-items:center;">
++                                                <i class="fas fa-sliders-h"></i>
++                                                Algemene instellingen
++                                            </h3>
++                                            <i class="fas fa-chevron-down" id="general-settings-caret" style="transition:transform .25s ease;"></i>
++                                        </div>
++                                        <div id="general-settings-body" style="margin-top:14px;display:none;">
++                                            <div style="margin-bottom:18px;">
++                                                <label for="deviceMgmt.bypass.ipAllowList" style="font-weight:600;display:flex;align-items:center;gap:6px;">
++                                                    Device Management Bypass IP/CIDR whitelist
++                                                    <span class="help subtle" style="font-weight:400;">
++                                                        (1 per regel; voorbeelden: 192.168.0.10, 192.168.0.0/24, ::1)
++                                                    </span>
++                                                </label>
++                                                <textarea id="deviceMgmt.bypass.ipAllowList" placeholder="192.168.0.10\n192.168.0.0/24" style="width:100%;min-height:110px;resize:vertical;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:#fff;padding:8px;border-radius:6px;font-family:monospace;font-size:.85rem;line-height:1.3;"></textarea>
++                                                <div id="deviceMgmt.bypass.ipAllowList.feedback" class="subtle" style="margin-top:6px;font-size:.7rem;">
++                                                    Voeg IP adressen of CIDR ranges toe. Leeg = bypass uitgeschakeld.
++                                                </div>
++                                                <div style="margin-top:8px;text-align:right;">
++                                                    <button id="btn-save-bypass" class="btn btn-sm" style="background:#2563eb;">
++                                                        <i class="fas fa-save"></i> Opslaan whitelist
++                                                    </button>
++                                                </div>
++                                            </div>
++                                        </div>
++                                    </div>`;
++                                // Insert near end of server settings if possible
++                                advancedPanel.appendChild(container);
++
++                                // Toggle logic
++                                const toggle = container.querySelector('#general-settings-toggle');
++                                const body = container.querySelector('#general-settings-body');
++                                const caret = container.querySelector('#general-settings-caret');
++                                toggle?.addEventListener('click', () => {
++                                        const open = body.style.display !== 'none';
++                                        body.style.display = open ? 'none' : 'block';
++                                        caret.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
++                                });
++
++                                // Load current ipAllowList from window.__CONFIG__ if present
++                                setTimeout(() => {
++                                        try {
++                                                const cfg = (window.__CONFIG__ || {}).deviceMgmt || {};
++                                                const list = (cfg.bypass && cfg.bypass.ipAllowList) || [];
++                                                if (Array.isArray(list)) {
++                                                        const ta = document.getElementById('deviceMgmt.bypass.ipAllowList');
++                                                        if (ta && !ta.value.trim()) ta.value = list.join('\n');
++                                                }
++                                        } catch (_) {}
++                                }, 50);
++
++                                // Validation helper
++                                function validateLines(lines) {
++                                        const out = [];
++                                        const errors = [];
++                                        const ipV4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
++                                        const ipV6 = /^[0-9a-fA-F:]+$/; // lenient check; server does deep validation
++                                        for (let i = 0; i < lines.length; i++) {
++                                                const raw = lines[i].trim();
++                                                if (!raw) continue;
++                                                // CIDR split
++                                                const [addr, cidr] = raw.split('/');
++                                                let ok = false;
++                                                if (cidr !== undefined) {
++                                                        const cidrNum = Number(cidr);
++                                                        if (Number.isInteger(cidrNum) && cidrNum >= 0 && cidrNum <= 128) {
++                                                                ok = ipV4.test(addr) || ipV6.test(addr);
++                                                        }
++                                                } else {
++                                                        ok = ipV4.test(raw) || ipV6.test(raw);
++                                                }
++                                                if (!ok) errors.push({ line: i + 1, value: raw });
++                                                else out.push(raw);
++                                        }
++                                        return { values: out, errors };
++                                }
++
++                                const btnSaveBypass = container.querySelector('#btn-save-bypass');
++                                btnSaveBypass?.addEventListener('click', async () => {
++                                        const ta = document.getElementById('deviceMgmt.bypass.ipAllowList');
++                                        const feedback = document.getElementById('deviceMgmt.bypass.ipAllowList.feedback');
++                                        if (!ta || !feedback) return;
++                                        const lines = ta.value.split(/\n+/);
++                                        const { values, errors } = validateLines(lines);
++                                        if (errors.length) {
++                                                feedback.innerHTML = `\n                          <span style="color:#f87171;">${errors.length} fout(en) in regels: ${errors
++                                                        .slice(0, 5)
++                                                        .map(e => e.line)
++                                                        .join(', ')}${errors.length > 5 ? '…' : ''}</span>`;
++                                                window.notify?.toast({
++                                                        type: 'error',
++                                                        title: 'Validatie mislukt',
++                                                        message: 'Corrigeer ongeldige IP/CIDR waarden.',
++                                                        duration: 4000,
++                                                });
++                                                return;
++                                        }
++                                        try {
++                                                btnSaveBypass.disabled = true;
++                                                btnSaveBypass.classList.add('btn-loading');
++                                                const patch = { deviceMgmt: { bypass: { ipAllowList: values } } };
++                                                await saveConfigPatch(patch, {});
++                                                feedback.innerHTML = '<span style="color:#34d399;">Whitelist opgeslagen</span>';
++                                                window.notify?.toast({
++                                                        type: 'success',
++                                                        title: 'Opgeslagen',
++                                                        message: 'Whitelist succesvol bijgewerkt.',
++                                                        duration: 2500,
++                                                });
++                                        } catch (e) {
++                                                feedback.innerHTML = `<span style="color:#f87171;">Opslaan mislukt: ${
++                                                        e?.message || 'Onbekende fout'
++                                                }</span>`;
++                                                window.notify?.toast({
++                                                        type: 'error',
++                                                        title: 'Opslaan mislukt',
++                                                        message: e?.message || 'Kon whitelist niet opslaan',
++                                                        duration: 5000,
++                                                });
++                                        } finally {
++                                                btnSaveBypass.disabled = false;
++                                                btnSaveBypass.classList.remove('btn-loading');
++                                        }
++                                });
++                        }
++                } catch (e) {
++                        try { console.warn('General settings init failed', e); } catch (_) {}
++                }
+         // Sync insecure HTTPS toggles (header and form)
+         const jfInsecureForm = document.getElementById('jf.insecureHttps');
+         const jfInsecureHeader = document.getElementById('jf.insecureHttpsHeader');
