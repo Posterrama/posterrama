@@ -30,16 +30,6 @@ function colorFor(pct) {
 }
 
 function run() {
-    // Only update badges in CI on the main branch to avoid local README churn
-    const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
-    const refName = process.env.GITHUB_REF_NAME || '';
-    const ref = process.env.GITHUB_REF || '';
-    const branch = refName || (ref.startsWith('refs/heads/') ? ref.replace('refs/heads/', '') : '');
-    if (!isCI || (branch && branch !== 'main')) {
-        console.log('Skipping badge update (not CI on main)');
-        return;
-    }
-
     const repoRoot = path.resolve(__dirname, '..');
     const coveragePath = path.resolve(repoRoot, 'coverage', 'coverage-final.json');
     const lcovPath = path.resolve(repoRoot, 'coverage', 'lcov.info');
