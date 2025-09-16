@@ -10,8 +10,8 @@ To regenerate: npm run coverage:table
 | File                          | Statements (cov/total) | Statements % | Branches (cov/total) | Branches % | Functions (cov/total) | Functions % | Lines (cov/total) | Lines % | Meets thresholds |
 | ----------------------------- | ---------------------: | -----------: | -------------------: | ---------: | --------------------: | ----------: | ----------------: | ------: | :--------------: |
 | sources/example.js            |                  14/71 |        19.72 |                 7/39 |      17.95 |                   3/6 |          50 |             13/67 |    19.4 |        ✅        |
-| utils/healthCheck.js          |                166/335 |        49.55 |               80/228 |      35.09 |                 27/45 |          60 |           153/311 |    49.2 |        ✅        |
-| utils/deviceStore.js          |                243/346 |        70.23 |              167/311 |       53.7 |                 38/51 |       74.51 |           218/288 |   75.69 |        ✅        |
+| utils/healthCheck.js          |                166/335 |        49.55 |               78/228 |      34.21 |                 27/45 |          60 |           153/311 |    49.2 |        ✅        |
+| utils/deviceStore.js          |                241/346 |        69.65 |              166/311 |      53.38 |                 38/51 |       74.51 |           216/288 |      75 |        ✅        |
 | sources/jellyfin.js           |                156/221 |        70.59 |              130/220 |      59.09 |                 18/22 |       81.82 |           153/209 |   73.21 |        ✅        |
 | utils/updater.js              |                266/374 |        71.12 |               73/130 |      56.15 |                 29/41 |       70.73 |           260/367 |   70.84 |        ✅        |
 | middleware/deviceBypass.js    |                  52/69 |        75.36 |                18/30 |         60 |                  9/13 |       69.23 |             47/56 |   83.93 |        ✅        |
