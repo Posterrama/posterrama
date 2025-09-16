@@ -9566,16 +9566,24 @@
                     const hostname = document.getElementById('jf.hostname')?.value?.trim();
                     const port = document.getElementById('jf.port')?.value?.trim();
                     const apiKey = document.getElementById('jf.apikey')?.value?.trim();
-                    res = await fetch('/api/admin/jellyfin-libraries', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            hostname: hostname || undefined,
-                            port: port || undefined,
-                            apiKey: apiKey || undefined,
-                        }),
-                    });
+                    // Guard: skip request if clearly not configured
+                    if (!hostname || !apiKey) {
+                        return new Map();
+                    }
+                    try {
+                        res = await fetch('/api/admin/jellyfin-libraries', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                hostname: hostname || undefined,
+                                port: port || undefined,
+                                apiKey: apiKey || undefined,
+                            }),
+                        });
+                    } catch (_) {
+                        return new Map();
+                    }
                 }
                 const j = res && res.ok ? await res.json().catch(() => ({})) : {};
                 const libs = Array.isArray(j.libraries) ? j.libraries : [];
@@ -11185,6 +11193,10 @@
                     const hostname = getInput('jf.hostname')?.value || undefined;
                     const port = getInput('jf.port')?.value || undefined;
                     const apiKey = getInput('jf.apikey')?.value || undefined;
+                    // Guard early if not configured => silently skip without error toast
+                    if (!hostname || !apiKey) {
+                        return { skipped: true, libraries: [] };
+                    }
                     const res = await fetch('/api/admin/jellyfin-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
