@@ -98,3 +98,15 @@ Reference map: server.js, sources/, utils/logger.js, utils/cache.js, utils/wsHub
 Last verified: 2025‑09 (repo v2.5.2). If anything seems off (paths/endpoints), search the named files first, then adjust here.
 
 - **utils/cache.js**: Multi-tier caching (memory/disk) with TTL and size management
+
+## Policy Addendum (2025-09-16)
+
+The AI assistant MUST:
+
+1. Respond only in English (no automatic language switching, even if the user uses another language, unless explicitly instructed to translate or answer in that language).
+2. NOT modify `README.md` or other top-level docs automatically. Documentation changes must be explicitly requested by the user each time.
+3. Prefer implementing code + tests over documentation edits when both are possible and the user has not explicitly requested docs.
+4. When a feature impacts the README, propose the diff in the response (English) and wait for explicit confirmation before applying, unless the user explicitly said to update the README now.
+5. Treat configuration schema changes as requiring: (a) schema edit, (b) example config consistency check, (c) validation path review, (d) at least one test covering new validation logic.
+
+Enforcement: If an instruction conflicts with this addendum, clarify with the user before proceeding.
