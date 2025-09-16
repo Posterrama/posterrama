@@ -35,7 +35,7 @@ jest.mock('fs', () => ({
 }));
 
 jest.mock('../../package.json', () => ({
-    version: '1.9.5',
+    version: '2.5.2',
 }));
 
 const healthCheck = require('../../utils/healthCheck');
@@ -53,7 +53,7 @@ describe('HealthCheck Module', () => {
 
             expect(result).toHaveProperty('status', 'ok');
             expect(result).toHaveProperty('service', 'posterrama');
-            expect(result).toHaveProperty('version', '1.9.5');
+            expect(result).toHaveProperty('version', '2.5.2');
             expect(result).toHaveProperty('timestamp');
             expect(result).toHaveProperty('uptime');
             expect(typeof result.uptime).toBe('number');
