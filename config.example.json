@@ -93,7 +93,10 @@
         "port": 4001
     },
     "deviceMgmt": {
-        "enabled": true
+        "enabled": true,
+        "bypass": {
+            "ipAllowList": ["127.0.0.1", "::1", "192.168.0.0/16"]
+        }
     },
     "cache": {
         "maxSizeGB": 2,

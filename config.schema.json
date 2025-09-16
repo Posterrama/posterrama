@@ -382,7 +382,21 @@
             "description": "Feature flag for device management UI and APIs.",
             "type": "object",
             "properties": {
-                "enabled": { "type": "boolean", "default": true }
+                "enabled": { "type": "boolean", "default": true },
+                "bypass": {
+                    "description": "Optional bypass configuration. When a client IP matches ipAllowList, the frontend will skip device management (no registration, no heartbeats, no websocket). Useful for kiosk screens or trusted internal dashboards.",
+                    "type": "object",
+                    "properties": {
+                        "ipAllowList": {
+                            "description": "Array of IP addresses or CIDR ranges (IPv4/IPv6) that should bypass device management.",
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "default": []
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": { "ipAllowList": [] }
+                }
             }
         },
         "tmdbSource": {

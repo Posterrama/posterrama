@@ -8,6 +8,51 @@
  */
 
 (function () {
+    // --- Early bypass detection -------------------------------------------------
+    // If the server flagged this client as bypassed (IP allow list), skip loading the entire
+    // device management subsystem (registration, heartbeats, websockets, overlays).
+    // Detection strategies:
+    // 1. window.__POSTERRAMA_CONFIG injected by main script with deviceMgmt.bypassActive
+    // 2. Fallback fetch to /api/devices/bypass-check (fast, uncached)
+    try {
+        if (typeof window !== 'undefined') {
+            const preCfg = window.__POSTERRAMA_CONFIG;
+            if (preCfg && preCfg.deviceMgmt && preCfg.deviceMgmt.bypassActive) {
+                // eslint-disable-next-line no-console
+                console.info('[DeviceMgmt] Bypass active (config flag) – skipping initialization.');
+                return; // abort IIFE
+            }
+        }
+    } catch (_) {
+        // ignore pre-config inspection errors
+    }
+    // Create a synchronous-ish XHR (avoid adding async waterfall) but only if fetch not yet used.
+    // We prefer fetch but guard for older browsers; keep it very small.
+    try {
+        // Use a tiny fetch with cache busting to avoid stale intermediary caches.
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 1500); // 1.5s safety timeout
+        // Fire and forget; we don't await because early return saves runtime cost.
+        fetch('/api/devices/bypass-check?_r=' + Date.now().toString(36), {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            signal: ctrl.signal,
+        })
+            .then(r => (r.ok ? r.json() : null))
+            .then(j => {
+                if (j && j.bypass) {
+                    // eslint-disable-next-line no-console
+                    console.info('[DeviceMgmt] Bypass active (probe) – skipping initialization.');
+                    // Replace the IIFE body with a noop; future calls to PosterramaDevice.init will be ignored.
+                    window.PosterramaDevice = { init: () => {}, bypass: true };
+                }
+            })
+            .catch(() => {
+                /* silent */
+            });
+    } catch (_) {
+        // ignore probe errors
+    }
     const STORAGE_KEYS = {
         id: 'posterrama.device.id',
         secret: 'posterrama.device.secret',

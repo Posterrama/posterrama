@@ -349,6 +349,8 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const { ApiError, NotFoundError } = require('./utils/errors.js');
 const ratingCache = require('./utils/rating-cache.js');
+// Device management bypass (IP allow list)
+const { deviceBypassMiddleware } = require('./middleware/deviceBypass');
 
 // Use process.env with a fallback to config.json
 const port = process.env.SERVER_PORT || config.serverPort || 4000;
@@ -384,6 +386,10 @@ const {
     CacheDiskManager,
 } = require('./utils/cache');
 initializeCache(logger);
+
+// --- Global pre-routing middleware ---
+// Attach bypass flag ASAP so downstream handlers and config responses can react.
+app.use(deviceBypassMiddleware);
 
 // Initialize cache disk manager
 const cacheDiskManager = new CacheDiskManager(imageCacheDir, config.cache || {});
@@ -2819,6 +2825,11 @@ if (isDeviceMgmtEnabled()) {
             logger.error('[Devices] heartbeat failed', e);
             res.status(500).json({ error: 'heartbeat_failed' });
         }
+    });
+
+    // Public: device bypass probe (must be defined BEFORE /api/devices/:id param route)
+    app.get('/api/devices/bypass-check', (req, res) => {
+        res.json({ bypass: !!req.deviceBypass, ip: req.ip });
     });
 
     // Pairing: Admin generates a short-lived pairing code for a device
@@ -6595,9 +6606,21 @@ app.get(
             }
         }
 
+        // If device bypass is active for this request, surface a lightweight flag so frontend can avoid loading device-mgmt.js logic.
+        try {
+            if (req.deviceBypass) {
+                safeObjToSend.deviceMgmt = safeObjToSend.deviceMgmt || {};
+                safeObjToSend.deviceMgmt.bypassActive = true;
+            }
+        } catch (_) {
+            // ignore inability to append bypass flag
+        }
         res.json(safeObjToSend);
     }
 );
+
+// --- Device bypass status endpoint (public) ---
+// Lightweight probe so clients can quickly decide to skip device management boot sequence.
 
 /**
  * @swagger
