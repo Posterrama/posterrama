@@ -157,32 +157,6 @@ Where it shines:
 
 ---
 
-### Bypass mode (IP allow list)
-
-Want certain kiosk / signage screens to load silently without registration overlays, device IDs, heartbeats, or WebSocket control? Add their IPs or CIDR ranges to `deviceMgmt.bypass.ipAllowList`.
-
-Example `config.json` fragment:
-
-```jsonc
-{
-    "deviceMgmt": {
-        "enabled": true,
-        "bypass": { "ipAllowList": ["127.0.0.1", "::1", "192.168.0.0/16", "10.10.5.42"] },
-    },
-}
-```
-
-When a client matches the list:
-
-- Server sets `req.deviceBypass`
-- `/api/devices/bypass-check` returns `{ "bypass": true }`
-- `/get-config` includes `deviceMgmt.bypassActive = true`
-- `public/device-mgmt.js` exits early (no overlay, no registration, no WebSocket)
-
-Perfect for permanently mounted displays or phased rollouts. Remove the IP/range and the feature re‑enables at next reload.
-
----
-
 ### Technical features
 
 - Smart multi‑tier caching (memory + disk) with intelligent expiration
