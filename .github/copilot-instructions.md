@@ -2,7 +2,7 @@
 
 ## Repository Overview
 
-**Posterrama** is a Node.js/Express media server aggregation application (v1.9.5) that provides unified poster galleries from multiple media sources. It acts as a centralized interface for browsing movies and TV shows across Plex, Jellyfin, TMDB, and TVDB libraries with intelligent caching, filtering, and responsive design.
+**Posterrama** is a Node.js/Express media server aggregation application (v2.5.2) that provides unified poster galleries from multiple media sources. It acts as a centralized interface for browsing movies and TV shows across Plex, Jellyfin, TMDB, and TVDB libraries with intelligent caching, filtering, and responsive design.
 
 ### Key Features
 
