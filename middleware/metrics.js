@@ -87,14 +87,8 @@ const metricsMiddleware = (req, res, next) => {
                         (path || req.path).includes('-genres') ||
                         (path || req.path).includes('-qualities')));
 
-            if (Math.abs(memoryDelta) > 2048 && !isLargeResponseEndpoint) {
-                // More than 2MB change for endpoints that shouldn't have large responses
-                logger.warn('🧠 High memory impact request', {
-                    ...performanceData,
-                    memoryBefore: Math.round(startMemory.heapUsed / 1024 / 1024) + 'MB',
-                    memoryAfter: Math.round(endMemory.heapUsed / 1024 / 1024) + 'MB',
-                });
-            }
+            // Memory impact warnings removed - not actionable for operations
+            // Memory usage can be monitored via system monitoring tools instead
         } catch (error) {
             logger.error('Error recording metrics:', error);
         }
