@@ -4302,7 +4302,7 @@
             const selectedFileDisplay = document.getElementById('selected-file-display');
             const cropInterface = document.getElementById('crop-interface');
 
-            // Reset upload button styling and text
+            // Reset upload button to normal state
             if (uploadBtn) {
                 uploadBtn.style.background = '';
                 uploadBtn.style.height = '';
@@ -4310,8 +4310,13 @@
                 uploadBtn.innerHTML = '<i class="fas fa-upload"></i><span>Upload</span>';
             }
 
-            // Hide crop button initially
-            if (cropBtn) cropBtn.style.display = 'none';
+            // Reset crop button to normal state
+            if (cropBtn) {
+                cropBtn.style.display = 'none';
+                cropBtn.style.background = '';
+                cropBtn.disabled = false;
+                cropBtn.innerHTML = '<i class="fas fa-crop"></i><span>Crop</span>';
+            }
 
             // Hide file selection display
             if (selectedFileDisplay) selectedFileDisplay.style.display = 'none';
@@ -4573,13 +4578,19 @@
                         duration: 3000,
                     });
 
-                    // Update Upload button to show it's ready
+                    // Update Crop button to show it's been used
+                    if (cropBtn) {
+                        cropBtn.innerHTML = '<i class="fas fa-check"></i><span>Cropped</span>';
+                        cropBtn.style.background = 'var(--color-success)';
+                        cropBtn.disabled = true; // Prevent multiple crops of same selection
+                    }
+
+                    // Keep Upload button simple and normal
                     if (uploadBtn) {
-                        uploadBtn.style.background = 'var(--color-success)';
-                        uploadBtn.style.height = ''; // Reset any height changes
-                        uploadBtn.style.minHeight = ''; // Reset any min-height changes
-                        uploadBtn.innerHTML =
-                            '<i class="fas fa-upload"></i><span>Upload Cropped</span>';
+                        // Don't change the upload button styling or text - keep it simple
+                        uploadBtn.style.background = '';
+                        uploadBtn.style.height = '';
+                        uploadBtn.style.minHeight = '';
                     }
 
                     // Clean up the URL after a delay
