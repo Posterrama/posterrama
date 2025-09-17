@@ -11,6 +11,8 @@
  * (at your option) any later version.
  */
 
+console.log(`🎬 DEBUG: Script.js v=1758117327 loaded at ${new Date().toISOString()}`);
+
 // Simple frontend logger to match backend logger interface
 const logger = {
     debug: () => {}, // silenced for cleaner browser console
@@ -1020,6 +1022,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ? partial.transitionIntervalSeconds
                         : next.transitionIntervalSeconds;
                 next.transitionEffect = partial.transitionEffect || next.transitionEffect;
+                console.log(
+                    `🎬 Debug: Applied transitionEffect in applySettings:`,
+                    next.transitionEffect
+                );
                 next.effectPauseTime =
                     typeof partial.effectPauseTime === 'number'
                         ? partial.effectPauseTime
@@ -1129,12 +1135,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Listen for preview messages from admin iframe
     window.addEventListener('message', event => {
         try {
+            console.log(`🎬 Debug: ANY message received:`, event.data);
             // Only accept same-origin messages
             if (event.origin !== window.location.origin) return;
             const data = event.data || {};
             if (data && data.type === 'posterrama.preview.update' && data.payload) {
                 // Mark that we've received a live preview payload
                 window.__POSTERRAMA_PREVIEW_ACTIVE = true;
+                console.log(
+                    `🎬 Debug: Received transition effect in preview:`,
+                    data.payload.transitionEffect
+                );
                 applySettings(data.payload);
             }
         } catch (_) {
@@ -4773,50 +4784,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Simple Ken Burns transition: smooth pan/zoom on newLayer with crossfade from oldLayer
     function applyKenBurnsTransition(newLayer, oldLayer, durationSec, fadeSec = 1.2) {
-        // In preview, replace Ken Burns with a smooth crossfade
-        if (window.IS_PREVIEW) {
-            try {
-                const fadeDuration = 0.7; // seconds
-                if (oldLayer) {
-                    oldLayer.style.transition = 'none';
-                    oldLayer.style.animation = 'none';
-                    oldLayer.style.opacity = 1;
-                    oldLayer.style.zIndex = '1';
-                    oldLayer.style.willChange = 'opacity';
-                }
-                newLayer.style.transition = 'none';
-                newLayer.style.animation = 'none';
-                newLayer.style.opacity = 0;
-                newLayer.style.zIndex = '2';
-                newLayer.style.willChange = 'opacity';
-                newLayer.removeAttribute('data-ken-burns');
-                // Force reflow
-                newLayer.offsetHeight;
-                newLayer.style.transition = `opacity ${fadeDuration}s ease-in-out`;
-                if (oldLayer) oldLayer.style.transition = `opacity ${fadeDuration}s ease-in-out`;
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        newLayer.style.opacity = 1;
-                        if (oldLayer) oldLayer.style.opacity = 0;
-                    });
-                });
-                setTimeout(() => {
-                    newLayer.style.transition = 'none';
-                    newLayer.style.zIndex = '';
-                    newLayer.style.willChange = '';
-                    if (oldLayer) {
-                        oldLayer.style.transition = 'none';
-                        oldLayer.style.zIndex = '';
-                        oldLayer.style.willChange = '';
-                    }
-                    swapLayers(newLayer, oldLayer, { preserveNewAnimation: false });
-                    ensureBackgroundVisible();
-                }, fadeDuration * 1000);
-            } catch (e) {
-                // Intentionally empty: silencing transition errors
-            }
-            return;
-        }
+        console.log(
+            `🎬 Debug: Applying Ken Burns transition (preview mode: ${!!window.IS_PREVIEW})`
+        );
+
+        // Use shorter duration in preview mode for quicker feedback, but still do real Ken Burns
+        const actualDurationSec = window.IS_PREVIEW ? Math.min(durationSec, 3) : durationSec;
+        const actualFadeSec = window.IS_PREVIEW ? Math.min(fadeSec, 1) : fadeSec;
+
         // Prep layers
         if (oldLayer) {
             // Don't reset transform here; allow previous frame to remain until fade completes
@@ -4881,7 +4856,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     preserveNewAnimation: true,
                     deferOldTransformReset: true,
                     preserveOldFade: true,
-                    oldFadeMs: Math.max(50, fadeSec * 1000),
+                    oldFadeMs: Math.max(50, actualFadeSec * 1000),
                 });
                 if (oldLayer) {
                     oldLayer.style.zIndex = '';
@@ -4918,10 +4893,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Use linear easing for constant motion and extend beyond interval with a safety tail
             const transformEasing = 'linear';
-            const tailSec = Math.max(0.75, fadeSec); // ensure motion continues into the next cycle
-            const motionDurationSec = durationSec + tailSec; // keeps movement during and past crossfade
+            const tailSec = Math.max(0.75, actualFadeSec); // ensure motion continues into the next cycle
+            const motionDurationSec = actualDurationSec + tailSec; // keeps movement during and past crossfade
             const transformTransition = `transform ${motionDurationSec}s ${transformEasing}`;
-            const fadeTransition = `opacity ${fadeSec}s ease-in-out`;
+            const fadeTransition = `opacity ${actualFadeSec}s ease-in-out`;
             newLayer.style.transition = `${fadeTransition}, ${transformTransition}`;
 
             // 1) Apply end transform first (double rAF) so the new image is already moving
@@ -4934,7 +4909,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (oldLayer) {
                             const prev = oldLayer.style.transition || '';
                             const sep = prev && !/opacity/.test(prev) ? ', ' : '';
-                            oldLayer.style.transition = `${prev}${sep}opacity ${fadeSec}s ease-in-out`;
+                            oldLayer.style.transition = `${prev}${sep}opacity ${actualFadeSec}s ease-in-out`;
                             oldLayer.style.opacity = 0;
                         }
                     });
@@ -5002,48 +4977,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         newLayer.style.animation = 'none';
         newLayer.style.transition = 'none';
 
-        // In admin live preview, use a smoother crossfade for stability
+        // In admin live preview, use shorter duration for quicker feedback but still apply real effects
         if (window.IS_PREVIEW) {
-            try {
-                const fadeDuration = 0.7; // seconds
-                newLayer.style.willChange = 'opacity';
-                newLayer.style.opacity = 0;
-                newLayer.style.zIndex = '2';
-                if (oldLayer) {
-                    oldLayer.style.willChange = 'opacity';
-                    oldLayer.style.opacity = 1;
-                    oldLayer.style.zIndex = '1';
-                }
-                // Force reflow
-                newLayer.offsetHeight;
-                newLayer.style.transition = `opacity ${fadeDuration}s ease-in-out`;
-                if (oldLayer) oldLayer.style.transition = `opacity ${fadeDuration}s ease-in-out`;
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        newLayer.style.opacity = 1;
-                        if (oldLayer) oldLayer.style.opacity = 0;
-                    });
-                });
-                setTimeout(() => {
-                    newLayer.style.transition = 'none';
-                    newLayer.style.willChange = '';
-                    newLayer.style.zIndex = '';
-                    if (oldLayer) {
-                        oldLayer.style.transition = 'none';
-                        oldLayer.style.willChange = '';
-                        oldLayer.style.zIndex = '';
-                    }
-                    swapLayers(newLayer, oldLayer, { preserveNewAnimation: false });
-                    ensureBackgroundVisible();
-                }, fadeDuration * 1000);
-            } catch (e) {
-                // Intentionally empty: silencing transition errors
-            }
-            return;
+            console.log(
+                `🎬 Debug: Preview mode - will apply selected transition effect with shorter duration`
+            );
         }
 
         // Get transition effect configuration
         const transitionEffect = appConfig.transitionEffect || 'none';
+        console.log(
+            `🎬 Debug: applyTransitionEffect using effect "${transitionEffect}" from appConfig:`,
+            appConfig
+        );
         const transitionInterval = appConfig.transitionIntervalSeconds || 15;
         const pauseTime =
             appConfig.effectPauseTime !== null && appConfig.effectPauseTime !== undefined
@@ -5053,9 +4999,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // NEW LOGIC: effect duration = total interval - pause time
         const effectDuration = Math.max(1, transitionInterval - pauseTime);
 
-        // For posters in cinema mode, use shorter duration for better UX
-        const actualDuration = isPoster ? effectDuration : effectDuration;
-        const actualPauseTime = isPoster ? pauseTime : pauseTime;
+        // For posters in cinema mode or preview mode, use shorter duration for better UX
+        const actualDuration =
+            isPoster || window.IS_PREVIEW ? Math.min(effectDuration, 3) : effectDuration;
+        const actualPauseTime = isPoster || window.IS_PREVIEW ? Math.min(pauseTime, 1) : pauseTime;
 
         if (transitionEffect === 'none') {
             // For 'none', do a short, safe crossfade to avoid popping
@@ -5345,14 +5292,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function changeMedia(direction = 'next', isFirstLoad = false, isErrorSkip = false) {
+        console.log(
+            `🎬 Debug: changeMedia called - direction: ${direction}, isFirstLoad: ${isFirstLoad}, isErrorSkip: ${isErrorSkip}`
+        );
+
         if (mediaQueue.length === 0) {
             console.warn('❌ mediaQueue is empty');
             return;
         }
 
         // In offline mode, don't cycle through media unless it's the first load
-        if (!navigator.onLine && !isFirstLoad) {
-            console.warn('📶 Offline mode: Keeping current media displayed');
+        // DISABLED for debugging: navigator.onLine is unreliable in local network setups
+        if (false && !navigator.onLine && !isFirstLoad) {
+            console.warn('📶 [DISABLED] This offline check is disabled for debugging');
             return;
         }
 

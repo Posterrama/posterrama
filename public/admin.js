@@ -2117,13 +2117,35 @@
                     pillClock.textContent = `Clock: ${elClock.checked ? 'On' : 'Off'}`;
             };
             ['input', 'change'].forEach(ev => {
-                elInterval?.addEventListener(ev, applySummary);
+                elInterval?.addEventListener(ev, () => {
+                    applySummary();
+                    // Trigger preview update when interval changes
+                    try {
+                        window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                    } catch (_) {}
+                });
                 elEffect?.addEventListener(ev, () => {
                     applyPauseVisibility();
                     applySummary();
+                    // Trigger preview update when transition effect changes
+                    try {
+                        window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                    } catch (_) {}
                 });
-                elPause?.addEventListener(ev, applySummary);
-                elClock?.addEventListener(ev, applySummary);
+                elPause?.addEventListener(ev, () => {
+                    applySummary();
+                    // Trigger preview update when pause time changes
+                    try {
+                        window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                    } catch (_) {}
+                });
+                elClock?.addEventListener(ev, () => {
+                    applySummary();
+                    // Trigger preview update when clock setting changes
+                    try {
+                        window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                    } catch (_) {}
+                });
             });
             applyPauseVisibility();
             applySummary();
@@ -2707,6 +2729,11 @@
                 if (postPayload.cinemaMode) {
                     postPayload.cinemaOrientation = 'portrait';
                 }
+                console.log(
+                    `🎬 Debug: Sending transition effect to preview:`,
+                    postPayload.transitionEffect
+                );
+                console.log(`🎬 Debug: previewWin available:`, !!previewWin);
                 previewWin.postMessage(
                     { type: 'posterrama.preview.update', payload: postPayload },
                     window.location.origin
