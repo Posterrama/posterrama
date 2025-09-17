@@ -153,6 +153,19 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
                             if (!ok) return closeSocket(ws, 1008, 'Unauthorized');
                             authed = true;
                             registerConnection(ws, id);
+
+                            // Log successful WebSocket device connection
+                            const userAgent = req.headers['user-agent'] || 'Unknown';
+                            logger.info(
+                                `[WS] Device connected: ${ip} (${userAgent.substring(0, 40)}) - ${id.substring(0, 8)}...`,
+                                {
+                                    deviceId: id,
+                                    ip,
+                                    userAgent: userAgent.substring(0, 100),
+                                    timestamp: new Date().toISOString(),
+                                }
+                            );
+
                             sendJson(ws, { kind: 'hello-ack', serverTime: Date.now() });
                             return;
                         } catch (e) {

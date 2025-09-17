@@ -878,6 +878,33 @@ body {
     background: var(--color-bg-card);
 }
 
+/* Standalone form input styling */
+.form-input,
+#input-whitelist-entry {
+    padding: var(--space-md) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--border-radius-md) !important;
+    font-size: var(--font-size-base) !important;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease !important;
+    background: var(--color-bg-card) !important;
+    color: var(--color-text-primary) !important;
+}
+
+.form-input::placeholder,
+#input-whitelist-entry::placeholder {
+    color: var(--color-text-muted) !important;
+}
+
+.form-input:focus,
+#input-whitelist-entry:focus {
+    outline: none !important;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3) !important;
+    background: var(--color-bg-card) !important;
+}
+
 /* Search box input styling */
 .search-box input {
     padding: var(--space-md);

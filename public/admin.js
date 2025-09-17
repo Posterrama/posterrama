@@ -1343,12 +1343,22 @@
                 const group = document.querySelector('.sidebar .nav-group');
                 group?.classList.add('open');
                 group?.querySelector('.nav-item.nav-toggle')?.classList.add('active');
+            } else if (id === 'section-devices' || id === 'section-device-settings') {
+                // Open the device management group and highlight its header toggle
+                const deviceGroup = document.querySelectorAll('.sidebar .nav-group')[1];
+                deviceGroup?.classList.add('open');
+                deviceGroup?.querySelector('.nav-item.nav-toggle')?.classList.add('active');
+                // Highlight the appropriate subitem
+                const subKey = id === 'section-devices' ? 'devices' : 'device-settings';
+                const subitem = deviceGroup?.querySelector(`.nav-subitem[data-sub="${subKey}"]`);
+                subitem?.classList.add('active');
             } else {
                 const map = {
                     'section-dashboard': 'dashboard',
                     'section-display': 'display',
                     'section-operations': 'operations',
                     'section-devices': 'devices',
+                    'section-device-settings': 'device-settings',
                 };
                 const key = map[id];
                 if (key) {
@@ -1357,9 +1367,11 @@
                     );
                     item?.classList.add('active');
                 }
-                // Collapse media sources group when leaving it
-                const group = document.querySelector('.sidebar .nav-group');
-                group?.classList.remove('open');
+                // Collapse groups when leaving them
+                const mediaGroup = document.querySelector('.sidebar .nav-group');
+                const deviceGroup = document.querySelectorAll('.sidebar .nav-group')[1];
+                mediaGroup?.classList.remove('open');
+                deviceGroup?.classList.remove('open');
             }
         } catch (_) {
             /* non-fatal */
@@ -1378,6 +1390,14 @@
             } else if (id === 'section-devices') {
                 // Hide the big page header for Device Management (use compact in-panel header)
                 pageHeader.style.display = 'none';
+            } else if (id === 'section-device-settings') {
+                // Hide the big page header for Device Settings (use compact in-panel header)
+                pageHeader.style.display = 'none';
+
+                // Reload whitelist data when device settings section is shown
+                if (typeof window.reloadWhitelistData === 'function') {
+                    window.reloadWhitelistData();
+                }
             } else if (id === 'section-display') {
                 // Hide the big page header for Display Settings (placeholder uses compact panel)
                 pageHeader.style.display = 'none';
@@ -1696,10 +1716,10 @@
             setIf('rottenTomatoesMinimumScore', snapped);
         })();
         const us = c.uiScaling || {};
-        setIf('uiScaling.global', us.global ?? 100);
-        setIf('uiScaling.content', us.content ?? 100);
-        setIf('uiScaling.clearlogo', us.clearlogo ?? 100);
-        setIf('uiScaling.clock', us.clock ?? 100);
+        setIf('uiScaling_global', us.global ?? 100);
+        setIf('uiScaling_content', us.content ?? 100);
+        setIf('uiScaling_clearlogo', us.clearlogo ?? 100);
+        setIf('uiScaling_clock', us.clock ?? 100);
         // Sync
         setIf('syncEnabled', c.syncEnabled !== false);
         if (typeof c.syncAlignMaxDelayMs !== 'undefined')
@@ -1708,35 +1728,29 @@
         // Screensaver: no screensaver-only numeric fields to hydrate here (refresh lives under Operations)
 
         // Wallart
-        setIf('wallartMode.density', w.density || 'medium');
-        setIf('wallartMode.refreshRate', w.refreshRate ?? 6);
-        setIf('wallartMode.randomness', w.randomness ?? 3);
-        setIf('wallartMode.animationType', w.animationType || 'fade');
-        setIf('wallartMode.layoutVariant', w.layoutVariant || 'heroGrid');
-        setIf('wallartMode.ambientGradient', w.ambientGradient === true);
+        setIf('wallartMode_density', w.density || 'medium');
+        setIf('wallartMode_refreshRate', w.refreshRate ?? 6);
+        setIf('wallartMode_randomness', w.randomness ?? 3);
+        setIf('wallartMode_animationType', w.animationType || 'fade');
+        setIf('wallartMode_layoutVariant', w.layoutVariant || 'heroGrid');
+        setIf('wallartMode_ambientGradient', w.ambientGradient === true);
         // Columns / Items per screen / Grid transition removed in Admin v2; Density controls layout.
         const hg = (w.layoutSettings && w.layoutSettings.heroGrid) || {};
-        setIf('wallartMode.layoutSettings.heroGrid.heroSide', hg.heroSide || 'left');
-        setIf(
-            'wallartMode.layoutSettings.heroGrid.heroRotationMinutes',
-            hg.heroRotationMinutes ?? 10
-        );
-        setIf(
-            'wallartMode.layoutSettings.heroGrid.biasAmbientToHero',
-            hg.biasAmbientToHero !== false
-        );
+        setIf('wallartMode_heroSide', hg.heroSide || 'left');
+        setIf('wallartMode_heroRotationMinutes', hg.heroRotationMinutes ?? 10);
+        setIf('wallartMode_biasAmbientToHero', hg.biasAmbientToHero !== false);
 
         // Wallart: show hero settings only for heroGrid layout
         try {
-            const layoutSel = document.getElementById('wallartMode.layoutVariant');
+            const layoutSel = document.getElementById('wallartMode_layoutVariant');
             const heroSideRow = document
-                .getElementById('wallartMode.layoutSettings.heroGrid.heroSide')
+                .getElementById('wallartMode_heroSide')
                 ?.closest('.form-row');
             const heroRotRow = document
-                .getElementById('wallartMode.layoutSettings.heroGrid.heroRotationMinutes')
+                .getElementById('wallartMode_heroRotationMinutes')
                 ?.closest('.form-row');
             const heroBiasRow = document
-                .getElementById('wallartMode.layoutSettings.heroGrid.biasAmbientToHero')
+                .getElementById('wallartMode_biasAmbientToHero')
                 ?.closest('.form-row');
             const applyHeroVis = () => {
                 const isHero = layoutSel?.value === 'heroGrid';
@@ -1770,12 +1784,12 @@
             // Create lightweight progress bars behind native sliders without changing their appearance
             (function initSliderBars() {
                 const ids = [
-                    'uiScaling.global',
-                    'uiScaling.content',
-                    'uiScaling.clearlogo',
-                    'uiScaling.clock',
-                    'wallartMode.refreshRate',
-                    'wallartMode.randomness',
+                    'uiScaling_global',
+                    'uiScaling_content',
+                    'uiScaling_clearlogo',
+                    'uiScaling_clock',
+                    'wallartMode_refreshRate',
+                    'wallartMode_randomness',
                 ];
                 const updateBar = inputEl => {
                     try {
@@ -1809,7 +1823,7 @@
                 });
             })();
             const labelFor = (id, val) => {
-                if (id === 'wallartMode.refreshRate') {
+                if (id === 'wallartMode_refreshRate') {
                     const v = Number(val);
                     const map = [
                         'Very slow',
@@ -1825,14 +1839,14 @@
                     ];
                     return map[Math.min(Math.max(v, 1), 10) - 1];
                 }
-                if (id === 'wallartMode.randomness') {
+                if (id === 'wallartMode_randomness') {
                     const v = Number(val);
                     if (v <= 2) return 'Low';
                     if (v <= 5) return 'Medium';
                     if (v <= 8) return 'High';
                     return 'Chaotic';
                 }
-                if (id.startsWith('uiScaling.')) return `${val}%`;
+                if (id.startsWith('uiScaling_')) return `${val}%`;
                 return String(val);
             };
             const updateSliderLabel = id => {
@@ -1843,12 +1857,12 @@
                 if (el && lab) lab.textContent = labelFor(id, el.value);
             };
             [
-                'uiScaling.global',
-                'uiScaling.content',
-                'uiScaling.clearlogo',
-                'uiScaling.clock',
-                'wallartMode.refreshRate',
-                'wallartMode.randomness',
+                'uiScaling_global',
+                'uiScaling_content',
+                'uiScaling_clearlogo',
+                'uiScaling_clock',
+                'wallartMode_refreshRate',
+                'wallartMode_randomness',
             ].forEach(id => {
                 const el = getVal(id);
                 if (!el) return;
@@ -1859,11 +1873,11 @@
             const applyUIScaling = vals => {
                 const ids = ['global', 'content', 'clearlogo', 'clock'];
                 ids.forEach(key => {
-                    const el = getVal('uiScaling.' + key);
+                    const el = getVal('uiScaling_' + key);
                     if (el && vals[key] != null) {
                         el.value = String(vals[key]);
                         const lab = document.querySelector(
-                            `#section-display .slider-percentage[data-target="${CSS.escape('uiScaling.' + key)}"]`
+                            `#section-display .slider-percentage[data-target="${CSS.escape('uiScaling_' + key)}"]`
                         );
                         if (lab) lab.textContent = `${vals[key]}%`;
                         // Fire events so live preview picks up the changes
@@ -2194,10 +2208,10 @@
                 return Math.round(snapped * 10);
             })(),
             uiScaling: {
-                global: val('uiScaling.global'),
-                content: val('uiScaling.content'),
-                clearlogo: val('uiScaling.clearlogo'),
-                clock: val('uiScaling.clock'),
+                global: val('uiScaling_global'),
+                content: val('uiScaling_content'),
+                clearlogo: val('uiScaling_clearlogo'),
+                clock: val('uiScaling_clock'),
             },
             // Sync
             syncEnabled: val('syncEnabled'),
@@ -2207,21 +2221,17 @@
             cinemaOrientation: val('cinemaOrientation'),
             wallartMode: {
                 enabled: wallartEnabled,
-                density: val('wallartMode.density'),
-                refreshRate: val('wallartMode.refreshRate'),
-                randomness: val('wallartMode.randomness'),
-                animationType: val('wallartMode.animationType'),
-                layoutVariant: val('wallartMode.layoutVariant'),
-                ambientGradient: val('wallartMode.ambientGradient'),
+                density: val('wallartMode_density'),
+                refreshRate: val('wallartMode_refreshRate'),
+                randomness: val('wallartMode_randomness'),
+                animationType: val('wallartMode_animationType'),
+                layoutVariant: val('wallartMode_layoutVariant'),
+                ambientGradient: val('wallartMode_ambientGradient'),
                 layoutSettings: {
                     heroGrid: {
-                        heroSide: val('wallartMode.layoutSettings.heroGrid.heroSide'),
-                        heroRotationMinutes: val(
-                            'wallartMode.layoutSettings.heroGrid.heroRotationMinutes'
-                        ),
-                        biasAmbientToHero: val(
-                            'wallartMode.layoutSettings.heroGrid.biasAmbientToHero'
-                        ),
+                        heroSide: val('wallartMode_heroSide'),
+                        heroRotationMinutes: val('wallartMode_heroRotationMinutes'),
+                        biasAmbientToHero: val('wallartMode_biasAmbientToHero'),
                     },
                 },
             },
@@ -4586,11 +4596,6 @@
                     refreshOperationsPanels();
                     // refresh API key status since API Access is now in Operations
                     refreshApiKeyStatus();
-                } else if (nav === 'devices') {
-                    showSection('section-devices');
-                    try {
-                        window.admin2?.initDevices?.();
-                    } catch (_) {}
                 } else if (nav === 'media-sources') {
                     showSection('section-media-sources');
                 }
@@ -4760,6 +4765,49 @@
                 if (t.id === 'panel-plex') window.admin2?.maybeFetchPlexOnOpen?.();
                 else if (t.id === 'panel-jellyfin') window.admin2?.maybeFetchJellyfinOnOpen?.();
                 else if (t.id === 'panel-tmdb') window.admin2?.maybeFetchTmdbOnOpen?.();
+            });
+        });
+
+        // Device Management group: toggle and sub-navigation
+        const deviceGroup = document.querySelectorAll('.nav-group')[1]; // Second nav-group is Device Management
+        const deviceToggleLink = deviceGroup?.querySelector('.nav-toggle');
+        deviceToggleLink?.addEventListener('click', e => {
+            e.preventDefault();
+            deviceGroup.classList.toggle('open');
+            // Clear subitem active states when toggling the group
+            deviceGroup
+                ?.querySelectorAll('.nav-subitem')
+                ?.forEach(s => s.classList.remove('active'));
+            // Show devices section by default when clicking the group header
+            showSection('section-devices');
+            try {
+                window.admin2?.initDevices?.();
+            } catch (_) {}
+        });
+
+        deviceGroup?.querySelectorAll('.nav-subitem').forEach(sub => {
+            sub.addEventListener('click', e => {
+                e.preventDefault();
+                document
+                    .querySelectorAll('.sidebar-nav .nav-item')
+                    .forEach(n => n.classList.remove('active'));
+                // Mark group header and the clicked subitem as active
+                deviceToggleLink?.classList.add('active');
+                deviceGroup?.classList.add('open');
+                deviceGroup
+                    ?.querySelectorAll('.nav-subitem')
+                    .forEach(s => s.classList.remove('active'));
+                sub.classList.add('active');
+                const key = sub.getAttribute('data-sub');
+
+                if (key === 'devices') {
+                    showSection('section-devices');
+                    try {
+                        window.admin2?.initDevices?.();
+                    } catch (_) {}
+                } else if (key === 'device-settings') {
+                    showSection('section-device-settings');
+                }
             });
         });
 
@@ -13608,4 +13656,368 @@
             console.warn('Version/update check failed', e);
         }
     }
+
+    // ---------------- Device Management Whitelist UI ----------------
+    const whitelistState = {
+        current: [],
+        original: [],
+        dirty: false,
+        saving: false,
+    };
+
+    function renderWhitelist() {
+        try {
+            const listEl = document.getElementById('device-whitelist-list');
+            const emptyEl = document.getElementById('device-whitelist-empty');
+            if (!listEl || !emptyEl) return;
+
+            if (!whitelistState.current.length) {
+                listEl.innerHTML = '';
+                emptyEl.style.display = 'block';
+                return;
+            }
+            emptyEl.style.display = 'none';
+
+            listEl.innerHTML = '';
+            whitelistState.current.forEach(entry => {
+                const chip = document.createElement('div');
+                chip.className = 'ip-chip';
+                chip.style.cssText = `
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 6px 10px;
+                    background: #f3f4f6;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 6px;
+                    font-size: 13px;
+                    font-weight: 500;
+                    color: #374151;
+                    transition: all 0.15s ease;
+                `;
+
+                chip.innerHTML = `
+                    <span class="ip-text" style="font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; letter-spacing: 0.01em;">${entry}</span>
+                    <button type="button" class="ip-remove" title="Remove ${entry}" aria-label="Remove ${entry}" style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 16px;
+                        height: 16px;
+                        border: none;
+                        background: #ef4444;
+                        color: white;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        transition: all 0.15s ease;
+                        font-size: 10px;
+                    " onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+
+                // Hover effects for the chip
+                chip.addEventListener('mouseenter', () => {
+                    chip.style.background = '#e5e7eb';
+                    chip.style.borderColor = '#d1d5db';
+                });
+                chip.addEventListener('mouseleave', () => {
+                    chip.style.background = '#f3f4f6';
+                    chip.style.borderColor = '#e5e7eb';
+                });
+
+                // Remove functionality
+                chip.querySelector('.ip-remove').addEventListener('click', () => {
+                    whitelistState.current = whitelistState.current.filter(v => v !== entry);
+                    markWhitelistDirty();
+                    renderWhitelist();
+                });
+
+                listEl.appendChild(chip);
+            });
+        } catch (e) {
+            console.warn('Whitelist render error', e);
+        }
+    }
+
+    function markWhitelistDirty() {
+        whitelistState.dirty =
+            JSON.stringify(whitelistState.current) !== JSON.stringify(whitelistState.original);
+        const saveBtn = document.getElementById('btn-whitelist-save');
+        console.log('markWhitelistDirty called', {
+            dirty: whitelistState.dirty,
+            current: whitelistState.current,
+            original: whitelistState.original,
+            saveBtnExists: !!saveBtn,
+            saveBtnDisabled: saveBtn?.disabled,
+        });
+        if (saveBtn) {
+            saveBtn.disabled = !whitelistState.dirty || whitelistState.saving;
+        }
+    }
+
+    function loadWhitelistFromConfig(cfg) {
+        console.log(
+            'loadWhitelistFromConfig called with:',
+            cfg?.config?.deviceMgmt?.bypass?.ipAllowList
+        );
+        try {
+            const arr =
+                cfg?.config?.deviceMgmt?.bypass?.ipAllowList ||
+                cfg?.deviceMgmt?.bypass?.ipAllowList ||
+                [];
+            whitelistState.original = Array.isArray(arr) ? [...arr] : [];
+            whitelistState.current = [...whitelistState.original];
+            whitelistState.dirty = false;
+            console.log('Whitelist loaded from config:', {
+                original: whitelistState.original,
+                current: whitelistState.current,
+            });
+            renderWhitelist();
+            markWhitelistDirty();
+        } catch (e) {
+            console.warn('Load whitelist error', e);
+        }
+    }
+
+    async function saveWhitelist() {
+        console.log('saveWhitelist called', { current: whitelistState.current });
+        if (!whitelistState.dirty || whitelistState.saving) return;
+        whitelistState.saving = true;
+        markWhitelistDirty();
+        const statusEl = document.getElementById('whitelist-status');
+
+        try {
+            // Get current config
+            console.log('Fetching current config...');
+            const cfgResp = await fetch('/api/admin/config', {
+                method: 'GET',
+                credentials: 'include',
+            });
+            if (!cfgResp.ok) throw new Error('Failed to load config');
+            const fullCfg = await cfgResp.json();
+            console.log('Config loaded, updating whitelist...');
+
+            // Update whitelist in config (fix both locations to ensure consistency)
+            if (!fullCfg.config.deviceMgmt) fullCfg.config.deviceMgmt = {};
+            if (!fullCfg.config.deviceMgmt.bypass) fullCfg.config.deviceMgmt.bypass = {};
+            fullCfg.config.deviceMgmt.bypass.ipAllowList = [...whitelistState.current];
+
+            // Also update the root deviceMgmt (for backwards compatibility)
+            if (!fullCfg.deviceMgmt) fullCfg.deviceMgmt = {};
+            if (!fullCfg.deviceMgmt.bypass) fullCfg.deviceMgmt.bypass = {};
+            fullCfg.deviceMgmt.bypass.ipAllowList = [...whitelistState.current];
+
+            console.log('Whitelist updated in both locations:');
+            console.log('  config.deviceMgmt:', fullCfg.config.deviceMgmt.bypass.ipAllowList);
+            console.log('  deviceMgmt:', fullCfg.deviceMgmt.bypass.ipAllowList);
+            console.log('Full config being saved:', JSON.stringify(fullCfg, null, 2));
+
+            // Save config
+            const saveResp = await fetch('/api/admin/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(fullCfg),
+            });
+
+            if (!saveResp.ok) {
+                const errorText = await saveResp.text();
+                console.error('Save failed with status:', saveResp.status, 'Response:', errorText);
+                throw new Error(`Failed to save config: ${saveResp.status} ${errorText}`);
+            }
+
+            const saveResult = await saveResp.text();
+            console.log('Save response:', saveResult);
+
+            console.log('Config saved successfully');
+
+            // Update state
+            whitelistState.original = [...whitelistState.current];
+            whitelistState.dirty = false;
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.textContent = 'Whitelist saved.';
+                statusEl.style.color = '#22c55e';
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+            markWhitelistDirty();
+        } catch (e) {
+            console.error('Save whitelist error', e);
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = 'Error saving whitelist: ' + e.message;
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 5000);
+            }
+        } finally {
+            whitelistState.saving = false;
+            markWhitelistDirty();
+        }
+    }
+
+    // Simple IPv4 validation
+    function isValidIPv4(ip) {
+        const parts = ip.split('.');
+        if (parts.length !== 4) return false;
+        return parts.every(part => {
+            const num = parseInt(part, 10);
+            return num >= 0 && num <= 255 && part === String(num);
+        });
+    }
+
+    function isValidIPv4CIDR(cidr) {
+        const [ip, prefix] = cidr.split('/');
+        if (!ip || prefix === undefined) return false;
+        if (!isValidIPv4(ip)) return false;
+        const prefixNum = parseInt(prefix, 10);
+        return prefixNum >= 0 && prefixNum <= 32;
+    }
+
+    // Show error modal with custom message
+    function showErrorModal(message) {
+        const modal = document.getElementById('modal-error');
+        const messageElement = document.getElementById('modal-error-message');
+        if (modal && messageElement) {
+            messageElement.textContent = message;
+            modal.classList.add('open');
+        }
+    }
+
+    function initWhitelistEvents() {
+        try {
+            const addBtn = document.getElementById('btn-add-whitelist');
+            const saveBtn = document.getElementById('btn-whitelist-save');
+            const input = document.getElementById('input-whitelist-entry');
+
+            if (!addBtn || !saveBtn || !input) return;
+
+            // Add entry
+            const addEntry = () => {
+                const raw = input.value.trim();
+                if (!raw) return;
+
+                // Basic IPv4 validation (single IP or CIDR)
+                const isValid = raw.includes('/') ? isValidIPv4CIDR(raw) : isValidIPv4(raw);
+                if (!isValid) {
+                    showErrorModal(
+                        'Please enter a valid IPv4 address or CIDR range (e.g. 192.168.1.25 or 192.168.0.0/16)'
+                    );
+                    return;
+                }
+
+                if (!whitelistState.current.includes(raw)) {
+                    whitelistState.current.push(raw);
+                    whitelistState.current.sort();
+                    markWhitelistDirty();
+                    renderWhitelist();
+                    input.value = '';
+                }
+            };
+
+            addBtn.addEventListener('click', addEntry);
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addEntry();
+                }
+            });
+
+            // Restrict input to IP-related characters only (numbers, dots, slashes)
+            input.addEventListener('input', e => {
+                // Allow only numbers, dots, and forward slashes for IP/CIDR
+                const allowedChars = /[^0-9./]/g;
+                const cursorPos = e.target.selectionStart;
+                const originalValue = e.target.value;
+                const filteredValue = originalValue.replace(allowedChars, '');
+
+                if (originalValue !== filteredValue) {
+                    e.target.value = filteredValue;
+                    // Restore cursor position accounting for removed characters
+                    const removedChars = originalValue.length - filteredValue.length;
+                    e.target.setSelectionRange(cursorPos - removedChars, cursorPos - removedChars);
+                }
+            });
+
+            // Also prevent paste of invalid characters
+            input.addEventListener('paste', e => {
+                e.preventDefault();
+                const paste = (e.clipboardData || window.clipboardData).getData('text');
+                const filtered = paste.replace(/[^0-9./]/g, '');
+                const cursorPos = e.target.selectionStart;
+                const currentValue = e.target.value;
+                const newValue =
+                    currentValue.slice(0, cursorPos) +
+                    filtered +
+                    currentValue.slice(e.target.selectionEnd);
+                e.target.value = newValue;
+                e.target.setSelectionRange(
+                    cursorPos + filtered.length,
+                    cursorPos + filtered.length
+                );
+            });
+
+            // Save whitelist
+            saveBtn.addEventListener('click', () => {
+                console.log('Save button clicked', {
+                    dirty: whitelistState.dirty,
+                    saving: whitelistState.saving,
+                });
+                if (!whitelistState.dirty || whitelistState.saving) return;
+                saveWhitelist();
+            });
+        } catch (e) {
+            console.warn('Whitelist events init error', e);
+        }
+    }
+
+    // Initialize whitelist on config load
+    document.addEventListener('DOMContentLoaded', () => {
+        initWhitelistEvents();
+
+        // Load initial whitelist from config
+        console.log('DOMContentLoaded - loading initial whitelist config');
+        fetchJSON('/api/admin/config')
+            .then(cfg => {
+                console.log(
+                    'Initial config loaded:',
+                    cfg?.config?.deviceMgmt?.bypass?.ipAllowList ||
+                        cfg?.deviceMgmt?.bypass?.ipAllowList
+                );
+                if (cfg) loadWhitelistFromConfig(cfg);
+            })
+            .catch(() => {
+                console.warn('Failed to load initial whitelist config');
+            });
+    });
+
+    // Listen for reload events from section navigation
+    document.addEventListener('reloadWhitelist', event => {
+        console.log('reloadWhitelist event received', event.detail);
+        const cfg = event.detail;
+        if (cfg) loadWhitelistFromConfig(cfg);
+    });
 })();
+
+// Global function to reload whitelist data when section becomes active
+window.reloadWhitelistData = function () {
+    console.log('reloadWhitelistData called');
+    fetch('/api/admin/config')
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to fetch config');
+            return response.json();
+        })
+        .then(cfg => {
+            console.log('Config fetched for reload:', cfg?.config?.deviceMgmt?.bypass?.ipAllowList);
+            // Dispatch custom event to trigger whitelist reload
+            const event = new CustomEvent('reloadWhitelist', { detail: cfg });
+            document.dispatchEvent(event);
+        })
+        .catch(error => {
+            console.error('Failed to reload whitelist data:', error);
+        });
+};

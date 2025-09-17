@@ -62,6 +62,7 @@ function loadAllowList() {
 
 let matchers = [];
 let lastLoad = 0;
+const deviceBypassLog = new Map(); // Track logged devices to avoid spam
 const RELOAD_INTERVAL_MS = 30_000; // Refresh every 30s to pick up edits
 
 function refreshIfNeeded() {
@@ -69,7 +70,18 @@ function refreshIfNeeded() {
     if (now - lastLoad < RELOAD_INTERVAL_MS) return;
     lastLoad = now;
     const allow = loadAllowList();
+    const previousCount = matchers.length;
     matchers = allow.map(buildMatcher);
+
+    // Clear device log cache on refresh to re-log devices with new config
+    if (previousCount !== matchers.length) {
+        deviceBypassLog.clear();
+        logger.debug('[DeviceBypass] Whitelist refreshed, device log cache cleared', {
+            entries: allow.length,
+            previousCount,
+            allowList: allow,
+        });
+    }
 }
 
 function extractClientIp(req) {
@@ -89,6 +101,36 @@ function deviceBypassMiddleware(req, _res, next) {
         const bypass = matchers.some(fn => fn(ip));
         if (bypass) {
             req.deviceBypass = true; // flag for downstream handlers
+
+            // Skip logging for admin pages/API calls to reduce spam
+            const isAdminRequest =
+                req.url?.includes('/admin') ||
+                req.url?.includes('/api/admin') ||
+                req.url?.includes('/logs.html') ||
+                req.url?.includes('.css') ||
+                req.url?.includes('.js') ||
+                req.url?.includes('favicon.ico');
+
+            if (!isAdminRequest) {
+                // Create unique device identifier for deduplication
+                const userAgent = req.headers['user-agent'] || 'Unknown';
+                const deviceKey = `${ip}|${userAgent.substring(0, 50)}`;
+
+                // Only log once per device per session (or until server restart)
+                if (!deviceBypassLog.has(deviceKey)) {
+                    logger.info(
+                        `[DeviceBypass] Device whitelisted: ${ip} (${userAgent.substring(0, 50)}) - ${req.method} ${req.url}`,
+                        {
+                            ip,
+                            userAgent: userAgent.substring(0, 100),
+                            url: req.url,
+                            method: req.method,
+                            timestamp: new Date().toISOString(),
+                        }
+                    );
+                    deviceBypassLog.set(deviceKey, Date.now());
+                }
+            }
         }
     } catch (e) {
         // Non-fatal; continue

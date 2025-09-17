@@ -856,6 +856,46 @@ app.get(['/admin', '/admin.html'], (req, res, next) => {
  */
 // Serve main index.html with automatic asset versioning
 app.get(['/', '/index.html'], (req, res, next) => {
+    // Only log actual display page access, not admin accessing the page
+    const isAdminAccess =
+        req.headers.referer?.includes('/admin') ||
+        req.headers.referer?.includes('/logs.html') ||
+        req.deviceBypass; // Skip logging for whitelisted admin IPs
+
+    if (!isAdminAccess) {
+        // Log device access (with de-duplication to prevent spam)
+        const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+        const userAgent = req.headers['user-agent'] || 'Unknown';
+        const deviceKey = `${ip}|${userAgent.substring(0, 50)}`;
+
+        // Simple in-memory deduplication (reset every hour)
+        if (!global.deviceAccessLog)
+            global.deviceAccessLog = { data: new Map(), lastReset: Date.now() };
+        const now = Date.now();
+        if (now - global.deviceAccessLog.lastReset > 3600000) {
+            // 1 hour
+            global.deviceAccessLog.data.clear();
+            global.deviceAccessLog.lastReset = now;
+        }
+
+        const lastSeen = global.deviceAccessLog.data.get(deviceKey);
+        if (!lastSeen) {
+            // Only log once per device per session
+            logger.info(
+                `[Device] Display access: ${ip} (${userAgent.substring(0, 50)}) - ${req.url}`,
+                {
+                    ip,
+                    userAgent: userAgent.substring(0, 100),
+                    deviceKey: deviceKey.substring(0, 50),
+                    bypass: false, // We already filtered bypass cases above
+                    url: req.url,
+                    timestamp: new Date().toISOString(),
+                }
+            );
+            global.deviceAccessLog.data.set(deviceKey, now);
+        }
+    }
+
     const filePath = path.join(__dirname, 'public', 'index.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) return next(err);
@@ -2610,6 +2650,31 @@ if (isDeviceMgmtEnabled()) {
                 installId = null,
                 hardwareId: bodyHw = null,
             } = req.body || {};
+
+            // Skip logging if this is from a whitelisted admin IP
+            if (!req.deviceBypass) {
+                // Log device registration attempt (with IP info)
+                const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+                const userAgent = req.headers['user-agent'] || 'Unknown';
+                const deviceName = name?.substring(0, 30) || 'unnamed';
+                const deviceLocation = location?.substring(0, 30) || '';
+                logger.info(
+                    `[Device] Registration: ${ip} (${userAgent.substring(0, 40)}) - "${deviceName}"${deviceLocation ? ' in ' + deviceLocation : ''}`,
+                    {
+                        name: name?.substring(0, 50) || 'unnamed',
+                        location: location?.substring(0, 50) || '',
+                        installId: installId?.substring(0, 20) || 'none',
+                        hardwareId:
+                            (bodyHw || req.headers['x-hardware-id'] || '')
+                                ?.toString()
+                                .substring(0, 20) || 'none',
+                        ip,
+                        userAgent: userAgent.substring(0, 100),
+                        timestamp: new Date().toISOString(),
+                    }
+                );
+            }
+
             const cookies = parseCookies(req.headers['cookie']);
             const hdrIid = req.headers['x-install-id'] || null;
             const hdrHw = req.headers['x-hardware-id'] || null;
@@ -2703,6 +2768,38 @@ if (isDeviceMgmtEnabled()) {
             const { deviceId } = req.body;
             if (!deviceId || typeof deviceId !== 'string') {
                 return res.status(400).json({ error: 'deviceId required' });
+            }
+
+            // Skip logging if this is from a whitelisted admin IP
+            if (!req.deviceBypass) {
+                // Log device check with IP (but only if not recently logged to avoid spam)
+                const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+                const userAgent = req.headers['user-agent'] || 'Unknown';
+                const deviceKey = `check:${deviceId.substring(0, 20)}:${ip}`;
+
+                if (!global.deviceAccessLog)
+                    global.deviceAccessLog = { data: new Map(), lastReset: Date.now() };
+                const now = Date.now();
+                if (now - global.deviceAccessLog.lastReset > 3600000) {
+                    // 1 hour reset
+                    global.deviceAccessLog.data.clear();
+                    global.deviceAccessLog.lastReset = now;
+                }
+
+                const lastSeen = global.deviceAccessLog.data.get(deviceKey);
+                if (!lastSeen) {
+                    // Only log once per device per session
+                    logger.info(
+                        `[Device] Check request: ${ip} (${userAgent.substring(0, 40)}) - device ${deviceId.substring(0, 8)}...`,
+                        {
+                            deviceId: deviceId.substring(0, 20),
+                            ip,
+                            userAgent: userAgent.substring(0, 100),
+                            timestamp: new Date().toISOString(),
+                        }
+                    );
+                    global.deviceAccessLog.data.set(deviceKey, now);
+                }
             }
 
             // Check if device exists in store - check by ID first, then by hardwareId
@@ -10205,6 +10302,15 @@ app.post(
             hostname = hostname || process.env[jellyfinServerConfig.hostnameEnvVar];
             port = port || process.env[jellyfinServerConfig.portEnvVar];
             apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
+        }
+
+        // Check if Jellyfin is enabled
+        if (!jellyfinServerConfig || !jellyfinServerConfig.enabled) {
+            return res.json({
+                success: true,
+                genres: [],
+                message: 'Jellyfin is disabled',
+            });
         }
 
         if (!hostname || !port || !apiKey) {

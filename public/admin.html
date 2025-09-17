@@ -134,13 +134,20 @@
           <a href="#" class="nav-subitem" data-sub="tvdb"><i class="fas fa-tv"></i><span>TVDB</span></a>
         </div>
       </div>
-      <a href="#" class="nav-item" data-nav="devices">
-        <i class="fas fa-laptop"></i>
-        <span class="nav-text-with-badge">
-          Device Management
-          <span class="nav-badge nav-badge-error">BETA</span>
-        </span>
-      </a>
+      <div class="nav-group">
+        <a href="#" class="nav-item nav-toggle">
+          <i class="fas fa-laptop"></i>
+          <span class="nav-text-with-badge" style="white-space: nowrap;">
+            Device Management
+            <span class="nav-badge nav-badge-error">BETA</span>
+          </span>
+          <i class="fas fa-chevron-down nav-arrow"></i>
+        </a>
+        <div class="nav-submenu">
+          <a href="#" class="nav-subitem" data-sub="devices"><i class="fas fa-laptop"></i><span>Devices</span></a>
+          <a href="#" class="nav-subitem" data-sub="device-settings"><i class="fas fa-sliders-h"></i><span>Settings</span></a>
+        </div>
+      </div>
       <a href="#" class="nav-item" data-nav="operations"><i class="fas fa-screwdriver-wrench"></i><span>Operations</span></a>
     </nav>
   <div class="sidebar-footer"></div>
@@ -348,6 +355,75 @@
     </section>
     </section> <!-- /section-dashboard -->
 
+    <!-- Device Settings Section -->
+    <section id="section-device-settings" class="app-section" hidden>
+      <section class="panel" id="panel-device-settings">
+        <header class="panel-header">
+          <div class="panel-title">
+            <h2><i class="fas fa-sliders-h"></i> Device Management Settings</h2>
+            <div class="panel-subtitle">Configure IP whitelists and general device policies</div>
+          </div>
+          <div class="panel-actions"></div>
+        </header>
+        <div class="panel-content">
+          <!-- IP Whitelist Section -->
+          <div class="form-section" id="card-ip-whitelist">
+            <div class="section-title"><i class="fas fa-shield-halved"></i> IP Whitelist</div>
+            <div class="section-subtitle">Clients matching these IPv4 addresses or CIDR ranges will skip device registration and use global Display Settings. Useful for trusted kiosk displays.</div>
+            
+            <div class="form-row" style="margin-top: 16px;">
+              <div id="device-whitelist-empty" style="display:none; opacity:.6; font-size:.9rem; margin-bottom:12px; color: #9ca3af;">No whitelist entries yet.</div>
+              <div id="device-whitelist-list" class="chip-container" style="margin:0 0 16px 0; display:flex; flex-wrap:wrap; gap:8px; min-height:24px;"></div>
+            </div>
+            
+            <div class="form-row">
+              <div class="input-group" style="display:flex; gap:12px; align-items:stretch;">
+                <input 
+                  type="text" 
+                  id="input-whitelist-entry" 
+                  class="form-input"
+                  placeholder="192.168.1.25 or 192.168.0.0/16" 
+                  style="
+                    flex:1; 
+                    min-width:280px;
+                    background: var(--color-bg-card) !important;
+                    color: var(--color-text-primary) !important;
+                    border: 1px solid var(--color-border) !important;
+                    padding: var(--space-md) !important;
+                    border-radius: var(--border-radius-md) !important;
+                  "
+                  pattern="[0-9\.\/]*"
+                  title="Only numbers, dots, and forward slashes allowed for IP addresses and CIDR ranges"
+                  autocomplete="off" 
+                  autocapitalize="off" 
+                  spellcheck="false"
+                />
+                <button type="button" id="btn-add-whitelist" class="btn btn-outline" style="padding:10px 16px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:6px; white-space:nowrap; transition:all 0.15s ease;">
+                  <i class="fas fa-plus" style="font-size:12px;"></i>
+                  <span>Add</span>
+                </button>
+                <button type="button" id="btn-whitelist-save" class="btn btn-primary" disabled style="padding:10px 20px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s ease;">
+                  <i class="fas fa-save" style="font-size:12px;"></i>
+                  <span>Save Changes</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="form-help" style="margin-top:8px;">
+              <strong>Formats:</strong> IPv4 addresses or CIDR ranges (e.g. 10.0.0.0/8, 192.168.1.0/24). Changes take effect within 30s or after server restart.
+            </div>
+            <div id="whitelist-status" class="form-status" style="display:none; margin-top:8px;"></div>
+          </div>
+
+          <!-- Placeholder for future device management settings -->
+          <div class="form-section" style="margin-top:32px;" hidden id="device-future-settings">
+            <div class="section-title"><i class="fas fa-gears"></i> Additional Settings</div>
+            <div class="section-subtitle">Future options will appear here such as pairing policies, heartbeat intervals, offline grace periods, API throttling and more.</div>
+          </div>
+        </div>
+      </section>
+    </section>
+
     <!-- Display Settings -->
     <section id="section-display" class="app-section" hidden>
       
@@ -489,10 +565,10 @@
                   <div class="form-section" id="sec-scaling" data-card-key="scaling">
                     <div class="section-title"><i class="fas fa-expand-arrows-alt"></i> UI Element Scaling</div>
                     <div class="form-grid">
-                      <div class="form-row"><label for="uiScaling.content">Content</label><div class="modern-slider"><input type="range" id="uiScaling.content" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.content">100%</div></div></div>
-                      <div class="form-row"><label for="uiScaling.clearlogo">Clearlogo</label><div class="modern-slider"><input type="range" id="uiScaling.clearlogo" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.clearlogo">100%</div></div></div>
-                      <div class="form-row"><label for="uiScaling.clock">Clock</label><div class="modern-slider"><input type="range" id="uiScaling.clock" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.clock">100%</div></div></div>
-                      <div class="form-row"><label for="uiScaling.global">Global</label><div class="modern-slider"><input type="range" id="uiScaling.global" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.global">100%</div></div></div>
+                      <div class="form-row"><label for="uiScaling_content">Content</label><div class="modern-slider"><input type="range" id="uiScaling_content" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.content">100%</div></div></div>
+                      <div class="form-row"><label for="uiScaling_clearlogo">Clearlogo</label><div class="modern-slider"><input type="range" id="uiScaling_clearlogo" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.clearlogo">100%</div></div></div>
+                      <div class="form-row"><label for="uiScaling_clock">Clock</label><div class="modern-slider"><input type="range" id="uiScaling_clock" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.clock">100%</div></div></div>
+                      <div class="form-row"><label for="uiScaling_global">Global</label><div class="modern-slider"><input type="range" id="uiScaling_global" min="50" max="200" step="5" value="100" /><div class="slider-percentage" data-target="uiScaling.global">100%</div></div></div>
                     </div>
                     <!-- Presets -->
                     <div class="form-row" style="margin-top:8px;">
@@ -555,16 +631,16 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-tachometer-alt"></i> Tempo</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="wallartMode.refreshRate">Poster Refresh Rate</label>
+                        <label for="wallartMode_refreshRate">Poster Refresh Rate</label>
                         <div class="modern-slider">
-                          <input type="range" min="1" max="10" step="1" id="wallartMode.refreshRate" value="5" />
+                          <input type="range" min="1" max="10" step="1" id="wallartMode_refreshRate" value="5" />
                           <div class="slider-percentage" data-target="wallartMode.refreshRate">Medium</div>
                         </div>
                       </div>
                       <div class="form-row">
-                        <label for="wallartMode.randomness">Timing Randomness</label>
+                        <label for="wallartMode_randomness">Timing Randomness</label>
                         <div class="modern-slider">
-                          <input type="range" min="0" max="10" step="1" id="wallartMode.randomness" value="3" />
+                          <input type="range" min="0" max="10" step="1" id="wallartMode_randomness" value="3" />
                           <div class="slider-percentage" data-target="wallartMode.randomness">Low</div>
                         </div>
                       </div>
@@ -576,8 +652,8 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-magic"></i> Animation</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="wallartMode.animationType">Animation</label>
-                        <select id="wallartMode.animationType">
+                        <label for="wallartMode_animationType">Animation</label>
+                        <select id="wallartMode_animationType">
                           <option value="random">Random — Uses all animations</option>
                           <option value="fade">Fade — Smooth opacity</option>
                           <option value="slideLeft">Slide Left — From right</option>
@@ -601,8 +677,8 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-th-large"></i> Layout</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="wallartMode.density">Density</label>
-                        <select id="wallartMode.density">
+                        <label for="wallartMode_density">Density</label>
+                        <select id="wallartMode_density">
                           <option value="low">Low</option>
                           <option value="medium">Medium</option>
                           <option value="high">High</option>
@@ -610,8 +686,8 @@
                         </select>
                       </div>
                       <div class="form-row">
-                        <label for="wallartMode.layoutVariant">Layout</label>
-                        <select id="wallartMode.layoutVariant">
+                        <label for="wallartMode_layoutVariant">Layout</label>
+                        <select id="wallartMode_layoutVariant">
                           <option value="heroGrid">Hero Grid</option>
                           <option value="classic">Classic</option>
                         </select>
@@ -625,15 +701,15 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-lightbulb"></i> Ambience</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label class="checkbox" for="wallartMode.ambientGradient">
-                          <input type="checkbox" id="wallartMode.ambientGradient" />
+                        <label class="checkbox" for="wallartMode_ambientGradient">
+                          <input type="checkbox" id="wallartMode_ambientGradient" />
                           <span class="checkmark"></span>
                           <span>Ambient gradient</span>
                         </label>
                       </div>
                       <div class="form-row">
-                        <label class="checkbox" for="wallartMode.layoutSettings.heroGrid.biasAmbientToHero">
-                          <input type="checkbox" id="wallartMode.layoutSettings.heroGrid.biasAmbientToHero" />
+                        <label class="checkbox" for="wallartMode_biasAmbientToHero">
+                          <input type="checkbox" id="wallartMode_biasAmbientToHero" />
                           <span class="checkmark"></span>
                           <span>Bias ambient to hero</span>
                         </label>
@@ -646,15 +722,15 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-user-astronaut"></i> Hero Settings</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="wallartMode.layoutSettings.heroGrid.heroSide">Hero side</label>
-                        <select id="wallartMode.layoutSettings.heroGrid.heroSide">
+                        <label for="wallartMode_heroSide">Hero side</label>
+                        <select id="wallartMode_heroSide">
                           <option value="left">Left</option>
                           <option value="right">Right</option>
                         </select>
                       </div>
                       <div class="form-row">
-                        <label for="wallartMode.layoutSettings.heroGrid.heroRotationMinutes">Hero rotation (min)</label>
-                        <div class="number-input-wrapper"><input type="number" min="1" max="60" id="wallartMode.layoutSettings.heroGrid.heroRotationMinutes" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                        <label for="wallartMode_heroRotationMinutes">Hero rotation (min)</label>
+                        <div class="number-input-wrapper"><input type="number" min="1" max="60" id="wallartMode_heroRotationMinutes" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
                       </div>
                     </div>
                   </div>
@@ -722,7 +798,7 @@
                 <div class="sc-status" id="sc-plex-status">
                   <span class="status-dot" id="sc-plex-dot"></span>
                   <span class="status-pill" id="sc-plex-pill">—</span>
-                  <label class="header-toggle" for="sc.plex.enabled" title="Enable Plex">
+                  <label class="header-toggle" for="sc_plex_enabled" title="Enable Plex">
                     <input type="checkbox" id="sc.plex.enabled" />
                     <span class="ht-switch" aria-hidden="true"></span>
                     <span class="ht-text">Enabled</span>
@@ -755,7 +831,7 @@
                 <div class="sc-status" id="sc-jf-status">
                   <span class="status-dot" id="sc-jf-dot"></span>
                   <span class="status-pill" id="sc-jf-pill">—</span>
-                  <label class="header-toggle" for="sc.jf.enabled" title="Enable Jellyfin">
+                  <label class="header-toggle" for="sc_jf_enabled" title="Enable Jellyfin">
                     <input type="checkbox" id="sc.jf.enabled" />
                     <span class="ht-switch" aria-hidden="true"></span>
                     <span class="ht-text">Enabled</span>
@@ -788,7 +864,7 @@
                 <div class="sc-status" id="sc-tmdb-status">
                   <span class="status-dot" id="sc-tmdb-dot"></span>
                   <span class="status-pill" id="sc-tmdb-pill">—</span>
-                  <label class="header-toggle" for="sc.tmdb.enabled" title="Enable TMDB">
+                  <label class="header-toggle" for="sc_tmdb_enabled" title="Enable TMDB">
                     <input type="checkbox" id="sc.tmdb.enabled" />
                     <span class="ht-switch" aria-hidden="true"></span>
                     <span class="ht-text">Enabled</span>
@@ -820,7 +896,7 @@
                 <div class="sc-status" id="sc-tvdb-status">
                   <span class="status-dot" id="sc-tvdb-dot"></span>
                   <span class="status-pill" id="sc-tvdb-pill">—</span>
-                  <label class="header-toggle" for="sc.tvdb.enabled" title="Enable TVDB">
+                  <label class="header-toggle" for="sc_tvdb_enabled" title="Enable TVDB">
                     <input type="checkbox" id="sc.tvdb.enabled" />
                     <span class="ht-switch" aria-hidden="true"></span>
                     <span class="ht-text">Enabled</span>
@@ -878,16 +954,16 @@
           </div>
           <div class="form-grid">
             <div class="form-group">
-              <label for="plex.hostname">Hostname</label>
-              <input type="text" id="plex.hostname" placeholder="e.g. 192.168.1.10" autocomplete="off" autocapitalize="off" spellcheck="false">
+              <label for="plex_hostname">Hostname</label>
+              <input type="text" id="plex_hostname" placeholder="e.g. 192.168.1.10" autocomplete="off" autocapitalize="off" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="plex.port">Port</label>
-              <input type="number" id="plex.port" min="1" max="65535" placeholder="32400" autocomplete="off">
+              <label for="plex_port">Port</label>
+              <input type="number" id="plex_port" min="1" max="65535" placeholder="32400" autocomplete="off">
             </div>
             <div class="form-group">
-              <label for="plex.token">API Token</label>
-              <input type="password" id="plex.token" placeholder="X-Plex-Token" autocomplete="new-password">
+              <label for="plex_token">API Token</label>
+              <input type="password" id="plex_token" placeholder="X-Plex-Token" autocomplete="new-password">
               <small class="form-help">Stored in environment. Not shown after save.</small>
             </div>
           </div>
@@ -1908,6 +1984,45 @@
         <button type="button" class="btn btn-outline" data-close-modal style="min-width: 80px;">Cancel</button>
         <button type="button" id="btn-change-password" class="btn btn-primary" style="min-width: 140px;">
           <i class="fas fa-key"></i><span>Change Password</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Modal -->
+  <div class="modal-overlay" id="modal-error">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-error-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-error-title"><i class="fas fa-exclamation-triangle"></i> Validation Error</div>
+        <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="text-align: center; padding: 24px;">
+        
+        <!-- Error icon and message -->
+        <div style="margin-bottom: 24px;">
+          <div style="
+            width: 64px; 
+            height: 64px; 
+            margin: 0 auto 16px auto; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            background: linear-gradient(135deg, var(--color-warning), #ff6b35);
+            box-shadow: 0 6px 20px rgba(255,107,53,0.3);
+          ">
+            <i class="fas fa-exclamation-triangle" style="font-size: 24px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></i>
+          </div>
+          <h3 style="margin: 0 0 6px 0; font-size: 1.1rem; font-weight: 600;">Invalid Input</h3>
+          <p id="modal-error-message" style="margin: 0; font-size: 0.9rem; color: rgba(255,255,255,0.8); line-height: 1.4;">
+            <!-- Error message will be set by JavaScript -->
+          </p>
+        </div>
+      </div>
+      
+      <div class="modal-footer" style="display: flex; gap: 12px; justify-content: center; padding: 16px 24px;">
+        <button type="button" class="btn btn-primary" data-close-modal style="min-width: 80px;">
+          <i class="fas fa-check"></i><span>OK</span>
         </button>
       </div>
     </div>
