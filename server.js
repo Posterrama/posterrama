@@ -6069,6 +6069,18 @@ async function writeEnvFile(newValues) {
         // Update process.env for the current running instance
         Object.assign(process.env, newValues);
 
+        // Check if DEBUG mode was changed and update logger accordingly
+        if ('DEBUG' in newValues) {
+            try {
+                logger.updateLogLevelFromDebug();
+            } catch (error) {
+                logger.warn('Failed to update logger level from DEBUG setting', {
+                    error: error.message,
+                    debugValue: newValues.DEBUG,
+                });
+            }
+        }
+
         // Log successful environment update with changes
         logger.info('Environment updated successfully', {
             action: 'env_update_success',

@@ -166,7 +166,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 // Create the logger instance
 const logger = winston.createLogger({
-    level: process.env.NODE_ENV === 'test' ? 'warn' : process.env.LOG_LEVEL || 'debug', // Enable debug logs by default for development
+    level: process.env.NODE_ENV === 'test' ? 'warn' : process.env.LOG_LEVEL || 'info', // Default to info level, debug can be enabled via admin toggle
     levels: winston.config.npm.levels,
     format: customFormat,
     transports:
@@ -223,7 +223,40 @@ logger.getRecentLogs = (level = null, limit = 200) => {
     return logs.slice(-limit);
 };
 
+// Method to update logger level based on DEBUG environment variable
+logger.updateLogLevelFromDebug = () => {
+    const isDebugEnabled = process.env.DEBUG === 'true';
+    const newLevel = isDebugEnabled ? 'debug' : 'info';
+
+    if (logger.level !== newLevel) {
+        logger.level = newLevel;
+
+        // Update all transports
+        logger.transports.forEach(transport => {
+            transport.level = newLevel;
+        });
+
+        logger.info('🔧 Log level updated via DEBUG toggle', {
+            previousLevel:
+                logger.level === newLevel ? 'unknown' : isDebugEnabled ? 'info' : 'debug',
+            newLevel,
+            debugEnabled: isDebugEnabled,
+            source: 'debug_toggle',
+            timestamp: new Date().toISOString(),
+        });
+    }
+};
+
 module.exports = logger;
+
+// Initialize logger level based on DEBUG environment variable on startup
+setTimeout(() => {
+    try {
+        logger.updateLogLevelFromDebug();
+    } catch (error) {
+        console.warn('Failed to initialize logger level from DEBUG setting:', error.message);
+    }
+}, 100); // Small delay to ensure module is fully loaded
 
 // Test helper: reset in-memory logs (does not touch transports)
 logger.__resetMemory = () => {
