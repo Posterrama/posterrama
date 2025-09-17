@@ -4369,13 +4369,8 @@
             if (fileNameEl) fileNameEl.textContent = file.name;
             if (selectedFileDisplay) selectedFileDisplay.style.display = 'block';
 
-            // Show preview
-            const url = URL.createObjectURL(file);
-            if (previewImg) {
-                previewImg.src = url;
-                previewImg.style.display = 'block';
-            }
-            if (previewFallback) previewFallback.style.display = 'none';
+            // Show cropping interface instead of direct preview
+            showCroppingInterface(file);
 
             // Set the file input for later upload
             const dt = new DataTransfer();
@@ -4385,19 +4380,43 @@
 
         // Live preview when selecting a file
         uploadBtn?.addEventListener('click', async () => {
-            const fileInput = document.getElementById('avatar-file');
-            const files = fileInput?.files;
-            if (!files || !files[0]) {
-                window.notify?.toast({
-                    type: 'warning',
-                    title: 'Profile',
-                    message: 'Select an image first',
-                    duration: 2000,
+            // Check if we have a cropped image or fall back to original file
+            if (currentImageFile && cropImage) {
+                // Use cropped image
+                getCroppedImageBlob(async croppedBlob => {
+                    if (!croppedBlob) {
+                        window.notify?.toast({
+                            type: 'error',
+                            title: 'Profile',
+                            message: 'Failed to process cropped image',
+                            duration: 3000,
+                        });
+                        return;
+                    }
+
+                    await uploadAvatarBlob(croppedBlob, currentImageFile.name);
                 });
-                return;
+            } else {
+                // Fallback to original file upload
+                const fileInput = document.getElementById('avatar-file');
+                const files = fileInput?.files;
+                if (!files || !files[0]) {
+                    window.notify?.toast({
+                        type: 'warning',
+                        title: 'Profile',
+                        message: 'Select an image first',
+                        duration: 2000,
+                    });
+                    return;
+                }
+
+                await uploadAvatarBlob(files[0], files[0].name);
             }
+        });
+
+        async function uploadAvatarBlob(blob, originalFileName) {
             const form = new FormData();
-            form.append('avatar', files[0]);
+            form.append('avatar', blob, originalFileName);
             uploadBtn.setAttribute('aria-busy', 'true');
             uploadBtn.disabled = true;
             uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Uploading...</span>';
@@ -4457,7 +4476,8 @@
                 uploadBtn.disabled = false;
                 uploadBtn.innerHTML = '<i class="fas fa-upload"></i><span>Upload</span>';
             }
-        });
+        }
+
         removeBtn?.addEventListener('click', async () => {
             if (!confirm('Are you sure you want to remove your profile photo?')) {
                 return;
@@ -4528,6 +4548,398 @@
                 removeBtn.innerHTML = '<i class="fas fa-trash"></i><span>Remove</span>';
             }
         });
+
+        // Image Cropping Functionality
+        let currentImageFile = null;
+        let cropCanvas = null;
+        let cropImage = null;
+        const cropData = {
+            x: 0,
+            y: 0,
+            width: 200,
+            height: 200,
+            scale: 1,
+            imageWidth: 0,
+            imageHeight: 0,
+        };
+        let isDragging = false;
+        let isResizing = false;
+        let resizeHandle = null;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let cropStartX = 0;
+        let cropStartY = 0;
+
+        function showCroppingInterface(file) {
+            currentImageFile = file;
+            const cropInterface = document.getElementById('crop-interface');
+            const canvas = document.getElementById('crop-canvas');
+            const previewCanvas = document.getElementById('crop-preview');
+
+            if (!cropInterface || !canvas || !previewCanvas) return;
+
+            // Show the cropping interface
+            cropInterface.style.display = 'block';
+
+            // Load image into canvas
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+
+            img.onload = function () {
+                // Calculate canvas size to fit image while maintaining aspect ratio
+                const maxWidth = 400;
+                const maxHeight = 300;
+                let canvasWidth, canvasHeight;
+
+                if (img.width > img.height) {
+                    canvasWidth = Math.min(img.width, maxWidth);
+                    canvasHeight = (img.height * canvasWidth) / img.width;
+                } else {
+                    canvasHeight = Math.min(img.height, maxHeight);
+                    canvasWidth = (img.width * canvasHeight) / img.height;
+                }
+
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                canvas.style.width = canvasWidth + 'px';
+                canvas.style.height = canvasHeight + 'px';
+
+                cropCanvas = canvas;
+                cropImage = img;
+
+                // Store image dimensions
+                cropData.imageWidth = img.width;
+                cropData.imageHeight = img.height;
+
+                // Initialize crop area (centered square)
+                const size = Math.min(canvasWidth, canvasHeight) * 0.8;
+                cropData.width = size;
+                cropData.height = size;
+                cropData.x = (canvasWidth - size) / 2;
+                cropData.y = (canvasHeight - size) / 2;
+                cropData.scale = canvasWidth / img.width;
+
+                // Draw image and crop overlay
+                drawCropCanvas();
+                updateCropOverlay();
+                updateCropPreview();
+
+                // Also update the main avatar preview to show original image
+                if (previewImg) {
+                    previewImg.src = url;
+                    previewImg.style.display = 'block';
+                }
+                if (previewFallback) previewFallback.style.display = 'none';
+
+                // Clean up object URL will be done later after preview is updated
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            };
+
+            img.onerror = function () {
+                URL.revokeObjectURL(url);
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Error',
+                    message: 'Failed to load image',
+                    duration: 3000,
+                });
+            };
+
+            img.src = url;
+
+            // Setup crop controls
+            setupCropControls();
+        }
+
+        function drawCropCanvas() {
+            if (!cropCanvas || !cropImage) return;
+
+            const ctx = cropCanvas.getContext('2d');
+            ctx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+
+            // Draw the image
+            ctx.drawImage(cropImage, 0, 0, cropCanvas.width, cropCanvas.height);
+
+            // Draw semi-transparent overlay outside crop area
+            ctx.save();
+            ctx.globalAlpha = 0.7;
+            ctx.fillStyle = '#000000';
+
+            // Top
+            ctx.fillRect(0, 0, cropCanvas.width, cropData.y);
+            // Bottom
+            ctx.fillRect(
+                0,
+                cropData.y + cropData.height,
+                cropCanvas.width,
+                cropCanvas.height - (cropData.y + cropData.height)
+            );
+            // Left
+            ctx.fillRect(0, cropData.y, cropData.x, cropData.height);
+            // Right
+            ctx.fillRect(
+                cropData.x + cropData.width,
+                cropData.y,
+                cropCanvas.width - (cropData.x + cropData.width),
+                cropData.height
+            );
+
+            ctx.restore();
+        }
+
+        function updateCropOverlay() {
+            const selection = document.getElementById('crop-selection');
+            if (!selection) return;
+
+            selection.style.left = cropData.x + 'px';
+            selection.style.top = cropData.y + 'px';
+            selection.style.width = cropData.width + 'px';
+            selection.style.height = cropData.height + 'px';
+        }
+
+        function updateCropPreview() {
+            const previewCanvas = document.getElementById('crop-preview');
+            if (!previewCanvas || !cropImage) return;
+
+            const ctx = previewCanvas.getContext('2d');
+            ctx.clearRect(0, 0, 80, 80);
+
+            // Calculate source coordinates in original image
+            const scaleX = cropData.imageWidth / cropCanvas.width;
+            const scaleY = cropData.imageHeight / cropCanvas.height;
+
+            const sourceX = cropData.x * scaleX;
+            const sourceY = cropData.y * scaleY;
+            const sourceWidth = cropData.width * scaleX;
+            const sourceHeight = cropData.height * scaleY;
+
+            // Draw cropped area to preview
+            ctx.drawImage(cropImage, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, 80, 80);
+        }
+
+        function setupCropControls() {
+            const zoomSlider = document.getElementById('crop-zoom');
+            const zoomValue = document.getElementById('crop-zoom-value');
+            const resetBtn = document.getElementById('crop-reset');
+            const squareBtn = document.getElementById('crop-square');
+            const selection = document.getElementById('crop-selection');
+            const handles = document.querySelectorAll('.crop-handle');
+
+            // Zoom control
+            zoomSlider?.addEventListener('input', e => {
+                const zoom = parseFloat(e.target.value);
+                zoomValue.textContent = Math.round(zoom * 100) + '%';
+
+                // Adjust crop area size based on zoom
+                const centerX = cropData.x + cropData.width / 2;
+                const centerY = cropData.y + cropData.height / 2;
+                const newSize = (Math.min(cropCanvas.width, cropCanvas.height) * 0.8) / zoom;
+
+                cropData.width = Math.min(newSize, cropCanvas.width - 20);
+                cropData.height = Math.min(newSize, cropCanvas.height - 20);
+                cropData.x = Math.max(
+                    10,
+                    Math.min(centerX - cropData.width / 2, cropCanvas.width - cropData.width - 10)
+                );
+                cropData.y = Math.max(
+                    10,
+                    Math.min(
+                        centerY - cropData.height / 2,
+                        cropCanvas.height - cropData.height - 10
+                    )
+                );
+
+                drawCropCanvas();
+                updateCropOverlay();
+                updateCropPreview();
+            });
+
+            // Reset crop
+            resetBtn?.addEventListener('click', () => {
+                const size = Math.min(cropCanvas.width, cropCanvas.height) * 0.8;
+                cropData.width = size;
+                cropData.height = size;
+                cropData.x = (cropCanvas.width - size) / 2;
+                cropData.y = (cropCanvas.height - size) / 2;
+
+                if (zoomSlider) {
+                    zoomSlider.value = 1;
+                    zoomValue.textContent = '100%';
+                }
+
+                drawCropCanvas();
+                updateCropOverlay();
+                updateCropPreview();
+            });
+
+            // Square crop
+            squareBtn?.addEventListener('click', () => {
+                const size = Math.min(cropData.width, cropData.height);
+                cropData.width = size;
+                cropData.height = size;
+
+                // Keep within bounds
+                cropData.x = Math.max(10, Math.min(cropData.x, cropCanvas.width - size - 10));
+                cropData.y = Math.max(10, Math.min(cropData.y, cropCanvas.height - size - 10));
+
+                drawCropCanvas();
+                updateCropOverlay();
+                updateCropPreview();
+            });
+
+            // Drag crop area
+            selection?.addEventListener('mousedown', e => {
+                if (e.target.classList.contains('crop-handle')) return;
+
+                isDragging = true;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                cropStartX = cropData.x;
+                cropStartY = cropData.y;
+
+                selection.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+
+            // Handle resizing
+            handles.forEach(handle => {
+                handle.addEventListener('mousedown', e => {
+                    isResizing = true;
+                    resizeHandle = e.target.getAttribute('data-handle');
+                    dragStartX = e.clientX;
+                    dragStartY = e.clientY;
+                    cropStartX = cropData.x;
+                    cropStartY = cropData.y;
+
+                    e.stopPropagation();
+                    e.preventDefault();
+                });
+            });
+
+            // Mouse move handling
+            document.addEventListener('mousemove', e => {
+                if (isDragging) {
+                    const deltaX = e.clientX - dragStartX;
+                    const deltaY = e.clientY - dragStartY;
+
+                    cropData.x = Math.max(
+                        0,
+                        Math.min(cropStartX + deltaX, cropCanvas.width - cropData.width)
+                    );
+                    cropData.y = Math.max(
+                        0,
+                        Math.min(cropStartY + deltaY, cropCanvas.height - cropData.height)
+                    );
+
+                    drawCropCanvas();
+                    updateCropOverlay();
+                    updateCropPreview();
+                } else if (isResizing && resizeHandle) {
+                    const deltaX = e.clientX - dragStartX;
+                    const deltaY = e.clientY - dragStartY;
+
+                    // Handle different resize directions
+                    switch (resizeHandle) {
+                        case 'se': // Southeast
+                            cropData.width = Math.max(
+                                50,
+                                Math.min(cropStartX + cropData.width + deltaX, cropCanvas.width) -
+                                    cropData.x
+                            );
+                            cropData.height = Math.max(
+                                50,
+                                Math.min(cropStartY + cropData.height + deltaY, cropCanvas.height) -
+                                    cropData.y
+                            );
+                            break;
+                        case 'sw': // Southwest
+                            const newX = Math.max(
+                                0,
+                                Math.min(cropStartX + deltaX, cropData.x + cropData.width - 50)
+                            );
+                            cropData.width = cropData.x + cropData.width - newX;
+                            cropData.x = newX;
+                            cropData.height = Math.max(
+                                50,
+                                Math.min(cropStartY + cropData.height + deltaY, cropCanvas.height) -
+                                    cropData.y
+                            );
+                            break;
+                        case 'ne': // Northeast
+                            cropData.width = Math.max(
+                                50,
+                                Math.min(cropStartX + cropData.width + deltaX, cropCanvas.width) -
+                                    cropData.x
+                            );
+                            const newY = Math.max(
+                                0,
+                                Math.min(cropStartY + deltaY, cropData.y + cropData.height - 50)
+                            );
+                            cropData.height = cropData.y + cropData.height - newY;
+                            cropData.y = newY;
+                            break;
+                        case 'nw': // Northwest
+                            const newXnw = Math.max(
+                                0,
+                                Math.min(cropStartX + deltaX, cropData.x + cropData.width - 50)
+                            );
+                            cropData.width = cropData.x + cropData.width - newXnw;
+                            cropData.x = newXnw;
+                            const newYnw = Math.max(
+                                0,
+                                Math.min(cropStartY + deltaY, cropData.y + cropData.height - 50)
+                            );
+                            cropData.height = cropData.y + cropData.height - newYnw;
+                            cropData.y = newYnw;
+                            break;
+                    }
+
+                    drawCropCanvas();
+                    updateCropOverlay();
+                    updateCropPreview();
+                }
+            });
+
+            // Mouse up handling
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    selection.style.cursor = 'move';
+                }
+                isDragging = false;
+                isResizing = false;
+                resizeHandle = null;
+            });
+        }
+
+        function getCroppedImageBlob(callback) {
+            if (!cropImage) {
+                callback(null);
+                return;
+            }
+
+            // Create a new canvas for the cropped image
+            const croppedCanvas = document.createElement('canvas');
+            const size = 200; // Fixed output size for profile photos
+            croppedCanvas.width = size;
+            croppedCanvas.height = size;
+
+            const ctx = croppedCanvas.getContext('2d');
+
+            // Calculate source coordinates in original image
+            const scaleX = cropData.imageWidth / cropCanvas.width;
+            const scaleY = cropData.imageHeight / cropCanvas.height;
+
+            const sourceX = cropData.x * scaleX;
+            const sourceY = cropData.y * scaleY;
+            const sourceWidth = cropData.width * scaleX;
+            const sourceHeight = cropData.height * scaleY;
+
+            // Draw cropped area to final canvas
+            ctx.drawImage(cropImage, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, size, size);
+
+            // Convert to blob
+            croppedCanvas.toBlob(callback, 'image/jpeg', 0.9);
+        }
 
         // Restart action under settings (resilient to immediate POST failure)
         const restartLink = document.getElementById('menu-restart');
