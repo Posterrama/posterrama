@@ -1982,6 +1982,79 @@
             }
         } catch (_) {}
 
+        // -------------------------------------------------------------
+        // Global number input enhancement (outside Display section)
+        // Applies custom wrapper + steppers for plain <input type=number>
+        // in source panels (plex/jellyfin/tmdb/tvdb), operations modal,
+        // and cache size modal without altering existing semantics.
+        // -------------------------------------------------------------
+        try {
+            const enhanceNumberInput = input => {
+                if (!input || input.dataset.enhanced === '1') return;
+                // Skip if already inside a number-input-wrapper
+                if (input.closest('.number-input-wrapper')) {
+                    input.dataset.enhanced = '1';
+                    return;
+                }
+                const wrapper = document.createElement('div');
+                wrapper.className = 'number-input-wrapper niw-compact';
+                const parent = input.parentElement;
+                if (!parent) return;
+                parent.replaceChild(wrapper, input);
+                wrapper.appendChild(input);
+                const controls = document.createElement('div');
+                controls.className = 'number-controls';
+                const btnUp = document.createElement('button');
+                btnUp.type = 'button';
+                btnUp.className = 'number-btn number-inc';
+                btnUp.setAttribute('aria-label', 'Increase value');
+                btnUp.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                const btnDown = document.createElement('button');
+                btnDown.type = 'button';
+                btnDown.className = 'number-btn number-dec';
+                btnDown.setAttribute('aria-label', 'Decrease value');
+                btnDown.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                controls.appendChild(btnUp);
+                controls.appendChild(btnDown);
+                wrapper.appendChild(controls);
+                input.dataset.enhanced = '1';
+                const step = () => Number(input.step || '1') || 1;
+                const clamp = v => {
+                    let val = v;
+                    const min = input.min === '' ? null : Number(input.min);
+                    const max = input.max === '' ? null : Number(input.max);
+                    if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+                    if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+                    return val;
+                };
+                btnUp.addEventListener('click', () => {
+                    const cur = Number(input.value || '0') || 0;
+                    input.value = String(clamp(cur + step()));
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                btnDown.addEventListener('click', () => {
+                    const cur = Number(input.value || '0') || 0;
+                    input.value = String(clamp(cur - step()));
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            };
+            // Target specific IDs explicitly to avoid unexpected layout shifts
+            const numberIds = [
+                'plex.port',
+                'plex.recentDays',
+                'jf.port',
+                'jf.recentDays',
+                'tmdb.minRating',
+                'tvdb.minRating',
+                'SERVER_PORT',
+                'siteServer.port',
+                'input-cache-size-gb',
+            ];
+            numberIds.forEach(id => enhanceNumberInput(document.getElementById(id)));
+        } catch (_) {}
+
         // Screensaver: live summary + presets (affect global Effect/Playback/Clock)
         try {
             const elInterval = document.getElementById('transitionIntervalSeconds');

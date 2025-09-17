@@ -6396,6 +6396,66 @@ body.page-logs {
     transform: rotate(90deg);
 }
 
+/* ------------------------------------------------------------------ */
+/* Global number input wrapper (shared across panels & modals)        */
+/* ------------------------------------------------------------------ */
+.number-input-wrapper {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    border-radius: 10px;
+    overflow: hidden;
+    width: 100%;
+    position: relative;
+}
+.number-input-wrapper input[type='number'] {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    background: transparent;
+    color: var(--color-text-primary);
+    border: none;
+    outline: none;
+    font: inherit;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+.number-input-wrapper input[type='number']::-webkit-outer-spin-button,
+.number-input-wrapper input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.number-input-wrapper .number-controls {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--color-border);
+}
+.number-input-wrapper .number-btn {
+    width: 34px;
+    height: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-tertiary);
+    border: 0;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+.number-input-wrapper .number-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-text-primary);
+}
+.number-input-wrapper .number-btn:active {
+    transform: translateY(0);
+}
+.number-input-wrapper.niw-compact input[type='number'] {
+    padding: 6px 8px;
+}
+.number-input-wrapper.niw-compact .number-btn {
+    width: 30px;
+}
+
 /* Modern slider and number input styles for Display */
 #section-display .modern-slider input[type='range'] {
     width: 100%;
