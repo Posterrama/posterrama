@@ -24,17 +24,19 @@ const userContextMiddleware = (req, res, next) => {
     // Add user context to request for use in other middleware/routes
     req.userContext = userContext;
 
-    // Log significant user actions
+    // Only log significant user actions, not routine admin operations
     if (req.method !== 'GET' || req.path.includes('/api/')) {
         const actionType = getActionType(req);
 
-        if (actionType === 'admin_action') {
-            logger.info('👤 Admin action', {
-                ...userContext,
-                action: `${req.method} ${req.path}`,
-                body: req.method !== 'GET' ? sanitizeRequestBody(req.body) : undefined,
-            });
-        } else if (actionType === 'api_access') {
+        // Skip routine admin action logging to reduce noise
+        // if (actionType === 'admin_action') {
+        //     logger.info('👤 Admin action', {
+        //         ...userContext,
+        //         action: `${req.method} ${req.path}`,
+        //         body: req.method !== 'GET' ? sanitizeRequestBody(req.body) : undefined,
+        //     });
+        // } else
+        if (actionType === 'api_access') {
             logger.debug('🔌 API access', {
                 ...userContext,
                 endpoint: req.path,

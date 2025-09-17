@@ -46,7 +46,7 @@ const metricsMiddleware = (req, res, next) => {
         try {
             metricsManager.recordRequest(method, path, responseTime, statusCode, cached);
 
-            // Enhanced performance logging
+            // Enhanced performance logging - only log notable issues
             const performanceData = {
                 method,
                 path: path || req.path,
@@ -60,19 +60,22 @@ const metricsMiddleware = (req, res, next) => {
                 ip: req.ip || req.connection.remoteAddress,
             };
 
-            // Log based on performance thresholds
-            if (responseTime > 2000) {
-                logger.warn('🐌 Slow request detected', performanceData);
-            } else if (responseTime > 1000) {
-                logger.verbose('⏱️ Moderate response time', performanceData);
-            } else {
-                logger.debug('⚡ Request performance', performanceData);
+            // Only log performance issues, not routine requests
+            if (responseTime > 3000) {
+                logger.warn('🐌 Very slow request', performanceData);
+            } else if (responseTime > 1500) {
+                logger.info('⏱️ Slow request', performanceData);
+            } else if (statusCode >= 500) {
+                logger.error('💥 Server error', performanceData);
+            } else if (statusCode >= 400) {
+                logger.warn('⚠️ Client error', performanceData);
             }
+            // Removed routine "Request performance" logging
 
-            // Log high memory usage requests
-            if (Math.abs(memoryDelta) > 1024) {
-                // More than 1MB change
-                logger.verbose('🧠 High memory impact request', {
+            // Only log significant memory usage changes
+            if (Math.abs(memoryDelta) > 2048) {
+                // More than 2MB change
+                logger.warn('🧠 High memory impact request', {
                     ...performanceData,
                     memoryBefore: Math.round(startMemory.heapUsed / 1024 / 1024) + 'MB',
                     memoryAfter: Math.round(endMemory.heapUsed / 1024 / 1024) + 'MB',

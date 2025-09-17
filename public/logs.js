@@ -60,18 +60,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const uses24Hour = shouldUse24Hour();
 
-    // Log level hierarchy for filtering (Winston levels)
+    // Simplified log level hierarchy for filtering
     const logLevels = {
-        silly: 0, // Winston's most verbose level
-        debug: 1,
-        verbose: 2,
-        http: 3,
-        info: 4,
-        warn: 5,
-        error: 6,
-    };
-
-    // Function to check if the user is scrolled to the bottom of the log container
+        debug: 1, // Most verbose - shows everything
+        info: 2, // Normal operations
+        warn: 3, // Warnings
+        error: 4, // Errors only
+    }; // Function to check if the user is scrolled to the bottom of the log container
     function checkScroll() {
         const container = logOutput.parentElement;
         // A small tolerance (e.g., 5px) can help on some browsers
@@ -105,8 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     clearFilterButton.addEventListener('click', () => {
-        logLevelSelect.value = 'silly';
-        selectedLevel = 'silly';
+        logLevelSelect.value = 'debug';
+        selectedLevel = 'debug';
         textFilter.value = '';
         searchText = '';
         renderLogs(currentLogs);
@@ -248,8 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isPaused) return;
 
         try {
-            const response = await fetch('/api/admin/logs', {
-                credentials: 'include', // Include cookies in the request
+            const response = await fetch('/api/logs', {
                 headers: {
                     Accept: 'application/json',
                 },

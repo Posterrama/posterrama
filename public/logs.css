@@ -198,11 +198,6 @@ body.page-logs {
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: var(--color-bg-tertiary);
 }
-.log-row .level.level-trace {
-    background: #6b7280;
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.15);
-}
 .log-row .level.level-debug {
     background: #3b82f6;
     color: #fff;
@@ -218,16 +213,8 @@ body.page-logs {
     color: #111827;
     border-color: rgba(0, 0, 0, 0.2);
 }
-.log-row .level.level-warn {
-    color: #111827;
-}
 .log-row .level.level-error {
     background: #ef4444;
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.18);
-}
-.log-row .level.level-fatal {
-    background: #8b5cf6;
     color: #fff;
     border-color: rgba(255, 255, 255, 0.18);
 }
@@ -243,12 +230,10 @@ body.page-logs {
 }
 
 /* If old JS added level-* classes on the entire row, keep text readable */
-.logs-output .log-row.level-trace,
 .logs-output .log-row.level-debug,
 .logs-output .log-row.level-info,
 .logs-output .log-row.level-warn,
-.logs-output .log-row.level-error,
-.logs-output .log-row.level-fatal {
+.logs-output .log-row.level-error {
     color: var(--color-text-primary) !important;
 }
 

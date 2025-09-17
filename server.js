@@ -13287,6 +13287,42 @@ app.get('/api/admin/logs', isAuthenticated, (req, res) => {
 
 /**
  * @swagger
+ * /api/logs:
+ *   get:
+ *     summary: Get recent logs (public read-only access)
+ *     description: Retrieves recent log entries without authentication for logs viewer
+ *     tags: ['Logs']
+ *     parameters:
+ *       - in: query
+ *         name: level
+ *         schema:
+ *           type: string
+ *           enum: ['error', 'warn', 'info', 'debug']
+ *         description: Minimum log level to include
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 200
+ *         description: Maximum number of logs to return
+ *     responses:
+ *       200:
+ *         description: An array of log objects
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/LogEntry'
+ */
+app.get('/api/logs', (req, res) => {
+    const { level, limit } = req.query;
+    res.setHeader('Cache-Control', 'no-store'); // Prevent browser caching of log data
+    res.json(logger.getRecentLogs(level, parseInt(limit) || 200));
+});
+
+/**
+ * @swagger
  * /api/admin/logs/level:
  *   get:
  *     summary: Get current log level configuration
