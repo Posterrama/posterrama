@@ -13685,45 +13685,47 @@
                 chip.style.cssText = `
                     display: inline-flex;
                     align-items: center;
-                    gap: 6px;
-                    padding: 6px 10px;
-                    background: #f3f4f6;
-                    border: 1px solid #e5e7eb;
+                    gap: 8px;
+                    padding: 8px 12px;
+                    background: var(--color-bg-secondary);
+                    border: 1px solid var(--color-border);
                     border-radius: 6px;
                     font-size: 13px;
                     font-weight: 500;
-                    color: #374151;
-                    transition: all 0.15s ease;
+                    color: var(--color-text-primary);
+                    transition: border-color 0.2s ease;
                 `;
 
                 chip.innerHTML = `
-                    <span class="ip-text" style="font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; letter-spacing: 0.01em;">${entry}</span>
+                    <span class="ip-text" style="
+                        font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; 
+                        letter-spacing: 0.01em;
+                        color: var(--color-text-primary);
+                    ">${entry}</span>
                     <button type="button" class="ip-remove" title="Remove ${entry}" aria-label="Remove ${entry}" style="
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        width: 16px;
-                        height: 16px;
+                        width: 18px;
+                        height: 18px;
                         border: none;
-                        background: #ef4444;
-                        color: white;
+                        background: transparent;
+                        color: var(--color-text-muted);
                         border-radius: 3px;
                         cursor: pointer;
-                        transition: all 0.15s ease;
+                        transition: color 0.2s ease;
                         font-size: 10px;
-                    " onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+                    " onmouseover="this.style.color='var(--color-error)'" onmouseout="this.style.color='var(--color-text-muted)'">
                         <i class="fas fa-times"></i>
                     </button>
                 `;
 
-                // Hover effects for the chip
+                // Subtle hover effect for the chip
                 chip.addEventListener('mouseenter', () => {
-                    chip.style.background = '#e5e7eb';
-                    chip.style.borderColor = '#d1d5db';
+                    chip.style.borderColor = 'var(--color-primary)';
                 });
                 chip.addEventListener('mouseleave', () => {
-                    chip.style.background = '#f3f4f6';
-                    chip.style.borderColor = '#e5e7eb';
+                    chip.style.borderColor = 'var(--color-border)';
                 });
 
                 // Remove functionality
@@ -13744,23 +13746,12 @@
         whitelistState.dirty =
             JSON.stringify(whitelistState.current) !== JSON.stringify(whitelistState.original);
         const saveBtn = document.getElementById('btn-whitelist-save');
-        console.log('markWhitelistDirty called', {
-            dirty: whitelistState.dirty,
-            current: whitelistState.current,
-            original: whitelistState.original,
-            saveBtnExists: !!saveBtn,
-            saveBtnDisabled: saveBtn?.disabled,
-        });
         if (saveBtn) {
             saveBtn.disabled = !whitelistState.dirty || whitelistState.saving;
         }
     }
 
     function loadWhitelistFromConfig(cfg) {
-        console.log(
-            'loadWhitelistFromConfig called with:',
-            cfg?.config?.deviceMgmt?.bypass?.ipAllowList
-        );
         try {
             const arr =
                 cfg?.config?.deviceMgmt?.bypass?.ipAllowList ||
@@ -13769,10 +13760,6 @@
             whitelistState.original = Array.isArray(arr) ? [...arr] : [];
             whitelistState.current = [...whitelistState.original];
             whitelistState.dirty = false;
-            console.log('Whitelist loaded from config:', {
-                original: whitelistState.original,
-                current: whitelistState.current,
-            });
             renderWhitelist();
             markWhitelistDirty();
         } catch (e) {
@@ -13781,7 +13768,6 @@
     }
 
     async function saveWhitelist() {
-        console.log('saveWhitelist called', { current: whitelistState.current });
         if (!whitelistState.dirty || whitelistState.saving) return;
         whitelistState.saving = true;
         markWhitelistDirty();
@@ -13789,14 +13775,12 @@
 
         try {
             // Get current config
-            console.log('Fetching current config...');
             const cfgResp = await fetch('/api/admin/config', {
                 method: 'GET',
                 credentials: 'include',
             });
             if (!cfgResp.ok) throw new Error('Failed to load config');
             const fullCfg = await cfgResp.json();
-            console.log('Config loaded, updating whitelist...');
 
             // Update whitelist in config (fix both locations to ensure consistency)
             if (!fullCfg.config.deviceMgmt) fullCfg.config.deviceMgmt = {};
@@ -13807,11 +13791,6 @@
             if (!fullCfg.deviceMgmt) fullCfg.deviceMgmt = {};
             if (!fullCfg.deviceMgmt.bypass) fullCfg.deviceMgmt.bypass = {};
             fullCfg.deviceMgmt.bypass.ipAllowList = [...whitelistState.current];
-
-            console.log('Whitelist updated in both locations:');
-            console.log('  config.deviceMgmt:', fullCfg.config.deviceMgmt.bypass.ipAllowList);
-            console.log('  deviceMgmt:', fullCfg.deviceMgmt.bypass.ipAllowList);
-            console.log('Full config being saved:', JSON.stringify(fullCfg, null, 2));
 
             // Save config
             const saveResp = await fetch('/api/admin/config', {
@@ -13828,9 +13807,6 @@
             }
 
             const saveResult = await saveResp.text();
-            console.log('Save response:', saveResult);
-
-            console.log('Config saved successfully');
 
             // Update state
             whitelistState.original = [...whitelistState.current];
@@ -13963,10 +13939,6 @@
 
             // Save whitelist
             saveBtn.addEventListener('click', () => {
-                console.log('Save button clicked', {
-                    dirty: whitelistState.dirty,
-                    saving: whitelistState.saving,
-                });
                 if (!whitelistState.dirty || whitelistState.saving) return;
                 saveWhitelist();
             });
@@ -13980,14 +13952,8 @@
         initWhitelistEvents();
 
         // Load initial whitelist from config
-        console.log('DOMContentLoaded - loading initial whitelist config');
         fetchJSON('/api/admin/config')
             .then(cfg => {
-                console.log(
-                    'Initial config loaded:',
-                    cfg?.config?.deviceMgmt?.bypass?.ipAllowList ||
-                        cfg?.deviceMgmt?.bypass?.ipAllowList
-                );
                 if (cfg) loadWhitelistFromConfig(cfg);
             })
             .catch(() => {
@@ -13997,7 +13963,6 @@
 
     // Listen for reload events from section navigation
     document.addEventListener('reloadWhitelist', event => {
-        console.log('reloadWhitelist event received', event.detail);
         const cfg = event.detail;
         if (cfg) loadWhitelistFromConfig(cfg);
     });
@@ -14005,14 +13970,12 @@
 
 // Global function to reload whitelist data when section becomes active
 window.reloadWhitelistData = function () {
-    console.log('reloadWhitelistData called');
     fetch('/api/admin/config')
         .then(response => {
             if (!response.ok) throw new Error('Failed to fetch config');
             return response.json();
         })
         .then(cfg => {
-            console.log('Config fetched for reload:', cfg?.config?.deviceMgmt?.bypass?.ipAllowList);
             // Dispatch custom event to trigger whitelist reload
             const event = new CustomEvent('reloadWhitelist', { detail: cfg });
             document.dispatchEvent(event);

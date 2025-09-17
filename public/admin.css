@@ -6701,3 +6701,37 @@ body.page-logs {
     outline: none;
     border-color: var(--color-border-strong, rgba(255, 255, 255, 0.22));
 }
+
+/* IP Whitelist Chips - Clean & Minimal */
+.ip-chip {
+    font-family: inherit;
+}
+
+.ip-chip .ip-remove:hover {
+    background: var(--color-bg-tertiary) !important;
+}
+
+/* Chip container improvements */
+#device-whitelist-list {
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+#device-whitelist-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#device-whitelist-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#device-whitelist-list::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+}
+
+#device-whitelist-list::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+}
