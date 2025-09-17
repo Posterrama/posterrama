@@ -1,5 +1,7 @@
 const metricsManager = require('../utils/metrics');
-const logger = require('../utils/logger');
+const logger = require            // Memory impact warnings removed - not actionable for operations
+            // Memory usage can be monitored via system monitoring tools instead
+        } catch (error) {');
 
 // Helper function to get memory info in MB (reserved for future use)
 // function getMemoryInfo() {
@@ -71,21 +73,6 @@ const metricsMiddleware = (req, res, next) => {
                 logger.warn('⚠️ Client error', performanceData);
             }
             // Removed routine "Request performance" logging
-
-            // Only log significant memory usage changes, but exclude endpoints that naturally have large responses
-            const isLargeResponseEndpoint =
-                [
-                    '/get-media',
-                    '/api/admin/logs',
-                    '/api/v1/media',
-                    '/api/admin/config',
-                    '/api/admin/preview-media',
-                ].some(endpoint => (path || req.path).includes(endpoint)) ||
-                // Admin API endpoints with counts/genres/qualities often have large responses
-                ((path || req.path).includes('/api/admin/') &&
-                    ((path || req.path).includes('-with-counts') ||
-                        (path || req.path).includes('-genres') ||
-                        (path || req.path).includes('-qualities')));
 
             // Memory impact warnings removed - not actionable for operations
             // Memory usage can be monitored via system monitoring tools instead
