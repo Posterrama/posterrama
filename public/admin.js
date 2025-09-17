@@ -4315,7 +4315,7 @@
                 cropBtn.style.display = 'none';
                 cropBtn.style.background = '';
                 cropBtn.disabled = false;
-                cropBtn.innerHTML = '<i class="fas fa-crop"></i><span>Crop</span>';
+                cropBtn.innerHTML = '<i class="fas fa-crop"></i> <span>Crop</span>';
             }
 
             // Hide file selection display
@@ -4331,6 +4331,16 @@
                     previewImg && previewImg.src && !previewImg.src.includes('blob:')
                         ? 'inline-block'
                         : 'none';
+            }
+        }
+
+        // Reset crop button to original state (when selection changes)
+        function resetCropButton() {
+            const cropBtn = document.getElementById('avatar-crop-btn');
+            if (cropBtn) {
+                cropBtn.innerHTML = '<i class="fas fa-crop"></i> <span>Crop</span>';
+                cropBtn.style.background = '';
+                cropBtn.disabled = false;
             }
         }
 
@@ -4580,7 +4590,7 @@
 
                     // Update Crop button to show it's been used
                     if (cropBtn) {
-                        cropBtn.innerHTML = '<i class="fas fa-check"></i><span>Cropped</span>';
+                        cropBtn.innerHTML = '<i class="fas fa-check"></i> <span>Cropped</span>';
                         cropBtn.style.background = 'var(--color-success)';
                         cropBtn.disabled = true; // Prevent multiple crops of same selection
                     }
@@ -4797,6 +4807,9 @@
             const selection = document.getElementById('crop-selection');
             const overlay = document.getElementById('crop-overlay');
             if (!selection || !overlay || !cropCanvas) return;
+
+            // Reset crop button when selection changes
+            resetCropButton();
 
             // Get canvas position within its container
             const container = document.getElementById('crop-container');
