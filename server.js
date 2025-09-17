@@ -1048,11 +1048,7 @@ app.get('/promo.html', (req, res, next) => {
 app.use(metricsMiddleware);
 
 // Add user context middleware for enhanced logging
-const {
-    userContextMiddleware,
-    loginSuccessMiddleware,
-    logoutMiddleware,
-} = require('./middleware/user-context');
+const { userContextMiddleware } = require('./middleware/user-context');
 app.use(userContextMiddleware);
 
 // Input Validation Middleware and Endpoints

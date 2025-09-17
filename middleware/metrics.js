@@ -1,16 +1,16 @@
 const metricsManager = require('../utils/metrics');
 const logger = require('../utils/logger');
 
-// Helper function to get memory info in MB
-function getMemoryInfo() {
-    const memory = process.memoryUsage();
-    return {
-        rss: Math.round(memory.rss / 1024 / 1024),
-        heapUsed: Math.round(memory.heapUsed / 1024 / 1024),
-        heapTotal: Math.round(memory.heapTotal / 1024 / 1024),
-        external: Math.round(memory.external / 1024 / 1024),
-    };
-}
+// Helper function to get memory info in MB (reserved for future use)
+// function getMemoryInfo() {
+//     const memory = process.memoryUsage();
+//     return {
+//         rss: Math.round(memory.rss / 1024 / 1024),
+//         heapUsed: Math.round(memory.heapUsed / 1024 / 1024),
+//         heapTotal: Math.round(memory.heapTotal / 1024 / 1024),
+//         external: Math.round(memory.external / 1024 / 1024),
+//     };
+// }
 
 // Helper function to get request size
 function getRequestSize(req) {
