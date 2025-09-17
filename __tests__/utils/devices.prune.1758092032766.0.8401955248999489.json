@@ -1,0 +1,28 @@
+[
+    {
+        "id": "a58b7f09-1c4e-4d5c-a8d7-0e38a64fe055",
+        "installId": "iid-1",
+        "hardwareId": null,
+        "secretHash": "sha256:a1998f50020b5426b936e8f0d6da54491adcdf521df6afed35e5381e6003bad7",
+        "name": "DupX",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-17T06:53:52.780Z",
+        "updatedAt": "2025-09-17T06:53:52.796Z",
+        "lastSeenAt": "2025-09-17T06:53:52.788Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "UA",
+            "screen": {
+                "w": 1920,
+                "h": 1080,
+                "dpr": 1
+            }
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    }
+]

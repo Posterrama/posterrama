@@ -24,12 +24,10 @@ describe('healthCheck cache + toggles', () => {
         const second = await health.getDetailedHealth();
         // Names of checks should be identical (cache hit or fast recompute)
         expect(second.checks.map(c => c.name)).toEqual(first.checks.map(c => c.name));
-        // If timestamp changed, ensure change is small (<100ms) implying possible race vs TTL boundary
         if (second.timestamp !== first.timestamp) {
             const delta = Date.parse(second.timestamp) - Date.parse(first.timestamp);
             expect(delta).toBeLessThan(100);
         }
-        // Wait past TTL to force refresh
         await new Promise(r => setTimeout(r, 60));
         const third = await health.getDetailedHealth();
         expect(third.timestamp).not.toBe(first.timestamp);

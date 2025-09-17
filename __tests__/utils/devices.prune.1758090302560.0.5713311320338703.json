@@ -1,0 +1,80 @@
+[
+    {
+        "id": "959434af-5316-4d1c-8e49-8282590ccdec",
+        "installId": "iid-1",
+        "hardwareId": null,
+        "secretHash": "sha256:64429d3061839fb567424b87aac5eccb5b8ac9687f4c1780353ed20cf4bc4a3a",
+        "name": "Dup2",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-17T06:25:02.647Z",
+        "updatedAt": "2025-09-17T06:25:02.655Z",
+        "lastSeenAt": "2025-09-17T06:25:02.649Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "UA",
+            "screen": {
+                "w": 1920,
+                "h": 1080,
+                "dpr": 1
+            }
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "92073d98-8cfa-4732-8bf3-c392fae0a674",
+        "installId": null,
+        "hardwareId": null,
+        "secretHash": "sha256:820b9bca324ff331d0035dfc58a616c8036bc0bcce99fe6e0448966e2a6c15a9",
+        "name": "Anon0",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-17T06:25:02.656Z",
+        "updatedAt": "2025-09-17T06:25:02.657Z",
+        "lastSeenAt": "2025-09-17T06:25:02.657Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "UA",
+            "screen": {
+                "width": 1920,
+                "height": 1080,
+                "scale": 1
+            }
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "ff208c12-9f74-4ab1-85e5-5d6a775beade",
+        "installId": null,
+        "hardwareId": null,
+        "secretHash": "sha256:7abbd3e93ab73c282670a85299a9591971a5d5746f7df92d57e73f17d6d65e2c",
+        "name": "Anon1",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-09-17T06:25:02.657Z",
+        "updatedAt": "2025-09-17T06:25:02.658Z",
+        "lastSeenAt": "2025-09-17T06:25:02.658Z",
+        "status": "online",
+        "clientInfo": {
+            "userAgent": "UA",
+            "screen": {
+                "width": 1920,
+                "height": 1080,
+                "scale": 1
+            }
+        },
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    }
+]

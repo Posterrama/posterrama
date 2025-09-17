@@ -1,12 +1,12 @@
 const ExampleSource = require('../../sources/example');
 
 /**
- * Covers metrics + filter branches in example source.
+ * Intent: Cover metrics + rtMinScore filtering branches in example source.
+ * Determinism: shuffleArray replaced with stable noop; synthetic predictable items.
  */
 
 describe('ExampleSource metrics & filtering', () => {
     function makeClient(itemsPerLib = []) {
-        const call = 0;
         return {
             getItems: jest.fn(async ({ startIndex, limit }) => {
                 const batch = itemsPerLib.slice(startIndex, startIndex + limit);

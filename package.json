@@ -26,6 +26,7 @@
     "scripts": {
         "start": "node server.js",
         "test": "jest",
+        "test:stress": "bash -c 'for i in {1..5}; do echo Run $i; npx jest --runInBand || exit 1; done'",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
         "coverage:table": "node scripts/generate-coverage-table.js",

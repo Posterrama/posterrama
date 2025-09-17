@@ -3,8 +3,9 @@ const path = require('path');
 const updater = require('../../utils/updater');
 
 /**
- * Targets rollback branch (error during update and rollback attempt).
- * We simulate failure by monkeypatching internal methods.
+ * Intent: Exercise rollback path when applyUpdate throws.
+ * Determinism: All updater stage functions mocked; no real filesystem/network activity.
+ * Isolation: Creates a minimal fake backup directory with package.json stub.
  */
 
 describe('updater rollback path', () => {

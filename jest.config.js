@@ -36,15 +36,15 @@ module.exports = {
 
     // Coverage thresholds - realistic targets based on current coverage
     coverageThreshold: focusedRun
-        ? {
-              global: { branches: 0, functions: 0, lines: 0, statements: 0 },
-          }
+        ? { global: { branches: 0, functions: 0, lines: 0, statements: 0 } }
         : {
               global: {
-                  branches: 24, // Based on current 42.91% with margin
-                  functions: 25, // Based on current 43.22% with margin
-                  lines: 25, // Based on current 45.7% with margin
-                  statements: 25, // Based on current 45.24% with margin
+                  // Set thresholds just below stable current numbers to prevent noise while still guarding major regressions
+                  branches: 60,
+                  functions: 75,
+                  lines: 78,
+                  // Statements reported by Jest threshold check at ~77.06 even though summary shows higher; set to 77 to stop spurious failure
+                  statements: 77,
               },
               // File-specific thresholds for well-tested modules only
               // Adjusted to match current stable coverage; plan to ratchet up in follow-ups

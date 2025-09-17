@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const { nextId } = require('../test-utils/deterministic');
 
 // We'll load deviceStore lazily inside each test with isolated module registry
 let deviceStore;
@@ -10,10 +11,15 @@ let deviceStore;
  * - UA + screen heuristic
  */
 
+/**
+ * Intent: Cover duplicate pruning heuristics (same installId + UA/screen heuristics).
+ * Determinism: Uses deterministic id helper instead of raw Math.random / Date.now.
+ * Isolation: Each test points DEVICES_STORE_PATH at a unique temp JSON file.
+ */
 describe('deviceStore pruneLikelyDuplicates', () => {
     beforeEach(async () => {
         // Point store path to unique temp file BEFORE requiring module
-        const tmpStore = path.join(__dirname, `devices.prune.${Date.now()}.${Math.random()}.json`);
+        const tmpStore = path.join(__dirname, `devices.prune.${nextId('ts')}.json`);
         process.env.DEVICES_STORE_PATH = path.relative(path.join(__dirname, '..', '..'), tmpStore);
         // Ensure no leftover file
         if (fs.existsSync(tmpStore)) fs.unlinkSync(tmpStore);
