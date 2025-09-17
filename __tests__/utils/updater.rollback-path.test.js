@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const updater = require('../../utils/updater');
 
 /**
@@ -39,14 +40,17 @@ describe('updater rollback path', () => {
     });
 
     test('rollback triggered when applyUpdate throws', async () => {
-        // Minimal mock chain
-        updater.createBackup = jest.fn().mockResolvedValue(path.join(__dirname, 'fake-backup'));
-        // Ensure fake backup directory exists for restore attempt
-        const bdir = path.join(__dirname, 'fake-backup');
-        if (!fs.existsSync(bdir)) fs.mkdirSync(bdir, { recursive: true });
+        // Use an isolated temp directory instead of mutating the repo fixture
+        const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'posterrama-updater-test-'));
+        const bdir = path.join(tmpRoot, 'backup');
+        fs.mkdirSync(bdir, { recursive: true });
+        // Minimal package.json stub (not strictly needed since rollback is mocked, but keeps parity)
         fs.writeFileSync(path.join(bdir, 'package.json'), '{"name":"x","version":"0.0.0"}');
 
-        updater.downloadUpdate = jest.fn().mockResolvedValue(path.join(__dirname, 'fake.zip'));
+        // Minimal mock chain
+        updater.createBackup = jest.fn().mockResolvedValue(bdir);
+
+        updater.downloadUpdate = jest.fn().mockResolvedValue(path.join(tmpRoot, 'fake.zip'));
         updater.validateDownload = jest.fn().mockResolvedValue();
         updater.stopServices = jest.fn().mockResolvedValue();
         updater.applyUpdate = jest.fn().mockRejectedValue(new Error('apply failed'));

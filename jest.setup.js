@@ -70,6 +70,23 @@ global.cleanupTimers = function () {
 process.env.NODE_ENV = 'test';
 process.env.TEST_SILENT = 'true'; // Suppress logger output
 
+// Snapshot immutable test fixture(s) to ensure tests do not mutate them in-place
+const fs = require('fs');
+const path = require('path');
+const CRITICAL_FIXTURES = [
+    path.join(__dirname, '__tests__', 'utils', 'fake-backup', 'package.json'),
+];
+const fixtureSnapshots = new Map();
+for (const f of CRITICAL_FIXTURES) {
+    try {
+        if (fs.existsSync(f)) {
+            fixtureSnapshots.set(f, fs.readFileSync(f, 'utf8'));
+        }
+    } catch (_) {
+        // ignore
+    }
+}
+
 // Global teardown after each test
 afterEach(() => {
     global.cleanupTimers();
@@ -86,6 +103,21 @@ afterEach(() => {
             delete require.cache[key];
         }
     });
+
+    // Verify critical fixtures unchanged
+    for (const [f, orig] of fixtureSnapshots.entries()) {
+        try {
+            if (fs.existsSync(f)) {
+                const current = fs.readFileSync(f, 'utf8');
+                if (current !== orig) {
+                    throw new Error(`Test mutated immutable fixture: ${f}`);
+                }
+            }
+        } catch (err) {
+            // Re-throw to fail the test visibly
+            throw err;
+        }
+    }
 });
 
 // Global teardown before exit
