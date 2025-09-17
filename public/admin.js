@@ -4948,19 +4948,31 @@
                                         cropCanvas.height
                                     ) - cropData.y
                                 );
-                                // Use the smaller dimension to maintain square
-                                const size = Math.min(newWidth, newHeight);
+
+                                // Use the smaller dimension to maintain square and stay within bounds
+                                const maxSize = Math.min(
+                                    newWidth,
+                                    newHeight,
+                                    cropCanvas.width - cropData.x,
+                                    cropCanvas.height - cropData.y
+                                );
+                                const size = Math.max(50, maxSize);
+
                                 cropData.width = size;
                                 cropData.height = size;
                             }
                             break;
                         case 'sw': // Southwest
                             {
+                                // Keep right edge fixed, move left edge
+                                const fixedX = cropStartX + cropData.width; // Right edge stays fixed
+
                                 const newX = Math.max(
                                     0,
-                                    Math.min(cropStartX + deltaX, cropData.x + cropData.width - 50)
+                                    Math.min(cropStartX + deltaX, fixedX - 50)
                                 );
-                                const newWidth = cropData.x + cropData.width - newX;
+                                const newWidth = fixedX - newX;
+
                                 const newHeight = Math.max(
                                     50,
                                     Math.min(
@@ -4968,15 +4980,26 @@
                                         cropCanvas.height
                                     ) - cropData.y
                                 );
-                                // Use the smaller dimension to maintain square
-                                const size = Math.min(newWidth, newHeight);
+
+                                // Use the smaller dimension to maintain square and stay within bounds
+                                const maxSize = Math.min(
+                                    newWidth,
+                                    newHeight,
+                                    fixedX,
+                                    cropCanvas.height - cropData.y
+                                );
+                                const size = Math.max(50, maxSize);
+
                                 cropData.width = size;
                                 cropData.height = size;
-                                cropData.x = cropData.x + (newWidth - size); // Adjust x to keep right edge
+                                cropData.x = fixedX - size; // Keep right edge fixed
                             }
                             break;
                         case 'ne': // Northeast
                             {
+                                // Keep bottom-left corner fixed
+                                const fixedY = cropStartY + cropData.height; // Bottom edge stays fixed
+
                                 const newWidth = Math.max(
                                     50,
                                     Math.min(
@@ -4984,35 +5007,50 @@
                                         cropCanvas.width
                                     ) - cropData.x
                                 );
+
                                 const newY = Math.max(
                                     0,
-                                    Math.min(cropStartY + deltaY, cropData.y + cropData.height - 50)
+                                    Math.min(cropStartY + deltaY, fixedY - 50)
                                 );
-                                const newHeight = cropData.y + cropData.height - newY;
-                                // Use the smaller dimension to maintain square
-                                const size = Math.min(newWidth, newHeight);
+                                const newHeight = fixedY - newY;
+
+                                // Use the smaller dimension to maintain square and stay within bounds
+                                const maxSize = Math.min(
+                                    newWidth,
+                                    newHeight,
+                                    cropCanvas.width - cropData.x,
+                                    fixedY
+                                );
+                                const size = Math.max(50, maxSize);
+
                                 cropData.width = size;
                                 cropData.height = size;
-                                cropData.y = cropData.y + (newHeight - size); // Adjust y to keep bottom edge
+                                cropData.y = fixedY - size; // Keep bottom edge fixed
                             }
                             break;
                         case 'nw': // Northwest
                             {
-                                // For northwest handle, we want to keep the bottom-right corner fixed
-                                // and move the top-left corner
+                                // Keep bottom-right corner fixed
                                 const fixedX = cropStartX + cropData.width; // Right edge stays fixed
                                 const fixedY = cropStartY + cropData.height; // Bottom edge stays fixed
 
-                                const newX = Math.max(0, cropStartX + deltaX);
-                                const newY = Math.max(0, cropStartY + deltaY);
+                                const newX = Math.max(
+                                    0,
+                                    Math.min(cropStartX + deltaX, fixedX - 50)
+                                );
+                                const newY = Math.max(
+                                    0,
+                                    Math.min(cropStartY + deltaY, fixedY - 50)
+                                );
 
-                                const newWidth = Math.max(50, fixedX - newX);
-                                const newHeight = Math.max(50, fixedY - newY);
+                                const newWidth = fixedX - newX;
+                                const newHeight = fixedY - newY;
 
-                                // Use the smaller dimension to maintain square
-                                const size = Math.min(newWidth, newHeight);
+                                // Use the smaller dimension to maintain square and stay within bounds
+                                const maxSize = Math.min(newWidth, newHeight, fixedX, fixedY);
+                                const size = Math.max(50, maxSize);
 
-                                // Set new position and size - top-left corner moves
+                                // Set new position and size - keep bottom-right corner fixed
                                 cropData.width = size;
                                 cropData.height = size;
                                 cropData.x = fixedX - size;
