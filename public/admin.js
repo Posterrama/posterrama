@@ -4342,8 +4342,14 @@
             }
         });
 
-        // Click to upload on drop zone
-        uploadDropZone?.addEventListener('click', () => fileInput?.click());
+        // Click to upload on drop zone (only if not clicking on the button)
+        uploadDropZone?.addEventListener('click', e => {
+            // Don't trigger if user clicked on the actual file trigger button
+            if (e.target.id === 'avatar-file-trigger' || e.target.closest('#avatar-file-trigger')) {
+                return;
+            }
+            fileInput?.click();
+        });
 
         // File input change handler
         fileInput?.addEventListener('change', () => {
@@ -4587,8 +4593,8 @@
 
             img.onload = function () {
                 // Calculate canvas size to fit image while maintaining aspect ratio
-                const maxWidth = 400;
-                const maxHeight = 300;
+                const maxWidth = 500;
+                const maxHeight = 350;
                 let canvasWidth, canvasHeight;
 
                 if (img.width > img.height) {
@@ -4657,40 +4663,31 @@
             const ctx = cropCanvas.getContext('2d');
             ctx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
 
-            // Draw the image
+            // Just draw the image - overlay is handled by CSS
             ctx.drawImage(cropImage, 0, 0, cropCanvas.width, cropCanvas.height);
-
-            // Draw semi-transparent overlay outside crop area
-            ctx.save();
-            ctx.globalAlpha = 0.7;
-            ctx.fillStyle = '#000000';
-
-            // Top
-            ctx.fillRect(0, 0, cropCanvas.width, cropData.y);
-            // Bottom
-            ctx.fillRect(
-                0,
-                cropData.y + cropData.height,
-                cropCanvas.width,
-                cropCanvas.height - (cropData.y + cropData.height)
-            );
-            // Left
-            ctx.fillRect(0, cropData.y, cropData.x, cropData.height);
-            // Right
-            ctx.fillRect(
-                cropData.x + cropData.width,
-                cropData.y,
-                cropCanvas.width - (cropData.x + cropData.width),
-                cropData.height
-            );
-
-            ctx.restore();
         }
 
         function updateCropOverlay() {
             const selection = document.getElementById('crop-selection');
-            if (!selection) return;
+            const overlay = document.getElementById('crop-overlay');
+            if (!selection || !overlay || !cropCanvas) return;
 
+            // Get canvas position within its container
+            const container = document.getElementById('crop-container');
+            const canvasRect = cropCanvas.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+
+            // Calculate canvas offset relative to container
+            const canvasOffsetX = canvasRect.left - containerRect.left;
+            const canvasOffsetY = canvasRect.top - containerRect.top;
+
+            // Position overlay to match canvas exactly
+            overlay.style.left = canvasOffsetX + 'px';
+            overlay.style.top = canvasOffsetY + 'px';
+            overlay.style.width = cropCanvas.width + 'px';
+            overlay.style.height = cropCanvas.height + 'px';
+
+            // Position selection within the overlay
             selection.style.left = cropData.x + 'px';
             selection.style.top = cropData.y + 'px';
             selection.style.width = cropData.width + 'px';
@@ -4721,7 +4718,6 @@
             const zoomSlider = document.getElementById('crop-zoom');
             const zoomValue = document.getElementById('crop-zoom-value');
             const resetBtn = document.getElementById('crop-reset');
-            const squareBtn = document.getElementById('crop-square');
             const selection = document.getElementById('crop-selection');
             const handles = document.querySelectorAll('.crop-handle');
 
@@ -4730,13 +4726,16 @@
                 const zoom = parseFloat(e.target.value);
                 zoomValue.textContent = Math.round(zoom * 100) + '%';
 
-                // Adjust crop area size based on zoom
+                // Adjust crop area size based on zoom - always maintain square
                 const centerX = cropData.x + cropData.width / 2;
                 const centerY = cropData.y + cropData.height / 2;
                 const newSize = (Math.min(cropCanvas.width, cropCanvas.height) * 0.8) / zoom;
 
-                cropData.width = Math.min(newSize, cropCanvas.width - 20);
-                cropData.height = Math.min(newSize, cropCanvas.height - 20);
+                // Ensure square crop by using same value for width and height
+                const size = Math.min(newSize, cropCanvas.width - 20, cropCanvas.height - 20);
+                cropData.width = size;
+                cropData.height = size;
+
                 cropData.x = Math.max(
                     10,
                     Math.min(centerX - cropData.width / 2, cropCanvas.width - cropData.width - 10)
@@ -4772,20 +4771,7 @@
                 updateCropPreview();
             });
 
-            // Square crop
-            squareBtn?.addEventListener('click', () => {
-                const size = Math.min(cropData.width, cropData.height);
-                cropData.width = size;
-                cropData.height = size;
-
-                // Keep within bounds
-                cropData.x = Math.max(10, Math.min(cropData.x, cropCanvas.width - size - 10));
-                cropData.y = Math.max(10, Math.min(cropData.y, cropCanvas.height - size - 10));
-
-                drawCropCanvas();
-                updateCropOverlay();
-                updateCropPreview();
-            });
+            // Square crop is no longer needed - all crops are automatically square
 
             // Drag crop area
             selection?.addEventListener('mousedown', e => {
@@ -4838,59 +4824,91 @@
                     const deltaX = e.clientX - dragStartX;
                     const deltaY = e.clientY - dragStartY;
 
-                    // Handle different resize directions
+                    // Handle different resize directions - always maintain square aspect ratio
                     switch (resizeHandle) {
                         case 'se': // Southeast
-                            cropData.width = Math.max(
-                                50,
-                                Math.min(cropStartX + cropData.width + deltaX, cropCanvas.width) -
-                                    cropData.x
-                            );
-                            cropData.height = Math.max(
-                                50,
-                                Math.min(cropStartY + cropData.height + deltaY, cropCanvas.height) -
-                                    cropData.y
-                            );
+                            {
+                                const newWidth = Math.max(
+                                    50,
+                                    Math.min(
+                                        cropStartX + cropData.width + deltaX,
+                                        cropCanvas.width
+                                    ) - cropData.x
+                                );
+                                const newHeight = Math.max(
+                                    50,
+                                    Math.min(
+                                        cropStartY + cropData.height + deltaY,
+                                        cropCanvas.height
+                                    ) - cropData.y
+                                );
+                                // Use the smaller dimension to maintain square
+                                const size = Math.min(newWidth, newHeight);
+                                cropData.width = size;
+                                cropData.height = size;
+                            }
                             break;
                         case 'sw': // Southwest
-                            const newX = Math.max(
-                                0,
-                                Math.min(cropStartX + deltaX, cropData.x + cropData.width - 50)
-                            );
-                            cropData.width = cropData.x + cropData.width - newX;
-                            cropData.x = newX;
-                            cropData.height = Math.max(
-                                50,
-                                Math.min(cropStartY + cropData.height + deltaY, cropCanvas.height) -
-                                    cropData.y
-                            );
+                            {
+                                const newX = Math.max(
+                                    0,
+                                    Math.min(cropStartX + deltaX, cropData.x + cropData.width - 50)
+                                );
+                                const newWidth = cropData.x + cropData.width - newX;
+                                const newHeight = Math.max(
+                                    50,
+                                    Math.min(
+                                        cropStartY + cropData.height + deltaY,
+                                        cropCanvas.height
+                                    ) - cropData.y
+                                );
+                                // Use the smaller dimension to maintain square
+                                const size = Math.min(newWidth, newHeight);
+                                cropData.width = size;
+                                cropData.height = size;
+                                cropData.x = cropData.x + (newWidth - size); // Adjust x to keep right edge
+                            }
                             break;
                         case 'ne': // Northeast
-                            cropData.width = Math.max(
-                                50,
-                                Math.min(cropStartX + cropData.width + deltaX, cropCanvas.width) -
-                                    cropData.x
-                            );
-                            const newY = Math.max(
-                                0,
-                                Math.min(cropStartY + deltaY, cropData.y + cropData.height - 50)
-                            );
-                            cropData.height = cropData.y + cropData.height - newY;
-                            cropData.y = newY;
+                            {
+                                const newWidth = Math.max(
+                                    50,
+                                    Math.min(
+                                        cropStartX + cropData.width + deltaX,
+                                        cropCanvas.width
+                                    ) - cropData.x
+                                );
+                                const newY = Math.max(
+                                    0,
+                                    Math.min(cropStartY + deltaY, cropData.y + cropData.height - 50)
+                                );
+                                const newHeight = cropData.y + cropData.height - newY;
+                                // Use the smaller dimension to maintain square
+                                const size = Math.min(newWidth, newHeight);
+                                cropData.width = size;
+                                cropData.height = size;
+                                cropData.y = cropData.y + (newHeight - size); // Adjust y to keep bottom edge
+                            }
                             break;
                         case 'nw': // Northwest
-                            const newXnw = Math.max(
-                                0,
-                                Math.min(cropStartX + deltaX, cropData.x + cropData.width - 50)
-                            );
-                            cropData.width = cropData.x + cropData.width - newXnw;
-                            cropData.x = newXnw;
-                            const newYnw = Math.max(
-                                0,
-                                Math.min(cropStartY + deltaY, cropData.y + cropData.height - 50)
-                            );
-                            cropData.height = cropData.y + cropData.height - newYnw;
-                            cropData.y = newYnw;
+                            {
+                                const newX = Math.max(
+                                    0,
+                                    Math.min(cropStartX + deltaX, cropData.x + cropData.width - 50)
+                                );
+                                const newWidth = cropData.x + cropData.width - newX;
+                                const newY = Math.max(
+                                    0,
+                                    Math.min(cropStartY + deltaY, cropData.y + cropData.height - 50)
+                                );
+                                const newHeight = cropData.y + cropData.height - newY;
+                                // Use the smaller dimension to maintain square
+                                const size = Math.min(newWidth, newHeight);
+                                cropData.width = size;
+                                cropData.height = size;
+                                cropData.x = cropData.x + (newWidth - size); // Adjust x to keep right edge
+                                cropData.y = cropData.y + (newHeight - size); // Adjust y to keep bottom edge
+                            }
                             break;
                     }
 
