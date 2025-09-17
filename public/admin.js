@@ -4216,8 +4216,11 @@
                 // ignore
             }
             const m = document.getElementById('modal-avatar');
-            if (m) openModal('modal-avatar');
-            else
+            if (m) {
+                // Reset button states when opening modal
+                resetAvatarModalState();
+                openModal('modal-avatar');
+            } else
                 window.notify?.toast?.({
                     type: 'info',
                     title: 'Profile',
@@ -4289,6 +4292,33 @@
             }
         } catch (_) {
             /* ignore */
+        }
+
+        // Reset avatar modal button states
+        function resetAvatarModalState() {
+            const uploadBtn = document.getElementById('avatar-upload-btn');
+            const removeBtn = document.getElementById('avatar-remove-btn');
+            const cropBtn = document.getElementById('avatar-crop-btn');
+            const selectedFileDisplay = document.getElementById('selected-file-display');
+            const cropInterface = document.getElementById('crop-interface');
+
+            // Hide crop button initially
+            if (cropBtn) cropBtn.style.display = 'none';
+
+            // Hide file selection display
+            if (selectedFileDisplay) selectedFileDisplay.style.display = 'none';
+
+            // Hide crop interface
+            if (cropInterface) cropInterface.style.display = 'none';
+
+            // Check if user has existing avatar to show/hide remove button
+            const previewImg = document.getElementById('avatar-image-preview');
+            if (removeBtn) {
+                removeBtn.style.display =
+                    previewImg && previewImg.src && !previewImg.src.includes('blob:')
+                        ? 'inline-block'
+                        : 'none';
+            }
         }
 
         // Avatar modal actions
@@ -4485,6 +4515,7 @@
                 uploadBtn.removeAttribute('aria-busy');
                 uploadBtn.disabled = false;
                 uploadBtn.innerHTML = '<i class="fas fa-upload"></i><span>Upload</span>';
+                uploadBtn.style.background = ''; // Reset background
             }
         }
 
@@ -4533,6 +4564,13 @@
                         message: 'Your image has been cropped successfully. Click Upload to save.',
                         duration: 3000,
                     });
+
+                    // Update Upload button to show it's ready
+                    if (uploadBtn) {
+                        uploadBtn.style.background = 'var(--color-success)';
+                        uploadBtn.innerHTML =
+                            '<i class="fas fa-upload"></i><span>Upload Cropped</span>';
+                    }
 
                     // Clean up the URL after a delay
                     setTimeout(() => URL.revokeObjectURL(croppedUrl), 1000);

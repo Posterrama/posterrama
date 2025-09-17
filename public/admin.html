@@ -2836,17 +2836,24 @@
         </div>
       </div>
       
-      <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 20px 24px;">
-        <button type="button" class="btn btn-outline" data-close-modal style="min-width: 80px;">Cancel</button>
-        <button type="button" class="btn btn-error" id="avatar-remove-btn" style="min-width: 90px;">
-          <i class="fas fa-trash"></i><span>Remove</span>
-        </button>
-        <button type="button" class="btn btn-secondary" id="avatar-crop-btn" style="min-width: 90px; display: none;">
-          <i class="fas fa-crop"></i><span>Crop</span>
-        </button>
-        <button type="button" class="btn btn-primary" id="avatar-upload-btn" style="min-width: 90px;">
-          <i class="fas fa-upload"></i><span>Upload</span>
-        </button>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <!-- Left side: Cancel -->
+        <div>
+          <button type="button" class="btn btn-outline" data-close-modal style="min-width: 80px;">Cancel</button>
+        </div>
+        
+        <!-- Right side: Action buttons -->
+        <div style="display: flex; gap: 12px;">
+          <button type="button" class="btn btn-error" id="avatar-remove-btn" style="min-width: 90px;">
+            <i class="fas fa-trash"></i><span>Remove</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="avatar-crop-btn" style="min-width: 90px; display: none;">
+            <i class="fas fa-crop"></i><span>Crop</span>
+          </button>
+          <button type="button" class="btn btn-primary" id="avatar-upload-btn" style="min-width: 90px;">
+            <i class="fas fa-upload"></i><span>Upload</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
