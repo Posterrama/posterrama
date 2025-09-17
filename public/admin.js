@@ -4302,6 +4302,14 @@
             const selectedFileDisplay = document.getElementById('selected-file-display');
             const cropInterface = document.getElementById('crop-interface');
 
+            // Reset upload button styling and text
+            if (uploadBtn) {
+                uploadBtn.style.background = '';
+                uploadBtn.style.height = '';
+                uploadBtn.style.minHeight = '';
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i><span>Upload</span>';
+            }
+
             // Hide crop button initially
             if (cropBtn) cropBtn.style.display = 'none';
 
@@ -4568,6 +4576,8 @@
                     // Update Upload button to show it's ready
                     if (uploadBtn) {
                         uploadBtn.style.background = 'var(--color-success)';
+                        uploadBtn.style.height = ''; // Reset any height changes
+                        uploadBtn.style.minHeight = ''; // Reset any min-height changes
                         uploadBtn.innerHTML =
                             '<i class="fas fa-upload"></i><span>Upload Cropped</span>';
                     }
@@ -5034,6 +5044,7 @@
                                 const fixedX = cropStartX + cropData.width; // Right edge stays fixed
                                 const fixedY = cropStartY + cropData.height; // Bottom edge stays fixed
 
+                                // Calculate new position with stricter bounds
                                 const newX = Math.max(
                                     0,
                                     Math.min(cropStartX + deltaX, fixedX - 50)
@@ -5043,18 +5054,29 @@
                                     Math.min(cropStartY + deltaY, fixedY - 50)
                                 );
 
-                                const newWidth = fixedX - newX;
-                                const newHeight = fixedY - newY;
+                                // Calculate maximum possible sizes based on available space
+                                const maxWidthFromX = fixedX - newX;
+                                const maxHeightFromY = fixedY - newY;
+                                const maxWidthFromCanvas = Math.min(fixedX, cropCanvas.width);
+                                const maxHeightFromCanvas = Math.min(fixedY, cropCanvas.height);
 
-                                // Use the smaller dimension to maintain square and stay within bounds
-                                const maxSize = Math.min(newWidth, newHeight, fixedX, fixedY);
-                                const size = Math.max(50, maxSize);
+                                // Use the most restrictive constraint to ensure we stay within bounds
+                                const maxSize = Math.min(
+                                    maxWidthFromX,
+                                    maxHeightFromY,
+                                    maxWidthFromCanvas,
+                                    maxHeightFromCanvas
+                                );
+                                const size = Math.max(
+                                    50,
+                                    Math.min(maxSize, Math.min(fixedX, fixedY))
+                                );
 
                                 // Set new position and size - keep bottom-right corner fixed
                                 cropData.width = size;
                                 cropData.height = size;
-                                cropData.x = fixedX - size;
-                                cropData.y = fixedY - size;
+                                cropData.x = Math.max(0, fixedX - size);
+                                cropData.y = Math.max(0, fixedY - size);
                             }
                             break;
                     }
