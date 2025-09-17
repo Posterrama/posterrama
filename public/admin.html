@@ -2697,10 +2697,74 @@
         <div class="modal-title" id="modal-avatar-title"><i class="fas fa-image"></i> Profile Photo</div>
         <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
       </div>
-      <div class="modal-body" style="text-align: center; padding: 24px;">
+      <div class="modal-body" style="padding: 20px;">
         
+        <!-- Image cropping interface (initially hidden, shown when file selected) -->
+        <div id="crop-interface" style="display: none; margin-bottom: 24px; background: rgba(255,255,255,0.02); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.08);">
+          <div style="margin-bottom: 16px; text-align: center;">
+            <h4 style="color: var(--color-primary); font-size: 1.1rem; margin: 0 0 8px 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <i class="fas fa-crop"></i>
+              Crop Your Image
+            </h4>
+            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin: 0;">
+              Drag to reposition, use mouse wheel to zoom, or resize the selection area.
+            </p>
+          </div>
+          
+          <!-- Crop canvas container -->
+          <div id="crop-container" style="position: relative; margin-bottom: 16px; border-radius: 8px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; min-height: 300px; max-height: 400px;">
+            <canvas id="crop-canvas" style="cursor: grab; display: block;"></canvas>
+            
+            <!-- Crop overlay with selection box -->
+            <div id="crop-overlay" style="position: absolute; pointer-events: none;">
+              <div id="crop-selection" style="
+                position: absolute;
+                border: 2px solid var(--color-primary);
+                background: rgba(var(--color-primary-rgb), 0.1);
+                cursor: move;
+                pointer-events: all;
+                box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+              ">
+                <!-- Resize handles -->
+                <div class="crop-handle" data-handle="nw" style="position: absolute; top: -4px; left: -4px; width: 8px; height: 8px; background: var(--color-primary); cursor: nw-resize;"></div>
+                <div class="crop-handle" data-handle="ne" style="position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; background: var(--color-primary); cursor: ne-resize;"></div>
+                <div class="crop-handle" data-handle="sw" style="position: absolute; bottom: -4px; left: -4px; width: 8px; height: 8px; background: var(--color-primary); cursor: sw-resize;"></div>
+                <div class="crop-handle" data-handle="se" style="position: absolute; bottom: -4px; right: -4px; width: 8px; height: 8px; background: var(--color-primary); cursor: se-resize;"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Crop controls -->
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <label style="font-size: 0.85rem; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-search-plus" style="font-size: 0.8rem;"></i>
+                Zoom:
+              </label>
+              <input type="range" id="crop-zoom" min="0.5" max="3" step="0.1" value="1" style="width: 100px;">
+              <span id="crop-zoom-value" style="font-size: 0.8rem; color: rgba(255,255,255,0.6); min-width: 30px;">100%</span>
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn btn-outline btn-sm" id="crop-reset" title="Reset crop area">
+                <i class="fas fa-undo"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Cropped preview -->
+          <div style="margin-top: 16px; text-align: center;">
+            <div style="margin-bottom: 8px;">
+              <span style="font-size: 0.85rem; color: rgba(255,255,255,0.8);">Preview:</span>
+            </div>
+            <div style="display: inline-block; width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 2px solid rgba(255,255,255,0.2); background: #000;">
+              <canvas id="crop-preview" width="80" height="80" style="width: 100%; height: 100%;"></canvas>
+            </div>
+          </div>
+        </div>
+
         <!-- Large centered avatar preview -->
-        <div style="margin-bottom: 32px;">
+        <div style="margin-bottom: 24px; text-align: center;">
           <div class="avatar-preview" id="avatar-preview" aria-live="polite" style="
             width: 120px; 
             height: 120px; 
@@ -2768,69 +2832,6 @@
               </div>
             </div>
 
-            <!-- Image cropping interface -->
-            <div id="crop-interface" style="display: none; margin-top: 20px; background: rgba(255,255,255,0.02); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.08);">
-              <div style="margin-bottom: 16px;">
-                <h4 style="color: var(--color-primary); font-size: 1rem; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
-                  <i class="fas fa-crop"></i>
-                  Crop Your Image
-                </h4>
-                <p style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin: 0;">
-                  Drag to reposition, use mouse wheel to zoom, or resize the selection area.
-                </p>
-              </div>
-              
-              <!-- Crop canvas container -->
-              <div id="crop-container" style="position: relative; margin-bottom: 16px; border-radius: 8px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; min-height: 300px; max-height: 400px;">
-                <canvas id="crop-canvas" style="cursor: grab; display: block;"></canvas>
-                
-                <!-- Crop overlay with selection box -->
-                <div id="crop-overlay" style="position: absolute; pointer-events: none;">
-                  <div id="crop-selection" style="
-                    position: absolute;
-                    border: 2px solid var(--color-primary);
-                    background: rgba(var(--color-primary-rgb), 0.1);
-                    cursor: move;
-                    pointer-events: all;
-                    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-                  ">
-                    <!-- Resize handles -->
-                    <div class="crop-handle" data-handle="nw" style="position: absolute; top: -4px; left: -4px; width: 8px; height: 8px; background: var(--color-primary); cursor: nw-resize;"></div>
-                    <div class="crop-handle" data-handle="ne" style="position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; background: var(--color-primary); cursor: ne-resize;"></div>
-                    <div class="crop-handle" data-handle="sw" style="position: absolute; bottom: -4px; left: -4px; width: 8px; height: 8px; background: var(--color-primary); cursor: sw-resize;"></div>
-                    <div class="crop-handle" data-handle="se" style="position: absolute; bottom: -4px; right: -4px; width: 8px; height: 8px; background: var(--color-primary); cursor: se-resize;"></div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Crop controls -->
-              <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <label style="font-size: 0.85rem; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-search-plus" style="font-size: 0.8rem;"></i>
-                    Zoom:
-                  </label>
-                  <input type="range" id="crop-zoom" min="0.5" max="3" step="0.1" value="1" style="width: 100px;">
-                  <span id="crop-zoom-value" style="font-size: 0.8rem; color: rgba(255,255,255,0.6); min-width: 30px;">100%</span>
-                </div>
-                
-                <div style="display: flex; gap: 8px;">
-                  <button type="button" class="btn btn-outline btn-sm" id="crop-reset" title="Reset crop area">
-                    <i class="fas fa-undo"></i>
-                  </button>
-                </div>
-              </div>
-              
-              <!-- Cropped preview -->
-              <div style="margin-top: 16px; text-align: center;">
-                <div style="margin-bottom: 8px;">
-                  <span style="font-size: 0.85rem; color: rgba(255,255,255,0.8);">Preview:</span>
-                </div>
-                <div style="display: inline-block; width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 2px solid rgba(255,255,255,0.2); background: #000;">
-                  <canvas id="crop-preview" width="80" height="80" style="width: 100%; height: 100%;"></canvas>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

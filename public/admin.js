@@ -4729,7 +4729,8 @@
                 // Adjust crop area size based on zoom - always maintain square
                 const centerX = cropData.x + cropData.width / 2;
                 const centerY = cropData.y + cropData.height / 2;
-                const newSize = (Math.min(cropCanvas.width, cropCanvas.height) * 0.8) / zoom;
+                // Invert the zoom logic: higher zoom = smaller crop area (more zoomed in)
+                const newSize = Math.min(cropCanvas.width, cropCanvas.height) * 0.8 * zoom;
 
                 // Ensure square crop by using same value for width and height
                 const size = Math.min(newSize, cropCanvas.width - 20, cropCanvas.height - 20);
@@ -4894,20 +4895,25 @@
                             {
                                 const newX = Math.max(
                                     0,
-                                    Math.min(cropStartX + deltaX, cropData.x + cropData.width - 50)
+                                    Math.min(cropStartX + deltaX, cropStartX + cropData.width - 50)
                                 );
-                                const newWidth = cropData.x + cropData.width - newX;
                                 const newY = Math.max(
                                     0,
-                                    Math.min(cropStartY + deltaY, cropData.y + cropData.height - 50)
+                                    Math.min(cropStartY + deltaY, cropStartY + cropData.height - 50)
                                 );
-                                const newHeight = cropData.y + cropData.height - newY;
+
+                                // Calculate new dimensions based on new position
+                                const newWidth = cropStartX + cropData.width - newX;
+                                const newHeight = cropStartY + cropData.height - newY;
+
                                 // Use the smaller dimension to maintain square
                                 const size = Math.min(newWidth, newHeight);
+
+                                // Set new position and size
                                 cropData.width = size;
                                 cropData.height = size;
-                                cropData.x = cropData.x + (newWidth - size); // Adjust x to keep right edge
-                                cropData.y = cropData.y + (newHeight - size); // Adjust y to keep bottom edge
+                                cropData.x = cropStartX + cropData.width - size;
+                                cropData.y = cropStartY + cropData.height - size;
                             }
                             break;
                     }
