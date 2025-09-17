@@ -5046,7 +5046,7 @@
 
             // Create a new canvas for the cropped image
             const croppedCanvas = document.createElement('canvas');
-            const size = 200; // Fixed output size for profile photos
+            const size = 600; // High resolution output size for profile photos
             croppedCanvas.width = size;
             croppedCanvas.height = size;
 
