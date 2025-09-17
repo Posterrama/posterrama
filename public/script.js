@@ -11,8 +11,6 @@
  * (at your option) any later version.
  */
 
-console.log(`🎬 DEBUG: Script.js v=1758117327 loaded at ${new Date().toISOString()}`);
-
 // Simple frontend logger to match backend logger interface
 const logger = {
     debug: () => {}, // silenced for cleaner browser console
@@ -51,6 +49,42 @@ const logger = {
         // intentionally empty: silencing console in non-debug mode may fail in some environments
     }
 })();
+
+// --- Reliable Server Connectivity Check ---
+let connectivityState = { lastCheck: 0, isOnline: true }; // Assume online initially
+function isServerReachable() {
+    const now = Date.now();
+    const cacheTimeout = 30000; // 30 seconds cache
+
+    // Return cached result if recent
+    if (now - connectivityState.lastCheck < cacheTimeout) {
+        return connectivityState.isOnline;
+    }
+
+    // Quick synchronous test using fetch with very short timeout
+    // This runs in background and updates cache for next call
+    const testConnection = async () => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 sec timeout
+
+            const response = await fetch('/health', {
+                method: 'HEAD',
+                signal: controller.signal,
+                cache: 'no-cache',
+            });
+
+            clearTimeout(timeoutId);
+            connectivityState = { lastCheck: now, isOnline: response.ok };
+        } catch (e) {
+            connectivityState = { lastCheck: now, isOnline: false };
+        }
+    };
+
+    // Start background test but return cached result immediately
+    testConnection();
+    return connectivityState.isOnline;
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
     // (Ken Burns debug helpers removed)
@@ -1022,10 +1056,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ? partial.transitionIntervalSeconds
                         : next.transitionIntervalSeconds;
                 next.transitionEffect = partial.transitionEffect || next.transitionEffect;
-                console.log(
-                    `🎬 Debug: Applied transitionEffect in applySettings:`,
-                    next.transitionEffect
-                );
                 next.effectPauseTime =
                     typeof partial.effectPauseTime === 'number'
                         ? partial.effectPauseTime
@@ -1135,17 +1165,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Listen for preview messages from admin iframe
     window.addEventListener('message', event => {
         try {
-            console.log(`🎬 Debug: ANY message received:`, event.data);
             // Only accept same-origin messages
             if (event.origin !== window.location.origin) return;
             const data = event.data || {};
             if (data && data.type === 'posterrama.preview.update' && data.payload) {
                 // Mark that we've received a live preview payload
                 window.__POSTERRAMA_PREVIEW_ACTIVE = true;
-                console.log(
-                    `🎬 Debug: Received transition effect in preview:`,
-                    data.payload.transitionEffect
-                );
                 applySettings(data.payload);
             }
         } catch (_) {
@@ -3746,7 +3771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             // Skip config refresh when offline
-            if (!navigator.onLine) {
+            if (!isServerReachable()) {
                 return;
             }
 
@@ -3817,7 +3842,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (error) {
             // Silent fail in offline mode - don't spam console
-            if (navigator.onLine) {
+            if (isServerReachable()) {
                 console.error('Failed to refresh configuration:', error);
             }
         }
@@ -4169,7 +4194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } else {
             // Handle offline mode gracefully for posters
-            if (!navigator.onLine && mediaItem.posterUrl) {
+            if (!isServerReachable() && mediaItem.posterUrl) {
                 // Test if poster is cached, otherwise use placeholder
                 const testImg = new Image();
                 testImg.onerror = () => {
@@ -4430,7 +4455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error(`❌ Image load ERROR for: ${currentMedia.title}`);
 
             // In offline mode, don't skip items - keep showing current content
-            if (!navigator.onLine) {
+            if (!isServerReachable()) {
                 console.warn(
                     `📶 Background unavailable offline for: ${currentMedia.title}. Keeping current display.`
                 );
@@ -4784,13 +4809,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Simple Ken Burns transition: smooth pan/zoom on newLayer with crossfade from oldLayer
     function applyKenBurnsTransition(newLayer, oldLayer, durationSec, fadeSec = 1.2) {
-        console.log(
-            `🎬 Debug: Applying Ken Burns transition (preview mode: ${!!window.IS_PREVIEW})`
-        );
-
-        // Use shorter duration in preview mode for quicker feedback, but still do real Ken Burns
-        const actualDurationSec = window.IS_PREVIEW ? Math.min(durationSec, 3) : durationSec;
-        const actualFadeSec = window.IS_PREVIEW ? Math.min(fadeSec, 1) : fadeSec;
+        // Use longer duration in preview mode for more realistic preview, but still shorter than full duration
+        const actualDurationSec = window.IS_PREVIEW ? Math.min(durationSec, 8) : durationSec;
+        const actualFadeSec = window.IS_PREVIEW ? Math.min(fadeSec, 2) : fadeSec;
 
         // Prep layers
         if (oldLayer) {
@@ -4979,17 +5000,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // In admin live preview, use shorter duration for quicker feedback but still apply real effects
         if (window.IS_PREVIEW) {
-            console.log(
-                `🎬 Debug: Preview mode - will apply selected transition effect with shorter duration`
-            );
+            // Preview mode - effects will use shorter durations for responsiveness
         }
 
         // Get transition effect configuration
         const transitionEffect = appConfig.transitionEffect || 'none';
-        console.log(
-            `🎬 Debug: applyTransitionEffect using effect "${transitionEffect}" from appConfig:`,
-            appConfig
-        );
         const transitionInterval = appConfig.transitionIntervalSeconds || 15;
         const pauseTime =
             appConfig.effectPauseTime !== null && appConfig.effectPauseTime !== undefined
@@ -5292,20 +5307,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function changeMedia(direction = 'next', isFirstLoad = false, isErrorSkip = false) {
-        console.log(
-            `🎬 Debug: changeMedia called - direction: ${direction}, isFirstLoad: ${isFirstLoad}, isErrorSkip: ${isErrorSkip}`
-        );
-
         if (mediaQueue.length === 0) {
             console.warn('❌ mediaQueue is empty');
             return;
         }
 
         // In offline mode, don't cycle through media unless it's the first load
-        // DISABLED for debugging: navigator.onLine is unreliable in local network setups
-        // eslint-disable-next-line no-constant-condition
-        if (false && !navigator.onLine && !isFirstLoad) {
-            console.warn('📶 [DISABLED] This offline check is disabled for debugging');
+        // Skip offline check in preview mode and localhost (always online for testing)
+        const isLocalhost =
+            window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isFirstLoad && !window.IS_PREVIEW && !isLocalhost && !isServerReachable()) {
+            console.warn('📶 Offline mode: Server unreachable, keeping current media displayed');
             return;
         }
 

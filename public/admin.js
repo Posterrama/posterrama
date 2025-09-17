@@ -2729,11 +2729,6 @@
                 if (postPayload.cinemaMode) {
                     postPayload.cinemaOrientation = 'portrait';
                 }
-                console.log(
-                    `🎬 Debug: Sending transition effect to preview:`,
-                    postPayload.transitionEffect
-                );
-                console.log(`🎬 Debug: previewWin available:`, !!previewWin);
                 previewWin.postMessage(
                     { type: 'posterrama.preview.update', payload: postPayload },
                     window.location.origin
