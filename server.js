@@ -110,6 +110,16 @@ const deviceStore = require('./utils/deviceStore');
 const wsHub = require('./utils/wsHub');
 const groupsStore = require('./utils/groupsStore');
 const dns = require('dns').promises;
+// Optional ownership normalization (only acts when POSTERRAMA_AUTO_CHOWN=true and running as root)
+try {
+    const { fixOwnership } = require('./utils/fixOwnership');
+    const result = fixOwnership();
+    if (result && result.skipped) {
+        logger.debug('[Ownership] Skipped:', result.reason);
+    }
+} catch (e) {
+    logger.warn('[Ownership] Initialization failed:', e.message);
+}
 
 // --- Auto Cache Busting ---
 const cachedVersions = {};
