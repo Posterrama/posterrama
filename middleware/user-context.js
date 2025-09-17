@@ -37,11 +37,22 @@ const userContextMiddleware = (req, res, next) => {
         //     });
         // } else
         if (actionType === 'api_access') {
-            logger.debug('🔌 API access', {
-                ...userContext,
-                endpoint: req.path,
-                query: Object.keys(req.query).length > 0 ? req.query : undefined,
-            });
+            // Skip logging for noisy admin/monitoring endpoints
+            const isNoisyEndpoint =
+                req.path &&
+                (req.path.startsWith('/api/admin/performance') ||
+                    req.path.startsWith('/api/v1/metrics') ||
+                    req.path.startsWith('/api/admin/metrics') ||
+                    req.path.startsWith('/api/admin/logs') ||
+                    req.path.startsWith('/api/admin/status'));
+
+            if (!isNoisyEndpoint) {
+                logger.debug('🔌 API access', {
+                    ...userContext,
+                    endpoint: req.path,
+                    query: Object.keys(req.query).length > 0 ? req.query : undefined,
+                });
+            }
         } else if (actionType === 'auth_action') {
             logger.info('🔐 Authentication action', {
                 ...userContext,

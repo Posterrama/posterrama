@@ -1,4 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log(
+        '🔄 Logs.js v2.2.0 - Smart updates preserve expanded states',
+        new Date().toISOString()
+    );
+
     const logOutput = document.getElementById('log-output');
     const statusDot = document.getElementById('status-dot');
     const statusText = document.getElementById('status-text');
@@ -89,7 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logLevelSelect.addEventListener('change', e => {
         selectedLevel = e.target.value;
-        renderLogs(currentLogs);
+        // Fetch new logs with updated level filter
+        fetchLogs();
     });
 
     const textFilter = document.getElementById('textFilter');
@@ -104,7 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedLevel = 'debug';
         textFilter.value = '';
         searchText = '';
-        renderLogs(currentLogs);
+        // Fetch new logs with debug level
+        fetchLogs();
     });
 
     function formatLog(log) {
@@ -217,24 +224,89 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderLogs(logs) {
-        // Newest-first rendering: reverse order without mutating original array
+        // Since server-side filtering is applied, we only need to apply search filter
         const filteredLogs = logs
-            .filter(log => shouldShowLog(log))
+            .filter(log => {
+                const textMatch =
+                    searchText === '' ||
+                    log.message.toLowerCase().includes(searchText) ||
+                    log.level.toLowerCase().includes(searchText);
+                return textMatch;
+            })
             .slice()
-            .reverse();
+            .reverse(); // Newest-first rendering
 
         const container = logOutput.parentElement;
-        const atTop = container.scrollTop === 0; // when newest-first, top is the latest
+        const wasScrolledToTop = container.scrollTop <= 10; // Allow small threshold for "at top"
 
-        logOutput.innerHTML = '';
-        for (const log of filteredLogs) {
-            logOutput.appendChild(formatLog(log));
+        // Smart update: preserve expanded states and only update if content actually changed
+        updateLogsSmart(filteredLogs);
+
+        // Auto-scroll behavior: if user was viewing latest logs (at top), keep them there
+        if (autoScrollCheckbox.checked && wasScrolledToTop) {
+            container.scrollTop = 0;
+        }
+    }
+
+    function updateLogsSmart(newLogs) {
+        // Save currently expanded log IDs
+        const expandedLogs = new Set();
+        const existingRows = logOutput.querySelectorAll('.log-row.expanded');
+        existingRows.forEach(row => {
+            const timestamp = row.querySelector('.timestamp')?.textContent;
+            const message = row.querySelector('.message')?.textContent;
+            if (timestamp && message) {
+                expandedLogs.add(`${timestamp}-${message.substring(0, 50)}`);
+            }
+        });
+
+        // Only rebuild if logs have actually changed
+        const currentLogSignature = Array.from(logOutput.querySelectorAll('.log-row'))
+            .map(row => {
+                const timestamp = row.querySelector('.timestamp')?.textContent || '';
+                const message = row.querySelector('.message')?.textContent || '';
+                return `${timestamp}-${message.substring(0, 50)}`;
+            })
+            .join('|');
+
+        const newLogSignature = newLogs
+            .map(log => {
+                const timestamp = new Date(log.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: !uses24Hour,
+                });
+                return `${timestamp}-${log.message.substring(0, 50)}`;
+            })
+            .join('|');
+
+        // If content is the same, don't rebuild
+        if (currentLogSignature === newLogSignature) {
+            return;
         }
 
-        // Auto-scroll behavior: if user was at top (viewing the latest), keep them at top
-        if (autoScrollCheckbox.checked && isScrolledToBottom) {
-            if (atTop) {
-                container.scrollTop = 0;
+        // Rebuild but restore expanded states
+        logOutput.innerHTML = '';
+        for (const log of newLogs) {
+            const logElement = formatLog(log);
+            logOutput.appendChild(logElement);
+
+            // Restore expanded state if it was previously expanded
+            const timestamp = logElement.querySelector('.timestamp')?.textContent;
+            const message = logElement.querySelector('.message')?.textContent;
+            const logId = `${timestamp}-${message?.substring(0, 50)}`;
+
+            if (expandedLogs.has(logId)) {
+                logElement.classList.add('expanded');
+                const detailsContainer = logElement.querySelector('.log-details');
+                if (detailsContainer) {
+                    detailsContainer.style.display = 'block';
+                }
+                const expandIcon = logElement.querySelector('.expand-icon');
+                if (expandIcon) {
+                    expandIcon.textContent = '−';
+                }
             }
         }
     }
@@ -243,7 +315,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isPaused) return;
 
         try {
-            const response = await fetch('/api/logs', {
+            // Send level and limit parameters to server for efficient filtering
+            const params = new URLSearchParams({
+                level: selectedLevel,
+                limit: '500', // Increased limit to see more history
+            });
+
+            const response = await fetch(`/api/admin/logs?${params}`, {
                 headers: {
                     Accept: 'application/json',
                 },
@@ -260,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Only update if logs have changed
             if (
                 logs.length !== lastLogCount ||
-                JSON.stringify(logs) !== JSON.stringify(currentLogs)
+                JSON.stringify(logs.slice(-5)) !== JSON.stringify(currentLogs.slice(-5)) // Only compare last 5 for performance
             ) {
                 currentLogs = logs;
                 lastLogCount = logs.length;
@@ -273,18 +351,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Fetch logs immediately on load, then poll every 5 seconds
-    fetchLogs();
-    let pollInterval = setInterval(fetchLogs, 5000);
+    // Smart polling: start with longer intervals, then speed up
+    let pollCount = 0;
+    let pollInterval;
 
-    // Clean up interval when page is hidden
+    function getPollingInterval() {
+        // First 5 polls (25 seconds): every 5 seconds
+        // Next 10 polls (50 seconds): every 5 seconds
+        // After that: every 3 seconds for more responsive updates
+        if (pollCount < 15) {
+            return 5000; // 5 seconds for first 75 seconds
+        }
+        return 3000; // 3 seconds afterwards
+    }
+
+    function startPolling() {
+        const interval = getPollingInterval();
+        pollInterval = setTimeout(() => {
+            pollCount++;
+            fetchLogs();
+            startPolling(); // Schedule next poll
+        }, interval);
+    }
+
+    // Fetch logs immediately on load, then start smart polling
+    fetchLogs();
+    startPolling();
+
+    // Clean up polling when page is hidden
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-            clearInterval(pollInterval);
+            clearTimeout(pollInterval);
         } else {
             // Resume polling when page becomes visible again
             fetchLogs();
-            pollInterval = setInterval(fetchLogs, 5000);
+            startPolling();
         }
     });
 });

@@ -202,6 +202,8 @@ function getAssetVersions() {
             'admin.js',
             'style.css',
             'admin.css',
+            'logs.js',
+            'logs.css',
             'sw.js',
             'client-logger.js',
             'manifest.json',
@@ -575,14 +577,50 @@ app.use((req, res, next) => {
         const [seconds, nanoseconds] = process.hrtime(start);
         const duration = seconds * 1000 + nanoseconds / 1000000;
 
+        // Skip logging for noisy admin/monitoring endpoints (unless they error or are slow)
+        const isAdminMonitoring =
+            req.path &&
+            (req.path.startsWith('/api/admin/performance') ||
+                req.path.startsWith('/api/v1/metrics') ||
+                req.path.startsWith('/api/admin/metrics') ||
+                req.path.startsWith('/api/admin/logs') ||
+                req.path.startsWith('/api/admin/status'));
+
+        // Skip logging for routine browser requests
+        const isRoutineRequest =
+            req.path &&
+            (req.path === '/favicon.ico' ||
+                req.path.startsWith('/static/') ||
+                req.path.startsWith('/images/') ||
+                req.path.startsWith('/css/') ||
+                req.path.startsWith('/js/') ||
+                req.path.startsWith('/fonts/') ||
+                req.path.endsWith('.css') ||
+                req.path.endsWith('.js') ||
+                req.path.endsWith('.png') ||
+                req.path.endsWith('.jpg') ||
+                req.path.endsWith('.ico') ||
+                req.path.endsWith('.svg') ||
+                req.path.endsWith('.woff') ||
+                req.path.endsWith('.woff2') ||
+                req.path.endsWith('.ttf'));
+
         const logLevel = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'debug';
 
-        logger[logLevel]('Request completed', {
-            ...requestLog,
-            status: res.statusCode,
-            duration: `${duration.toFixed(2)}ms`,
-            contentLength: res.get('content-length'),
-        });
+        // Only log if it's not routine/monitoring AND (has issues OR is not a GET request OR took long time)
+        const shouldLog =
+            !isAdminMonitoring &&
+            !isRoutineRequest &&
+            (res.statusCode >= 400 || req.method !== 'GET' || duration > 1000);
+
+        if (shouldLog) {
+            logger[logLevel]('Request completed', {
+                ...requestLog,
+                status: res.statusCode,
+                duration: `${duration.toFixed(2)}ms`,
+                contentLength: res.get('content-length'),
+            });
+        }
 
         // Log slow requests (configurable threshold)
         const slowReqMs = Number(process.env.SLOW_REQUEST_WARN_MS || 3000);
@@ -2404,6 +2442,12 @@ const {
     validationRules,
     createValidationMiddleware: newValidationMiddleware,
 } = require('./middleware/validation');
+
+// Protect logs.html from public access - require authentication
+app.get('/logs.html', isAuthenticated, (req, res, next) => {
+    // Redirect to admin/logs route instead
+    res.redirect('/admin/logs');
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -4464,14 +4508,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             return null;
         }
 
-        // --- START ENHANCED DEBUG LOGGING ---
-        if (isDebug) {
-            logger.debug(
-                `[RT Debug] Processing rating for "${titleForDebug}". Raw rtRating object:`,
-                JSON.stringify(rtRating)
-            );
-        }
-        // --- END ENHANCED DEBUG LOGGING ---
+        // RT Debug logging removed to reduce log noise
 
         const score = parseFloat(rtRating.value);
         if (isNaN(score)) {
@@ -4498,11 +4535,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             icon = 'fresh';
         }
 
-        if (isDebug) {
-            logger.debug(
-                `[RT Debug] -> For "${titleForDebug}": Identifier: "${imageIdentifier}", Score: ${finalScore}, Determined Icon: "${icon}"`
-            );
-        }
+        // RT Debug logging removed to reduce log noise
 
         return {
             score: finalScore, // The 0-100 score for display
@@ -4553,19 +4586,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         const uniqueKey = `${serverConfig.type}-${serverConfig.name}-${sourceItem.ratingKey}`;
         const rottenTomatoesData = getRottenTomatoesData(sourceItem.Rating, sourceItem.title);
 
-        if (isDebug) {
-            if (rottenTomatoesData) {
-                logger.debug(
-                    `[Plex Debug] Found Rotten Tomatoes data for "${sourceItem.title}": Score ${rottenTomatoesData.score}%, Icon ${rottenTomatoesData.icon}`
-                );
-            } else if (sourceItem.Rating) {
-                // Only log if the Rating array exists but we couldn't parse RT data from it.
-                logger.debug(
-                    `[Plex Debug] Could not parse Rotten Tomatoes data for "${sourceItem.title}" from rating array:`,
-                    JSON.stringify(sourceItem.Rating)
-                );
-            }
-        }
+        // Plex Debug logging consolidated to reduce noise - individual RT logs removed
 
         // Process genres from Plex data
         const genres =
@@ -6347,9 +6368,19 @@ app.get('/admin/logs', isAuthenticated, (req, res) => {
         const versions = getAssetVersions();
 
         // Replace asset version placeholders with individual file versions
-        const stamped = contents.replace(
+        let stamped = contents.replace(
             /admin\.css\?v=[^"&\s]+/g,
             `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
+        );
+
+        stamped = stamped.replace(
+            /logs\.css\?v=[^"&\s]+/g,
+            `logs.css?v=${versions['logs.css'] || ASSET_VERSION}`
+        );
+
+        stamped = stamped.replace(
+            /logs\.js\?v=[^"&\s]+/g,
+            `logs.js?v=${versions['logs.js'] || ASSET_VERSION}`
         );
 
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
@@ -13280,42 +13311,6 @@ app.post(
  *                 $ref: '#/components/schemas/LogEntry'
  */
 app.get('/api/admin/logs', isAuthenticated, (req, res) => {
-    const { level, limit } = req.query;
-    res.setHeader('Cache-Control', 'no-store'); // Prevent browser caching of log data
-    res.json(logger.getRecentLogs(level, parseInt(limit) || 200));
-});
-
-/**
- * @swagger
- * /api/logs:
- *   get:
- *     summary: Get recent logs (public read-only access)
- *     description: Retrieves recent log entries without authentication for logs viewer
- *     tags: ['Logs']
- *     parameters:
- *       - in: query
- *         name: level
- *         schema:
- *           type: string
- *           enum: ['error', 'warn', 'info', 'debug']
- *         description: Minimum log level to include
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 200
- *         description: Maximum number of logs to return
- *     responses:
- *       200:
- *         description: An array of log objects
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/LogEntry'
- */
-app.get('/api/logs', (req, res) => {
     const { level, limit } = req.query;
     res.setHeader('Cache-Control', 'no-store'); // Prevent browser caching of log data
     res.json(logger.getRecentLogs(level, parseInt(limit) || 200));

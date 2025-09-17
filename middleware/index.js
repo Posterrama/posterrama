@@ -132,27 +132,54 @@ function requestLoggingMiddleware() {
                 logger.warn('Request completed with error', logData);
             } else if (duration > 5000) {
                 logger.warn('Slow request detected', logData);
-            } else if (req.url.includes('/api/')) {
-                // Reduce noise: skip ultra-chatty streams (SSE) and demote to debug by default
-                if (req.url.startsWith('/api/admin/events')) return; // SSE stream
-                if (req.url.startsWith('/api/admin/logs')) return; // avoid self-referential log spam
-                if (req.url.startsWith('/api/devices/heartbeat')) return; // frequent pings
+            } else {
+                // Skip routine browser requests (static files, favicon, etc.)
+                const isRoutineRequest =
+                    req.url &&
+                    (req.url === '/favicon.ico' ||
+                        req.url.startsWith('/static/') ||
+                        req.url.startsWith('/images/') ||
+                        req.url.startsWith('/css/') ||
+                        req.url.startsWith('/js/') ||
+                        req.url.startsWith('/fonts/') ||
+                        req.url.endsWith('.css') ||
+                        req.url.endsWith('.js') ||
+                        req.url.endsWith('.png') ||
+                        req.url.endsWith('.jpg') ||
+                        req.url.endsWith('.ico') ||
+                        req.url.endsWith('.svg') ||
+                        req.url.endsWith('.woff') ||
+                        req.url.endsWith('.woff2') ||
+                        req.url.endsWith('.ttf'));
 
-                // Keep original behavior for tests to satisfy assertions
-                if (process.env.NODE_ENV === 'test') {
-                    logger.info('API request completed', logData);
-                    return;
-                }
+                if (isRoutineRequest) return; // Skip routine requests entirely
 
-                // Configurable log level and sampling for API access logs
-                const levelRaw = process.env.API_REQUEST_LOG_LEVEL || 'debug';
-                const level = String(levelRaw).trim().toLowerCase(); // info|debug|warn
-                const sample = Number(process.env.API_REQUEST_LOG_SAMPLE || 0); // 0..1 (e.g., 0.1 = 10%)
-                const logFn = typeof logger[level] === 'function' ? logger[level] : logger.info;
-                if (sample > 0) {
-                    if (Math.random() < sample) logFn('API request completed', logData);
-                } else {
-                    logFn('API request completed', logData);
+                if (req.url.includes('/api/')) {
+                    // Reduce noise: skip ultra-chatty streams (SSE) and demote to debug by default
+                    if (req.url.startsWith('/api/admin/events')) return; // SSE stream
+                    if (req.url.startsWith('/api/admin/logs')) return; // avoid self-referential log spam
+                    if (req.url.startsWith('/api/devices/heartbeat')) return; // frequent pings
+                    if (req.url.startsWith('/api/admin/performance')) return; // admin performance monitoring
+                    if (req.url.startsWith('/api/v1/metrics')) return; // admin metrics dashboard
+                    if (req.url.startsWith('/api/admin/metrics')) return; // admin metrics calls
+                    if (req.url.startsWith('/api/admin/status')) return; // admin status monitoring
+
+                    // Keep original behavior for tests to satisfy assertions
+                    if (process.env.NODE_ENV === 'test') {
+                        logger.info('API request completed', logData);
+                        return;
+                    }
+
+                    // Configurable log level and sampling for API access logs
+                    const levelRaw = process.env.API_REQUEST_LOG_LEVEL || 'debug';
+                    const level = String(levelRaw).trim().toLowerCase(); // info|debug|warn
+                    const sample = Number(process.env.API_REQUEST_LOG_SAMPLE || 0); // 0..1 (e.g., 0.1 = 10%)
+                    const logFn = typeof logger[level] === 'function' ? logger[level] : logger.info;
+                    if (sample > 0) {
+                        if (Math.random() < sample) logFn('API request completed', logData);
+                    } else {
+                        logFn('API request completed', logData);
+                    }
                 }
             }
         });

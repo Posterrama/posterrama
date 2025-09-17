@@ -121,8 +121,8 @@ const memoryTransport = new winston.transports.Stream({
         write: (chunk, encoding, callback) => {
             // Skip system/debug messages for the admin panel
             if (!logger.shouldExcludeFromAdmin(chunk.message)) {
-                // Keep only the last 200 logs in memory
-                if (logger.memoryLogs.length >= 200) {
+                // Keep the last 1000 logs in memory (increased from 200 for better history)
+                if (logger.memoryLogs.length >= 1000) {
                     logger.memoryLogs.shift();
                 }
                 logger.memoryLogs.push(chunk);
@@ -200,7 +200,7 @@ logger.fatal = (...args) => logger.log('error', ...args); // Map fatal to error 
 logger.debug = (...args) => logger.log('debug', ...args);
 
 // Method to get recent logs for admin panel
-logger.getRecentLogs = (level = null, limit = 200) => {
+logger.getRecentLogs = (level = null, limit = 500) => {
     let logs = [...logger.memoryLogs];
     if (level) {
         // Level hierarchy: lower number = more severe, higher number = more verbose

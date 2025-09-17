@@ -209,10 +209,23 @@ class PlexSource {
                 prev === 0 ? duration : Math.round(prev * 0.8 + duration * 0.2);
             this.metrics.lastRequestTime = duration;
 
-            if (this.isDebug)
-                logger.debug(
-                    `[PlexSource:${this.server.name}] Returning ${finalItems.length} processed items.`
+            if (this.isDebug) {
+                // Consolidated Plex Debug summary to reduce log noise
+                const rtItemsCount = finalItems.filter(item => item.rottenTomatoesData).length;
+                const avgScore =
+                    rtItemsCount > 0
+                        ? Math.round(
+                              finalItems
+                                  .filter(item => item.rottenTomatoesData)
+                                  .reduce((sum, item) => sum + item.rottenTomatoesData.score, 0) /
+                                  rtItemsCount
+                          )
+                        : 0;
+
+                logger.info(
+                    `[Plex Debug] Fetch completed: ${finalItems.length} items processed, ${rtItemsCount} with RT data (avg: ${avgScore}%), took ${duration}ms`
                 );
+            }
             return finalItems;
         } catch (error) {
             this.metrics.errorCount++;
