@@ -13806,7 +13806,7 @@
                 throw new Error(`Failed to save config: ${saveResp.status} ${errorText}`);
             }
 
-            const saveResult = await saveResp.text();
+            await saveResp.text(); // Consume response
 
             // Update state
             whitelistState.original = [...whitelistState.current];
