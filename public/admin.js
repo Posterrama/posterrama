@@ -2051,6 +2051,10 @@
                 'SERVER_PORT',
                 'siteServer.port',
                 'input-cache-size-gb',
+                // Operations: automatic updates & backups & media refresh
+                'input-keep-backups',
+                'input-keep-cfg-backups',
+                'ops.backgroundRefreshMinutes',
             ];
             numberIds.forEach(id => enhanceNumberInput(document.getElementById(id)));
         } catch (_) {}
