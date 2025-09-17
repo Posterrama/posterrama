@@ -1,3 +1,5 @@
+# Test artifact: deviceStore prune temporary outputs
+__tests__/utils/devices.prune*.json
 # Device management store
 devices.json
 groups.json

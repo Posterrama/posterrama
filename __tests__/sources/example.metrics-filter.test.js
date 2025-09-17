@@ -24,8 +24,8 @@ describe('ExampleSource metrics & filtering', () => {
         return new Map([['LibA', { id: 'lib-a' }]]);
     }
 
-    function shuffleArray(arr) {
-        /* deterministic no-op for test */
+    function shuffleArray(_arr) {
+        /* deterministic no-op for test; underscore to satisfy lint unused param rule */
     }
 
     test('applies rtMinScore filter and updates metrics', async () => {
