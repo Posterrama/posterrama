@@ -5303,6 +5303,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // In offline mode, don't cycle through media unless it's the first load
         // DISABLED for debugging: navigator.onLine is unreliable in local network setups
+        // eslint-disable-next-line no-constant-condition
         if (false && !navigator.onLine && !isFirstLoad) {
             console.warn('📶 [DISABLED] This offline check is disabled for debugging');
             return;
