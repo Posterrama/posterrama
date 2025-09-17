@@ -4,8 +4,8 @@ const logger = require('../utils/logger');
 class TVDBSource {
     constructor(config) {
         this.enabled = config.enabled || false;
-        // Use hardcoded developer API key for all Posterrama users
-        this.apiKey = 'be1920c6-6993-42fe-a2ee-ad8e270eba9d';
+        // Use environment variable if set, otherwise fall back to hardcoded developer key
+        this.apiKey = process.env.TVDB_API_KEY || 'be1920c6-6993-42fe-a2ee-ad8e270eba9d';
         this.pin = ''; // Developer keys don't need a PIN
         this.baseURL = 'https://api4.thetvdb.com/v4';
         this.token = null;
