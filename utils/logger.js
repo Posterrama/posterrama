@@ -107,6 +107,12 @@ const memoryTransport = new winston.transports.Stream({
                 timestamp: timestamp,
                 level: info.level.toUpperCase(),
                 message: info.message,
+                // Include all other metadata from the original log
+                ...Object.fromEntries(
+                    Object.entries(info).filter(
+                        ([key]) => !['timestamp', 'level', 'message'].includes(key)
+                    )
+                ),
             };
         })()
     ),
@@ -160,7 +166,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 // Create the logger instance
 const logger = winston.createLogger({
-    level: process.env.NODE_ENV === 'test' ? 'warn' : process.env.LOG_LEVEL || 'info', // Suppress debug/info during tests
+    level: process.env.NODE_ENV === 'test' ? 'warn' : process.env.LOG_LEVEL || 'debug', // Enable debug logs by default for development
     levels: winston.config.npm.levels,
     format: customFormat,
     transports:
@@ -197,11 +203,19 @@ logger.debug = (...args) => logger.log('debug', ...args);
 logger.getRecentLogs = (level = null, limit = 200) => {
     let logs = [...logger.memoryLogs];
     if (level) {
-        const levels = { ERROR: 0, WARN: 1, INFO: 2 }; // Match uppercase format from winston
+        // Level hierarchy: lower number = more severe, higher number = more verbose
+        const levels = {
+            FATAL: 0,
+            ERROR: 1,
+            WARN: 2,
+            INFO: 3,
+            DEBUG: 4,
+            TRACE: 5,
+        };
         const requestedLevel = levels[level.toUpperCase()];
         if (requestedLevel !== undefined) {
             logs = logs.filter(log => {
-                const logLevelValue = levels[log.level];
+                const logLevelValue = levels[log.level.toUpperCase()];
                 return logLevelValue !== undefined && logLevelValue <= requestedLevel;
             });
         }

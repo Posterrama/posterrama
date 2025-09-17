@@ -36,13 +36,24 @@ function registerConnection(ws, deviceId) {
     const existing = deviceToSocket.get(deviceId);
     if (existing && existing !== ws) {
         try {
+            logger.info('🔄 WebSocket: Replacing existing connection', {
+                deviceId,
+                reason: 'single_connection_policy',
+            });
             existing.terminate();
         } catch (_) {
             /* ignore terminate errors */
         }
     }
+
     deviceToSocket.set(deviceId, ws);
     socketToDevice.set(ws, deviceId);
+
+    logger.info('🟢 WebSocket: Device connected', {
+        deviceId,
+        totalConnections: deviceToSocket.size,
+        timestamp: new Date().toISOString(),
+    });
 }
 
 function unregister(ws) {
@@ -50,7 +61,9 @@ function unregister(ws) {
     if (deviceId) {
         deviceToSocket.delete(deviceId);
         socketToDevice.delete(ws);
+
         // Clean up any pending acks for this device (fail them fast)
+        let cleanedUpAcks = 0;
         for (const [id, p] of pendingAcks) {
             if (p.deviceId === deviceId) {
                 try {
@@ -64,8 +77,16 @@ function unregister(ws) {
                 } catch (_) {
                     /* noop: reject error ignored */
                 }
+                cleanedUpAcks++;
             }
         }
+
+        logger.info('🔴 WebSocket: Device disconnected', {
+            deviceId,
+            cleanedUpAcks,
+            totalConnections: deviceToSocket.size,
+            timestamp: new Date().toISOString(),
+        });
     }
 }
 
@@ -76,8 +97,23 @@ function isConnected(deviceId) {
 
 function sendToDevice(deviceId, message) {
     const ws = deviceToSocket.get(deviceId);
-    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        logger.debug('📡 WebSocket message failed: device not connected', {
+            deviceId,
+            messageType: message.type || message.kind,
+            reason: !ws ? 'no_socket' : 'socket_not_open',
+        });
+        return false;
+    }
+
     sendJson(ws, message);
+    logger.debug('📡 WebSocket message sent', {
+        deviceId,
+        messageType: message.type || message.kind,
+        messageKind: message.kind,
+        hasPayload: !!message.payload,
+        payloadSize: message.payload ? JSON.stringify(message.payload).length : 0,
+    });
     return true;
 }
 

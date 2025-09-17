@@ -9,7 +9,7 @@
             rel="stylesheet"
         />
         <link rel="stylesheet" href="/admin.css?v=20250819a" />
-    <link rel="stylesheet" href="/logs.css?v=20250915e" />
+    <link rel="stylesheet" href="/logs.css?v=20250915h" />
         <link
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
@@ -37,16 +37,29 @@
                 <label>
                     Level
                     <select id="logLevel">
-                        <option value="trace">TRACE</option>
+                        <option value="silly">SILLY</option>
                         <option value="debug">DEBUG</option>
+                        <option value="verbose">VERBOSE</option>
+                        <option value="http">HTTP</option>
                         <option value="info" selected>INFO</option>
                         <option value="warn">WARN</option>
                         <option value="error">ERROR</option>
-                        <option value="fatal">FATAL</option>
                     </select>
                 </label>
 
                 <input type="text" id="textFilter" placeholder="Search logs..." />
+
+                <div class="log-level-config">
+                    <label>
+                        Server Level
+                        <select id="serverLogLevel" disabled>
+                            <option>Loading...</option>
+                        </select>
+                    </label>
+                    <button id="updateServerLevel" class="btn btn-sm btn-primary" disabled>
+                        <i class="fas fa-cog"></i> Update
+                    </button>
+                </div>
 
                 <button class="btn btn-outline btn-sm" id="clearFilter"><i class="fas fa-times"></i> Clear</button>
 
@@ -62,7 +75,7 @@
             </div>
         </main>
 
-        <script src="/logs.js?v=1.2.6" defer></script>
+        <script src="/logs.js?v=1.2.17" defer></script>
         <script>
             // Ensure latest Service Worker is activated so normal refresh picks new CSS/JS
             if ('serviceWorker' in navigator) {

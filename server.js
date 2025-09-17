@@ -21,17 +21,73 @@ process.on('unhandledRejection', (reason, _promise) => {
     logger.fatal('Unhandled Promise Rejection:', reason);
 });
 
-// Track memory usage
-const MEMORY_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
-global.memoryCheckInterval = setInterval(() => {
-    const used = process.memoryUsage();
-    logger.debug('Memory Usage:', {
-        rss: `${Math.round(used.rss / 1024 / 1024)}MB`,
-        heapTotal: `${Math.round(used.heapTotal / 1024 / 1024)}MB`,
-        heapUsed: `${Math.round(used.heapUsed / 1024 / 1024)}MB`,
-        external: `${Math.round(used.external / 1024 / 1024)}MB`,
-    });
-}, MEMORY_CHECK_INTERVAL);
+// Track system performance
+const PERFORMANCE_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+let lastCpuUsage = process.cpuUsage();
+
+global.performanceCheckInterval = setInterval(async () => {
+    // Memory usage
+    const memoryUsage = process.memoryUsage();
+    const memoryInfo = {
+        rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+        heapPercent: `${Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100)}%`,
+        external: `${Math.round(memoryUsage.external / 1024 / 1024)}MB`,
+    };
+
+    // CPU usage
+    const currentCpuUsage = process.cpuUsage(lastCpuUsage);
+    const cpuPercent = Math.round(
+        ((currentCpuUsage.user + currentCpuUsage.system) / 1000000) * 100
+    );
+    lastCpuUsage = process.cpuUsage();
+
+    // System uptime
+    const uptime = process.uptime();
+    const uptimeHours = Math.floor(uptime / 3600);
+    const uptimeMinutes = Math.floor((uptime % 3600) / 60);
+
+    const systemMetrics = {
+        ...memoryInfo,
+        cpu: `${cpuPercent}%`,
+        uptime: `${uptimeHours}h ${uptimeMinutes}m`,
+        nodeVersion: process.version,
+        platform: process.platform,
+        arch: process.arch,
+    };
+
+    // Log with appropriate level based on usage
+    const heapPercent = parseInt(memoryInfo.heapPercent);
+    if (heapPercent > 80 || cpuPercent > 80) {
+        logger.warn('🚨 High system resource usage detected', systemMetrics);
+    } else if (heapPercent > 60 || cpuPercent > 60) {
+        logger.verbose('⚠️ Moderate system resource usage', systemMetrics);
+    } else {
+        logger.debug('📊 System performance metrics', systemMetrics);
+    }
+
+    // Check disk space for image cache directory
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const imageCacheDir = path.join(__dirname, 'image_cache');
+
+        if (fs.existsSync(imageCacheDir)) {
+            const stats = fs.statSync(imageCacheDir);
+            const files = fs.readdirSync(imageCacheDir);
+            const cacheSizeMB = Math.round(stats.size / 1024 / 1024);
+
+            logger.debug('💾 Image cache metrics', {
+                cacheFiles: files.length,
+                cacheSizeMB: `${cacheSizeMB}MB`,
+                cacheDir: imageCacheDir,
+            });
+        }
+    } catch (error) {
+        logger.warn('Failed to check cache directory stats', { error: error.message });
+    }
+}, PERFORMANCE_CHECK_INTERVAL);
 
 // Override console methods to use the logger
 const originalConsoleLog = console.log;
@@ -990,6 +1046,14 @@ app.get('/promo.html', (req, res, next) => {
 
 // Add metrics collection middleware
 app.use(metricsMiddleware);
+
+// Add user context middleware for enhanced logging
+const {
+    userContextMiddleware,
+    loginSuccessMiddleware,
+    logoutMiddleware,
+} = require('./middleware/user-context');
+app.use(userContextMiddleware);
 
 // Input Validation Middleware and Endpoints
 const {
@@ -7495,6 +7559,15 @@ app.post('/admin/login', loginLimiter, express.urlencoded({ extended: true }), a
                 req.session.user = { username };
                 if (isDebug) logger.debug(`[Admin Login] Login successful for user "${username}".`);
 
+                // Log successful login with detailed context
+                logger.info('✅ Admin login successful', {
+                    username,
+                    ip: req.ip || req.connection.remoteAddress,
+                    userAgent: req.get('user-agent'),
+                    sessionId: req.sessionID,
+                    timestamp: new Date().toISOString(),
+                });
+
                 // Check for saved auto-register parameters
                 if (pendingAutoRegister && pendingAutoRegister.deviceId) {
                     logger.info(
@@ -7660,6 +7733,15 @@ app.post(
                     `[Admin 2FA Verify] 2FA verification successful for user "${username}".`
                 );
 
+            // Log successful 2FA login with detailed context
+            logger.info('✅ Admin 2FA login successful', {
+                username,
+                ip: req.ip || req.connection.remoteAddress,
+                userAgent: req.get('user-agent'),
+                sessionId: req.sessionID,
+                timestamp: new Date().toISOString(),
+            });
+
             // Check for pending auto-register parameters
             const pendingAutoRegister = req.session.pendingAutoRegister;
             if (pendingAutoRegister && pendingAutoRegister.deviceId) {
@@ -7699,7 +7781,19 @@ app.post(
  *         description: Error destroying session
  */
 app.get('/admin/logout', (req, res, next) => {
-    if (isDebug) logger.debug(`[Admin Logout] User "${req.session.user?.username}" logging out.`);
+    const user = req.session.user;
+    if (isDebug) logger.debug(`[Admin Logout] User "${user?.username}" logging out.`);
+
+    // Log logout before destroying session
+    if (user) {
+        logger.info('👋 Admin logout', {
+            username: user.username,
+            ip: req.ip || req.connection.remoteAddress,
+            sessionId: req.sessionID,
+            timestamp: new Date().toISOString(),
+        });
+    }
+
     req.session.destroy(err => {
         if (err) {
             if (isDebug) console.error('[Admin Logout] Error destroying session:', err);
@@ -13181,6 +13275,115 @@ app.get('/api/admin/logs', isAuthenticated, (req, res) => {
     const { level, limit } = req.query;
     res.setHeader('Cache-Control', 'no-store'); // Prevent browser caching of log data
     res.json(logger.getRecentLogs(level, parseInt(limit) || 200));
+});
+
+/**
+ * @swagger
+ * /api/admin/logs/level:
+ *   get:
+ *     summary: Get current log level configuration
+ *     description: Retrieves the current Winston log level setting
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current log level configuration
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 currentLevel:
+ *                   type: string
+ *                   enum: ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']
+ *                 availableLevels:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *   post:
+ *     summary: Update log level configuration
+ *     description: Changes the Winston log level at runtime without restarting the server
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - level
+ *             properties:
+ *               level:
+ *                 type: string
+ *                 enum: ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']
+ *     responses:
+ *       200:
+ *         description: Log level updated successfully
+ *       400:
+ *         description: Invalid log level provided
+ */
+app.get('/api/admin/logs/level', isAuthenticated, (req, res) => {
+    const availableLevels = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
+    res.json({
+        currentLevel: logger.level,
+        availableLevels,
+        winstonLevels: Object.keys(logger.levels || {}),
+    });
+});
+
+app.post('/api/admin/logs/level', isAuthenticated, express.json(), (req, res) => {
+    const { level } = req.body;
+    const availableLevels = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
+
+    if (!level || !availableLevels.includes(level)) {
+        return res.status(400).json({
+            error: 'Invalid log level',
+            availableLevels,
+            provided: level,
+        });
+    }
+
+    const previousLevel = logger.level;
+
+    try {
+        // Update Winston logger level
+        logger.level = level;
+
+        // Update all transports
+        logger.transports.forEach(transport => {
+            transport.level = level;
+        });
+
+        // Log the change with admin context
+        logger.info('⚙️ Log level changed by admin', {
+            previousLevel,
+            newLevel: level,
+            adminUser: req.session?.user?.username || 'unknown',
+            ip: req.ip || req.connection.remoteAddress,
+            timestamp: new Date().toISOString(),
+        });
+
+        res.json({
+            success: true,
+            previousLevel,
+            newLevel: level,
+            message: `Log level successfully changed from ${previousLevel} to ${level}`,
+        });
+    } catch (error) {
+        logger.error('Failed to update log level', {
+            error: error.message,
+            attemptedLevel: level,
+            adminUser: req.session?.user?.username || 'unknown',
+        });
+
+        res.status(500).json({
+            error: 'Failed to update log level',
+            details: error.message,
+        });
+    }
 });
 
 // Admin Notifications: test logging endpoint to validate SSE + Notification Center

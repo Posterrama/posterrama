@@ -146,6 +146,48 @@ body.page-logs {
     height: 18px;
 }
 
+/* Log Level Configuration Section */
+.log-level-config {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-left: var(--space-md);
+    border-left: 1px solid var(--color-border);
+}
+
+.log-level-config label {
+    margin-bottom: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.log-level-config select {
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--color-text-primary);
+    padding: var(--space-xs) var(--space-sm);
+    min-width: 90px;
+    font-size: var(--font-size-sm);
+}
+
+.log-level-config select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.log-level-config button {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-size-sm);
+    min-width: auto;
+}
+
+.log-level-config button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .logs-viewer {
     flex: 1 1 auto;
     background: var(--color-bg-dark);
@@ -165,7 +207,7 @@ body.page-logs {
 }
 .log-row {
     display: grid;
-    grid-template-columns: auto auto 1fr;
+    grid-template-columns: 16px auto auto 1fr;
     gap: 10px;
     align-items: start;
     padding: 6px 8px;
@@ -274,4 +316,51 @@ body.page-logs {
     .logs-toolbar > * {
         flex: 1 1 100%;
     }
+}
+
+/* Expandable log details */
+.log-row {
+    transition: background-color 0.2s ease;
+}
+
+.log-row.expanded {
+    background-color: var(--color-bg-tertiary) !important;
+}
+
+.log-row:hover {
+    background-color: var(--color-bg-hover) !important;
+}
+
+/* Expand icon styling */
+.expand-icon {
+    color: var(--color-text-tertiary);
+    font-size: 0.7rem;
+    width: 16px;
+    text-align: center;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.log-details {
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-left: 3px solid var(--color-accent-primary);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--border-radius-sm);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    grid-column: 1 / -1; /* Span full width across all 4 columns */
+}
+
+.log-details-content {
+    color: var(--color-text-secondary);
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.log-details strong {
+    color: var(--color-text-primary);
+    font-weight: 600;
 }
