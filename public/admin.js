@@ -13304,8 +13304,6 @@
             .catch(err => dbg('loadMediaSources() initial failed', err));
 
         btnSaveServer?.addEventListener('click', async () => {
-            const debugEl = document.getElementById('DEBUG');
-            const DEBUG = !!debugEl?.checked;
             const portEl = document.getElementById('SERVER_PORT');
             const serverPort = Math.max(1024, Math.min(65535, Number(portEl?.value || 4000)));
             if (!Number.isFinite(serverPort) || serverPort < 1024 || serverPort > 65535) {
@@ -13318,10 +13316,7 @@
             }
             try {
                 btnSaveServer.classList.add('btn-loading');
-                await saveConfigPatch(
-                    { serverPort },
-                    { DEBUG: String(DEBUG), SERVER_PORT: String(serverPort) }
-                );
+                await saveConfigPatch({ serverPort }, { SERVER_PORT: String(serverPort) });
                 window.notify?.toast({
                     type: 'success',
                     title: 'Saved',
@@ -13389,17 +13384,6 @@
             if (span) span.textContent = needs ? 'Save Settings & Restart' : 'Save Settings';
             btn.dataset.restartRequired = needs ? 'true' : 'false';
         }
-        // Update Debug status pill
-        function updateDebugPill() {
-            const chk = document.getElementById('DEBUG');
-            const pill = document.getElementById('debug-status-pill');
-            if (!pill || !chk) return;
-            const on = !!chk.checked;
-            pill.textContent = on ? 'Debug: On' : 'Debug: Off';
-            pill.classList.toggle('status-warning', on);
-            // Neutral (no class) when off; ensure success not lingering
-            pill.classList.remove('status-success');
-        }
         // Expose for later use after async loads
         window.updateOpsSaveButtonLabel = updateOpsSaveButtonLabel;
         // Wire live updates on port input
@@ -13408,17 +13392,12 @@
                 portInput.addEventListener(evt, updateOpsSaveButtonLabel)
             );
         }
-        // Wire Debug pill updates
-        document.getElementById('DEBUG')?.addEventListener('change', updateDebugPill);
-        // Initialize once
-        updateDebugPill();
 
         // Unified save for Operations: saves both Server Settings and Promobox
         btnSaveOps?.addEventListener('click', async () => {
             const btn = btnSaveOps;
             try {
                 // Collect Server Settings
-                const DEBUG = !!document.getElementById('DEBUG')?.checked;
                 const portEl = document.getElementById('SERVER_PORT');
                 const serverPort = Math.max(1024, Math.min(65535, Number(portEl?.value || 4000)));
                 if (!Number.isFinite(serverPort) || serverPort < 1024 || serverPort > 65535) {
@@ -13454,7 +13433,7 @@
                         backgroundRefreshMinutes,
                         siteServer: { enabled, port: portVal },
                     },
-                    { DEBUG: String(DEBUG), SERVER_PORT: String(serverPort) }
+                    { SERVER_PORT: String(serverPort) }
                 );
 
                 const needsRestart = btn.dataset.restartRequired === 'true' || opsRestartNeeded();
@@ -13558,9 +13537,6 @@
             const j = r.ok ? await r.json() : null;
             const env = j?.env || {};
             const cfg = j?.config || {};
-            // DEBUG
-            const debugEl = document.getElementById('DEBUG');
-            if (debugEl) debugEl.checked = env.DEBUG === true || env.DEBUG === 'true';
             // SERVER_PORT
             const portElMain = document.getElementById('SERVER_PORT');
             if (portElMain) {
@@ -13605,18 +13581,6 @@
                 sitePill.textContent = site.enabled ? 'Enabled' : 'Disabled';
                 sitePill.classList.toggle('status-warning', !site.enabled);
                 sitePill.classList.toggle('status-success', !!site.enabled);
-            }
-            // Debug pill initial sync
-            try {
-                const dbgPill = document.getElementById('debug-status-pill');
-                if (dbgPill) {
-                    const on = !!(env.DEBUG === true || env.DEBUG === 'true');
-                    dbgPill.textContent = on ? 'Debug: On' : 'Debug: Off';
-                    dbgPill.classList.toggle('status-warning', on);
-                    dbgPill.classList.remove('status-success');
-                }
-            } catch (_) {
-                /* no-op */
             }
             // Ensure the unified save button label is correct after loading
             if (typeof window.updateOpsSaveButtonLabel === 'function') {

@@ -7098,7 +7098,7 @@ app.get(
 
         if (isDebug) {
             logger.debug(
-                `[Image Proxy] Request for image received. Server: "${serverName}", Path: "${imagePath}", URL: "${directUrl}"`
+                `[Image Proxy] Request: ${directUrl ? `URL: "${directUrl}"` : `Server: "${serverName}", Path: "${imagePath}"`}`
             );
         }
 
@@ -7193,10 +7193,14 @@ app.get(
             const mediaServerResponse = await fetch(imageUrl, fetchOptions);
 
             if (!mediaServerResponse.ok) {
+                const identifier = directUrl
+                    ? `URL "${directUrl}"`
+                    : `Server "${serverName}", Path "${imagePath}"`;
                 console.warn(
-                    `[Image Proxy] Media server "${serverName}" returned status ${mediaServerResponse.status} for path "${imagePath}".`
+                    `[Image Proxy] Request failed (${mediaServerResponse.status}): ${identifier}`
                 );
-                console.warn(`[Image Proxy] Serving fallback image for "${imagePath}".`);
+                const fallbackInfo = directUrl || imagePath;
+                console.warn(`[Image Proxy] Serving fallback image for "${fallbackInfo}".`);
                 return res.redirect('/fallback-poster.png');
             }
 
@@ -7269,7 +7273,8 @@ app.get(
 
             console.error(`[Image Proxy] Error: ${error.message}`);
             if (error.cause) console.error(`[Image Proxy] Cause: ${error.cause}`);
-            console.warn(`[Image Proxy] Serving fallback image for "${imagePath}".`);
+            const fallbackInfo = directUrl || imagePath;
+            console.warn(`[Image Proxy] Serving fallback image for "${fallbackInfo}".`);
             res.redirect('/fallback-poster.png');
         }
     })

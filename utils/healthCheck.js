@@ -11,6 +11,11 @@ let GitHubService = null; // lazy-loaded for optional update check to avoid star
 let healthCheckCache = null;
 let cacheTimestamp = 0;
 
+// Specific cache for connectivity checks (longer duration to reduce noise)
+let connectivityCache = null;
+let connectivityCacheTimestamp = 0;
+const CONNECTIVITY_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Read the current configuration from config.json
  * @returns {Promise<object>} The current configuration
@@ -367,18 +372,30 @@ async function checkUpdateAvailability() {
  */
 async function checkPlexConnectivity() {
     try {
+        // Check if we have a cached result that's still fresh
+        const now = Date.now();
+        if (connectivityCache && now - connectivityCacheTimestamp < CONNECTIVITY_CACHE_DURATION) {
+            return connectivityCache;
+        }
+
         // Try to import the testServerConnection function from server utilities
         let testServerConnection;
         try {
             testServerConnection = require('../server').testServerConnection;
         } catch (error) {
             // If import fails, use fallback
-            return await checkPlexConnectivityFallback();
+            const result = await checkPlexConnectivityFallback();
+            connectivityCache = result;
+            connectivityCacheTimestamp = now;
+            return result;
         }
 
         if (!testServerConnection) {
             // Fallback: create a simple connection test
-            return await checkPlexConnectivityFallback();
+            const result = await checkPlexConnectivityFallback();
+            connectivityCache = result;
+            connectivityCacheTimestamp = now;
+            return result;
         }
 
         const config = await readConfig();
@@ -387,12 +404,15 @@ async function checkPlexConnectivity() {
         );
 
         if (enabledServers.length === 0) {
-            return {
+            const result = {
                 name: 'plex_connectivity',
                 status: 'ok',
                 message: 'No Plex servers are configured.',
                 details: { servers: [] },
             };
+            connectivityCache = result;
+            connectivityCacheTimestamp = now;
+            return result;
         }
 
         const checks = [];
@@ -412,23 +432,36 @@ async function checkPlexConnectivity() {
         const hasErrors = checks.some(check => check.status === 'error');
         const hasWarnings = checks.some(check => check.status === 'warning');
 
-        return {
+        const result = {
             name: 'plex_connectivity',
             status: hasErrors ? 'error' : hasWarnings ? 'warning' : 'ok',
             message: `Checked ${checks.length} Plex server(s).`,
             details: { servers: checks },
         };
+
+        // Cache the result
+        connectivityCache = result;
+        connectivityCacheTimestamp = now;
+        return result;
     } catch (error) {
         // If all else fails, try fallback
         try {
-            return await checkPlexConnectivityFallback();
+            const result = await checkPlexConnectivityFallback();
+            // Cache even fallback results to avoid repeated failures
+            connectivityCache = result;
+            connectivityCacheTimestamp = Date.now();
+            return result;
         } catch (fallbackError) {
-            return {
+            const result = {
                 name: 'plex_connectivity',
                 status: 'error',
                 message: `Plex connectivity check failed: ${error.message}`,
                 details: { error: error.message },
             };
+            // Cache error results too to avoid repeated failures
+            connectivityCache = result;
+            connectivityCacheTimestamp = Date.now();
+            return result;
         }
     }
 }

@@ -1731,83 +1731,8 @@
 
               <div id="cfg-backup-list" class="compact-backup-list"></div>
             </section>
-            <!-- Media Group Title -->
-            <div class="ops-group">
-              <div class="ops-group-title"><i class="fas fa-photo-video"></i> Media</div>
-            </div>
-            <!-- Media Operations -->
-            <section class="perf-card" aria-label="Media Operations">
-              <h3><i class="fas fa-sync-alt"></i> Media</h3>
-              <div class="card-subtext">Refresh media from configured sources.</div>
-              <div class="metric-row mt-6">
-                <div class="form-group inline-field nowrap" style="display: block;">
-                  <label for="ops.backgroundRefreshMinutes" style="margin:0;display:inline-flex;align-items:center;padding-right:12px; white-space:nowrap;">Background Refresh (minutes)</label>
-                  <input type="number" id="ops.backgroundRefreshMinutes" min="5" max="1440" step="1" class="w-110" value="60" />
-                </div>
-              </div>
-        <div class="actions main-actions">
-                <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
-                  <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
-                </button>
-              </div>
-            </section>
-            <!-- API Group Title (moved to left column) -->
-            <div class="ops-group">
-              <div class="ops-group-title"><i class="fas fa-plug"></i> API</div>
-            </div>
-            <!-- API Access (moved to left column) -->
-            <section class="perf-card" aria-label="API Access Management">
-              <h3><i class="fas fa-code"></i> API Access</h3>
-              <div class="card-pill-spot">
-                <span class="status-pill" id="api-key-status-pill">Key: <span id="api-key-status-text">Loading…</span></span>
-              </div>
-              <div class="card-subtext">Programmatic access to admin endpoints.</div>
-              <div id="api-key-display" class="is-hidden mt-6">
-                <div class="input-row">
-                  <input id="api-key-input" type="password" readonly />
-                  <div class="actions">
-                    <button id="toggle-api-key-visibility-button" type="button" class="btn btn-icon btn-sm" title="Show/Hide"><i class="fas fa-eye"></i></button>
-                    <button id="copy-api-key-button" type="button" class="btn btn-icon btn-sm" title="Copy to clipboard"><i class="fas fa-copy"></i></button>
-                  </div>
-                </div>
-              </div>
-              <div class="actions" style="margin-top:6px;">
-                <button id="generate-api-key-button" type="button" class="btn btn-success btn-sm">
-                  <i class="fas fa-key"></i>
-                  <span>Generate New Key</span>
-                </button>
-                <button id="revoke-api-key-button" type="button" class="btn btn-error btn-sm" disabled>
-                  <i class="fas fa-trash-alt"></i>
-                  <span>Revoke Key</span>
-                </button>
-              </div>
-            </section>
         </div>
   <div class="ops-col">
-      <div class="ops-group">
-        <div class="ops-group-title"><i class="fas fa-stethoscope"></i> Diagnostics</div>
-      </div>
-      <!-- Debug & Logging -->
-            <section class="perf-card" aria-label="Debug & Logging">
-              <h3><i class="fas fa-bug"></i> Debug & Logging</h3>
-              <div class="card-pill-spot">
-                <span class="status-pill" id="debug-status-pill">Debug: Off</span>
-              </div>
-              <div class="card-subtext">Detailed logging for troubleshooting.</div>
-              <div class="metric-row mt-6">
-                <div class="form-group checkbox-group">
-                  <label class="checkbox" for="DEBUG">
-                    <input type="checkbox" id="DEBUG" />
-                    <span class="checkmark"></span>
-                    <span>Enable Debug Mode</span>
-                  </label>
-                </div>
-                <div class="micro-hint"><i class="fas fa-info-circle" aria-hidden="true"></i><span>Use temporarily; verbose logs can impact performance.</span></div>
-              </div>
-              <div class="actions mt-8">
-                <a href="/logs.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fas fa-scroll"></i><span>Open Logs</span></a>
-              </div>
-            </section>
       <div class="ops-group">
         <div class="ops-group-title"><i class="fas fa-server"></i> Server</div>
       </div>
@@ -1845,7 +1770,61 @@
               </div>
             </section>
 
+            <!-- API Group Title -->
+            <div class="ops-group">
+              <div class="ops-group-title"><i class="fas fa-plug"></i> API</div>
+            </div>
+            <!-- API Access -->
+            <section class="perf-card" aria-label="API Access Management">
+              <h3><i class="fas fa-code"></i> API Access</h3>
+              <div class="card-pill-spot">
+                <span class="status-pill" id="api-key-status-pill">Key: <span id="api-key-status-text">Loading…</span></span>
+              </div>
+              <div class="card-subtext">Programmatic access to admin endpoints.</div>
+              <div id="api-key-display" class="is-hidden mt-6">
+                <div class="input-row">
+                  <input id="api-key-input" type="password" readonly />
+                  <div class="actions">
+                    <button id="toggle-api-key-visibility-button" type="button" class="btn btn-icon btn-sm" title="Show/Hide"><i class="fas fa-eye"></i></button>
+                    <button id="copy-api-key-button" type="button" class="btn btn-icon btn-sm" title="Copy to clipboard"><i class="fas fa-copy"></i></button>
+                  </div>
+                </div>
+              </div>
+              <div class="actions" style="margin-top:6px;">
+                <button id="generate-api-key-button" type="button" class="btn btn-success btn-sm">
+                  <i class="fas fa-key"></i>
+                  <span>Generate New Key</span>
+                </button>
+                <button id="revoke-api-key-button" type="button" class="btn btn-error btn-sm" disabled>
+                  <i class="fas fa-trash-alt"></i>
+                  <span>Revoke Key</span>
+                </button>
+              </div>
+            </section>
+
+            <!-- Media Group Title -->
+            <div class="ops-group">
+              <div class="ops-group-title"><i class="fas fa-photo-video"></i> Media</div>
+            </div>
+            <!-- Media Operations -->
+            <section class="perf-card" aria-label="Media Operations">
+              <h3><i class="fas fa-sync-alt"></i> Media</h3>
+              <div class="card-subtext">Refresh media from configured sources.</div>
+              <div class="metric-row mt-6">
+                <div class="form-group inline-field nowrap" style="display: block;">
+                  <label for="ops.backgroundRefreshMinutes" style="margin:0;display:inline-flex;align-items:center;padding-right:12px; white-space:nowrap;">Background Refresh (minutes)</label>
+                  <input type="number" id="ops.backgroundRefreshMinutes" min="5" max="1440" step="1" class="w-110" value="60" />
+                </div>
+              </div>
+        <div class="actions main-actions">
+                <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
+                  <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
+                </button>
+              </div>
+            </section>
+
       
+
       
     </div>
           </div>

@@ -72,9 +72,23 @@ const metricsMiddleware = (req, res, next) => {
             }
             // Removed routine "Request performance" logging
 
-            // Only log significant memory usage changes
-            if (Math.abs(memoryDelta) > 2048) {
-                // More than 2MB change
+            // Only log significant memory usage changes, but exclude endpoints that naturally have large responses
+            const isLargeResponseEndpoint =
+                [
+                    '/get-media',
+                    '/api/admin/logs',
+                    '/api/v1/media',
+                    '/api/admin/config',
+                    '/api/admin/preview-media',
+                ].some(endpoint => (path || req.path).includes(endpoint)) ||
+                // Admin API endpoints with counts/genres/qualities often have large responses
+                ((path || req.path).includes('/api/admin/') &&
+                    ((path || req.path).includes('-with-counts') ||
+                        (path || req.path).includes('-genres') ||
+                        (path || req.path).includes('-qualities')));
+
+            if (Math.abs(memoryDelta) > 2048 && !isLargeResponseEndpoint) {
+                // More than 2MB change for endpoints that shouldn't have large responses
                 logger.warn('🧠 High memory impact request', {
                     ...performanceData,
                     memoryBefore: Math.round(startMemory.heapUsed / 1024 / 1024) + 'MB',
