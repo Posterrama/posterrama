@@ -793,6 +793,20 @@ main() {
     echo ""
     
     print_status "Starting installation process..."
+
+    # ------------------------------------------------------------------
+    # NOTE (2025-09-17): See install.txt for advanced guidance.
+    # Potential future enhancements (not implemented here to avoid
+    # behavioral changes in an automated update):
+    #   * Add flag parsing (e.g. --no-firewall, --user <name>, --no-pm2)
+    #   * Prefer `npm ci` when package-lock.json present for reproducible builds
+    #   * Emit POSTERRAMA_AUTO_CHOWN / POSTERRAMA_DROP_PRIVS usage tips in
+    #     completion banner if root created files on first run
+    #   * Optional integrity verification when switching from git clone to
+    #     release tarball installs
+    #   * Detect existing installation and offer in-place upgrade mode only
+    # These are documented in install.txt so operators can plan.
+    # ------------------------------------------------------------------
     
     # Perform installation steps
     check_root

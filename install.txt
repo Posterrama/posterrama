@@ -1,0 +1,174 @@
+Posterrama Installation Guide (Advanced)
+=====================================
+
+Last updated: 2025-09-17
+Target: Production / homelab deployments on Linux (Ubuntu/Debian/CentOS/Rocky/Fedora etc.)
+
+This guide complements install.sh. Use install.sh for a quick automated setup, then refer here for secure hardening, non-root operation, ownership normalization, and PM2 lifecycle management.
+
+Quick Start (Automated)
+-----------------------
+1. Review the script before executing (ALWAYS):
+   curl -fsSL https://raw.githubusercontent.com/Posterrama/posterrama/main/install.sh -o install.sh
+   less install.sh
+2. Run as root (recommended for automation) or a sudo user:
+   bash install.sh
+3. After completion open: http://<server-ip>:4000/admin
+4. Complete wizard and configure sources (Plex/Jellyfin/TMDB/TVDB).
+
+Principles
+----------
+- Principle of least privilege: Application process should not remain root after initial provisioning.
+- Deterministic ownership: Runtime and config files must be writable by the Posterrama service user.
+- Idempotence: Re-running the installer or restarting via PM2 should not corrupt permissions.
+- Observability: Logs and health endpoints (/health, /metrics soon) should stay accessible.
+
+Key Files / Directories
+-----------------------
+config.json              Main application config (copied from config.example.json on first run)
+config/*.json            Backup/validation state
+.devices.json            Device registry (created on first device pairing)
+groups.json              Device grouping state
+sessions/                Express session files
+cache/                   JSON metadata cache
+image_cache/             Poster / artwork cache
+logs/                    Winston combined & error logs
+
+Ownership Automation
+--------------------
+A new helper (utils/fixOwnership.js) can auto-correct file and directory ownership early at startup and optionally drop privileges.
+
+Enable by exporting environment variables (PM2 or systemd):
+  POSTERRAMA_AUTO_CHOWN=1                # Enable ownership normalization
+  POSTERRAMA_CHOWN_PATHS="config.json devices.json groups.json cache image_cache logs sessions"  # Optional override list
+  POSTERRAMA_RUN_AS_UID=1001             # Target UID to chown to (overrides detected user)
+  POSTERRAMA_RUN_AS_GID=1001             # Target GID
+  POSTERRAMA_RUN_AS_USER=posterrama      # Target user name (used for logging only if UID/GID given)
+  POSTERRAMA_DROP_PRIVS=1                # After chown, attempt process.setgid/setuid
+
+PM2 Ecosystem Example (ecosystem.config.js snippet):
+  env: {
+    NODE_ENV: 'production',
+    POSTERRAMA_AUTO_CHOWN: '1',
+    POSTERRAMA_DROP_PRIVS: '1',
+    POSTERRAMA_RUN_AS_USER: 'posterrama'
+  }
+
+Security Notes:
+- If running initial install as root, first run may create root-owned files. Enabling POSTERRAMA_AUTO_CHOWN fixes this on the next restart.
+- POSTERRAMA_DROP_PRIVS requires the process to start as root (e.g., pm2 started by root) to successfully setuid/gid.
+- Never hardcode secrets into config.json; use environment variables for credentials and tokens where supported.
+
+Manual Non-Root Deployment (No install.sh)
+-----------------------------------------
+1. Create a system user:
+   sudo useradd --system --create-home --shell /bin/bash posterrama
+2. Install Node.js 18+ (use nodesource or distro repositories).
+3. Clone repo:
+   sudo -u posterrama git clone https://github.com/Posterrama/posterrama.git /opt/posterrama
+4. Install dependencies:
+   cd /opt/posterrama
+   sudo -u posterrama npm ci --omit=dev   # or npm install if you want tests/dev tools
+5. Copy example config if absent:
+   sudo -u posterrama cp config.example.json config.json
+6. Create runtime directories:
+   sudo -u posterrama mkdir cache image_cache logs sessions
+7. Start with PM2 as posterrama user:
+   sudo -u posterrama pm2 start ecosystem.config.js
+   sudo -u posterrama pm2 save
+   sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u posterrama --hp /opt/posterrama
+   sudo systemctl enable pm2-posterrama && sudo systemctl start pm2-posterrama
+
+Updating
+--------
+Standard update cycle:
+  cd /opt/posterrama
+  sudo -u posterrama git pull
+  sudo -u posterrama npm install --production
+  sudo -u posterrama pm2 restart all
+
+If files became root-owned (e.g., accidental sudo npm install):
+  sudo chown -R posterrama:posterrama /opt/posterrama
+  # Or just restart with POSTERRAMA_AUTO_CHOWN=1 enabled.
+
+Verifying Ownership & Privilege Drop
+------------------------------------
+1. Check effective UID/GID inside logs (startup log lines from fixOwnership).
+2. List ownership:
+   ls -ld /opt/posterrama /opt/posterrama/{config.json,devices.json,groups.json,cache,image_cache,logs,sessions} 2>/dev/null
+3. If still root after enabling POSTERRAMA_DROP_PRIVS, verify pm2 itself is root-started and that UID/GID exist.
+
+Firewall / Port Management
+--------------------------
+- Default port is 4000; adjust via environment variable PORT.
+- Open the port (UFW): sudo ufw allow 4000/tcp
+- For firewalld: sudo firewall-cmd --permanent --add-port=4000/tcp && sudo firewall-cmd --reload
+
+Health & Diagnostics
+--------------------
+- Health endpoint: curl -s http://localhost:4000/health | jq
+- Config view:     curl -s http://localhost:4000/get-config | jq
+- Logs (PM2):      sudo -u posterrama pm2 logs
+- Memory usage:    sudo -u posterrama pm2 list
+
+Backup & Restore
+----------------
+Minimal important state:
+  config.json
+  devices.json
+  groups.json
+  device-presets.json (if customized)
+You can safely regenerate cache/ image_cache/ sessions/.
+
+Example backup:
+  tar czf posterrama-backup-$(date +%F).tar.gz -C /opt posterrama/config.json posterrama/devices.json posterrama/groups.json posterrama/device-presets.json
+
+Disaster recovery (fresh clone):
+  git clone ... /opt/posterrama
+  restore the four JSON files
+  npm ci --omit=dev
+  pm2 start ecosystem.config.js
+
+Optional Hardening
+------------------
+- Run behind a reverse proxy (nginx/traefik) terminating TLS.
+- Set NODE_ENV=production to reduce verbose logs, ensure production Express settings.
+- Use a dedicated network security group / firewall rule limiting port 4000 to trusted IPs (or just expose reverse proxy).
+- Periodically run: npm run deps:audit and npm run deps:health
+
+Common Pitfalls
+---------------
+Issue: pm2 can't find node after reboot
+Fix:  Ensure /usr/local/bin is in PATH for the service user; re-run pm2 startup command under that user.
+
+Issue: Files revert to root after update
+Cause: Running git pull or npm install with sudo.
+Fix:  Use the service user or rely on POSTERRAMA_AUTO_CHOWN on restart.
+
+Issue: Images not appearing
+Check: logs/ for upstream fetch errors, ensure image_cache/ writable.
+
+Issue: High memory usage
+Mitigation: Reduce cache TTLs in config.json, ensure Node 18+ and enough system memory; consider PM2 memory limits (max_memory_restart).
+
+Uninstall
+---------
+Stop service & remove directories:
+  sudo systemctl stop pm2-posterrama || true
+  sudo systemctl disable pm2-posterrama || true
+  sudo rm -rf /opt/posterrama
+  sudo userdel posterrama 2>/dev/null || true
+  (Optional) npm uninstall -g pm2
+
+Revision Suggestions for install.sh (Summary)
+--------------------------------------------
+(We did not modify the script automatically; consider these in a future revision.)
+- Add optional flag --no-firewall to skip firewall configuration.
+- Add integrity verification (sha256) if downloading release tarballs instead of git.
+- Offer npm ci path when package-lock.json present for reproducibility.
+- Add POSTERRAMA_AUTO_CHOWN env hints to final completion banner.
+- Add detection for existing non-root user specifying --user <name>.
+
+End
+---
+This document is intentionally separate from README.md per policy. Update it as deployment practices evolve.
