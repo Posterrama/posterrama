@@ -4294,6 +4294,7 @@
         // Avatar modal actions
         const uploadBtn = document.getElementById('avatar-upload-btn');
         const removeBtn = document.getElementById('avatar-remove-btn');
+        const cropBtn = document.getElementById('avatar-crop-btn');
         const fileInput = document.getElementById('avatar-file');
         const fileTrigger = document.getElementById('avatar-file-trigger');
         const fileNameEl = document.getElementById('avatar-file-name');
@@ -4374,6 +4375,9 @@
             // Update file name display
             if (fileNameEl) fileNameEl.textContent = file.name;
             if (selectedFileDisplay) selectedFileDisplay.style.display = 'block';
+
+            // Show crop button now that we have a file
+            if (cropBtn) cropBtn.style.display = 'inline-block';
 
             // Show cropping interface instead of direct preview
             showCroppingInterface(file);
@@ -4483,6 +4487,69 @@
                 uploadBtn.innerHTML = '<i class="fas fa-upload"></i><span>Upload</span>';
             }
         }
+
+        // Crop button functionality
+        cropBtn?.addEventListener('click', async () => {
+            if (!currentImageFile || !cropImage) {
+                window.notify?.toast({
+                    type: 'warning',
+                    title: 'No Image',
+                    message: 'Please select an image first',
+                    duration: 2000,
+                });
+                return;
+            }
+
+            cropBtn.setAttribute('aria-busy', 'true');
+            cropBtn.disabled = true;
+            cropBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Cropping...</span>';
+
+            try {
+                // Generate cropped image
+                getCroppedImageBlob(croppedBlob => {
+                    if (!croppedBlob) {
+                        throw new Error('Failed to generate cropped image');
+                    }
+
+                    // Create URL for the cropped image
+                    const croppedUrl = URL.createObjectURL(croppedBlob);
+
+                    // Update the main preview to show cropped result
+                    if (previewImg) {
+                        previewImg.src = croppedUrl;
+                        previewImg.style.display = 'block';
+                    }
+                    if (previewFallback) previewFallback.style.display = 'none';
+
+                    // Store the cropped blob for upload
+                    currentImageFile = new File([croppedBlob], currentImageFile.name, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now(),
+                    });
+
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'Image Cropped',
+                        message: 'Your image has been cropped successfully. Click Upload to save.',
+                        duration: 3000,
+                    });
+
+                    // Clean up the URL after a delay
+                    setTimeout(() => URL.revokeObjectURL(croppedUrl), 1000);
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Crop Failed',
+                    message: e.message || 'Failed to crop image',
+                    duration: 3000,
+                });
+            } finally {
+                cropBtn.removeAttribute('aria-busy');
+                cropBtn.disabled = false;
+                cropBtn.innerHTML = '<i class="fas fa-crop"></i><span>Crop</span>';
+            }
+        });
 
         removeBtn?.addEventListener('click', async () => {
             if (!confirm('Are you sure you want to remove your profile photo?')) {
@@ -4893,27 +4960,25 @@
                             break;
                         case 'nw': // Northwest
                             {
-                                const newX = Math.max(
-                                    0,
-                                    Math.min(cropStartX + deltaX, cropStartX + cropData.width - 50)
-                                );
-                                const newY = Math.max(
-                                    0,
-                                    Math.min(cropStartY + deltaY, cropStartY + cropData.height - 50)
-                                );
+                                // For northwest handle, we want to keep the bottom-right corner fixed
+                                // and move the top-left corner
+                                const fixedX = cropStartX + cropData.width; // Right edge stays fixed
+                                const fixedY = cropStartY + cropData.height; // Bottom edge stays fixed
 
-                                // Calculate new dimensions based on new position
-                                const newWidth = cropStartX + cropData.width - newX;
-                                const newHeight = cropStartY + cropData.height - newY;
+                                const newX = Math.max(0, cropStartX + deltaX);
+                                const newY = Math.max(0, cropStartY + deltaY);
+
+                                const newWidth = Math.max(50, fixedX - newX);
+                                const newHeight = Math.max(50, fixedY - newY);
 
                                 // Use the smaller dimension to maintain square
                                 const size = Math.min(newWidth, newHeight);
 
-                                // Set new position and size
+                                // Set new position and size - top-left corner moves
                                 cropData.width = size;
                                 cropData.height = size;
-                                cropData.x = cropStartX + cropData.width - size;
-                                cropData.y = cropStartY + cropData.height - size;
+                                cropData.x = fixedX - size;
+                                cropData.y = fixedY - size;
                             }
                             break;
                     }

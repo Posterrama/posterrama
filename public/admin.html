@@ -2697,7 +2697,7 @@
         <div class="modal-title" id="modal-avatar-title"><i class="fas fa-image"></i> Profile Photo</div>
         <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
       </div>
-      <div class="modal-body" style="padding: 20px;">
+      <div class="modal-body" style="padding: 20px; text-align: center;">
         
         <!-- Image cropping interface (initially hidden, shown when file selected) -->
         <div id="crop-interface" style="display: none; margin-bottom: 24px; background: rgba(255,255,255,0.02); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.08);">
@@ -2840,6 +2840,9 @@
         <button type="button" class="btn btn-outline" data-close-modal style="min-width: 80px;">Cancel</button>
         <button type="button" class="btn btn-error" id="avatar-remove-btn" style="min-width: 90px;">
           <i class="fas fa-trash"></i><span>Remove</span>
+        </button>
+        <button type="button" class="btn btn-secondary" id="avatar-crop-btn" style="min-width: 90px; display: none;">
+          <i class="fas fa-crop"></i><span>Crop</span>
         </button>
         <button type="button" class="btn btn-primary" id="avatar-upload-btn" style="min-width: 90px;">
           <i class="fas fa-upload"></i><span>Upload</span>
