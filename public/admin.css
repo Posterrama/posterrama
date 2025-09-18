@@ -887,10 +887,11 @@ body {
     background: var(--color-bg-card);
     color: var(--color-text-primary);
 }
-/* Remove heavy green focus glow; keep neutral styling */
-#modal-cinema-text #cinema-text-input:focus {
+/* Subtle focus: tint border slightly purple, no glow */
+#modal-cinema-text #cinema-text-input:focus,
+#modal-cinema-text #cinema-text-input:focus-visible {
     outline: none;
-    border-color: inherit;
+    border-color: color-mix(in srgb, var(--color-secondary) 25%, var(--color-border));
     box-shadow: none;
     background: var(--color-bg-card);
 }
@@ -907,10 +908,11 @@ body {
 #modal-cinema-manage #cinema-manage-input::placeholder {
     color: var(--color-text-muted);
 }
-/* Remove heavy green focus glow; keep neutral styling */
-#modal-cinema-manage #cinema-manage-input:focus {
+/* Subtle focus: tint border slightly purple, no glow */
+#modal-cinema-manage #cinema-manage-input:focus,
+#modal-cinema-manage #cinema-manage-input:focus-visible {
     outline: none;
-    border-color: inherit;
+    border-color: color-mix(in srgb, var(--color-secondary) 25%, var(--color-border));
     box-shadow: none;
     background: var(--color-bg-card);
 }
