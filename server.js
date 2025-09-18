@@ -60,9 +60,13 @@ global.performanceCheckInterval = setInterval(async () => {
     // Log with appropriate level based on usage
     const heapPercent = parseInt(memoryInfo.heapPercent);
     if (heapPercent > 80 || cpuPercent > 80) {
-        logger.warn('🚨 High system resource usage detected', systemMetrics);
+        // Disabled: High resource usage warnings create log noise in production
+        // logger.warn('🚨 High system resource usage detected', systemMetrics);
+        logger.debug('🚨 High system resource usage detected', systemMetrics);
     } else if (heapPercent > 60 || cpuPercent > 60) {
-        logger.verbose('⚠️ Moderate system resource usage', systemMetrics);
+        // Disabled: Moderate resource usage warnings create log noise
+        // logger.verbose('⚠️ Moderate system resource usage', systemMetrics);
+        logger.debug('⚠️ Moderate system resource usage', systemMetrics);
     } else {
         logger.debug('📊 System performance metrics', systemMetrics);
     }
