@@ -869,12 +869,16 @@ body {
 .nav-actions .btn:hover i {
     color: var(--color-text-primary);
 }
+/* Global input focus: subtle purple-tinted border, no glow */
 .form-group input:focus,
+.form-group input:focus-visible,
 .form-group select:focus,
-.form-group textarea:focus {
+.form-group select:focus-visible,
+.form-group textarea:focus,
+.form-group textarea:focus-visible {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3);
+    border-color: color-mix(in srgb, var(--color-secondary) 25%, var(--color-border));
+    box-shadow: none;
     background: var(--color-bg-card);
 }
 
@@ -963,10 +967,12 @@ body {
 }
 
 .form-input:focus,
-#input-whitelist-entry:focus {
+.form-input:focus-visible,
+#input-whitelist-entry:focus,
+#input-whitelist-entry:focus-visible {
     outline: none !important;
-    border-color: var(--color-primary) !important;
-    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3) !important;
+    border-color: color-mix(in srgb, var(--color-secondary) 25%, var(--color-border)) !important;
+    box-shadow: none !important;
     background: var(--color-bg-card) !important;
 }
 
@@ -985,10 +991,11 @@ body {
     min-width: 200px;
 }
 
-.search-box input:focus {
+.search-box input:focus,
+.search-box input:focus-visible {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    border-color: color-mix(in srgb, var(--color-secondary) 25%, var(--color-border));
+    box-shadow: none;
 }
 
 .search-box input::placeholder {
@@ -3729,10 +3736,11 @@ select:not([multiple]) {
     background: rgba(255, 255, 255, 0.06);
     color: var(--color-text-primary);
 }
-.pairing-input:focus {
+.pairing-input:focus,
+.pairing-input:focus-visible {
     outline: none;
-    border-color: var(--color-info);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+    border-color: color-mix(in srgb, var(--color-secondary) 25%, var(--color-border));
+    box-shadow: none;
 }
 .pairing-exp {
     margin-top: 6px;
@@ -4996,6 +5004,23 @@ body.page-logs {
     background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card)) !important;
     border-bottom: 1px solid var(--color-border) !important;
 }
+/* Match Display header layout for Operations */
+.operations-panel .panel-title {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+.operations-panel .panel-title h2 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1.2;
+}
+.operations-panel .panel-title h2 i {
+    color: var(--color-text-secondary);
+}
 /* Operations grouping */
 .ops-group {
     margin: 6px 0 10px;
@@ -5095,6 +5120,52 @@ body.page-logs {
     flex-direction: column;
     gap: 12px;
 }
+/* Operations: unify button look to match Display */
+.operations-panel .btn {
+    padding: 10px 14px;
+    border: 0;
+    font-size: 0.95rem;
+    line-height: 1.1;
+    transition: all 150ms ease-in-out;
+    border-radius: 14px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-tertiary);
+    background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.28);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+.operations-panel .btn .fas {
+    color: inherit;
+}
+.operations-panel .btn.btn-sm {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+}
+.operations-panel .btn:hover {
+    background-color: var(--color-bg-tertiary);
+    background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.22));
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.45),
+        0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.38);
+}
+.operations-panel .btn:active {
+    background-color: var(--color-bg-tertiary);
+    background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.2));
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.55),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.04);
+}
+.operations-panel .btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
 /* URL chip and status line */
 .operations-panel .status-line {
     display: flex;
@@ -5176,8 +5247,8 @@ body.page-logs {
     outline: none;
 }
 .operations-panel #api-key-input:focus {
-    border-color: var(--color-info);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+    border-color: color-mix(in srgb, var(--color-secondary) 25%, var(--color-border));
+    box-shadow: none;
 }
 /* Inline field styling for label + input rows */
 .operations-panel .inline-field {
