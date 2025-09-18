@@ -80,10 +80,6 @@
     min-width: 160px;
     width: auto;
 }
-/* Footer text select needs a bit more room for preset names */
-#cin-f-presets.cin-compact {
-    min-width: 200px;
-}
 
 /* Place the enable toggle (pill switch) in the card title */
 #cinema-header-card .card-title,
@@ -180,4 +176,144 @@
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+}
+
+/* (Ambilight-specific custom block removed in favor of unified cinema-wide switch styles) */
+
+/* --- Cinema: Footer toggle custom style with ON/OFF text and lamp knob --- */
+#cinema-footer-card .header-toggle .ht-switch {
+    width: 64px;
+    height: 28px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
+    box-shadow:
+        inset 0 1px 3px rgba(0, 0, 0, 0.5),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.35),
+        0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: background var(--anim-duration-fast) var(--anim-ease-emph);
+    position: relative;
+}
+/* OFF by default */
+#cinema-footer-card .header-toggle .ht-switch::before {
+    content: 'OFF';
+    position: absolute;
+    right: 8px; /* nudged slightly right for better centering in empty space */
+    left: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.35);
+    text-shadow: none;
+    transition:
+        color var(--anim-duration-fast) var(--anim-ease-emph),
+        text-shadow var(--anim-duration-fast) var(--anim-ease-emph);
+}
+#cinema-footer-card .header-toggle .ht-switch::after {
+    width: 24px;
+    height: 24px;
+    top: 2px;
+    left: 2px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at center, rgba(245, 158, 11, 0) 0 6px, rgba(0, 0, 0, 0) 6px),
+        linear-gradient(180deg, #2a3142, #232937);
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition:
+        transform var(--anim-duration-fast) var(--anim-ease-emph),
+        box-shadow var(--anim-duration-fast) var(--anim-ease-emph),
+        background var(--anim-duration-fast) var(--anim-ease-emph);
+}
+#cinema-footer-card .header-toggle input:checked + .ht-switch {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.08));
+}
+#cinema-footer-card .header-toggle input:checked + .ht-switch::before {
+    content: 'ON';
+    left: 10px;
+    right: auto;
+    color: #f59e0b; /* amber-500 */
+    text-shadow: none;
+}
+#cinema-footer-card .header-toggle input:checked + .ht-switch::after {
+    transform: translateX(36px); /* move only; keep base knob appearance */
+}
+
+/* Specular highlight is baked into ::after background layers above; no extra pseudo-elements needed */
+
+/* ===== Cinema-wide switch unification ===== */
+/* Apply this consistent switch to Header, Footer, and Ambilight in Cinema */
+#cinema-header-card .header-toggle .ht-switch,
+#cinema-footer-card .header-toggle .ht-switch,
+#cinema-ambilight-card .header-toggle .ht-switch {
+    width: 64px;
+    height: 28px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
+    box-shadow:
+        inset 0 1px 3px rgba(0, 0, 0, 0.5),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.35),
+        0 1px 0 rgba(255, 255, 255, 0.04);
+    position: relative;
+    transition: background var(--anim-duration-fast) var(--anim-ease-emph);
+}
+#cinema-header-card .header-toggle .ht-switch::after,
+#cinema-footer-card .header-toggle .ht-switch::after,
+#cinema-ambilight-card .header-toggle .ht-switch::after {
+    width: 24px;
+    height: 24px;
+    top: 2px;
+    left: 2px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #2a3142, #232937);
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: transform var(--anim-duration-fast) var(--anim-ease-emph);
+}
+#cinema-header-card .header-toggle input:checked + .ht-switch,
+#cinema-footer-card .header-toggle input:checked + .ht-switch,
+#cinema-ambilight-card .header-toggle input:checked + .ht-switch {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.08));
+}
+#cinema-header-card .header-toggle input:checked + .ht-switch::after,
+#cinema-footer-card .header-toggle input:checked + .ht-switch::after,
+#cinema-ambilight-card .header-toggle input:checked + .ht-switch::after {
+    transform: translateX(36px); /* move only; keep base knob appearance */
+}
+
+/* Place OFF/ON text inside the track for all Cinema switches */
+#cinema-header-card .header-toggle .ht-switch::before,
+#cinema-footer-card .header-toggle .ht-switch::before,
+#cinema-ambilight-card .header-toggle .ht-switch::before {
+    content: 'OFF';
+    position: absolute;
+    right: 8px;
+    left: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.35);
+    text-shadow: none;
+    transition: color var(--anim-duration-fast) var(--anim-ease-emph);
+}
+#cinema-header-card .header-toggle input:checked + .ht-switch::before,
+#cinema-footer-card .header-toggle input:checked + .ht-switch::before,
+#cinema-ambilight-card .header-toggle input:checked + .ht-switch::before {
+    content: 'ON';
+    left: 10px;
+    right: auto;
+    color: #f59e0b; /* amber-500 */
+    text-shadow: none; /* text-only color change */
+}
+
+/* Hide the external text labels next to the switch inside card titles for Cinema */
+#cinema-header-card .card-title .header-toggle .ht-text,
+#cinema-footer-card .card-title .header-toggle .ht-text,
+#cinema-ambilight-card .card-title .header-toggle .ht-text {
+    display: none;
 }
