@@ -6110,13 +6110,13 @@ body.page-logs {
     column-width: auto;
     column-gap: 12px;
 }
+/* Cinema cards: masonry columns for natural stacking without row gaps */
 #section-display #cinema-cards.masonry {
     column-count: 2;
     column-width: auto;
     column-gap: 12px;
 }
 @media (max-width: 1200px) {
-    #section-display #saver-cards.masonry,
     #section-display #cinema-cards.masonry {
         column-count: 1;
     }

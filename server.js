@@ -206,6 +206,11 @@ function getAssetVersions() {
             'admin.js',
             'style.css',
             'admin.css',
+            // Cinema/Admin & Preview assets
+            'cinema/cinema-ui.js',
+            'cinema/cinema.css',
+            'preview-cinema.js',
+            'preview-cinema.css',
             'logs.js',
             'logs.css',
             'sw.js',
@@ -768,11 +773,34 @@ app.use((req, res, next) => {
  *         content:
  *           text/html: {}
  */
-app.get('/preview', (_req, res) => {
+app.get('/preview', (req, res) => {
     try {
         const filePath = path.join(__dirname, 'public', 'preview.html');
         if (fs.existsSync(filePath)) {
-            return res.sendFile(filePath);
+            const raw = fs.readFileSync(filePath, 'utf8');
+            const versions = getAssetVersions();
+            const stamped = raw
+                .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
+                .replace(
+                    /script\.js\?v=[^"&\s]+/g,
+                    `script.js?v=${versions['script.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /style\.css\?v=[^"&\s]+/g,
+                    `style.css?v=${versions['style.css'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /preview-cinema\.js\?v=[^"&\s]+/g,
+                    `preview-cinema.js?v=${versions['preview-cinema.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /preview-cinema\.css\?v=[^"&\s]+/g,
+                    `preview-cinema.css?v=${versions['preview-cinema.css'] || ASSET_VERSION}`
+                );
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            return res.send(stamped);
         }
     } catch (_) {
         // fall through to simple HTML if file missing
@@ -780,7 +808,7 @@ app.get('/preview', (_req, res) => {
     // Fallback minimal HTML (should not be used in normal installs)
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Posterrama Preview</title><link rel="stylesheet" href="/style.css"><style>body{background:#000;color:#fff}</style></head><body><div id="layer-a" class="screensaver-layer"></div><div id="layer-b" class="screensaver-layer"></div><div id="clock-widget-container"><div id="time-widget"><span id="time-hours">00</span><span id="time-separator">:</span><span id="time-minutes">00</span></div></div><div id="clearlogo-container"><img id="clearlogo" alt="ClearLogo"/></div><div id="info-container"><div id="poster-wrapper"><a id="poster-link" href="#" target="_blank" rel="noopener noreferrer"><div id="poster-a" class="poster-layer"></div><div id="poster-b" class="poster-layer"></div><div id="poster"></div></a></div><div id="text-wrapper"><h1 id="title"></h1><p id="tagline"></p><div id="meta-info"><span id="year"></span><span id="rating"></span></div></div></div><div id="controls-container" style="display:none"></div><div id="branding-container" style="display:none"></div><script>window.IS_PREVIEW=true;</script><script src="/script.js"></script></body></html>`
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Posterrama Preview</title><link rel="stylesheet" href="/style.css?v=${ASSET_VERSION}"><style>body{background:#000;color:#fff}</style></head><body><div id="layer-a" class="screensaver-layer"></div><div id="layer-b" class="screensaver-layer"></div><div id="clock-widget-container"><div id="time-widget"><span id="time-hours">00</span><span id="time-separator">:</span><span id="time-minutes">00</span></div></div><div id="clearlogo-container"><img id="clearlogo" alt="ClearLogo"/></div><div id="info-container"><div id="poster-wrapper"><a id="poster-link" href="#" target="_blank" rel="noopener noreferrer"><div id="poster-a" class="poster-layer"></div><div id="poster-b" class="poster-layer"></div><div id="poster"></div></a></div><div id="text-wrapper"><h1 id="title"></h1><p id="tagline"></p><div id="meta-info"><span id="year"></span><span id="rating"></span></div></div></div><div id="controls-container" style="display:none"></div><div id="branding-container" style="display:none"></div><script>window.IS_PREVIEW=true;</script><script src="/script.js?v=${ASSET_VERSION}"></script></body></html>`
     );
 });
 
@@ -911,6 +939,15 @@ app.get(['/admin', '/admin.html'], (req, res, next) => {
             .replace(
                 /admin\.css\?v=[^"&\s]+/g,
                 `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
+            )
+            // Stamp cinema admin assets
+            .replace(
+                /cinema\/cinema-ui\.js\?v=[^"&\s]+/g,
+                `cinema/cinema-ui.js?v=${versions['cinema/cinema-ui.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /cinema\/cinema\.css\?v=[^"&\s]+/g,
+                `cinema/cinema.css?v=${versions['cinema/cinema.css'] || ASSET_VERSION}`
             )
             // Ensure service worker registration always fetches latest sw.js
             .replace(/\/sw\.js(\?v=[^"'\s>]+)?/g, `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`);

@@ -1,0 +1,178 @@
+/* Cinema admin module styles */
+#cinema-header-card .form-row,
+#cinema-footer-card .form-row,
+#cinema-ambilight-card .form-row {
+    margin-bottom: 10px;
+}
+
+.cinema-help {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}
+
+.cinema-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.cinema-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.cin-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.cin-col {
+    min-width: 0;
+}
+@media (max-width: 900px) {
+    .cin-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Footer controls row */
+.cin-footer-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: end;
+}
+@media (max-width: 900px) {
+    .cin-footer-controls {
+        grid-template-columns: 1fr;
+    }
+}
+.cin-footer-col {
+    min-width: 0;
+    margin-top: 10px;
+}
+
+/* Flatten the style slot so its child form-row aligns exactly like the left form-row */
+#cin-f-style-slot {
+    display: contents;
+}
+
+/* Style row uses normal form-row styling inherited from the section */
+
+/* Make label color consistent between Style (slot) and Icons */
+#cin-f-style-slot label,
+.specs-grid .icons-row > label {
+    color: var(--color-text-secondary);
+}
+
+/* (old single-left/right removed in simplified layout) */
+
+/* Compact controls: avoid full-width selects */
+#fs-cinema select,
+#cinema-header-card select,
+#cinema-footer-card select,
+#cinema-ambilight-card select {
+    max-width: 260px;
+    width: auto;
+}
+.cin-compact {
+    max-width: 240px;
+    min-width: 160px;
+    width: auto;
+}
+/* Footer text select needs a bit more room for preset names */
+#cin-f-presets.cin-compact {
+    min-width: 200px;
+}
+
+/* Place the enable toggle (pill switch) in the card title */
+#cinema-header-card .card-title,
+#cinema-footer-card .card-title,
+#cinema-ambilight-card .card-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+#cinema-header-card .card-title .header-toggle,
+#cinema-footer-card .card-title .header-toggle,
+#cinema-ambilight-card .card-title .header-toggle {
+    margin-left: auto;
+}
+
+/* Vertical checkbox list for specs */
+.cin-vert {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.cin-vert label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Inner layout for specs (Icons now sits under Show in the left column) */
+.specs-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-items: start;
+}
+@media (max-width: 900px) {
+    .specs-grid {
+        grid-template-columns: 1fr;
+    }
+}
+/* Icons row styling */
+.specs-grid .icons-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.cinema-combobox {
+    display: flex;
+    gap: 6px;
+}
+.cinema-combobox input[type='text'] {
+    flex: 1;
+}
+.cinema-combobox .btn {
+    white-space: nowrap;
+}
+
+/* Align checkboxes styling with admin theme */
+#cinema-header-card input[type='checkbox'],
+#cinema-footer-card input[type='checkbox'],
+#cinema-ambilight-card input[type='checkbox'] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    margin: 0 6px 0 0;
+    border-radius: 6px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+#cinema-header-card input[type='checkbox']:checked,
+#cinema-footer-card input[type='checkbox']:checked,
+#cinema-ambilight-card input[type='checkbox']:checked {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+}
+#cinema-header-card input[type='checkbox']:checked::after,
+#cinema-footer-card input[type='checkbox']:checked::after,
+#cinema-ambilight-card input[type='checkbox']:checked::after {
+    content: '✓';
+    color: #fff;
+    font-size: 0.85rem;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}

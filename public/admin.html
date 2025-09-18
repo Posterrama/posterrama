@@ -747,9 +747,14 @@
                 <div class="card-subtext" style="margin-bottom:10px; color: var(--color-text-secondary);">
                   A large, single‑poster view for displays. Choose your screen orientation.
                 </div>
-                <div class="form-grid masonry" id="cinema-cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
-                  <!-- Orientation card -->
-                  <div class="mode-card" data-card-key="orientation" style="padding:12px;">
+                <div class="form-grid masonry" id="cinema-cards">
+                  <!-- Left: Ambilight -->
+                  <div class="mode-card" data-card-key="cinema-ambilight" id="cinema-ambilight-card" style="padding:12px; grid-column: 1;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-lightbulb"></i> Ambilight</div>
+                    <div id="cinema-ambilight-mount"></div>
+                  </div>
+                  <!-- Right: Orientation -->
+                  <div class="mode-card" data-card-key="orientation" style="padding:12px; grid-column: 1;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Orientation</div>
                     <div class="form-grid">
                       <div class="form-row">
@@ -761,6 +766,15 @@
                         </select>
                       </div>
                     </div>
+                  </div>
+                  <!-- Next row: Header (left) and Footer (right) -->
+                  <div class="mode-card" data-card-key="cinema-header" id="cinema-header-card" style="padding:12px; grid-column: 1;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-heading"></i> Header</div>
+                    <div id="cinema-header-mount"></div>
+                  </div>
+                  <div class="mode-card" data-card-key="cinema-footer" id="cinema-footer-card" style="padding:12px; break-before: column; -webkit-column-break-before: always;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-window-maximize"></i> Footer</div>
+                    <div id="cinema-footer-mount"></div>
                   </div>
                 </div>
               </fieldset>
@@ -2913,6 +2927,8 @@
       </div>
     </div>
   <script src="/admin.js?v={{ASSET_VERSION}}"></script>
+  <link rel="stylesheet" href="/cinema/cinema.css?v={{ASSET_VERSION}}" />
+  <script src="/cinema/cinema-ui.js?v={{ASSET_VERSION}}"></script>
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
     // Register SW without forcing immediate reloads. We'll prompt the user instead.

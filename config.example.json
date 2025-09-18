@@ -27,6 +27,28 @@
     },
     "cinemaMode": false,
     "cinemaOrientation": "auto",
+    "cinema": {
+        "header": { "enabled": true, "text": "Now Playing", "style": "classic" },
+        "footer": {
+            "enabled": true,
+            "type": "specs",
+            "marqueeText": "Feature Presentation",
+            "marqueeStyle": "classic",
+            "specs": {
+                "showResolution": true,
+                "showAudio": true,
+                "showAspectRatio": true,
+                "showFlags": false,
+                "style": "subtle",
+                "iconSet": "filled"
+            }
+        },
+        "presets": {
+            "headerTexts": ["Coming Soon", "Now Playing", "Home Cinema", "Feature Presentation"],
+            "footerTexts": ["Coming Soon", "Now Playing", "Home Cinema", "Feature Presentation"]
+        },
+        "ambilight": { "enabled": true, "strength": 60 }
+    },
     "transitionEffect": "kenburns",
     "effectPauseTime": 3,
     "uiScaling": {

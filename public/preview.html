@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Posterrama – Live Preview</title>
     <meta name="robots" content="noindex,nofollow" />
-    <link rel="preload" href="/script.js?v=20250917e" as="script" />
-    <link rel="stylesheet" href="/style.css" />
+    <link rel="preload" href="/script.js?v={{ASSET_VERSION}}" as="script" />
+    <link rel="stylesheet" href="/style.css?v={{ASSET_VERSION}}" />
+  <link rel="stylesheet" href="/preview-cinema.css?v={{ASSET_VERSION}}" />
     <style>
       html, body { height: 100%; }
       body { margin:0; background:#000; color:#fff; overflow:hidden; }
@@ -18,6 +19,16 @@
     <!-- Minimal DOM identical to main display so script.js can run normally -->
     <div id="layer-a" class="screensaver-layer"></div>
     <div id="layer-b" class="screensaver-layer"></div>
+
+    <!-- Preview-only Cinema overlays (safe: not present in main runtime) -->
+    <div id="cinema-ambilight" aria-hidden="true"></div>
+    <div id="cinema-header" aria-live="polite"></div>
+    <div id="cinema-footer">
+      <div class="cinema-footer-inner">
+        <div class="cinema-footer-marquee" id="cinema-footer-marquee"><span></span></div>
+        <div class="cinema-footer-specs" id="cinema-footer-specs"></div>
+      </div>
+    </div>
 
     <div id="clock-widget-container">
       <div id="time-widget">
@@ -56,6 +67,7 @@
       // Signal to script.js that we're in preview mode
       window.IS_PREVIEW = true;
     </script>
-    <script src="/script.js?v=20250917e"></script>
+    <script src="/script.js?v={{ASSET_VERSION}}"></script>
+  <script src="/preview-cinema.js?v={{ASSET_VERSION}}"></script>
   </body>
 </html>

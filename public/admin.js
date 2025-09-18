@@ -2257,6 +2257,16 @@
                     },
                 },
             },
+            // Cinema configuration collected from the modular UI
+            cinema: (function () {
+                try {
+                    if (typeof window.__collectCinemaConfig === 'function') {
+                        const cc = window.__collectCinemaConfig();
+                        if (cc && typeof cc === 'object') return cc;
+                    }
+                } catch (_) {}
+                return undefined; // let server merge preserve existing if UI not loaded
+            })(),
             // Screensaver specific: none (backgroundRefreshMinutes managed in Operations)
         };
         // If screensaver active, ensure other modes disabled
@@ -2287,6 +2297,12 @@
             // Ensure badges/cards reflect the chosen mode immediately
             setRadioGroupActive(mode);
             updateModeBadges(mode);
+
+            // If cinema is selected at load time, force the preview iframe to initialize in portrait
+            // by sending an early nudge after the frame wires up (handled later in initDisplayPreviewV2)
+            try {
+                window.__forcePreviewUpdate && window.__forcePreviewUpdate();
+            } catch (_) {}
 
             // Save handler
             const saveBtn = document.getElementById('btn-save-display');

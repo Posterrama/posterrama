@@ -188,6 +188,173 @@
             "enum": ["auto", "portrait", "portrait-flipped"],
             "default": "auto"
         },
+        "cinema": {
+            "description": "Cinema mode overlays and presentation settings (header/footer, marquee, specs, ambilight).",
+            "type": "object",
+            "properties": {
+                "header": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": { "type": "boolean", "default": true },
+                        "text": { "type": "string", "default": "Now Playing" },
+                        "style": {
+                            "type": "string",
+                            "enum": ["classic", "neon", "minimal", "theatre"],
+                            "default": "classic"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": { "enabled": true, "text": "Now Playing", "style": "classic" }
+                },
+                "footer": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": { "type": "boolean", "default": true },
+                        "type": {
+                            "type": "string",
+                            "enum": ["marquee", "specs"],
+                            "default": "specs"
+                        },
+                        "marqueeText": { "type": "string", "default": "Feature Presentation" },
+                        "marqueeStyle": {
+                            "type": "string",
+                            "enum": ["classic", "neon", "minimal", "theatre"],
+                            "default": "classic"
+                        },
+                        "specs": {
+                            "type": "object",
+                            "properties": {
+                                "showResolution": { "type": "boolean", "default": true },
+                                "showAudio": { "type": "boolean", "default": true },
+                                "showAspectRatio": { "type": "boolean", "default": true },
+                                "showFlags": { "type": "boolean", "default": false },
+                                "style": {
+                                    "type": "string",
+                                    "enum": ["subtle", "filled", "outline"],
+                                    "default": "subtle"
+                                },
+                                "iconSet": {
+                                    "type": "string",
+                                    "enum": ["filled", "line"],
+                                    "default": "filled"
+                                }
+                            },
+                            "additionalProperties": false,
+                            "default": {
+                                "showResolution": true,
+                                "showAudio": true,
+                                "showAspectRatio": true,
+                                "showFlags": false,
+                                "style": "subtle",
+                                "iconSet": "filled"
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "enabled": true,
+                        "type": "specs",
+                        "marqueeText": "Feature Presentation",
+                        "marqueeStyle": "classic",
+                        "specs": {
+                            "showResolution": true,
+                            "showAudio": true,
+                            "showAspectRatio": true,
+                            "showFlags": false,
+                            "style": "subtle",
+                            "iconSet": "filled"
+                        }
+                    }
+                },
+                "presets": {
+                    "type": "object",
+                    "properties": {
+                        "headerTexts": {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "default": [
+                                "Coming Soon",
+                                "Now Playing",
+                                "Home Cinema",
+                                "Feature Presentation"
+                            ]
+                        },
+                        "footerTexts": {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "default": [
+                                "Coming Soon",
+                                "Now Playing",
+                                "Home Cinema",
+                                "Feature Presentation"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "headerTexts": [
+                            "Coming Soon",
+                            "Now Playing",
+                            "Home Cinema",
+                            "Feature Presentation"
+                        ],
+                        "footerTexts": [
+                            "Coming Soon",
+                            "Now Playing",
+                            "Home Cinema",
+                            "Feature Presentation"
+                        ]
+                    }
+                },
+                "ambilight": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": { "type": "boolean", "default": true },
+                        "strength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "default": 60
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": { "enabled": true, "strength": 60 }
+                }
+            },
+            "additionalProperties": false,
+            "default": {
+                "header": { "enabled": true, "text": "Now Playing", "style": "classic" },
+                "footer": {
+                    "enabled": true,
+                    "type": "specs",
+                    "marqueeText": "Feature Presentation",
+                    "marqueeStyle": "classic",
+                    "specs": {
+                        "showResolution": true,
+                        "showAudio": true,
+                        "showAspectRatio": true,
+                        "showFlags": false,
+                        "style": "subtle",
+                        "iconSet": "filled"
+                    }
+                },
+                "presets": {
+                    "headerTexts": [
+                        "Coming Soon",
+                        "Now Playing",
+                        "Home Cinema",
+                        "Feature Presentation"
+                    ],
+                    "footerTexts": [
+                        "Coming Soon",
+                        "Now Playing",
+                        "Home Cinema",
+                        "Feature Presentation"
+                    ]
+                },
+                "ambilight": { "enabled": true, "strength": 60 }
+            }
+        },
         "transitionEffect": {
             "description": "Visual transition effect for background images and posters. Duration is automatically calculated based on transition interval.",
             "type": "string",
