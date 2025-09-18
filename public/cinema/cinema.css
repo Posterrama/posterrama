@@ -488,33 +488,21 @@
 
 /* ===== Cinema: Compact, stylish Current Experience pills ===== */
 #card-cinema .status-pill {
-    padding: 3px 10px; /* slimmer than global */
+    /* compact, flat chip distinct from buttons */
+    padding: 3px 10px;
     border-radius: 999px;
-    font-size: 0.85rem; /* slightly smaller */
+    font-size: 0.85rem;
     line-height: 1.1;
     color: var(--color-text-secondary);
-    background-color: var(--color-bg-card);
-    /* very subtle convex with top rim highlight */
-    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-    border: 0; /* rely on light + shadow rather than border */
-    box-shadow:
-        0 2px 5px rgba(0, 0, 0, 0.25),
-        /* outer drop */ 0 1px 0 rgba(255, 255, 255, 0.06),
-        /* top rim */ inset 0 -1px 1.5px rgba(0, 0, 0, 0.18); /* base definition */
+    background: color-mix(in srgb, var(--color-bg-card) 88%, transparent);
+    border: 1px solid var(--color-border-light);
+    box-shadow: none;
 }
 #card-cinema .status-pill:hover {
-    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
-    box-shadow:
-        0 3px 7px rgba(0, 0, 0, 0.3),
-        0 1px 0 rgba(255, 255, 255, 0.07),
-        inset 0 -1px 1.8px rgba(0, 0, 0, 0.2);
+    background: color-mix(in srgb, var(--color-bg-card) 94%, transparent);
 }
 #card-cinema .status-pill:active {
-    /* slight concave feel on press */
-    background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.18));
-    box-shadow:
-        inset 0 2px 3px rgba(0, 0, 0, 0.28),
-        inset 0 -1px 1.5px rgba(255, 255, 255, 0.04);
+    background: color-mix(in srgb, var(--color-bg-card) 98%, transparent);
 }
 #card-cinema .status-pill i,
 #card-cinema .status-pill .fas,
