@@ -6101,6 +6101,8 @@ body.page-logs {
     padding: 4px 10px;
     border-radius: 999px;
     font-size: var(--font-size-sm);
+    font-weight: 400; /* thin, like Screensaver */
+    letter-spacing: 0; /* match Screensaver */
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
@@ -6360,6 +6362,108 @@ body.page-logs {
         0 0 0 1px color-mix(in srgb, var(--color-warning) 55%, transparent);
 }
 #section-display #saver-presets-card button#saver-preset-reset:active {
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.55),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.04),
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 55%, transparent);
+}
+/* Wallart: unify button look to match Screensaver (scoped) */
+#section-display #card-wallart .btn,
+#section-display #wallart-cards .btn,
+#section-display #fs-wallart .btn {
+    padding: 10px 14px;
+    border: 0;
+    font-size: 0.95rem;
+    line-height: 1.1;
+    transition: all 150ms ease-in-out;
+    border-radius: 14px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-tertiary);
+    background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.28);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+#section-display #card-wallart .btn .fas,
+#section-display #wallart-cards .btn .fas,
+#section-display #fs-wallart .btn .fas {
+    color: inherit;
+}
+#section-display #card-wallart .btn.btn-sm,
+#section-display #wallart-cards .btn.btn-sm,
+#section-display #fs-wallart .btn.btn-sm {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+}
+#section-display #card-wallart .btn:hover,
+#section-display #wallart-cards .btn:hover,
+#section-display #fs-wallart .btn:hover {
+    background-color: var(--color-bg-tertiary);
+    background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.22));
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.45),
+        0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.38);
+}
+#section-display #card-wallart .btn:active,
+#section-display #wallart-cards .btn:active,
+#section-display #fs-wallart .btn:active {
+    background-color: var(--color-bg-tertiary);
+    background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.2));
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.55),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.04);
+}
+#section-display #card-wallart .btn:focus-visible,
+#section-display #wallart-cards .btn:focus-visible,
+#section-display #fs-wallart .btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+/* Variant: Reset preset (Wallart) — subtle warning accent matching Screensaver */
+#section-display #wallart-presets-card button#wallart-preset-reset {
+    color: color-mix(in srgb, var(--color-warning) 65%, var(--color-text-secondary));
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.28),
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 35%, transparent);
+}
+#section-display #wallart-presets-card button#wallart-preset-reset:hover {
+    color: color-mix(in srgb, var(--color-warning) 80%, var(--color-text-secondary));
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.45),
+        0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.38),
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 55%, transparent);
+}
+#section-display #wallart-presets-card button#wallart-preset-reset:active {
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.55),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.04),
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 55%, transparent);
+}
+/* Variant: Reset (UI Element Scaling) — match screensaver reset subtle warning accent */
+#section-display #sec-scaling button#reset-ui-scaling {
+    color: color-mix(in srgb, var(--color-warning) 65%, var(--color-text-secondary));
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.28),
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 35%, transparent);
+}
+#section-display #sec-scaling button#reset-ui-scaling:hover {
+    color: color-mix(in srgb, var(--color-warning) 80%, var(--color-text-secondary));
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.45),
+        0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.38),
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 55%, transparent);
+}
+#section-display #sec-scaling button#reset-ui-scaling:active {
     box-shadow:
         inset 0 2px 4px rgba(0, 0, 0, 0.55),
         inset 0 -1px 2px rgba(255, 255, 255, 0.04),

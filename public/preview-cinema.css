@@ -1,4 +1,11 @@
 /* Preview-only Cinema overlays: header/footer/marquee/specs/ambilight */
+/* Hide all cinema overlays unless the preview is explicitly in cinema mode */
+body:not(.cinema-mode) #cinema-ambilight,
+body:not(.cinema-mode) #cinema-header,
+body:not(.cinema-mode) #cinema-footer {
+    display: none !important;
+}
+
 #cinema-ambilight {
     position: fixed;
     inset: 0;

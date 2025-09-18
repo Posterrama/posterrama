@@ -6,8 +6,14 @@
         if (!el) return;
         el.className = '';
         el.id = 'cinema-header';
-        el.textContent = enabled ? text || '' : '';
-        if (enabled) el.classList.add(`style-${style || 'classic'}`);
+        if (!enabled) {
+            el.textContent = '';
+            el.style.display = 'none';
+            return;
+        }
+        el.textContent = text || '';
+        el.classList.add(`style-${style || 'classic'}`);
+        el.style.display = 'flex';
     }
     function setFooterMarquee(text, style) {
         const m = $('#cinema-footer-marquee');

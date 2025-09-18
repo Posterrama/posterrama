@@ -498,6 +498,8 @@
     padding: 4px 10px; /* same as generic .status-pill */
     border-radius: 999px; /* same as generic .status-pill */
     font-size: var(--font-size-sm); /* same as generic .status-pill */
+    font-weight: 400; /* match Screensaver thin weight */
+    letter-spacing: 0; /* match Screensaver */
     background: rgba(255, 255, 255, 0.06); /* neutral, not blue */
     border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
