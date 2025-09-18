@@ -887,10 +887,12 @@ body {
     background: var(--color-bg-card);
     color: var(--color-text-primary);
 }
+/* Remove heavy green focus glow; keep neutral styling */
 #modal-cinema-text #cinema-text-input:focus {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3);
+    border-color: inherit;
+    box-shadow: none;
+    background: var(--color-bg-card);
 }
 
 /* Cinema Manage modal input styling */
@@ -905,16 +907,38 @@ body {
 #modal-cinema-manage #cinema-manage-input::placeholder {
     color: var(--color-text-muted);
 }
+/* Remove heavy green focus glow; keep neutral styling */
 #modal-cinema-manage #cinema-manage-input:focus {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3);
+    border-color: inherit;
+    box-shadow: none;
+    background: var(--color-bg-card);
 }
-/* Active selection state for Manage list buttons */
+/* Active selection state for Manage list buttons
+   Use a subtle purple accent like the Presets reset halo (no heavy fill) */
 #modal-cinema-manage #cinema-manage-list .btn.active {
-    background: var(--color-secondary);
-    border-color: var(--color-secondary);
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.35);
+    /* Base dark button look, with gentle purple tint */
+    background-color: var(--color-bg-tertiary);
+    background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
+    color: color-mix(in srgb, var(--color-secondary) 70%, var(--color-text-secondary));
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.28),
+        0 0 0 1px color-mix(in srgb, var(--color-secondary) 35%, transparent);
+}
+#modal-cinema-manage #cinema-manage-list .btn.active:hover {
+    color: color-mix(in srgb, var(--color-secondary) 82%, var(--color-text-secondary));
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.45),
+        0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.38),
+        0 0 0 1px color-mix(in srgb, var(--color-secondary) 55%, transparent);
+}
+#modal-cinema-manage #cinema-manage-list .btn.active:active {
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.55),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.04),
+        0 0 0 1px color-mix(in srgb, var(--color-secondary) 55%, transparent);
 }
 
 /* Standalone form input styling */
@@ -2410,6 +2434,15 @@ input[type='range']::-moz-range-thumb {
     gap: var(--space-md);
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-semibold);
+}
+/* Modal title icon should use the subtler secondary tone */
+.modal-title i,
+.modal-title .fa,
+.modal-title .fas,
+.modal-title .far,
+.modal-title .fal,
+.modal-title .fab {
+    color: var(--color-text-secondary);
 }
 
 .modal-close {
