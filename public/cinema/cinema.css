@@ -145,6 +145,8 @@
     white-space: nowrap;
 }
 
+/* (Preset buttons use default theme button styles) */
+
 /* Align checkboxes styling with admin theme */
 #cinema-header-card input[type='checkbox'],
 #cinema-footer-card input[type='checkbox'],
@@ -317,3 +319,68 @@
 #cinema-ambilight-card .card-title .header-toggle .ht-text {
     display: none;
 }
+
+/* ===== Cinema: Button 48 (dark, themed) for Manage ===== */
+#cinema-header-card .button-48,
+#cinema-footer-card .button-48 {
+    padding: 10px 14px; /* compact size for admin */
+    border: 0; /* switches rely on shadows, not a visible border */
+    font-size: 0.95rem;
+    line-height: 1.1;
+    transition: all 150ms ease-in-out;
+    border-radius: 14px; /* softer, more pill-like like the switch track */
+    font-weight: 500; /* less bold per request */
+    color: var(--color-text-secondary); /* subtle, consistent color */
+    /* Darker, switch-aligned tone */
+    background-color: var(--color-bg-tertiary);
+    /* Switch-like dark gradient overlay */
+    background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
+    /* Raised (convex): deeper outer drop, subtle top rim, darker inner base */
+    box-shadow:
+        0 3px 8px rgba(0, 0, 0, 0.4),
+        /* outer drop */ 0 1px 0 rgba(255, 255, 255, 0.05),
+        /* top rim light */ inset 0 -1px 2px rgba(0, 0, 0, 0.35); /* bottom inner shade */
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+}
+#cinema-header-card .button-48 .text,
+#cinema-footer-card .button-48 .text {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+#cinema-header-card .button-48 .text i,
+#cinema-footer-card .button-48 .text i {
+    margin-right: 6px;
+    color: inherit; /* keep icon same as text */
+}
+#cinema-header-card .button-48:hover,
+#cinema-footer-card .button-48:hover {
+    background-color: var(--color-bg-tertiary);
+    /* Hover: slightly deeper dark overlay, maintaining convex feel */
+    background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.22));
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.45),
+        0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.38);
+}
+#cinema-header-card .button-48:active,
+#cinema-footer-card .button-48:active {
+    background-color: var(--color-bg-tertiary);
+    /* Pressed (concave): deeper inner shade like switch track */
+    background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.2));
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.55),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.04); /* slight lower rim */
+    transform: translateY(0); /* minimal movement */
+}
+/* Focus ring using theme primary color */
+#cinema-header-card .button-48:focus-visible,
+#cinema-footer-card .button-48:focus-visible {
+    outline: 2px solid currentColor; /* keep consistent and subtle */
+    outline-offset: 2px;
+}
+
+/* (Removed chevron pseudo-element for always-on clarity without hover) */
