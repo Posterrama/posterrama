@@ -19,6 +19,216 @@
         return n;
     };
 
+    // Working state to persist changes across section switches (until Save)
+    function getWorkingState() {
+        try {
+            let s = window.__cinemaWorkingState;
+            if (!s) {
+                const fromSS = sessionStorage.getItem('cinemaWorkingState');
+                s = fromSS ? JSON.parse(fromSS) : {};
+                window.__cinemaWorkingState = s;
+            }
+            if (!s.presets) s.presets = {};
+            return s;
+        } catch (_) {
+            window.__cinemaWorkingState = { presets: {} };
+            return window.__cinemaWorkingState;
+        }
+    }
+    function saveWorkingState() {
+        try {
+            sessionStorage.setItem(
+                'cinemaWorkingState',
+                JSON.stringify(window.__cinemaWorkingState || {})
+            );
+        } catch (_) {}
+    }
+
+    // Helper: populate a simple <select> with plain options (no separators/specials)
+    function populateSimpleSelect(selectEl, items, desiredValue) {
+        if (!selectEl) return;
+        const opts = (Array.isArray(items) ? items : []).map(v => el('option', { value: v }, v));
+        selectEl.replaceChildren(...opts);
+        const want = desiredValue ?? selectEl.value;
+        selectEl.value = items?.includes(want) ? want : items?.[0] || '';
+    }
+
+    // Helper: confirmation shim – uses admin.js confirm modal if available, otherwise native confirm
+    function confirmActionShim({
+        title = 'Confirm',
+        message = 'Are you sure?',
+        okText = 'Confirm',
+        okClass = 'btn-primary',
+    } = {}) {
+        try {
+            if (typeof window.confirmAction === 'function') {
+                return window.confirmAction({ title, message, okText, okClass });
+            }
+        } catch (_) {}
+        // Fallback to native confirm
+        const res = window.confirm(message);
+        return Promise.resolve(!!res);
+    }
+
+    // Helper: unified Manage Texts modal for header/footer presets
+    function openManageModal({
+        title,
+        getItems,
+        setItems,
+        selectEl,
+        contextLabel = 'Preset text',
+        placeholder = 'Type preset text…',
+    }) {
+        try {
+            const overlay = document.getElementById('modal-cinema-manage');
+            const titleEl = document.getElementById('modal-cinema-manage-title');
+            const listEl = document.getElementById('cinema-manage-list');
+            const inputEl = document.getElementById('cinema-manage-input');
+            const inputLabel = document.getElementById('cinema-manage-input-label');
+            const addBtn = document.getElementById('cinema-manage-add');
+            const renBtn = document.getElementById('cinema-manage-rename');
+            const delBtn = document.getElementById('cinema-manage-delete');
+            const doneBtn = document.getElementById('cinema-manage-done');
+            if (
+                !overlay ||
+                !titleEl ||
+                !listEl ||
+                !inputEl ||
+                !addBtn ||
+                !renBtn ||
+                !delBtn ||
+                !doneBtn
+            )
+                return;
+
+            let selected = '';
+            function renderList() {
+                const items = getItems() || [];
+                listEl.replaceChildren(
+                    ...items.map(v => {
+                        const b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'btn btn-secondary btn-sm';
+                        b.textContent = v;
+                        b.setAttribute('data-value', v);
+                        if (v === selected) b.classList.add('active');
+                        b.addEventListener('click', () => {
+                            selected = v;
+                            inputEl.value = v;
+                            renderList();
+                        });
+                        return b;
+                    })
+                );
+            }
+            function close() {
+                addBtn.removeEventListener('click', onAdd);
+                renBtn.removeEventListener('click', onRename);
+                delBtn.removeEventListener('click', onDelete);
+                doneBtn.removeEventListener('click', onDone);
+                inputEl.removeEventListener('keydown', onKey);
+                overlay
+                    .querySelectorAll('[data-close-modal]')
+                    ?.forEach(btn => btn.removeEventListener('click', onDone));
+                overlay.classList.remove('open');
+                overlay.setAttribute('hidden', '');
+            }
+            function onAdd() {
+                const val = (inputEl.value || '').trim();
+                if (!val) return;
+                const cur = getItems() || [];
+                if (!cur.includes(val)) {
+                    const next = [...cur, val];
+                    setItems(next);
+                    populateSimpleSelect(selectEl, next, val);
+                } else {
+                    populateSimpleSelect(selectEl, cur, val);
+                }
+                selected = val;
+                renderList();
+                try {
+                    window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                } catch (_) {}
+            }
+            function onRename() {
+                const val = (inputEl.value || '').trim();
+                if (!val || !selected) return;
+                const cur = getItems() || [];
+                const idx = cur.indexOf(selected);
+                if (idx < 0) return;
+                if (cur.includes(val) && val !== selected) {
+                    // avoid duplicate names by early-return
+                    return;
+                }
+                const next = [...cur];
+                next[idx] = val;
+                setItems(next);
+                populateSimpleSelect(selectEl, next, val);
+                selected = val;
+                renderList();
+                try {
+                    window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                } catch (_) {}
+            }
+            async function onDelete() {
+                if (!selected) return;
+                const cur = getItems() || [];
+                if (!cur.includes(selected)) return;
+                const ok = await confirmActionShim({
+                    title: 'Delete Text',
+                    message: `Remove “${selected}” from presets?`,
+                    okText: 'Delete',
+                    okClass: 'btn-danger',
+                });
+                if (!ok) return;
+                const next = cur.filter(x => x !== selected);
+                setItems(next);
+                const desired = next.includes(selectEl.value) ? selectEl.value : next[0] || '';
+                populateSimpleSelect(selectEl, next, desired);
+                selected = desired;
+                inputEl.value = desired || '';
+                renderList();
+                try {
+                    window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                } catch (_) {}
+            }
+            function onDone() {
+                close();
+            }
+            function onKey(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selected) onRename();
+                    else onAdd();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    onDone();
+                }
+            }
+
+            titleEl.innerHTML = `<i class="fas fa-list"></i> ${title}`;
+            if (inputLabel) inputLabel.textContent = contextLabel;
+            if (inputEl) inputEl.placeholder = placeholder;
+            selected = (selectEl?.value || '').trim();
+            inputEl.value = selected || '';
+            renderList();
+
+            addBtn.addEventListener('click', onAdd);
+            renBtn.addEventListener('click', onRename);
+            delBtn.addEventListener('click', onDelete);
+            doneBtn.addEventListener('click', onDone);
+            inputEl.addEventListener('keydown', onKey);
+            overlay
+                .querySelectorAll('[data-close-modal]')
+                ?.forEach(btn => btn.addEventListener('click', onDone, { once: true }));
+
+            overlay.removeAttribute('hidden');
+            overlay.classList.add('open');
+            inputEl.focus();
+            if (inputEl.value) inputEl.select();
+        } catch (_) {}
+    }
+
     async function loadAdminConfig() {
         try {
             const r = await fetch('/api/admin/config', { credentials: 'include' });
@@ -39,10 +249,13 @@
     function mountHeader(container, cfg) {
         const c = cfg.cinema || {};
         const h = c.header || { enabled: true, text: 'Now Playing', style: 'classic' };
+        const wsH = getWorkingState();
         headerPresets =
-            Array.isArray(c.presets?.headerTexts) && c.presets.headerTexts.length
-                ? [...c.presets.headerTexts]
-                : ['Coming Soon', 'Now Playing', 'Home Cinema', 'Feature Presentation'];
+            Array.isArray(wsH.presets?.headerTexts) && wsH.presets.headerTexts.length
+                ? [...wsH.presets.headerTexts]
+                : Array.isArray(c.presets?.headerTexts) && c.presets.headerTexts.length
+                  ? [...c.presets.headerTexts]
+                  : ['Coming Soon', 'Now Playing', 'Home Cinema', 'Feature Presentation'];
 
         // Place the enable switch in the card title as a pill-style header toggle
         try {
@@ -71,6 +284,16 @@
             el('label', { for: 'cin-h-presets' }, 'Header text'),
             el('div', { class: 'cinema-inline' }, [
                 el('select', { id: 'cin-h-presets', class: 'cin-compact' }, []),
+                el(
+                    'button',
+                    {
+                        type: 'button',
+                        class: 'btn btn-secondary btn-sm',
+                        id: 'cin-h-manage',
+                        style: 'margin-left:8px',
+                    },
+                    [el('i', { class: 'fas fa-list' }), ' ', el('span', {}, 'Manage')]
+                ),
             ]),
         ]);
 
@@ -88,50 +311,42 @@
 
         // initialize values
         $('#cin-h-style').value = h.style || 'classic';
-        $('#cin-h-presets').value = headerPresets.includes(h.text) ? h.text : headerPresets[0];
-        const syncHeaderPresetSelect = () => {
-            const sel = $('#cin-h-presets');
-            const options = [
-                ...headerPresets.map(p => el('option', { value: p }, p)),
-                el('option', { disabled: '', value: '' }, '──────────'),
-                el('option', { value: '__add' }, '➕ Add new…'),
-                el('option', { value: '__rename' }, '✏️ Rename selected…'),
-                el('option', { value: '__delete' }, '🗑 Delete selected…'),
-            ];
-            sel.replaceChildren(...options);
-            const cur = $('#cin-h-presets').value;
-            sel.value = headerPresets.includes(cur) ? cur : headerPresets[0] || '';
-        };
-        syncHeaderPresetSelect();
+        (function () {
+            const sel = document.getElementById('cin-h-presets');
+            const desired =
+                wsH.header?.text && headerPresets.includes(wsH.header.text)
+                    ? wsH.header.text
+                    : headerPresets.includes(h.text)
+                      ? h.text
+                      : headerPresets[0];
+            populateSimpleSelect(sel, headerPresets, desired);
+        })();
+        // Wire Manage button for header texts
+        document.getElementById('cin-h-manage')?.addEventListener('click', () =>
+            openManageModal({
+                title: 'Manage Header Texts',
+                getItems: () => headerPresets,
+                setItems: next => {
+                    headerPresets = Array.isArray(next) ? [...next] : [];
+                    const ws = getWorkingState();
+                    ws.presets.headerTexts = [...headerPresets];
+                    saveWorkingState();
+                },
+                selectEl: document.getElementById('cin-h-presets'),
+                contextLabel: 'Header text',
+                placeholder: 'Type header text…',
+            })
+        );
+        // Simple change hook to allow live summary/preview to react
         $('#cin-h-presets').addEventListener('change', () => {
-            const v = $('#cin-h-presets').value;
-            if (v === '__add') {
-                const name = prompt('New header preset text');
-                const val = (name || '').trim();
-                if (val && !headerPresets.includes(val)) headerPresets.push(val);
-                if (val) $('#cin-h-presets').value = val;
-                syncHeaderPresetSelect();
-                return;
-            }
-            if (v === '__rename') {
-                const sel = $('#cin-h-presets');
-                const current =
-                    sel.value && !sel.options[sel.selectedIndex].disabled ? sel.value : '';
-                const renamed = prompt('Rename header preset', current);
-                const rv = (renamed || '').trim();
-                const i = headerPresets.indexOf(current);
-                if (rv && i >= 0) headerPresets[i] = rv;
-                if (rv) $('#cin-h-presets').value = rv;
-                syncHeaderPresetSelect();
-                return;
-            }
-            if (v === '__delete') {
-                const current = $('#cin-h-presets').value || '';
-                headerPresets = headerPresets.filter(x => x !== current);
-                syncHeaderPresetSelect();
-                return;
-            }
-            // selecting a normal option is enough
+            const ws = getWorkingState();
+            ws.header = Object.assign({}, ws.header, {
+                text: document.getElementById('cin-h-presets')?.value || '',
+            });
+            saveWorkingState();
+            try {
+                window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+            } catch (_) {}
         });
 
         // Simple preset CRUD stored in config.json under cinema.presets.headerTexts
@@ -154,10 +369,13 @@
                 iconSet: 'filled',
             },
         };
+        const wsF = getWorkingState();
         footerPresets =
-            Array.isArray(c.presets?.footerTexts) && c.presets.footerTexts.length
-                ? [...c.presets.footerTexts]
-                : ['Coming Soon', 'Now Playing', 'Home Cinema', 'Feature Presentation'];
+            Array.isArray(wsF.presets?.footerTexts) && wsF.presets.footerTexts.length
+                ? [...wsF.presets.footerTexts]
+                : Array.isArray(c.presets?.footerTexts) && c.presets.footerTexts.length
+                  ? [...c.presets.footerTexts]
+                  : ['Coming Soon', 'Now Playing', 'Home Cinema', 'Feature Presentation'];
 
         // Place the enable switch in the card title as a pill-style header toggle
         try {
@@ -199,6 +417,16 @@
             el('label', { for: 'cin-f-presets' }, 'Footer text'),
             el('div', { class: 'cinema-inline' }, [
                 el('select', { id: 'cin-f-presets', class: 'cin-compact' }, []),
+                el(
+                    'button',
+                    {
+                        type: 'button',
+                        class: 'btn btn-secondary btn-sm',
+                        id: 'cin-f-manage',
+                        style: 'margin-left:8px',
+                    },
+                    [el('i', { class: 'fas fa-list' }), ' ', el('span', {}, 'Manage')]
+                ),
             ]),
         ]);
         const marqueeStyleRow = el('div', { class: 'form-row cin-col' }, [
@@ -276,58 +504,42 @@
         $('#cin-f-type').value = f.type || 'specs';
         // Defer setting #cin-f-style until it's inserted into the DOM by syncBlocks
         const savedMarqueeText = f.marqueeText;
-        const syncFooterPresetSelect = () => {
-            const sel = $('#cin-f-presets');
-            const options = [
-                ...footerPresets.map(p => el('option', { value: p }, p)),
-                el('option', { disabled: '', value: '' }, '──────────'),
-                el('option', { value: '__add' }, '➕ Add new…'),
-                el('option', { value: '__rename' }, '✏️ Rename selected…'),
-                el('option', { value: '__delete' }, '🗑 Delete selected…'),
-            ];
-            sel.replaceChildren(...options);
-            // On first run, prefer saved value; afterwards preserve current selection
-            if (!sel.dataset.init) {
-                const desired = footerPresets.includes(savedMarqueeText)
-                    ? savedMarqueeText
-                    : footerPresets[0] || '';
-                sel.value = desired;
-                sel.dataset.init = '1';
-            } else {
-                const cur = sel.value;
-                sel.value = footerPresets.includes(cur) ? cur : footerPresets[0] || '';
-            }
-        };
-        syncFooterPresetSelect();
+        (function () {
+            const sel = document.getElementById('cin-f-presets');
+            const desired =
+                wsF.footer?.marqueeText && footerPresets.includes(wsF.footer.marqueeText)
+                    ? wsF.footer.marqueeText
+                    : footerPresets.includes(savedMarqueeText)
+                      ? savedMarqueeText
+                      : footerPresets[0];
+            populateSimpleSelect(sel, footerPresets, desired);
+        })();
+        // Wire Manage button for footer texts
+        document.getElementById('cin-f-manage')?.addEventListener('click', () =>
+            openManageModal({
+                title: 'Manage Footer Texts',
+                getItems: () => footerPresets,
+                setItems: next => {
+                    footerPresets = Array.isArray(next) ? [...next] : [];
+                    const ws = getWorkingState();
+                    ws.presets.footerTexts = [...footerPresets];
+                    saveWorkingState();
+                },
+                selectEl: document.getElementById('cin-f-presets'),
+                contextLabel: 'Footer text',
+                placeholder: 'Type footer text…',
+            })
+        );
+        // Change hook for preview updates
         $('#cin-f-presets').addEventListener('change', () => {
-            const v = $('#cin-f-presets').value;
-            if (v === '__add') {
-                const name = prompt('New footer preset text');
-                const val = (name || '').trim();
-                if (val && !footerPresets.includes(val)) footerPresets.push(val);
-                if (val) $('#cin-f-presets').value = val;
-                syncFooterPresetSelect();
-                return;
-            }
-            if (v === '__rename') {
-                const sel = $('#cin-f-presets');
-                const current =
-                    sel.value && !sel.options[sel.selectedIndex].disabled ? sel.value : '';
-                const renamed = prompt('Rename footer preset', current);
-                const rv = (renamed || '').trim();
-                const i = footerPresets.indexOf(current);
-                if (rv && i >= 0) footerPresets[i] = rv;
-                if (rv) $('#cin-f-presets').value = rv;
-                syncFooterPresetSelect();
-                return;
-            }
-            if (v === '__delete') {
-                const current = $('#cin-f-presets').value || '';
-                footerPresets = footerPresets.filter(x => x !== current);
-                syncFooterPresetSelect();
-                return;
-            }
-            // selecting a normal option is enough
+            const ws = getWorkingState();
+            ws.footer = Object.assign({}, ws.footer, {
+                marqueeText: document.getElementById('cin-f-presets')?.value || '',
+            });
+            saveWorkingState();
+            try {
+                window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+            } catch (_) {}
         });
         // Create the specs Style control; inserted in the style slot when type='specs'
         const specsStyleRow = (function () {
@@ -465,6 +677,169 @@
         mountHeader($('#cinema-header-mount'), cfg);
         mountFooter($('#cinema-footer-mount'), cfg);
         mountAmbilight($('#cinema-ambilight-mount'), cfg);
+        // Mount presets card
+        try {
+            const slot = document.getElementById('cinema-presets-mount');
+            if (slot) {
+                const presetsRow = document.createElement('div');
+                presetsRow.className = 'scaling-presets';
+                presetsRow.style.display = 'flex';
+                presetsRow.style.flexWrap = 'wrap';
+                presetsRow.style.gap = '8px';
+                presetsRow.innerHTML = [
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="poster"><i class="fas fa-image"></i> <span>Poster Focus</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="feature"><i class="fas fa-star"></i> <span>Feature Night</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="tech"><i class="fas fa-microchip"></i> <span>Tech Specs</span></button>',
+                    '<button type="button" class="btn btn-outline btn-sm" data-cin-preset="reset"><i class="fas fa-undo"></i> <span>Reset</span></button>',
+                ].join('');
+
+                const summaryTitle = document.createElement('div');
+                summaryTitle.className = 'card-title';
+                summaryTitle.style.cssText = 'font-size:.95rem; margin:10px 0 6px;';
+                summaryTitle.innerHTML = '<i class="fas fa-info-circle"></i> Current Experience';
+
+                const summary = document.createElement('div');
+                summary.id = 'cinema-summary';
+                summary.style.cssText =
+                    'display:flex; flex-wrap:wrap; gap:8px; align-items:center;';
+                summary.innerHTML = [
+                    '<span class="status-pill" id="cin-sum-orient" title="Orientation">Orientation: —</span>',
+                    '<span class="status-pill" id="cin-sum-header" title="Header status">Header: —</span>',
+                    '<span class="status-pill" id="cin-sum-footer" title="Footer type">Footer: —</span>',
+                    '<span class="status-pill" id="cin-sum-ambilight" title="Ambilight strength">Ambilight: —</span>',
+                ].join('');
+
+                slot.replaceChildren(presetsRow, summaryTitle, summary);
+
+                const q = sel => document.querySelector(sel);
+                const setVal = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (el.type === 'checkbox') {
+                        el.checked = !!value;
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        return;
+                    }
+                    el.value = String(value);
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                };
+                const applyPreset = name => {
+                    switch (name) {
+                        case 'poster':
+                            // Big poster with marquee header, minimal footer
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 50);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Now Playing');
+                            setVal('cin-h-style', 'classic');
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'marquee');
+                            // ensure style slot swaps
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-style', 'classic');
+                            break;
+                        case 'feature':
+                            // Theatre vibe: marquee header + marquee footer, stronger ambilight
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 70);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Feature Presentation');
+                            setVal('cin-h-style', 'theatre');
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'marquee');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-style', 'theatre');
+                            break;
+                        case 'tech':
+                            // Specifications focus: no header, specs footer with all badges filled
+                            setVal('cin-a-enabled', false);
+                            setVal('cin-h-enabled', false);
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'specs');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-s-style', 'filled');
+                            setVal('cin-f-s-icons', 'filled');
+                            setVal('cin-f-s-res', true);
+                            setVal('cin-f-s-aud', true);
+                            setVal('cin-f-s-asp', true);
+                            setVal('cin-f-s-flag', true);
+                            break;
+                        default:
+                            // Reset to reasonable defaults
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 60);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Now Playing');
+                            setVal('cin-h-style', 'classic');
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'specs');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-s-style', 'subtle');
+                            setVal('cin-f-s-icons', 'filled');
+                            setVal('cin-f-s-res', true);
+                            setVal('cin-f-s-aud', true);
+                            setVal('cin-f-s-asp', true);
+                            setVal('cin-f-s-flag', false);
+                    }
+                    try {
+                        window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                    } catch (e) {}
+                };
+                slot.addEventListener('click', e => {
+                    const btn = e.target.closest('button[data-cin-preset]');
+                    if (!btn) return;
+                    applyPreset(btn.getAttribute('data-cin-preset'));
+                });
+
+                // Live summary pills reflecting current controls
+                const pills = {
+                    orient: document.getElementById('cin-sum-orient'),
+                    header: document.getElementById('cin-sum-header'),
+                    footer: document.getElementById('cin-sum-footer'),
+                    ambi: document.getElementById('cin-sum-ambilight'),
+                };
+                const refreshSummary = () => {
+                    const orientSel = document.getElementById('cinemaOrientation');
+                    const orient = (orientSel?.value || 'auto').replace('-', ' ');
+                    const hOn = document.getElementById('cin-h-enabled')?.checked;
+                    const hStyle = document.getElementById('cin-h-style')?.value || 'classic';
+                    const hText = document.getElementById('cin-h-presets')?.value || '';
+                    const fOn = document.getElementById('cin-f-enabled')?.checked;
+                    const fType = document.getElementById('cin-f-type')?.value || 'specs';
+                    const fStyleSpecs = document.getElementById('cin-f-s-style')?.value || 'subtle';
+                    const fStyleMarq = document.getElementById('cin-f-style')?.value || 'classic';
+                    const ambiOn = document.getElementById('cin-a-enabled')?.checked;
+                    const ambiStr = document.getElementById('cin-a-strength')?.value || '0';
+                    if (pills.orient) pills.orient.textContent = `Orientation: ${orient}`;
+                    if (pills.header)
+                        pills.header.textContent = hOn
+                            ? `Header: ${hText || 'text'} (${hStyle})`
+                            : 'Header: off';
+                    if (pills.footer)
+                        pills.footer.textContent = fOn
+                            ? `Footer: ${fType} (${fType === 'specs' ? fStyleSpecs : fStyleMarq})`
+                            : 'Footer: off';
+                    if (pills.ambi)
+                        pills.ambi.textContent = ambiOn
+                            ? `Ambilight: ${ambiStr}%`
+                            : 'Ambilight: off';
+                };
+                // Initial and reactive updates
+                refreshSummary();
+                const section = document.getElementById('section-display');
+                section?.addEventListener('input', refreshSummary, true);
+                section?.addEventListener('change', refreshSummary, true);
+            }
+        } catch (_) {}
         // Expose a collector for admin.js to merge into its save payload
         window.__collectCinemaConfig = () => {
             try {

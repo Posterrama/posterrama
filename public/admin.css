@@ -878,6 +878,45 @@ body {
     background: var(--color-bg-card);
 }
 
+/* Cinema text modal input styling */
+#modal-cinema-text #cinema-text-input {
+    width: 100%;
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+}
+#modal-cinema-text #cinema-text-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3);
+}
+
+/* Cinema Manage modal input styling */
+#modal-cinema-manage #cinema-manage-input {
+    width: 100%;
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+}
+#modal-cinema-manage #cinema-manage-input::placeholder {
+    color: var(--color-text-muted);
+}
+#modal-cinema-manage #cinema-manage-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3);
+}
+/* Active selection state for Manage list buttons */
+#modal-cinema-manage #cinema-manage-list .btn.active {
+    background: var(--color-secondary);
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.35);
+}
+
 /* Standalone form input styling */
 .form-input,
 #input-whitelist-entry {
@@ -1169,6 +1208,17 @@ input[type='range']::-moz-range-thumb {
 
 .btn-error:hover:not(:disabled) {
     background: var(--color-error-dark);
+}
+
+/* Alias for danger buttons used in confirm dialogs */
+.btn-danger {
+    background: var(--color-error);
+    color: var(--color-text-inverse);
+    border: 1px solid var(--color-error);
+}
+.btn-danger:hover:not(:disabled) {
+    background: var(--color-error-dark);
+    border-color: var(--color-error-dark);
 }
 
 .btn-outline {

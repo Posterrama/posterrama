@@ -144,6 +144,11 @@
     white-space: nowrap;
 }
 
+/* Keep preset buttons tidy */
+.scaling-presets .btn {
+    white-space: nowrap;
+}
+
 /* Align checkboxes styling with admin theme */
 #cinema-header-card input[type='checkbox'],
 #cinema-footer-card input[type='checkbox'],

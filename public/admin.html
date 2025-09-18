@@ -748,6 +748,11 @@
                   A large, single‑poster view for displays. Choose your screen orientation.
                 </div>
                 <div class="form-grid masonry" id="cinema-cards">
+                  <!-- Presets: first card (top-left) like Screensaver -->
+                  <div class="mode-card" id="cinema-presets-card" data-card-key="cinema-presets" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-sliders-h"></i> Presets</div>
+                    <div id="cinema-presets-mount"></div>
+                  </div>
                   <!-- Left: Ambilight -->
                   <div class="mode-card" data-card-key="cinema-ambilight" id="cinema-ambilight-card" style="padding:12px; grid-column: 1;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-lightbulb"></i> Ambilight</div>
@@ -776,6 +781,7 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-window-maximize"></i> Footer</div>
                     <div id="cinema-footer-mount"></div>
                   </div>
+                  
                 </div>
               </fieldset>
             </div>
@@ -1587,6 +1593,53 @@
         </div>
       </section>
     </section>
+
+    <!-- Cinema Text Entry Modal (for add/rename header/footer text) -->
+    <div class="modal-overlay" id="modal-cinema-text" hidden>
+      <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-cinema-text-title">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-cinema-text-title"><i class="fas fa-i-cursor"></i> Edit Text</div>
+          <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="display:grid; gap:10px; padding:16px 20px;">
+          <label for="cinema-text-input" id="cinema-text-input-label" style="color:var(--color-text-secondary)">Enter text</label>
+          <input type="text" id="cinema-text-input" />
+        </div>
+        <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end; padding: 12px 20px;">
+          <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
+          <button type="button" class="btn btn-primary" id="cinema-text-ok"><i class="fas fa-check"></i><span>Save</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cinema Manage Texts Modal (add/rename/delete in one place) -->
+    <div class="modal-overlay" id="modal-cinema-manage" hidden>
+      <div class="modal modal-md" role="dialog" aria-modal="true" aria-labelledby="modal-cinema-manage-title">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-cinema-manage-title"><i class="fas fa-list"></i> Manage Texts</div>
+          <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="display:grid; grid-template-columns: 1fr; gap:12px; padding:16px 20px;">
+          <div id="cinema-manage-help" style="color:var(--color-text-secondary); font-size:.9rem;">Create, rename, or remove preset texts. Select one to rename or delete.</div>
+          <div id="cinema-manage-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+          <div>
+            <label for="cinema-manage-input" id="cinema-manage-input-label" style="color:var(--color-text-secondary)">Preset text</label>
+            <input type="text" id="cinema-manage-input" placeholder="Type preset text…" />
+          </div>
+        </div>
+        <div class="modal-footer" style="display:flex; gap:10px; justify-content:space-between; padding: 12px 20px;">
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-secondary btn-sm" id="cinema-manage-add"><i class="fas fa-plus"></i> <span>Add</span></button>
+            <button type="button" class="btn btn-secondary btn-sm" id="cinema-manage-rename"><i class="fas fa-pen"></i> <span>Rename</span></button>
+            <button type="button" class="btn btn-outline btn-sm" id="cinema-manage-delete"><i class="fas fa-trash"></i> <span>Delete</span></button>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-outline" data-close-modal>Close</button>
+            <button type="button" class="btn btn-primary" id="cinema-manage-done"><i class="fas fa-check"></i> <span>Done</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Devices Section (top-level sibling) -->
     <section id="section-devices" class="app-section" hidden>

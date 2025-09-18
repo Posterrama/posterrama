@@ -3174,7 +3174,10 @@
             if (bodyEl) bodyEl.textContent = message;
             if (okBtn) {
                 okBtn.className = `btn ${okClass}`;
-                okBtn.innerHTML = `<i class="fas fa-check"></i><span>${okText}</span>`;
+                const isDanger =
+                    String(okClass || '').includes('btn-danger') || /delete/i.test(okText || '');
+                const icon = isDanger ? 'trash' : 'check';
+                okBtn.innerHTML = `<i class="fas fa-${icon}"></i><span>${okText}</span>`;
             }
             function cleanup(val) {
                 overlay.classList.remove('open');
@@ -3197,6 +3200,11 @@
             overlay.classList.add('open');
         });
     }
+
+    // Expose confirmAction globally so section scripts (e.g., Cinema UI) can use the themed modal
+    try {
+        window.confirmAction = confirmAction;
+    } catch (_) {}
 
     function wireEvents() {
         // Prevent duplicate wiring (DOMContentLoaded + immediate call race)
