@@ -2192,6 +2192,160 @@
                 onPreset({ interval: 12, effect: 'kenburns', pause: 1 })
             );
         } catch (_) {}
+
+        // Wallart: live summary + presets
+        try {
+            const elDensity = document.getElementById('wallartMode_density');
+            const elLayout = document.getElementById('wallartMode_layoutVariant');
+            const elAnim = document.getElementById('wallartMode_animationType');
+            const elRefresh = document.getElementById('wallartMode_refreshRate');
+            const elRand = document.getElementById('wallartMode_randomness');
+            const elAmbient = document.getElementById('wallartMode_ambientGradient');
+            const elBias = document.getElementById('wallartMode_biasAmbientToHero');
+            const elHeroSide = document.getElementById('wallartMode_heroSide');
+            const elHeroRot = document.getElementById('wallartMode_heroRotationMinutes');
+            const heroCard = document.getElementById('wallart-hero-card');
+
+            const pillDensity = document.getElementById('wallart-summary-density');
+            const pillLayout = document.getElementById('wallart-summary-layout');
+            const pillAnim = document.getElementById('wallart-summary-anim');
+            const pillTempo = document.getElementById('wallart-summary-tempo');
+
+            const labelDensity = v =>
+                ({ low: 'Low', medium: 'Medium', high: 'High', ludicrous: 'Ludicrous' })[
+                    String(v)
+                ] || String(v || '—');
+            const labelLayout = v =>
+                ({ heroGrid: 'Hero Grid', classic: 'Classic' })[String(v)] || String(v || '—');
+            const labelAnim = v =>
+                ({
+                    random: 'Random',
+                    fade: 'Fade',
+                    slideLeft: 'Slide Left',
+                    slideUp: 'Slide Up',
+                    zoom: 'Zoom',
+                    flip: 'Flip',
+                    staggered: 'Staggered',
+                    ripple: 'Ripple',
+                    scanline: 'Scanline',
+                    parallax: 'Parallax',
+                    neonPulse: 'Neon Pulse',
+                    chromaticShift: 'Chromatic Shift',
+                    mosaicShatter: 'Mosaic Shatter',
+                })[String(v)] || String(v || '—');
+            const labelTempo = () => `R${elRefresh?.value || '—'} / J${elRand?.value || '—'}`; // Refresh/Randomness shorthand
+
+            const applyHeroVisibility = () => {
+                const isHero = String(elLayout?.value || '') === 'heroGrid';
+                if (heroCard) heroCard.style.display = isHero ? '' : 'none';
+            };
+            const applySummary = () => {
+                if (pillDensity && elDensity)
+                    pillDensity.textContent = `Density: ${labelDensity(elDensity.value)}`;
+                if (pillLayout && elLayout)
+                    pillLayout.textContent = `Layout: ${labelLayout(elLayout.value)}`;
+                if (pillAnim && elAnim) pillAnim.textContent = `Anim: ${labelAnim(elAnim.value)}`;
+                if (pillTempo) pillTempo.textContent = `Tempo: ${labelTempo()}`;
+            };
+            ['input', 'change'].forEach(ev => {
+                elDensity?.addEventListener(ev, applySummary);
+                elLayout?.addEventListener(ev, () => {
+                    applyHeroVisibility();
+                    applySummary();
+                });
+                elAnim?.addEventListener(ev, applySummary);
+                elRefresh?.addEventListener(ev, applySummary);
+                elRand?.addEventListener(ev, applySummary);
+                elAmbient?.addEventListener(ev, applySummary);
+                elBias?.addEventListener(ev, applySummary);
+                elHeroSide?.addEventListener(ev, applySummary);
+                elHeroRot?.addEventListener(ev, applySummary);
+            });
+            applyHeroVisibility();
+            applySummary();
+
+            // Presets
+            const btnGallery = document.getElementById('wallart-preset-gallery');
+            const btnHero = document.getElementById('wallart-preset-hero');
+            const btnVibe = document.getElementById('wallart-preset-vibe');
+            const btnResetW = document.getElementById('wallart-preset-reset');
+            const setVal = (id, value, evs = ['input', 'change']) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (el.type === 'checkbox') el.checked = !!value;
+                else el.value = String(value);
+                evs.forEach(e => el.dispatchEvent(new Event(e, { bubbles: true })));
+            };
+            const onPreset = p => {
+                // Density, Layout, Anim, Refresh, Randomness, Ambient, Hero
+                setVal('wallartMode_density', p.density ?? 'medium', ['change']);
+                setVal('wallartMode_layoutVariant', p.layout ?? 'heroGrid', ['change']);
+                setVal('wallartMode_animationType', p.animation ?? 'fade', ['change']);
+                setVal('wallartMode_refreshRate', p.refresh ?? 5);
+                setVal('wallartMode_randomness', p.randomness ?? 3);
+                setVal('wallartMode_ambientGradient', !!p.ambient, ['change']);
+                setVal('wallartMode_biasAmbientToHero', !!p.biasHero, ['change']);
+                if (p.heroSide) setVal('wallartMode_heroSide', p.heroSide, ['change']);
+                if (typeof p.heroRotationMinutes === 'number')
+                    setVal('wallartMode_heroRotationMinutes', p.heroRotationMinutes, [
+                        'input',
+                        'change',
+                    ]);
+                applyHeroVisibility();
+                applySummary();
+                try {
+                    window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                } catch (_) {}
+            };
+            btnGallery?.addEventListener('click', () =>
+                onPreset({
+                    density: 'high',
+                    layout: 'classic',
+                    animation: 'staggered',
+                    refresh: 4,
+                    randomness: 2,
+                    ambient: false,
+                    biasHero: false,
+                })
+            );
+            btnHero?.addEventListener('click', () =>
+                onPreset({
+                    density: 'medium',
+                    layout: 'heroGrid',
+                    animation: 'fade',
+                    refresh: 6,
+                    randomness: 3,
+                    ambient: true,
+                    biasHero: true,
+                    heroSide: 'left',
+                    heroRotationMinutes: 8,
+                })
+            );
+            btnVibe?.addEventListener('click', () =>
+                onPreset({
+                    density: 'low',
+                    layout: 'classic',
+                    animation: 'neonPulse',
+                    refresh: 8,
+                    randomness: 5,
+                    ambient: true,
+                    biasHero: false,
+                })
+            );
+            btnResetW?.addEventListener('click', () =>
+                onPreset({
+                    density: 'medium',
+                    layout: 'heroGrid',
+                    animation: 'fade',
+                    refresh: 5,
+                    randomness: 3,
+                    ambient: false,
+                    biasHero: true,
+                    heroSide: 'left',
+                    heroRotationMinutes: 10,
+                })
+            );
+        } catch (_) {}
     }
 
     function collectDisplayFormPatch() {

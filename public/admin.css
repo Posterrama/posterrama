@@ -6093,6 +6093,22 @@ body.page-logs {
     font-size: inherit;
     opacity: 1;
 }
+/* Wallart Current Experience: same neutral pill style */
+#section-display #wallart-summary .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: var(--font-size-sm);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    box-shadow: none;
+}
+#section-display #wallart-summary .status-pill i {
+    color: inherit;
+}
 /* Default/info look (fallback) */
 #section-display .status-pill.status-info {
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.1));

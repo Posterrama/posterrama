@@ -626,6 +626,23 @@
                   A dynamic, tiled poster wall. Fine‑tune density, animation, layout, ambience, and hero.
                 </div>
                 <div class="form-grid masonry" id="wallart-cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                  <!-- Presets + Summary card (mirrors Screensaver) -->
+                  <div class="mode-card" id="wallart-presets-card" data-card-key="presets" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-sliders-h"></i> Presets</div>
+                    <div class="scaling-presets" style="display:flex; flex-wrap:wrap; gap:8px;">
+                      <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-gallery" title="Dense grid, smooth fade"><i class="fas fa-th"></i> <span>Gallery</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-hero" title="Hero left, medium grid cadence"><i class="fas fa-user-astronaut"></i> <span>Hero Focus</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-vibe" title="Ambient gradient, slow"> <i class="fas fa-water"></i> <span>Ambient Vibe</span></button>
+                      <button type="button" class="btn btn-outline btn-sm" id="wallart-preset-reset" title="Reset to sensible defaults"><i class="fas fa-undo"></i> <span>Reset</span></button>
+                    </div>
+                    <div class="card-title" style="font-size:.95rem; margin:10px 0 6px;"><i class="fas fa-info-circle"></i> Current Experience</div>
+                    <div id="wallart-summary" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                      <span class="status-pill" id="wallart-summary-density" title="Poster density">Density: —</span>
+                      <span class="status-pill" id="wallart-summary-layout" title="Layout variant">Layout: —</span>
+                      <span class="status-pill" id="wallart-summary-anim" title="Animation type">Anim: —</span>
+                      <span class="status-pill" id="wallart-summary-tempo" title="Refresh/Randomness">Tempo: —</span>
+                    </div>
+                  </div>
                   <!-- Tempo card -->
                   <div class="mode-card" data-card-key="tempo" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-tachometer-alt"></i> Tempo</div>
