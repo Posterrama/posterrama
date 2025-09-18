@@ -6067,6 +6067,28 @@ body.page-logs {
 #section-display .status-pill .mode-label {
     opacity: 0.95;
 }
+/* Screensaver Current Experience: use neutral Cinema pill style exactly */
+#section-display #saver-summary .status-pill {
+    /* match generic .status-pill (Cinema) */
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: var(--font-size-sm);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    /* override broader Display header pill styles */
+    font-weight: 400;
+    letter-spacing: 0;
+    box-shadow: none;
+}
+#section-display #saver-summary .status-pill i {
+    color: inherit;
+    font-size: inherit;
+    opacity: 1;
+}
 /* Default/info look (fallback) */
 #section-display .status-pill.status-info {
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.1));
