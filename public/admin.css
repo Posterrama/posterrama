@@ -5939,10 +5939,14 @@ body.page-logs {
     gap: 8px;
 }
 /* Place header toggle at far right within section titles in Display */
-/* Only put space-between when a header toggle exists (scoped to known sections) */
+/* Keep title content left-aligned; push toggle with margin-left:auto */
 #section-display #sec-clock .section-title,
 #section-display #sec-sync .section-title {
-    justify-content: space-between;
+    justify-content: flex-start;
+}
+#section-display #sec-clock .section-title .header-toggle,
+#section-display #sec-sync .section-title .header-toggle {
+    margin-left: auto;
 }
 
 /* Display: header toggle switches styled like Cinema (Clock & Sync) */
