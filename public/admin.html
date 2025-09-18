@@ -547,15 +547,15 @@
 
                   <!-- Clock Widget -->
                   <div class="form-section" id="sec-clock" data-card-key="clock">
-                    <div class="section-title"><i class="fas fa-clock"></i> Clock Widget</div>
+                    <div class="section-title"><i class="fas fa-clock"></i> Clock Widget
+                      <label class="header-toggle" for="clockWidget">
+                        <input type="checkbox" id="clockWidget" />
+                        <span class="ht-switch" aria-hidden="true"></span>
+                        <span class="ht-text">Show clock</span>
+                      </label>
+                    </div>
                     <div class="form-grid">
-                      <div class="form-row">
-                        <label class="checkbox" for="clockWidget">
-                          <input type="checkbox" id="clockWidget" />
-                          <span class="checkmark"></span>
-                          <span>Show clock</span>
-                        </label>
-                      </div>
+                      
                       <div class="form-row"><label for="clockTimezone">Clock timezone</label><select id="clockTimezone"><option value="auto">Auto (System Timezone)</option><optgroup label="Common Timezones"><option value="Europe/Amsterdam">Europe/Amsterdam (CET/CEST)</option><option value="Europe/London">Europe/London (GMT/BST)</option><option value="Europe/Berlin">Europe/Berlin (CET/CEST)</option><option value="Europe/Paris">Europe/Paris (CET/CEST)</option><option value="America/New_York">America/New_York (EST/EDT)</option><option value="America/Chicago">America/Chicago (CST/CDT)</option><option value="America/Denver">America/Denver (MST/MDT)</option><option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option><option value="Asia/Tokyo">Asia/Tokyo (JST)</option><option value="Asia/Shanghai">Asia/Shanghai (CST)</option><option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option></optgroup><optgroup label="Additional Timezones"><option value="UTC">UTC (Coordinated Universal Time)</option><option value="Africa/Cairo">Africa/Cairo (EET)</option><option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option><option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires (ART)</option><option value="America/Mexico_City">America/Mexico_City (CST/CDT)</option><option value="America/Sao_Paulo">America/Sao_Paulo (BRT/BRST)</option><option value="America/Toronto">America/Toronto (EST/EDT)</option><option value="America/Vancouver">America/Vancouver (PST/PDT)</option><option value="Asia/Bangkok">Asia/Bangkok (ICT)</option><option value="Asia/Dubai">Asia/Dubai (GST)</option><option value="Asia/Hong_Kong">Asia/Hong_Kong (HKT)</option><option value="Asia/Jakarta">Asia/Jakarta (WIB)</option><option value="Asia/Kolkata">Asia/Kolkata (IST)</option><option value="Asia/Seoul">Asia/Seoul (KST)</option><option value="Asia/Singapore">Asia/Singapore (SGT)</option><option value="Asia/Taipei">Asia/Taipei (CST)</option><option value="Australia/Brisbane">Australia/Brisbane (AEST)</option><option value="Australia/Melbourne">Australia/Melbourne (AEST/AEDT)</option><option value="Australia/Perth">Australia/Perth (AWST)</option><option value="Europe/Athens">Europe/Athens (EET/EEST)</option><option value="Europe/Istanbul">Europe/Istanbul (TRT)</option><option value="Europe/Moscow">Europe/Moscow (MSK)</option><option value="Europe/Rome">Europe/Rome (CET/CEST)</option><option value="Europe/Stockholm">Europe/Stockholm (CET/CEST)</option><option value="Europe/Zurich">Europe/Zurich (CET/CEST)</option><option value="Pacific/Auckland">Pacific/Auckland (NZST/NZDT)</option><option value="Pacific/Honolulu">Pacific/Honolulu (HST)</option></optgroup></select></div>
                       <div class="form-row"><label for="clockFormat">Clock format</label><select id="clockFormat"><option value="24h">24-hour</option><option value="12h">12-hour</option></select></div>
                     </div>
@@ -583,15 +583,15 @@
 
                   <!-- Sync -->
                   <div class="form-section" id="sec-sync" data-card-key="sync">
-                    <div class="section-title"><i class="fas fa-link"></i> Sync</div>
+                    <div class="section-title"><i class="fas fa-link"></i> Sync
+                      <label class="header-toggle" for="syncEnabled">
+                        <input type="checkbox" id="syncEnabled" />
+                        <span class="ht-switch" aria-hidden="true"></span>
+                        <span class="ht-text">Enable device sync</span>
+                      </label>
+                    </div>
                     <div class="form-grid">
-                      <div class="form-row">
-                        <label class="checkbox" for="syncEnabled">
-                          <input type="checkbox" id="syncEnabled" />
-                          <span class="checkmark"></span>
-                          <span>Enable device sync</span>
-                        </label>
-                      </div>
+                      
                       <div class="form-row"><label for="syncAlignMaxDelayMs">Max align delay (ms)</label><div class="number-input-wrapper"><input type="number" id="syncAlignMaxDelayMs" min="0" step="50" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
                     </div>
                   </div>

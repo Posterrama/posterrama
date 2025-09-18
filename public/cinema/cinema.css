@@ -75,6 +75,14 @@
     max-width: 260px;
     width: auto;
 }
+/* Subtle theme alignment: make Cinema selects use the darker section tone */
+#card-cinema select,
+#fs-cinema select,
+#cinema-header-card select,
+#cinema-footer-card select,
+#cinema-ambilight-card select {
+    background-color: var(--color-bg-tertiary);
+}
 .cin-compact {
     max-width: 240px;
     min-width: 160px;
@@ -482,27 +490,28 @@
         0 0 0 1px color-mix(in srgb, var(--color-error) 55%, transparent);
 }
 
-/* ===== Cinema: Compact, stylish Current Experience pills ===== */
+/* ===== Cinema: Current Experience pills — match Screensaver style ===== */
 #card-cinema .status-pill {
-    /* compact, flat chip distinct from buttons */
-    padding: 3px 10px;
-    border-radius: 999px;
     font-size: 0.85rem;
-    line-height: 1.1;
-    color: var(--color-text-secondary);
-    background: color-mix(in srgb, var(--color-bg-card) 88%, transparent);
-    border: 1px solid var(--color-border-light);
-    box-shadow: none;
-}
-#card-cinema .status-pill:hover {
-    background: color-mix(in srgb, var(--color-bg-card) 94%, transparent);
-}
-#card-cinema .status-pill:active {
-    background: color-mix(in srgb, var(--color-bg-card) 98%, transparent);
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: #dbeafe; /* align with default/info tone */
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.1));
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 4px 16px rgba(0, 0, 0, 0.18);
 }
 #card-cinema .status-pill i,
 #card-cinema .status-pill .fas,
 #card-cinema .status-pill .fa {
+    font-size: 0.95em;
+    opacity: 0.95;
     color: inherit;
 }
 
