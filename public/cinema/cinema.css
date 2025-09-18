@@ -490,29 +490,23 @@
         0 0 0 1px color-mix(in srgb, var(--color-error) 55%, transparent);
 }
 
-/* ===== Cinema: Current Experience pills — match Screensaver style ===== */
+/* ===== Cinema: Current Experience pills — exactly match Screensaver (neutral) ===== */
 #card-cinema .status-pill {
-    font-size: 0.85rem;
-    padding: 6px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    color: #dbeafe; /* align with default/info tone */
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.1));
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-        0 4px 16px rgba(0, 0, 0, 0.18);
+    gap: 6px; /* same as generic .status-pill */
+    padding: 4px 10px; /* same as generic .status-pill */
+    border-radius: 999px; /* same as generic .status-pill */
+    font-size: var(--font-size-sm); /* same as generic .status-pill */
+    background: rgba(255, 255, 255, 0.06); /* neutral, not blue */
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    box-shadow: none;
 }
 #card-cinema .status-pill i,
 #card-cinema .status-pill .fas,
 #card-cinema .status-pill .fa {
-    font-size: 0.95em;
-    opacity: 0.95;
-    color: inherit;
+    color: inherit; /* match Screensaver */
 }
 
 /* ===== Cinema: Card title colors — text primary, icons secondary ===== */
