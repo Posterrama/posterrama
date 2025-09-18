@@ -6260,6 +6260,12 @@ body.page-logs {
     align-items: center;
     gap: 8px;
     font-weight: 700;
+    color: var(--color-text-primary);
+}
+#section-display .card-title i,
+#section-display .card-title .fas,
+#section-display .card-title .fa {
+    color: var(--color-text-secondary);
 }
 #section-display .card-header .badge {
     display: inline-flex;

@@ -335,11 +335,10 @@
     background-color: var(--color-bg-tertiary);
     /* Switch-like dark gradient overlay */
     background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
-    /* Raised (convex): deeper outer drop, subtle top rim, darker inner base */
+    /* Raised (convex): lighten default by removing heavy outer drop; keep subtle inner shaping */
     box-shadow:
-        0 3px 8px rgba(0, 0, 0, 0.4),
-        /* outer drop */ 0 1px 0 rgba(255, 255, 255, 0.05),
-        /* top rim light */ inset 0 -1px 2px rgba(0, 0, 0, 0.35); /* bottom inner shade */
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.28);
     display: inline-flex;
     align-items: center;
     cursor: pointer;
@@ -398,9 +397,8 @@
     background-color: var(--color-bg-tertiary);
     background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
     box-shadow:
-        0 3px 8px rgba(0, 0, 0, 0.4),
         0 1px 0 rgba(255, 255, 255, 0.05),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.35);
+        inset 0 -1px 2px rgba(0, 0, 0, 0.28);
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -442,9 +440,8 @@
 #card-cinema button[data-cin-preset='reset'] {
     color: color-mix(in srgb, var(--color-warning) 65%, var(--color-text-secondary));
     box-shadow:
-        0 3px 8px rgba(0, 0, 0, 0.4),
         0 1px 0 rgba(255, 255, 255, 0.05),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.28),
         0 0 0 1px color-mix(in srgb, var(--color-warning) 35%, transparent);
 }
 #card-cinema button[data-cin-preset='reset']:hover {
@@ -466,9 +463,8 @@
 #modal-cinema-manage #cinema-manage-delete {
     color: color-mix(in srgb, var(--color-error) 70%, var(--color-text-secondary));
     box-shadow:
-        0 3px 8px rgba(0, 0, 0, 0.4),
         0 1px 0 rgba(255, 255, 255, 0.05),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.28),
         0 0 0 1px color-mix(in srgb, var(--color-error) 35%, transparent);
 }
 #modal-cinema-manage #cinema-manage-delete:hover {
@@ -508,4 +504,14 @@
 #card-cinema .status-pill .fas,
 #card-cinema .status-pill .fa {
     color: inherit;
+}
+
+/* ===== Cinema: Card title colors — text primary, icons secondary ===== */
+#card-cinema .card-title {
+    color: var(--color-text-primary);
+}
+#card-cinema .card-title i,
+#card-cinema .card-title .fas,
+#card-cinema .card-title .fa {
+    color: var(--color-text-secondary);
 }
