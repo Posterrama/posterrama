@@ -6791,3 +6791,24 @@ body.page-logs {
 #device-whitelist-list::-webkit-scrollbar-thumb:hover {
     background: var(--color-text-muted);
 }
+
+/* -------------------------------------------------- */
+/* Global native select minimal theming (subtle, calm) */
+/* Align dropdowns with dark theme without custom arrow */
+select {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    line-height: 1.2;
+}
+select:hover {
+    border-color: var(--color-border-strong, rgba(255, 255, 255, 0.22));
+}
+select:focus,
+select:focus-visible {
+    outline: none;
+    border-color: var(--color-border-strong, rgba(255, 255, 255, 0.22));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06);
+}
