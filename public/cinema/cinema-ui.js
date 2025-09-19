@@ -445,37 +445,41 @@
         const sLeft = el('div', { class: 'form-row' }, [
             el('label', {}, 'Show:'),
             el('div', { class: 'cin-vert' }, [
-                el('label', {}, [
+                el('label', { class: 'checkbox', for: 'cin-f-s-res' }, [
                     el('input', {
                         type: 'checkbox',
                         id: 'cin-f-s-res',
                         checked: f.specs?.showResolution ? 'checked' : null,
                     }),
-                    ' Resolution',
+                    el('span', { class: 'checkmark', 'aria-hidden': 'true' }),
+                    el('span', {}, ' Resolution'),
                 ]),
-                el('label', {}, [
+                el('label', { class: 'checkbox', for: 'cin-f-s-aud' }, [
                     el('input', {
                         type: 'checkbox',
                         id: 'cin-f-s-aud',
                         checked: f.specs?.showAudio ? 'checked' : null,
                     }),
-                    ' Audio',
+                    el('span', { class: 'checkmark', 'aria-hidden': 'true' }),
+                    el('span', {}, ' Audio'),
                 ]),
-                el('label', {}, [
+                el('label', { class: 'checkbox', for: 'cin-f-s-asp' }, [
                     el('input', {
                         type: 'checkbox',
                         id: 'cin-f-s-asp',
                         checked: f.specs?.showAspectRatio ? 'checked' : null,
                     }),
-                    ' Aspect Ratio',
+                    el('span', { class: 'checkmark', 'aria-hidden': 'true' }),
+                    el('span', {}, ' Aspect Ratio'),
                 ]),
-                el('label', {}, [
+                el('label', { class: 'checkbox', for: 'cin-f-s-flag' }, [
                     el('input', {
                         type: 'checkbox',
                         id: 'cin-f-s-flag',
                         checked: f.specs?.showFlags ? 'checked' : null,
                     }),
-                    ' Flags',
+                    el('span', { class: 'checkmark', 'aria-hidden': 'true' }),
+                    el('span', {}, ' Flags'),
                 ]),
             ]),
             // Icons dropdown moved under the Show list for left alignment

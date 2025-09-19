@@ -6345,10 +6345,10 @@ body.page-logs {
         grid-template-columns: 1fr;
     }
 }
-/* Visual Elements: tidy two-column layout for checkboxes, numeric input spans full width */
+/* Visual Elements: stack checkboxes vertically (single column), numeric input spans full width */
 #section-display #sec-visual .form-grid {
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
-    gap: 10px 16px;
+    grid-template-columns: 1fr;
+    gap: 0; /* let per-row margins control spacing like Cinema */
 }
 @media (max-width: 900px) {
     #section-display #sec-visual .form-grid {
@@ -6358,10 +6358,32 @@ body.page-logs {
 #section-display #sec-visual .form-grid .form-row.full-span {
     grid-column: 1 / -1;
 }
+/* Tighter spacing to match Cinema's vertical checklist */
+#section-display #sec-visual .form-grid > .form-row {
+    margin-bottom: 8px; /* match Cinema's label gap rhythm */
+}
+#section-display #sec-visual .form-grid > .form-row:first-child {
+    margin-bottom: 6px; /* tighter gap after 'Show:' label */
+}
+/* Parity: 'Show:' label typography (reuse same small label scale everywhere) */
+#section-display #sec-visual .form-grid > .form-row:first-child > label,
+#cin-f-specs .form-row > label:first-child {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+#section-display #sec-visual .form-grid > .form-row:last-child {
+    margin-bottom: var(--space-lg);
+}
+/* Keep the numeric input row comfortably spaced */
+#section-display #sec-visual .form-grid .form-row.full-span {
+    margin-top: 10px; /* more air before the number field like Cinema blocks */
+    margin-bottom: var(--space-lg);
+}
 #section-display #sec-visual .checkbox {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px; /* Cinema uses 8px label gap */
 }
 /* Wallart: force exactly two masonry columns so we can target the rightmost column reliably */
 #section-display #card-wallart .masonry {

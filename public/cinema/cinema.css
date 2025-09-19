@@ -116,6 +116,11 @@
     gap: 8px;
 }
 
+/* Parity: match 'Show:' label spacing in Cinema specs to Screensaver */
+#cin-f-specs .form-row > label:first-child {
+    margin-bottom: 6px;
+}
+
 /* Inner layout for specs (Icons now sits under Show in the left column) */
 .specs-grid {
     display: grid;
@@ -214,38 +219,9 @@
 }
 /* (Custom styled Manage buttons removed – fall back to Cinema .btn theme) */
 
-/* Align checkboxes styling with admin theme */
-#cinema-header-card input[type='checkbox'],
-#cinema-footer-card input[type='checkbox'],
-#cinema-ambilight-card input[type='checkbox'] {
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    margin: 0 6px 0 0;
-    border-radius: 6px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    position: relative;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-#cinema-header-card input[type='checkbox']:checked,
-#cinema-footer-card input[type='checkbox']:checked,
-#cinema-ambilight-card input[type='checkbox']:checked {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: #667eea;
-}
-#cinema-header-card input[type='checkbox']:checked::after,
-#cinema-footer-card input[type='checkbox']:checked::after,
-#cinema-ambilight-card input[type='checkbox']:checked::after {
-    content: '✓';
-    color: #fff;
-    font-size: 0.85rem;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-}
+/* Use default checkbox styling from the global theme (no Cinema-specific overrides) */
+
+/* (Removed experimental cyberpunk checkbox styles; using default themed checkboxes) */
 
 /* (Ambilight-specific custom block removed in favor of unified cinema-wide switch styles) */
 
