@@ -288,15 +288,11 @@
                     'button',
                     {
                         type: 'button',
-                        class: 'button-48',
+                        class: 'btn btn-secondary btn-sm',
                         id: 'cin-h-manage',
                         style: 'margin-left:8px',
                     },
-                    el('span', { class: 'text' }, [
-                        el('i', { class: 'fas fa-list' }),
-                        ' ',
-                        'Manage',
-                    ])
+                    [el('i', { class: 'fas fa-list' }), el('span', {}, ' Manage')]
                 ),
             ]),
         ]);
@@ -425,15 +421,11 @@
                     'button',
                     {
                         type: 'button',
-                        class: 'button-48',
+                        class: 'btn btn-secondary btn-sm',
                         id: 'cin-f-manage',
                         style: 'margin-left:8px',
                     },
-                    el('span', { class: 'text' }, [
-                        el('i', { class: 'fas fa-list' }),
-                        ' ',
-                        'Manage',
-                    ])
+                    [el('i', { class: 'fas fa-list' }), el('span', {}, ' Manage')]
                 ),
             ]),
         ]);
