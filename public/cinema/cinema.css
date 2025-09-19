@@ -568,6 +568,43 @@
         0 1px 1px rgba(0, 0, 0, 0.25) inset;
 }
 
+/* Screensaver + Wallart: Reset accents (share same surface as others) */
+#section-display #saver-preset-reset,
+#section-display #wallart-preset-reset,
+#section-display #reset-ui-scaling {
+    color: color-mix(in srgb, var(--color-warning) 78%, var(--color-text-secondary));
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 45%, transparent),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.25) inset,
+        0 1px 1px rgba(0, 0, 0, 0.2);
+}
+#section-display #saver-preset-reset:hover,
+#section-display #saver-preset-reset:focus,
+#section-display #saver-preset-reset:focus-visible,
+#section-display #wallart-preset-reset:hover,
+#section-display #wallart-preset-reset:focus,
+#section-display #wallart-preset-reset:focus-visible,
+#section-display #reset-ui-scaling:hover,
+#section-display #reset-ui-scaling:focus,
+#section-display #reset-ui-scaling:focus-visible {
+    color: color-mix(in srgb, var(--color-warning) 88%, var(--color-text-secondary));
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 60%, transparent),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.25) inset,
+        0 1px 1px rgba(0, 0, 0, 0.2);
+}
+#section-display #saver-preset-reset:active,
+#section-display #wallart-preset-reset:active,
+#section-display #reset-ui-scaling:active {
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 65%, transparent),
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+
 /* Variant: Delete in Manage modal — subtle error accent */
 #modal-cinema-manage #cinema-manage-delete {
     color: color-mix(in srgb, var(--color-error) 70%, var(--color-text-secondary));
@@ -658,6 +695,160 @@
 }
 #section-display #btn-save-display:active > span:not(.spinner) {
     color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
+}
+
+/* ===== Screensaver: override button surface to match Cinema ===== */
+#section-display #card-screensaver .btn,
+#section-display #saver-cards .btn,
+#section-display #fs-screensaver .btn,
+#card-screensaver .btn,
+#saver-cards .btn,
+#fs-screensaver .btn {
+    border: none;
+    border-radius: 4px;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: var(--color-text-secondary);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#section-display #card-screensaver .btn:hover,
+#section-display #saver-cards .btn:hover,
+#section-display #fs-screensaver .btn:hover,
+#section-display #card-screensaver .btn:focus,
+#section-display #saver-cards .btn:focus,
+#section-display #fs-screensaver .btn:focus,
+#section-display #card-screensaver .btn:focus-visible,
+#section-display #saver-cards .btn:focus-visible,
+#section-display #fs-screensaver .btn:focus-visible,
+#card-screensaver .btn:hover,
+#saver-cards .btn:hover,
+#fs-screensaver .btn:hover,
+#card-screensaver .btn:focus,
+#saver-cards .btn:focus,
+#fs-screensaver .btn:focus,
+#card-screensaver .btn:focus-visible,
+#saver-cards .btn:focus-visible,
+#fs-screensaver .btn:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#section-display #card-screensaver .btn:active,
+#section-display #saver-cards .btn:active,
+#section-display #fs-screensaver .btn:active,
+#card-screensaver .btn:active,
+#saver-cards .btn:active,
+#fs-screensaver .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+
+/* Override Screensaver Reset with amber accent (exact selector for specificity) */
+#section-display #saver-presets-card button#saver-preset-reset,
+#saver-presets-card button#saver-preset-reset {
+    color: color-mix(in srgb, var(--color-warning) 78%, var(--color-text-secondary));
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 45%, transparent),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.25) inset,
+        0 1px 1px rgba(0, 0, 0, 0.2);
+}
+#section-display #saver-presets-card button#saver-preset-reset:hover,
+#section-display #saver-presets-card button#saver-preset-reset:focus,
+#section-display #saver-presets-card button#saver-preset-reset:focus-visible,
+#saver-presets-card button#saver-preset-reset:hover,
+#saver-presets-card button#saver-preset-reset:focus,
+#saver-presets-card button#saver-preset-reset:focus-visible {
+    color: color-mix(in srgb, var(--color-warning) 88%, var(--color-text-secondary));
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 60%, transparent),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.25) inset,
+        0 1px 1px rgba(0, 0, 0, 0.2);
+}
+#section-display #saver-presets-card button#saver-preset-reset:active,
+#saver-presets-card button#saver-preset-reset:active {
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--color-warning) 65%, transparent),
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+
+/* ===== Wallart: override button surface to match Cinema ===== */
+#section-display #card-wallart .btn,
+#section-display #wallart-cards .btn,
+#section-display #fs-wallart .btn,
+#card-wallart .btn,
+#wallart-cards .btn,
+#fs-wallart .btn {
+    border: none;
+    border-radius: 4px;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: var(--color-text-secondary);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#section-display #card-wallart .btn:hover,
+#section-display #wallart-cards .btn:hover,
+#section-display #fs-wallart .btn:hover,
+#section-display #card-wallart .btn:focus,
+#section-display #wallart-cards .btn:focus,
+#section-display #fs-wallart .btn:focus,
+#section-display #card-wallart .btn:focus-visible,
+#section-display #wallart-cards .btn:focus-visible,
+#section-display #fs-wallart .btn:focus-visible,
+#card-wallart .btn:hover,
+#wallart-cards .btn:hover,
+#fs-wallart .btn:hover,
+#card-wallart .btn:focus,
+#wallart-cards .btn:focus,
+#fs-wallart .btn:focus,
+#card-wallart .btn:focus-visible,
+#wallart-cards .btn:focus-visible,
+#fs-wallart .btn:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#section-display #card-wallart .btn:active,
+#section-display #wallart-cards .btn:active,
+#section-display #fs-wallart .btn:active,
+#card-wallart .btn:active,
+#wallart-cards .btn:active,
+#fs-wallart .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
 }
 
 #card-cinema .status-pill {
