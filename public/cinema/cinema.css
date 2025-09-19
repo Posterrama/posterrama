@@ -539,70 +539,95 @@
         0 1px 1px rgba(0, 0, 0, 0.25) inset;
 }
 
-/* Variant: Reset preset button — subtle warning accent */
-/* Amber accent for Reset — placed after section-wide rules so it wins cascade */
-#card-cinema button[data-cin-preset='reset'] {
-    color: color-mix(in srgb, var(--color-warning) 78%, var(--color-text-secondary));
-    /* add a thin amber outline without changing base surface */
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--color-warning) 45%, transparent),
-        0 1px 0 rgba(255, 255, 255, 0.05) inset,
-        0 -1px 0 rgba(0, 0, 0, 0.25) inset,
-        0 1px 1px rgba(0, 0, 0, 0.2);
+/* Variant: Reset preset button — match Save Settings pattern, but amber */
+/* Tint only the icon and the label text, keep the base surface unchanged */
+#card-cinema button[data-cin-preset='reset'] i,
+#card-cinema button[data-cin-preset='reset'] .fas {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
 }
-#card-cinema button[data-cin-preset='reset']:hover,
-#card-cinema button[data-cin-preset='reset']:focus,
-#card-cinema button[data-cin-preset='reset']:focus-visible {
-    color: color-mix(in srgb, var(--color-warning) 88%, var(--color-text-secondary));
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--color-warning) 60%, transparent),
-        0 1px 0 rgba(255, 255, 255, 0.05) inset,
-        0 -1px 0 rgba(0, 0, 0, 0.25) inset,
-        0 1px 1px rgba(0, 0, 0, 0.2);
+#card-cinema button[data-cin-preset='reset']:hover i,
+#card-cinema button[data-cin-preset='reset']:focus i,
+#card-cinema button[data-cin-preset='reset']:focus-visible i,
+#card-cinema button[data-cin-preset='reset']:hover .fas,
+#card-cinema button[data-cin-preset='reset']:focus .fas,
+#card-cinema button[data-cin-preset='reset']:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-warning) 92%, var(--color-text-secondary));
 }
-#card-cinema button[data-cin-preset='reset']:active {
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--color-warning) 65%, transparent),
-        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
-        0 1px 0 rgba(255, 255, 255, 0.05),
-        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+#card-cinema button[data-cin-preset='reset']:active i,
+#card-cinema button[data-cin-preset='reset']:active .fas {
+    color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
 }
 
-/* Screensaver + Wallart: Reset accents (share same surface as others) */
-#section-display #saver-preset-reset,
-#section-display #wallart-preset-reset,
-#section-display #reset-ui-scaling {
-    color: color-mix(in srgb, var(--color-warning) 78%, var(--color-text-secondary));
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--color-warning) 45%, transparent),
-        0 1px 0 rgba(255, 255, 255, 0.05) inset,
-        0 -1px 0 rgba(0, 0, 0, 0.25) inset,
-        0 1px 1px rgba(0, 0, 0, 0.2);
+#card-cinema button[data-cin-preset='reset'] > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
 }
-#section-display #saver-preset-reset:hover,
-#section-display #saver-preset-reset:focus,
-#section-display #saver-preset-reset:focus-visible,
-#section-display #wallart-preset-reset:hover,
-#section-display #wallart-preset-reset:focus,
-#section-display #wallart-preset-reset:focus-visible,
-#section-display #reset-ui-scaling:hover,
-#section-display #reset-ui-scaling:focus,
-#section-display #reset-ui-scaling:focus-visible {
-    color: color-mix(in srgb, var(--color-warning) 88%, var(--color-text-secondary));
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--color-warning) 60%, transparent),
-        0 1px 0 rgba(255, 255, 255, 0.05) inset,
-        0 -1px 0 rgba(0, 0, 0, 0.25) inset,
-        0 1px 1px rgba(0, 0, 0, 0.2);
+#card-cinema button[data-cin-preset='reset']:hover > span:not(.spinner),
+#card-cinema button[data-cin-preset='reset']:focus > span:not(.spinner),
+#card-cinema button[data-cin-preset='reset']:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning) 92%, var(--color-text-secondary));
 }
-#section-display #saver-preset-reset:active,
-#section-display #wallart-preset-reset:active,
-#section-display #reset-ui-scaling:active {
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--color-warning) 65%, transparent),
-        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
-        0 1px 0 rgba(255, 255, 255, 0.05),
-        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+#card-cinema button[data-cin-preset='reset']:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
+}
+
+/* Screensaver + Wallart + UI scaling: match Save pattern (amber) */
+#section-display #saver-preset-reset i,
+#section-display #saver-preset-reset .fas,
+#section-display #wallart-preset-reset i,
+#section-display #wallart-preset-reset .fas,
+#section-display #reset-ui-scaling i,
+#section-display #reset-ui-scaling .fas {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
+}
+#section-display #saver-preset-reset:hover i,
+#section-display #saver-preset-reset:focus i,
+#section-display #saver-preset-reset:focus-visible i,
+#section-display #saver-preset-reset:hover .fas,
+#section-display #saver-preset-reset:focus .fas,
+#section-display #saver-preset-reset:focus-visible .fas,
+#section-display #wallart-preset-reset:hover i,
+#section-display #wallart-preset-reset:focus i,
+#section-display #wallart-preset-reset:focus-visible i,
+#section-display #wallart-preset-reset:hover .fas,
+#section-display #wallart-preset-reset:focus .fas,
+#section-display #wallart-preset-reset:focus-visible .fas,
+#section-display #reset-ui-scaling:hover i,
+#section-display #reset-ui-scaling:focus i,
+#section-display #reset-ui-scaling:focus-visible i,
+#section-display #reset-ui-scaling:hover .fas,
+#section-display #reset-ui-scaling:focus .fas,
+#section-display #reset-ui-scaling:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-warning) 92%, var(--color-text-secondary));
+}
+#section-display #saver-preset-reset:active i,
+#section-display #saver-preset-reset:active .fas,
+#section-display #wallart-preset-reset:active i,
+#section-display #wallart-preset-reset:active .fas,
+#section-display #reset-ui-scaling:active i,
+#section-display #reset-ui-scaling:active .fas {
+    color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
+}
+
+#section-display #saver-preset-reset > span:not(.spinner),
+#section-display #wallart-preset-reset > span:not(.spinner),
+#section-display #reset-ui-scaling > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
+}
+#section-display #saver-preset-reset:hover > span:not(.spinner),
+#section-display #saver-preset-reset:focus > span:not(.spinner),
+#section-display #saver-preset-reset:focus-visible > span:not(.spinner),
+#section-display #wallart-preset-reset:hover > span:not(.spinner),
+#section-display #wallart-preset-reset:focus > span:not(.spinner),
+#section-display #wallart-preset-reset:focus-visible > span:not(.spinner),
+#section-display #reset-ui-scaling:hover > span:not(.spinner),
+#section-display #reset-ui-scaling:focus > span:not(.spinner),
+#section-display #reset-ui-scaling:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning) 92%, var(--color-text-secondary));
+}
+#section-display #saver-preset-reset:active > span:not(.spinner),
+#section-display #wallart-preset-reset:active > span:not(.spinner),
+#section-display #reset-ui-scaling:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
 }
 
 /* Variant: Delete in Manage modal — subtle error accent */
@@ -758,36 +783,50 @@
         0 1px 1px rgba(0, 0, 0, 0.25) inset;
 }
 
-/* Override Screensaver Reset with amber accent (exact selector for specificity) */
-#section-display #saver-presets-card button#saver-preset-reset,
-#saver-presets-card button#saver-preset-reset {
-    color: color-mix(in srgb, var(--color-warning) 78%, var(--color-text-secondary));
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--color-warning) 45%, transparent),
-        0 1px 0 rgba(255, 255, 255, 0.05) inset,
-        0 -1px 0 rgba(0, 0, 0, 0.25) inset,
-        0 1px 1px rgba(0, 0, 0, 0.2);
+/* Remove special box-shadow overrides: rely on base surface; keep child text/icon amber */
+/* High-specificity variant retains the same child accent if needed */
+#section-display #saver-presets-card button#saver-preset-reset i,
+#saver-presets-card button#saver-preset-reset i,
+#section-display #saver-presets-card button#saver-preset-reset .fas,
+#saver-presets-card button#saver-preset-reset .fas {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
 }
-#section-display #saver-presets-card button#saver-preset-reset:hover,
-#section-display #saver-presets-card button#saver-preset-reset:focus,
-#section-display #saver-presets-card button#saver-preset-reset:focus-visible,
-#saver-presets-card button#saver-preset-reset:hover,
-#saver-presets-card button#saver-preset-reset:focus,
-#saver-presets-card button#saver-preset-reset:focus-visible {
-    color: color-mix(in srgb, var(--color-warning) 88%, var(--color-text-secondary));
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--color-warning) 60%, transparent),
-        0 1px 0 rgba(255, 255, 255, 0.05) inset,
-        0 -1px 0 rgba(0, 0, 0, 0.25) inset,
-        0 1px 1px rgba(0, 0, 0, 0.2);
+#section-display #saver-presets-card button#saver-preset-reset:hover i,
+#section-display #saver-presets-card button#saver-preset-reset:focus i,
+#section-display #saver-presets-card button#saver-preset-reset:focus-visible i,
+#saver-presets-card button#saver-preset-reset:hover i,
+#saver-presets-card button#saver-preset-reset:focus i,
+#saver-presets-card button#saver-preset-reset:focus-visible i,
+#section-display #saver-presets-card button#saver-preset-reset:hover .fas,
+#section-display #saver-presets-card button#saver-preset-reset:focus .fas,
+#section-display #saver-presets-card button#saver-preset-reset:focus-visible .fas,
+#saver-presets-card button#saver-preset-reset:hover .fas,
+#saver-presets-card button#saver-preset-reset:focus .fas,
+#saver-presets-card button#saver-preset-reset:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-warning) 92%, var(--color-text-secondary));
 }
-#section-display #saver-presets-card button#saver-preset-reset:active,
-#saver-presets-card button#saver-preset-reset:active {
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--color-warning) 65%, transparent),
-        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
-        0 1px 0 rgba(255, 255, 255, 0.05),
-        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+#section-display #saver-presets-card button#saver-preset-reset:active i,
+#saver-presets-card button#saver-preset-reset:active i,
+#section-display #saver-presets-card button#saver-preset-reset:active .fas,
+#saver-presets-card button#saver-preset-reset:active .fas {
+    color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
+}
+
+#section-display #saver-presets-card button#saver-preset-reset > span:not(.spinner),
+#saver-presets-card button#saver-preset-reset > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
+}
+#section-display #saver-presets-card button#saver-preset-reset:hover > span:not(.spinner),
+#section-display #saver-presets-card button#saver-preset-reset:focus > span:not(.spinner),
+#section-display #saver-presets-card button#saver-preset-reset:focus-visible > span:not(.spinner),
+#saver-presets-card button#saver-preset-reset:hover > span:not(.spinner),
+#saver-presets-card button#saver-preset-reset:focus > span:not(.spinner),
+#saver-presets-card button#saver-preset-reset:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning) 92%, var(--color-text-secondary));
+}
+#section-display #saver-presets-card button#saver-preset-reset:active > span:not(.spinner),
+#saver-presets-card button#saver-preset-reset:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
 }
 
 /* ===== Wallart: override button surface to match Cinema ===== */
