@@ -630,27 +630,34 @@
     color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
 }
 
-/* Variant: Delete in Manage modal — subtle error accent */
-#modal-cinema-manage #cinema-manage-delete {
-    color: color-mix(in srgb, var(--color-error) 70%, var(--color-text-secondary));
-    box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.05),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.28),
-        0 0 0 1px color-mix(in srgb, var(--color-error) 35%, transparent);
+/* Variant: Delete in Manage modal — match Save pattern (red), no border */
+#modal-cinema-manage #cinema-manage-delete i,
+#modal-cinema-manage #cinema-manage-delete .fas {
+    color: color-mix(in srgb, var(--color-error) 82%, var(--color-text-secondary));
 }
-#modal-cinema-manage #cinema-manage-delete:hover {
-    color: color-mix(in srgb, var(--color-error) 85%, var(--color-text-secondary));
-    box-shadow:
-        0 4px 10px rgba(0, 0, 0, 0.45),
-        0 1px 0 rgba(255, 255, 255, 0.06),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.38),
-        0 0 0 1px color-mix(in srgb, var(--color-error) 55%, transparent);
+#modal-cinema-manage #cinema-manage-delete:hover i,
+#modal-cinema-manage #cinema-manage-delete:focus i,
+#modal-cinema-manage #cinema-manage-delete:focus-visible i,
+#modal-cinema-manage #cinema-manage-delete:hover .fas,
+#modal-cinema-manage #cinema-manage-delete:focus .fas,
+#modal-cinema-manage #cinema-manage-delete:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-error) 92%, var(--color-text-secondary));
 }
-#modal-cinema-manage #cinema-manage-delete:active {
-    box-shadow:
-        inset 0 2px 4px rgba(0, 0, 0, 0.55),
-        inset 0 -1px 2px rgba(255, 255, 255, 0.04),
-        0 0 0 1px color-mix(in srgb, var(--color-error) 55%, transparent);
+#modal-cinema-manage #cinema-manage-delete:active i,
+#modal-cinema-manage #cinema-manage-delete:active .fas {
+    color: color-mix(in srgb, var(--color-error-dark) 85%, var(--color-text-secondary));
+}
+
+#modal-cinema-manage #cinema-manage-delete > span {
+    color: color-mix(in srgb, var(--color-error) 82%, var(--color-text-secondary));
+}
+#modal-cinema-manage #cinema-manage-delete:hover > span,
+#modal-cinema-manage #cinema-manage-delete:focus > span,
+#modal-cinema-manage #cinema-manage-delete:focus-visible > span {
+    color: color-mix(in srgb, var(--color-error) 92%, var(--color-text-secondary));
+}
+#modal-cinema-manage #cinema-manage-delete:active > span {
+    color: color-mix(in srgb, var(--color-error-dark) 85%, var(--color-text-secondary));
 }
 
 /* ===== Apply Cinema Manage surface to all buttons within Display settings ===== */
@@ -667,6 +674,72 @@
         0 0 0 1px rgba(0, 0, 0, 0.35),
         0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
         0 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+/* ===== Manage modal: remove purple border ring on selected list item ===== */
+#modal-cinema-manage #cinema-manage-list .btn.active {
+    /* Selected list item should look like the pressed variant of a normal button */
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    /* Use blue‑purple secondary for selected text; force precedence */
+    color: var(--color-secondary) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+#modal-cinema-manage #cinema-manage-list .btn.active:not(#cinema-manage-delete) i,
+#modal-cinema-manage #cinema-manage-list .btn.active:not(#cinema-manage-delete) .fas,
+#modal-cinema-manage
+    #cinema-manage-list
+    .btn.active:not(#cinema-manage-delete)
+    > span:not(.spinner) {
+    /* Only the selected list item gets the purple content accent */
+    color: color-mix(in srgb, var(--color-accent) 85%, var(--color-text-secondary));
+}
+#modal-cinema-manage #cinema-manage-list .btn.active:hover,
+#modal-cinema-manage #cinema-manage-list .btn.active:focus,
+#modal-cinema-manage #cinema-manage-list .btn.active:focus-visible,
+#modal-cinema-manage #cinema-manage-list .btn.active:active {
+    /* Keep it looking pressed while hovered/focused/active */
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    /* Slightly deeper blue‑purple during interaction; force precedence */
+    color: var(--color-secondary-dark) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+    outline: none;
+}
+#modal-cinema-manage #cinema-manage-list .btn.active:not(#cinema-manage-delete):hover i,
+#modal-cinema-manage #cinema-manage-list .btn.active:not(#cinema-manage-delete):hover .fas,
+#modal-cinema-manage
+    #cinema-manage-list
+    .btn.active:not(#cinema-manage-delete):hover
+    > span:not(.spinner),
+#modal-cinema-manage #cinema-manage-list .btn.active:not(#cinema-manage-delete):focus i,
+#modal-cinema-manage #cinema-manage-list .btn.active:not(#cinema-manage-delete):focus .fas,
+#modal-cinema-manage
+    #cinema-manage-list
+    .btn.active:not(#cinema-manage-delete):focus
+    > span:not(.spinner),
+#modal-cinema-manage #cinema-manage-list .btn.active:not(#cinema-manage-delete):focus-visible i,
+#modal-cinema-manage #cinema-manage-list .btn.active:not(#cinema-manage-delete):focus-visible .fas,
+#modal-cinema-manage
+    #cinema-manage-list
+    .btn.active:not(#cinema-manage-delete):focus-visible
+    > span:not(.spinner),
+#modal-cinema-manage #cinema-manage-list .btn.active:not(#cinema-manage-delete):active i,
+#modal-cinema-manage #cinema-manage-list .btn.active:not(#cinema-manage-delete):active .fas,
+#modal-cinema-manage
+    #cinema-manage-list
+    .btn.active:not(#cinema-manage-delete):active
+    > span:not(.spinner) {
+    /* Slightly deeper purple while interacting */
+    color: color-mix(in srgb, var(--color-accent-dark) 85%, var(--color-text-secondary));
 }
 #section-display .btn:hover,
 #section-display .btn:focus,
@@ -791,6 +864,44 @@
 #saver-presets-card button#saver-preset-reset .fas {
     color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
 }
+/* Force neutral surface: remove special amber ring/box-shadow on Reset */
+#section-display #saver-presets-card button#saver-preset-reset,
+#saver-presets-card button#saver-preset-reset {
+    color: var(--color-text-secondary);
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#section-display #saver-presets-card button#saver-preset-reset:hover,
+#section-display #saver-presets-card button#saver-preset-reset:focus,
+#section-display #saver-presets-card button#saver-preset-reset:focus-visible,
+#saver-presets-card button#saver-preset-reset:hover,
+#saver-presets-card button#saver-preset-reset:focus,
+#saver-presets-card button#saver-preset-reset:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#section-display #saver-presets-card button#saver-preset-reset:active,
+#saver-presets-card button#saver-preset-reset:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
 #section-display #saver-presets-card button#saver-preset-reset:hover i,
 #section-display #saver-presets-card button#saver-preset-reset:focus i,
 #section-display #saver-presets-card button#saver-preset-reset:focus-visible i,
@@ -826,6 +937,175 @@
 }
 #section-display #saver-presets-card button#saver-preset-reset:active > span:not(.spinner),
 #saver-presets-card button#saver-preset-reset:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
+}
+
+/* High-specificity: Wallart presets card Reset — icon + label amber */
+#section-display #wallart-presets-card button#wallart-preset-reset i,
+#wallart-presets-card button#wallart-preset-reset i,
+#section-display #wallart-presets-card button#wallart-preset-reset .fas,
+#wallart-presets-card button#wallart-preset-reset .fas {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
+}
+/* Force neutral surface for Wallart Reset */
+#section-display #wallart-presets-card button#wallart-preset-reset,
+#wallart-presets-card button#wallart-preset-reset {
+    color: var(--color-text-secondary);
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#section-display #wallart-presets-card button#wallart-preset-reset:hover,
+#section-display #wallart-presets-card button#wallart-preset-reset:focus,
+#section-display #wallart-presets-card button#wallart-preset-reset:focus-visible,
+#wallart-presets-card button#wallart-preset-reset:hover,
+#wallart-presets-card button#wallart-preset-reset:focus,
+#wallart-presets-card button#wallart-preset-reset:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#section-display #wallart-presets-card button#wallart-preset-reset:active,
+#wallart-presets-card button#wallart-preset-reset:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+#section-display #wallart-presets-card button#wallart-preset-reset:hover i,
+#section-display #wallart-presets-card button#wallart-preset-reset:focus i,
+#section-display #wallart-presets-card button#wallart-preset-reset:focus-visible i,
+#wallart-presets-card button#wallart-preset-reset:hover i,
+#wallart-presets-card button#wallart-preset-reset:focus i,
+#wallart-presets-card button#wallart-preset-reset:focus-visible i,
+#section-display #wallart-presets-card button#wallart-preset-reset:hover .fas,
+#section-display #wallart-presets-card button#wallart-preset-reset:focus .fas,
+#section-display #wallart-presets-card button#wallart-preset-reset:focus-visible .fas,
+#wallart-presets-card button#wallart-preset-reset:hover .fas,
+#wallart-presets-card button#wallart-preset-reset:focus .fas,
+#wallart-presets-card button#wallart-preset-reset:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-warning) 92%, var(--color-text-secondary));
+}
+#section-display #wallart-presets-card button#wallart-preset-reset:active i,
+#wallart-presets-card button#wallart-preset-reset:active i,
+#section-display #wallart-presets-card button#wallart-preset-reset:active .fas,
+#wallart-presets-card button#wallart-preset-reset:active .fas {
+    color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
+}
+
+#section-display #wallart-presets-card button#wallart-preset-reset > span:not(.spinner),
+#wallart-presets-card button#wallart-preset-reset > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
+}
+#section-display #wallart-presets-card button#wallart-preset-reset:hover > span:not(.spinner),
+#section-display #wallart-presets-card button#wallart-preset-reset:focus > span:not(.spinner),
+#section-display
+    #wallart-presets-card
+    button#wallart-preset-reset:focus-visible
+    > span:not(.spinner),
+#wallart-presets-card button#wallart-preset-reset:hover > span:not(.spinner),
+#wallart-presets-card button#wallart-preset-reset:focus > span:not(.spinner),
+#wallart-presets-card button#wallart-preset-reset:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning) 92%, var(--color-text-secondary));
+}
+#section-display #wallart-presets-card button#wallart-preset-reset:active > span:not(.spinner),
+#wallart-presets-card button#wallart-preset-reset:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
+}
+
+/* High-specificity: UI scaling Reset within sec-scaling — icon + label amber */
+#section-display #sec-scaling button#reset-ui-scaling i,
+#sec-scaling button#reset-ui-scaling i,
+#section-display #sec-scaling button#reset-ui-scaling .fas,
+#sec-scaling button#reset-ui-scaling .fas {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
+}
+/* Force neutral surface for UI Scaling Reset */
+#section-display #sec-scaling button#reset-ui-scaling,
+#sec-scaling button#reset-ui-scaling {
+    color: var(--color-text-secondary);
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#section-display #sec-scaling button#reset-ui-scaling:hover,
+#section-display #sec-scaling button#reset-ui-scaling:focus,
+#section-display #sec-scaling button#reset-ui-scaling:focus-visible,
+#sec-scaling button#reset-ui-scaling:hover,
+#sec-scaling button#reset-ui-scaling:focus,
+#sec-scaling button#reset-ui-scaling:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#section-display #sec-scaling button#reset-ui-scaling:active,
+#sec-scaling button#reset-ui-scaling:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+#section-display #sec-scaling button#reset-ui-scaling:hover i,
+#section-display #sec-scaling button#reset-ui-scaling:focus i,
+#section-display #sec-scaling button#reset-ui-scaling:focus-visible i,
+#sec-scaling button#reset-ui-scaling:hover i,
+#sec-scaling button#reset-ui-scaling:focus i,
+#sec-scaling button#reset-ui-scaling:focus-visible i,
+#section-display #sec-scaling button#reset-ui-scaling:hover .fas,
+#section-display #sec-scaling button#reset-ui-scaling:focus .fas,
+#section-display #sec-scaling button#reset-ui-scaling:focus-visible .fas,
+#sec-scaling button#reset-ui-scaling:hover .fas,
+#sec-scaling button#reset-ui-scaling:focus .fas,
+#sec-scaling button#reset-ui-scaling:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-warning) 92%, var(--color-text-secondary));
+}
+#section-display #sec-scaling button#reset-ui-scaling:active i,
+#sec-scaling button#reset-ui-scaling:active i,
+#section-display #sec-scaling button#reset-ui-scaling:active .fas,
+#sec-scaling button#reset-ui-scaling:active .fas {
+    color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
+}
+
+#section-display #sec-scaling button#reset-ui-scaling > span:not(.spinner),
+#sec-scaling button#reset-ui-scaling > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary));
+}
+#section-display #sec-scaling button#reset-ui-scaling:hover > span:not(.spinner),
+#section-display #sec-scaling button#reset-ui-scaling:focus > span:not(.spinner),
+#section-display #sec-scaling button#reset-ui-scaling:focus-visible > span:not(.spinner),
+#sec-scaling button#reset-ui-scaling:hover > span:not(.spinner),
+#sec-scaling button#reset-ui-scaling:focus > span:not(.spinner),
+#sec-scaling button#reset-ui-scaling:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-warning) 92%, var(--color-text-secondary));
+}
+#section-display #sec-scaling button#reset-ui-scaling:active > span:not(.spinner),
+#sec-scaling button#reset-ui-scaling:active > span:not(.spinner) {
     color: color-mix(in srgb, var(--color-warning-dark) 85%, var(--color-text-secondary));
 }
 
