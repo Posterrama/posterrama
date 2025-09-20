@@ -7607,6 +7607,11 @@ body.page-logs {
     overflow: hidden;
     width: 100%;
 }
+#section-display .number-input-wrapper:focus-within {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+}
 #section-display .number-input-wrapper input[type='number'] {
     flex: 1;
     min-width: 0;
@@ -7618,6 +7623,10 @@ body.page-logs {
     font: inherit;
     appearance: textfield;
     -moz-appearance: textfield;
+}
+#section-display .number-input-wrapper input[type='number']:focus,
+#section-display .number-input-wrapper input[type='number']:focus-visible {
+    box-shadow: none !important;
 }
 #section-display .number-input-wrapper input[type='number']::-webkit-outer-spin-button,
 #section-display .number-input-wrapper input[type='number']::-webkit-inner-spin-button {
@@ -7652,6 +7661,35 @@ body.page-logs {
     font-size: 0.82rem;
     color: var(--color-text-secondary);
     opacity: 0.9;
+}
+
+/* Inputs inside Display (Screensaver/Wallart/Cinema): match modal focus ring */
+#section-display input[type='text'],
+#section-display input[type='number'],
+#section-display input[type='password'],
+#section-display input[type='time'],
+#section-display textarea,
+#section-display select {
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+}
+#section-display input[type='text']:focus,
+#section-display input[type='number']:focus,
+#section-display input[type='password']:focus,
+#section-display input[type='time']:focus,
+#section-display textarea:focus,
+#section-display select:focus,
+#section-display input[type='text']:focus-visible,
+#section-display input[type='number']:focus-visible,
+#section-display input[type='password']:focus-visible,
+#section-display input[type='time']:focus-visible,
+#section-display textarea:focus-visible,
+#section-display select:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
 }
 
 /* ============================
