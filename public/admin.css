@@ -6302,6 +6302,58 @@ body.page-logs {
         left 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
         width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
+/* ===== Media Sources tabs (mirror Display segmented control) ===== */
+#section-media-sources .segmented {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    width: fit-content;
+    position: relative;
+    overflow: hidden;
+}
+#section-media-sources .segmented .seg {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    border-radius: 8px;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
+}
+#section-media-sources .segmented .seg:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-primary);
+}
+#section-media-sources .segmented input[type='radio'] {
+    display: none;
+}
+#section-media-sources .segmented .seg[aria-checked='true'] {
+    color: #bfdbfe;
+}
+#section-media-sources .segmented .seg-indicator {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    height: calc(100% - 8px);
+    width: 0;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.18);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    transition:
+        left 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 /* Header status pill for current mode */
 #section-display .status-pill {
     font-size: 0.85rem;

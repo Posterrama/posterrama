@@ -128,10 +128,7 @@
           <i class="fas fa-chevron-down nav-arrow"></i>
         </a>
         <div class="nav-submenu">
-          <a href="#" class="nav-subitem" data-sub="plex"><i class="fas fa-film"></i><span>Plex</span></a>
-          <a href="#" class="nav-subitem" data-sub="jellyfin"><i class="fas fa-play"></i><span>Jellyfin</span></a>
-          <a href="#" class="nav-subitem" data-sub="tmdb"><i class="fas fa-database"></i><span>TMDB</span></a>
-          <a href="#" class="nav-subitem" data-sub="tvdb"><i class="fas fa-tv"></i><span>TVDB</span></a>
+          <!-- Media Sources submenus removed: tabs are used inside the section -->
         </div>
       </div>
       <div class="nav-group">
@@ -826,6 +823,29 @@
 
     <!-- Media Sources Section (top-level sibling, not nested under dashboard) -->
     <section id="section-media-sources" class="app-section" hidden>
+      <!-- Sources tabs (mirror Display segmented control) -->
+      <div class="form-section" id="sources-tabs">
+        <div class="form-row">
+          <div class="segmented" role="tablist" aria-label="Media Sources">
+            <label class="seg" id="seg-plex" role="tab" aria-controls="panel-plex" aria-checked="false">
+              <input type="radio" name="sources.active" id="src-plex" value="plex" />
+              <i class="fas fa-film"></i> Plex
+            </label>
+            <label class="seg" id="seg-jellyfin" role="tab" aria-controls="panel-jellyfin" aria-checked="false">
+              <input type="radio" name="sources.active" id="src-jellyfin" value="jellyfin" />
+              <i class="fas fa-play"></i> Jellyfin
+            </label>
+            <label class="seg" id="seg-tmdb" role="tab" aria-controls="panel-tmdb" aria-checked="false">
+              <input type="radio" name="sources.active" id="src-tmdb" value="tmdb" />
+              <i class="fas fa-database"></i> TMDB
+            </label>
+            <label class="seg" id="seg-tvdb" role="tab" aria-controls="panel-tvdb" aria-checked="false">
+              <input type="radio" name="sources.active" id="src-tvdb" value="tvdb" />
+              <i class="fas fa-tv"></i> TVDB
+            </label>
+          </div>
+        </div>
+      </div>
       <section class="panel" id="panel-sources-overview">
         <header class="panel-header">
           <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
@@ -838,141 +858,7 @@
         </header>
         <div class="panel-content">
           <div class="help-content">
-
-            <!-- Sources Overview: modern, calm cards -->
-            <section class="source-grid" style="margin-bottom: 32px;">
-              <!-- Plex Card -->
-              <div class="source-card card-plex">
-                <div class="sc-header">
-                  <div class="sc-icon"><i class="fas fa-film" style="color: var(--color-primary);"></i></div>
-                  <div class="sc-title">Plex Media Server</div>
-                </div>
-                <div class="sc-status" id="sc-plex-status">
-                  <span class="status-dot" id="sc-plex-dot"></span>
-                  <span class="status-pill" id="sc-plex-pill">—</span>
-                  <label class="header-toggle" for="sc_plex_enabled" title="Enable Plex">
-                    <input type="checkbox" id="sc.plex.enabled" />
-                    <span class="ht-switch" aria-hidden="true"></span>
-                    <span class="ht-text">Enabled</span>
-                  </label>
-                </div>
-                <div class="sc-meta">
-                  <span class="sc-chip" id="sc-plex-count" title="Items (filtered vs total)"><i class="fas fa-layer-group"></i><span class="value">—</span></span>
-                  <span class="sc-chip" id="sc-plex-sync" title="Last sync time"><i class="fas fa-clock"></i><span class="value">—</span></span>
-                  <span class="sc-chip" id="sc-plex-libs" title="Selected libraries"><i class="fas fa-list"></i><span class="value">—</span></span>
-                </div>
-                <p class="sc-desc">Your personal media server for movies and TV.</p>
-                <ul class="sc-points">
-                  <li>Connection: Hostname, Port, Token</li>
-                  <li>Libraries: select Movies and Shows</li>
-                  <li>Filters: Years, Ratings, Genres, Qualities</li>
-                  <li>Recently added only (+ days)</li>
-                </ul>
-                <div class="sc-actions">
-                  <a class="btn btn-primary btn-sm" href="#plex"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
-                  <a class="btn btn-sm btn-ghost" href="https://support.plex.tv/" target="_blank" rel="noopener"><i class="fas fa-book"></i> <span>Docs</span></a>
-                </div>
-              </div>
-
-              <!-- Jellyfin Card -->
-              <div class="source-card card-jf">
-                <div class="sc-header">
-                  <div class="sc-icon"><i class="fas fa-play" style="color: var(--color-accent);"></i></div>
-                  <div class="sc-title">Jellyfin Server</div>
-                </div>
-                <div class="sc-status" id="sc-jf-status">
-                  <span class="status-dot" id="sc-jf-dot"></span>
-                  <span class="status-pill" id="sc-jf-pill">—</span>
-                  <label class="header-toggle" for="sc_jf_enabled" title="Enable Jellyfin">
-                    <input type="checkbox" id="sc.jf.enabled" />
-                    <span class="ht-switch" aria-hidden="true"></span>
-                    <span class="ht-text">Enabled</span>
-                  </label>
-                </div>
-                <div class="sc-meta">
-                  <span class="sc-chip" id="sc-jf-count" title="Items (filtered vs total)"><i class="fas fa-layer-group"></i><span class="value">—</span></span>
-                  <span class="sc-chip" id="sc-jf-sync" title="Last sync time"><i class="fas fa-clock"></i><span class="value">—</span></span>
-                  <span class="sc-chip" id="sc-jf-libs" title="Selected libraries"><i class="fas fa-list"></i><span class="value">—</span></span>
-                </div>
-                <p class="sc-desc">Open‑source media server with flexible libraries.</p>
-                <ul class="sc-points">
-                  <li>Connection: Hostname, Port, API Key</li>
-                  <li>Libraries: select Movies and Shows</li>
-                  <li>Filters: Years, Ratings, Genres</li>
-                  <li>Recently added only (+ days)</li>
-                </ul>
-                <div class="sc-actions">
-                  <a class="btn btn-primary btn-sm" href="#jellyfin"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
-                  <a class="btn btn-sm btn-ghost" href="https://jellyfin.org/docs/" target="_blank" rel="noopener"><i class="fas fa-book"></i> <span>Docs</span></a>
-                </div>
-              </div>
-
-              <!-- TMDB Card -->
-              <div class="source-card card-tmdb">
-                <div class="sc-header">
-                  <div class="sc-icon"><i class="fas fa-database" style="color: var(--color-success);"></i></div>
-                  <div class="sc-title">The Movie Database</div>
-                </div>
-                <div class="sc-status" id="sc-tmdb-status">
-                  <span class="status-dot" id="sc-tmdb-dot"></span>
-                  <span class="status-pill" id="sc-tmdb-pill">—</span>
-                  <label class="header-toggle" for="sc_tmdb_enabled" title="Enable TMDB">
-                    <input type="checkbox" id="sc.tmdb.enabled" />
-                    <span class="ht-switch" aria-hidden="true"></span>
-                    <span class="ht-text">Enabled</span>
-                  </label>
-                </div>
-                <div class="sc-meta">
-                  <span class="sc-chip" id="sc-tmdb-count" title="TMDB items"><i class="fas fa-layer-group"></i><span class="value">—</span></span>
-                  <span class="sc-chip" id="sc-tmdb-sync" title="Last fetch time"><i class="fas fa-cloud-download-alt"></i><span class="value">—</span></span>
-                  <span class="sc-chip" id="sc-tmdb-mode" title="Category"><i class="fas fa-stream"></i><span class="value">—</span></span>
-                </div>
-                <p class="sc-desc">Comprehensive metadata and discovery.</p>
-                <ul class="sc-points">
-                  <li>API Key</li>
-                  <li>Category (popular, top rated, etc.)</li>
-                  <li>Filters: Min rating, Years, Genres</li>
-                </ul>
-                <div class="sc-actions">
-                  <a class="btn btn-primary btn-sm" href="#tmdb"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
-                  <a class="btn btn-sm btn-ghost" href="https://developer.themoviedb.org/" target="_blank" rel="noopener"><i class="fas fa-book"></i> <span>Docs</span></a>
-                </div>
-              </div>
-
-              <!-- TVDB Card -->
-              <div class="source-card card-tvdb">
-                <div class="sc-header">
-                  <div class="sc-icon"><i class="fas fa-tv" style="color: var(--color-info);"></i></div>
-                  <div class="sc-title">TheTVDB</div>
-                </div>
-                <div class="sc-status" id="sc-tvdb-status">
-                  <span class="status-dot" id="sc-tvdb-dot"></span>
-                  <span class="status-pill" id="sc-tvdb-pill">—</span>
-                  <label class="header-toggle" for="sc_tvdb_enabled" title="Enable TVDB">
-                    <input type="checkbox" id="sc.tvdb.enabled" />
-                    <span class="ht-switch" aria-hidden="true"></span>
-                    <span class="ht-text">Enabled</span>
-                  </label>
-                </div>
-                <div class="sc-meta">
-                  <span class="sc-chip" id="sc-tvdb-count" title="TVDB items"><i class="fas fa-layer-group"></i><span class="value">—</span></span>
-                  <span class="sc-chip" id="sc-tvdb-sync" title="Last fetch time"><i class="fas fa-cloud-download-alt"></i><span class="value">—</span></span>
-                </div>
-                <p class="sc-desc">Series and episode metadata with artwork.</p>
-                <ul class="sc-points">
-                  <li>Category (popular, top rated, etc.)</li>
-                  <li>Filter: Min rating</li>
-                  <li>Filter: Year</li>
-                </ul>
-                <div class="sc-actions">
-                  <a class="btn btn-primary btn-sm" href="#tvdb"><i class="fas fa-sliders-h"></i> <span>Configure</span></a>
-                  <a class="btn btn-sm btn-ghost" href="https://thetvdb.com/" target="_blank" rel="noopener"><i class="fas fa-book"></i> <span>Docs</span></a>
-                </div>
-              </div>
-
-              
-            </section>
-
+            <!-- Cards overview removed in favor of segmented tabs above -->
           </div>
         </div>
       </section>

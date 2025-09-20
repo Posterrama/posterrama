@@ -5631,29 +5631,28 @@
                     // refresh API key status since API Access is now in Operations
                     refreshApiKeyStatus();
                 } else if (nav === 'media-sources') {
+                    // Always land on Plex tab by default
                     showSection('section-media-sources');
+                    try {
+                        if (location.hash !== '#plex') location.hash = '#plex';
+                    } catch (_) {}
+                    try {
+                        window.admin2?.maybeFetchPlexOnOpen?.();
+                    } catch (_) {}
                 }
             });
         });
 
-        // Media Sources group: toggle and sub-navigation
+        // Media Sources group: toggle (submenus removed; jump directly to Plex)
         const mediaGroup = document.querySelector('.nav-group');
         const toggleLink = mediaGroup?.querySelector('.nav-toggle');
         toggleLink?.addEventListener('click', e => {
             e.preventDefault();
-            mediaGroup.classList.toggle('open');
-            // Clear subitem active states when toggling the group
-            mediaGroup
-                ?.querySelectorAll('.nav-subitem')
-                ?.forEach(s => s.classList.remove('active'));
-            // Show section and ONLY the overview (hide all source panels)
-            const section = document.getElementById('section-media-sources');
-            if (section) {
-                const list = section.querySelectorAll('section.panel');
-                list.forEach(p => (p.hidden = p.id !== 'panel-sources-overview'));
-                dbg('nav-toggle click -> overview help shown');
-            }
+            // No submenu anymore; open section and default to Plex tab
             showSection('section-media-sources');
+            try {
+                if (location.hash !== '#plex') location.hash = '#plex';
+            } catch (_) {}
             // Ensure configuration values are loaded once when opening the group
             try {
                 window.admin2?.loadMediaSources?.();
@@ -5769,38 +5768,93 @@
             }, 60);
         }
 
-        mediaGroup?.querySelectorAll('.nav-subitem').forEach(sub => {
-            sub.addEventListener('click', e => {
-                e.preventDefault();
-                document
-                    .querySelectorAll('.sidebar-nav .nav-item')
-                    .forEach(n => n.classList.remove('active'));
-                // Mark group header and the clicked subitem as active
-                toggleLink?.classList.add('active');
-                mediaGroup?.classList.add('open');
-                mediaGroup
-                    ?.querySelectorAll('.nav-subitem')
-                    .forEach(s => s.classList.remove('active'));
-                sub.classList.add('active');
-                const key = sub.getAttribute('data-sub');
-                const map = {
-                    plex: { id: 'panel-plex', title: 'Plex', hash: '#plex' },
-                    jellyfin: { id: 'panel-jellyfin', title: 'Jellyfin', hash: '#jellyfin' },
-                    tmdb: { id: 'panel-tmdb', title: 'TMDB', hash: '#tmdb' },
-                    tvdb: { id: 'panel-tvdb', title: 'TVDB', hash: '#tvdb' },
-                };
-                const t = map[key] || map.plex;
-                dbg('submenu click', { key, ...t });
-                // Update URL hash for direct linking and routing
-                if (location.hash !== t.hash) location.hash = t.hash;
-                // Also show immediately to avoid any race conditions with routing
-                showSourcePanel(t.id, t.title);
-                // Lazy-load libraries when opening specific panels (non-blocking)
-                if (t.id === 'panel-plex') window.admin2?.maybeFetchPlexOnOpen?.();
-                else if (t.id === 'panel-jellyfin') window.admin2?.maybeFetchJellyfinOnOpen?.();
-                else if (t.id === 'panel-tmdb') window.admin2?.maybeFetchTmdbOnOpen?.();
-            });
-        });
+        // Submenu items removed; segmented tabs handle navigation within section
+
+        // ----- Media Sources segmented tabs (mirror Display) -----
+        (function setupSourcesTabs() {
+            try {
+                const container = document.querySelector('#section-media-sources .segmented');
+                if (!container) return;
+                // Ensure indicator exists
+                let ind = container.querySelector('.seg-indicator');
+                if (!ind) {
+                    ind = document.createElement('div');
+                    ind.className = 'seg-indicator';
+                    container.appendChild(ind);
+                }
+                const segs = [
+                    { id: 'seg-plex', val: 'plex', panel: 'panel-plex', hash: '#plex' },
+                    {
+                        id: 'seg-jellyfin',
+                        val: 'jellyfin',
+                        panel: 'panel-jellyfin',
+                        hash: '#jellyfin',
+                    },
+                    { id: 'seg-tmdb', val: 'tmdb', panel: 'panel-tmdb', hash: '#tmdb' },
+                    { id: 'seg-tvdb', val: 'tvdb', panel: 'panel-tvdb', hash: '#tvdb' },
+                ];
+
+                function setActive(val) {
+                    segs.forEach(s => {
+                        const el = document.getElementById(s.id);
+                        if (el) el.setAttribute('aria-checked', String(s.val === val));
+                        const panel = document.getElementById(s.panel);
+                        if (panel) panel.hidden = s.val !== val;
+                    });
+                    // Slide indicator
+                    const activeSeg = container.querySelector(`.seg[aria-checked="true"]`);
+                    if (activeSeg) {
+                        const cRect = container.getBoundingClientRect();
+                        const sRect = activeSeg.getBoundingClientRect();
+                        ind.style.left = `${sRect.left - cRect.left}px`;
+                        ind.style.width = `${sRect.width}px`;
+                    }
+                }
+
+                // Click handling
+                segs.forEach(s => {
+                    const el = document.getElementById(s.id);
+                    if (!el) return;
+                    el.addEventListener('click', e => {
+                        e.preventDefault();
+                        if (location.hash !== s.hash) location.hash = s.hash;
+                        // Show immediately as well
+                        setActive(s.val);
+                        // Trigger auto-fetch on open
+                        try {
+                            if (s.panel === 'panel-plex') window.admin2?.maybeFetchPlexOnOpen?.();
+                            else if (s.panel === 'panel-jellyfin')
+                                window.admin2?.maybeFetchJellyfinOnOpen?.();
+                            else if (s.panel === 'panel-tmdb')
+                                window.admin2?.maybeFetchTmdbOnOpen?.();
+                        } catch (_) {}
+                    });
+                });
+
+                // Initialize default: Plex
+                setActive('plex');
+
+                // Sync with router/hash
+                function syncFromHash() {
+                    const h = (location.hash || '').toLowerCase();
+                    if (h === '#jellyfin') setActive('jellyfin');
+                    else if (h === '#tmdb') setActive('tmdb');
+                    else if (h === '#tvdb') setActive('tvdb');
+                    else setActive('plex');
+                }
+                // Run on enter to sources and on hash changes
+                const section = document.getElementById('section-media-sources');
+                const obs = new MutationObserver(() => {
+                    if (!section.hidden) syncFromHash();
+                });
+                obs.observe(section, { attributes: true, attributeFilter: ['hidden'] });
+                window.addEventListener('hashchange', () => {
+                    if (!section.hidden) syncFromHash();
+                });
+                // Initial sync if already on sources
+                if (!section.hidden) syncFromHash();
+            } catch (_) {}
+        })();
 
         // Device Management group: toggle and sub-navigation
         const deviceGroup = document.querySelectorAll('.nav-group')[1]; // Second nav-group is Device Management
@@ -5987,20 +6041,11 @@
                     return;
                 }
                 if (h === '#media-sources' || h === '#media-sources/overview') {
-                    // Only show overview help panel
+                    // Default Media Sources to Plex tab
                     showSection('section-media-sources');
-                    const section = document.getElementById('section-media-sources');
-                    if (section) {
-                        section
-                            .querySelectorAll('section.panel')
-                            .forEach(p => (p.hidden = p.id !== 'panel-sources-overview'));
-                    }
-                    // Update page title
-                    const h1 = document.querySelector('.page-header h1');
-                    const subtitle = document.querySelector('.page-header p');
-                    if (h1) h1.innerHTML = '<i class="fas fa-server"></i> Media Sources';
-                    if (subtitle)
-                        subtitle.textContent = 'Overview and guidance for source configuration';
+                    try {
+                        if (location.hash !== '#plex') location.hash = '#plex';
+                    } catch (_) {}
                     return;
                 }
                 // Default: keep current section or overview
