@@ -728,6 +728,58 @@
                     input.value = String(
                         Number.isFinite(maxSizeGB) && maxSizeGB > 0 ? maxSizeGB : 2
                     );
+                // Ensure custom number steppers are applied for the modal input
+                try {
+                    const alreadyWrapped = input?.closest('.number-input-wrapper');
+                    if (input && !alreadyWrapped) {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'number-input-wrapper niw-compact';
+                        const parent = input.parentElement;
+                        if (parent) {
+                            parent.replaceChild(wrapper, input);
+                            wrapper.appendChild(input);
+                            const controls = document.createElement('div');
+                            controls.className = 'number-controls';
+                            const btnUp = document.createElement('button');
+                            btnUp.type = 'button';
+                            btnUp.className = 'number-btn number-inc';
+                            btnUp.setAttribute('aria-label', 'Increase value');
+                            btnUp.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                            const btnDown = document.createElement('button');
+                            btnDown.type = 'button';
+                            btnDown.className = 'number-btn number-dec';
+                            btnDown.setAttribute('aria-label', 'Decrease value');
+                            btnDown.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                            controls.appendChild(btnUp);
+                            controls.appendChild(btnDown);
+                            wrapper.appendChild(controls);
+                            // Wire up handlers (mirror global enhancer)
+                            const step = () => Number(input.step || '1') || 1;
+                            const clamp = v => {
+                                let val = v;
+                                const min = input.min === '' ? null : Number(input.min);
+                                const max = input.max === '' ? null : Number(input.max);
+                                if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+                                if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+                                return val;
+                            };
+                            btnUp.addEventListener('click', () => {
+                                const cur = Number(input.value || '0') || 0;
+                                input.value = String(clamp(cur + step()));
+                                input.dispatchEvent(new Event('input', { bubbles: true }));
+                                input.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                            btnDown.addEventListener('click', () => {
+                                const cur = Number(input.value || '0') || 0;
+                                input.value = String(clamp(cur - step()));
+                                input.dispatchEvent(new Event('input', { bubbles: true }));
+                                input.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                        }
+                    }
+                } catch (_) {
+                    /* non-fatal */
+                }
                 openModal('modal-cache-size');
             } finally {
                 editBtn.classList.remove('btn-loading');
