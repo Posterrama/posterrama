@@ -8362,14 +8362,46 @@ select:focus-visible {
     width: 90px !important;
 }
 
-/* Time input icon row */
+/* Time input (Operations) — themed wrapper without dropdown */
 #section-operations .time-input {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    height: 32px; /* match .btn-sm */
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    background: var(--color-bg-card);
+    padding: 0 8px; /* space for left icon + input */
 }
 #section-operations .time-input i {
     color: var(--color-text-secondary);
+}
+#section-operations .time-input input[type='time'] {
+    border: 0;
+    background: transparent;
+    outline: none;
+    color: var(--color-text-primary);
+    font: inherit;
+    height: 100%;
+    line-height: 30px;
+    padding: 0 6px;
+    font-variant-numeric: tabular-nums;
+}
+/* Hide native time picker indicator so there is no dropdown */
+#section-operations .time-input input[type='time']::-webkit-calendar-picker-indicator {
+    display: none;
+}
+/* Focus ring on wrapper only */
+#section-operations .time-input:focus-within {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-info) 70%, var(--color-border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-info) 20%, transparent);
+}
+/* Avoid double focus ring from the input element */
+#section-operations .time-input input[type='time']:focus,
+#section-operations .time-input input[type='time']:focus-visible {
+    box-shadow: none !important;
 }
 
 /* Status pills and meters inside Operations */
