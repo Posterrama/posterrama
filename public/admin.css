@@ -8289,8 +8289,8 @@ select:focus-visible {
 #section-operations input[type='time']:focus-visible,
 #section-operations input[type='password']:focus-visible {
     outline: none;
-    border-color: color-mix(in srgb, var(--color-info) 70%, var(--color-border));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-info) 20%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
 }
 
 /* Number input wrappers within Operations (example: input + right chevrons) */
@@ -8306,8 +8306,8 @@ select:focus-visible {
 }
 #section-operations .number-input-wrapper:focus-within {
     outline: none;
-    border-color: color-mix(in srgb, var(--color-info) 70%, var(--color-border));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-info) 20%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
 }
 #section-operations .number-input-wrapper input[type='number'] {
     border: 0;
@@ -8405,8 +8405,8 @@ select:focus-visible {
 /* Focus ring on wrapper only */
 #section-operations .time-input:focus-within {
     outline: none;
-    border-color: color-mix(in srgb, var(--color-info) 70%, var(--color-border));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-info) 20%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
 }
 /* Avoid double focus ring from the input element */
 #section-operations .time-input input[type='time']:focus,
