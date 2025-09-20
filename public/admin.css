@@ -381,7 +381,7 @@ body {
     margin-top: auto;
     padding: var(--space-md);
     padding-top: var(--space-lg);
-    border-top: 1px solid var(--color-border);
+    border-top: none; /* remove bottom-left divider line */
 }
 
 .system-status {
