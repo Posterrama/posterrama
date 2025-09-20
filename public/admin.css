@@ -5251,6 +5251,15 @@ body.page-logs {
     border-color: color-mix(in srgb, var(--color-secondary) 25%, var(--color-border));
     box-shadow: none;
 }
+/* Match API key action icon sizes to Cache card pencil */
+.operations-panel #api-key-display .btn.btn-icon.btn-sm {
+    padding: 8px !important; /* square icon button like cache-edit-btn */
+    border-radius: 6px; /* match cache-edit-btn rounding */
+    font-size: 0.8rem; /* icon size parity via em */
+}
+.operations-panel #api-key-display .btn.btn-icon.btn-sm i {
+    font-size: 1em; /* keep icon aligned with button font-size */
+}
 /* Inline field styling for label + input rows */
 .operations-panel .inline-field {
     display: flex;
@@ -8284,37 +8293,73 @@ select:focus-visible {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-info) 20%, transparent);
 }
 
-/* Number input wrappers within Operations */
+/* Number input wrappers within Operations (example: input + right chevrons) */
 #section-operations .number-input-wrapper {
     display: inline-flex;
-    align-items: stretch;
+    align-items: center;
+    height: 32px; /* match .btn-sm */
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
     background: var(--color-bg-card);
+    /* Override global width: make compact, shrink-to-fit */
+    width: auto;
 }
 #section-operations .number-input-wrapper input[type='number'] {
     border: 0;
     background: transparent;
-    padding-right: 36px; /* space for steppers */
+    height: 100%;
+    line-height: 30px;
+    /* Prevent stretching; width controlled by classes (e.g., w-90) or overrides */
+    flex: 0 0 auto;
+    padding: 0 8px; /* slightly tighter to keep overall width compact */
 }
 #section-operations .number-input-wrapper .number-controls {
-    display: flex;
+    display: inline-flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 2px;
+    align-self: stretch;
+    width: 28px; /* fixed rail width */
+    border-left: 1px solid var(--color-border);
 }
 #section-operations .number-input-wrapper .number-btn {
-    width: 18px;
-    height: 16px;
+    width: 100%;
+    height: 16px; /* 2 x 16px = 32px */
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border: none;
     background: transparent;
     color: var(--color-text-secondary);
+    cursor: pointer;
 }
 #section-operations .number-input-wrapper .number-btn:hover {
+    background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
+}
+#section-operations .number-input-wrapper .number-btn:active {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    transform: translateY(0.5px);
+}
+#section-operations .number-input-wrapper .number-btn i,
+#section-operations .number-input-wrapper .number-btn .fas {
+    font-size: 10px;
+    line-height: 1;
+    pointer-events: none;
+}
+/* Hide native spinners only when wrapped (custom chevrons present) */
+#section-operations .number-input-wrapper input[type='number']::-webkit-outer-spin-button,
+#section-operations .number-input-wrapper input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+#section-operations .number-input-wrapper input[type='number'] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+/* Make default wide (w-110) numeric fields compact within Operations */
+#section-operations input.w-110 {
+    width: 90px !important;
 }
 
 /* Time input icon row */

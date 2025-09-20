@@ -1462,6 +1462,66 @@
         }
         dbg('showSection() applied', { activeId: id, sections: sections.length });
 
+        // Ensure Operations number inputs are enhanced when the section becomes visible
+        if (id === 'section-operations') {
+            try {
+                const ensureWrapped = input => {
+                    if (!input || input.closest('.number-input-wrapper')) return;
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'number-input-wrapper niw-compact';
+                    const parent = input.parentElement;
+                    if (!parent) return;
+                    parent.replaceChild(wrapper, input);
+                    wrapper.appendChild(input);
+                    const controls = document.createElement('div');
+                    controls.className = 'number-controls';
+                    const btnUp = document.createElement('button');
+                    btnUp.type = 'button';
+                    btnUp.className = 'number-btn number-inc';
+                    btnUp.setAttribute('aria-label', 'Increase value');
+                    btnUp.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                    const btnDown = document.createElement('button');
+                    btnDown.type = 'button';
+                    btnDown.className = 'number-btn number-dec';
+                    btnDown.setAttribute('aria-label', 'Decrease value');
+                    btnDown.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                    controls.appendChild(btnUp);
+                    controls.appendChild(btnDown);
+                    wrapper.appendChild(controls);
+                    const step = () => Number(input.step || '1') || 1;
+                    const clamp = v => {
+                        let val = v;
+                        const min = input.min === '' ? null : Number(input.min);
+                        const max = input.max === '' ? null : Number(input.max);
+                        if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+                        if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+                        return val;
+                    };
+                    btnUp.addEventListener('click', () => {
+                        const cur = Number(input.value || '0') || 0;
+                        input.value = String(clamp(cur + step()));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    btnDown.addEventListener('click', () => {
+                        const cur = Number(input.value || '0') || 0;
+                        input.value = String(clamp(cur - step()));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                };
+                [
+                    'input-keep-backups',
+                    'input-keep-cfg-backups',
+                    'ops.backgroundRefreshMinutes',
+                    'SERVER_PORT',
+                    'siteServer.port',
+                ].forEach(id => ensureWrapped(document.getElementById(id)));
+            } catch (_) {
+                /* non-fatal */
+            }
+        }
+
         // Toggle Admin v2 Display preview visibility based on active section
         try {
             const pvc = document.getElementById('display-preview-container');
