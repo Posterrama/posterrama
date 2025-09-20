@@ -121,16 +121,10 @@
         <i class="fas fa-desktop"></i>
         <span>Display Settings</span>
       </a>
-      <div class="nav-group">
-        <a href="#" class="nav-item nav-toggle">
-          <i class="fas fa-server"></i>
-          <span>Media Sources</span>
-          <i class="fas fa-chevron-down nav-arrow"></i>
-        </a>
-        <div class="nav-submenu">
-          <!-- Media Sources submenus removed: tabs are used inside the section -->
-        </div>
-      </div>
+      <a href="#" class="nav-item" data-nav="media-sources">
+        <i class="fas fa-server"></i>
+        <span>Media Sources</span>
+      </a>
       <div class="nav-group">
         <a href="#" class="nav-item nav-toggle">
           <i class="fas fa-laptop"></i>
@@ -825,8 +819,9 @@
     <section id="section-media-sources" class="app-section" hidden>
       <!-- Sources tabs (mirror Display segmented control) -->
       <div class="form-section" id="sources-tabs">
+        <div class="section-title"><i class="fas fa-layer-group"></i> Source</div>
         <div class="form-row">
-          <div class="segmented" role="tablist" aria-label="Media Sources">
+          <div class="segmented" role="tablist" aria-label="Source">
             <label class="seg" id="seg-plex" role="tab" aria-controls="panel-plex" aria-checked="false">
               <input type="radio" name="sources.active" id="src-plex" value="plex" />
               <i class="fas fa-film"></i> Plex
@@ -846,22 +841,7 @@
           </div>
         </div>
       </div>
-      <section class="panel" id="panel-sources-overview">
-        <header class="panel-header">
-          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
-            <div class="panel-title">
-              <h2><i class="fas fa-database"></i> Media Sources</h2>
-              <div class="panel-subtitle">Combine media across platforms into a unified poster gallery</div>
-            </div>
-            <div class="panel-actions"></div>
-          </div>
-        </header>
-        <div class="panel-content">
-          <div class="help-content">
-            <!-- Cards overview removed in favor of segmented tabs above -->
-          </div>
-        </div>
-      </section>
+      <section class="panel" id="panel-sources-overview" hidden></section>
 
       <!-- Plex Panel -->
       <section class="panel" id="panel-plex">

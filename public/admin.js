@@ -1394,14 +1394,9 @@
                 .querySelectorAll('.sidebar-nav .nav-item, .sidebar-nav .nav-subitem')
                 .forEach(n => n.classList.remove('active'));
 
-            if (id === 'section-media-sources') {
-                // Open the media sources group and highlight its header toggle
-                const group = document.querySelector('.sidebar .nav-group');
-                group?.classList.add('open');
-                group?.querySelector('.nav-item.nav-toggle')?.classList.add('active');
-            } else if (id === 'section-devices' || id === 'section-device-settings') {
+            if (id === 'section-devices' || id === 'section-device-settings') {
                 // Open the device management group and highlight its header toggle
-                const deviceGroup = document.querySelectorAll('.sidebar .nav-group')[1];
+                const deviceGroup = document.querySelectorAll('.sidebar .nav-group')[0];
                 deviceGroup?.classList.add('open');
                 deviceGroup?.querySelector('.nav-item.nav-toggle')?.classList.add('active');
                 // Highlight the appropriate subitem
@@ -1415,6 +1410,7 @@
                     'section-operations': 'operations',
                     'section-devices': 'devices',
                     'section-device-settings': 'device-settings',
+                    'section-media-sources': 'media-sources',
                 };
                 const key = map[id];
                 if (key) {
@@ -1424,9 +1420,7 @@
                     item?.classList.add('active');
                 }
                 // Collapse groups when leaving them
-                const mediaGroup = document.querySelector('.sidebar .nav-group');
-                const deviceGroup = document.querySelectorAll('.sidebar .nav-group')[1];
-                mediaGroup?.classList.remove('open');
+                const deviceGroup = document.querySelectorAll('.sidebar .nav-group')[0];
                 deviceGroup?.classList.remove('open');
             }
         } catch (_) {
@@ -1438,8 +1432,12 @@
         const subtitle = pageHeader?.querySelector('p');
         if (pageHeader && h1) {
             if (id === 'section-media-sources') {
-                // Hide the big page header for Media Sources (use compact in-panel header)
-                pageHeader.style.display = 'none';
+                // Use the big page header for Media Sources
+                pageHeader.style.display = '';
+                h1.innerHTML = '<i class="fas fa-server"></i> Media Sources';
+                if (subtitle)
+                    subtitle.textContent =
+                        'Connect and configure sources across Plex, Jellyfin, TMDB, and TVDB';
             } else if (id === 'section-operations') {
                 // Hide the big page header for Operations (use compact in-panel header)
                 pageHeader.style.display = 'none';
@@ -1455,7 +1453,7 @@
                     window.reloadWhitelistData();
                 }
             } else if (id === 'section-display') {
-                // Hide the big page header for Display Settings (placeholder uses compact panel)
+                // Hide the big page header for Display Settings (compact panel)
                 pageHeader.style.display = 'none';
             } else {
                 // Default (Dashboard and any other sections using the big header)
@@ -5604,12 +5602,17 @@
             el.classList.remove('disabled');
         });
 
-        // Sidebar section switching (ignore group toggles)
+        // Sidebar section switching (ignore group toggle header explicitly)
         document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
             item.addEventListener('click', e => {
+                // Let the Device Management group toggle be handled by its own listener
+                if (item.classList.contains('nav-toggle')) {
+                    e.preventDefault();
+                    return;
+                }
                 e.preventDefault();
                 const nav = item.getAttribute('data-nav');
-                if (!nav) return; // skip toggles without target section
+                if (!nav) return; // skip items without target section
                 document
                     .querySelectorAll('.sidebar-nav .nav-item')
                     .forEach(n => n.classList.remove('active'));
@@ -5643,23 +5646,7 @@
             });
         });
 
-        // Media Sources group: toggle (submenus removed; jump directly to Plex)
-        const mediaGroup = document.querySelector('.nav-group');
-        const toggleLink = mediaGroup?.querySelector('.nav-toggle');
-        toggleLink?.addEventListener('click', e => {
-            e.preventDefault();
-            // No submenu anymore; open section and default to Plex tab
-            showSection('section-media-sources');
-            try {
-                if (location.hash !== '#plex') location.hash = '#plex';
-            } catch (_) {}
-            // Ensure configuration values are loaded once when opening the group
-            try {
-                window.admin2?.loadMediaSources?.();
-            } catch (_) {
-                // ignore
-            }
-        });
+        // Media Sources is now a simple nav item handled above via data-nav="media-sources"
         // Show only the selected source panel
         function showSourcePanel(panelId, title) {
             // Ensure section is visible first
@@ -5682,11 +5669,7 @@
                     p.hidden = true; // hide overview panel when selecting a specific source
                 }
             });
-            // Update header AFTER showSection so it doesn't overwrite
-            const h1 = document.querySelector('.page-header h1');
-            const subtitle = document.querySelector('.page-header p');
-            if (h1) h1.innerHTML = `<i class="fas fa-server"></i> ${title}`;
-            if (subtitle) subtitle.textContent = `Configure ${title} settings`;
+            // Keep the main page header static for Media Sources; individual panels have their own titles
             const el = document.getElementById(panelId);
             if (el) {
                 // Force show defensively if some stylesheet keeps it hidden
@@ -5856,48 +5839,52 @@
             } catch (_) {}
         })();
 
-        // Device Management group: toggle and sub-navigation
-        const deviceGroup = document.querySelectorAll('.nav-group')[1]; // Second nav-group is Device Management
-        const deviceToggleLink = deviceGroup?.querySelector('.nav-toggle');
-        deviceToggleLink?.addEventListener('click', e => {
-            e.preventDefault();
-            deviceGroup.classList.toggle('open');
-            // Clear subitem active states when toggling the group
-            deviceGroup
-                ?.querySelectorAll('.nav-subitem')
-                ?.forEach(s => s.classList.remove('active'));
-            // Show devices section by default when clicking the group header
-            showSection('section-devices');
-            try {
-                window.admin2?.initDevices?.();
-            } catch (_) {}
-        });
-
-        deviceGroup?.querySelectorAll('.nav-subitem').forEach(sub => {
-            sub.addEventListener('click', e => {
-                e.preventDefault();
-                document
-                    .querySelectorAll('.sidebar-nav .nav-item')
-                    .forEach(n => n.classList.remove('active'));
-                // Mark group header and the clicked subitem as active
-                deviceToggleLink?.classList.add('active');
-                deviceGroup?.classList.add('open');
-                deviceGroup
-                    ?.querySelectorAll('.nav-subitem')
-                    .forEach(s => s.classList.remove('active'));
-                sub.classList.add('active');
-                const key = sub.getAttribute('data-sub');
-
-                if (key === 'devices') {
+        // Device Management group: robust toggle and sub-navigation via event delegation
+        (function setupDeviceGroupDelegation() {
+            const sidebar = document.querySelector('.sidebar .sidebar-nav');
+            if (!sidebar) return;
+            sidebar.addEventListener('click', e => {
+                const toggle = e.target.closest('.nav-item.nav-toggle');
+                if (toggle) {
+                    e.preventDefault();
+                    const group = toggle.closest('.nav-group');
+                    if (!group) return;
+                    group.classList.toggle('open');
+                    group
+                        .querySelectorAll('.nav-subitem')
+                        ?.forEach(s => s.classList.remove('active'));
+                    // Show devices section by default when clicking the group header
                     showSection('section-devices');
                     try {
                         window.admin2?.initDevices?.();
                     } catch (_) {}
-                } else if (key === 'device-settings') {
-                    showSection('section-device-settings');
+                    return;
+                }
+                const sub = e.target.closest('.nav-subitem');
+                if (sub) {
+                    e.preventDefault();
+                    const group = sub.closest('.nav-group');
+                    // Clear top-level nav active states since we're inside a group
+                    document
+                        .querySelectorAll('.sidebar-nav .nav-item')
+                        .forEach(n => n.classList.remove('active'));
+                    group?.classList.add('open');
+                    group
+                        ?.querySelectorAll('.nav-subitem')
+                        .forEach(s => s.classList.remove('active'));
+                    sub.classList.add('active');
+                    const key = sub.getAttribute('data-sub');
+                    if (key === 'devices') {
+                        showSection('section-devices');
+                        try {
+                            window.admin2?.initDevices?.();
+                        } catch (_) {}
+                    } else if (key === 'device-settings') {
+                        showSection('section-device-settings');
+                    }
                 }
             });
-        });
+        })();
 
         // Lightweight hash router so /admin2.html#plex opens Plex panel.
         // On initial load, always show Dashboard regardless of hash.
@@ -5985,13 +5972,6 @@
                     showSourcePanel('panel-plex', 'Plex');
                     // Lazy-load on routed open
                     window.admin2?.maybeFetchPlexOnOpen?.();
-                    mediaGroup?.classList.add('open');
-                    mediaGroup
-                        ?.querySelectorAll('.nav-subitem')
-                        ?.forEach(s => s.classList.remove('active'));
-                    mediaGroup
-                        ?.querySelector('.nav-subitem[data-sub="plex"]')
-                        ?.classList.add('active');
                     return;
                 }
                 if (h === '#devices') {
@@ -6005,39 +5985,18 @@
                     showSourcePanel('panel-jellyfin', 'Jellyfin');
                     // Lazy-load on routed open
                     window.admin2?.maybeFetchJellyfinOnOpen?.();
-                    mediaGroup?.classList.add('open');
-                    mediaGroup
-                        ?.querySelectorAll('.nav-subitem')
-                        ?.forEach(s => s.classList.remove('active'));
-                    mediaGroup
-                        ?.querySelector('.nav-subitem[data-sub="jellyfin"]')
-                        ?.classList.add('active');
                     return;
                 }
                 if (h === '#tmdb') {
                     showSourcePanel('panel-tmdb', 'TMDB');
                     // Lazy-load on routed open
                     window.admin2?.maybeFetchTmdbOnOpen?.();
-                    mediaGroup?.classList.add('open');
-                    mediaGroup
-                        ?.querySelectorAll('.nav-subitem')
-                        ?.forEach(s => s.classList.remove('active'));
-                    mediaGroup
-                        ?.querySelector('.nav-subitem[data-sub="tmdb"]')
-                        ?.classList.add('active');
                     return;
                 }
                 if (h === '#tvdb') {
                     showSourcePanel('panel-tvdb', 'TVDB');
                     // Lazy-load on routed open
                     window.admin2?.maybeFetchTmdbOnOpen?.();
-                    mediaGroup?.classList.add('open');
-                    mediaGroup
-                        ?.querySelectorAll('.nav-subitem')
-                        ?.forEach(s => s.classList.remove('active'));
-                    mediaGroup
-                        ?.querySelector('.nav-subitem[data-sub="tvdb"]')
-                        ?.classList.add('active');
                     return;
                 }
                 if (h === '#media-sources' || h === '#media-sources/overview') {
