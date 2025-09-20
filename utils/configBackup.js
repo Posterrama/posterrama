@@ -90,7 +90,7 @@ async function listBackups() {
     return items;
 }
 
-async function cleanupOldBackups(keep = 7) {
+async function cleanupOldBackups(keep = 5) {
     ensureDirSync(BACKUP_DIR);
     const list = await listBackups();
     const toDelete = list.slice(keep);
@@ -149,10 +149,10 @@ async function readScheduleConfig() {
         return {
             enabled: j.enabled !== false,
             time: j.time || '02:30',
-            retention: Number.isFinite(j.retention) ? j.retention : 7,
+            retention: Number.isFinite(j.retention) ? j.retention : 5,
         };
     } catch (_) {
-        return { enabled: true, time: '02:30', retention: 7 };
+        return { enabled: true, time: '02:30', retention: 5 };
     }
 }
 
@@ -162,7 +162,7 @@ async function writeScheduleConfig(cfg) {
         time: (cfg && cfg.time) || '02:30',
         retention: Math.max(
             1,
-            Math.min(60, Number(cfg && cfg.retention != null ? cfg.retention : 7))
+            Math.min(60, Number(cfg && cfg.retention != null ? cfg.retention : 5))
         ),
     };
     await fsp.mkdir(path.dirname(SCHEDULE_FILE), { recursive: true });

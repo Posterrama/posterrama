@@ -198,6 +198,6 @@ describe('utils/configBackup coverage', () => {
         expect(read).toEqual({ enabled: false, time: '01:15', retention: 60 });
         // write with partial
         const cfg2 = await mod.writeScheduleConfig({ time: '03:00' });
-        expect(cfg2).toEqual({ enabled: true, time: '03:00', retention: 7 });
+        expect(cfg2).toEqual({ enabled: true, time: '03:00', retention: 5 });
     });
 });

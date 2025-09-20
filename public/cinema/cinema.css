@@ -75,13 +75,13 @@
     max-width: 260px;
     width: auto;
 }
-/* Subtle theme alignment: make Cinema selects use the darker section tone */
+/* Ensure Cinema selects match Screensaver styling */
 #card-cinema select,
 #fs-cinema select,
 #cinema-header-card select,
 #cinema-footer-card select,
 #cinema-ambilight-card select {
-    background-color: var(--color-bg-tertiary);
+    background-color: var(--color-bg-card);
 }
 .cin-compact {
     max-width: 240px;

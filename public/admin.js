@@ -1216,7 +1216,7 @@
     });
     btnCleanupCfgBackups?.addEventListener('click', async () => {
         const keepEl = document.getElementById('input-keep-cfg-backups');
-        const keep = Math.max(1, Math.min(60, Number(keepEl?.value || 7)));
+        const keep = Math.max(1, Math.min(60, Number(keepEl?.value || 5)));
         try {
             btnCleanupCfgBackups.classList.add('btn-loading');
             const r = await fetch('/api/admin/config-backups/cleanup', {
@@ -1251,7 +1251,7 @@
                 credentials: 'include',
                 cache: 'no-store',
             });
-            const j = r.ok ? await r.json() : { enabled: true, time: '02:30', retention: 7 };
+            const j = r.ok ? await r.json() : { enabled: true, time: '02:30', retention: 5 };
             const en = document.getElementById('input-cfg-backup-enabled');
             const time = document.getElementById('input-cfg-backup-time');
             const ret = document.getElementById('input-keep-cfg-backups');
@@ -1267,15 +1267,16 @@
             }
         } catch (_) {}
     }
-    async function saveCfgBackupSchedule() {
+    async function saveCfgBackupSchedule(opts) {
         const en = document.getElementById('input-cfg-backup-enabled');
         const time = document.getElementById('input-cfg-backup-time');
         const ret = document.getElementById('input-keep-cfg-backups');
+        const silent = !!(opts && opts.silent);
         try {
             const payload = {
                 enabled: !!en?.checked,
                 time: (time?.value || '02:30').slice(0, 5),
-                retention: Math.max(1, Math.min(60, Number(ret?.value || 7))),
+                retention: Math.max(1, Math.min(60, Number(ret?.value || 5))),
             };
             const r = await fetch('/api/admin/config-backups/schedule', {
                 method: 'POST',
@@ -1284,22 +1285,25 @@
                 body: JSON.stringify(payload),
             });
             if (!r.ok) throw new Error('Save failed');
-            window.notify?.toast({ type: 'success', title: 'Schedule saved', duration: 2000 });
+            if (!silent) {
+                window.notify?.toast({ type: 'success', title: 'Schedule saved', duration: 2000 });
+            }
             try {
                 await loadCfgBackupSchedule();
             } catch (_) {}
         } catch (e) {
-            window.notify?.toast({
-                type: 'error',
-                title: 'Save failed',
-                message: e?.message || 'Please try again',
-                duration: 4000,
-            });
+            if (!silent) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Please try again',
+                    duration: 4000,
+                });
+            }
+            throw e;
         }
     }
-    document
-        .getElementById('btn-save-cfg-backup-schedule')
-        ?.addEventListener('click', saveCfgBackupSchedule);
+    // Local button removed; schedule is saved via global Operations Save
     // Load list and schedule when Operations becomes visible
     (function observeOpsForBackups() {
         const sec = document.getElementById('section-operations');
@@ -1718,6 +1722,68 @@
             // ignore if CSS.escape not available or DOM not ready
         }
     }
+
+    // Enhance: ensure standard selects inside Cinema cards get the caret wrapper
+    // Idempotent: skips selects already wrapped or not eligible
+    function ensureCaretWrapped(selectEl) {
+        try {
+            if (!selectEl || !(selectEl instanceof HTMLSelectElement)) return;
+            if (selectEl.multiple) return; // skip multiselect backers
+            if (selectEl.closest('.select-wrap')) return; // already wrapped
+            const wrap = document.createElement('div');
+            wrap.className = 'select-wrap has-caret';
+            // Insert wrapper before select, then move select inside
+            const parent = selectEl.parentNode;
+            if (!parent) return;
+            parent.insertBefore(wrap, selectEl);
+            wrap.appendChild(selectEl);
+            const caret = document.createElement('span');
+            caret.className = 'select-caret';
+            caret.setAttribute('aria-hidden', 'true');
+            caret.textContent = '▾';
+            wrap.appendChild(caret);
+        } catch (_) {}
+    }
+
+    function enhanceCinemaSelects(root) {
+        try {
+            const scope = root || document.getElementById('card-cinema');
+            if (!scope) return;
+            const sels = scope.querySelectorAll('select');
+            sels.forEach(sel => ensureCaretWrapped(sel));
+        } catch (_) {}
+    }
+
+    function setupCinemaCaretEnhancer() {
+        try {
+            const root = document.getElementById('card-cinema');
+            if (!root) return;
+            // Initial pass
+            enhanceCinemaSelects(root);
+            // Observe dynamic inserts from cinema-ui.js
+            if (!window.__cinemaCaretObs) {
+                const obs = new MutationObserver(muts => {
+                    let touched = false;
+                    for (const m of muts) {
+                        if (m.type === 'childList' && (m.addedNodes?.length || 0) > 0) {
+                            touched = true;
+                            break;
+                        }
+                    }
+                    if (touched) enhanceCinemaSelects(root);
+                });
+                obs.observe(root, { childList: true, subtree: true });
+                window.__cinemaCaretObs = obs;
+            }
+        } catch (_) {}
+    }
+
+    // Run on load; Display section is present on admin page load
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            setupCinemaCaretEnhancer();
+        } catch (_) {}
+    });
 
     // ---------- Display Section Wiring ----------
     function getVal(id) {
@@ -14339,7 +14405,7 @@
             );
         }
 
-        // Unified save for Operations: saves both Server Settings and Promobox
+        // Unified save for Operations: saves Config Backups schedule + Server Settings + Promobox
         btnSaveOps?.addEventListener('click', async () => {
             const btn = btnSaveOps;
             try {
@@ -14369,6 +14435,12 @@
                     btn.insertBefore(sp, btn.firstChild);
                 }
                 btn.classList.add('btn-loading');
+                // First, save Config Backups schedule silently so the pill and list can refresh
+                try {
+                    await saveCfgBackupSchedule({ silent: true });
+                } catch (_) {
+                    // Proceed; errors will be surfaced by unified toast below if needed
+                }
                 // Collect Promobox
                 const enabled = !!document.getElementById('siteServer.enabled')?.checked;
                 const portVal = Number(document.getElementById('siteServer.port')?.value || 4001);

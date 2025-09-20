@@ -13587,7 +13587,7 @@ app.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
  * /api/admin/config-backups/cleanup:
  *   post:
  *     summary: Cleanup old backups
- *     description: Deletes older backups while keeping the most recent N backups (default 7).
+ *     description: Deletes older backups while keeping the most recent N backups (default 5).
  *     tags: ['Admin']
  *     security:
  *       - sessionAuth: []
@@ -13601,7 +13601,7 @@ app.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
  *               keep:
  *                 type: integer
  *                 description: Number of most recent backups to retain (1-60)
- *                 example: 7
+ *                 example: 5
  *     responses:
  *       200:
  *         description: Cleanup result
@@ -13616,7 +13616,7 @@ app.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
  */
 app.post('/api/admin/config-backups/cleanup', isAuthenticated, async (req, res) => {
     try {
-        const keep = Math.max(1, Math.min(60, Number(req.body?.keep || 7)));
+        const keep = Math.max(1, Math.min(60, Number(req.body?.keep || 5)));
         const result = await cfgCleanupOld(keep);
         try {
             broadcastAdminEvent?.('backup-cleanup', { keep, ...result });
@@ -13752,7 +13752,7 @@ app.delete('/api/admin/config-backups/:id', isAuthenticated, async (req, res) =>
  *               properties:
  *                 enabled: { type: boolean }
  *                 time: { type: string, example: '02:30' }
- *                 retention: { type: integer, example: 7 }
+ *                 retention: { type: integer, example: 5 }
  */
 app.get('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) => {
     try {
@@ -13782,7 +13782,7 @@ app.get('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) 
  *             properties:
  *               enabled: { type: boolean }
  *               time: { type: string, example: '02:30' }
- *               retention: { type: integer, minimum: 1, maximum: 60, example: 7 }
+ *               retention: { type: integer, minimum: 1, maximum: 60, example: 5 }
  *     responses:
  *       200:
  *         description: Saved schedule
@@ -13841,7 +13841,7 @@ async function scheduleConfigBackups() {
         try {
             const meta = await cfgCreateBackup();
             try {
-                await cfgCleanupOld(cfg.retention || 7);
+                await cfgCleanupOld(cfg.retention || 5);
             } catch (_) {
                 /* ignore cleanup errors; proceed */
             }

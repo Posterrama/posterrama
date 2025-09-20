@@ -3483,8 +3483,97 @@ select:not([multiple]) {
 .select-wrap .select-icon i {
     color: var(--color-text-muted);
 }
-.select-wrap select {
+/* Only add extra left padding when a leading select icon is present */
+.select-wrap .select-icon + select {
     padding-left: 34px;
+}
+
+/* Dropdown caret indicator for clarity */
+.select-wrap.has-caret {
+    position: relative;
+    display: inline-block; /* ensures proper inline sizing in flex/inline layouts (Cinema rows) */
+    vertical-align: middle;
+}
+
+/* In grid-based form rows (e.g., Cinema), don't stretch the wrapper across the whole cell */
+#section-display .form-row .select-wrap.has-caret {
+    justify-self: start;
+}
+
+/* Cinema-specific: ensure wrapper shrinks to content width consistently */
+#card-cinema .select-wrap.has-caret {
+    width: -moz-fit-content;
+    width: fit-content;
+}
+
+/* Cinema: prevent flex/grid from stretching the wrapper; keep caret inside field */
+.cinema-inline .select-wrap.has-caret {
+    flex: 0 0 auto;
+}
+.cin-footer-controls .select-wrap.has-caret,
+#cinema-header-card .form-row .select-wrap.has-caret,
+#cinema-footer-card .form-row .select-wrap.has-caret {
+    justify-self: start;
+}
+
+/* Cinema: ensure selects don't expand to 100% width so wrapper size matches the field */
+#card-cinema .select-wrap.has-caret select {
+    width: auto;
+    max-width: 260px;
+}
+.select-wrap.has-caret select {
+    /* remove native background chevron since we render our own */
+    background-image: none;
+    padding-right: 44px; /* space for divider + caret */
+}
+
+/* Cinema-specific safety: make sure native chevron is suppressed even if a select escaped wrapping */
+#card-cinema select:not([multiple]) {
+    background-image: none;
+}
+/* vertical divider before the caret */
+.select-wrap.has-caret::after {
+    content: '';
+    position: absolute;
+    right: 44px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: var(--color-border);
+    opacity: 0.8;
+    pointer-events: none;
+}
+.select-wrap.has-caret .select-caret {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    /* Match the select field so the caret looks embedded */
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    font-size: 12px;
+    line-height: 1;
+    opacity: 0.95;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    z-index: 1; /* sit above the select input */
+    pointer-events: none;
+}
+.select-wrap.has-caret:hover .select-caret {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-card));
+}
+.select-wrap.has-caret:focus-within .select-caret {
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+    color: color-mix(in srgb, var(--color-primary) 80%, var(--color-text-muted));
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 /* Cache edit button hover */
