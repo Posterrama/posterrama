@@ -8181,3 +8181,157 @@ select:focus-visible {
     border-color: var(--color-border-strong, rgba(255, 255, 255, 0.22));
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06);
 }
+
+/* =============================================================== */
+/* Operations section — unify surfaces, inputs, and actions         */
+/* =============================================================== */
+#section-operations .panel-actions #btn-save-operations,
+#section-operations .btn.btn-primary.btn-sm,
+#section-operations .btn.btn-success.btn-sm,
+#section-operations .btn.btn-secondary.btn-sm,
+#section-operations .btn.btn-error.btn-sm,
+#section-operations .btn.btn-icon.btn-sm {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+}
+#section-operations .btn.btn-primary.btn-sm i,
+#section-operations .btn.btn-primary.btn-sm .fas,
+#section-operations .btn.btn-primary.btn-sm > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text-secondary));
+}
+#section-operations .btn.btn-success.btn-sm i,
+#section-operations .btn.btn-success.btn-sm .fas,
+#section-operations .btn.btn-success.btn-sm > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success) 85%, var(--color-text-secondary));
+}
+#section-operations .btn.btn-secondary.btn-sm i,
+#section-operations .btn.btn-secondary.btn-sm .fas,
+#section-operations .btn.btn-secondary.btn-sm > span:not(.spinner) {
+    color: var(--color-text-secondary);
+}
+#section-operations .btn.btn-error.btn-sm i,
+#section-operations .btn.btn-error.btn-sm .fas,
+#section-operations .btn.btn-error.btn-sm > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-error) 88%, var(--color-text-secondary));
+}
+#section-operations .btn.btn-icon.btn-sm i,
+#section-operations .btn.btn-icon.btn-sm .fas {
+    color: color-mix(in srgb, var(--color-text-secondary) 92%, var(--color-text-secondary));
+}
+
+#section-operations .btn.btn-primary.btn-sm:hover,
+#section-operations .btn.btn-primary.btn-sm:focus,
+#section-operations .btn.btn-primary.btn-sm:focus-visible,
+#section-operations .btn.btn-success.btn-sm:hover,
+#section-operations .btn.btn-success.btn-sm:focus,
+#section-operations .btn.btn-success.btn-sm:focus-visible,
+#section-operations .btn.btn-secondary.btn-sm:hover,
+#section-operations .btn.btn-secondary.btn-sm:focus,
+#section-operations .btn.btn-secondary.btn-sm:focus-visible,
+#section-operations .btn.btn-error.btn-sm:hover,
+#section-operations .btn.btn-error.btn-sm:focus,
+#section-operations .btn.btn-error.btn-sm:focus-visible,
+#section-operations .btn.btn-icon.btn-sm:hover,
+#section-operations .btn.btn-icon.btn-sm:focus,
+#section-operations .btn.btn-icon.btn-sm:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+
+#section-operations .btn.btn-primary.btn-sm:active,
+#section-operations .btn.btn-success.btn-sm:active,
+#section-operations .btn.btn-secondary.btn-sm:active,
+#section-operations .btn.btn-error.btn-sm:active,
+#section-operations .btn.btn-icon.btn-sm:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+
+/* Inputs inside Operations cards */
+#section-operations input[type='number'],
+#section-operations input[type='time'],
+#section-operations input[type='password'] {
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+}
+#section-operations input[type='number']:focus,
+#section-operations input[type='time']:focus,
+#section-operations input[type='password']:focus,
+#section-operations input[type='number']:focus-visible,
+#section-operations input[type='time']:focus-visible,
+#section-operations input[type='password']:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-info) 70%, var(--color-border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-info) 20%, transparent);
+}
+
+/* Number input wrappers within Operations */
+#section-operations .number-input-wrapper {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    background: var(--color-bg-card);
+}
+#section-operations .number-input-wrapper input[type='number'] {
+    border: 0;
+    background: transparent;
+    padding-right: 36px; /* space for steppers */
+}
+#section-operations .number-input-wrapper .number-controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+}
+#section-operations .number-input-wrapper .number-btn {
+    width: 18px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+}
+#section-operations .number-input-wrapper .number-btn:hover {
+    color: var(--color-text-primary);
+}
+
+/* Time input icon row */
+#section-operations .time-input {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+#section-operations .time-input i {
+    color: var(--color-text-secondary);
+}
+
+/* Status pills and meters inside Operations */
+#section-operations .status-pill {
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+}
+#section-operations .meter > div#update-progress-bar {
+    border-radius: 999px;
+}
