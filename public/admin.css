@@ -2832,8 +2832,9 @@ input[type='range']::-moz-range-thumb {
     cursor: text;
 }
 .ms-control:focus-within {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.25);
+    /* Unified modal-style focus ring (no extra blue glow) */
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
 }
 .ms-chips {
     display: flex;
@@ -2867,6 +2868,11 @@ input[type='range']::-moz-range-thumb {
     color: var(--color-text-primary);
     outline: none;
     padding: 4px 0;
+}
+.ms-input:focus,
+.ms-input:focus-visible {
+    outline: none;
+    box-shadow: none; /* wrapper handles focus ring */
 }
 .ms-input::placeholder {
     color: var(--color-text-muted);
@@ -2924,6 +2930,14 @@ input[type='range']::-moz-range-thumb {
     border-radius: var(--border-radius-sm);
     background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
+}
+/* Remove native blue outline and use unified focus ring inside dropdown search */
+.ms-search input:focus,
+.ms-search input:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+    background: var(--color-bg-card);
 }
 .ms-actions {
     display: flex;
@@ -3443,8 +3457,9 @@ select:hover {
     border-color: var(--color-border-light);
 }
 select:focus {
-    border-color: var(--color-info);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+    /* Unified modal-style focus ring for selects */
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
 }
 /* Add chevron to non-multiple selects */
 select:not([multiple]) {
