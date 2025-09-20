@@ -4601,6 +4601,7 @@
         function resetCropButton() {
             const cropBtn = document.getElementById('avatar-crop-btn');
             if (cropBtn) {
+                cropBtn.classList.remove('state-success');
                 cropBtn.innerHTML = '<i class="fas fa-crop"></i> <span>Crop</span>';
                 cropBtn.style.background = '';
                 cropBtn.disabled = false;
@@ -4625,23 +4626,17 @@
         // Drag and drop functionality
         uploadDropZone?.addEventListener('dragover', e => {
             e.preventDefault();
-            uploadDropZone.style.borderColor = 'var(--color-primary)';
-            uploadDropZone.style.background = 'rgba(var(--color-primary-rgb, 99, 102, 241), 0.05)';
-            uploadDropZone.style.transform = 'scale(1.02)';
+            uploadDropZone.classList.add('drag-active');
         });
 
         uploadDropZone?.addEventListener('dragleave', e => {
             e.preventDefault();
-            uploadDropZone.style.borderColor = 'rgba(255,255,255,0.2)';
-            uploadDropZone.style.background = 'rgba(255,255,255,0.01)';
-            uploadDropZone.style.transform = 'scale(1)';
+            uploadDropZone.classList.remove('drag-active');
         });
 
         uploadDropZone?.addEventListener('drop', e => {
             e.preventDefault();
-            uploadDropZone.style.borderColor = 'rgba(255,255,255,0.2)';
-            uploadDropZone.style.background = 'rgba(255,255,255,0.01)';
-            uploadDropZone.style.transform = 'scale(1)';
+            uploadDropZone.classList.remove('drag-active');
 
             const files = e.dataTransfer.files;
             if (files.length > 0) {
@@ -4853,8 +4848,10 @@
 
                     // Update Crop button to show it's been used
                     if (cropBtn) {
+                        cropBtn.classList.add('state-success');
                         cropBtn.innerHTML = '<i class="fas fa-check"></i> <span>Cropped</span>';
-                        cropBtn.style.background = 'var(--color-success)';
+                        // Keep neutral surface; no inline background
+                        cropBtn.style.background = '';
                         cropBtn.disabled = true; // Prevent multiple crops of same selection
                     }
 
@@ -4878,8 +4875,11 @@
                 });
             } finally {
                 cropBtn.removeAttribute('aria-busy');
-                cropBtn.disabled = false;
-                cropBtn.innerHTML = '<i class="fas fa-crop"></i><span>Crop</span>';
+                // If we reached success state, keep the button in that state
+                if (!cropBtn.classList.contains('state-success')) {
+                    cropBtn.disabled = false;
+                    cropBtn.innerHTML = '<i class="fas fa-crop"></i><span>Crop</span>';
+                }
             }
         });
 

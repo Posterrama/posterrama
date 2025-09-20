@@ -7933,6 +7933,231 @@ body.page-logs {
 #modal-2fa #btn-2fa-verify:focus-visible > span:not(.spinner) {
     color: color-mix(in srgb, var(--color-success) 92%, var(--color-text-secondary));
 }
+
+/* =============================================================== */
+/* Profile Photo (Avatar) modal — Account/User menu design          */
+/* =============================================================== */
+/* Upload drop zone: unify base look and hover interactions */
+#modal-avatar #upload-drop-zone {
+    border: 2px dashed rgba(255, 255, 255, 0.18) !important;
+    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    transition: all 0.18s ease !important;
+}
+#modal-avatar #upload-drop-zone:hover {
+    border-color: color-mix(
+        in srgb,
+        var(--color-primary) 55%,
+        rgba(255, 255, 255, 0.18)
+    ) !important;
+    background: color-mix(
+        in srgb,
+        rgba(255, 255, 255, 0.02) 70%,
+        var(--color-primary) 30%
+    ) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Drag active mirrors hover state but adds a subtle scale */
+#modal-avatar #upload-drop-zone.drag-active {
+    border-color: color-mix(
+        in srgb,
+        var(--color-primary) 55%,
+        rgba(255, 255, 255, 0.18)
+    ) !important;
+    background: color-mix(
+        in srgb,
+        rgba(255, 255, 255, 0.02) 70%,
+        var(--color-primary) 30%
+    ) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+    transform: scale(1.02);
+}
+
+/* "Choose Image" trigger: neutral surface with primary-tinted icon/label */
+#modal-avatar #avatar-file-trigger {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+}
+#modal-avatar #avatar-file-trigger i,
+#modal-avatar #avatar-file-trigger .fas {
+    color: color-mix(in srgb, var(--color-primary) 82%, var(--color-text-secondary));
+}
+#modal-avatar #avatar-file-trigger:hover,
+#modal-avatar #avatar-file-trigger:focus,
+#modal-avatar #avatar-file-trigger:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+#modal-avatar #avatar-file-trigger:hover i,
+#modal-avatar #avatar-file-trigger:focus i,
+#modal-avatar #avatar-file-trigger:focus-visible i,
+#modal-avatar #avatar-file-trigger:hover .fas,
+#modal-avatar #avatar-file-trigger:focus .fas,
+#modal-avatar #avatar-file-trigger:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-primary) 92%, var(--color-text-secondary));
+}
+
+/* Footer: Cancel neutral surface (matches other modals) */
+#modal-avatar .modal-footer .btn[data-close-modal] {
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+}
+#modal-avatar .modal-footer .btn[data-close-modal]:hover,
+#modal-avatar .modal-footer .btn[data-close-modal]:focus,
+#modal-avatar .modal-footer .btn[data-close-modal]:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    color: var(--color-text-primary) !important;
+}
+#modal-avatar .modal-footer .btn[data-close-modal]:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+
+/* Footer action buttons: neutral surfaces + tinted icon/label */
+#modal-avatar .modal-footer .btn#avatar-upload-btn,
+#modal-avatar .modal-footer .btn#avatar-crop-btn,
+#modal-avatar .modal-footer .btn#avatar-remove-btn {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+}
+#modal-avatar .modal-footer .btn#avatar-upload-btn:hover,
+#modal-avatar .modal-footer .btn#avatar-upload-btn:focus,
+#modal-avatar .modal-footer .btn#avatar-upload-btn:focus-visible,
+#modal-avatar .modal-footer .btn#avatar-crop-btn:hover,
+#modal-avatar .modal-footer .btn#avatar-crop-btn:focus,
+#modal-avatar .modal-footer .btn#avatar-crop-btn:focus-visible,
+#modal-avatar .modal-footer .btn#avatar-remove-btn:hover,
+#modal-avatar .modal-footer .btn#avatar-remove-btn:focus,
+#modal-avatar .modal-footer .btn#avatar-remove-btn:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+#modal-avatar .modal-footer .btn#avatar-upload-btn:active,
+#modal-avatar .modal-footer .btn#avatar-crop-btn:active,
+#modal-avatar .modal-footer .btn#avatar-remove-btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+
+/* Accent tints for action icons and labels (keep surfaces neutral) */
+#modal-avatar #avatar-upload-btn i,
+#modal-avatar #avatar-upload-btn .fas,
+#modal-avatar #avatar-upload-btn > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-primary) 82%, var(--color-text-secondary));
+}
+#modal-avatar #avatar-upload-btn:hover i,
+#modal-avatar #avatar-upload-btn:focus i,
+#modal-avatar #avatar-upload-btn:focus-visible i,
+#modal-avatar #avatar-upload-btn:hover .fas,
+#modal-avatar #avatar-upload-btn:focus .fas,
+#modal-avatar #avatar-upload-btn:focus-visible .fas,
+#modal-avatar #avatar-upload-btn:hover > span:not(.spinner),
+#modal-avatar #avatar-upload-btn:focus > span:not(.spinner),
+#modal-avatar #avatar-upload-btn:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-primary) 92%, var(--color-text-secondary));
+}
+
+#modal-avatar #avatar-crop-btn i,
+#modal-avatar #avatar-crop-btn .fas,
+#modal-avatar #avatar-crop-btn > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-info) 82%, var(--color-text-secondary));
+}
+#modal-avatar #avatar-crop-btn:hover i,
+#modal-avatar #avatar-crop-btn:focus i,
+#modal-avatar #avatar-crop-btn:focus-visible i,
+#modal-avatar #avatar-crop-btn:hover .fas,
+#modal-avatar #avatar-crop-btn:focus .fas,
+#modal-avatar #avatar-crop-btn:focus-visible .fas,
+#modal-avatar #avatar-crop-btn:hover > span:not(.spinner),
+#modal-avatar #avatar-crop-btn:focus > span:not(.spinner),
+#modal-avatar #avatar-crop-btn:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-info) 92%, var(--color-text-secondary));
+}
+
+/* Crop button: success state uses success-tinted icon/label only, keep neutral surface */
+#modal-avatar #avatar-crop-btn.state-success i,
+#modal-avatar #avatar-crop-btn.state-success .fas,
+#modal-avatar #avatar-crop-btn.state-success > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success) 88%, var(--color-text-secondary));
+}
+#modal-avatar #avatar-crop-btn.state-success:hover i,
+#modal-avatar #avatar-crop-btn.state-success:focus i,
+#modal-avatar #avatar-crop-btn.state-success:focus-visible i,
+#modal-avatar #avatar-crop-btn.state-success:hover .fas,
+#modal-avatar #avatar-crop-btn.state-success:focus .fas,
+#modal-avatar #avatar-crop-btn.state-success:focus-visible .fas,
+#modal-avatar #avatar-crop-btn.state-success:hover > span:not(.spinner),
+#modal-avatar #avatar-crop-btn.state-success:focus > span:not(.spinner),
+#modal-avatar #avatar-crop-btn.state-success:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success) 95%, var(--color-text-secondary));
+}
+
+/* Optional: disabled visual without muting tint too much */
+#modal-avatar #avatar-crop-btn.state-success:disabled {
+    opacity: 0.9;
+}
+
+#modal-avatar #avatar-remove-btn i,
+#modal-avatar #avatar-remove-btn .fas,
+#modal-avatar #avatar-remove-btn > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-error) 85%, var(--color-text-secondary));
+}
+#modal-avatar #avatar-remove-btn:hover i,
+#modal-avatar #avatar-remove-btn:focus i,
+#modal-avatar #avatar-remove-btn:focus-visible i,
+#modal-avatar #avatar-remove-btn:hover .fas,
+#modal-avatar #avatar-remove-btn:focus .fas,
+#modal-avatar #avatar-remove-btn:focus-visible .fas,
+#modal-avatar #avatar-remove-btn:hover > span:not(.spinner),
+#modal-avatar #avatar-remove-btn:focus > span:not(.spinner),
+#modal-avatar #avatar-remove-btn:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-error) 92%, var(--color-text-secondary));
+}
 #modal-2fa #btn-2fa-verify:active > span:not(.spinner) {
     color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
 }
