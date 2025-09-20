@@ -6906,6 +6906,41 @@ body.page-logs {
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04) !important;
 }
 
+/* Ensure dark background in all states, including autofill */
+#modal-change-password input[type='password']#input-current-password,
+#modal-change-password input[type='password']#input-new-password,
+#modal-change-password input[type='password']#input-confirm-password {
+    background-color: var(--color-bg-card) !important;
+    -webkit-text-fill-color: var(--color-text-primary) !important; /* Chrome/Safari */
+    caret-color: var(--color-text-primary) !important;
+}
+
+/* Chrome/Edge/Safari autofill override */
+#modal-change-password input[type='password']#input-current-password:-webkit-autofill,
+#modal-change-password input[type='password']#input-new-password:-webkit-autofill,
+#modal-change-password input[type='password']#input-confirm-password:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px var(--color-bg-card) inset !important;
+    box-shadow: 0 0 0px 1000px var(--color-bg-card) inset !important;
+    -webkit-text-fill-color: var(--color-text-primary) !important;
+    transition: background-color 5000s ease-in-out 0s !important; /* mitigate flash */
+}
+
+/* Also when focused with autofill */
+#modal-change-password input[type='password']#input-current-password:-webkit-autofill:focus,
+#modal-change-password input[type='password']#input-new-password:-webkit-autofill:focus,
+#modal-change-password input[type='password']#input-confirm-password:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px var(--color-bg-card) inset !important;
+    box-shadow: 0 0 0px 1000px var(--color-bg-card) inset !important;
+}
+
+/* Firefox autofill */
+#modal-change-password input[type='password']#input-current-password:-moz-ui-autofill,
+#modal-change-password input[type='password']#input-new-password:-moz-ui-autofill,
+#modal-change-password input[type='password']#input-confirm-password:-moz-ui-autofill {
+    background-color: var(--color-bg-card) !important;
+    color: var(--color-text-primary) !important;
+}
+
 /* Footer buttons: Save uses neutral surface with primary accent */
 #modal-change-password .modal-footer .btn#btn-change-password {
     background:
