@@ -7735,6 +7735,8 @@ body.page-logs {
     border-radius: 10px;
     overflow: hidden;
     width: 100%;
+    /* Match dropdown/select control height in Display */
+    height: 36px;
 }
 #section-display .number-input-wrapper:focus-within {
     outline: none;
@@ -7744,7 +7746,9 @@ body.page-logs {
 #section-display .number-input-wrapper input[type='number'] {
     flex: 1;
     min-width: 0;
-    padding: 8px 10px;
+    /* Fill wrapper height and align text like selects */
+    height: 100%;
+    padding: 0 10px;
     background: transparent;
     color: var(--color-text-primary);
     border: none;
@@ -7819,6 +7823,13 @@ body.page-logs {
     outline: none;
     border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+}
+
+/* Ensure touch-friendly height on small screens for Display number inputs */
+@media (max-width: 640px) {
+    #section-display .number-input-wrapper {
+        height: 44px; /* align with mobile min-height for form controls */
+    }
 }
 
 /* ============================
