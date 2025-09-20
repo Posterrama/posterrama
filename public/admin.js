@@ -1624,6 +1624,26 @@
             const active = s.value === val;
             el.setAttribute('aria-checked', String(active));
         });
+
+        // Update sliding indicator position
+        try {
+            const container = document.querySelector('#section-display .segmented');
+            if (!container) return;
+            let ind = container.querySelector('.seg-indicator');
+            if (!ind) {
+                ind = document.createElement('div');
+                ind.className = 'seg-indicator';
+                container.appendChild(ind);
+            }
+            const activeSeg = container.querySelector(`.seg[aria-checked="true"]`);
+            if (!activeSeg) return;
+            const cRect = container.getBoundingClientRect();
+            const sRect = activeSeg.getBoundingClientRect();
+            const left = sRect.left - cRect.left; // includes 4px padding space
+            const width = sRect.width;
+            ind.style.left = `${left}px`;
+            ind.style.width = `${width}px`;
+        } catch (_) {}
     }
 
     function updateModeBadges(active) {
@@ -1778,6 +1798,17 @@
                 }
             })
         );
+
+        // Ensure indicator positions correctly on first paint and on resize
+        try {
+            const apply = () => {
+                const value = document.querySelector('input[name="display.mode"]:checked')?.value;
+                if (value) setRadioGroupActive(value);
+            };
+            window.addEventListener('resize', apply);
+            // defer initial layout to next frame so sizes are correct
+            requestAnimationFrame(apply);
+        } catch (_) {}
 
         // Update slider labels for modern sliders
         try {
