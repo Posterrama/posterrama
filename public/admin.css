@@ -6666,6 +6666,18 @@ body.page-logs {
     padding: 16px 20px !important;
 }
 
+/* Use shared number-input-wrapper styling with compact width/height like Operations */
+#modal-cache-size .number-input-wrapper {
+    width: auto;
+    height: 32px; /* match .btn-sm / Operations */
+}
+/* Make the input itself compact (about half the typical width) */
+#modal-cache-size .number-input-wrapper input[type='number'] {
+    flex: 0 0 auto; /* prevent growing */
+    width: 70px; /* compact width target */
+    text-align: center;
+}
+
 /* Wrap number input in shared wrapper for consistent look */
 /* Use shared number input wrapper styles; no modal-specific sizing */
 /* (intentional: no overrides here) */
