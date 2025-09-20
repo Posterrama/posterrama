@@ -421,7 +421,8 @@ body {
 .main-content {
     margin-left: var(--sidebar-width);
     margin-top: var(--navbar-height);
-    padding: var(--space-xl);
+    /* Reduce only the top padding so headers sit closer to the navbar */
+    padding: var(--space-lg) var(--space-xl) var(--space-xl);
     min-height: calc(100vh - var(--navbar-height));
 }
 
@@ -429,7 +430,7 @@ body {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: var(--space-2xl);
+    margin-bottom: var(--space-xl);
 }
 
 .page-title h1 {
