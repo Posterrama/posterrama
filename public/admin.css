@@ -6057,7 +6057,8 @@ body.page-logs {
 
 /* Display: header toggle switches styled like Cinema (Clock & Sync) */
 #section-display #sec-clock .header-toggle .ht-switch,
-#section-display #sec-sync .header-toggle .ht-switch {
+#section-display #sec-sync .header-toggle .ht-switch,
+#card-wallart .card-title .header-toggle .ht-switch {
     width: 64px;
     height: 28px;
     border-radius: 20px;
@@ -6070,7 +6071,8 @@ body.page-logs {
     transition: background var(--anim-duration-fast, 120ms) var(--anim-ease-emph, ease);
 }
 #section-display #sec-clock .header-toggle .ht-switch::after,
-#section-display #sec-sync .header-toggle .ht-switch::after {
+#section-display #sec-sync .header-toggle .ht-switch::after,
+#card-wallart .card-title .header-toggle .ht-switch::after {
     width: 24px;
     height: 24px;
     top: 2px;
@@ -6085,16 +6087,19 @@ body.page-logs {
     position: absolute;
 }
 #section-display #sec-clock .header-toggle input:checked + .ht-switch,
-#section-display #sec-sync .header-toggle input:checked + .ht-switch {
+#section-display #sec-sync .header-toggle input:checked + .ht-switch,
+#card-wallart .card-title .header-toggle input:checked + .ht-switch {
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.08));
 }
 #section-display #sec-clock .header-toggle input:checked + .ht-switch::after,
-#section-display #sec-sync .header-toggle input:checked + .ht-switch::after {
+#section-display #sec-sync .header-toggle input:checked + .ht-switch::after,
+#card-wallart .card-title .header-toggle input:checked + .ht-switch::after {
     transform: translateX(36px);
 }
 /* OFF/ON label inside track */
 #section-display #sec-clock .header-toggle .ht-switch::before,
-#section-display #sec-sync .header-toggle .ht-switch::before {
+#section-display #sec-sync .header-toggle .ht-switch::before,
+#card-wallart .card-title .header-toggle .ht-switch::before {
     content: 'OFF';
     position: absolute;
     right: 8px;
@@ -6108,7 +6113,8 @@ body.page-logs {
     transition: color var(--anim-duration-fast, 120ms) var(--anim-ease-emph, ease);
 }
 #section-display #sec-clock .header-toggle input:checked + .ht-switch::before,
-#section-display #sec-sync .header-toggle input:checked + .ht-switch::before {
+#section-display #sec-sync .header-toggle input:checked + .ht-switch::before,
+#card-wallart .card-title .header-toggle input:checked + .ht-switch::before {
     content: 'ON';
     left: 10px;
     right: auto;
@@ -6116,7 +6122,8 @@ body.page-logs {
 }
 /* Hide external text label inside header for compactness */
 #section-display #sec-clock .header-toggle .ht-text,
-#section-display #sec-sync .header-toggle .ht-text {
+#section-display #sec-sync .header-toggle .ht-text,
+#card-wallart .card-title .header-toggle .ht-text {
     display: none;
 }
 /* Tab bar styled like Operations aesthetics */

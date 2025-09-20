@@ -1745,6 +1745,12 @@
         if (typeof c.syncAlignMaxDelayMs !== 'undefined')
             setIf('syncAlignMaxDelayMs', c.syncAlignMaxDelayMs);
 
+        // Sync card: keep contents visible regardless of switch state (per request)
+        try {
+            const delayRow = document.getElementById('syncAlignMaxDelayMs')?.closest('.form-row');
+            if (delayRow) delayRow.style.display = '';
+        } catch (_) {}
+
         // Screensaver: no screensaver-only numeric fields to hydrate here (refresh lives under Operations)
 
         // Wallart
@@ -1783,6 +1789,8 @@
             layoutSel?.addEventListener('change', applyHeroVis);
             applyHeroVis();
         } catch (_) {}
+
+        // Wallart: Ambience — keep Bias visible regardless of Ambient Gradient state (as requested)
 
         // Cinema
         setIf('cinemaOrientation', c.cinemaOrientation || 'auto');
@@ -1952,18 +1960,12 @@
             applyDep();
         } catch (_) {}
 
-        // Clock visibility: show tz/format only when clockWidget is enabled
+        // Clock card: keep timezone/format rows visible regardless of switch state (per request)
         try {
-            const clockCb = document.getElementById('clockWidget');
             const tzRow = document.getElementById('clockTimezone')?.closest('.form-row');
             const fmtRow = document.getElementById('clockFormat')?.closest('.form-row');
-            const applyClock = () => {
-                const on = !!clockCb?.checked;
-                if (tzRow) tzRow.style.display = on ? '' : 'none';
-                if (fmtRow) fmtRow.style.display = on ? '' : 'none';
-            };
-            clockCb?.addEventListener('change', applyClock);
-            applyClock();
+            if (tzRow) tzRow.style.display = '';
+            if (fmtRow) fmtRow.style.display = '';
         } catch (_) {}
 
         // Screensaver no longer supports custom layout; initializer removed.
