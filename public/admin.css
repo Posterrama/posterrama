@@ -8304,6 +8304,11 @@ select:focus-visible {
     /* Override global width: make compact, shrink-to-fit */
     width: auto;
 }
+#section-operations .number-input-wrapper:focus-within {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-info) 70%, var(--color-border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-info) 20%, transparent);
+}
 #section-operations .number-input-wrapper input[type='number'] {
     border: 0;
     background: transparent;
@@ -8312,6 +8317,11 @@ select:focus-visible {
     /* Prevent stretching; width controlled by classes (e.g., w-90) or overrides */
     flex: 0 0 auto;
     padding: 0 8px; /* slightly tighter to keep overall width compact */
+    border-radius: 0; /* avoid inner rounded shape */
+}
+#section-operations .number-input-wrapper input[type='number']:focus,
+#section-operations .number-input-wrapper input[type='number']:focus-visible {
+    box-shadow: none !important; /* suppress inner oval halo */
 }
 #section-operations .number-input-wrapper .number-controls {
     display: inline-flex;
