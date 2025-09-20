@@ -4930,11 +4930,11 @@ body.page-logs {
     background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card)) !important;
     border-bottom: 1px solid var(--color-border) !important;
     border-radius: 12px 12px 0 0 !important;
-    padding: 20px 24px !important;
-}
-
-#panel-perf-dashboard .panel-header h2 {
-    color: var(--color-text-primary) !important;
+    padding: var(--space-sm) var(--space-md) !important; /* match .btn-sm */
+    border: 1px solid transparent !important; /* match .btn base */
+    font-size: var(--font-size-sm) !important; /* match .btn-sm */
+    border-radius: var(--border-radius-md) !important;
+    font-weight: var(--font-weight-medium, 500) !important;
     font-weight: 600 !important;
     font-size: 1.25rem !important;
     margin: 0 !important;
@@ -4954,8 +4954,9 @@ body.page-logs {
     transition: all 0.2s ease !important;
 }
 
+/* Do not lighten icon button backgrounds universally in panels; pencil follows new neutral surface states */
 #panel-perf-dashboard .btn-icon:hover {
-    background: #e5e7eb !important;
+    background: unset !important;
 }
 /* Sections: visible by default; hide only when [hidden] is set */
 .app-section {
@@ -6514,30 +6515,48 @@ body.page-logs {
         0 0 0 1px color-mix(in srgb, var(--color-warning) 55%, transparent);
 }
 
-/* Dashboard: Cache buttons adopt the neutral surface */
+/* Dashboard: Cache buttons — exact Save Settings surface */
 #cleanup-cache-button,
-#clear-cache-button {
-    /* override inline styles */
-    background: none !important; /* reset any inline background shorthand */
-    flex: 1 1 auto !important;
-    padding: 10px 14px !important;
-    border: 0 !important;
-    font-size: 0.95rem !important;
-    line-height: 1.1 !important;
-    transition: all 150ms ease-in-out !important;
-    border-radius: 14px !important;
-    font-weight: 500 !important;
-    color: var(--color-text-secondary) !important;
-    background-color: var(--color-bg-tertiary) !important;
-    background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15)) !important;
-    box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.05),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.28) !important;
+#clear-cache-button,
+#btn-edit-cache-size {
+    /* neutralize inline styles */
+    background: none !important;
+    border: none !important;
+    /* Save Settings metrics (.btn .btn-sm) */
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 8px !important;
+    gap: var(--space-sm) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    border-radius: 4px !important; /* Save Settings uses 4px */
+    font-size: var(--font-size-sm) !important;
+    font-weight: var(--font-weight-medium) !important;
+    line-height: 1.1 !important;
     cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    /* Save Settings neutral button surface */
+    color: var(--color-text-secondary) !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Cache header pencil: make it much smaller (icon-sized) */
+#btn-edit-cache-size {
+    padding: 2px !important; /* much smaller */
+    width: 24px !important;
+    height: 24px !important;
+    gap: 0 !important;
+}
+#btn-edit-cache-size .fas,
+#btn-edit-cache-size i {
+    font-size: 0.8rem !important;
+    line-height: 1 !important;
 }
 
 #cleanup-cache-button .fas,
@@ -6546,24 +6565,35 @@ body.page-logs {
 }
 
 #cleanup-cache-button:hover,
-#clear-cache-button:hover {
-    background: none !important;
-    background-color: var(--color-bg-tertiary) !important;
-    background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.22)) !important;
+#clear-cache-button:hover,
+#btn-edit-cache-size:hover,
+#cleanup-cache-button:focus,
+#clear-cache-button:focus,
+#btn-edit-cache-size:focus,
+#cleanup-cache-button:focus-visible,
+#clear-cache-button:focus-visible,
+#btn-edit-cache-size:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
     box-shadow:
-        0 4px 10px rgba(0, 0, 0, 0.45),
-        0 1px 0 rgba(255, 255, 255, 0.06),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.38) !important;
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    outline: none !important;
 }
 
 #cleanup-cache-button:active,
-#clear-cache-button:active {
-    background: none !important;
-    background-color: var(--color-bg-tertiary) !important;
-    background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.2)) !important;
+#clear-cache-button:active,
+#btn-edit-cache-size:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
     box-shadow:
-        inset 0 2px 4px rgba(0, 0, 0, 0.55),
-        inset 0 -1px 2px rgba(255, 255, 255, 0.04) !important;
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
 }
 
 #cleanup-cache-button:focus-visible,
@@ -6572,29 +6602,27 @@ body.page-logs {
     outline-offset: 2px !important;
 }
 
-/* Variant: Clear Cache — keep neutral surface, pink text accent + subtle ring */
-#clear-cache-button {
-    color: var(--color-error) !important; /* use the existing pink */
-    box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.05),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.28),
-        0 0 0 1px color-mix(in srgb, var(--color-error) 40%, transparent) !important;
+/* Clear Cache: tint icon + label like Save Settings (green) but pink */
+#clear-cache-button i,
+#clear-cache-button .fas,
+#clear-cache-button > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-error) 82%, var(--color-text-secondary)) !important;
 }
-
-#clear-cache-button:hover {
-    color: color-mix(in srgb, var(--color-error) 90%, var(--color-text-secondary)) !important;
-    box-shadow:
-        0 4px 10px rgba(0, 0, 0, 0.45),
-        0 1px 0 rgba(255, 255, 255, 0.06),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.38),
-        0 0 0 1px color-mix(in srgb, var(--color-error) 55%, transparent) !important;
+#clear-cache-button:hover i,
+#clear-cache-button:focus i,
+#clear-cache-button:focus-visible i,
+#clear-cache-button:hover .fas,
+#clear-cache-button:focus .fas,
+#clear-cache-button:focus-visible .fas,
+#clear-cache-button:hover > span:not(.spinner),
+#clear-cache-button:focus > span:not(.spinner),
+#clear-cache-button:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-error) 92%, var(--color-text-secondary)) !important;
 }
-
-#clear-cache-button:active {
-    box-shadow:
-        inset 0 2px 4px rgba(0, 0, 0, 0.55),
-        inset 0 -1px 2px rgba(255, 255, 255, 0.04),
-        0 0 0 1px color-mix(in srgb, var(--color-error) 55%, transparent) !important;
+#clear-cache-button:active i,
+#clear-cache-button:active .fas,
+#clear-cache-button:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-error-dark) 85%, var(--color-text-secondary)) !important;
 }
 #section-display #saver-presets-card button#saver-preset-reset:active {
     box-shadow:
