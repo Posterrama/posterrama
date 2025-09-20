@@ -6152,6 +6152,25 @@ body.page-logs {
 #section-display .panel-content {
     padding: 16px 20px;
 }
+/* Media Sources header should visually match Display header */
+#section-media-sources .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card));
+    border-bottom: 1px solid var(--color-border);
+    padding: 16px 20px;
+    border-radius: 12px 12px 0 0;
+}
+#section-media-sources .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+#section-media-sources .panel-content {
+    padding: 16px 20px;
+}
 /* Ops-like cards for Display sections */
 #section-display .form-section {
     background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
