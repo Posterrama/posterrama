@@ -6327,8 +6327,7 @@ body.page-logs {
 }
 
 /* ===== Media Sources tabs (mirror Display segmented control) ===== */
-#section-media-sources #sources-tabs-card {
-    position: relative;
+#section-media-sources .form-section {
     background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 14px;
@@ -6338,25 +6337,16 @@ body.page-logs {
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
     margin-bottom: 12px;
 }
-/* Remove nested spacing so it mirrors Display's form-section exactly */
-#section-media-sources #sources-tabs-card .form-section {
-    margin: 0;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    box-shadow: none;
+#section-media-sources .form-section > :last-child {
+    margin-bottom: 0 !important;
 }
-#section-media-sources #sources-tabs-card .section-title {
+#section-media-sources .section-title {
     margin: 0 0 10px 0;
     font-size: 0.95rem;
     opacity: 0.9;
     display: flex;
     align-items: center;
     gap: 8px;
-}
-/* Ensure trailing spacing inside the card is trimmed */
-#section-media-sources #sources-tabs-card .form-section > :last-child {
-    margin-bottom: 0 !important;
 }
 #section-media-sources .segmented {
     display: flex;
