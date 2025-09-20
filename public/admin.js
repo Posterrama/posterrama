@@ -5783,8 +5783,7 @@
                     // Move nodes (preserve listeners)
                     while (from.firstChild) to.appendChild(from.firstChild);
                 };
-                const getActionsContainer = val =>
-                    document.querySelector(`#panel-${val} .panel-header .panel-actions`);
+                const getActionsContainer = val => document.getElementById(`${val}-actions-home`);
                 const mountSourceHeaderActions = val => {
                     if (!topActions) return;
                     try {

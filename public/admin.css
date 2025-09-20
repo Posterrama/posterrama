@@ -5078,6 +5078,10 @@ body.page-logs {
 #section-media-sources .panel > .panel-content {
     padding: 16px 20px;
 }
+/* Ensure actions-home placeholders don't impact layout */
+#section-media-sources .actions-home[hidden] {
+    display: none;
+}
 /* Lightweight sub-section groupings inside panels */
 .form-section {
     margin: 14px 0 8px;
