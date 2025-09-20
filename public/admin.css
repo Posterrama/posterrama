@@ -6624,6 +6624,161 @@ body.page-logs {
 #clear-cache-button:active > span:not(.spinner) {
     color: color-mix(in srgb, var(--color-error-dark) 85%, var(--color-text-secondary)) !important;
 }
+
+/* =============================================================== */
+/* Edit Cache Size modal — match Display Settings form design       */
+/* =============================================================== */
+#modal-cache-size .modal-body {
+    text-align: left !important;
+    padding: 16px 20px !important;
+}
+
+/* Wrap number input in shared wrapper for consistent look */
+#modal-cache-size .number-input-wrapper {
+    margin-top: 4px;
+}
+
+/* Style the raw input if wrapper not present (fallback) */
+#modal-cache-size input[type='number']#input-cache-size-gb {
+    width: 100%;
+    padding: 10px 12px !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--color-border) !important;
+    background: var(--color-bg-card) !important;
+    color: var(--color-text-primary) !important;
+    font-weight: 600;
+    text-align: center;
+}
+#modal-cache-size input[type='number']#input-cache-size-gb:focus,
+#modal-cache-size input[type='number']#input-cache-size-gb:focus-visible {
+    outline: none !important;
+    border-color: color-mix(in srgb, var(--color-warning) 38%, var(--color-border)) !important;
+    box-shadow: 0 0 0 2px rgba(var(--color-warning-rgb), 0.1) !important;
+}
+
+/* Unit chip next to input */
+#modal-cache-size .unit-chip,
+#modal-cache-size [data-unit-chip] {
+    padding: 10px 12px !important;
+    background: rgba(var(--color-warning-rgb), 0.12) !important;
+    border: 1px solid rgba(var(--color-warning-rgb), 0.28) !important;
+    border-radius: 8px !important;
+    color: var(--color-warning) !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+}
+
+/* Info box tone */
+#modal-cache-size .info-box,
+#modal-cache-size [data-info-box] {
+    background: rgba(var(--color-info-rgb), 0.08) !important;
+    border: 1px solid rgba(var(--color-info-rgb), 0.2) !important;
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
+}
+
+/* Footer buttons: Cancel outline, Save uses neutral surface like Save Settings */
+#modal-cache-size .modal-footer .btn#btn-cache-size-save {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+}
+#modal-cache-size .modal-footer .btn#btn-cache-size-save:hover,
+#modal-cache-size .modal-footer .btn#btn-cache-size-save:focus,
+#modal-cache-size .modal-footer .btn#btn-cache-size-save:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+}
+#modal-cache-size .modal-footer .btn#btn-cache-size-save:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+
+/* Modal Save: reuse Display Save green accent for icon + label */
+#modal-cache-size #btn-cache-size-save i,
+#modal-cache-size #btn-cache-size-save .fas {
+    color: color-mix(in srgb, var(--color-success) 82%, var(--color-text-secondary));
+}
+#modal-cache-size #btn-cache-size-save:hover i,
+#modal-cache-size #btn-cache-size-save:focus i,
+#modal-cache-size #btn-cache-size-save:focus-visible i,
+#modal-cache-size #btn-cache-size-save:hover .fas,
+#modal-cache-size #btn-cache-size-save:focus .fas,
+#modal-cache-size #btn-cache-size-save:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-success) 92%, var(--color-text-secondary));
+}
+#modal-cache-size #btn-cache-size-save:active i,
+#modal-cache-size #btn-cache-size-save:active .fas {
+    color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
+}
+
+/* Tint the Save label text (exclude spinner) */
+#modal-cache-size #btn-cache-size-save > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success) 82%, var(--color-text-secondary));
+}
+#modal-cache-size #btn-cache-size-save:hover > span:not(.spinner),
+#modal-cache-size #btn-cache-size-save:focus > span:not(.spinner),
+#modal-cache-size #btn-cache-size-save:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success) 92%, var(--color-text-secondary));
+}
+#modal-cache-size #btn-cache-size-save:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
+}
+
+/* Modal number input spinner buttons — match neutral surface */
+#modal-cache-size .number-input-wrapper .number-controls {
+    border-left: 1px solid var(--color-border) !important;
+}
+#modal-cache-size .number-input-wrapper .number-btn {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+    color: var(--color-text-secondary) !important;
+}
+#modal-cache-size .number-input-wrapper .number-btn:hover,
+#modal-cache-size .number-input-wrapper .number-btn:focus,
+#modal-cache-size .number-input-wrapper .number-btn:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+#modal-cache-size .number-input-wrapper .number-btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+}
+
+/* Make Cancel height match Save (same vertical padding and font-size) */
+#modal-cache-size .modal-footer .btn[data-close-modal] {
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+}
 #section-display #saver-presets-card button#saver-preset-reset:active {
     box-shadow:
         inset 0 2px 4px rgba(0, 0, 0, 0.55),
