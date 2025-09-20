@@ -6869,6 +6869,145 @@ body.page-logs {
 #modal-cache-size .modal-footer .btn[data-close-modal]:focus-visible > span:not(.spinner) {
     color: var(--color-text-primary) !important;
 }
+
+/* =============================================================== */
+/* Change Password modal — Account/User menu design                 */
+/* =============================================================== */
+#modal-change-password .modal-body {
+    text-align: left !important;
+    padding: 16px 20px !important;
+}
+
+/* Inputs: unify appearance (override inline) */
+#modal-change-password input[type='password']#input-current-password,
+#modal-change-password input[type='password']#input-new-password,
+#modal-change-password input[type='password']#input-confirm-password {
+    width: 100% !important;
+    padding: 10px 12px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--color-border) !important;
+    background: var(--color-bg-card) !important;
+    color: var(--color-text-primary) !important;
+    font-size: 0.95rem !important;
+}
+#modal-change-password input[type='password']#input-current-password:focus,
+#modal-change-password input[type='password']#input-new-password:focus,
+#modal-change-password input[type='password']#input-confirm-password:focus,
+#modal-change-password input[type='password']#input-current-password:focus-visible,
+#modal-change-password input[type='password']#input-new-password:focus-visible,
+#modal-change-password input[type='password']#input-confirm-password:focus-visible {
+    outline: none !important;
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border)) !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Footer buttons: Save uses neutral surface with primary accent */
+#modal-change-password .modal-footer .btn#btn-change-password {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+}
+#modal-change-password .modal-footer .btn#btn-change-password:hover,
+#modal-change-password .modal-footer .btn#btn-change-password:focus,
+#modal-change-password .modal-footer .btn#btn-change-password:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+}
+#modal-change-password .modal-footer .btn#btn-change-password:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+
+/* Primary-tint icon + label on Save */
+#modal-change-password #btn-change-password i,
+#modal-change-password #btn-change-password .fas {
+    color: color-mix(in srgb, var(--color-primary) 82%, var(--color-text-secondary));
+}
+#modal-change-password #btn-change-password:hover i,
+#modal-change-password #btn-change-password:focus i,
+#modal-change-password #btn-change-password:focus-visible i,
+#modal-change-password #btn-change-password:hover .fas,
+#modal-change-password #btn-change-password:focus .fas,
+#modal-change-password #btn-change-password:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-primary) 92%, var(--color-text-secondary));
+}
+#modal-change-password #btn-change-password:active i,
+#modal-change-password #btn-change-password:active .fas {
+    color: color-mix(in srgb, var(--color-primary-dark) 85%, var(--color-text-secondary));
+}
+
+#modal-change-password #btn-change-password > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-primary) 82%, var(--color-text-secondary));
+}
+#modal-change-password #btn-change-password:hover > span:not(.spinner),
+#modal-change-password #btn-change-password:focus > span:not(.spinner),
+#modal-change-password #btn-change-password:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-primary) 92%, var(--color-text-secondary));
+}
+#modal-change-password #btn-change-password:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-primary-dark) 85%, var(--color-text-secondary));
+}
+
+/* Cancel button: match neutral surface and sizing */
+#modal-change-password .modal-footer .btn[data-close-modal] {
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+}
+#modal-change-password .modal-footer .btn[data-close-modal]:hover,
+#modal-change-password .modal-footer .btn[data-close-modal]:focus,
+#modal-change-password .modal-footer .btn[data-close-modal]:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-primary) !important;
+}
+#modal-change-password .modal-footer .btn[data-close-modal]:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+    color: var(--color-text-primary) !important;
+}
 #section-display #saver-presets-card button#saver-preset-reset:active {
     box-shadow:
         inset 0 2px 4px rgba(0, 0, 0, 0.55),
@@ -7656,6 +7795,147 @@ body.page-logs {
     background: var(--color-text-muted);
 }
 
+/* =============================================================== */
+/* Two-Factor Auth (2FA) Enable modal — Account/User menu design   */
+/* =============================================================== */
+#modal-2fa .modal-body {
+    text-align: left !important;
+    padding: 16px 20px !important;
+}
+
+/* Token input styling (override inline styles from HTML) */
+#modal-2fa input#input-2fa-token {
+    width: 160px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    letter-spacing: 0.35em !important;
+    padding: 10px 12px !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--color-border) !important;
+    background: var(--color-bg-card) !important;
+    color: var(--color-text-primary) !important;
+    display: block !important;
+    margin: 0 auto !important; /* center inside column */
+}
+#modal-2fa input#input-2fa-token:focus,
+#modal-2fa input#input-2fa-token:focus-visible {
+    outline: none !important;
+    border-color: color-mix(in srgb, var(--color-info) 38%, var(--color-border)) !important;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.18) !important; /* info accent glow */
+}
+
+/* Center the right column contents (Enter Code) including helper text */
+#modal-2fa .modal-body > div:nth-of-type(2) > div > div:nth-child(2) {
+    text-align: center !important;
+}
+
+/* Footer buttons: Cancel neutral surface, Verify with success tint */
+#modal-2fa .modal-footer .btn[data-close-modal] {
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+}
+#modal-2fa .modal-footer .btn[data-close-modal]:hover,
+#modal-2fa .modal-footer .btn[data-close-modal]:focus,
+#modal-2fa .modal-footer .btn[data-close-modal]:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-primary) !important;
+}
+#modal-2fa .modal-footer .btn[data-close-modal]:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+    color: var(--color-text-primary) !important;
+}
+
+/* Verify button: neutral surface + success accent on icon/label */
+#modal-2fa .modal-footer .btn#btn-2fa-verify {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+}
+#modal-2fa .modal-footer .btn#btn-2fa-verify:hover,
+#modal-2fa .modal-footer .btn#btn-2fa-verify:focus,
+#modal-2fa .modal-footer .btn#btn-2fa-verify:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+}
+#modal-2fa .modal-footer .btn#btn-2fa-verify:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+
+/* Success-tint on Verify icon + label (exclude spinner) */
+#modal-2fa #btn-2fa-verify i,
+#modal-2fa #btn-2fa-verify .fas {
+    color: color-mix(in srgb, var(--color-success) 82%, var(--color-text-secondary));
+}
+#modal-2fa #btn-2fa-verify:hover i,
+#modal-2fa #btn-2fa-verify:focus i,
+#modal-2fa #btn-2fa-verify:focus-visible i,
+#modal-2fa #btn-2fa-verify:hover .fas,
+#modal-2fa #btn-2fa-verify:focus .fas,
+#modal-2fa #btn-2fa-verify:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-success) 92%, var(--color-text-secondary));
+}
+#modal-2fa #btn-2fa-verify:active i,
+#modal-2fa #btn-2fa-verify:active .fas {
+    color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
+}
+#modal-2fa #btn-2fa-verify > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success) 82%, var(--color-text-secondary));
+}
+#modal-2fa #btn-2fa-verify:hover > span:not(.spinner),
+#modal-2fa #btn-2fa-verify:focus > span:not(.spinner),
+#modal-2fa #btn-2fa-verify:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success) 92%, var(--color-text-secondary));
+}
+#modal-2fa #btn-2fa-verify:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
+}
 /* -------------------------------------------------- */
 /* Global native select minimal theming (subtle, calm) */
 /* Align dropdowns with dark theme without custom arrow */
