@@ -1432,12 +1432,8 @@
         const subtitle = pageHeader?.querySelector('p');
         if (pageHeader && h1) {
             if (id === 'section-media-sources') {
-                // Use the big page header for Media Sources
-                pageHeader.style.display = '';
-                h1.innerHTML = '<i class="fas fa-server"></i> Media Sources';
-                if (subtitle)
-                    subtitle.textContent =
-                        'Connect and configure sources across Plex, Jellyfin, TMDB, and TVDB';
+                // Hide the big page header; Media Sources now has its own panel header
+                pageHeader.style.display = 'none';
             } else if (id === 'section-operations') {
                 // Hide the big page header for Operations (use compact in-panel header)
                 pageHeader.style.display = 'none';
