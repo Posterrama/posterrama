@@ -5773,6 +5773,35 @@
                     { id: 'seg-tvdb', val: 'tvdb', panel: 'panel-tvdb', hash: '#tvdb' },
                 ];
 
+                // Mount per-source header actions into the main Media Sources header
+                const topActions = document.querySelector(
+                    '#panel-media-sources .panel-header .panel-actions'
+                );
+                let mountedSource = null; // 'plex' | 'jellyfin' | 'tmdb' | 'tvdb'
+                const moveAll = (from, to) => {
+                    if (!from || !to) return;
+                    // Move nodes (preserve listeners)
+                    while (from.firstChild) to.appendChild(from.firstChild);
+                };
+                const getActionsContainer = val =>
+                    document.querySelector(`#panel-${val} .panel-header .panel-actions`);
+                const mountSourceHeaderActions = val => {
+                    if (!topActions) return;
+                    try {
+                        // Return current mounted actions back to their home before switching
+                        if (mountedSource) {
+                            const prevHome = getActionsContainer(mountedSource);
+                            moveAll(topActions, prevHome);
+                        }
+                        // Move new source actions to the top header
+                        const nextHome = getActionsContainer(val);
+                        moveAll(nextHome, topActions);
+                        mountedSource = val;
+                    } catch (_) {
+                        /* ignore */
+                    }
+                };
+
                 function setActive(val) {
                     segs.forEach(s => {
                         const el = document.getElementById(s.id);
@@ -5788,6 +5817,8 @@
                         ind.style.left = `${sRect.left - cRect.left}px`;
                         ind.style.width = `${sRect.width}px`;
                     }
+                    // Mount header actions for the active source into the top header
+                    mountSourceHeaderActions(val);
                 }
 
                 // Click handling
@@ -5824,6 +5855,15 @@
                 // Run on enter to sources and on hash changes
                 const section = document.getElementById('section-media-sources');
                 const obs = new MutationObserver(() => {
+                    // When leaving the section, return actions to their home container
+                    if (section.hidden && mountedSource && topActions) {
+                        try {
+                            const home = getActionsContainer(mountedSource);
+                            moveAll(topActions, home);
+                            mountedSource = null;
+                        } catch (_) {}
+                        return;
+                    }
                     if (!section.hidden) syncFromHash();
                 });
                 obs.observe(section, { attributes: true, attributeFilter: ['hidden'] });
