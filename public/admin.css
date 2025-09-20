@@ -663,6 +663,13 @@ body {
 .header-toggle input:checked + .ht-switch::after {
     transform: translateX(14px);
 }
+/* Fallback: support .is-on class for programmatic toggling */
+.header-toggle.is-on .ht-switch {
+    background: var(--color-success);
+}
+.header-toggle.is-on .ht-switch::after {
+    transform: translateX(14px);
+}
 .ht-text {
     color: var(--color-text-muted);
 }
@@ -5098,6 +5105,20 @@ body.page-logs {
     font-size: 1rem;
     font-weight: 600;
     opacity: 0.95;
+    position: relative; /* allow z-index to work */
+    z-index: 3; /* sit above loading overlays inside panel-content */
+}
+.form-section .section-title .header-toggle {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    z-index: 4; /* ensure the toggle itself is interactable */
+    pointer-events: auto;
+}
+.form-section .section-title .header-toggle *,
+.form-section .section-title .header-toggle .ht-switch {
+    pointer-events: auto;
 }
 .form-section .section-title i {
     color: var(--color-text-secondary);
@@ -6400,6 +6421,395 @@ body.page-logs {
     transition:
         left 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
         width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ===== Plex panel: make multiselect controls match Display select visuals ===== */
+#panel-plex .multiselect .ms-control {
+    /* Equalize padding to standard inputs and leave room for caret box */
+    padding: var(--space-md) 44px var(--space-md) var(--space-md);
+    border-radius: var(--border-radius-md);
+}
+#panel-plex .multiselect .ms-control::after {
+    /* vertical divider before the caret box */
+    content: '';
+    position: absolute;
+    right: 44px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: var(--color-border);
+    opacity: 0.8;
+    pointer-events: none;
+}
+#panel-plex .multiselect .ms-caret {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    font-size: 12px;
+    line-height: 1;
+    opacity: 0.95;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    z-index: 1;
+    pointer-events: none;
+}
+#panel-plex .multiselect .ms-control:hover .ms-caret {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-card));
+}
+#panel-plex .multiselect .ms-control:focus-within .ms-caret {
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+    color: color-mix(in srgb, var(--color-primary) 80%, var(--color-text-muted));
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.25);
+}
+#panel-plex .multiselect .ms-clear {
+    right: 44px; /* position clear button just left of caret divider */
+}
+
+/* ===== Jellyfin panel: mirror Plex multiselect/select visuals ===== */
+#panel-jellyfin .multiselect .ms-control {
+    /* Equalize padding to standard inputs and leave room for caret box */
+    padding: var(--space-md) 44px var(--space-md) var(--space-md);
+    border-radius: var(--border-radius-md);
+}
+#panel-jellyfin .multiselect .ms-control::after {
+    /* vertical divider before the caret box */
+    content: '';
+    position: absolute;
+    right: 44px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: var(--color-border);
+    opacity: 0.8;
+    pointer-events: none;
+}
+#panel-jellyfin .multiselect .ms-caret {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    font-size: 12px;
+    line-height: 1;
+    opacity: 0.95;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    z-index: 1;
+    pointer-events: none;
+}
+#panel-jellyfin .multiselect .ms-control:hover .ms-caret {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-card));
+}
+#panel-jellyfin .multiselect .ms-control:focus-within .ms-caret {
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+    color: color-mix(in srgb, var(--color-primary) 80%, var(--color-text-muted));
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.25);
+}
+#panel-jellyfin .multiselect .ms-clear {
+    right: 44px; /* position clear button just left of caret divider */
+}
+
+/* --------------------------------------------- */
+/* Media Sources: form control parity with Display */
+/* Ensure identical heights, widths, and visuals    */
+/* for inputs, selects, multiselects, and numbers.  */
+/* --------------------------------------------- */
+#section-media-sources .form-group input[type='text'],
+#section-media-sources .form-group input[type='password'],
+#section-media-sources .form-group input[type='search'],
+#section-media-sources .form-group input[type='number'],
+#section-media-sources .form-group select,
+#section-media-sources .form-group textarea {
+    min-height: 42px; /* match Display field height */
+    width: 100%;
+}
+
+/* Fallback: dark style for native number inputs (when wrapper hasn't enhanced yet) */
+#section-media-sources .form-group input[type='number'] {
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+}
+#section-media-sources .form-group input[type='number']:focus,
+#section-media-sources .form-group input[type='number']:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+}
+
+/* Number inputs: stretch to full width and match height */
+#section-media-sources .form-group .number-input-wrapper {
+    /* Allow content-driven width by default; specific fields will size via classes */
+    width: auto;
+    min-height: 42px;
+    border-radius: var(--border-radius-md);
+}
+
+/* When a number input is inside our wrapper, make the input itself seamless */
+#section-media-sources .form-group .number-input-wrapper input[type='number'] {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important; /* avoid inner rounding inside outer rounded wrapper */
+}
+
+/* Multiselect control should fill the grid cell width */
+#section-media-sources .multiselect,
+#section-media-sources .multiselect .ms-control {
+    width: 100%;
+}
+
+/* Keep multiselect control height aligned with inputs */
+#section-media-sources .multiselect .ms-control {
+    min-height: 42px;
+}
+
+/* In Media Sources, selects should use the caret wrapper but stretch 100% */
+#section-media-sources .select-wrap.has-caret {
+    display: block; /* not inline-block; fill form-group width */
+}
+#section-media-sources .select-wrap.has-caret select {
+    width: 100%;
+}
+
+/* Plex: micro tuning for spacing to align with Display */
+#panel-plex .form-grid {
+    gap: var(--space-lg);
+}
+#panel-plex .form-group small.form-help {
+    margin-top: 6px;
+    display: block;
+}
+
+/* Plex server dense grid */
+#panel-plex #plex-server-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 12px 16px;
+}
+#panel-plex #plex-server-grid > .form-group:nth-child(1) {
+    grid-column: 1 / span 5;
+    grid-row: 1;
+}
+#panel-plex #plex-server-grid > .form-group:nth-child(2) {
+    grid-column: 6 / span 2;
+    grid-row: 1;
+}
+#panel-plex #plex-server-grid > .form-group:nth-child(3) {
+    grid-column: 8 / span 5;
+    grid-row: 1;
+    justify-self: start;
+}
+@media (max-width: 900px) {
+    #panel-plex #plex-server-grid > .form-group {
+        grid-column: 1 / -1;
+        grid-row: auto;
+    }
+}
+
+/* Jellyfin: micro tuning for spacing to align with Display */
+#panel-jellyfin .form-grid {
+    gap: var(--space-lg);
+}
+#panel-jellyfin .form-group small.form-help {
+    margin-top: 6px;
+    display: block;
+}
+
+/* Jellyfin server dense grid */
+#panel-jellyfin #jf-server-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 12px 16px;
+}
+#panel-jellyfin #jf-server-grid > .form-group:nth-child(1) {
+    grid-column: 1 / span 5;
+    grid-row: 1;
+}
+#panel-jellyfin #jf-server-grid > .form-group:nth-child(2) {
+    grid-column: 6 / span 2;
+    grid-row: 1;
+}
+#panel-jellyfin #jf-server-grid > .form-group:nth-child(3) {
+    grid-column: 8 / span 5;
+    grid-row: 1;
+    justify-self: start;
+}
+#panel-jellyfin #jf-server-grid > .form-group:nth-child(4) {
+    grid-column: 1 / span 12;
+    grid-row: 2;
+}
+/* Keep the legacy form checkbox hidden; header toggle is the visible control */
+#panel-jellyfin #jf-server-grid #jf\.insecureHttps {
+    display: none !important;
+}
+#panel-jellyfin #jf-server-grid #jf\.insecureHttps + label {
+    display: none !important;
+}
+#panel-jellyfin #jf-server-grid > .form-group:has(#jf\.insecureHttps) {
+    display: none !important;
+}
+
+/* Defensive: if the Jellyfin insecure toggle somehow renders in Plex header, hide it */
+#panel-plex .section-title label[for='jf.insecureHttpsHeader'],
+#panel-plex .section-title #jf\.insecureHttpsHeader {
+    display: none !important;
+}
+@media (max-width: 900px) {
+    #panel-jellyfin #jf-server-grid > .form-group {
+        grid-column: 1 / -1;
+        grid-row: auto;
+    }
+}
+
+/* Make server Port wrappers extra compact */
+#panel-plex #plex-server-grid .number-input-wrapper.niw-sized-sm {
+    width: 120px;
+}
+#panel-jellyfin #jf-server-grid .number-input-wrapper.niw-sized-sm {
+    width: 120px;
+}
+
+/* Plex dense grids: improve information density without clutter */
+#panel-plex .plex-dense {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 12px 16px; /* rows x columns */
+}
+/* Map common fields to sensible spans */
+#panel-plex #plex-filters-grid > .form-group {
+    grid-column: span 6;
+}
+@media (min-width: 1200px) {
+    #panel-plex #plex-filters-grid > .form-group {
+        grid-column: span 3;
+    }
+}
+#panel-plex #plex-recent-grid {
+    grid-template-columns: repeat(12, 1fr);
+}
+#panel-plex #plex-recent-grid > .form-group:first-child {
+    grid-column: span 6;
+}
+#panel-plex #plex-recent-grid > .form-group:last-child {
+    grid-column: span 6;
+}
+@media (min-width: 900px) {
+    #panel-plex #plex-recent-grid > .form-group:first-child {
+        grid-column: span 4;
+    }
+    #panel-plex #plex-recent-grid > .form-group:last-child {
+        grid-column: span 8;
+    }
+}
+
+/* Jellyfin dense grids: mirror Plex for compact layout */
+#panel-jellyfin .plex-dense {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 12px 16px; /* rows x columns */
+}
+#panel-jellyfin #jf-filters-grid > .form-group {
+    grid-column: span 6;
+}
+@media (min-width: 1200px) {
+    #panel-jellyfin #jf-filters-grid > .form-group {
+        grid-column: span 3;
+    }
+}
+#panel-jellyfin #jf-recent-grid {
+    grid-template-columns: repeat(12, 1fr);
+}
+#panel-jellyfin #jf-recent-grid > .form-group:first-child {
+    grid-column: span 6;
+}
+#panel-jellyfin #jf-recent-grid > .form-group:last-child {
+    grid-column: span 6;
+}
+@media (min-width: 900px) {
+    #panel-jellyfin #jf-recent-grid > .form-group:first-child {
+        grid-column: span 4;
+    }
+    #panel-jellyfin #jf-recent-grid > .form-group:last-child {
+        grid-column: span 8;
+    }
+}
+
+/* Plex: enforce equal control height */
+#panel-plex input[type='text'],
+#panel-plex input[type='password'] {
+    height: 42px;
+}
+#panel-plex .number-input-wrapper {
+    height: 42px;
+    background: var(--color-bg-card);
+}
+
+/* Jellyfin: enforce equal control height */
+#panel-jellyfin input[type='text'],
+#panel-jellyfin input[type='password'] {
+    height: 42px;
+}
+#panel-jellyfin .number-input-wrapper {
+    height: 42px;
+    background: var(--color-bg-card);
+}
+
+/* Plex: sensible widths per field (avoid full container width for small fields) */
+#panel-plex #plex_hostname,
+#panel-plex #plex_token,
+#panel-plex #plex\.yearFilter {
+    max-width: 280px;
+}
+/* Keep numeric fields compact */
+#panel-plex #plex_port {
+    width: 160px;
+}
+#panel-plex #plex\.recentDays {
+    width: 160px;
+}
+
+/* Keep server numeric fields compact for parity */
+#panel-jellyfin #jf\.port {
+    width: 160px;
+}
+#panel-jellyfin #jf\.recentDays {
+    width: 160px;
+}
+
+/* Jellyfin: sensible widths for long text inputs */
+#panel-jellyfin #jf\.hostname,
+#panel-jellyfin #jf\.apikey,
+#panel-jellyfin #jf\.yearFilter {
+    max-width: 280px;
+}
+
+/* Number wrapper width presets (scoped to Media Sources) */
+#section-media-sources .number-input-wrapper.niw-sized-sm {
+    width: 160px;
+}
+#section-media-sources .number-input-wrapper.niw-sized-md {
+    width: 240px;
 }
 /* Header status pill for current mode */
 #section-display .status-pill {

@@ -2237,6 +2237,21 @@
                 controls.appendChild(btnDown);
                 wrapper.appendChild(controls);
                 input.dataset.enhanced = '1';
+                // Apply a compact width class for known small fields so wrappers don't fill the grid
+                try {
+                    const smallIds = new Set([
+                        'plex_port',
+                        'plex.recentDays',
+                        'jf.port',
+                        'jf.recentDays',
+                        'tmdb.minRating',
+                        'tvdb.minRating',
+                        'streamingSources.minRating',
+                    ]);
+                    if (smallIds.has(input.id)) {
+                        wrapper.classList.add('niw-sized-sm');
+                    }
+                } catch (_) {}
                 const step = () => Number(input.step || '1') || 1;
                 const clamp = v => {
                     let val = v;
@@ -2258,15 +2273,20 @@
                     input.dispatchEvent(new Event('input', { bubbles: true }));
                     input.dispatchEvent(new Event('change', { bubbles: true }));
                 });
+                // Mark wrapper as wired to prevent duplicate listeners elsewhere
+                try {
+                    wrapper.dataset.wired = '1';
+                } catch (_) {}
             };
             // Target specific IDs explicitly to avoid unexpected layout shifts
             const numberIds = [
-                'plex.port',
+                'plex_port',
                 'plex.recentDays',
                 'jf.port',
                 'jf.recentDays',
                 'tmdb.minRating',
                 'tvdb.minRating',
+                'streamingSources.minRating',
                 'SERVER_PORT',
                 'siteServer.port',
                 'input-cache-size-gb',
@@ -2276,6 +2296,46 @@
                 'ops.backgroundRefreshMinutes',
             ];
             numberIds.forEach(id => enhanceNumberInput(document.getElementById(id)));
+            // Expose so other flows (like panel routing) can enhance late-mounted or hidden inputs
+            window.admin2 = window.admin2 || {};
+            window.admin2.enhanceNumberInput = enhanceNumberInput;
+        } catch (_) {}
+
+        // Wire number steppers for statically-defined wrappers in Media Sources (e.g., Port fields)
+        // Ensures buttons work even when markup is pre-wrapped in HTML instead of via enhancer
+        try {
+            const scope = document.getElementById('section-media-sources');
+            if (scope) {
+                scope.querySelectorAll('.number-input-wrapper').forEach(wrapper => {
+                    if (!wrapper || wrapper.dataset.wired === '1') return;
+                    const input = wrapper.querySelector('input[type="number"]');
+                    const inc = wrapper.querySelector('.number-inc');
+                    const dec = wrapper.querySelector('.number-dec');
+                    if (!input || !inc || !dec) return;
+                    const step = () => Number(input.step || '1') || 1;
+                    const clamp = v => {
+                        let val = v;
+                        const min = input.min === '' ? null : Number(input.min);
+                        const max = input.max === '' ? null : Number(input.max);
+                        if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+                        if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+                        return val;
+                    };
+                    inc.addEventListener('click', () => {
+                        const cur = Number(input.value || '0') || 0;
+                        input.value = String(clamp(cur + step()));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    dec.addEventListener('click', () => {
+                        const cur = Number(input.value || '0') || 0;
+                        input.value = String(clamp(cur - step()));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    wrapper.dataset.wired = '1';
+                });
+            }
         } catch (_) {}
 
         // Screensaver: live summary + presets (affect global Effect/Playback/Clock)
@@ -5744,6 +5804,11 @@
                 const active = document.getElementById(panelId);
                 active?.classList.remove('is-loading');
                 dbg('showSourcePanel() applied', { panelId, visible: !active?.hidden });
+                try {
+                    // Re-run number input enhancement for any visible numeric fields in the panel
+                    const nums = active?.querySelectorAll('input[type="number"]') || [];
+                    nums.forEach(el => window.admin2?.enhanceNumberInput?.(el));
+                } catch (_) {}
             }, 60);
         }
 
@@ -10360,8 +10425,50 @@
             jfInsecureHeader.addEventListener('change', () =>
                 syncPair(jfInsecureHeader, jfInsecureForm)
             );
+            // Ensure the header toggle is interactable even if label-default is blocked
+            try {
+                const lbl = document.querySelector(
+                    'label.header-toggle[for="jf.insecureHttpsHeader"]'
+                );
+                if (lbl) {
+                    const updateLabelState = () => {
+                        lbl.classList.toggle('is-on', !!jfInsecureHeader.checked);
+                    };
+                    lbl.tabIndex = 0;
+                    const toggle = () => {
+                        jfInsecureHeader.checked = !jfInsecureHeader.checked;
+                        jfInsecureHeader.dispatchEvent(new Event('change', { bubbles: true }));
+                        updateLabelState();
+                    };
+                    // Initialize visual state
+                    updateLabelState();
+                    lbl.addEventListener('click', e => {
+                        e.preventDefault();
+                        toggle();
+                    });
+                    lbl.addEventListener('keydown', e => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                            e.preventDefault();
+                            toggle();
+                        }
+                    });
+                    // Also reflect changes coming from form checkbox
+                    jfInsecureHeader.addEventListener('change', updateLabelState);
+                }
+            } catch (_) {}
         }
         const portInput = document.getElementById('SERVER_PORT');
+        // Sync Recently header toggles with hidden form checkboxes (Plex/Jellyfin)
+        try {
+            const plexHeader = document.getElementById('plex.recentOnlyHeader');
+            if (plexHeader) {
+                plexHeader.addEventListener('change', () => {});
+            }
+            const jfHeader = document.getElementById('jf.recentOnlyHeader');
+            if (jfHeader) {
+                jfHeader.addEventListener('change', () => {});
+            }
+        } catch (_) {}
         // Helper to fetch config, patch minimal keys, and POST back
         async function saveConfigPatch(patchConfig, patchEnv) {
             // Only send the env keys we intend to change to avoid overwriting secrets with booleans
@@ -10956,7 +11063,7 @@
                         ? getPlexHidden('plex.qualityFilter-hidden')
                         : ''
                     ).trim(),
-                    recentOnly: !!document.getElementById('plex.recentOnly')?.checked,
+                    recentOnly: !!document.getElementById('plex.recentOnlyHeader')?.checked,
                     recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
                 };
                 const jfFilters = {
@@ -10973,7 +11080,7 @@
                         ? getJfHidden('jf.qualityFilter-hidden')
                         : ''
                     ).trim(),
-                    recentOnly: !!document.getElementById('jf.recentOnly')?.checked,
+                    recentOnly: !!document.getElementById('jf.recentOnlyHeader')?.checked,
                     recentDays: Number(document.getElementById('jf.recentDays')?.value) || 0,
                 };
 
@@ -11594,8 +11701,8 @@
                     env[plexTokenVar] ? '••••••••' : 'X-Plex-Token'
                 );
             }
-            if (getInput('plex.recentOnly'))
-                getInput('plex.recentOnly').checked = !!plex.recentlyAddedOnly;
+            const plexRecentlyHeader = getInput('plex.recentOnlyHeader');
+            if (plexRecentlyHeader) plexRecentlyHeader.checked = !!plex.recentlyAddedOnly;
             if (getInput('plex.recentDays'))
                 getInput('plex.recentDays').value = plex.recentlyAddedDays ?? 30;
             // Sync enabled/disabled state of days input with checkbox
@@ -11701,8 +11808,17 @@
                     env[jfKeyVar] ? '••••••••' : 'Jellyfin API Key'
                 );
             }
-            if (getInput('jf.recentOnly'))
-                getInput('jf.recentOnly').checked = !!jf.recentlyAddedOnly;
+            // Initialize Jellyfin Insecure HTTPS header toggle from env or default false
+            try {
+                const headerTgl = document.getElementById('jf.insecureHttpsHeader');
+                const formCb = document.getElementById('jf.insecureHttps');
+                const envFlag =
+                    (env.JELLYFIN_INSECURE_HTTPS || '').toString().toLowerCase() === 'true';
+                if (headerTgl) headerTgl.checked = envFlag;
+                if (formCb) formCb.checked = envFlag;
+            } catch (_) {}
+            const jfRecentlyHeader = getInput('jf.recentOnlyHeader');
+            if (jfRecentlyHeader) jfRecentlyHeader.checked = !!jf.recentlyAddedOnly;
             if (getInput('jf.recentDays'))
                 getInput('jf.recentDays').value = jf.recentlyAddedDays ?? 30;
             // Sync enabled/disabled state of days input with checkbox
@@ -12395,11 +12511,15 @@
                     if (!hostname || !apiKey) {
                         return { skipped: true, libraries: [] };
                     }
+                    const insecureHttps = !!(
+                        document.getElementById('jf.insecureHttps')?.checked ||
+                        document.getElementById('jf.insecureHttpsHeader')?.checked
+                    );
                     const res = await fetch('/api/admin/jellyfin-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: JSON.stringify({ hostname, port, apiKey }),
+                        body: JSON.stringify({ hostname, port, apiKey, insecureHttps }),
                     });
                     const j = await res.json().catch(() => ({}));
                     if (!res.ok) throw new Error(j?.error || 'Failed to load Jellyfin libraries');
@@ -13126,7 +13246,7 @@
                 const plex = plexIdx >= 0 ? { ...servers[plexIdx] } : { type: 'plex' };
                 // Update Plex fields
                 plex.enabled = !!getInput('plex.enabled')?.checked;
-                plex.recentlyAddedOnly = !!getInput('plex.recentOnly')?.checked;
+                plex.recentlyAddedOnly = !!getInput('plex.recentOnlyHeader')?.checked;
                 plex.recentlyAddedDays = toInt(getInput('plex.recentDays')?.value) ?? 30;
                 // From multiselect hidden fields
                 plex.ratingFilter = parseCsvList(getPlexHidden('plex.ratingFilter-hidden'));
@@ -13199,7 +13319,7 @@
                 const jfIdx = servers.findIndex(s => s.type === 'jellyfin');
                 const jf = jfIdx >= 0 ? { ...servers[jfIdx] } : { type: 'jellyfin' };
                 jf.enabled = !!getInput('jf.enabled')?.checked;
-                jf.recentlyAddedOnly = !!getInput('jf.recentOnly')?.checked;
+                jf.recentlyAddedOnly = !!getInput('jf.recentOnlyHeader')?.checked;
                 jf.recentlyAddedDays = toInt(getInput('jf.recentDays')?.value) ?? 30;
                 {
                     const expr = parseYearExpression(getInput('jf.yearFilter')?.value);
@@ -13227,6 +13347,12 @@
                 setIfProvided(jf.portEnvVar, getInput('jf.port')?.value);
                 const jfKey = getInput('jf.apikey')?.value;
                 if (jfKey && jfKey !== '••••••••') setIfProvided(jf.tokenEnvVar, jfKey);
+                // Persist insecure HTTPS as an env var for server-side defaults
+                envPatch.JELLYFIN_INSECURE_HTTPS =
+                    document.getElementById('jf.insecureHttpsHeader')?.checked ||
+                    document.getElementById('jf.insecureHttps')?.checked
+                        ? 'true'
+                        : 'false';
                 await saveConfigPatch({ mediaServers: servers }, envPatch);
                 window.notify?.toast({
                     type: 'success',

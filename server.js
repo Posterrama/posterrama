@@ -920,6 +920,20 @@ app.get(['/admin', '/admin.html'], (req, res, next) => {
         return res.redirect('/admin/login');
     }
 
+    // Ensure the admin HTML itself gets a cache-busting query param to defeat proxy/SW caches
+    try {
+        const params = new URLSearchParams(req.query || {});
+        if (!params.has('v')) {
+            const v = generateAssetVersion('admin.html');
+            params.set('v', v);
+            const qs = params.toString();
+            // Preserve the current route (/admin or /admin.html)
+            return res.redirect(`${req.path}?${qs}`);
+        }
+    } catch (_) {
+        // non-fatal; continue to serve admin normally
+    }
+
     const filePath = path.join(__dirname, 'public', 'admin.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) return next(err);

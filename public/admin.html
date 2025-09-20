@@ -876,21 +876,28 @@
           </div>
           <!-- Connection -->
           <div class="form-section">
-            <div class="section-title"><i class="fas fa-server"></i> Server</div>
+            <div class="section-title"><i class="fas fa-server"></i> Server
+            </div>
           </div>
-          <div class="form-grid">
+          <div class="form-grid plex-dense" id="plex-server-grid">
             <div class="form-group">
               <label for="plex_hostname">Hostname</label>
               <input type="text" id="plex_hostname" placeholder="e.g. 192.168.1.10" autocomplete="off" autocapitalize="off" spellcheck="false">
             </div>
             <div class="form-group">
               <label for="plex_port">Port</label>
-              <input type="number" id="plex_port" min="1" max="65535" placeholder="32400" autocomplete="off">
+              <div class="number-input-wrapper niw-compact niw-sized-sm">
+                <input type="number" id="plex_port" min="1" max="65535" placeholder="32400" autocomplete="off">
+                <div class="number-controls" role="group">
+                  <button type="button" class="number-btn number-inc" title="Increase" aria-label="Increase"><i class="fas fa-chevron-up"></i></button>
+                  <button type="button" class="number-btn number-dec" title="Decrease" aria-label="Decrease"><i class="fas fa-chevron-down"></i></button>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label for="plex_token">API Token</label>
               <input type="password" id="plex_token" placeholder="X-Plex-Token" autocomplete="new-password">
-              <small class="form-help">Stored in environment. Not shown after save.</small>
+              
             </div>
           </div>
 
@@ -949,15 +956,12 @@
           <div class="form-section">
             <div class="section-title"><i class="fas fa-filter"></i> Filters</div>
           </div>
-          <div class="form-grid">
+          <!-- Compact filters grid: place all filters in one dense grid -->
+          <div class="form-grid plex-dense" id="plex-filters-grid">
             <div class="form-group">
               <label for="plex.yearFilter">Release Years</label>
               <input type="text" id="plex.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
             </div>
-          </div>
-
-          <!-- Ratings + Genres -->
-          <div class="form-grid">
             <div class="form-group">
               <label for="plex.ratingFilter">Ratings</label>
               <input type="hidden" id="plex.ratingFilter-hidden" value="">
@@ -979,7 +983,7 @@
                   <div class="ms-options" id="plex-ms-ratings-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more content ratings. Populated from Plex.</small>
+              
             </div>
             <div class="form-group">
               <label for="plex.genreFilter">Genres</label>
@@ -1002,12 +1006,8 @@
                   <div class="ms-options" id="plex-ms-genres-options"></div>
                 </div>
               </div>
-              <small id="plex-genre-help" class="form-help">Select one or more genres. Populated from Plex.</small>
+              
             </div>
-          </div>
-
-          <!-- Qualities -->
-          <div class="form-grid">
             <div class="form-group">
               <label for="plex.qualityFilter">Qualities</label>
               <input type="hidden" id="plex.qualityFilter-hidden" value="">
@@ -1029,20 +1029,26 @@
                   <div class="ms-options" id="plex-ms-qualities-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more qualities (e.g., 720p, 1080p, 4K). Populated from Plex.</small>
+              
             </div>
           </div>
-          
-            <!-- Recently-added controls moved to bottom of Plex panel -->
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="checkbox"><input type="checkbox" id="plex.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
-              </div>
-              <div class="form-group">
-                <label for="plex.recentDays">Recently added days</label>
-                <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
-              </div>
+
+          <!-- Recently added -->
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-clock"></i> Recently added
+              <label class="header-toggle" for="plex.recentOnlyHeader" title="Show only recently added items" style="margin-left:auto;">
+                <input type="checkbox" id="plex.recentOnlyHeader" />
+                <span class="ht-switch" aria-hidden="true"></span>
+              </label>
             </div>
+          </div>
+          <div class="form-grid plex-dense" id="plex-recent-grid">
+            <!-- hidden form checkbox kept for saving is removed per request; header toggle will be the single source -->
+            <div class="form-group">
+              <label for="plex.recentDays">Recently added days</label>
+              <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1067,29 +1073,35 @@
             <div class="loader"><span class="spinner"></span></div>
           </div>
           <div class="form-section">
-            <div class="section-title"><i class="fas fa-server"></i> Server</div>
+            <div class="section-title"><i class="fas fa-server"></i> Server
+              <label class="header-toggle" for="jf.insecureHttpsHeader" title="Allow self‑signed/invalid HTTPS (Jellyfin)" style="margin-left:auto;">
+                <input type="checkbox" id="jf.insecureHttpsHeader" />
+                <span class="ht-switch" aria-hidden="true"></span>
+              </label>
+            </div>
           </div>
-          <div class="form-grid">
+          <div class="form-grid plex-dense" id="jf-server-grid">
             <div class="form-group">
               <label for="jf.hostname">Hostname</label>
               <input type="text" id="jf.hostname" placeholder="e.g. 192.168.1.20" autocomplete="off" autocapitalize="off" spellcheck="false">
             </div>
             <div class="form-group">
               <label for="jf.port">Port</label>
-              <input type="number" id="jf.port" min="1" max="65535" placeholder="8096" autocomplete="off">
+              <div class="number-input-wrapper niw-compact niw-sized-sm">
+                <input type="number" id="jf.port" min="1" max="65535" placeholder="8096" autocomplete="off">
+                <div class="number-controls" role="group">
+                  <button type="button" class="number-btn number-inc" title="Increase" aria-label="Increase"><i class="fas fa-chevron-up"></i></button>
+                  <button type="button" class="number-btn number-dec" title="Decrease" aria-label="Decrease"><i class="fas fa-chevron-down"></i></button>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label for="jf.apikey">API Key</label>
               <input type="password" id="jf.apikey" placeholder="Jellyfin API Key" autocomplete="new-password">
-              <small class="form-help">Stored in environment. Not shown after save.</small>
+              
             </div>
-            <div class="form-group">
-              <label class="header-toggle" for="jf.insecureHttps" title="Allow insecure HTTPS (self-signed)">
-                <input type="checkbox" id="jf.insecureHttps" />
-                <span class="ht-switch" aria-hidden="true"></span>
-                <span class="ht-text">Insecure HTTPS</span>
-              </label>
-              <small class="form-help">Use for testing with self-signed certs (e.g., HTTPS on port 8920).</small>
+            <div class="form-group" hidden>
+              <input type="checkbox" id="jf.insecureHttps" />
             </div>
           </div>
           <div class="form-section">
@@ -1145,13 +1157,12 @@
           <div class="form-section">
             <div class="section-title"><i class="fas fa-filter"></i> Filters</div>
           </div>
-          <div class="form-grid">
+          <!-- Dense filters grid for Jellyfin (no qualities) -->
+          <div class="form-grid plex-dense" id="jf-filters-grid">
             <div class="form-group">
               <label for="jf.yearFilter">Release Years</label>
               <input type="text" id="jf.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
             </div>
-          </div>
-          <div class="form-grid">
             <div class="form-group">
               <label for="jf.ratingFilter">Ratings</label>
               <input type="hidden" id="jf.ratingFilter-hidden" value="">
@@ -1173,7 +1184,7 @@
                   <div class="ms-options" id="jf-ms-ratings-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more content ratings. Populated from Jellyfin.</small>
+              
             </div>
             <div class="form-group">
               <label for="jf.genreFilter">Genres</label>
@@ -1196,7 +1207,7 @@
                   <div class="ms-options" id="jf-ms-genres-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more genres. Populated from selected Jellyfin libraries.</small>
+              
             </div>
           </div>
           <!-- Jellyfin Qualities hidden (disabled feature) -->
@@ -1208,11 +1219,17 @@
               <small class="form-help">Qualities disabled for Jellyfin</small>
             </div>
           </div>
-          <!-- Recently-added controls moved to bottom of Jellyfin panel -->
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="checkbox"><input type="checkbox" id="jf.recentOnly"><span class="checkmark"></span><span>Recently added only</span></label>
+          <!-- Recently added -->
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-clock"></i> Recently added
+              <label class="header-toggle" for="jf.recentOnlyHeader" title="Show only recently added items" style="margin-left:auto;">
+                <input type="checkbox" id="jf.recentOnlyHeader" />
+                <span class="ht-switch" aria-hidden="true"></span>
+              </label>
             </div>
+          </div>
+          <div class="form-grid plex-dense" id="jf-recent-grid">
+            <!-- removed hidden checkbox; header toggle is the only control now -->
             <div class="form-group">
               <label for="jf.recentDays">Recently added days</label>
               <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
