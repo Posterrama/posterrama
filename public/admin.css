@@ -6327,7 +6327,8 @@ body.page-logs {
 }
 
 /* ===== Media Sources tabs (mirror Display segmented control) ===== */
-#section-media-sources .form-section {
+/* Only style the Source tabs container as a card; leave other categories loose */
+#section-media-sources #sources-tabs {
     background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 14px;
@@ -6337,10 +6338,11 @@ body.page-logs {
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
     margin-bottom: 12px;
 }
-#section-media-sources .form-section > :last-child {
+#section-media-sources #sources-tabs > :last-child {
     margin-bottom: 0 !important;
 }
-#section-media-sources .section-title {
+/* Only adjust the section title inside the Source tabs block */
+#section-media-sources #sources-tabs .section-title {
     margin: 0 0 10px 0;
     font-size: 0.95rem;
     opacity: 0.9;
@@ -6348,7 +6350,7 @@ body.page-logs {
     align-items: center;
     gap: 8px;
 }
-#section-media-sources .segmented {
+#section-media-sources #sources-tabs .segmented {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -6361,7 +6363,7 @@ body.page-logs {
     position: relative;
     overflow: hidden;
 }
-#section-media-sources .segmented .seg {
+#section-media-sources #sources-tabs .segmented .seg {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -6374,17 +6376,17 @@ body.page-logs {
         color 0.15s ease,
         border-color 0.15s ease;
 }
-#section-media-sources .segmented .seg:hover {
+#section-media-sources #sources-tabs .segmented .seg:hover {
     background: rgba(255, 255, 255, 0.05);
     color: var(--color-text-primary);
 }
-#section-media-sources .segmented input[type='radio'] {
+#section-media-sources #sources-tabs .segmented input[type='radio'] {
     display: none;
 }
-#section-media-sources .segmented .seg[aria-checked='true'] {
+#section-media-sources #sources-tabs .segmented .seg[aria-checked='true'] {
     color: #bfdbfe;
 }
-#section-media-sources .segmented .seg-indicator {
+#section-media-sources #sources-tabs .segmented .seg-indicator {
     position: absolute;
     top: 4px;
     left: 4px;
