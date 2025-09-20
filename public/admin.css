@@ -6304,6 +6304,17 @@ body.page-logs {
 }
 
 /* ===== Media Sources tabs (mirror Display segmented control) ===== */
+#section-media-sources #sources-tabs-card {
+    position: relative;
+    background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    margin-bottom: 12px;
+}
 #section-media-sources .segmented {
     display: flex;
     align-items: center;
