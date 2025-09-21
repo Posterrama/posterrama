@@ -7214,9 +7214,27 @@ body.page-logs {
 
 /* ===== Jellyfin panel: mirror Plex multiselect/select visuals ===== */
 #panel-jellyfin .multiselect .ms-control {
-    /* Equalize padding to standard inputs and leave room for caret box */
-    padding: var(--space-md) 44px var(--space-md) var(--space-md);
+    /* Equalize padding to standard inputs and reserve space both sides */
+    padding: var(--space-md) 44px var(--space-md) 44px;
     border-radius: var(--border-radius-md);
+}
+#panel-jellyfin .multiselect .ms-chips {
+    margin-left: 8px;
+}
+#panel-jellyfin .multiselect .ms-input {
+    margin-left: 8px;
+}
+#panel-jellyfin .multiselect .ms-control::before {
+    /* vertical divider after the left clear button */
+    content: '';
+    position: absolute;
+    left: 44px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: var(--color-border);
+    opacity: 0.8;
+    pointer-events: none;
 }
 #panel-jellyfin .multiselect .ms-control::after {
     /* vertical divider before the caret box */
@@ -7262,7 +7280,569 @@ body.page-logs {
         0 1px 2px rgba(0, 0, 0, 0.25);
 }
 #panel-jellyfin .multiselect .ms-clear {
-    right: 44px; /* position clear button just left of caret divider */
+    left: 10px; /* move clear button to the left side */
+    right: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease,
+        box-shadow 120ms ease;
+}
+#panel-jellyfin .multiselect .ms-clear:hover {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-card));
+    color: var(--color-text-secondary);
+}
+#panel-jellyfin .multiselect .ms-clear:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+/* Jellyfin multiselect options & checkboxes styling (match Plex) */
+#jf-ms-movies .ms-menu .ms-option,
+#jf-ms-movies-menu .ms-option,
+#jf-ms-shows .ms-menu .ms-option,
+#jf-ms-shows-menu .ms-option,
+#jf-ms-ratings .ms-menu .ms-option,
+#jf-ms-ratings-menu .ms-option,
+#jf-ms-qualities .ms-menu .ms-option,
+#jf-ms-qualities-menu .ms-option,
+#jf-ms-genres .ms-menu .ms-option,
+#jf-ms-genres-menu .ms-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+}
+#jf-ms-movies .ms-menu .ms-option:hover,
+#jf-ms-movies-menu .ms-option:hover,
+#jf-ms-shows .ms-menu .ms-option:hover,
+#jf-ms-shows-menu .ms-option:hover,
+#jf-ms-ratings .ms-menu .ms-option:hover,
+#jf-ms-ratings-menu .ms-option:hover,
+#jf-ms-qualities .ms-menu .ms-option:hover,
+#jf-ms-qualities-menu .ms-option:hover,
+#jf-ms-genres .ms-menu .ms-option:hover,
+#jf-ms-genres-menu .ms-option:hover {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 40%, transparent);
+}
+#jf-ms-movies .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#jf-ms-movies-menu .ms-option:has(input[type='checkbox']:checked),
+#jf-ms-shows .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#jf-ms-shows-menu .ms-option:has(input[type='checkbox']:checked),
+#jf-ms-ratings .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#jf-ms-ratings-menu .ms-option:has(input[type='checkbox']:checked),
+#jf-ms-qualities .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#jf-ms-qualities-menu .ms-option:has(input[type='checkbox']:checked),
+#jf-ms-genres .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#jf-ms-genres-menu .ms-option:has(input[type='checkbox']:checked) {
+    background: transparent;
+}
+#jf-ms-movies .ms-menu .ms-option input[type='checkbox'],
+#jf-ms-movies-menu .ms-option input[type='checkbox'],
+#jf-ms-shows .ms-menu .ms-option input[type='checkbox'],
+#jf-ms-shows-menu .ms-option input[type='checkbox'],
+#jf-ms-ratings .ms-menu .ms-option input[type='checkbox'],
+#jf-ms-ratings-menu .ms-option input[type='checkbox'],
+#jf-ms-qualities .ms-menu .ms-option input[type='checkbox'],
+#jf-ms-qualities-menu .ms-option input[type='checkbox'],
+#jf-ms-genres .ms-menu .ms-option input[type='checkbox'],
+#jf-ms-genres-menu .ms-option input[type='checkbox'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    display: inline-block;
+    position: relative;
+    transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        transform 40ms ease;
+}
+#jf-ms-movies .ms-menu .ms-option input[type='checkbox']:hover,
+#jf-ms-movies-menu .ms-option input[type='checkbox']:hover,
+#jf-ms-shows .ms-menu .ms-option input[type='checkbox']:hover,
+#jf-ms-shows-menu .ms-option input[type='checkbox']:hover,
+#jf-ms-ratings .ms-menu .ms-option input[type='checkbox']:hover,
+#jf-ms-ratings-menu .ms-option input[type='checkbox']:hover,
+#jf-ms-qualities .ms-menu .ms-option input[type='checkbox']:hover,
+#jf-ms-qualities-menu .ms-option input[type='checkbox']:hover,
+#jf-ms-genres .ms-menu .ms-option input[type='checkbox']:hover,
+#jf-ms-genres-menu .ms-option input[type='checkbox']:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+}
+#jf-ms-movies .ms-menu .ms-option input[type='checkbox']:active,
+#jf-ms-movies-menu .ms-option input[type='checkbox']:active,
+#jf-ms-shows .ms-menu .ms-option input[type='checkbox']:active,
+#jf-ms-shows-menu .ms-option input[type='checkbox']:active,
+#jf-ms-ratings .ms-menu .ms-option input[type='checkbox']:active,
+#jf-ms-ratings-menu .ms-option input[type='checkbox']:active,
+#jf-ms-qualities .ms-menu .ms-option input[type='checkbox']:active,
+#jf-ms-qualities-menu .ms-option input[type='checkbox']:active,
+#jf-ms-genres .ms-menu .ms-option input[type='checkbox']:active,
+#jf-ms-genres-menu .ms-option input[type='checkbox']:active {
+    transform: scale(0.96);
+}
+#jf-ms-movies .ms-menu .ms-option input[type='checkbox']:checked,
+#jf-ms-movies-menu .ms-option input[type='checkbox']:checked,
+#jf-ms-shows .ms-menu .ms-option input[type='checkbox']:checked,
+#jf-ms-shows-menu .ms-option input[type='checkbox']:checked,
+#jf-ms-ratings .ms-menu .ms-option input[type='checkbox']:checked,
+#jf-ms-ratings-menu .ms-option input[type='checkbox']:checked,
+#jf-ms-qualities .ms-menu .ms-option input[type='checkbox']:checked,
+#jf-ms-qualities-menu .ms-option input[type='checkbox']:checked,
+#jf-ms-genres .ms-menu .ms-option input[type='checkbox']:checked,
+#jf-ms-genres-menu .ms-option input[type='checkbox']:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4,9 7,12 14,5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 9px 9px;
+}
+#jf-ms-movies .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#jf-ms-movies-menu .ms-option input[type='checkbox']:focus-visible,
+#jf-ms-shows .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#jf-ms-shows-menu .ms-option input[type='checkbox']:focus-visible,
+#jf-ms-ratings .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#jf-ms-ratings-menu .ms-option input[type='checkbox']:focus-visible,
+#jf-ms-qualities .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#jf-ms-qualities-menu .ms-option input[type='checkbox']:focus-visible,
+#jf-ms-genres .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#jf-ms-genres-menu .ms-option input[type='checkbox']:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+#jf-ms-movies .ms-menu .ms-option span,
+#jf-ms-movies-menu .ms-option span,
+#jf-ms-shows .ms-menu .ms-option span,
+#jf-ms-shows-menu .ms-option span,
+#jf-ms-ratings .ms-menu .ms-option span,
+#jf-ms-ratings-menu .ms-option span,
+#jf-ms-qualities .ms-menu .ms-option span,
+#jf-ms-qualities-menu .ms-option span,
+#jf-ms-genres .ms-menu .ms-option span,
+#jf-ms-genres-menu .ms-option span {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-base);
+    line-height: 1.35;
+}
+
+/* Jellyfin multiselect actions: buttons follow new design */
+#panel-jellyfin .ms-actions,
+#jf-ms-movies-menu .ms-actions,
+#jf-ms-shows-menu .ms-actions,
+#jf-ms-ratings-menu .ms-actions,
+#jf-ms-qualities-menu .ms-actions,
+#jf-ms-genres-menu .ms-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+#panel-jellyfin .ms-actions .btn,
+#jf-ms-movies-menu .ms-actions .btn,
+#jf-ms-shows-menu .ms-actions .btn,
+#jf-ms-ratings-menu .ms-actions .btn,
+#jf-ms-qualities-menu .ms-actions .btn,
+#jf-ms-genres-menu .ms-actions .btn {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+#panel-jellyfin .ms-actions .btn:hover,
+#jf-ms-movies-menu .ms-actions .btn:hover,
+#jf-ms-shows-menu .ms-actions .btn:hover,
+#jf-ms-ratings-menu .ms-actions .btn:hover,
+#jf-ms-qualities-menu .ms-actions .btn:hover,
+#jf-ms-genres-menu .ms-actions .btn:hover {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+#panel-jellyfin .ms-actions .btn:active,
+#jf-ms-movies-menu .ms-actions .btn:active,
+#jf-ms-shows-menu .ms-actions .btn:active,
+#jf-ms-ratings-menu .ms-actions .btn:active,
+#jf-ms-qualities-menu .ms-actions .btn:active,
+#jf-ms-genres-menu .ms-actions .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+#panel-jellyfin .ms-actions .btn:focus-visible,
+#jf-ms-movies-menu .ms-actions .btn:focus-visible,
+#jf-ms-shows-menu .ms-actions .btn:focus-visible,
+#jf-ms-ratings-menu .ms-actions .btn:focus-visible,
+#jf-ms-qualities-menu .ms-actions .btn:focus-visible,
+#jf-ms-genres-menu .ms-actions .btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+#panel-jellyfin .ms-actions button[id$='select-all'],
+#jf-ms-movies-menu .ms-actions button[id$='select-all'],
+#jf-ms-shows-menu .ms-actions button[id$='select-all'],
+#jf-ms-ratings-menu .ms-actions button[id$='select-all'],
+#jf-ms-qualities-menu .ms-actions button[id$='select-all'],
+#jf-ms-genres-menu .ms-actions button[id$='select-all'],
+#panel-jellyfin .ms-actions button[id$='clear-all'],
+#jf-ms-movies-menu .ms-actions button[id$='clear-all'],
+#jf-ms-shows-menu .ms-actions button[id$='clear-all'],
+#jf-ms-ratings-menu .ms-actions button[id$='clear-all'],
+#jf-ms-qualities-menu .ms-actions button[id$='clear-all'],
+#jf-ms-genres-menu .ms-actions button[id$='clear-all'] {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+}
+#panel-jellyfin .ms-actions button[id$='clear-all'],
+#jf-ms-movies-menu .ms-actions button[id$='clear-all'],
+#jf-ms-shows-menu .ms-actions button[id$='clear-all'],
+#jf-ms-ratings-menu .ms-actions button[id$='clear-all'],
+#jf-ms-qualities-menu .ms-actions button[id$='clear-all'],
+#jf-ms-genres-menu .ms-actions button[id$='clear-all'] {
+    color: color-mix(in srgb, var(--color-error) 78%, var(--color-text-secondary)) !important;
+}
+#panel-jellyfin .ms-actions button[id$='clear-all']:hover,
+#jf-ms-movies-menu .ms-actions button[id$='clear-all']:hover,
+#jf-ms-shows-menu .ms-actions button[id$='clear-all']:hover,
+#jf-ms-ratings-menu .ms-actions button[id$='clear-all']:hover,
+#jf-ms-qualities-menu .ms-actions button[id$='clear-all']:hover,
+#jf-ms-genres-menu .ms-actions button[id$='clear-all']:hover,
+#panel-jellyfin .ms-actions button[id$='clear-all']:focus,
+#jf-ms-movies-menu .ms-actions button[id$='clear-all']:focus,
+#jf-ms-shows-menu .ms-actions button[id$='clear-all']:focus,
+#jf-ms-ratings-menu .ms-actions button[id$='clear-all']:focus,
+#jf-ms-qualities-menu .ms-actions button[id$='clear-all']:focus,
+#jf-ms-genres-menu .ms-actions button[id$='clear-all']:focus,
+#panel-jellyfin .ms-actions button[id$='clear-all']:focus-visible,
+#jf-ms-movies-menu .ms-actions button[id$='clear-all']:focus-visible,
+#jf-ms-shows-menu .ms-actions button[id$='clear-all']:focus-visible,
+#jf-ms-ratings-menu .ms-actions button[id$='clear-all']:focus-visible,
+#jf-ms-qualities-menu .ms-actions button[id$='clear-all']:focus-visible,
+#jf-ms-genres-menu .ms-actions button[id$='clear-all']:focus-visible {
+    color: color-mix(in srgb, var(--color-error) 90%, var(--color-text-secondary)) !important;
+}
+#panel-jellyfin .ms-actions button[id$='clear-all']:active,
+#jf-ms-movies-menu .ms-actions button[id$='clear-all']:active,
+#jf-ms-shows-menu .ms-actions button[id$='clear-all']:active,
+#jf-ms-ratings-menu .ms-actions button[id$='clear-all']:active,
+#jf-ms-qualities-menu .ms-actions button[id$='clear-all']:active,
+#jf-ms-genres-menu .ms-actions button[id$='clear-all']:active {
+    color: color-mix(in srgb, var(--color-error-dark) 85%, var(--color-text-secondary)) !important;
+}
+
+/* ===== TMDB panel: mirror Plex multiselect/select visuals ===== */
+#panel-tmdb .multiselect .ms-control {
+    padding: var(--space-md) 44px var(--space-md) 44px;
+    border-radius: var(--border-radius-md);
+}
+#panel-tmdb .multiselect .ms-chips {
+    margin-left: 8px;
+}
+#panel-tmdb .multiselect .ms-input {
+    margin-left: 8px;
+}
+#panel-tmdb .multiselect .ms-control::before {
+    content: '';
+    position: absolute;
+    left: 44px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: var(--color-border);
+    opacity: 0.8;
+    pointer-events: none;
+}
+#panel-tmdb .multiselect .ms-control::after {
+    content: '';
+    position: absolute;
+    right: 44px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: var(--color-border);
+    opacity: 0.8;
+    pointer-events: none;
+}
+#panel-tmdb .multiselect .ms-caret {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    font-size: 12px;
+    line-height: 1;
+    opacity: 0.95;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    z-index: 1;
+    pointer-events: none;
+}
+#panel-tmdb .multiselect .ms-control:hover .ms-caret {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-card));
+}
+#panel-tmdb .multiselect .ms-control:focus-within .ms-caret {
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+    color: color-mix(in srgb, var(--color-primary) 80%, var(--color-text-muted));
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.25);
+}
+#panel-tmdb .multiselect .ms-clear {
+    left: 10px;
+    right: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease,
+        box-shadow 120ms ease;
+}
+#panel-tmdb .multiselect .ms-clear:hover {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-card));
+    color: var(--color-text-secondary);
+}
+#panel-tmdb .multiselect .ms-clear:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+/* TMDB multiselect options & checkboxes (Genres + Streaming Providers) */
+#tmdb-ms-genres .ms-menu .ms-option,
+#tmdb-ms-genres-menu .ms-option,
+#streaming-ms-providers .ms-menu .ms-option,
+#streaming-ms-providers-menu .ms-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+}
+#tmdb-ms-genres .ms-menu .ms-option:hover,
+#tmdb-ms-genres-menu .ms-option:hover,
+#streaming-ms-providers .ms-menu .ms-option:hover,
+#streaming-ms-providers-menu .ms-option:hover {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 40%, transparent);
+}
+#tmdb-ms-genres .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#tmdb-ms-genres-menu .ms-option:has(input[type='checkbox']:checked),
+#streaming-ms-providers .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#streaming-ms-providers-menu .ms-option:has(input[type='checkbox']:checked) {
+    background: transparent;
+}
+#tmdb-ms-genres .ms-menu .ms-option input[type='checkbox'],
+#tmdb-ms-genres-menu .ms-option input[type='checkbox'],
+#streaming-ms-providers .ms-menu .ms-option input[type='checkbox'],
+#streaming-ms-providers-menu .ms-option input[type='checkbox'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    display: inline-block;
+    position: relative;
+    transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        transform 40ms ease;
+}
+#tmdb-ms-genres .ms-menu .ms-option input[type='checkbox']:hover,
+#tmdb-ms-genres-menu .ms-option input[type='checkbox']:hover,
+#streaming-ms-providers .ms-menu .ms-option input[type='checkbox']:hover,
+#streaming-ms-providers-menu .ms-option input[type='checkbox']:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+}
+#tmdb-ms-genres .ms-menu .ms-option input[type='checkbox']:active,
+#tmdb-ms-genres-menu .ms-option input[type='checkbox']:active,
+#streaming-ms-providers .ms-menu .ms-option input[type='checkbox']:active,
+#streaming-ms-providers-menu .ms-option input[type='checkbox']:active {
+    transform: scale(0.96);
+}
+#tmdb-ms-genres .ms-menu .ms-option input[type='checkbox']:checked,
+#tmdb-ms-genres-menu .ms-option input[type='checkbox']:checked,
+#streaming-ms-providers .ms-menu .ms-option input[type='checkbox']:checked,
+#streaming-ms-providers-menu .ms-option input[type='checkbox']:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4,9 7,12 14,5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 9px 9px;
+}
+#tmdb-ms-genres .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#tmdb-ms-genres-menu .ms-option input[type='checkbox']:focus-visible,
+#streaming-ms-providers .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#streaming-ms-providers-menu .ms-option input[type='checkbox']:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+#tmdb-ms-genres .ms-menu .ms-option span,
+#tmdb-ms-genres-menu .ms-option span,
+#streaming-ms-providers .ms-menu .ms-option span,
+#streaming-ms-providers-menu .ms-option span {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-base);
+    line-height: 1.35;
+}
+
+/* TMDB multiselect actions styling */
+#panel-tmdb .ms-actions,
+#tmdb-ms-genres-menu .ms-actions,
+#streaming-ms-providers-menu .ms-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+#panel-tmdb .ms-actions .btn,
+#tmdb-ms-genres-menu .ms-actions .btn,
+#streaming-ms-providers-menu .ms-actions .btn {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+#panel-tmdb .ms-actions .btn:hover,
+#tmdb-ms-genres-menu .ms-actions .btn:hover,
+#streaming-ms-providers-menu .ms-actions .btn:hover {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+#panel-tmdb .ms-actions .btn:active,
+#tmdb-ms-genres-menu .ms-actions .btn:active,
+#streaming-ms-providers-menu .ms-actions .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+#panel-tmdb .ms-actions .btn:focus-visible,
+#tmdb-ms-genres-menu .ms-actions .btn:focus-visible,
+#streaming-ms-providers-menu .ms-actions .btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+#panel-tmdb .ms-actions button[id$='select-all'],
+#tmdb-ms-genres-menu .ms-actions button[id$='select-all'],
+#streaming-ms-providers-menu .ms-actions button[id$='select-all'],
+#panel-tmdb .ms-actions button[id$='clear-all'],
+#tmdb-ms-genres-menu .ms-actions button[id$='clear-all'],
+#streaming-ms-providers-menu .ms-actions button[id$='clear-all'] {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+}
+#panel-tmdb .ms-actions button[id$='clear-all'],
+#tmdb-ms-genres-menu .ms-actions button[id$='clear-all'],
+#streaming-ms-providers-menu .ms-actions button[id$='clear-all'] {
+    color: color-mix(in srgb, var(--color-error) 78%, var(--color-text-secondary)) !important;
+}
+#panel-tmdb .ms-actions button[id$='clear-all']:hover,
+#tmdb-ms-genres-menu .ms-actions button[id$='clear-all']:hover,
+#streaming-ms-providers-menu .ms-actions button[id$='clear-all']:hover,
+#panel-tmdb .ms-actions button[id$='clear-all']:focus,
+#tmdb-ms-genres-menu .ms-actions button[id$='clear-all']:focus,
+#streaming-ms-providers-menu .ms-actions button[id$='clear-all']:focus,
+#panel-tmdb .ms-actions button[id$='clear-all']:focus-visible,
+#tmdb-ms-genres-menu .ms-actions button[id$='clear-all']:focus-visible,
+#streaming-ms-providers-menu .ms-actions button[id$='clear-all']:focus-visible {
+    color: color-mix(in srgb, var(--color-error) 90%, var(--color-text-secondary)) !important;
+}
+#panel-tmdb .ms-actions button[id$='clear-all']:active,
+#tmdb-ms-genres-menu .ms-actions button[id$='clear-all']:active,
+#streaming-ms-providers-menu .ms-actions button[id$='clear-all']:active {
+    color: color-mix(in srgb, var(--color-error-dark) 85%, var(--color-text-secondary)) !important;
 }
 
 /* --------------------------------------------- */
