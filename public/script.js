@@ -189,7 +189,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const la = document.getElementById('layer-a');
             const lb = document.getElementById('layer-b');
             if (!la || !lb) return;
-            const bg2 = mediaItem.backgroundUrl;
+            // Use currentIndex to find the current media item safely
+            let bg2 = null;
+            try {
+                if (Array.isArray(mediaQueue) && mediaQueue.length > 0) {
+                    const idx = currentIndex >= 0 ? currentIndex : 0;
+                    const item = mediaQueue[idx] || mediaQueue[0];
+                    bg2 = item && item.backgroundUrl ? item.backgroundUrl : null;
+                }
+            } catch (_) {}
             if (bg2 && bg2 !== 'null' && bg2 !== 'undefined') {
                 la.style.backgroundImage = `url('${bg2}')`;
                 lb.style.backgroundImage = `url('${bg2}')`;
@@ -197,6 +205,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 la.style.backgroundImage = '';
                 lb.style.backgroundImage = '';
             }
+            const aOp = parseFloat(getComputedStyle(la).opacity || '1');
+            const bOp = parseFloat(getComputedStyle(lb).opacity || '1');
             if (aOp <= 0.01 && bOp <= 0.01) {
                 // Prefer the layer that already has a background image to avoid flashing black
                 let target = activeLayer || la;

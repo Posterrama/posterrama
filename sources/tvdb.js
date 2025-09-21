@@ -286,13 +286,7 @@ class TVDBSource {
             };
 
             // If TVDB lacks artwork and TMDB API key is available, try to enrich
-            if ((!result.fanart || !result.poster) && this.tmdbApiKey) {
-                try {
-                    const type = itemType === 'movie' || itemType === 'movies' ? 'movie' : 'tv';
-                    // We don't have the title/year here; enrichment will be attempted at process* level
-                    // Keep as-is for getArtwork path
-                } catch (_) {}
-            }
+            // Note: If TVDB lacks artwork, enrichment is attempted later where title/year are available
 
             this.setCachedData(cacheKey, result);
             return result;
@@ -628,9 +622,7 @@ class TVDBSource {
                         if (artwork.poster) {
                             posterUrl = artwork.poster;
                         }
-                    } catch (error) {
-                        // Ignore artwork fetch errors, use fallback
-                    }
+                    } catch (error) {}
                     // If still missing and TMDB enrichment available, try using title/year
                     if (!backgroundUrl || !posterUrl) {
                         try {
@@ -702,9 +694,7 @@ class TVDBSource {
                         if (artwork.poster) {
                             posterUrl = artwork.poster;
                         }
-                    } catch (error) {
-                        // Ignore artwork fetch errors, use fallback
-                    }
+                    } catch (error) {}
                     // If still missing and TMDB enrichment available, try using title/year
                     if (!backgroundUrl || !posterUrl) {
                         try {
