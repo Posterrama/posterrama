@@ -3792,6 +3792,26 @@ select:not([multiple]) {
     background: var(--color-bg-card);
 }
 
+/* TMDB API Key: match Category/Min Rating exact height */
+#panel-tmdb input#tmdb\.apikey {
+    height: 42px;
+}
+
+/* TMDB Streaming Region: match Category height inside caret wrapper */
+#panel-tmdb .select-wrap.has-caret select#streamingSources\.region {
+    box-sizing: border-box;
+    height: 42px; /* fixed height like Category */
+    /* Balanced padding: extra top/bottom space so emoji + text never clip */
+    padding: 10px 44px 10px 12px !important;
+    /* Keep natural line-height for better glyph ascent/descent handling */
+    line-height: normal;
+    /* Ensure native chevron is suppressed; wrapper caret is used */
+    background-image: none !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
 /* Cache edit button hover */
 .cache-edit-btn:hover {
     background: var(--color-bg-secondary) !important;
