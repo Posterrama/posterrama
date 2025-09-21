@@ -5785,9 +5785,9 @@
                 dbg('panel not found', { panelId });
             }
             // Kick off background init without blocking the panel UI spinner.
-            // Some sources (e.g., Jellyfin) can be slow; don't keep Plex panel loading.
+            // Always force a fresh reload of config when switching panels so UI reflects latest
             try {
-                const p = window.admin2?.loadMediaSources?.();
+                const p = window.admin2?.loadMediaSources?.(true);
                 if (p && typeof p.then === 'function') p.catch(() => {});
             } catch (_) {
                 /* ignore */
@@ -13555,13 +13555,7 @@
 
         async function saveTMDB() {
             const btn = document.getElementById('btn-save-tmdb');
-            await saveConfigPatch({ tvdbSource: tvdb });
-            // Refresh header pills and counts to reflect new TVDB enabled state
-            try {
-                await loadMediaSources(true);
-            } catch (_) {
-                /* non-fatal */
-            }
+            btn?.classList.add('btn-loading');
             try {
                 const cfgRes = await window.dedupJSON('/api/admin/config', {
                     credentials: 'include',
@@ -13621,7 +13615,8 @@
                 });
             } finally {
                 btn?.classList.remove('btn-loading');
-                loadMediaSources()
+                // Force a fresh reload so the UI immediately reflects saved values
+                loadMediaSources(true)
                     .then(() => {
                         // Ensure TMDB genres UI stays hydrated after save
                         try {
@@ -14169,7 +14164,8 @@
                 });
             } finally {
                 btn?.classList.remove('btn-loading');
-                loadMediaSources().catch(() => {});
+                // Force a fresh reload so the UI immediately reflects saved values
+                loadMediaSources(true).catch(() => {});
             }
         }
 
@@ -14970,21 +14966,21 @@
         const cfg = event.detail;
         if (cfg) loadWhitelistFromConfig(cfg);
     });
-})();
 
-// Global function to reload whitelist data when section becomes active
-window.reloadWhitelistData = function () {
-    fetch('/api/admin/config')
-        .then(response => {
-            if (!response.ok) throw new Error('Failed to fetch config');
-            return response.json();
-        })
-        .then(cfg => {
-            // Dispatch custom event to trigger whitelist reload
-            const event = new CustomEvent('reloadWhitelist', { detail: cfg });
-            document.dispatchEvent(event);
-        })
-        .catch(error => {
-            console.error('Failed to reload whitelist data:', error);
-        });
-};
+    // Global function to reload whitelist data when section becomes active
+    window.reloadWhitelistData = function () {
+        fetch('/api/admin/config')
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to fetch config');
+                return response.json();
+            })
+            .then(cfg => {
+                // Dispatch custom event to trigger whitelist reload
+                const event = new CustomEvent('reloadWhitelist', { detail: cfg });
+                document.dispatchEvent(event);
+            })
+            .catch(error => {
+                console.error('Failed to reload whitelist data:', error);
+            });
+    };
+})();
