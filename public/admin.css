@@ -5880,6 +5880,36 @@ body.page-logs {
         0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
         0 1px 1px rgba(0, 0, 0, 0.25);
 }
+/* Icon-only accents for Backups actions */
+/* Restore: color only the icon inside the neutral button */
+.compact-backup-list .backup-file-row .btn-xs i,
+.compact-backup-list .backup-file-row .btn-xs .fas {
+    color: color-mix(in srgb, var(--color-warning) 88%, var(--color-text-secondary));
+}
+.compact-backup-list .backup-file-row .btn-xs:hover i,
+.compact-backup-list .backup-file-row .btn-xs:focus i,
+.compact-backup-list .backup-file-row .btn-xs:focus-visible i,
+.compact-backup-list .backup-file-row .btn-xs:hover .fas,
+.compact-backup-list .backup-file-row .btn-xs:focus .fas,
+.compact-backup-list .backup-file-row .btn-xs:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-warning) 94%, var(--color-text-secondary));
+}
+
+/* Summary row actions: accent chevron (secondary) and trash (error) */
+.compact-backup-list .backup-summary .right .btn i.fa-chevron-down,
+.compact-backup-list .backup-summary .right .btn i.fa-chevron-up {
+    color: color-mix(in srgb, var(--color-secondary) 85%, #ffffff);
+}
+.compact-backup-list .backup-summary .right .btn:hover i.fa-chevron-down,
+.compact-backup-list .backup-summary .right .btn:hover i.fa-chevron-up {
+    color: color-mix(in srgb, var(--color-secondary) 95%, #ffffff);
+}
+.compact-backup-list .backup-summary .right .btn i.fa-trash {
+    color: color-mix(in srgb, var(--color-error) 88%, #ffffff);
+}
+.compact-backup-list .backup-summary .right .btn:hover i.fa-trash {
+    color: color-mix(in srgb, var(--color-error) 95%, #ffffff);
+}
 .compact-backup-list .backup-file-row .btn-xs:hover,
 .compact-backup-list .backup-file-row .btn-xs:focus,
 .compact-backup-list .backup-file-row .btn-xs:focus-visible {

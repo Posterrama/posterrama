@@ -1089,7 +1089,7 @@
                                 </div>
                             </div>
                             <div class="file-right">
-                                <button class="btn btn-secondary btn-xs">Restore</button>
+                                <button class="btn btn-secondary btn-xs"><i class="fas fa-undo"></i><span>Restore</span></button>
                             </div>`;
                         const btn = row.querySelector('button');
                         btn.addEventListener('click', async () => {
