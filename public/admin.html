@@ -784,14 +784,13 @@
         <div class="actions-home" id="plex-actions-home" hidden>
           <span class="status-pill" id="plex-status-pill-header" title="Plex configuration status">Not configured</span>
           <span class="status-pill" id="plex-count-pill" title="Change ratings/genres/quality chips or year fields → the “Items: N” pill updates immediately using the cached playlist">Items: —</span>
-          <a href="#" id="plex-open-link" class="header-link" title="Open Plex Web UI" hidden aria-label="Open Plex Web UI" target="_blank" rel="noopener"><i class="fas fa-globe"></i></a>
+          <button class="btn btn-icon btn-sm" id="btn-plex-test" title="Test connection"><i class="fas fa-vial"></i></button>
+          <button class="btn btn-icon btn-sm" id="btn-plex-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
           <label class="header-toggle" for="plex.enabled" title="Enable Plex source">
             <input type="checkbox" id="plex.enabled" />
             <span class="ht-switch" aria-hidden="true"></span>
             <span class="ht-text">Enabled</span>
           </label>
-          <button class="btn btn-icon btn-sm" id="btn-plex-test" title="Test connection"><i class="fas fa-vial"></i></button>
-          <button class="btn btn-icon btn-sm" id="btn-plex-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
           <button class="btn btn-primary btn-sm" id="btn-save-plex" title="Save Plex settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
         </div>
         <div class="panel-content">
@@ -982,14 +981,13 @@
         <div class="actions-home" id="jellyfin-actions-home" hidden>
           <span class="status-pill" id="jf-status-pill-header" title="Jellyfin configuration status">Not configured</span>
           <span class="status-pill" id="jf-count-pill" title="Change ratings/genres/quality chips or year fields → the “Items: N” pill updates immediately using the cached playlist">Items: —</span>
-          <a href="#" id="jf-open-link" class="header-link" title="Open Jellyfin Web UI" hidden aria-label="Open Jellyfin Web UI" target="_blank" rel="noopener"><i class="fas fa-globe"></i></a>
+          <button class="btn btn-icon btn-sm" id="btn-jf-test" title="Test connection"><i class="fas fa-vial"></i></button>
+          <button class="btn btn-icon btn-sm" id="btn-jf-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
           <label class="header-toggle" for="jf.enabled" title="Enable Jellyfin source">
             <input type="checkbox" id="jf.enabled" />
             <span class="ht-switch" aria-hidden="true"></span>
             <span class="ht-text">Enabled</span>
           </label>
-          <button class="btn btn-icon btn-sm" id="btn-jf-test" title="Test connection"><i class="fas fa-vial"></i></button>
-          <button class="btn btn-icon btn-sm" id="btn-jf-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
           <button class="btn btn-primary btn-sm" id="btn-save-jellyfin" title="Save Jellyfin settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
         </div>
         <div class="panel-content">
@@ -1168,12 +1166,12 @@
         <div class="actions-home" id="tmdb-actions-home" hidden>
           <span class="status-pill" id="tmdb-status-pill-header" title="TMDB configuration status">Not configured</span>
           <span class="status-pill" id="tmdb-count-pill" title="Items from TMDB in the current playlist">Items: —</span>
+          <button class="btn btn-icon btn-sm" id="btn-tmdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
           <label class="header-toggle" for="tmdb.enabled" title="Enable TMDB source">
             <input type="checkbox" id="tmdb.enabled" />
             <span class="ht-switch" aria-hidden="true"></span>
             <span class="ht-text">Enabled</span>
           </label>
-          <button class="btn btn-icon btn-sm" id="btn-tmdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
           <button class="btn btn-primary btn-sm" id="btn-save-tmdb" title="Save TMDB settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
         </div>
         <div class="panel-content">
@@ -1385,12 +1383,12 @@
         <div class="actions-home" id="tvdb-actions-home" hidden>
           <span class="status-pill" id="tvdb-status-pill-header" title="TVDB configuration status">Not configured</span>
           <span class="status-pill" id="tvdb-count-pill" title="Items from TVDB in the current playlist">Items: —</span>
+          <button class="btn btn-icon btn-sm" id="btn-tvdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
           <label class="header-toggle" for="tvdb.enabled" title="Enable TVDB source">
             <input type="checkbox" id="tvdb.enabled" />
             <span class="ht-switch" aria-hidden="true"></span>
             <span class="ht-text">Enabled</span>
           </label>
-          <button class="btn btn-icon btn-sm" id="btn-tvdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
           <button class="btn btn-primary btn-sm" id="btn-save-tvdb" title="Save TVDB settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
         </div>
         <div class="panel-content">

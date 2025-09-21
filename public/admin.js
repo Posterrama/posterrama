@@ -5873,6 +5873,20 @@
                     }
                     // Mount header actions for the active source into the top header
                     mountSourceHeaderActions(val);
+                    // After moving actions, force-refresh the header-toggle label text for this source
+                    try {
+                        const idMap = {
+                            plex: 'plex.enabled',
+                            jellyfin: 'jf.enabled',
+                            tmdb: 'tmdb.enabled',
+                            tvdb: 'tvdb.enabled',
+                        };
+                        const inputId = idMap[val];
+                        if (inputId && typeof forceUpdateHeaderToggleText === 'function') {
+                            // Defer to the next frame to ensure DOM is in place
+                            requestAnimationFrame(() => forceUpdateHeaderToggleText(inputId));
+                        }
+                    } catch (_) {}
                 }
 
                 // Click handling
@@ -10543,6 +10557,53 @@
                 jfHeader.addEventListener('change', () => {});
             }
         } catch (_) {}
+
+        // Helper: make header-toggle text dynamic (Enabled/Disabled)
+        function attachHeaderToggleText(inputId, onText = 'Enabled', offText = 'Disabled') {
+            try {
+                const input = document.getElementById(inputId);
+                const label = document.querySelector(`label.header-toggle[for="${inputId}"]`);
+                if (!input || !label || input.dataset.htTextWired === '1') return;
+                let textEl = label.querySelector('.ht-text');
+                if (!textEl) {
+                    textEl = document.createElement('span');
+                    textEl.className = 'ht-text';
+                    label.appendChild(textEl);
+                }
+                const apply = () => {
+                    const checked = !!input.checked;
+                    textEl.textContent = checked ? onText : offText;
+                    label.classList.toggle('is-on', checked);
+                };
+                input.addEventListener('change', apply);
+                apply();
+                input.dataset.htTextWired = '1';
+            } catch (_) {}
+        }
+
+        // Force update helper: update label text once without wiring
+        function forceUpdateHeaderToggleText(inputId, onText = 'Enabled', offText = 'Disabled') {
+            try {
+                const input = document.getElementById(inputId);
+                const label = document.querySelector(`label.header-toggle[for="${inputId}"]`);
+                if (!input || !label) return;
+                const textEl = label.querySelector('.ht-text');
+                if (!textEl) return;
+                const checked = !!input.checked;
+                textEl.textContent = checked ? onText : offText;
+                label.classList.toggle('is-on', checked);
+            } catch (_) {}
+        }
+
+        // Wire Enabled/Disabled text for Media Sources header toggles (and Streaming)
+        try {
+            attachHeaderToggleText('plex.enabled');
+            attachHeaderToggleText('jf.enabled');
+            attachHeaderToggleText('tmdb.enabled');
+            attachHeaderToggleText('tvdb.enabled');
+            attachHeaderToggleText('streamingSources.enabled');
+        } catch (_) {}
+
         // Helper to fetch config, patch minimal keys, and POST back
         async function saveConfigPatch(patchConfig, patchEnv) {
             // Only send the env keys we intend to change to avoid overwriting secrets with booleans
@@ -11718,10 +11779,13 @@
             const plexPortVar = plex.portEnvVar || 'PLEX_PORT';
             const plexTokenVar = plex.tokenEnvVar || 'PLEX_TOKEN';
             getInput('plex.enabled') && (getInput('plex.enabled').checked = plexEnabled);
+            try {
+                requestAnimationFrame(() => forceUpdateHeaderToggleText('plex.enabled'));
+            } catch (_) {}
             // Prefill status pill based on enabled + presence of host/port
             try {
                 const pill = document.getElementById('plex-status-pill-header');
-                const openLink = document.getElementById('plex-open-link');
+                const openLink = null;
                 const host = env[plexHostVar] || '';
                 const portVal = env[plexPortVar] || '';
                 if (pill) {
@@ -11742,27 +11806,7 @@
                         pill.classList.add('is-not-configured');
                     }
                 }
-                if (openLink) {
-                    if (plexEnabled && host && portVal) {
-                        const portNum = Number(portVal);
-                        const hostClean = host.replace(/^https?:\/\//i, '').replace(/\/?$/, '');
-                        const protocol =
-                            portNum === 443
-                                ? 'https'
-                                : /^https:\/\//i.test(host)
-                                  ? 'https'
-                                  : /^http:\/\//i.test(host)
-                                    ? 'http'
-                                    : 'http';
-                        const base = `${protocol}://${hostClean}`;
-                        const url = `${base}:${portVal}/web`;
-                        openLink.href = url;
-                        openLink.removeAttribute('hidden');
-                    } else {
-                        openLink.setAttribute('hidden', '');
-                        openLink.removeAttribute('href');
-                    }
-                }
+                // Removed globe link rendering in header actions
             } catch (_) {
                 /* no-op */
             }
@@ -11825,6 +11869,9 @@
             const jfPortVar = jf.portEnvVar || 'JELLYFIN_PORT';
             const jfKeyVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
             if (getInput('jf.enabled')) getInput('jf.enabled').checked = jfEnabled;
+            try {
+                requestAnimationFrame(() => forceUpdateHeaderToggleText('jf.enabled'));
+            } catch (_) {}
             // Header pill for Jellyfin
             try {
                 const pill = document.getElementById('jf-status-pill-header');
@@ -11945,6 +11992,9 @@
             // TMDB
             const tmdb = cfg.tmdbSource || {};
             if (getInput('tmdb.enabled')) getInput('tmdb.enabled').checked = !!tmdb.enabled;
+            try {
+                requestAnimationFrame(() => forceUpdateHeaderToggleText('tmdb.enabled'));
+            } catch (_) {}
             // Header pill for TMDB
             try {
                 const pill = document.getElementById('tmdb-status-pill-header');
@@ -12035,6 +12085,9 @@
             // TVDB
             const tvdb = cfg.tvdbSource || {};
             if (getInput('tvdb.enabled')) getInput('tvdb.enabled').checked = !!tvdb.enabled;
+            try {
+                requestAnimationFrame(() => forceUpdateHeaderToggleText('tvdb.enabled'));
+            } catch (_) {}
             // Header pill for TVDB
             try {
                 const pill = document.getElementById('tvdb-status-pill-header');
