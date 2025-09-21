@@ -20,6 +20,9 @@ class TVDBSource {
         this.cache = new Map();
         this.cacheTimeout = 30 * 60 * 1000; // 30 minutes
 
+        // Artwork access circuit-breaker (e.g., 403 subscription required)
+        this.artworkBlockedUntil = 0; // epoch ms; when > now we skip artwork calls
+
         // Genre mapping cache
         this.genreMap = new Map();
         this.genresLoaded = false;
@@ -168,13 +171,38 @@ class TVDBSource {
                 }
             }
 
-            logger.error('TVDB API request failed:', error.message);
+            // For artwork endpoints, 403/404/429 are expected in some setups (no subscription, not found, rate-limit)
+            // Down-level logging to avoid loud ERROR spam in normal operation
+            try {
+                const status = error.response?.status;
+                if (typeof endpoint === 'string' && endpoint.includes('/artworks')) {
+                    if (status === 403) {
+                        logger.warn(
+                            'TVDB artworks endpoint returned 403 (forbidden). Skipping artwork fetches.'
+                        );
+                    } else if (status === 404) {
+                        logger.debug('TVDB artworks endpoint returned 404 (not found).');
+                    } else if (status === 429) {
+                        logger.warn('TVDB artworks endpoint rate-limited (429). Backing off.');
+                    } else {
+                        logger.warn('TVDB API request (artworks) failed:', error.message);
+                    }
+                } else {
+                    logger.error('TVDB API request failed:', error.message);
+                }
+            } catch (_) {
+                logger.error('TVDB API request failed:', error.message);
+            }
             throw error;
         }
     }
 
     async getArtwork(itemId, itemType = 'series') {
         try {
+            // If artwork is temporarily blocked (e.g., 403), short-circuit to avoid noisy retries
+            if (this.artworkBlockedUntil && Date.now() < this.artworkBlockedUntil) {
+                return { fanart: null, poster: null };
+            }
             const cacheKey = `tvdb_artwork_${itemType}_${itemId}`;
             const cached = this.getCachedData(cacheKey);
             if (cached) {
@@ -217,8 +245,48 @@ class TVDBSource {
             this.setCachedData(cacheKey, result);
             return result;
         } catch (error) {
-            logger.warn(`Failed to fetch artwork for ${itemType} ${itemId}:`, error.message);
-            return { fanart: null, poster: null };
+            try {
+                const status = error?.response?.status;
+                if (status === 403) {
+                    // Likely subscription required; back off artwork requests for a while to reduce noise
+                    this.artworkBlockedUntil = Date.now() + 15 * 60 * 1000; // 15 minutes
+                    logger.info(
+                        'TVDB artwork access forbidden (403). Will skip artwork fetches for 15 minutes.'
+                    );
+                }
+                if (status === 404) {
+                    // Not found for this item; no need to warn loudly
+                    logger.debug(`TVDB artwork not found (404) for ${itemType} ${itemId}.`);
+                } else if (status === 429) {
+                    // Rate limiting: brief backoff
+                    this.artworkBlockedUntil = Math.max(
+                        this.artworkBlockedUntil,
+                        Date.now() + 2 * 60 * 1000
+                    );
+                    logger.warn(
+                        'TVDB artwork requests are rate-limited (429). Short backoff applied.'
+                    );
+                } else if (status && status !== 403) {
+                    logger.warn(
+                        `Failed to fetch artwork for ${itemType} ${itemId} (status ${status}):`,
+                        error.message
+                    );
+                } else if (!status) {
+                    logger.warn(
+                        `Failed to fetch artwork for ${itemType} ${itemId}:`,
+                        error.message
+                    );
+                }
+            } catch (_) {
+                // Best-effort logging only
+            }
+            const fallback = { fanart: null, poster: null };
+            // Cache null result to avoid repeated attempts for this item during cache window
+            try {
+                const cacheKey = `tvdb_artwork_${itemType}_${itemId}`;
+                this.setCachedData(cacheKey, fallback);
+            } catch (_) {}
+            return fallback;
         }
     }
 
@@ -390,6 +458,9 @@ class TVDBSource {
             const cacheKey = `tvdb_movies_${this.category}_${this.movieCount}_${this.minRating}_${this.yearFilter}`;
             const cached = this.getCachedData(cacheKey);
             if (cached) {
+                // Reflect last data readiness time even when served from cache
+                const entry = this.cache.get(cacheKey);
+                if (entry && entry.timestamp) this.lastFetch = entry.timestamp;
                 return cached;
             }
 
