@@ -13343,6 +13343,8 @@
                 // No inline 'Testing…' status; use toasts only for disabled/failure/errors
                 const region = document.getElementById('streamingSources.region')?.value || 'US';
                 let apiKey = document.getElementById('tmdb.apikey')?.value?.trim() || '';
+                // If the field shows the masked placeholder, use the stored key on the server
+                if (apiKey === '••••••••') apiKey = 'stored_key';
                 if (!apiKey) apiKey = 'stored_key';
                 const res = await fetch('/api/admin/test-tmdb', {
                     method: 'POST',
