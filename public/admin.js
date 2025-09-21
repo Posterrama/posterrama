@@ -5832,9 +5832,16 @@
                 const topActions = document.querySelector(
                     '#panel-media-sources .panel-header .panel-actions'
                 );
-                const rightActions = document.querySelector(
-                    '#panel-media-sources #sources-tabs .form-row .source-actions-right'
+                // Ensure right-side actions container exists next to tabs
+                const tabsRow = document.querySelector(
+                    '#panel-media-sources #sources-tabs .form-row'
                 );
+                let rightActions = tabsRow?.querySelector('.source-actions-right');
+                if (!rightActions && tabsRow) {
+                    rightActions = document.createElement('div');
+                    rightActions.className = 'source-actions-right';
+                    tabsRow.appendChild(rightActions);
+                }
                 let mountedSource = null; // 'plex' | 'jellyfin' | 'tmdb' | 'tvdb'
                 const moveAll = (from, to) => {
                     if (!from || !to) return;
@@ -5857,6 +5864,27 @@
                         if (!nextHome) return;
                         // Collect children first to avoid live mutations issues
                         const items = Array.from(nextHome.children);
+                        // If items are not yet present due to async layout, retry once shortly
+                        if (items.length === 0) {
+                            setTimeout(() => {
+                                try {
+                                    // Recreate rightActions if the DOM changed
+                                    const freshTabsRow = document.querySelector(
+                                        '#panel-media-sources #sources-tabs .form-row'
+                                    );
+                                    if (
+                                        freshTabsRow &&
+                                        !freshTabsRow.querySelector('.source-actions-right')
+                                    ) {
+                                        const ra = document.createElement('div');
+                                        ra.className = 'source-actions-right';
+                                        freshTabsRow.appendChild(ra);
+                                    }
+                                } catch (_) {}
+                                mountSourceHeaderActions(val);
+                            }, 50);
+                            return;
+                        }
                         const saveBtn = items.find(n => n.id?.startsWith('btn-save-'));
                         const others = items.filter(n => n !== saveBtn);
                         // Place save in top header actions
