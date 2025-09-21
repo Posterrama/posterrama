@@ -5828,9 +5828,12 @@
                     { id: 'seg-tvdb', val: 'tvdb', panel: 'panel-tvdb', hash: '#tvdb' },
                 ];
 
-                // Mount per-source header actions into the main Media Sources header
+                // Mount per-source header actions into the Media Sources UI
                 const topActions = document.querySelector(
                     '#panel-media-sources .panel-header .panel-actions'
+                );
+                const rightActions = document.querySelector(
+                    '#panel-media-sources #sources-tabs .form-row .source-actions-right'
                 );
                 let mountedSource = null; // 'plex' | 'jellyfin' | 'tmdb' | 'tvdb'
                 const moveAll = (from, to) => {
@@ -5845,11 +5848,21 @@
                         // Return current mounted actions back to their home before switching
                         if (mountedSource) {
                             const prevHome = getActionsContainer(mountedSource);
+                            // Return all children from both regions
                             moveAll(topActions, prevHome);
+                            moveAll(rightActions, prevHome);
                         }
-                        // Move new source actions to the top header
+                        // Move new source actions out and split: save button stays in header, others go to right of tabs
                         const nextHome = getActionsContainer(val);
-                        moveAll(nextHome, topActions);
+                        if (!nextHome) return;
+                        // Collect children first to avoid live mutations issues
+                        const items = Array.from(nextHome.children);
+                        const saveBtn = items.find(n => n.id?.startsWith('btn-save-'));
+                        const others = items.filter(n => n !== saveBtn);
+                        // Place save in top header actions
+                        if (saveBtn) topActions.appendChild(saveBtn);
+                        // Place remaining actions (pills, toggle, test buttons) at right of tabs
+                        others.forEach(n => rightActions && rightActions.appendChild(n));
                         mountedSource = val;
                     } catch (_) {
                         /* ignore */

@@ -1149,6 +1149,19 @@ body {
     margin-bottom: var(--space-lg);
 }
 
+/* Right-side actions next to Source segmented tabs */
+#panel-media-sources #sources-tabs .form-row {
+    grid-template-columns: 1fr auto; /* tabs then right actions */
+    align-items: center;
+}
+#panel-media-sources .source-actions-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
 /* Range Slider */
 .range-container {
     position: relative;
