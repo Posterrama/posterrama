@@ -5649,30 +5649,29 @@
             el.classList.remove('disabled');
         });
 
-        // Sidebar section switching (ignore group toggle header explicitly)
+        // Sidebar section switching (single-level items)
         document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
             item.addEventListener('click', e => {
-                // Let the Device Management group toggle be handled by its own listener
-                if (item.classList.contains('nav-toggle')) {
-                    e.preventDefault();
-                    return;
-                }
                 e.preventDefault();
                 const nav = item.getAttribute('data-nav');
                 if (!nav) return; // skip items without target section
                 document
                     .querySelectorAll('.sidebar-nav .nav-item')
                     .forEach(n => n.classList.remove('active'));
-                // Also clear any active submenu indicators when navigating to a top-level section
-                document
-                    .querySelectorAll('.sidebar-nav .nav-subitem')
-                    .forEach(s => s.classList.remove('active'));
                 item.classList.add('active');
                 if (nav === 'dashboard') {
                     showSection('section-dashboard');
                 } else if (nav === 'display') {
                     // Dedicated placeholder section for Display Settings (coming soon)
                     showSection('section-display');
+                } else if (nav === 'devices') {
+                    showSection('section-devices');
+                    try {
+                        document.getElementById('seg-devices')?.click();
+                    } catch (_) {}
+                    try {
+                        window.admin2?.initDevices?.();
+                    } catch (_) {}
                 } else if (nav === 'operations') {
                     showSection('section-operations');
                     // ensure latest status/backups when entering
@@ -6012,8 +6011,11 @@
                     group
                         .querySelectorAll('.nav-subitem')
                         ?.forEach(s => s.classList.remove('active'));
-                    // Show devices section by default when clicking the group header
+                    // Always open Devices tab by default when clicking the group header
                     showSection('section-devices');
+                    try {
+                        document.getElementById('seg-devices')?.click();
+                    } catch (_) {}
                     try {
                         window.admin2?.initDevices?.();
                     } catch (_) {}
@@ -6036,6 +6038,7 @@
                     if (key === 'devices') {
                         showSection('section-devices');
                         try {
+                            document.getElementById('seg-devices')?.click();
                             window.admin2?.initDevices?.();
                         } catch (_) {}
                     } else if (key === 'device-settings') {
@@ -6140,6 +6143,7 @@
                 if (h === '#devices') {
                     showSection('section-devices');
                     try {
+                        document.getElementById('seg-devices')?.click();
                         window.admin2?.initDevices?.();
                     } catch (_) {}
                     return;
