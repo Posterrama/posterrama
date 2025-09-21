@@ -7224,7 +7224,7 @@ body.page-logs {
 #panel-jellyfin .multiselect .ms-input {
     margin-left: 8px;
 }
-#panel-jellyfin .multiselect .ms-control::before {
+#panel-jellyfin .multiselect .ms-control:has(.ms-clear)::before {
     /* vertical divider after the left clear button */
     content: '';
     position: absolute;
@@ -7586,7 +7586,7 @@ body.page-logs {
 #panel-tmdb .multiselect .ms-input {
     margin-left: 8px;
 }
-#panel-tmdb .multiselect .ms-control::before {
+#panel-tmdb .multiselect .ms-control:has(.ms-clear)::before {
     content: '';
     position: absolute;
     left: 44px;
