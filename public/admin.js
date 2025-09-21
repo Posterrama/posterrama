@@ -12254,12 +12254,12 @@
                     if (!window.__autoFetchedLibs.tmdb) {
                         window.__autoFetchedLibs.tmdb = true;
                         try {
-                            // Use stored selection if any
+                            // Use stored selection if any (ensure we parse JSON from the response)
                             const cfgRes = await window.dedupJSON('/api/admin/config', {
                                 credentials: 'include',
                             });
-                            const base = cfgRes?.config || cfgRes || {};
-                            const tmdb = base.tmdbSource || {};
+                            const base = cfgRes?.ok ? await cfgRes.json() : {};
+                            const tmdb = base?.config?.tmdbSource || base?.tmdbSource || {};
                             await loadTMDBGenres(tmdb.genreFilter || '');
                         } catch (_) {
                             // best-effort; keep UI responsive

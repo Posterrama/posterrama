@@ -843,6 +843,7 @@
                   <div class="ms-options" id="plex-ms-movies-options"></div>
                 </div>
               </div>
+              <small class="form-help">Select one or more libraries. Populated from Plex.</small>
             </div>
             <div class="form-group">
               <label for="plex.shows">Show Libraries</label>
@@ -865,6 +866,7 @@
                   <div class="ms-options" id="plex-ms-shows-options"></div>
                 </div>
               </div>
+              <small class="form-help">Select one or more libraries. Populated from Plex.</small>
             </div>
           </div>
 
@@ -899,6 +901,7 @@
                   <div class="ms-options" id="plex-ms-ratings-options"></div>
                 </div>
               </div>
+              <small class="form-help">Select one or more ratings. Populated from Plex libraries.</small>
               
             </div>
             <div class="form-group">
@@ -922,6 +925,7 @@
                   <div class="ms-options" id="plex-ms-genres-options"></div>
                 </div>
               </div>
+              <small class="form-help">Select one or more genres. Populated from Plex libraries.</small>
               
             </div>
             <div class="form-group">
@@ -945,6 +949,7 @@
                   <div class="ms-options" id="plex-ms-qualities-options"></div>
                 </div>
               </div>
+              <small class="form-help">Select one or more qualities. Populated from Plex libraries.</small>
               
             </div>
           </div>
@@ -1044,6 +1049,7 @@
                   <div class="ms-options" id="jf-ms-movies-options"></div>
                 </div>
               </div>
+              <small class="form-help">Select one or more libraries. Populated from Jellyfin.</small>
             </div>
             <div class="form-group">
               <label for="jf.shows">Show Libraries</label>
@@ -1066,6 +1072,7 @@
                   <div class="ms-options" id="jf-ms-shows-options"></div>
                 </div>
               </div>
+              <small class="form-help">Select one or more libraries. Populated from Jellyfin.</small>
             </div>
           </div>
           
@@ -1099,6 +1106,7 @@
                   <div class="ms-options" id="jf-ms-ratings-options"></div>
                 </div>
               </div>
+              <small class="form-help">Select one or more ratings. Populated from Jellyfin libraries.</small>
               
             </div>
             <div class="form-group">
@@ -1122,6 +1130,7 @@
                   <div class="ms-options" id="jf-ms-genres-options"></div>
                 </div>
               </div>
+              <small class="form-help">Select one or more genres. Populated from Jellyfin libraries.</small>
               
             </div>
           </div>
@@ -1281,20 +1290,22 @@
               <div class="multiselect" id="streaming-ms-providers">
                 <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
                   <div class="ms-chips" id="streaming-ms-providers-chips"></div>
-                  <div class="placeholder">Select streaming providers</div>
+                  <button class="ms-clear" id="streaming-ms-providers-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
                   <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
                 </div>
                 <div class="ms-menu" id="streaming-ms-providers-menu" role="listbox">
-                  <div class="ms-actions">
+                  <div class="ms-search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
                     <input type="text" id="streaming-ms-providers-search" placeholder="Search providers" aria-label="Search providers">
-                    <div class="ms-actions-buttons">
-                      <button class="btn btn-outline btn-sm" id="streaming-ms-providers-select-all"><i class="fas fa-plus"></i> Select all</button>
-                      <button class="btn btn-outline btn-sm" id="streaming-ms-providers-clear-all"><i class="fas fa-eraser"></i> Clear</button>
-                    </div>
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="streaming-ms-providers-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="streaming-ms-providers-clear-all"><i class="fas fa-eraser"></i> Clear</button>
                   </div>
                   <div class="ms-options" id="streaming-ms-providers-options"></div>
                 </div>
               </div>
+              <small class="form-help">Select one or more providers. Populated from TMDB.</small>
             </div>
           </div>
           <div class="form-grid">
