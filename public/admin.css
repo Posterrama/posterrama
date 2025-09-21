@@ -5323,6 +5323,10 @@ body.page-logs {
     align-items: center;
     gap: 10px;
 }
+/* Jellyfin: make the inline note next to the switch not bold */
+#panel-jellyfin .section-title #jf-insecure-note {
+    font-weight: 400; /* override parent 600 */
+}
 .form-section .section-title .header-toggle {
     display: inline-flex;
     align-items: center;
