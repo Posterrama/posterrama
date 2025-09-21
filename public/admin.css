@@ -3117,6 +3117,50 @@ input[type='range']::-moz-range-thumb {
     font-size: var(--font-size-sm);
 }
 
+/*
+   Global multiselect checkbox visuals
+   Apply Jellyfin-style compact checkboxes to ALL multiselect menus.
+   Keeps panel-specific rules working, but ensures any new multiselects
+   automatically inherit consistent checkbox styling.
+*/
+.ms-menu .ms-option input[type='checkbox'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    display: inline-block;
+    position: relative;
+    transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        transform 40ms ease;
+}
+.ms-menu .ms-option input[type='checkbox']:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+}
+.ms-menu .ms-option input[type='checkbox']:active {
+    transform: scale(0.96);
+}
+.ms-menu .ms-option input[type='checkbox']:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4,9 7,12 14,5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 9px 9px;
+}
+.ms-menu .ms-option input[type='checkbox']:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+/* Prevent background wash on already-selected rows across all multiselects */
+.ms-menu .ms-option:has(input[type='checkbox']:checked) {
+    background: transparent;
+}
+
 /* Device Management - Cards Grid */
 .device-toolbar {
     display: flex;
