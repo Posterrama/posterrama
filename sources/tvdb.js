@@ -16,7 +16,7 @@ class TVDBSource {
         this.minRating = config.minRating || 0;
         this.yearFilter = config.yearFilter || null;
         // Optional TMDB enrichment (if TMDB API key is available in overall config)
-        this.tmdbApiKey = config.tmdbApiKey || null;
+        this.tmdbApiKey = config.tmdbApiKey || process.env.TMDB_API_KEY || null;
 
         // Cache for API responses
         this.cache = new Map();
@@ -622,7 +622,11 @@ class TVDBSource {
                         if (artwork.poster) {
                             posterUrl = artwork.poster;
                         }
-                    } catch (error) {}
+                    } catch (error) {
+                        // artwork fetch failed; continue with fallback
+                        if (this.metrics)
+                            this.metrics.errorCount = (this.metrics.errorCount || 0) + 1;
+                    }
                     // If still missing and TMDB enrichment available, try using title/year
                     if (!backgroundUrl || !posterUrl) {
                         try {
@@ -633,7 +637,9 @@ class TVDBSource {
                             );
                             backgroundUrl = backgroundUrl || enriched.fanart;
                             posterUrl = posterUrl || enriched.poster;
-                        } catch (_) {}
+                        } catch (e) {
+                            // enrichment failed; continue
+                        }
                     }
                 }
 
@@ -694,7 +700,10 @@ class TVDBSource {
                         if (artwork.poster) {
                             posterUrl = artwork.poster;
                         }
-                    } catch (error) {}
+                    } catch (error) {
+                        if (this.metrics)
+                            this.metrics.errorCount = (this.metrics.errorCount || 0) + 1;
+                    }
                     // If still missing and TMDB enrichment available, try using title/year
                     if (!backgroundUrl || !posterUrl) {
                         try {
@@ -705,7 +714,9 @@ class TVDBSource {
                             );
                             backgroundUrl = backgroundUrl || enriched.fanart;
                             posterUrl = posterUrl || enriched.poster;
-                        } catch (_) {}
+                        } catch (e) {
+                            // enrichment failed; continue
+                        }
                     }
                 }
 
