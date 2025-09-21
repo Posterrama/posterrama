@@ -3730,7 +3730,17 @@ select:not([multiple]) {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    padding-right: 44px !important; /* leave room for divider + caret */
+    box-sizing: border-box;
+    height: 42px; /* match Min Rating height */
+    /* Balanced padding: left for icon, right for divider+caret */
+    padding: 8px 44px 8px 40px !important;
+    line-height: 1.2; /* avoid clipping while keeping compact height */
+}
+#panel-tvdb .select-wrap .select-icon + select#tvdb\.category {
+    padding-left: 40px;
+}
+#panel-tvdb .select-wrap.has-caret {
+    min-height: 42px;
 }
 #panel-tvdb .select-wrap.has-caret:focus-within .select-caret {
     border-color: color-mix(in srgb, var(--color-success) 55%, var(--color-border));
@@ -3746,6 +3756,12 @@ select:not([multiple]) {
 #panel-tvdb input#tvdb\.minRating,
 #panel-tvdb input#tvdb\.yearFilter {
     height: 42px; /* match select min-height for visual parity */
+}
+
+/* TVDB: if Min Rating is enhanced with number-input-wrapper, ensure same fixed height */
+#panel-tvdb .number-input-wrapper {
+    height: 42px;
+    background: var(--color-bg-card);
 }
 
 /* Cache edit button hover */

@@ -5672,6 +5672,9 @@
                     try {
                         window.admin2?.initDevices?.();
                     } catch (_) {}
+                    try {
+                        if (location.hash !== '#devices') location.hash = '#devices';
+                    } catch (_) {}
                 } else if (nav === 'operations') {
                     showSection('section-operations');
                     // ensure latest status/backups when entering
@@ -12154,18 +12157,21 @@
             const tvdbCatEl = getInput('tvdb.category');
             if (tvdbCatEl) {
                 tvdbCatEl.value = tvdb.category || 'popular';
-                // Sync custom select UI/icon
+                // Update overlay icon via change event (native select only)
                 try {
                     tvdbCatEl.dispatchEvent(new Event('change', { bubbles: true }));
                 } catch (_) {
-                    // ignore (custom select sync)
+                    // ignore (icon refresh)
                 }
-                syncCustomSelect(tvdbCatEl);
             }
             const tvdbMinRatingEl = getInput('tvdb.minRating');
             if (tvdbMinRatingEl) {
                 const v = Number(tvdb.minRating);
                 tvdbMinRatingEl.value = Number.isFinite(v) && v > 0 ? v : '';
+                // Ensure number input wrapper/steppers are applied consistently
+                try {
+                    window.admin2?.enhanceNumberInput?.(tvdbMinRatingEl);
+                } catch (_) {}
             }
             if (getInput('tvdb.yearFilter'))
                 getInput('tvdb.yearFilter').value =
@@ -14455,186 +14461,12 @@
             }
         });
 
-        // TVDB custom select + overlay icon
+        // TVDB: overlay icon only; use native select with caret wrapper (no custom dropdown)
         if (tvdbCat && tvdbCatIcon) {
             tvdbCatIcon.className = iconFor(tvdbCat.value);
             tvdbCat.addEventListener('change', () => {
                 tvdbCatIcon.className = iconFor(tvdbCat.value);
             });
-
-            // Build custom dropdown for iconized options
-            const wrap = tvdbCat.closest('.select-wrap');
-            if (wrap) {
-                wrap.classList.add('has-custom-select');
-                tvdbCat.classList.add('enhanced');
-                const custom = document.createElement('div');
-                custom.className = 'custom-select';
-                const trigger = document.createElement('button');
-                trigger.type = 'button';
-                trigger.className = 'custom-select-trigger';
-                trigger.setAttribute('aria-haspopup', 'listbox');
-                trigger.setAttribute('aria-expanded', 'false');
-                const left = document.createElement('span');
-                left.className = 'left';
-                const ico = document.createElement('i');
-                ico.className = iconFor(tvdbCat.value);
-                const label = document.createElement('span');
-                label.textContent = tvdbCat.options[tvdbCat.selectedIndex]?.text || 'Select';
-                left.appendChild(ico);
-                left.appendChild(label);
-                const caret = document.createElement('i');
-                caret.className = 'fas fa-chevron-down caret';
-                trigger.appendChild(left);
-                trigger.appendChild(caret);
-                const list = document.createElement('div');
-                list.className = 'custom-options';
-                if (tvdbCat.id) list.setAttribute('data-select-id', tvdbCat.id);
-                list.setAttribute('role', 'listbox');
-                // Build options with optgroup headers to mirror legacy admin
-                Array.from(tvdbCat.children).forEach(child => {
-                    if (child.tagName === 'OPTGROUP') {
-                        const header = document.createElement('div');
-                        header.className = 'custom-optgroup';
-                        header.textContent = child.label; // includes emojis
-                        list.appendChild(header);
-                        Array.from(child.children).forEach(opt => {
-                            if (!opt.value) return;
-                            const row = document.createElement('div');
-                            row.className = 'custom-option';
-                            row.setAttribute('role', 'option');
-                            row.dataset.value = opt.value;
-                            if (opt.selected) row.setAttribute('aria-selected', 'true');
-                            const oi = document.createElement('i');
-                            oi.className = iconFor(opt.value);
-                            const ot = document.createElement('span');
-                            ot.textContent = opt.text; // includes emojis
-                            row.appendChild(oi);
-                            row.appendChild(ot);
-                            row.addEventListener('click', () => {
-                                tvdbCat.value = opt.value;
-                                tvdbCat.dispatchEvent(new Event('change', { bubbles: true }));
-                                ico.className = iconFor(opt.value);
-                                label.textContent = opt.text;
-                                list.querySelectorAll(
-                                    '.custom-option[aria-selected="true"]'
-                                ).forEach(el => el.removeAttribute('aria-selected'));
-                                row.setAttribute('aria-selected', 'true');
-                                custom.classList.remove('open');
-                                trigger.setAttribute('aria-expanded', 'false');
-                                list.style.display = 'none';
-                            });
-                            list.appendChild(row);
-                        });
-                    } else if (child.tagName === 'OPTION') {
-                        const opt = child;
-                        if (!opt.value) return;
-                        const row = document.createElement('div');
-                        row.className = 'custom-option';
-                        row.setAttribute('role', 'option');
-                        row.dataset.value = opt.value;
-                        if (opt.selected) row.setAttribute('aria-selected', 'true');
-                        const oi = document.createElement('i');
-                        oi.className = iconFor(opt.value);
-                        const ot = document.createElement('span');
-                        ot.textContent = opt.text;
-                        row.appendChild(oi);
-                        row.appendChild(ot);
-                        row.addEventListener('click', () => {
-                            tvdbCat.value = opt.value;
-                            tvdbCat.dispatchEvent(new Event('change', { bubbles: true }));
-                            ico.className = iconFor(opt.value);
-                            label.textContent = opt.text;
-                            list.querySelectorAll('.custom-option[aria-selected="true"]').forEach(
-                                el => el.removeAttribute('aria-selected')
-                            );
-                            row.setAttribute('aria-selected', 'true');
-                            custom.classList.remove('open');
-                            trigger.setAttribute('aria-expanded', 'false');
-                            list.style.display = 'none';
-                        });
-                        list.appendChild(row);
-                    }
-                });
-                custom.appendChild(trigger);
-                // append custom container under wrap; list will be appended to body when opened
-                wrap.appendChild(custom);
-                // open/close handlers with viewport-aware positioning
-                const positionList = () => {
-                    const rect = trigger.getBoundingClientRect();
-                    const viewportH = window.innerHeight || document.documentElement.clientHeight;
-                    const belowSpace = viewportH - rect.bottom;
-                    const aboveSpace = rect.top;
-                    const desiredHeight = Math.min(260, Math.max(160, Math.floor(viewportH * 0.5)));
-                    let top;
-                    let maxHeight;
-                    if (belowSpace >= 180 || belowSpace >= aboveSpace) {
-                        top = rect.bottom + 6;
-                        maxHeight = Math.min(desiredHeight, belowSpace - 12);
-                    } else {
-                        maxHeight = Math.min(desiredHeight, aboveSpace - 12);
-                        top = Math.max(8, rect.top - maxHeight - 6);
-                    }
-                    Object.assign(list.style, {
-                        display: 'block',
-                        top: `${Math.round(top)}px`,
-                        left: `${Math.round(rect.left)}px`,
-                        width: `${Math.round(rect.width)}px`,
-                        maxHeight: `${Math.max(140, maxHeight)}px`,
-                    });
-                };
-                const openList = () => {
-                    if (!document.body.contains(list)) document.body.appendChild(list);
-                    positionList();
-                    custom.classList.add('open');
-                    trigger.setAttribute('aria-expanded', 'true');
-                };
-                const closeList = () => {
-                    custom.classList.remove('open');
-                    trigger.setAttribute('aria-expanded', 'false');
-                    list.style.display = 'none';
-                };
-                const toggleOpen = () => {
-                    if (custom.classList.contains('open')) closeList();
-                    else openList();
-                };
-                trigger.addEventListener('click', e => {
-                    e.stopPropagation();
-                    toggleOpen();
-                });
-                document.addEventListener('click', e => {
-                    if (
-                        !custom.contains(e.target) &&
-                        e.target !== list &&
-                        !list.contains(e.target)
-                    ) {
-                        closeList();
-                    }
-                });
-                window.addEventListener('resize', () => {
-                    if (custom.classList.contains('open')) positionList();
-                });
-                window.addEventListener(
-                    'scroll',
-                    () => {
-                        if (custom.classList.contains('open')) positionList();
-                    },
-                    { passive: true }
-                );
-                // keep external changes in sync
-                tvdbCat.addEventListener('change', () => {
-                    ico.className = iconFor(tvdbCat.value);
-                    label.textContent = tvdbCat.options[tvdbCat.selectedIndex]?.text || 'Select';
-                    list.querySelectorAll('.custom-option').forEach(el => {
-                        el.toggleAttribute('aria-selected', el.dataset.value === tvdbCat.value);
-                    });
-                });
-                // Initial sync for trigger and list selection
-                try {
-                    syncCustomSelect(tvdbCat);
-                } catch (_) {
-                    // ignore
-                }
-            }
         }
         document.getElementById('btn-tvdb-test')?.addEventListener('click', testTVDB);
         document.getElementById('btn-save-plex')?.addEventListener('click', savePlex);
