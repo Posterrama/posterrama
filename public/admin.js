@@ -5855,6 +5855,17 @@
                 const mountSourceHeaderActions = val => {
                     if (!topActions) return;
                     try {
+                        // Always resolve the current right-side actions container in case the DOM was refreshed
+                        const freshTabsRow = document.querySelector(
+                            '#panel-media-sources #sources-tabs .form-row'
+                        );
+                        let currentRight = freshTabsRow?.querySelector('.source-actions-right');
+                        if (!currentRight && freshTabsRow) {
+                            currentRight = document.createElement('div');
+                            currentRight.className = 'source-actions-right';
+                            freshTabsRow.appendChild(currentRight);
+                        }
+                        if (currentRight) rightActions = currentRight;
                         // Return current mounted actions back to their home before switching
                         if (mountedSource) {
                             const prevHome = getActionsContainer(mountedSource);
@@ -5872,17 +5883,16 @@
                             setTimeout(() => {
                                 try {
                                     // Recreate rightActions if the DOM changed
-                                    const freshTabsRow = document.querySelector(
+                                    const freshTabsRow2 = document.querySelector(
                                         '#panel-media-sources #sources-tabs .form-row'
                                     );
-                                    if (
-                                        freshTabsRow &&
-                                        !freshTabsRow.querySelector('.source-actions-right')
-                                    ) {
-                                        const ra = document.createElement('div');
+                                    let ra = freshTabsRow2?.querySelector('.source-actions-right');
+                                    if (!ra && freshTabsRow2) {
+                                        ra = document.createElement('div');
                                         ra.className = 'source-actions-right';
-                                        freshTabsRow.appendChild(ra);
+                                        freshTabsRow2.appendChild(ra);
                                     }
+                                    if (ra) rightActions = ra;
                                 } catch (_) {}
                                 mountSourceHeaderActions(val);
                             }, 50);
@@ -5972,6 +5982,8 @@
                         try {
                             const home = getActionsContainer(mountedSource);
                             moveAll(topActions, home);
+                            // Also return any right-side actions to the home container
+                            moveAll(rightActions, home);
                             mountedSource = null;
                         } catch (_) {}
                         return;
