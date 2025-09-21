@@ -15,6 +15,8 @@ class TVDBSource {
         this.category = config.category || 'popular';
         this.minRating = config.minRating || 0;
         this.yearFilter = config.yearFilter || null;
+        // Optional TMDB enrichment (if TMDB API key is available in overall config)
+        this.tmdbApiKey = config.tmdbApiKey || null;
 
         // Cache for API responses
         this.cache = new Map();
@@ -197,6 +199,47 @@ class TVDBSource {
         }
     }
 
+    // --- Optional TMDB enrichment helpers ---
+    getTMDBImageUrl(path, type = 'poster') {
+        if (!path) return null;
+        const base = 'https://image.tmdb.org/t/p';
+        // Prefer high quality; caller can downscale via CSS
+        if (type === 'backdrop') return `${base}/original${path}`;
+        return `${base}/original${path}`;
+    }
+
+    async searchTMDBByTitle(title, year, type = 'movie') {
+        if (!this.tmdbApiKey || !title) return null;
+        try {
+            const endpoint = type === 'tv' ? '/search/tv' : '/search/movie';
+            const params = {
+                api_key: this.tmdbApiKey,
+                query: title,
+                language: 'en-US',
+                include_adult: false,
+                page: 1,
+            };
+            if (year && type === 'movie') params.year = year;
+            if (year && type === 'tv') params.first_air_date_year = year;
+            const url = `https://api.themoviedb.org/3${endpoint}`;
+            const r = await axios.get(url, { params });
+            const results = r.data && Array.isArray(r.data.results) ? r.data.results : [];
+            return results && results.length ? results[0] : null;
+        } catch (e) {
+            // quiet failure
+            return null;
+        }
+    }
+
+    async enrichArtworkWithTMDB(title, year, type = 'movie') {
+        if (!this.tmdbApiKey || !title) return { fanart: null, poster: null };
+        const hit = await this.searchTMDBByTitle(title, year, type === 'tv' ? 'tv' : 'movie');
+        if (!hit) return { fanart: null, poster: null };
+        const poster = this.getTMDBImageUrl(hit.poster_path, 'poster');
+        const fanart = this.getTMDBImageUrl(hit.backdrop_path, 'backdrop');
+        return { fanart, poster };
+    }
+
     async getArtwork(itemId, itemType = 'series') {
         try {
             // If artwork is temporarily blocked (e.g., 403), short-circuit to avoid noisy retries
@@ -241,6 +284,15 @@ class TVDBSource {
                 fanart: fanart ? this.getImageUrl(fanart.image) : null,
                 poster: poster ? this.getImageUrl(poster.image) : null,
             };
+
+            // If TVDB lacks artwork and TMDB API key is available, try to enrich
+            if ((!result.fanart || !result.poster) && this.tmdbApiKey) {
+                try {
+                    const type = itemType === 'movie' || itemType === 'movies' ? 'movie' : 'tv';
+                    // We don't have the title/year here; enrichment will be attempted at process* level
+                    // Keep as-is for getArtwork path
+                } catch (_) {}
+            }
 
             this.setCachedData(cacheKey, result);
             return result;
@@ -579,6 +631,18 @@ class TVDBSource {
                     } catch (error) {
                         // Ignore artwork fetch errors, use fallback
                     }
+                    // If still missing and TMDB enrichment available, try using title/year
+                    if (!backgroundUrl || !posterUrl) {
+                        try {
+                            const enriched = await this.enrichArtworkWithTMDB(
+                                show.name,
+                                this.extractYear(show.firstAired),
+                                'tv'
+                            );
+                            backgroundUrl = backgroundUrl || enriched.fanart;
+                            posterUrl = posterUrl || enriched.poster;
+                        } catch (_) {}
+                    }
                 }
 
                 const processedShow = {
@@ -640,6 +704,18 @@ class TVDBSource {
                         }
                     } catch (error) {
                         // Ignore artwork fetch errors, use fallback
+                    }
+                    // If still missing and TMDB enrichment available, try using title/year
+                    if (!backgroundUrl || !posterUrl) {
+                        try {
+                            const enriched = await this.enrichArtworkWithTMDB(
+                                movie.name,
+                                this.extractYear(movie.releaseDate),
+                                'movie'
+                            );
+                            backgroundUrl = backgroundUrl || enriched.fanart;
+                            posterUrl = posterUrl || enriched.poster;
+                        } catch (_) {}
                     }
                 }
 

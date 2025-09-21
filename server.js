@@ -5806,6 +5806,7 @@ async function getPlaylistMedia() {
             ...config.tvdbSource,
             movieCount: FIXED_LIMITS.TVDB_MOVIES,
             showCount: FIXED_LIMITS.TVDB_SHOWS,
+            tmdbApiKey: (config.tmdbSource && config.tmdbSource.apiKey) || null,
         });
 
         // Schedule periodic cache cleanup for TVDB source
@@ -9605,7 +9606,10 @@ app.post(
                 genreFilter: '',
             };
 
-            const tvdbSource = new TVDBSource(testConfig);
+            const tvdbSource = new TVDBSource({
+                ...testConfig,
+                tmdbApiKey: (config.tmdbSource && config.tmdbSource.apiKey) || null,
+            });
 
             if (isDebug) logger.debug('[TVDB Test] Attempting to fetch sample data...');
 

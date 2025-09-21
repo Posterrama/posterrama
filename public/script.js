@@ -189,8 +189,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const la = document.getElementById('layer-a');
             const lb = document.getElementById('layer-b');
             if (!la || !lb) return;
-            const aOp = parseFloat(getComputedStyle(la).opacity || '1');
-            const bOp = parseFloat(getComputedStyle(lb).opacity || '1');
+            const bg2 = mediaItem.backgroundUrl;
+            if (bg2 && bg2 !== 'null' && bg2 !== 'undefined') {
+                la.style.backgroundImage = `url('${bg2}')`;
+                lb.style.backgroundImage = `url('${bg2}')`;
+            } else {
+                la.style.backgroundImage = '';
+                lb.style.backgroundImage = '';
+            }
             if (aOp <= 0.01 && bOp <= 0.01) {
                 // Prefer the layer that already has a background image to avoid flashing black
                 let target = activeLayer || la;
@@ -279,9 +285,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (mediaItem && mediaItem.backgroundUrl) {
-                la.style.backgroundImage = `url('${mediaItem.backgroundUrl}')`;
-                // Preload lb with the same image as a safe fallback; it will be replaced on next cycle
-                lb.style.backgroundImage = `url('${mediaItem.backgroundUrl}')`;
+                const bg = mediaItem.backgroundUrl;
+                if (bg && bg !== 'null' && bg !== 'undefined') {
+                    la.style.backgroundImage = `url('${bg}')`;
+                    // Preload lb with the same image as a safe fallback; it will be replaced on next cycle
+                    lb.style.backgroundImage = `url('${bg}')`;
+                } else {
+                    la.style.backgroundImage = '';
+                    lb.style.backgroundImage = '';
+                }
             }
 
             // Make sure the visible layer shows immediately
@@ -4038,8 +4050,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                             lb.style.transition = 'none';
                             la.style.opacity = '1';
                             lb.style.opacity = '0';
-                            la.style.backgroundImage = `url('${nextItem.backgroundUrl}')`;
-                            lb.style.backgroundImage = `url('${nextItem.backgroundUrl}')`;
+                            const bg = nextItem.backgroundUrl;
+                            if (bg && bg !== 'null' && bg !== 'undefined') {
+                                la.style.backgroundImage = `url('${bg}')`;
+                                lb.style.backgroundImage = `url('${bg}')`;
+                            } else {
+                                la.style.backgroundImage = '';
+                                lb.style.backgroundImage = '';
+                            }
                             activeLayer = la;
                             inactiveLayer = lb;
                         }
@@ -4180,16 +4198,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Apply transition effects only in screensaver mode (not cinema or wallart mode)
         if (!appConfig.cinemaMode && !appConfig.wallartMode?.enabled) {
-            applyPosterTransitionEffect(mediaItem.posterUrl);
+            if (mediaItem.posterUrl) {
+                applyPosterTransitionEffect(mediaItem.posterUrl);
+            }
         } else if (appConfig.cinemaMode) {
             // In cinema mode, just show the poster directly without transitions
-            posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+            if (mediaItem.posterUrl) {
+                posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+            } else {
+                posterEl.style.backgroundImage = '';
+            }
             posterEl.innerHTML = '';
 
             // Also set on poster-a for backward compatibility (if it exists and is visible)
             const posterA = document.getElementById('poster-a');
             if (posterA) {
-                posterA.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+                if (mediaItem.posterUrl) {
+                    posterA.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+                } else {
+                    posterA.style.backgroundImage = '';
+                }
                 posterA.style.opacity = '1';
             }
         } else {
@@ -4224,9 +4252,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
                     posterEl.innerHTML = '';
                 };
-                testImg.src = mediaItem.posterUrl;
+                if (mediaItem.posterUrl) testImg.src = mediaItem.posterUrl;
             } else {
-                posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+                if (mediaItem.posterUrl) {
+                    posterEl.style.backgroundImage = `url('${mediaItem.posterUrl}')`;
+                } else {
+                    posterEl.style.backgroundImage = '';
+                }
                 posterEl.innerHTML = '';
             }
         }
@@ -4248,7 +4280,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             // Normal mode - handle links as usual
             if (mediaItem.imdbUrl) {
-                posterLink.href = mediaItem.imdbUrl;
+                if (mediaItem.imdbUrl && mediaItem.imdbUrl !== 'null') {
+                    posterLink.href = mediaItem.imdbUrl;
+                } else {
+                    posterLink.removeAttribute('href');
+                    posterLink.style.cursor = 'default';
+                }
                 posterLink.style.cursor = 'pointer';
             } else {
                 posterLink.removeAttribute('href');
@@ -4578,6 +4615,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Apply transition effects specifically for posters in cinema mode
     function applyPosterTransitionEffect(newPosterUrl) {
+        if (!newPosterUrl || newPosterUrl === 'null' || newPosterUrl === 'undefined') {
+            const originalPoster = document.getElementById('poster');
+            if (originalPoster) originalPoster.style.backgroundImage = '';
+            return;
+        }
         // In admin live preview, use a smooth quick fade for posters
         if (window.IS_PREVIEW) {
             const posterA = document.getElementById('poster-a');
