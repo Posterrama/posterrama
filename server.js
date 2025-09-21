@@ -10840,18 +10840,41 @@ app.post(
                 }
             } else {
                 // Regular TMDB test
-                const testMovies = await tmdbSource.fetchMedia('movie', 5);
+                const inferTypeFromCategory = cat => {
+                    if (!cat) return 'movie';
+                    const c = String(cat);
+                    if (c.startsWith('tv_')) return 'tv';
+                    if (c.includes('_tv')) return 'tv';
+                    if (c === 'tv' || c === 'tv_latest') return 'tv';
+                    return 'movie';
+                };
 
-                if (testMovies.length > 0) {
+                let mediaType = inferTypeFromCategory(category);
+                let testItems = await tmdbSource.fetchMedia(mediaType, 5);
+
+                // For trending_all_* categories, try the alternate type if nothing returned
+                if (testItems.length === 0 && String(category).startsWith('trending_all_')) {
+                    const altType = mediaType === 'movie' ? 'tv' : 'movie';
+                    try {
+                        testItems = await tmdbSource.fetchMedia(altType, 5);
+                        if (testItems.length > 0) mediaType = altType;
+                    } catch (_) {
+                        // ignore and fall through to error handling
+                    }
+                }
+
+                if (testItems.length > 0) {
+                    const label = mediaType === 'tv' ? 'TV shows' : 'movies';
                     res.json({
                         success: true,
-                        count: testMovies.length,
-                        message: `Successfully connected to TMDB and fetched ${category} movies`,
+                        count: testItems.length,
+                        message: `Successfully connected to TMDB and fetched ${category} ${label}`,
                     });
                 } else {
+                    const label = mediaType === 'tv' ? 'TV shows' : 'movies';
                     res.json({
                         success: false,
-                        error: 'Connected to TMDB but no movies found. Check your API key or category.',
+                        error: `Connected to TMDB but no ${label} found. Check your API key or category.`,
                     });
                 }
             }

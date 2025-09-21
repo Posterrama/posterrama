@@ -2231,7 +2231,7 @@
                 // Apply a compact width class for known small fields so wrappers don't fill the grid
                 try {
                     const smallIds = new Set([
-                        'plex_port',
+                        // 'plex_port' intentionally excluded: plain input without spinner controls
                         'plex.recentDays',
                         'jf.port',
                         'jf.recentDays',
@@ -2243,35 +2243,57 @@
                         wrapper.classList.add('niw-sized-sm');
                     }
                 } catch (_) {}
-                const step = () => Number(input.step || '1') || 1;
-                const clamp = v => {
-                    let val = v;
-                    const min = input.min === '' ? null : Number(input.min);
-                    const max = input.max === '' ? null : Number(input.max);
-                    if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
-                    if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
-                    return val;
-                };
-                btnUp.addEventListener('click', () => {
-                    const cur = Number(input.value || '0') || 0;
-                    input.value = String(clamp(cur + step()));
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                    input.dispatchEvent(new Event('change', { bubbles: true }));
-                });
-                btnDown.addEventListener('click', () => {
-                    const cur = Number(input.value || '0') || 0;
-                    input.value = String(clamp(cur - step()));
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                    input.dispatchEvent(new Event('change', { bubbles: true }));
-                });
-                // Mark wrapper as wired to prevent duplicate listeners elsewhere
-                try {
-                    wrapper.dataset.wired = '1';
-                } catch (_) {}
+                // If inside Media Sources, rely on the delegated handler to avoid double wiring
+                const inMediaSources = !!wrapper.closest('#section-media-sources');
+                if (!inMediaSources) {
+                    const step = () => Number(input.step || '1') || 1;
+                    const decimalsForStep = s => {
+                        const str = String(s);
+                        if (str.includes('e') || str.includes('E')) return 6;
+                        const i = str.indexOf('.');
+                        return i === -1 ? 0 : Math.min(6, str.length - i - 1);
+                    };
+                    const snap = (val, s) => Math.round(val / s) * s;
+                    const clamp = v => {
+                        let val = v;
+                        const min = input.min === '' ? null : Number(input.min);
+                        const max = input.max === '' ? null : Number(input.max);
+                        if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+                        if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+                        return val;
+                    };
+                    btnUp.addEventListener('click', e => {
+                        try {
+                            e.stopPropagation();
+                        } catch (_) {}
+                        const cur = Number(input.value || '0') || 0;
+                        const s = step();
+                        const out = clamp(snap(cur + s, s));
+                        const d = decimalsForStep(s);
+                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    btnDown.addEventListener('click', e => {
+                        try {
+                            e.stopPropagation();
+                        } catch (_) {}
+                        const cur = Number(input.value || '0') || 0;
+                        const s = step();
+                        const out = clamp(snap(cur - s, s));
+                        const d = decimalsForStep(s);
+                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    // Mark wrapper as wired to prevent duplicate listeners elsewhere
+                    try {
+                        wrapper.dataset.wired = '1';
+                    } catch (_) {}
+                }
             };
             // Target specific IDs explicitly to avoid unexpected layout shifts
             const numberIds = [
-                'plex_port',
                 'plex.recentDays',
                 'jf.port',
                 'jf.recentDays',
@@ -2290,20 +2312,50 @@
             // Expose so other flows (like panel routing) can enhance late-mounted or hidden inputs
             window.admin2 = window.admin2 || {};
             window.admin2.enhanceNumberInput = enhanceNumberInput;
+            // Plex port: plain input (no spinner controls). Sanitize and clamp.
+            try {
+                const plexPort = document.getElementById('plex_port');
+                if (plexPort) {
+                    const clampPort = () => {
+                        const raw = plexPort.value.replace(/[^0-9]/g, '');
+                        if (raw === '') return; // allow clearing temporarily
+                        let n = parseInt(raw, 10);
+                        if (Number.isNaN(n)) n = '';
+                        else n = Math.max(1, Math.min(65535, n));
+                        plexPort.value = n === '' ? '' : String(n);
+                    };
+                    plexPort.addEventListener('input', () => {
+                        const v = plexPort.value;
+                        const digits = v.replace(/[^0-9]/g, '');
+                        if (digits !== v) plexPort.value = digits;
+                    });
+                    plexPort.addEventListener('change', clampPort);
+                    plexPort.addEventListener('blur', clampPort);
+                }
+            } catch (_) {}
         } catch (_) {}
 
-        // Wire number steppers for statically-defined wrappers in Media Sources (e.g., Port fields)
-        // Ensures buttons work even when markup is pre-wrapped in HTML instead of via enhancer
+        // Wire number steppers for statically-defined wrappers (e.g., pre-wrapped inputs in Media Sources)
+        // Expose as a helper and call initially and on panel visibility
         try {
-            const scope = document.getElementById('section-media-sources');
-            if (scope) {
+            const wireNumberWrappers = scope => {
+                if (!scope) return;
                 scope.querySelectorAll('.number-input-wrapper').forEach(wrapper => {
                     if (!wrapper || wrapper.dataset.wired === '1') return;
+                    // If this wrapper lives under Media Sources, skip direct wiring and let delegated handler act
+                    if (wrapper.closest('#section-media-sources')) return;
                     const input = wrapper.querySelector('input[type="number"]');
                     const inc = wrapper.querySelector('.number-inc');
                     const dec = wrapper.querySelector('.number-dec');
                     if (!input || !inc || !dec) return;
                     const step = () => Number(input.step || '1') || 1;
+                    const decimalsForStep = s => {
+                        const str = String(s);
+                        if (str.includes('e') || str.includes('E')) return 6;
+                        const i = str.indexOf('.');
+                        return i === -1 ? 0 : Math.min(6, str.length - i - 1);
+                    };
+                    const snap = (val, s) => Math.round(val / s) * s;
                     const clamp = v => {
                         let val = v;
                         const min = input.min === '' ? null : Number(input.min);
@@ -2312,21 +2364,93 @@
                         if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
                         return val;
                     };
-                    inc.addEventListener('click', () => {
+                    inc.addEventListener('click', e => {
+                        try {
+                            e.stopPropagation();
+                            e.stopImmediatePropagation?.();
+                        } catch (_) {}
                         const cur = Number(input.value || '0') || 0;
-                        input.value = String(clamp(cur + step()));
+                        const s = step();
+                        const out = clamp(snap(cur + s, s));
+                        const d = decimalsForStep(s);
+                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
                         input.dispatchEvent(new Event('input', { bubbles: true }));
                         input.dispatchEvent(new Event('change', { bubbles: true }));
                     });
-                    dec.addEventListener('click', () => {
+                    dec.addEventListener('click', e => {
+                        try {
+                            e.stopPropagation();
+                            e.stopImmediatePropagation?.();
+                        } catch (_) {}
                         const cur = Number(input.value || '0') || 0;
-                        input.value = String(clamp(cur - step()));
+                        const s = step();
+                        const out = clamp(snap(cur - s, s));
+                        const d = decimalsForStep(s);
+                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
                         input.dispatchEvent(new Event('input', { bubbles: true }));
                         input.dispatchEvent(new Event('change', { bubbles: true }));
                     });
                     wrapper.dataset.wired = '1';
                 });
-            }
+            };
+            // Initial pass for the whole Media Sources section
+            const scope = document.getElementById('section-media-sources');
+            if (scope) wireNumberWrappers(scope);
+            // Expose helper for use on panel activation
+            window.admin2 = window.admin2 || {};
+            window.admin2.wireNumberWrappers = wireNumberWrappers;
+            // Delegated click handler as a safety net so buttons always work
+            scope?.addEventListener(
+                'click',
+                e => {
+                    const btn = e.target?.closest?.('.number-input-wrapper .number-btn');
+                    if (!btn) return;
+                    const wrapper = btn.closest('.number-input-wrapper');
+                    // If this wrapper already has direct listeners, let them handle it
+                    if (wrapper?.dataset?.wired === '1') return;
+                    const input = wrapper?.querySelector?.('input[type="number"]');
+                    if (!input) return;
+                    // Prevent double handling within the same tick
+                    if (btn.__handledOnce) return;
+                    btn.__handledOnce = true;
+                    setTimeout(() => {
+                        try {
+                            delete btn.__handledOnce;
+                        } catch (_) {}
+                    }, 0);
+                    const s = (() => Number(input.step || '1') || 1)();
+                    const min = input.min === '' ? null : Number(input.min);
+                    const max = input.max === '' ? null : Number(input.max);
+                    const decimalsForStep = step => {
+                        const str = String(step);
+                        if (str.includes('e') || str.includes('E')) return 6;
+                        const i = str.indexOf('.');
+                        return i === -1 ? 0 : Math.min(6, str.length - i - 1);
+                    };
+                    const snap = (val, step) => Math.round(val / step) * step;
+                    const clamp = v => {
+                        let val = v;
+                        if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+                        if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+                        return val;
+                    };
+                    const cur = Number(input.value || '0') || 0;
+                    if (btn.classList.contains('number-inc')) {
+                        const out = clamp(snap(cur + s, s));
+                        const d = decimalsForStep(s);
+                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+                    } else if (btn.classList.contains('number-dec')) {
+                        const out = clamp(snap(cur - s, s));
+                        const d = decimalsForStep(s);
+                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+                    } else {
+                        return;
+                    }
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                },
+                false
+            );
         } catch (_) {}
 
         // Screensaver: live summary + presets (affect global Effect/Playback/Clock)
@@ -5801,6 +5925,8 @@
                     // Re-run number input enhancement for any visible numeric fields in the panel
                     const nums = active?.querySelectorAll('input[type="number"]') || [];
                     nums.forEach(el => window.admin2?.enhanceNumberInput?.(el));
+                    // Wire steppers for statically pre-wrapped number inputs in this panel (e.g., TVDB Min Rating)
+                    window.admin2?.wireNumberWrappers?.(active);
                 } catch (_) {}
             }, 60);
         }
@@ -11703,6 +11829,11 @@
                 }
             };
             // Handlers
+            // Prevent clear button from toggling menu
+            const clearBtn = document.getElementById(`${idBase}-clear`);
+            clearBtn?.addEventListener('mousedown', e => {
+                e.stopPropagation();
+            });
             control.addEventListener('mousedown', e => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -12087,15 +12218,36 @@
                     // ignore (icon refresh)
                 }
             }
-            if (getInput('tmdb.minRating')) {
-                const v = Number(tmdb.minRating);
+            // Replace TMDB Min Rating spinner with a dropdown (0–10)
+            (function ensureTmdbMinRatingSelect() {
                 const el = getInput('tmdb.minRating');
-                el.value = Number.isFinite(v) && v > 0 ? v : '';
-                // Ensure number input wrapper/steppers are applied consistently
-                try {
-                    window.admin2?.enhanceNumberInput?.(el);
-                } catch (_) {}
-            }
+                if (!el) return;
+                if (el.tagName !== 'SELECT') {
+                    const mount = el.closest('.number-input-wrapper') || el;
+                    const wrap = document.createElement('div');
+                    wrap.className = 'select-wrap has-caret';
+                    const sel = document.createElement('select');
+                    sel.id = el.id;
+                    sel.name = el.getAttribute('name') || el.id;
+                    for (let i = 0; i <= 10; i++) {
+                        const opt = document.createElement('option');
+                        opt.value = String(i);
+                        opt.textContent = String(i);
+                        sel.appendChild(opt);
+                    }
+                    wrap.appendChild(sel);
+                    const caret = document.createElement('span');
+                    caret.className = 'select-caret';
+                    caret.setAttribute('aria-hidden', 'true');
+                    caret.textContent = '▾';
+                    wrap.appendChild(caret);
+                    mount.parentNode?.replaceChild(wrap, mount);
+                }
+                const sel = /** @type {HTMLSelectElement} */ (getInput('tmdb.minRating'));
+                const raw = Number(tmdb.minRating);
+                const v = Number.isFinite(raw) ? Math.min(10, Math.max(0, Math.round(raw))) : 0;
+                sel.value = String(v);
+            })();
             if (getInput('tmdb.yearFilter')) {
                 const v = tmdb.yearFilter;
                 getInput('tmdb.yearFilter').value = v == null ? '' : String(v);
@@ -12114,10 +12266,38 @@
                 };
                 setBool('streamingSources.enabled', streaming.enabled);
                 setVal('streamingSources.region', streaming.region || 'US');
-                if (getInput('streamingSources.minRating')) {
-                    const v = Number(streaming.minRating);
-                    getInput('streamingSources.minRating').value = Number.isFinite(v) ? v : '';
-                }
+                // Replace Streaming Min Rating spinner with a dropdown (0–10)
+                (function ensureStreamingMinRatingSelect() {
+                    const el = getInput('streamingSources.minRating');
+                    if (!el) return;
+                    if (el.tagName !== 'SELECT') {
+                        const mount = el.closest('.number-input-wrapper') || el;
+                        const wrap = document.createElement('div');
+                        wrap.className = 'select-wrap has-caret';
+                        const sel = document.createElement('select');
+                        sel.id = el.id;
+                        sel.name = el.getAttribute('name') || el.id;
+                        for (let i = 0; i <= 10; i++) {
+                            const opt = document.createElement('option');
+                            opt.value = String(i);
+                            opt.textContent = String(i);
+                            sel.appendChild(opt);
+                        }
+                        wrap.appendChild(sel);
+                        const caret = document.createElement('span');
+                        caret.className = 'select-caret';
+                        caret.setAttribute('aria-hidden', 'true');
+                        caret.textContent = '▾';
+                        wrap.appendChild(caret);
+                        mount.parentNode?.replaceChild(wrap, mount);
+                    }
+                    const sel = /** @type {HTMLSelectElement} */ (
+                        getInput('streamingSources.minRating')
+                    );
+                    const raw = Number(streaming.minRating);
+                    const v = Number.isFinite(raw) ? Math.min(10, Math.max(0, Math.round(raw))) : 0;
+                    sel.value = String(v);
+                })();
                 // Build provider multiselect options
                 const providerOpts = [
                     { value: 'netflix', label: 'Netflix' },
@@ -12180,15 +12360,38 @@
                     // ignore (icon refresh)
                 }
             }
-            const tvdbMinRatingEl = getInput('tvdb.minRating');
-            if (tvdbMinRatingEl) {
-                const v = Number(tvdb.minRating);
-                tvdbMinRatingEl.value = Number.isFinite(v) && v > 0 ? v : '';
-                // Ensure number input wrapper/steppers are applied consistently
-                try {
-                    window.admin2?.enhanceNumberInput?.(tvdbMinRatingEl);
-                } catch (_) {}
-            }
+            // Replace TVDB Min Rating spinner with a dropdown (1–10)
+            (function ensureTvdbMinRatingSelect() {
+                const el = getInput('tvdb.minRating');
+                if (!el) return;
+                if (el.tagName !== 'SELECT') {
+                    // If it's inside a number wrapper, replace that wrapper; otherwise replace the input itself
+                    const mount = el.closest('.number-input-wrapper') || el;
+                    const wrap = document.createElement('div');
+                    wrap.className = 'select-wrap has-caret';
+                    const sel = document.createElement('select');
+                    sel.id = el.id;
+                    sel.name = el.getAttribute('name') || el.id;
+                    for (let i = 1; i <= 10; i++) {
+                        const opt = document.createElement('option');
+                        opt.value = String(i);
+                        opt.textContent = String(i);
+                        sel.appendChild(opt);
+                    }
+                    wrap.appendChild(sel);
+                    const caret = document.createElement('span');
+                    caret.className = 'select-caret';
+                    caret.setAttribute('aria-hidden', 'true');
+                    caret.textContent = '▾';
+                    wrap.appendChild(caret);
+                    mount.parentNode?.replaceChild(wrap, mount);
+                }
+                // Set selected value (default to 1 if unset)
+                const sel = /** @type {HTMLSelectElement} */ (getInput('tvdb.minRating'));
+                const raw = Number(tvdb.minRating);
+                const v = Number.isFinite(raw) ? Math.min(10, Math.max(1, Math.round(raw))) : 1;
+                sel.value = String(v);
+            })();
             if (getInput('tvdb.yearFilter'))
                 getInput('tvdb.yearFilter').value =
                     tvdb.yearFilter == null ? '' : String(tvdb.yearFilter);
@@ -13286,17 +13489,18 @@
             const btn = document.getElementById('btn-tmdb-test');
             startBtnSpinner(btn);
             try {
-                let apiKey = getInput('tmdb.apikey')?.value || '';
-                // If no key provided, try stored key on server
-                if (!apiKey) apiKey = 'stored_key';
+                const rawVal = getInput('tmdb.apikey')?.value || '';
+                // Treat masked placeholder as "use stored"; also fallback if empty
+                const apiKey = !rawVal || rawVal === '••••••••' ? 'stored_key' : rawVal;
+                const category = getInput('tmdb.category')?.value || 'popular';
                 const res = await fetch('/api/admin/test-tmdb', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ apiKey: apiKey || undefined }),
+                    body: JSON.stringify({ apiKey: apiKey || undefined, category }),
                 });
                 const j = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(j?.error || 'TMDB test failed');
+                if (!res.ok || !j?.success) throw new Error(j?.error || 'TMDB test failed');
                 window.notify?.toast({
                     type: 'success',
                     title: 'TMDB',
@@ -13578,8 +13782,11 @@
                 tmdb.enabled = !!getInput('tmdb.enabled')?.checked;
                 tmdb.category = getInput('tmdb.category')?.value || 'popular';
                 {
-                    const mr = toInt(getInput('tmdb.minRating')?.value);
-                    tmdb.minRating = Number.isFinite(mr) && mr > 0 ? mr : undefined;
+                    const raw = getInput('tmdb.minRating')?.value;
+                    const mr = Math.round(Number(raw));
+                    tmdb.minRating = Number.isFinite(mr)
+                        ? Math.min(10, Math.max(0, mr))
+                        : undefined;
                 }
                 {
                     const expr = parseYearExpression(getInput('tmdb.yearFilter')?.value);
@@ -13593,8 +13800,12 @@
                 const streaming = {
                     enabled: !!document.getElementById('streamingSources.enabled')?.checked,
                     region: document.getElementById('streamingSources.region')?.value || 'US',
-                    minRating:
-                        toInt(document.getElementById('streamingSources.minRating')?.value) ?? 0,
+                    minRating: (() => {
+                        const mr = Math.round(
+                            Number(document.getElementById('streamingSources.minRating')?.value)
+                        );
+                        return Number.isFinite(mr) ? Math.min(10, Math.max(0, mr)) : 0;
+                    })(),
                     // Map multiselect selections back to boolean flags
                     ...(() => {
                         const sel = new Set(getMultiSelectValues('streaming.providers'));
@@ -13944,6 +14155,10 @@
                     child.style.display = match ? '' : 'none';
                 });
             };
+            // Ensure the left clear (x) button doesn't toggle the menu on press
+            clearBtn?.addEventListener('mousedown', e => {
+                e.stopPropagation();
+            });
             control.addEventListener('mousedown', e => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -14153,8 +14368,11 @@
                 tvdb.enabled = !!getInput('tvdb.enabled')?.checked;
                 tvdb.category = getInput('tvdb.category')?.value || 'popular';
                 {
-                    const mr = toInt(getInput('tvdb.minRating')?.value);
-                    tvdb.minRating = Number.isFinite(mr) ? mr : undefined;
+                    const raw = getInput('tvdb.minRating')?.value;
+                    const mr = Math.round(Number(raw));
+                    tvdb.minRating = Number.isFinite(mr)
+                        ? Math.min(10, Math.max(1, mr))
+                        : undefined;
                 }
                 {
                     const expr = parseYearExpression(getInput('tvdb.yearFilter')?.value);
@@ -14291,8 +14509,8 @@
         ['plex.enabled', 'plex.hostname', 'plex.port'].forEach(id => {
             const el = document.getElementById(id);
             el?.addEventListener('change', autoFetchPlexIfReady);
-            // For text inputs, also react on input typing
-            if (el && el.tagName === 'INPUT' && el.type === 'text') {
+            // React on typing for inputs (text or number)
+            if (el && el.tagName === 'INPUT') {
                 el.addEventListener('input', autoFetchPlexIfReady);
             }
         });

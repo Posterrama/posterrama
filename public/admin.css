@@ -3736,6 +3736,18 @@ select:not([multiple]) {
     padding: 8px 44px 8px 40px !important;
     line-height: 1.2; /* avoid clipping while keeping compact height */
 }
+#panel-tvdb .select-wrap.has-caret select#tvdb\.minRating {
+    /* mirror category select dimensions for exact height parity */
+    background-image: none !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    height: 42px;
+    /* No leading icon for Min Rating; keep standard left padding */
+    padding: 8px 44px 8px 12px !important; /* right space for caret */
+    line-height: 1.2;
+}
 #panel-tvdb .select-wrap .select-icon + select#tvdb\.category {
     padding-left: 40px;
 }
@@ -3775,6 +3787,16 @@ select:not([multiple]) {
     padding: 8px 44px 8px 40px !important;
     line-height: 1.2;
 }
+#panel-tmdb .select-wrap.has-caret select#tmdb\.minRating {
+    background-image: none !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    height: 42px;
+    padding: 8px 44px 8px 12px !important;
+    line-height: 1.2;
+}
 #panel-tmdb .select-wrap .select-icon + select#tmdb\.category {
     padding-left: 40px;
 }
@@ -3795,6 +3817,18 @@ select:not([multiple]) {
 /* TMDB API Key: match Category/Min Rating exact height */
 #panel-tmdb input#tmdb\.apikey {
     height: 42px;
+}
+
+/* Streaming Releases: Min Rating select sizing */
+#panel-tmdb .select-wrap.has-caret select#streamingSources\.minRating {
+    background-image: none !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    height: 42px;
+    padding: 8px 44px 8px 12px !important;
+    line-height: 1.2;
 }
 
 /* TMDB Streaming Region: match Category height inside caret wrapper */
@@ -6878,8 +6912,29 @@ body.page-logs {
 /* ===== Plex panel: make multiselect controls match Display select visuals ===== */
 #panel-plex .multiselect .ms-control {
     /* Equalize padding to standard inputs and leave room for caret box */
-    padding: var(--space-md) 44px var(--space-md) var(--space-md);
+    /* Reserve space on both sides: left for clear button, right for caret */
+    padding: var(--space-md) 44px var(--space-md) 44px;
     border-radius: var(--border-radius-md);
+}
+#panel-plex .multiselect .ms-chips {
+    /* Space between left divider and first chip */
+    margin-left: 8px;
+}
+#panel-plex .multiselect .ms-input {
+    /* Align input placeholder with chips spacing */
+    margin-left: 8px;
+}
+#panel-plex .multiselect .ms-control::before {
+    /* vertical divider after the left clear button */
+    content: '';
+    position: absolute;
+    left: 44px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: var(--color-border);
+    opacity: 0.8;
+    pointer-events: none;
 }
 #panel-plex .multiselect .ms-control::after {
     /* vertical divider before the caret box */
@@ -6925,7 +6980,293 @@ body.page-logs {
         0 1px 2px rgba(0, 0, 0, 0.25);
 }
 #panel-plex .multiselect .ms-clear {
-    right: 44px; /* position clear button just left of caret divider */
+    left: 10px; /* move clear button to the left side */
+    right: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease,
+        box-shadow 120ms ease;
+}
+#panel-plex .multiselect .ms-clear:hover {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-card));
+    color: var(--color-text-secondary);
+}
+#panel-plex .multiselect .ms-clear:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+/* Plex multiselect options & checkboxes styling (match app checkboxes) */
+#plex-ms-movies .ms-menu .ms-option,
+#plex-ms-movies-menu .ms-option,
+#plex-ms-shows .ms-menu .ms-option,
+#plex-ms-shows-menu .ms-option,
+#plex-ms-ratings .ms-menu .ms-option,
+#plex-ms-ratings-menu .ms-option,
+#plex-ms-qualities .ms-menu .ms-option,
+#plex-ms-qualities-menu .ms-option,
+#plex-ms-genres-menu .ms-option {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* slightly tighter */
+    padding: 6px 10px; /* more compact rows */
+}
+#plex-ms-movies .ms-menu .ms-option:hover,
+#plex-ms-movies-menu .ms-option:hover,
+#plex-ms-shows .ms-menu .ms-option:hover,
+#plex-ms-shows-menu .ms-option:hover,
+#plex-ms-ratings .ms-menu .ms-option:hover,
+#plex-ms-ratings-menu .ms-option:hover,
+#plex-ms-qualities .ms-menu .ms-option:hover,
+#plex-ms-qualities-menu .ms-option:hover,
+#plex-ms-genres-menu .ms-option:hover {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 40%, transparent);
+}
+#plex-ms-movies .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#plex-ms-movies-menu .ms-option:has(input[type='checkbox']:checked),
+#plex-ms-shows .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#plex-ms-shows-menu .ms-option:has(input[type='checkbox']:checked),
+#plex-ms-ratings .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#plex-ms-ratings-menu .ms-option:has(input[type='checkbox']:checked),
+#plex-ms-qualities .ms-menu .ms-option:has(input[type='checkbox']:checked),
+#plex-ms-qualities-menu .ms-option:has(input[type='checkbox']:checked),
+#plex-ms-genres-menu .ms-option:has(input[type='checkbox']:checked) {
+    background: transparent; /* no green wash over selected items */
+}
+#plex-ms-movies .ms-menu .ms-option input[type='checkbox'],
+#plex-ms-movies-menu .ms-option input[type='checkbox'],
+#plex-ms-shows .ms-menu .ms-option input[type='checkbox'],
+#plex-ms-shows-menu .ms-option input[type='checkbox'],
+#plex-ms-ratings .ms-menu .ms-option input[type='checkbox'],
+#plex-ms-ratings-menu .ms-option input[type='checkbox'],
+#plex-ms-qualities .ms-menu .ms-option input[type='checkbox'],
+#plex-ms-qualities-menu .ms-option input[type='checkbox'],
+#plex-ms-genres-menu .ms-option input[type='checkbox'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px; /* extra compact */
+    height: 10px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    display: inline-block;
+    position: relative;
+    transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        transform 40ms ease;
+}
+#plex-ms-movies .ms-menu .ms-option input[type='checkbox']:hover,
+#plex-ms-movies-menu .ms-option input[type='checkbox']:hover,
+#plex-ms-shows .ms-menu .ms-option input[type='checkbox']:hover,
+#plex-ms-shows-menu .ms-option input[type='checkbox']:hover,
+#plex-ms-ratings .ms-menu .ms-option input[type='checkbox']:hover,
+#plex-ms-ratings-menu .ms-option input[type='checkbox']:hover,
+#plex-ms-qualities .ms-menu .ms-option input[type='checkbox']:hover,
+#plex-ms-qualities-menu .ms-option input[type='checkbox']:hover,
+#plex-ms-genres-menu .ms-option input[type='checkbox']:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+}
+#plex-ms-movies .ms-menu .ms-option input[type='checkbox']:active,
+#plex-ms-movies-menu .ms-option input[type='checkbox']:active,
+#plex-ms-shows .ms-menu .ms-option input[type='checkbox']:active,
+#plex-ms-shows-menu .ms-option input[type='checkbox']:active,
+#plex-ms-ratings .ms-menu .ms-option input[type='checkbox']:active,
+#plex-ms-ratings-menu .ms-option input[type='checkbox']:active,
+#plex-ms-qualities .ms-menu .ms-option input[type='checkbox']:active,
+#plex-ms-qualities-menu .ms-option input[type='checkbox']:active,
+#plex-ms-genres-menu .ms-option input[type='checkbox']:active {
+    transform: scale(0.96);
+}
+#plex-ms-movies .ms-menu .ms-option input[type='checkbox']:checked,
+#plex-ms-movies-menu .ms-option input[type='checkbox']:checked,
+#plex-ms-shows .ms-menu .ms-option input[type='checkbox']:checked,
+#plex-ms-shows-menu .ms-option input[type='checkbox']:checked,
+#plex-ms-ratings .ms-menu .ms-option input[type='checkbox']:checked,
+#plex-ms-ratings-menu .ms-option input[type='checkbox']:checked,
+#plex-ms-qualities .ms-menu .ms-option input[type='checkbox']:checked,
+#plex-ms-qualities-menu .ms-option input[type='checkbox']:checked,
+#plex-ms-genres-menu .ms-option input[type='checkbox']:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4,9 7,12 14,5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 9px 9px; /* restore fuller-sized checkmark */
+}
+#plex-ms-movies .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#plex-ms-movies-menu .ms-option input[type='checkbox']:focus-visible,
+#plex-ms-shows .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#plex-ms-shows-menu .ms-option input[type='checkbox']:focus-visible,
+#plex-ms-ratings .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#plex-ms-ratings-menu .ms-option input[type='checkbox']:focus-visible,
+#plex-ms-qualities .ms-menu .ms-option input[type='checkbox']:focus-visible,
+#plex-ms-qualities-menu .ms-option input[type='checkbox']:focus-visible,
+#plex-ms-genres-menu .ms-option input[type='checkbox']:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+#plex-ms-movies .ms-menu .ms-option span,
+#plex-ms-movies-menu .ms-option span,
+#plex-ms-shows .ms-menu .ms-option span,
+#plex-ms-shows-menu .ms-option span,
+#plex-ms-ratings .ms-menu .ms-option span,
+#plex-ms-ratings-menu .ms-option span,
+#plex-ms-qualities .ms-menu .ms-option span,
+#plex-ms-qualities-menu .ms-option span,
+#plex-ms-genres-menu .ms-option span {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-base); /* back to normal text size */
+    line-height: 1.35;
+}
+
+/* Plex multiselect actions: buttons follow new design */
+#panel-plex .ms-actions,
+#plex-ms-movies-menu .ms-actions,
+#plex-ms-shows-menu .ms-actions,
+#plex-ms-ratings-menu .ms-actions,
+#plex-ms-qualities-menu .ms-actions,
+#plex-ms-genres-menu .ms-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+#panel-plex .ms-actions .btn,
+#plex-ms-movies-menu .ms-actions .btn,
+#plex-ms-shows-menu .ms-actions .btn,
+#plex-ms-ratings-menu .ms-actions .btn,
+#plex-ms-qualities-menu .ms-actions .btn,
+#plex-ms-genres-menu .ms-actions .btn {
+    /* Exact Operations Save Settings small button surface */
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+#panel-plex .ms-actions .btn:hover,
+#plex-ms-movies-menu .ms-actions .btn:hover,
+#plex-ms-shows-menu .ms-actions .btn:hover,
+#plex-ms-ratings-menu .ms-actions .btn:hover,
+#plex-ms-qualities-menu .ms-actions .btn:hover,
+#plex-ms-genres-menu .ms-actions .btn:hover {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+#panel-plex .ms-actions .btn:active,
+#plex-ms-movies-menu .ms-actions .btn:active,
+#plex-ms-shows-menu .ms-actions .btn:active,
+#plex-ms-ratings-menu .ms-actions .btn:active,
+#plex-ms-qualities-menu .ms-actions .btn:active,
+#plex-ms-genres-menu .ms-actions .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+#panel-plex .ms-actions .btn:focus-visible,
+#plex-ms-movies-menu .ms-actions .btn:focus-visible,
+#plex-ms-shows-menu .ms-actions .btn:focus-visible,
+#plex-ms-ratings-menu .ms-actions .btn:focus-visible,
+#plex-ms-qualities-menu .ms-actions .btn:focus-visible,
+#plex-ms-genres-menu .ms-actions .btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+#panel-plex .ms-actions button[id$='select-all'],
+#plex-ms-movies-menu .ms-actions button[id$='select-all'],
+#plex-ms-shows-menu .ms-actions button[id$='select-all'],
+#plex-ms-ratings-menu .ms-actions button[id$='select-all'],
+#plex-ms-qualities-menu .ms-actions button[id$='select-all'],
+#plex-ms-genres-menu .ms-actions button[id$='select-all'],
+#panel-plex .ms-actions button[id$='clear-all'],
+#plex-ms-movies-menu .ms-actions button[id$='clear-all'],
+#plex-ms-shows-menu .ms-actions button[id$='clear-all'],
+#plex-ms-ratings-menu .ms-actions button[id$='clear-all'],
+#plex-ms-qualities-menu .ms-actions button[id$='clear-all'],
+#plex-ms-genres-menu .ms-actions button[id$='clear-all'] {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+}
+
+/* Plex multiselect actions: gently tint the Clear label without altering surface */
+#panel-plex .ms-actions button[id$='clear-all'],
+#plex-ms-movies-menu .ms-actions button[id$='clear-all'],
+#plex-ms-shows-menu .ms-actions button[id$='clear-all'],
+#plex-ms-ratings-menu .ms-actions button[id$='clear-all'],
+#plex-ms-qualities-menu .ms-actions button[id$='clear-all'],
+#plex-ms-genres-menu .ms-actions button[id$='clear-all'] {
+    color: color-mix(in srgb, var(--color-error) 78%, var(--color-text-secondary)) !important;
+}
+#panel-plex .ms-actions button[id$='clear-all']:hover,
+#plex-ms-movies-menu .ms-actions button[id$='clear-all']:hover,
+#plex-ms-shows-menu .ms-actions button[id$='clear-all']:hover,
+#plex-ms-ratings-menu .ms-actions button[id$='clear-all']:hover,
+#plex-ms-qualities-menu .ms-actions button[id$='clear-all']:hover,
+#plex-ms-genres-menu .ms-actions button[id$='clear-all']:hover,
+#panel-plex .ms-actions button[id$='clear-all']:focus,
+#plex-ms-movies-menu .ms-actions button[id$='clear-all']:focus,
+#plex-ms-shows-menu .ms-actions button[id$='clear-all']:focus,
+#plex-ms-ratings-menu .ms-actions button[id$='clear-all']:focus,
+#plex-ms-qualities-menu .ms-actions button[id$='clear-all']:focus,
+#plex-ms-genres-menu .ms-actions button[id$='clear-all']:focus,
+#panel-plex .ms-actions button[id$='clear-all']:focus-visible,
+#plex-ms-movies-menu .ms-actions button[id$='clear-all']:focus-visible,
+#plex-ms-shows-menu .ms-actions button[id$='clear-all']:focus-visible,
+#plex-ms-ratings-menu .ms-actions button[id$='clear-all']:focus-visible,
+#plex-ms-qualities-menu .ms-actions button[id$='clear-all']:focus-visible,
+#plex-ms-genres-menu .ms-actions button[id$='clear-all']:focus-visible {
+    color: color-mix(in srgb, var(--color-error) 90%, var(--color-text-secondary)) !important;
+}
+#panel-plex .ms-actions button[id$='clear-all']:active,
+#plex-ms-movies-menu .ms-actions button[id$='clear-all']:active,
+#plex-ms-shows-menu .ms-actions button[id$='clear-all']:active,
+#plex-ms-ratings-menu .ms-actions button[id$='clear-all']:active,
+#plex-ms-qualities-menu .ms-actions button[id$='clear-all']:active,
+#plex-ms-genres-menu .ms-actions button[id$='clear-all']:active {
+    color: color-mix(in srgb, var(--color-error-dark) 85%, var(--color-text-secondary)) !important;
 }
 
 /* ===== Jellyfin panel: mirror Plex multiselect/select visuals ===== */
@@ -7166,6 +7507,13 @@ body.page-logs {
 #panel-plex #plex-recent-grid > .form-group:last-child {
     grid-column: span 6;
 }
+
+/* Plex Filters: make Ratings, Genres, and Qualities multiselects full width */
+#panel-plex #plex-filters-grid > .form-group:has(#plex-ms-ratings),
+#panel-plex #plex-filters-grid > .form-group:has(#plex-ms-genres),
+#panel-plex #plex-filters-grid > .form-group:has(#plex-ms-qualities) {
+    grid-column: 1 / -1; /* span all 12 columns */
+}
 @media (min-width: 900px) {
     #panel-plex #plex-recent-grid > .form-group:first-child {
         grid-column: span 4;
@@ -7217,6 +7565,50 @@ body.page-logs {
     background: var(--color-bg-card);
 }
 
+/* Plex Port: single number input (no wrapper controls, dark background) */
+#panel-plex #plex_port {
+    height: 42px;
+    width: 160px;
+    padding: 8px 12px;
+    /* Force dark background even if UA styles try to override */
+    background: var(--color-bg-card) !important;
+    background-color: var(--color-bg-card) !important;
+    color: var(--color-text-primary) !important;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+    caret-color: var(--color-text-primary);
+    background-clip: padding-box;
+}
+#panel-plex #plex_port:focus,
+#panel-plex #plex_port:focus-visible {
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+}
+#panel-plex #plex_port::-webkit-outer-spin-button,
+#panel-plex #plex_port::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Plex Port: handle browser autofill forcing light backgrounds */
+#panel-plex #plex_port:-webkit-autofill,
+#panel-plex #plex_port:-webkit-autofill:hover,
+#panel-plex #plex_port:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-text-primary) !important;
+    box-shadow: 0 0 0 1000px var(--color-bg-card) inset !important;
+    border: 1px solid var(--color-border) !important;
+    caret-color: var(--color-text-primary) !important;
+}
+#panel-plex #plex_port:-moz-ui-autofill {
+    background-color: var(--color-bg-card) !important;
+    color: var(--color-text-primary) !important;
+    caret-color: var(--color-text-primary) !important;
+}
+
 /* Jellyfin: enforce equal control height */
 #panel-jellyfin input[type='text'],
 #panel-jellyfin input[type='password'] {
@@ -7234,7 +7626,7 @@ body.page-logs {
     max-width: 280px;
 }
 /* Keep numeric fields compact */
-#panel-plex #plex_port {
+#panel-plex #plex\.recentDays {
     width: 160px;
 }
 #panel-plex #plex\.recentDays {

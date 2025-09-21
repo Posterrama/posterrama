@@ -811,13 +811,7 @@
             </div>
             <div class="form-group">
               <label for="plex_port">Port</label>
-              <div class="number-input-wrapper niw-compact niw-sized-sm">
-                <input type="number" id="plex_port" min="1" max="65535" placeholder="32400" autocomplete="off">
-                <div class="number-controls" role="group">
-                  <button type="button" class="number-btn number-inc" title="Increase" aria-label="Increase"><i class="fas fa-chevron-up"></i></button>
-                  <button type="button" class="number-btn number-dec" title="Decrease" aria-label="Decrease"><i class="fas fa-chevron-down"></i></button>
-                </div>
-              </div>
+              <input type="number" id="plex_port" min="1" max="65535" placeholder="32400" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
             </div>
             <div class="form-group">
               <label for="plex_token">API Token</label>
@@ -1221,7 +1215,7 @@
               </div>
             </div>
             <div class="form-group">
-              <label for="tmdb.minRating">Min Rating</label>
+              <label for="tmdb.minRating">Minimum Rating</label>
               <div class="number-input-wrapper niw-compact niw-sized-sm">
                 <input type="number" id="tmdb.minRating" min="0" max="10" step="0.1" placeholder="0">
                 <div class="number-controls">
@@ -1376,7 +1370,7 @@
           
           <div class="form-grid">
             <div class="form-group">
-              <label for="streamingSources.minRating">Minimum Rating (0-10)</label>
+              <label for="streamingSources.minRating">Minimum Rating</label>
               <div class="number-input-wrapper niw-compact niw-sized-sm">
                 <input type="number" id="streamingSources.minRating" min="0" max="10" step="0.1" placeholder="6.0">
                 <div class="number-controls">
@@ -1436,7 +1430,7 @@
               </div>
             </div>
             <div class="form-group">
-              <label for="tvdb.minRating">Min Rating</label>
+              <label for="tvdb.minRating">Minimum Rating</label>
               <div class="number-input-wrapper niw-compact niw-sized-sm">
                 <input type="number" id="tvdb.minRating" min="0" max="10" step="0.1" placeholder="e.g. 7.0">
                 <div class="number-controls">
