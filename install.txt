@@ -14,7 +14,7 @@ Quick Start (Automated)
 2. Run as root (recommended for automation) or a sudo user:
    bash install.sh
 3. After completion open: http://<server-ip>:4000/admin
-4. Complete wizard and configure sources (Plex/Jellyfin/TMDB/TVDB).
+4. Complete wizard and configure sources (Plex/Jellyfin/TMDB).
 
 Principles
 ----------

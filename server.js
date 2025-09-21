@@ -1,97 +1,4 @@
-/**
- * posterrama.app - Server-side logic for multiple media sources
- *
- * Author: Mark Frelink
- * License: GPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 const logger = require('./utils/logger');
-
-// Handle uncaught exceptions and unhandled promise rejections
-process.on('uncaughtException', error => {
-    logger.fatal('Uncaught Exception:', error);
-    // Give the logger time to write before exiting
-    setTimeout(() => process.exit(1), 1000);
-});
-
-process.on('unhandledRejection', (reason, _promise) => {
-    logger.fatal('Unhandled Promise Rejection:', reason);
-});
-
-// Track system performance
-const PERFORMANCE_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
-let lastCpuUsage = process.cpuUsage();
-
-global.performanceCheckInterval = setInterval(async () => {
-    // Memory usage
-    const memoryUsage = process.memoryUsage();
-    const memoryInfo = {
-        rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
-        heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
-        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
-        heapPercent: `${Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100)}%`,
-        external: `${Math.round(memoryUsage.external / 1024 / 1024)}MB`,
-    };
-
-    // CPU usage
-    const currentCpuUsage = process.cpuUsage(lastCpuUsage);
-    const cpuPercent = Math.round(
-        ((currentCpuUsage.user + currentCpuUsage.system) / 1000000) * 100
-    );
-    lastCpuUsage = process.cpuUsage();
-
-    // System uptime
-    const uptime = process.uptime();
-    const uptimeHours = Math.floor(uptime / 3600);
-    const uptimeMinutes = Math.floor((uptime % 3600) / 60);
-
-    const systemMetrics = {
-        ...memoryInfo,
-        cpu: `${cpuPercent}%`,
-        uptime: `${uptimeHours}h ${uptimeMinutes}m`,
-        nodeVersion: process.version,
-        platform: process.platform,
-        arch: process.arch,
-    };
-
-    // Log with appropriate level based on usage
-    const heapPercent = parseInt(memoryInfo.heapPercent);
-    if (heapPercent > 80 || cpuPercent > 80) {
-        // Disabled: High resource usage warnings create log noise in production
-        // logger.warn('🚨 High system resource usage detected', systemMetrics);
-        logger.debug('🚨 High system resource usage detected', systemMetrics);
-    } else if (heapPercent > 60 || cpuPercent > 60) {
-        // Disabled: Moderate resource usage warnings create log noise
-        // logger.verbose('⚠️ Moderate system resource usage', systemMetrics);
-        logger.debug('⚠️ Moderate system resource usage', systemMetrics);
-    } else {
-        logger.debug('📊 System performance metrics', systemMetrics);
-    }
-
-    // Check disk space for image cache directory
-    try {
-        const fs = require('fs');
-        const path = require('path');
-        const imageCacheDir = path.join(__dirname, 'image_cache');
-
-        if (fs.existsSync(imageCacheDir)) {
-            const stats = fs.statSync(imageCacheDir);
-            const files = fs.readdirSync(imageCacheDir);
-            const cacheSizeMB = Math.round(stats.size / 1024 / 1024);
-
-            logger.debug('💾 Image cache metrics', {
-                cacheFiles: files.length,
-                cacheSizeMB: `${cacheSizeMB}MB`,
-                cacheDir: imageCacheDir,
-            });
-        }
-    } catch (error) {
-        logger.warn('Failed to check cache directory stats', { error: error.message });
-    }
-}, PERFORMANCE_CHECK_INTERVAL);
 
 // Override console methods to use the logger
 const originalConsoleLog = console.log;
@@ -408,15 +315,12 @@ const FIXED_LIMITS = Object.freeze({
     TMDB_TV: 50,
     STREAMING_MOVIES_PER_PROVIDER: 10,
     STREAMING_TV_PER_PROVIDER: 10,
-    TVDB_MOVIES: 50,
-    TVDB_SHOWS: 50,
     TOTAL_CAP: 500, // Max total items in final playlist
 });
 
 const PlexSource = require('./sources/plex');
 const JellyfinSource = require('./sources/jellyfin');
 const TMDBSource = require('./sources/tmdb');
-const TVDBSource = require('./sources/tvdb');
 // TODO(new-source): If you add a new source adapter under sources/<name>.js, require it here
 // const MyNewSource = require('./sources/mynew');
 const deepMerge = require('lodash.merge');
@@ -2172,7 +2076,7 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
                         }
                     }
                 }
-                // TMDB/TVDB are not finite libraries; omit from totals to avoid misleading numbers.
+                // TMDB is not a finite library; omit from totals to avoid misleading numbers.
             } catch (e) {
                 // Continue on per-server errors without failing the endpoint
                 if (isDebug)
@@ -5585,7 +5489,7 @@ function processJellyfinItem(item, serverConfig, client) {
 async function getPlaylistMedia() {
     let allMedia = [];
     // Track latest lastFetch per source type during this aggregation
-    const latestLastFetch = { plex: null, jellyfin: null, tmdb: null, tvdb: null };
+    const latestLastFetch = { plex: null, jellyfin: null, tmdb: null };
     const enabledServers = config.mediaServers.filter(s => s.enabled);
 
     // Process Plex/Media Servers with error resilience
@@ -5614,35 +5518,27 @@ async function getPlaylistMedia() {
                     config.rottenTomatoesMinimumScore,
                     isDebug
                 );
-                // TODO(new-source): Wire your adapter here. Example:
-                // } else if (server.type === 'mynew') {
-                //     source = new MyNewSource(
-                //         server,
-                //         getMyNewClient,
-                //         processMyNewItem,
-                //         getMyNewLibraries,
-                //         shuffleArray,
-                //         config.rottenTomatoesMinimumScore,
-                //         isDebug
-                //     );
-            } else {
-                if (isDebug)
-                    logger.debug(
-                        `[Debug] Skipping server ${server.name} due to unsupported type ${server.type}`
-                    );
-                continue;
             }
 
+            // Determine per-source limits
             const movieLimit =
-                server.type === 'plex' ? FIXED_LIMITS.PLEX_MOVIES : FIXED_LIMITS.JELLYFIN_MOVIES;
+                server.type === 'plex'
+                    ? FIXED_LIMITS.PLEX_MOVIES
+                    : server.type === 'jellyfin'
+                      ? FIXED_LIMITS.JELLYFIN_MOVIES
+                      : 0;
             const showLimit =
-                server.type === 'plex' ? FIXED_LIMITS.PLEX_SHOWS : FIXED_LIMITS.JELLYFIN_SHOWS;
+                server.type === 'plex'
+                    ? FIXED_LIMITS.PLEX_SHOWS
+                    : server.type === 'jellyfin'
+                      ? FIXED_LIMITS.JELLYFIN_SHOWS
+                      : 0;
 
-            // Fetch movies and shows separately with individual error handling
+            // Accumulators per server
             let movies = [];
             let shows = [];
 
-            // Try to fetch movies
+            // Fetch movies from configured libraries
             if (server.movieLibraryNames && server.movieLibraryNames.length > 0) {
                 try {
                     movies = await source.fetchMedia(server.movieLibraryNames, 'movie', movieLimit);
@@ -5653,11 +5549,10 @@ async function getPlaylistMedia() {
                         error: error.message,
                         libraries: server.movieLibraryNames,
                     });
-                    // Continue with shows even if movies failed
+                    // Continue even if movies failed
                 }
             }
 
-            // Try to fetch shows
             if (server.showLibraryNames && server.showLibraryNames.length > 0) {
                 try {
                     shows = await source.fetchMedia(server.showLibraryNames, 'show', showLimit);
@@ -5797,57 +5692,12 @@ async function getPlaylistMedia() {
         }
     }
 
-    // Process TVDB Source
-    if (config.tvdbSource && config.tvdbSource.enabled) {
-        if (isDebug) logger.debug(`[Debug] Fetching from TVDB source`);
-
-        // Enforce fixed limits regardless of admin-config
-        const tvdbSource = new TVDBSource({
-            ...config.tvdbSource,
-            movieCount: FIXED_LIMITS.TVDB_MOVIES,
-            showCount: FIXED_LIMITS.TVDB_SHOWS,
-            tmdbApiKey: (config.tmdbSource && config.tmdbSource.apiKey) || null,
-        });
-
-        // Schedule periodic cache cleanup for TVDB source
-        if (!global.tvdbCacheCleanupInterval) {
-            global.tvdbCacheCleanupInterval = setInterval(
-                () => {
-                    if (global.tvdbSourceInstance) {
-                        global.tvdbSourceInstance.clearCache();
-                    }
-                },
-                10 * 60 * 1000
-            ); // Clean up every 10 minutes
-        }
-        global.tvdbSourceInstance = tvdbSource;
-
-        const [tvdbMovies, tvdbShows] = await Promise.all([
-            tvdbSource.getMovies(),
-            tvdbSource.getShows(),
-        ]);
-        try {
-            const m = tvdbSource.getMetrics ? tvdbSource.getMetrics() : null;
-            const lf = m?.lastFetch ? new Date(m.lastFetch) : null;
-            if (lf && !isNaN(lf)) {
-                latestLastFetch.tvdb = Math.max(latestLastFetch.tvdb || 0, lf.getTime());
-            }
-        } catch (_) {
-            /* metrics unavailable */
-        }
-        const tvdbMedia = tvdbMovies.concat(tvdbShows);
-
-        if (isDebug) logger.debug(`[Debug] Fetched ${tvdbMedia.length} items from TVDB.`);
-        allMedia = allMedia.concat(tvdbMedia);
-    }
-
     // Publish captured lastFetch timestamps globally for admin UI
     try {
         global.sourceLastFetch = global.sourceLastFetch || {};
         if (latestLastFetch.plex) global.sourceLastFetch.plex = latestLastFetch.plex;
         if (latestLastFetch.jellyfin) global.sourceLastFetch.jellyfin = latestLastFetch.jellyfin;
         if (latestLastFetch.tmdb) global.sourceLastFetch.tmdb = latestLastFetch.tmdb;
-        if (latestLastFetch.tvdb) global.sourceLastFetch.tvdb = latestLastFetch.tvdb;
     } catch (_) {
         /* capture lastFetch best-effort */
     }
@@ -6908,7 +6758,7 @@ app.get(
  *         required: false
  *         schema:
  *           type: string
- *           enum: [plex, jellyfin, tmdb, tvdb]
+ *           enum: [plex, jellyfin, tmdb]
  *         description: Filter results to a single content source
  *     responses:
  *       200:
@@ -6950,7 +6800,6 @@ app.get(
                     // Include classic TMDB plus streaming-provider items fetched via TMDB
                     return s === 'tmdb' || key.startsWith('tmdb-') || !!it.tmdbId;
                 }
-                if (norm === 'tvdb') return s === 'tvdb' || key.startsWith('tvdb-');
                 return s === norm;
             });
         };
@@ -8647,12 +8496,6 @@ app.get(
  *                     enabled:
  *                       type: boolean
  *                       description: Whether TMDB API is enabled
- *                 tvdb:
- *                   type: object
- *                   properties:
- *                     enabled:
- *                       type: boolean
- *                       description: Whether TVDB API is enabled
  */
 app.get(
     '/api/config',
@@ -8671,9 +8514,6 @@ app.get(
                 tmdb: {
                     enabled: !!currentConfig.tmdb?.apiKey,
                 },
-                tvdb: {
-                    enabled: !!currentConfig.tvdb?.apiKey,
-                },
             };
 
             if (isDebug) logger.debug('[Public API] Returning public config.');
@@ -8684,7 +8524,6 @@ app.get(
             res.json({
                 plex: { server: null, token: false },
                 tmdb: { enabled: false },
-                tvdb: { enabled: false },
             });
         }
     })
@@ -9547,122 +9386,7 @@ app.post(
     })
 );
 
-/**
- * @swagger
- * /api/test-tvdb-connection:
- *   post:
- *     summary: Test TVDB connection and fetch sample data
- *     description: >
- *       Tests the connection to TVDB API using the hardcoded developer key and fetches sample data
- *       to verify that the integration is working correctly.
- *     tags: ['Admin']
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: TVDB connection test successful.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 sampleData:
- *                   type: array
- *                   items:
- *                     type: object
- *                 stats:
- *                   type: object
- *                   properties:
- *                     responseTime:
- *                       type: number
- *                     totalItems:
- *                       type: number
- *       400:
- *         description: TVDB connection test failed.
- */
-app.post(
-    '/api/admin/test-tvdb',
-    isAuthenticated,
-    express.json(),
-    asyncHandler(async (req, res) => {
-        if (isDebug) logger.debug('[Admin API] Received request to test TVDB connection.');
-
-        const startTime = Date.now();
-
-        try {
-            // Import TVDB source dynamically
-            const TVDBSource = require('./sources/tvdb');
-
-            // Create TVDB instance with test configuration
-            const testConfig = {
-                enabled: true,
-                showCount: 5, // Small number for testing
-                movieCount: 5, // Small number for testing
-                category: 'popular',
-                minRating: 0,
-                yearFilter: null,
-                genreFilter: '',
-            };
-
-            const tvdbSource = new TVDBSource({
-                ...testConfig,
-                tmdbApiKey: (config.tmdbSource && config.tmdbSource.apiKey) || null,
-            });
-
-            if (isDebug) logger.debug('[TVDB Test] Attempting to fetch sample data...');
-
-            // Test both movies and shows using the correct method names
-            const [movies, shows] = await Promise.all([
-                tvdbSource.getMovies().catch(e => {
-                    console.warn('[TVDB Test] Movies failed:', e.message);
-                    return [];
-                }),
-                tvdbSource.getShows().catch(e => {
-                    console.warn('[TVDB Test] Shows failed:', e.message);
-                    return [];
-                }),
-            ]);
-
-            const sampleData = movies.concat(shows);
-
-            const responseTime = Date.now() - startTime;
-
-            if (sampleData && sampleData.length > 0) {
-                if (isDebug)
-                    logger.debug(
-                        `[TVDB Test] Successfully retrieved ${sampleData.length} items from TVDB.`
-                    );
-
-                res.json({
-                    success: true,
-                    message: 'TVDB connection successful',
-                    sampleData: sampleData.slice(0, 10), // Return first 10 items for display
-                    stats: {
-                        responseTime,
-                        totalItems: sampleData.length,
-                        movies: movies.length,
-                        shows: shows.length,
-                    },
-                });
-            } else {
-                throw new Error('No data returned from TVDB API');
-            }
-        } catch (error) {
-            const errorMessage = error.message || 'Unknown error occurred';
-            if (isDebug) console.error('[TVDB Test] Connection test failed:', errorMessage);
-
-            res.status(400).json({
-                success: false,
-                error: errorMessage,
-                stats: {
-                    responseTime: Date.now() - startTime,
-                },
-            });
-        }
-    })
-);
+//
 
 /**
  * @swagger
@@ -11141,124 +10865,7 @@ app.get(
     })
 );
 
-/**
- * @swagger
- * /api/admin/tvdb-genres:
- *   get:
- *     summary: Get available TVDB genres
- *     description: Fetches the list of available genres from TVDB API for filtering.
- *     tags: ['Admin']
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of available TVDB genres.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 genres:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                       name:
- *                         type: string
- */
-app.get(
-    '/api/admin/tvdb-genres',
-    isAuthenticated,
-    asyncHandler(async (req, res) => {
-        if (isDebug) logger.debug('[Admin API] Request received for TVDB genres.');
-
-        try {
-            if (!global.tvdbSourceInstance) {
-                // Create a temporary instance since API key is hardcoded
-                global.tvdbSourceInstance = new TVDBSource({ enabled: true });
-            }
-
-            const genres = await global.tvdbSourceInstance.getGenres();
-
-            if (isDebug) logger.debug(`[Admin API] Found ${genres.length} TVDB genres.`);
-            res.json({ genres });
-        } catch (error) {
-            console.error(`[Admin API] Failed to get TVDB genres: ${error.message}`);
-            res.json({ genres: [], error: error.message });
-        }
-    })
-);
-
-/**
- * @swagger
- * /api/admin/tvdb-genres-test:
- *   post:
- *     summary: Get TVDB genres for testing
- *     description: Retrieves all available genres from TVDB API for testing purposes.
- *     tags: ['Admin']
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       200:
- *         description: List of genres successfully retrieved
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 genres:
- *                   type: array
- *                   items:
- *                     type: string
- *       400:
- *         description: Invalid request parameters
- *       401:
- *         description: Unauthorized
- */
-app.post(
-    '/api/admin/tvdb-genres-test',
-    isAuthenticated,
-    express.json(),
-    asyncHandler(async (req, res) => {
-        if (isDebug) logger.debug('[Admin API] Request received for /api/admin/tvdb-genres-test.');
-
-        try {
-            // Create a fresh TVDB instance for testing
-            const testTVDBConfig = {
-                enabled: true,
-                showCount: 5,
-                movieCount: 5,
-                category: 'popular',
-                minRating: 0,
-                yearFilter: null,
-                genreFilter: '',
-            };
-
-            const tvdbSource = new TVDBSource(testTVDBConfig);
-            const genres = await tvdbSource.getGenres();
-
-            if (isDebug)
-                logger.debug(
-                    `[Admin API] Found ${genres.length} genres from test TVDB:`,
-                    genres.slice(0, 5)
-                );
-
-            res.json({ genres });
-        } catch (error) {
-            if (isDebug)
-                console.error('[Admin API] Error getting genres from test TVDB:', error.message);
-            throw new ApiError(400, `Failed to get TVDB genres: ${error.message}`);
-        }
-    })
-);
+//
 
 /**
  * @swagger
@@ -11305,94 +10912,7 @@ app.get(
     })
 );
 
-/**
- * @swagger
- * /api/admin/tvdb-total:
- *   get:
- *     summary: Get uncapped TVDB totals (best-effort)
- *     description: TVDB v4 API doesn’t provide reliable total counts for categories; this returns null totals for now.
- *     tags: ['Admin']
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: TVDB totals (best-effort)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 enabled:
- *                   type: boolean
- *                 total:
- *                   type: number
- */
-app.get(
-    '/api/admin/tvdb-total',
-    isAuthenticated,
-    asyncHandler(async (req, res) => {
-        const cfg = await readConfig();
-        if (!cfg.tvdbSource || !cfg.tvdbSource.enabled) {
-            return res.json({ enabled: false, total: 0 });
-        }
-        // Placeholder: expose null to indicate unknown
-        res.json({
-            enabled: true,
-            total: null,
-            note: 'TVDB API does not provide total counts per category.',
-        });
-    })
-);
-
-/**
- * @swagger
- * /api/admin/tvdb-available:
- *   get:
- *     summary: Get a best-effort available count for TVDB
- *     description: Returns the number of TVDB items that would be returned for the current configuration (up to internal per-type caps). Used for admin display only.
- *     tags: ['Admin']
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: TVDB available count
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 enabled:
- *                   type: boolean
- *                 available:
- *                   type: number
- */
-app.get(
-    '/api/admin/tvdb-available',
-    isAuthenticated,
-    asyncHandler(async (req, res) => {
-        const cfg = await readConfig();
-        if (!cfg.tvdbSource || !cfg.tvdbSource.enabled) {
-            return res.json({ enabled: false, available: 0 });
-        }
-        try {
-            const tvdbSource = new TVDBSource({
-                ...cfg.tvdbSource,
-                movieCount: FIXED_LIMITS.TVDB_MOVIES,
-                showCount: FIXED_LIMITS.TVDB_SHOWS,
-            });
-            const [movies, shows] = await Promise.all([
-                tvdbSource.getMovies().catch(() => []),
-                tvdbSource.getShows().catch(() => []),
-            ]);
-            const available = (movies?.length || 0) + (shows?.length || 0);
-            res.json({ enabled: true, available });
-        } catch (e) {
-            if (isDebug)
-                logger.debug('[Admin API] TVDB available count failed', { error: e?.message });
-            res.json({ enabled: true, available: 0 });
-        }
-    })
-);
+//
 
 /**
  * @swagger
@@ -12826,7 +12346,7 @@ app.get(
                     key.startsWith('media:') ||
                     key.startsWith('plex:') ||
                     key.startsWith('tmdb:') ||
-                    key.startsWith('tvdb:')
+                    false
                 ) {
                     itemCount.media++;
                 } else if (key.startsWith('config:')) {
@@ -12969,7 +12489,7 @@ app.post(
  * /api/admin/source-status:
  *   get:
  *     summary: Get per-source status for admin UI
- *     description: Returns enabled/configured flags and lastFetch timestamps for Plex, Jellyfin, TMDB, and TVDB.
+ *     description: Returns enabled/configured flags and lastFetch timestamps for Plex, Jellyfin, and TMDB.
  *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []
@@ -12990,7 +12510,6 @@ app.get(
             const plexCfg = servers.find(s => s?.type === 'plex') || {};
             const jfCfg = servers.find(s => s?.type === 'jellyfin') || {};
             const tmdbCfg = currentConfig?.tmdbSource || {};
-            const tvdbCfg = currentConfig?.tvdbSource || {};
 
             const plexConfigured = !!(
                 envLookup(plexCfg.hostnameEnvVar) &&
@@ -13003,7 +12522,6 @@ app.get(
                 envLookup(jfCfg.tokenEnvVar)
             );
             const tmdbConfigured = !!tmdbCfg.apiKey;
-            const tvdbConfigured = !!tvdbCfg.enabled;
 
             const lf = global.sourceLastFetch || {};
             const toIso = v => (typeof v === 'number' && v > 0 ? new Date(v).toISOString() : null);
@@ -13026,12 +12544,6 @@ app.get(
                     configured: tmdbConfigured,
                     lastFetch: toIso(lf.tmdb),
                     lastFetchMs: typeof lf.tmdb === 'number' ? lf.tmdb : null,
-                },
-                tvdb: {
-                    enabled: !!tvdbCfg.enabled,
-                    configured: tvdbConfigured,
-                    lastFetch: toIso(lf.tvdb),
-                    lastFetchMs: typeof lf.tvdb === 'number' ? lf.tvdb : null,
                 },
             });
         } catch (e) {
@@ -14290,18 +13802,16 @@ function cleanup() {
     // Clear global intervals
     if (global.memoryCheckInterval) {
         clearInterval(global.memoryCheckInterval);
-        global.memoryCheckInterval = null;
     }
+    // Always normalize to null so tests can assert strict null
+    global.memoryCheckInterval = null;
 
     if (global.tmdbCacheCleanupInterval) {
         clearInterval(global.tmdbCacheCleanupInterval);
         global.tmdbCacheCleanupInterval = null;
     }
 
-    if (global.tvdbCacheCleanupInterval) {
-        clearInterval(global.tvdbCacheCleanupInterval);
-        global.tvdbCacheCleanupInterval = null;
-    }
+    //
 
     if (global.playlistRefreshInterval) {
         clearInterval(global.playlistRefreshInterval);
@@ -14319,10 +13829,7 @@ function cleanup() {
         global.tmdbSourceInstance = null;
     }
 
-    if (global.tvdbSourceInstance && typeof global.tvdbSourceInstance.cleanup === 'function') {
-        global.tvdbSourceInstance.cleanup();
-        global.tvdbSourceInstance = null;
-    }
+    //
 
     // Cleanup cache and auth managers
     if (cacheManager && typeof cacheManager.cleanup === 'function') {

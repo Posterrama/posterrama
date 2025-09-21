@@ -112,15 +112,15 @@ describe('RatingCacheManager', () => {
             expect(ratings).toEqual([]);
         });
 
-        it('should return empty array for cache without ratings', () => {
+        it('should return empty array for cache entry without ratings', () => {
             ratingCache.cache = {
-                tvdb: {
+                other: {
                     timestamp: Date.now(),
                     count: 0,
                 },
             };
 
-            const ratings = ratingCache.getRatings('tvdb');
+            const ratings = ratingCache.getRatings('other');
             expect(ratings).toEqual([]);
         });
     });

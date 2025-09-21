@@ -27,7 +27,7 @@ describe('Validation Middleware', () => {
             const validConfig = {
                 sources: {
                     tmdb: { enabled: true, apiKey: 'test' },
-                    tvdb: { enabled: false },
+                    plex: { enabled: false },
                 },
             };
 

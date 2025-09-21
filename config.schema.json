@@ -578,19 +578,7 @@
                 "genreFilter": { "type": "string", "default": "" }
             }
         },
-        "tvdbSource": {
-            "description": "Optional TVDB source configuration.",
-            "type": "object",
-            "properties": {
-                "enabled": { "type": "boolean", "default": false },
-                "category": { "type": "string", "default": "newest" },
-                "minRating": { "type": "number", "minimum": 0, "maximum": 10, "default": 0 },
-                "yearFilter": { "type": ["integer", "string", "null"], "default": null },
-                "genreFilter": { "type": "string", "default": "" },
-                "showCount": { "type": "integer", "minimum": 1, "default": 25 },
-                "movieCount": { "type": "integer", "minimum": 1, "default": 25 }
-            }
-        },
+
         "streamingSources": {
             "description": "List of additional streaming sources (reserved for future use).",
             "type": "array",

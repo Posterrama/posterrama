@@ -555,8 +555,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 currentIndex >= 0 && currentIndex < mediaQueue.length
                     ? mediaQueue[currentIndex]
                     : null;
-            const id =
-                m && (m.id || m.guid || m.ratingKey || m.tmdbId || m.imdbId || m.tvdbId || m.title);
+            const id = m && (m.id || m.guid || m.ratingKey || m.tmdbId || m.imdbId || m.title);
             isPinned = true;
             pinnedMediaId = id || null;
         } catch (_) {}
@@ -3973,7 +3972,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         currentMedia.ratingKey ||
                         currentMedia.tmdbId ||
                         currentMedia.imdbId ||
-                        currentMedia.tvdbId ||
                         currentMedia.title ||
                         null;
                     if (id !== currentMediaId) {

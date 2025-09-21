@@ -100,10 +100,6 @@ jobs:
                       "themoviedb": {
                         "url": "https://api.themoviedb.org/3",
                         "apiKey": "test_key"
-                      },
-                      "thetvdb": {
-                        "url": "https://api4.thetvdb.com/v4",
-                        "apiKey": "test_key"
                       }
                     }
                   }

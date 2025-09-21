@@ -22,7 +22,7 @@ posterrama/
 │   ├── plex.js       # Plex Media Server
 │   ├── jellyfin.js   # Jellyfin integration
 │   ├── tmdb.js       # The Movie Database
-│   └── tvdb.js       # TheTVDB
+│   └──               #
 ├── public/           # Frontend assets
 ├── middleware/       # Express middleware
 └── utils/           # Shared utilities
@@ -30,7 +30,7 @@ posterrama/
 
 ### Data Flow
 
-1. **Media Sources** → Fetch content from Plex/Jellyfin/TMDB/TVDB
+1. **Media Sources** → Fetch content from Plex/Jellyfin/TMDB
 2. **Processing** → Normalize metadata, cache images
 3. **API** → Serve aggregated data via REST endpoints
 4. **Frontend** → Display content with smooth transitions
@@ -151,7 +151,7 @@ GET /api/cache/clear     # Clear cache
     "poster": "https://image-url",
     "backdrop": "https://backdrop-url",
     "rating": 8.5,
-    "source": "plex|jellyfin|tmdb|tvdb"
+    "source": "plex|jellyfin|tmdb"
 }
 ```
 

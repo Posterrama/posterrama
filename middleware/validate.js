@@ -81,7 +81,7 @@ const getMediaQuerySchema = Joi.object({
     genre: Joi.string().max(50).optional(),
     // Optional source filter: restrict results to a single origin
     // Allowed values reflect primary sources integrated in Posterrama
-    source: Joi.string().valid('plex', 'jellyfin', 'tmdb', 'tvdb').insensitive().optional(),
+    source: Joi.string().valid('plex', 'jellyfin', 'tmdb').insensitive().optional(),
     limit: Joi.number().integer().min(1).max(1000).optional(),
     offset: Joi.number().integer().min(0).optional(),
 });

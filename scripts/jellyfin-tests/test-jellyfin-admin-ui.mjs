@@ -137,7 +137,7 @@ const readme = fs.readFileSync('./README.md', 'utf8');
 const docChecks = [
     {
         name: 'README mentions Jellyfin in setup steps',
-        test: () => readme.includes('Connect your media sources (Plex, Jellyfin, TMDB, TVDB)'),
+    test: () => readme.includes('Connect your media sources (Plex, Jellyfin, TMDB)'),
     },
     {
         name: 'README mentions Jellyfin in features',

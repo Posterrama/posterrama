@@ -26,7 +26,6 @@ describe('healthCheck optional includes', () => {
 
     test.each([
         ['TMDB', { DASHBOARD_INCLUDE_TMDB: 'true' }, 'tmdb_connectivity'],
-        ['TVDB', { DASHBOARD_INCLUDE_TVDB: 'true' }, 'tvdb_connectivity'],
         ['Update', { DASHBOARD_INCLUDE_UPDATE_CHECK: 'true' }, 'update_available'],
         ['CacheEfficiency', { DASHBOARD_INCLUDE_CACHE_EFFICIENCY: 'true' }, 'cache_efficiency'],
         ['Performance', { DASHBOARD_INCLUDE_PERF_CHECK: 'true' }, 'performance'],

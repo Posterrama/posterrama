@@ -6,7 +6,7 @@ Folders:
 
 - api: HTTP endpoint and admin API tests
 - middleware: Express middleware units & integration
-- sources: External media source integrations (TMDB, TVDB, Plex, etc.)
+- sources: External media source integrations (TMDB, Plex, etc.)
 - utils: Core utilities, cache, auth, metrics, validation, logger, error classes, env validation
 
 Naming:

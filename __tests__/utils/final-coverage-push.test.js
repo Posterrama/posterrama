@@ -185,17 +185,7 @@ describe('Final Coverage Push to 88%', () => {
             }
         });
 
-        it('should handle TVDB source edge cases', () => {
-            const tvdb = require('../../sources/tvdb');
-            expect(tvdb).toBeDefined();
-
-            // Test basic structure
-            if (typeof tvdb === 'function') {
-                expect(tvdb.name).toBeDefined();
-            } else {
-                expect(typeof tvdb).toBe('object');
-            }
-        });
+        // Removed source: no edge case coverage
     });
 
     describe('Error Handling Comprehensive Coverage', () => {

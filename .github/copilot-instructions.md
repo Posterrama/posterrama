@@ -2,11 +2,11 @@
 
 ## Repository Overview
 
-**Posterrama** is a Node.js/Express media server aggregation application (v2.5.2) that provides unified poster galleries from multiple media sources. It acts as a centralized interface for browsing movies and TV shows across Plex, Jellyfin, TMDB, and TVDB libraries with intelligent caching, filtering, and responsive design.
+**Posterrama** is a Node.js/Express media server aggregation application (v2.5.2) that provides unified poster galleries from multiple media sources. It acts as a centralized interface for browsing movies and TV shows across Plex, Jellyfin, and TMDB libraries with intelligent caching, filtering, and responsive design.
 
 ### Key Features
 
-- **Multi-Source Integration**: Plex, Jellyfin, TMDB, TVDB with unified API endpoints
+- **Multi-Source Integration**: Plex, Jellyfin, TMDB with unified API endpoints
 - **Advanced Caching**: Memory, disk, and HTTP caching with intelligent invalidation
 - **Admin Interface**: Full configuration management, server monitoring, and genre filtering
 - **Image Processing**: Lazy loading, optimization, fallback handling with custom SVG placeholders
@@ -51,12 +51,12 @@ npm run push             # Deploy to production without version bump
 
 ## Posterrama – AI agent quickstart (v2.5.2)
 
-Purpose: make code changes fast without guesswork. This repo is a Node.js/Express app that aggregates media from Plex/Jellyfin/TMDB/TVDB, serves an admin UI, and drives devices over WebSocket.
+Purpose: make code changes fast without guesswork. This repo is a Node.js/Express app that aggregates media from Plex/Jellyfin/TMDB, serves an admin UI, and drives devices over WebSocket.
 
 Architecture (files to know):
 
 - server.js – single Express app. Auto-creates .env and config.json on first run, reloads .env (never overrides NODE_ENV), wires routes, Swagger at /api-docs, and boots WS hub.
-- sources/ (plex.js, jellyfin.js, tmdb.js, tvdb.js) – adapters with a common shape: fetchMedia(libraryNames, type, count), getMetrics(), resetMetrics(). They compute filterEfficiency and maintain metrics.
+- sources/ (plex.js, jellyfin.js, tmdb.js) – adapters with a common shape: fetchMedia(libraryNames, type, count), getMetrics(), resetMetrics(). They compute filterEfficiency and maintain metrics.
 - utils/logger.js – Winston logger; console.\* is redirected to logger. In tests, console noise is suppressed and logs are kept in-memory for admin. Use logger.info/warn/error/debug.
 - utils/cache.js – in-memory cache with TTL, ETag, optional persistence; provides CacheManager and initializeCache/cacheMiddleware. Prefer this over ad‑hoc maps.
 - utils/wsHub.js – device WebSocket hub at /ws/devices. Single active connection per device, ACK pattern via sendCommandAwait(..., {timeoutMs}). Auth uses deviceStore.verifyDevice.

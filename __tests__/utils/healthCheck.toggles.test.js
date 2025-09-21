@@ -31,7 +31,7 @@ describe('healthCheck performHealthChecks env toggles', () => {
         process.env.DASHBOARD_INCLUDE_DEVICE_SLA = 'false';
         process.env.DASHBOARD_INCLUDE_JELLYFIN = 'false';
         process.env.DASHBOARD_INCLUDE_TMDB = 'false';
-        process.env.DASHBOARD_INCLUDE_TVDB = 'false';
+        //
 
         const hc = loadHealthCheck();
         // Speed up cache and ensure fresh results
@@ -48,16 +48,16 @@ describe('healthCheck performHealthChecks env toggles', () => {
         expect(names).not.toEqual(expect.arrayContaining(['device_sla']));
         expect(names).not.toEqual(expect.arrayContaining(['jellyfin_connectivity']));
         expect(names).not.toEqual(expect.arrayContaining(['tmdb_connectivity']));
-        expect(names).not.toEqual(expect.arrayContaining(['tvdb_connectivity']));
+        //
         expect(names).not.toEqual(expect.arrayContaining(['update_available']));
     });
 
-    test('enables TMDB/TVDB/Update when toggles true', async () => {
+    test('enables TMDB and Update when toggles true', async () => {
         process.env.DASHBOARD_INCLUDE_PERF_CHECK = 'false';
         process.env.DASHBOARD_INCLUDE_DEVICE_SLA = 'false';
         process.env.DASHBOARD_INCLUDE_JELLYFIN = 'false';
         process.env.DASHBOARD_INCLUDE_TMDB = 'true';
-        process.env.DASHBOARD_INCLUDE_TVDB = 'true';
+        //
         process.env.DASHBOARD_INCLUDE_UPDATE_CHECK = 'true';
 
         const hc = loadHealthCheck();
@@ -70,11 +70,7 @@ describe('healthCheck performHealthChecks env toggles', () => {
             status: 'ok',
             message: 'TMDB reachable',
         });
-        jest.spyOn(hc, 'checkTVDBConnectivity').mockResolvedValue({
-            name: 'tvdb_connectivity',
-            status: 'ok',
-            message: 'TVDB reachable',
-        });
+        //
         jest.spyOn(hc, 'checkUpdateAvailability').mockResolvedValue({
             name: 'update_available',
             status: 'ok',
@@ -103,7 +99,7 @@ describe('healthCheck performHealthChecks env toggles', () => {
                 'cache',
                 'plex_connectivity',
                 'tmdb_connectivity',
-                'tvdb_connectivity',
+                //
                 'update_available',
             ])
         );

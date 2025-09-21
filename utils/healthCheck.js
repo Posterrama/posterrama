@@ -15,6 +15,7 @@ let cacheTimestamp = 0;
 let connectivityCache = null;
 let connectivityCacheTimestamp = 0;
 const CONNECTIVITY_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CONNECTIVITY_CACHE_DISABLED = process.env.NODE_ENV === 'test';
 
 /**
  * Read the current configuration from config.json
@@ -374,8 +375,13 @@ async function checkPlexConnectivity() {
     try {
         // Check if we have a cached result that's still fresh
         const now = Date.now();
-        if (connectivityCache && now - connectivityCacheTimestamp < CONNECTIVITY_CACHE_DURATION) {
-            return connectivityCache;
+        if (!CONNECTIVITY_CACHE_DISABLED) {
+            if (
+                connectivityCache &&
+                now - connectivityCacheTimestamp < CONNECTIVITY_CACHE_DURATION
+            ) {
+                return connectivityCache;
+            }
         }
 
         // Try to import the testServerConnection function from server utilities
@@ -385,16 +391,20 @@ async function checkPlexConnectivity() {
         } catch (error) {
             // If import fails, use fallback
             const result = await checkPlexConnectivityFallback();
-            connectivityCache = result;
-            connectivityCacheTimestamp = now;
+            if (!CONNECTIVITY_CACHE_DISABLED) {
+                connectivityCache = result;
+                connectivityCacheTimestamp = now;
+            }
             return result;
         }
 
         if (!testServerConnection) {
             // Fallback: create a simple connection test
             const result = await checkPlexConnectivityFallback();
-            connectivityCache = result;
-            connectivityCacheTimestamp = now;
+            if (!CONNECTIVITY_CACHE_DISABLED) {
+                connectivityCache = result;
+                connectivityCacheTimestamp = now;
+            }
             return result;
         }
 
@@ -440,16 +450,20 @@ async function checkPlexConnectivity() {
         };
 
         // Cache the result
-        connectivityCache = result;
-        connectivityCacheTimestamp = now;
+        if (!CONNECTIVITY_CACHE_DISABLED) {
+            connectivityCache = result;
+            connectivityCacheTimestamp = now;
+        }
         return result;
     } catch (error) {
         // If all else fails, try fallback
         try {
             const result = await checkPlexConnectivityFallback();
             // Cache even fallback results to avoid repeated failures
-            connectivityCache = result;
-            connectivityCacheTimestamp = Date.now();
+            if (!CONNECTIVITY_CACHE_DISABLED) {
+                connectivityCache = result;
+                connectivityCacheTimestamp = Date.now();
+            }
             return result;
         } catch (fallbackError) {
             const result = {
@@ -459,8 +473,10 @@ async function checkPlexConnectivity() {
                 details: { error: error.message },
             };
             // Cache error results too to avoid repeated failures
-            connectivityCache = result;
-            connectivityCacheTimestamp = Date.now();
+            if (!CONNECTIVITY_CACHE_DISABLED) {
+                connectivityCache = result;
+                connectivityCacheTimestamp = Date.now();
+            }
             return result;
         }
     }
@@ -830,65 +846,6 @@ async function checkTMDBConnectivity() {
 }
 
 /**
- * Check TVDB endpoint reachability (lightweight, no auth).
- */
-async function checkTVDBConnectivity() {
-    try {
-        const config = await readConfig();
-        const src = config.tvdbSource || {};
-        if (!src.enabled) {
-            return {
-                name: 'tvdb_connectivity',
-                status: 'ok',
-                message: 'TVDB source disabled',
-            };
-        }
-
-        const controller = new AbortController();
-        const to = setTimeout(() => controller.abort(), 5000);
-        let status = 'error';
-        let message = 'Request failed';
-        let httpStatus = 0;
-        const start = Date.now();
-        try {
-            const r = await fetch('https://api4.thetvdb.com/v4', {
-                method: 'GET',
-                signal: controller.signal,
-            });
-            httpStatus = r.status;
-            if (r.ok) {
-                status = 'ok';
-                message = 'TVDB reachable';
-            } else if (httpStatus >= 400 && httpStatus < 500) {
-                status = 'warning';
-                message = `TVDB HTTP ${httpStatus}`;
-            } else {
-                status = 'error';
-                message = `TVDB HTTP ${httpStatus}`;
-            }
-        } catch (e) {
-            status = 'error';
-            message = e.name === 'AbortError' ? 'TVDB request timeout' : `TVDB error: ${e.message}`;
-        } finally {
-            clearTimeout(to);
-        }
-        return {
-            name: 'tvdb_connectivity',
-            status,
-            message,
-            details: { httpStatus, responseTime: Date.now() - start },
-        };
-    } catch (error) {
-        return {
-            name: 'tvdb_connectivity',
-            status: 'error',
-            message: `TVDB connectivity check failed: ${error.message}`,
-            details: { error: error.message },
-        };
-    }
-}
-
-/**
  * Perform all health checks
  */
 async function performHealthChecks() {
@@ -904,7 +861,6 @@ async function performHealthChecks() {
         const includeDeviceSla = !inTest && process.env.DASHBOARD_INCLUDE_DEVICE_SLA !== 'false'; // default true (off in tests)
         const includeJellyfin = !inTest && process.env.DASHBOARD_INCLUDE_JELLYFIN !== 'false'; // default true (off in tests)
         const includeTMDB = !inTest && process.env.DASHBOARD_INCLUDE_TMDB === 'true'; // default off
-        const includeTVDB = !inTest && process.env.DASHBOARD_INCLUDE_TVDB === 'true'; // default off
 
         const promises = [
             checkConfiguration(),
@@ -914,7 +870,6 @@ async function performHealthChecks() {
         ];
         if (includeJellyfin) promises.push(checkJellyfinConnectivity());
         if (includeTMDB) promises.push(checkTMDBConnectivity());
-        if (includeTVDB) promises.push(checkTVDBConnectivity());
         if (includeDeviceSla) promises.push(checkDeviceSLA());
         if (includeCacheEfficiency) promises.push(checkCacheEfficiency());
         if (includePerf) promises.push(checkPerformanceThresholds());
@@ -983,7 +938,6 @@ module.exports = {
     checkPlexConnectivity,
     checkJellyfinConnectivity,
     checkTMDBConnectivity,
-    checkTVDBConnectivity,
     checkDeviceSLA,
     checkCacheEfficiency,
     checkPerformanceThresholds,

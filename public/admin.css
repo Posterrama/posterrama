@@ -3723,60 +3723,7 @@ select:not([multiple]) {
         0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-/* TVDB Category: match Clock Timezone exactly and use TVDB accent on focus */
-#panel-tvdb .select-wrap.has-caret select#tvdb\.category {
-    /* ensure no native chevron; rely on wrapper caret */
-    background-image: none !important;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    box-sizing: border-box;
-    height: 42px; /* match Min Rating height */
-    /* Balanced padding: left for icon, right for divider+caret */
-    padding: 8px 44px 8px 40px !important;
-    line-height: 1.2; /* avoid clipping while keeping compact height */
-}
-#panel-tvdb .select-wrap.has-caret select#tvdb\.minRating {
-    /* mirror category select dimensions for exact height parity */
-    background-image: none !important;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    box-sizing: border-box;
-    height: 42px;
-    /* No leading icon for Min Rating; keep standard left padding */
-    padding: 8px 44px 8px 12px !important; /* right space for caret */
-    line-height: 1.2;
-}
-#panel-tvdb .select-wrap .select-icon + select#tvdb\.category {
-    padding-left: 40px;
-}
-#panel-tvdb .select-wrap.has-caret {
-    min-height: 42px;
-}
-#panel-tvdb .select-wrap.has-caret:focus-within .select-caret {
-    border-color: color-mix(in srgb, var(--color-success) 55%, var(--color-border));
-    color: color-mix(in srgb, var(--color-success) 80%, var(--color-text-muted));
-}
-#panel-tvdb select#tvdb\.category:focus,
-#panel-tvdb select#tvdb\.category:focus-visible {
-    border-color: color-mix(in srgb, var(--color-success) 50%, var(--color-border)) !important;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-success) 18%, transparent) !important;
-}
-
-/* TVDB: ensure inputs match the dropdown height */
-#panel-tvdb input#tvdb\.minRating,
-#panel-tvdb input#tvdb\.yearFilter {
-    height: 42px; /* match select min-height for visual parity */
-}
-
-/* TVDB: if Min Rating is enhanced with number-input-wrapper, ensure same fixed height */
-#panel-tvdb .number-input-wrapper {
-    height: 42px;
-    background: var(--color-bg-card);
-}
-
-/* TMDB Category: mirror TVDB visuals and dimensions */
+/* TMDB Category: styled like admin selects and compact inputs */
 #panel-tmdb .select-wrap.has-caret select#tmdb\.category {
     background-image: none !important;
     -webkit-appearance: none;
@@ -3804,7 +3751,7 @@ select:not([multiple]) {
     min-height: 42px;
 }
 
-/* TMDB inputs: align heights like TVDB */
+/* TMDB inputs: align heights with compact selects */
 #panel-tmdb input#tmdb\.minRating,
 #panel-tmdb input#tmdb\.yearFilter {
     height: 42px;
@@ -5344,7 +5291,7 @@ body.page-logs {
     display: block !important;
     visibility: visible !important;
 }
-/* Consistent inner padding for Media Sources panels (Plex/Jellyfin/TMDB/TVDB) */
+/* Consistent inner padding for Media Sources panels (Plex/Jellyfin/TMDB) */
 #section-media-sources .panel > .panel-content {
     padding: 16px 20px;
 }
@@ -6276,9 +6223,6 @@ body.page-logs {
 #section-media-sources .source-card.card-tmdb {
     --sc-accent: var(--color-success);
 }
-#section-media-sources .source-card.card-tvdb {
-    --sc-accent: var(--color-info);
-}
 /* Thin accent bar at the top of each card */
 #section-media-sources .source-card::before {
     /* Remove the decorative accent line entirely */
@@ -6360,8 +6304,7 @@ body.page-logs {
 #section-media-sources .status-pill.is-configured,
 #plex-status-pill-header.is-configured,
 #jf-status-pill-header.is-configured,
-#tmdb-status-pill-header.is-configured,
-#tvdb-status-pill-header.is-configured {
+#tmdb-status-pill-header.is-configured {
     background: linear-gradient(90deg, rgba(16, 185, 129, 0.22), rgba(59, 130, 246, 0.16));
     color: #d1fae5;
     border-color: rgba(16, 185, 129, 0.45);
@@ -9827,7 +9770,7 @@ select:focus-visible {
 /* =============================================================== */
 /* Media Sources — Save Settings button matches Operations style    */
 /* =============================================================== */
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-tvdb) {
+#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb) {
     border: none !important;
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
@@ -9846,25 +9789,21 @@ select:focus-visible {
     gap: 6px;
     cursor: pointer;
 }
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-tvdb) i,
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-tvdb) .fas,
+#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb) i,
+#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb) .fas,
 #section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-tvdb)
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb)
     > span:not(.spinner) {
     color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text-secondary));
 }
-#section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-tvdb):hover,
-#section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-tvdb):focus,
-#section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-tvdb):focus-visible {
+#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb):hover,
+#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb):focus,
+#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb):focus-visible {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
         linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
 }
-#section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-tvdb):active {
+#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb):active {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
         linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;

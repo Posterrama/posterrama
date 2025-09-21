@@ -102,13 +102,7 @@
         "yearFilter": null,
         "genreFilter": ""
     },
-    "tvdbSource": {
-        "enabled": false,
-        "category": "newest",
-        "minRating": 0,
-        "yearFilter": null,
-        "genreFilter": ""
-    },
+
     "streamingSources": [],
     "siteServer": {
         "enabled": true,

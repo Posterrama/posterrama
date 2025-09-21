@@ -14,7 +14,12 @@ const logger = require('../utils/logger');
 
 // Helper function to get request size
 function getRequestSize(req) {
-    return req.get('content-length') ? parseInt(req.get('content-length')) : 0;
+    // Support both Express req.get and plain object headers
+    const headerVal =
+        typeof req.get === 'function'
+            ? req.get('content-length')
+            : req.headers?.['content-length'] || req.headers?.['Content-Length'];
+    return headerVal ? parseInt(headerVal) : 0;
 }
 
 // Middleware to collect request metrics
@@ -32,7 +37,7 @@ const metricsMiddleware = (req, res, next) => {
         const statusCode = res.statusCode;
         const method = req.method;
         const path = req.route ? req.route.path : req.path;
-        const cached = res.get('X-Cache') === 'HIT';
+        const cached = res.get?.('X-Cache') === 'HIT';
         const endMemory = process.memoryUsage();
 
         // Calculate memory difference
@@ -56,8 +61,11 @@ const metricsMiddleware = (req, res, next) => {
                 memoryDelta: `${memoryDelta}KB`,
                 requestSize: `${requestSize}B`,
                 responseSize: `${responseSize}B`,
-                userAgent: req.get('user-agent'),
-                ip: req.ip || req.connection.remoteAddress,
+                userAgent:
+                    (typeof req.get === 'function'
+                        ? req.get('user-agent')
+                        : req.headers?.['user-agent']) || undefined,
+                ip: req.ip || req.connection?.remoteAddress,
             };
 
             // Only log performance issues, not routine requests

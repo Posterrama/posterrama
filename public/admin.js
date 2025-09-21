@@ -1,6 +1,6 @@
 /* Admin v2 Dashboard (theme-based) */
 /* eslint-disable no-empty */
-/* global saveConfigPatch, miniCache, inflight, refreshOverviewLastSync, tvdb */
+/* global saveConfigPatch, miniCache, inflight, refreshOverviewLastSync */
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -220,7 +220,6 @@
                 if (plex?.enabled) enabledSources++;
                 if (jf?.enabled) enabledSources++;
                 if (config.tmdbSource?.enabled) enabledSources++;
-                if (config.tvdbSource?.enabled) enabledSources++;
 
                 const mediaSub = document.getElementById('metric-media-sub');
                 if (mediaSub) {
@@ -356,42 +355,23 @@
             perfTimer = null;
         }
     }
-    async function runPerfTick() {
-        try {
-            const active = document.getElementById('section-dashboard');
-            const visible = !!active && active.classList.contains('active') && !active.hidden;
-            if (!visible) return; // only refresh when dashboard visible
-            await refreshPerfDashboard();
-        } catch (_) {
-            /* ignore */
-        } finally {
-            perfTimer = setTimeout(runPerfTick, PERF_INTERVAL);
-        }
-    }
     function startPerfLive() {
-        if (perfTimer) return; // avoid duplicates
-        // Kick off immediately then schedule
-        runPerfTick();
+        // Avoid duplicate loops
+        if (perfTimer) return;
+        const tick = async () => {
+            try {
+                // Only poll when dashboard is visible (same visibility gate as KPIs)
+                const active = document.getElementById('section-dashboard');
+                const visible = !!active && active.classList.contains('active') && !active.hidden;
+                if (visible) await refreshPerfDashboard();
+            } catch (_) {
+                /* ignore errors */
+            } finally {
+                perfTimer = setTimeout(tick, PERF_INTERVAL);
+            }
+        };
+        tick();
     }
-
-    // Safe shim for external triggers (e.g., SSE) to refresh notifications badge
-    try {
-        if (!window.refreshAdminBadge) {
-            window.refreshAdminBadge = function () {
-                try {
-                    const fn = (function () {
-                        try {
-                            // Seek the refreshBadge in closure by referencing the bell button scope
-                            return undefined; // placeholder: actual function exists below in initNotifications
-                        } catch (_) {
-                            return undefined;
-                        }
-                    })();
-                    if (typeof fn === 'function') fn();
-                } catch (_) {}
-            };
-        }
-    } catch (_) {}
 
     async function refreshPerfDashboard() {
         // System status chips and resources
@@ -690,7 +670,7 @@
                 btn.insertBefore(sp, btn.firstChild);
             }
         };
-        // (moved) TMDB custom dropdown wiring lives near TVDB wiring after iconFor()
+        // TMDB custom dropdown wiring lives near iconFor()
         ensureSpinner(cleanupBtn);
         ensureSpinner(clearBtn);
         ensureSpinner(editBtn);
@@ -1579,7 +1559,7 @@
             const label = trigger?.querySelector('.left > span:last-child');
             const selectedText = selectEl.options[selectEl.selectedIndex]?.text || 'Select';
             if (icon) {
-                // Local icon map covering TMDB and TVDB
+                // Local icon map covering TMDB
                 const iconForFn = val => {
                     switch (val) {
                         // Shared ratings/popularity
@@ -1614,19 +1594,6 @@
                         case 'discover_movie':
                         case 'discover_tv':
                             return 'fas fa-compass';
-                        // TVDB-specific
-                        case 'recently_updated':
-                            return 'fas fa-sync-alt';
-                        case 'newest':
-                            return 'fas fa-film';
-                        case 'oldest':
-                            return 'fas fa-hourglass-half';
-                        case 'trending':
-                            return 'fas fa-chart-line';
-                        case 'recently_added':
-                            return 'fas fa-plus';
-                        case 'alphabetical':
-                            return 'fas fa-font';
                         default:
                             return 'fas fa-list';
                     }
@@ -1672,19 +1639,6 @@
                     case 'discover_movie':
                     case 'discover_tv':
                         return 'fas fa-compass';
-                    // TVDB-specific
-                    case 'recently_updated':
-                        return 'fas fa-sync-alt';
-                    case 'newest':
-                        return 'fas fa-film';
-                    case 'oldest':
-                        return 'fas fa-hourglass-half';
-                    case 'trending':
-                        return 'fas fa-chart-line';
-                    case 'recently_added':
-                        return 'fas fa-plus';
-                    case 'alphabetical':
-                        return 'fas fa-font';
                     default:
                         return 'fas fa-list';
                 }
@@ -2195,7 +2149,7 @@
         // -------------------------------------------------------------
         // Global number input enhancement (outside Display section)
         // Applies custom wrapper + steppers for plain <input type=number>
-        // in source panels (plex/jellyfin/tmdb/tvdb), operations modal,
+        // in source panels (plex/jellyfin/tmdb), operations modal,
         // and cache size modal without altering existing semantics.
         // -------------------------------------------------------------
         try {
@@ -2236,7 +2190,6 @@
                         'jf.port',
                         'jf.recentDays',
                         'tmdb.minRating',
-                        'tvdb.minRating',
                         'streamingSources.minRating',
                     ]);
                     if (smallIds.has(input.id)) {
@@ -2298,7 +2251,6 @@
                 'jf.port',
                 'jf.recentDays',
                 'tmdb.minRating',
-                'tvdb.minRating',
                 'streamingSources.minRating',
                 'SERVER_PORT',
                 'siteServer.port',
@@ -5831,12 +5783,7 @@
             // Put all panels into non-loading state first
             list.forEach(p => p.classList.remove('is-loading'));
             list.forEach(p => {
-                if (
-                    p.id === 'panel-plex' ||
-                    p.id === 'panel-jellyfin' ||
-                    p.id === 'panel-tmdb' ||
-                    p.id === 'panel-tvdb'
-                ) {
+                if (p.id === 'panel-plex' || p.id === 'panel-jellyfin' || p.id === 'panel-tmdb') {
                     p.hidden = p.id !== panelId;
                 } else {
                     p.hidden = true; // hide overview panel when selecting a specific source
@@ -5925,7 +5872,7 @@
                     // Re-run number input enhancement for any visible numeric fields in the panel
                     const nums = active?.querySelectorAll('input[type="number"]') || [];
                     nums.forEach(el => window.admin2?.enhanceNumberInput?.(el));
-                    // Wire steppers for statically pre-wrapped number inputs in this panel (e.g., TVDB Min Rating)
+                    // Wire steppers for statically pre-wrapped number inputs in this panel
                     window.admin2?.wireNumberWrappers?.(active);
                 } catch (_) {}
             }, 60);
@@ -5954,7 +5901,6 @@
                         hash: '#jellyfin',
                     },
                     { id: 'seg-tmdb', val: 'tmdb', panel: 'panel-tmdb', hash: '#tmdb' },
-                    { id: 'seg-tvdb', val: 'tvdb', panel: 'panel-tvdb', hash: '#tvdb' },
                 ];
 
                 // Mount per-source header actions into the Media Sources UI
@@ -5971,7 +5917,7 @@
                     rightActions.className = 'source-actions-right';
                     tabsRow.appendChild(rightActions);
                 }
-                let mountedSource = null; // 'plex' | 'jellyfin' | 'tmdb' | 'tvdb'
+                let mountedSource = null; // 'plex' | 'jellyfin' | 'tmdb'
                 const moveAll = (from, to) => {
                     if (!from || !to) return;
                     // Move nodes (preserve listeners)
@@ -6059,7 +6005,6 @@
                             plex: 'plex.enabled',
                             jellyfin: 'jf.enabled',
                             tmdb: 'tmdb.enabled',
-                            tvdb: 'tvdb.enabled',
                         };
                         const inputId = idMap[val];
                         if (inputId && typeof forceUpdateHeaderToggleText === 'function') {
@@ -6097,7 +6042,6 @@
                     const h = (location.hash || '').toLowerCase();
                     if (h === '#jellyfin') setActive('jellyfin');
                     else if (h === '#tmdb') setActive('tmdb');
-                    else if (h === '#tvdb') setActive('tvdb');
                     else setActive('plex');
                 }
                 // Run on enter to sources and on hash changes
@@ -6363,12 +6307,6 @@
                     window.admin2?.maybeFetchTmdbOnOpen?.();
                     return;
                 }
-                if (h === '#tvdb') {
-                    showSourcePanel('panel-tvdb', 'TVDB');
-                    // Lazy-load on routed open
-                    window.admin2?.maybeFetchTmdbOnOpen?.();
-                    return;
-                }
                 if (h === '#media-sources' || h === '#media-sources/overview') {
                     // Default Media Sources to Plex tab
                     showSection('section-media-sources');
@@ -6394,12 +6332,7 @@
         // If hash on load points to a top-level section (none currently), ensure submenu is cleared
         try {
             const h0 = (location.hash || '').toLowerCase();
-            if (
-                !h0.startsWith('#plex') &&
-                !h0.startsWith('#jellyfin') &&
-                !h0.startsWith('#tmdb') &&
-                !h0.startsWith('#tvdb')
-            ) {
+            if (!h0.startsWith('#plex') && !h0.startsWith('#jellyfin') && !h0.startsWith('#tmdb')) {
                 document
                     .querySelectorAll('.sidebar-nav .nav-subitem')
                     ?.forEach(s => s.classList.remove('active'));
@@ -10782,7 +10715,6 @@
             attachHeaderToggleText('plex.enabled');
             attachHeaderToggleText('jf.enabled');
             attachHeaderToggleText('tmdb.enabled');
-            attachHeaderToggleText('tvdb.enabled');
             attachHeaderToggleText('streamingSources.enabled');
         } catch (_) {}
 
@@ -10918,10 +10850,6 @@
                     const tmdb = { ...(currentCfg.tmdbSource || {}) };
                     tmdb.enabled = !!enabled;
                     await saveConfigPatch({ tmdbSource: tmdb }, envPatch);
-                } else if (sourceKey === 'tvdb') {
-                    const tvdb = { ...(currentCfg.tvdbSource || {}) };
-                    tvdb.enabled = !!enabled;
-                    await saveConfigPatch({ tvdbSource: tvdb }, envPatch);
                 }
                 window.notify?.toast({
                     type: 'success',
@@ -10954,7 +10882,6 @@
                 const plex = mediaServers.find(s => s?.type === 'plex') || {};
                 const jf = mediaServers.find(s => s?.type === 'jellyfin') || {};
                 const tmdb = cfg?.tmdbSource || {};
-                const tvdb = cfg?.tvdbSource || {};
 
                 // Plex
                 try {
@@ -11081,30 +11008,6 @@
                         loadMediaSources(true).catch(() => {});
                     });
                 } catch (_) {}
-
-                // TVDB
-                try {
-                    const enabled = !!tvdb.enabled;
-                    // No API key required in our config model; treat configured as enabled
-                    setCardStatus('sc-tvdb', {
-                        enabled,
-                        configured: enabled,
-                        pillText: enabled ? 'Configured' : 'Disabled',
-                    });
-                    const tgl = document.getElementById('sc.tvdb.enabled');
-                    if (tgl) tgl.checked = enabled;
-                    wireToggleOnce('sc.tvdb.enabled', async e => {
-                        const el = e.currentTarget;
-                        el.disabled = true;
-                        const ok = await patchSourceEnabled('tvdb', !!el.checked);
-                        if (!ok) el.checked = !el.checked;
-                        el.disabled = false;
-                        const mirror = document.getElementById('tvdb.enabled');
-                        if (mirror) mirror.checked = el.checked;
-                        // Repaint header pills and dependent UI
-                        loadMediaSources(true).catch(() => {});
-                    });
-                } catch (_) {}
             } catch (_) {
                 /* non-fatal */
             }
@@ -11148,7 +11051,6 @@
                 setSync('sc-plex-sync', j?.plex?.lastFetchMs || null);
                 setSync('sc-jf-sync', j?.jellyfin?.lastFetchMs || null);
                 setSync('sc-tmdb-sync', j?.tmdb?.lastFetchMs || null);
-                setSync('sc-tvdb-sync', j?.tvdb?.lastFetchMs || null);
             } catch (_) {
                 // ignore
             }
@@ -11271,14 +11173,12 @@
                 const inferSource = it => {
                     const s = (it.source || it.serverType || '').toString().toLowerCase();
                     if (s) return s;
-                    // Best-effort inference for TMDB/TVDB items that may not set source string
+                    // Best-effort inference for TMDB items that may not set source string
                     if (it.tmdbId != null) return 'tmdb';
-                    if (it.tvdbId != null) return 'tvdb';
                     const k = (it.key || '').toString().toLowerCase();
                     if (k.startsWith('plex-')) return 'plex';
                     if (k.startsWith('jellyfin_')) return 'jellyfin';
                     if (k.startsWith('tmdb-')) return 'tmdb';
-                    if (k.startsWith('tvdb-')) return 'tvdb';
                     return '';
                 };
                 const parseCsv = v =>
@@ -11456,9 +11356,8 @@
                 // Compute filtered counts from playlist cache (fallback)
                 let filteredPlex = items.filter(it => matchWith(it, 'plex')).length;
                 let filteredJf = items.filter(it => matchWith(it, 'jellyfin')).length;
-                // For TMDB/TVDB we don't have per-source filters here; show counts from cached playlist
+                // For TMDB we don't have per-source filters here; show counts from cached playlist
                 const filteredTmdb = items.filter(it => inferSource(it) === 'tmdb').length;
-                const filteredTvdb = items.filter(it => inferSource(it) === 'tvdb').length;
 
                 // Always ask the server for full-library uncapped counts to ensure Plex/JF filters reflect immediately
                 try {
@@ -11523,10 +11422,8 @@
                 const jfTooltip = `Items — filtered: ${_fmt(filteredJf)} | total: ${_fmt(totalJf)}`;
                 setCount('sc-plex-count', displayPlex, totalPlex, plexTooltip);
                 setCount('sc-jf-count', displayJf, totalJf, jfTooltip);
-                // Default display for TMDB/TVDB from cached playlist (X)
+                // Default display for TMDB from cached playlist
                 let tmdbTotal = null;
-                let tvdbTotal = null;
-                let tvdbAvailable = null;
                 try {
                     const r = await window.dedupJSON('/api/admin/tmdb-total', {
                         credentials: 'include',
@@ -11539,54 +11436,20 @@
                             tmdbTotal = parseInt(tv, 10);
                     }
                 } catch (_) {}
-                try {
-                    const r = await window.dedupJSON('/api/admin/tvdb-total', {
-                        credentials: 'include',
-                    });
-                    if (r?.ok) {
-                        const j = await r.json();
-                        const tv = j?.total;
-                        if (typeof tv === 'number' && Number.isFinite(tv)) tvdbTotal = tv;
-                        else if (typeof tv === 'string' && /^\d+$/.test(tv))
-                            tvdbTotal = parseInt(tv, 10);
-                        else tvdbTotal = null; // Unknown
-                    }
-                } catch (_) {}
-                try {
-                    const r = await window.dedupJSON('/api/admin/tvdb-available', {
-                        credentials: 'include',
-                    });
-                    if (r?.ok) {
-                        const j = await r.json();
-                        const av = j?.available;
-                        if (typeof av === 'number' && Number.isFinite(av)) tvdbAvailable = av;
-                        else if (typeof av === 'string' && /^\d+$/.test(av))
-                            tvdbAvailable = parseInt(av, 10);
-                    }
-                } catch (_) {}
-
-                // Display counts: for TMDB/TVDB we don't have UI filters, so show a single total number.
+                // Display counts: for TMDB we don't have UI filters, so show a single total number.
                 const displayTmdb = Number.isFinite(tmdbTotal) ? tmdbTotal : filteredTmdb;
-                const displayTvdb = Number.isFinite(tvdbTotal)
-                    ? tvdbTotal
-                    : Number.isFinite(tvdbAvailable)
-                      ? tvdbAvailable
-                      : filteredTvdb;
 
-                // Build helpful tooltips for TMDB/TVDB
+                // Build helpful tooltips for TMDB
                 const fmt = v => (Number.isFinite(v) ? Number(v).toLocaleString() : '—');
                 const tmdbTooltip = `TMDB items — cached: ${fmt(filteredTmdb)} | total: ${fmt(tmdbTotal)}`;
-                const tvdbTooltip = `TVDB items — cached: ${fmt(filteredTvdb)} | available: ${fmt(tvdbAvailable)}`;
 
                 // Overview tiles
                 setCount('sc-tmdb-count', displayTmdb, null, tmdbTooltip);
-                setCount('sc-tvdb-count', displayTvdb, null, tvdbTooltip);
                 // Also update per-source panel header pills
                 setCount('plex-count-pill', displayPlex, totalPlex);
                 setCount('jf-count-pill', displayJf, totalJf);
-                // TMDB/TVDB header pills (single total)
+                // TMDB header pill
                 setCount('tmdb-count-pill', displayTmdb, null, tmdbTooltip);
-                setCount('tvdb-count-pill', displayTvdb, null, tvdbTooltip);
             } catch (_) {
                 // ignore
             }
@@ -12322,79 +12185,6 @@
             } catch (_) {
                 // ignore (streaming UI init optional)
             }
-            // TVDB
-            const tvdb = cfg.tvdbSource || {};
-            if (getInput('tvdb.enabled')) getInput('tvdb.enabled').checked = !!tvdb.enabled;
-            try {
-                requestAnimationFrame(() => forceUpdateHeaderToggleText('tvdb.enabled'));
-            } catch (_) {}
-            // Header pill for TVDB
-            try {
-                const pill = document.getElementById('tvdb-status-pill-header');
-                if (pill) {
-                    pill.classList.remove(
-                        'status-success',
-                        'status-error',
-                        'is-configured',
-                        'is-not-configured'
-                    );
-                    if (!tvdb.enabled) {
-                        pill.textContent = 'Disabled';
-                        pill.classList.add('is-not-configured');
-                    } else {
-                        // No API key required for TVDB in our model; treat enabled as configured
-                        pill.textContent = 'Configured';
-                        pill.classList.add('is-configured');
-                    }
-                }
-            } catch (_) {
-                /* no-op */
-            }
-            const tvdbCatEl = getInput('tvdb.category');
-            if (tvdbCatEl) {
-                tvdbCatEl.value = tvdb.category || 'popular';
-                // Update overlay icon via change event (native select only)
-                try {
-                    tvdbCatEl.dispatchEvent(new Event('change', { bubbles: true }));
-                } catch (_) {
-                    // ignore (icon refresh)
-                }
-            }
-            // Replace TVDB Min Rating spinner with a dropdown (1–10)
-            (function ensureTvdbMinRatingSelect() {
-                const el = getInput('tvdb.minRating');
-                if (!el) return;
-                if (el.tagName !== 'SELECT') {
-                    // If it's inside a number wrapper, replace that wrapper; otherwise replace the input itself
-                    const mount = el.closest('.number-input-wrapper') || el;
-                    const wrap = document.createElement('div');
-                    wrap.className = 'select-wrap has-caret';
-                    const sel = document.createElement('select');
-                    sel.id = el.id;
-                    sel.name = el.getAttribute('name') || el.id;
-                    for (let i = 1; i <= 10; i++) {
-                        const opt = document.createElement('option');
-                        opt.value = String(i);
-                        opt.textContent = String(i);
-                        sel.appendChild(opt);
-                    }
-                    wrap.appendChild(sel);
-                    const caret = document.createElement('span');
-                    caret.className = 'select-caret';
-                    caret.setAttribute('aria-hidden', 'true');
-                    caret.textContent = '▾';
-                    wrap.appendChild(caret);
-                    mount.parentNode?.replaceChild(wrap, mount);
-                }
-                // Set selected value (default to 1 if unset)
-                const sel = /** @type {HTMLSelectElement} */ (getInput('tvdb.minRating'));
-                const raw = Number(tvdb.minRating);
-                const v = Number.isFinite(raw) ? Math.min(10, Math.max(1, Math.round(raw))) : 1;
-                sel.value = String(v);
-            })();
-            if (getInput('tvdb.yearFilter'))
-                getInput('tvdb.yearFilter').value =
-                    tvdb.yearFilter == null ? '' : String(tvdb.yearFilter);
 
             // Finally, paint overview cards (status + toggles + meta)
             updateOverviewCards(cfg, env);
@@ -13592,36 +13382,6 @@
                 stopBtnSpinner(btn);
             }
         }
-        async function testTVDB() {
-            const btn = document.getElementById('btn-tvdb-test');
-            startBtnSpinner(btn);
-            try {
-                const res = await fetch('/api/admin/test-tvdb', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                });
-                const j = await res.json().catch(() => ({}));
-                if (!res.ok || !j?.success) throw new Error(j?.error || 'TVDB test failed');
-                window.notify?.toast({
-                    type: 'success',
-                    title: 'TVDB',
-                    message: 'Connection successful',
-                    duration: 2200,
-                });
-            } catch (e) {
-                window.notify?.toast({
-                    type: 'error',
-                    title: 'TVDB',
-                    message: e?.message || 'Connection failed',
-                    duration: 4200,
-                });
-            } finally {
-                stopBtnSpinner(btn);
-            }
-        }
-
-        // (deduped) Only one testTVDB implementation remains (spinner-based)
 
         // Per-source save helpers
         async function savePlex() {
@@ -14355,50 +14115,6 @@
             }
         }
 
-        async function saveTVDB() {
-            const btn = document.getElementById('btn-save-tvdb');
-            btn?.classList.add('btn-loading');
-            try {
-                const cfgRes = await window.dedupJSON('/api/admin/config', {
-                    credentials: 'include',
-                });
-                const base = cfgRes.ok ? await cfgRes.json() : {};
-                const currentCfg = base?.config || base || {};
-                const tvdb = { ...(currentCfg.tvdbSource || {}) };
-                tvdb.enabled = !!getInput('tvdb.enabled')?.checked;
-                tvdb.category = getInput('tvdb.category')?.value || 'popular';
-                {
-                    const raw = getInput('tvdb.minRating')?.value;
-                    const mr = Math.round(Number(raw));
-                    tvdb.minRating = Number.isFinite(mr)
-                        ? Math.min(10, Math.max(1, mr))
-                        : undefined;
-                }
-                {
-                    const expr = parseYearExpression(getInput('tvdb.yearFilter')?.value);
-                    tvdb.yearFilter = expr;
-                }
-                await saveConfigPatch({ tvdbSource: tvdb });
-                window.notify?.toast({
-                    type: 'success',
-                    title: 'Saved',
-                    message: 'TVDB settings updated',
-                    duration: 2500,
-                });
-            } catch (e) {
-                window.notify?.toast({
-                    type: 'error',
-                    title: 'Save failed',
-                    message: e?.message || 'Unable to save TVDB',
-                    duration: 4500,
-                });
-            } finally {
-                btn?.classList.remove('btn-loading');
-                // Force a fresh reload so the UI immediately reflects saved values
-                loadMediaSources(true).catch(() => {});
-            }
-        }
-
         // Wire buttons
         document.getElementById('btn-plex-libraries')?.addEventListener('click', () => {
             fetchPlexLibraries(true);
@@ -14414,8 +14130,6 @@
         // Update category icon based on selection
         const tmdbCat = document.getElementById('tmdb.category');
         const tmdbCatIcon = document.getElementById('tmdb-category-icon')?.querySelector('i');
-        const tvdbCat = document.getElementById('tvdb.category');
-        const tvdbCatIcon = document.getElementById('tvdb-category-icon')?.querySelector('i');
         const iconFor = val => {
             switch (val) {
                 // Shared
@@ -14450,17 +14164,6 @@
                 case 'discover_movie':
                 case 'discover_tv':
                     return 'fas fa-compass';
-                // TVDB-specific fallbacks retained
-                case 'recently_updated':
-                    return 'fas fa-arrows-rotate';
-                case 'newest':
-                    return 'fas fa-film';
-                case 'oldest':
-                    return 'fas fa-hourglass-half';
-                case 'recently_added':
-                    return 'fas fa-plus';
-                case 'alphabetical':
-                    return 'fas fa-font';
                 default:
                     return 'fas fa-list';
             }
@@ -14522,18 +14225,9 @@
             }
         });
 
-        // TVDB: overlay icon only; use native select with caret wrapper (no custom dropdown)
-        if (tvdbCat && tvdbCatIcon) {
-            tvdbCatIcon.className = iconFor(tvdbCat.value);
-            tvdbCat.addEventListener('change', () => {
-                tvdbCatIcon.className = iconFor(tvdbCat.value);
-            });
-        }
-        document.getElementById('btn-tvdb-test')?.addEventListener('click', testTVDB);
         document.getElementById('btn-save-plex')?.addEventListener('click', savePlex);
         document.getElementById('btn-save-jellyfin')?.addEventListener('click', saveJellyfin);
         document.getElementById('btn-save-tmdb')?.addEventListener('click', saveTMDB);
-        document.getElementById('btn-save-tvdb')?.addEventListener('click', saveTVDB);
         // No extra handlers needed here; dependent refresh is driven by fetchPlexLibraries(true)
 
         // Initial population

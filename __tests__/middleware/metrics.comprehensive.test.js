@@ -237,6 +237,81 @@ describe('Metrics Middleware - Comprehensive Tests', () => {
                 false
             );
         });
+
+        test('should log very slow request (warn)', () => {
+            // Ensure no cache header and default status 200
+            res.get.mockReturnValue(undefined);
+            Date.now.mockReturnValueOnce(1000).mockReturnValueOnce(1000 + 3101);
+
+            metricsMiddleware(req, res, next);
+            res.end();
+
+            const call = logger.warn.mock.calls.find(([msg]) => msg === '🐌 Very slow request');
+            expect(call).toBeTruthy();
+            expect(call[1]).toEqual(
+                expect.objectContaining({ responseTime: 3101, statusCode: 200 })
+            );
+        });
+
+        test('should log slow request (info)', () => {
+            res.get.mockReturnValue(undefined);
+            Date.now.mockReturnValueOnce(2000).mockReturnValueOnce(2000 + 1800);
+
+            metricsMiddleware(req, res, next);
+            res.end();
+
+            const call = logger.info.mock.calls.find(([msg]) => msg === '⏱️ Slow request');
+            expect(call).toBeTruthy();
+            expect(call[1]).toEqual(
+                expect.objectContaining({ responseTime: 1800, statusCode: 200 })
+            );
+        });
+
+        test('should log server error (error)', () => {
+            res.statusCode = 500;
+            Date.now.mockReturnValueOnce(3000).mockReturnValueOnce(3000 + 100);
+
+            metricsMiddleware(req, res, next);
+            res.end();
+
+            const call = logger.error.mock.calls.find(([msg]) => msg === '💥 Server error');
+            expect(call).toBeTruthy();
+            expect(call[1]).toEqual(
+                expect.objectContaining({ responseTime: 100, statusCode: 500 })
+            );
+        });
+
+        test('should log client error (warn)', () => {
+            res.statusCode = 404;
+            Date.now.mockReturnValueOnce(4000).mockReturnValueOnce(4000 + 100);
+
+            metricsMiddleware(req, res, next);
+            res.end();
+
+            const call = logger.warn.mock.calls.find(([msg]) => msg === '⚠️ Client error');
+            expect(call).toBeTruthy();
+            expect(call[1]).toEqual(
+                expect.objectContaining({ responseTime: 100, statusCode: 404 })
+            );
+        });
+
+        test('should compute requestSize from headers when req.get is missing', () => {
+            // Remove req.get and provide headers fallback
+            delete req.get;
+            req.headers = { 'content-length': '123', 'user-agent': 'jest-agent' };
+            res.statusCode = 404; // trigger logging branch reliably
+            Date.now.mockReturnValueOnce(5000).mockReturnValueOnce(5000 + 50);
+
+            metricsMiddleware(req, res, next);
+            res.end('x');
+
+            // Assert that logger received computed fields
+            const found = logger.warn.mock.calls.find(([msg]) => msg === '⚠️ Client error');
+            expect(found).toBeTruthy();
+            const perfData = found[1];
+            expect(perfData.requestSize).toBe('123B');
+            expect(perfData.userAgent).toBe('jest-agent');
+        });
     });
 
     describe('connectionTracker', () => {

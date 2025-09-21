@@ -159,36 +159,7 @@ describe('Specific Coverage Targeting', () => {
             });
         });
 
-        it('should handle TVDB source edge cases', () => {
-            const tvdb = require('../../sources/tvdb');
-
-            // Test module structure
-            expect(tvdb).toBeDefined();
-
-            // Test error handling patterns
-            const errorScenarios = [
-                new Error('Network error'),
-                new TypeError('Type error'),
-                { message: 'Custom error' },
-                'String error',
-                null,
-                undefined,
-            ];
-
-            errorScenarios.forEach(error => {
-                expect(() => {
-                    // Test error handling that might be in uncovered lines
-                    if (error && error.message) {
-                        String(error.message);
-                    }
-                    if (error && error.stack) {
-                        String(error.stack);
-                    }
-                    Boolean(error);
-                    String(error);
-                }).not.toThrow();
-            });
-        });
+        // Skip removed source edge cases
     });
 
     describe('Validation Additional Coverage', () => {

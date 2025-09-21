@@ -748,7 +748,7 @@
               <i class="fas fa-server" aria-hidden="true"></i>
               <h2 style="margin:0;">Media Sources</h2>
             </div>
-            <div class="panel-subtitle">Connect and configure sources across Plex, Jellyfin, TMDB, and TVDB</div>
+            <div class="panel-subtitle">Connect and configure sources across Plex, Jellyfin and TMDB</div>
           </div>
           <div class="panel-actions"></div>
         </div>
@@ -770,10 +770,7 @@
               <input type="radio" name="sources.active" id="src-tmdb" value="tmdb" />
               <i class="fas fa-database"></i> TMDB
             </label>
-            <label class="seg" id="seg-tvdb" role="tab" aria-controls="panel-tvdb" aria-checked="false">
-              <input type="radio" name="sources.active" id="src-tvdb" value="tvdb" />
-              <i class="fas fa-tv"></i> TVDB
-            </label>
+            
           </div>
           <div class="source-actions-right"></div>
         </div>
@@ -1385,68 +1382,7 @@
         </div>
       </section>
 
-      <!-- TVDB Panel -->
-  <section class="panel" id="panel-tvdb">
-        <div class="actions-home" id="tvdb-actions-home" hidden>
-          <span class="status-pill" id="tvdb-status-pill-header" title="TVDB configuration status">Not configured</span>
-          <span class="status-pill" id="tvdb-count-pill" title="Items from TVDB in the current playlist">Items: —</span>
-          <button class="btn btn-icon btn-sm" id="btn-tvdb-test" title="Test connection"><i class="fas fa-vial"></i></button>
-          <label class="header-toggle" for="tvdb.enabled" title="Enable TVDB source">
-            <input type="checkbox" id="tvdb.enabled" />
-            <span class="ht-switch" aria-hidden="true"></span>
-            <span class="ht-text">Enabled</span>
-          </label>
-          <button class="btn btn-primary btn-sm" id="btn-save-tvdb" title="Save TVDB settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
-        </div>
-        <div class="panel-content">
-          <div class="loading-overlay" aria-hidden="true">
-            <div class="glass"></div>
-            <div class="loader"><span class="spinner"></span></div>
-          </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="tvdb.category">Category</label>
-              <div class="select-wrap has-caret">
-                <span class="select-icon" id="tvdb-category-icon"><i class="fas fa-fire"></i></span>
-                <select id="tvdb.category">
-                <optgroup label="By Rating & Popularity">
-                  <option value="top_rated">Top Rated</option>
-                  <option value="popular">Most Popular</option>
-                </optgroup>
-                <optgroup label="By Date">
-                  <option value="recently_updated">Recently Updated</option>
-                  <option value="newest">Newest Releases</option>
-                  <option value="oldest">Classic Content</option>
-                </optgroup>
-                <optgroup label="By Activity">
-                  <option value="trending">Trending Now</option>
-                  <option value="recently_added">Recently Added to TVDB</option>
-                </optgroup>
-                <optgroup label="Alphabetical">
-                  <option value="alphabetical">A-Z Order</option>
-                </optgroup>
-                </select>
-                <span class="select-caret" aria-hidden="true">▾</span>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="tvdb.minRating">Minimum Rating</label>
-              <div class="number-input-wrapper niw-compact niw-sized-sm">
-                <input type="number" id="tvdb.minRating" min="0" max="10" step="0.1" placeholder="e.g. 7.0">
-                <div class="number-controls">
-                  <button type="button" class="number-btn number-inc" aria-label="Increase value"><i class="fas fa-chevron-up"></i></button>
-                  <button type="button" class="number-btn number-dec" aria-label="Decrease value"><i class="fas fa-chevron-down"></i></button>
-                </div>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="tvdb.yearFilter">Release Years</label>
-              <input type="text" id="tvdb.yearFilter" inputmode="numeric" placeholder="e.g. 1995, 1998, 2015-2025">
-              
-            </div>
-          </div>
-        </div>
-      </section>
+      
         </div>
       </div>
     </section>
@@ -2377,7 +2313,7 @@
               <option value="power.toggle">power.toggle</option>
             </optgroup>
             <optgroup label="Source">
-              <option value="source.switch">source.switch (plex|jellyfin|tmdb|tvdb|all)</option>
+              <option value="source.switch">source.switch (plex|jellyfin|tmdb|all)</option>
             </optgroup>
             <optgroup label="Management">
               <option value="core.mgmt.reload">core.mgmt.reload</option>
@@ -2397,7 +2333,6 @@
             <option value="plex" selected>plex</option>
             <option value="jellyfin">jellyfin</option>
             <option value="tmdb">tmdb</option>
-            <option value="tvdb">tvdb</option>
             <option value="all">all</option>
           </select>
           <span class="select-caret" aria-hidden="true">▾</span>

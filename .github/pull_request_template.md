@@ -38,7 +38,7 @@ Brief description of what this PR changes
 
 - [ ] Media server connection errors handled gracefully
 - [ ] Large image caching implemented correctly
-- [ ] API rate limits respected (TMDB, TVDB, Plex)
+- [ ] API rate limits respected (TMDB, Plex)
 - [ ] Memory usage optimized for large media datasets
 - [ ] Responsive design works on various screen sizes
 - [ ] Performance tested with large media libraries

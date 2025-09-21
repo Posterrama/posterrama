@@ -14,7 +14,6 @@ describe('healthCheck cache + toggles', () => {
         delete process.env.DASHBOARD_INCLUDE_UPDATE_CHECK;
         delete process.env.DASHBOARD_INCLUDE_CACHE_EFFICIENCY;
         delete process.env.DASHBOARD_INCLUDE_TMDB;
-        delete process.env.DASHBOARD_INCLUDE_TVDB;
         delete process.env.DASHBOARD_INCLUDE_JELLYFIN;
         delete process.env.DASHBOARD_INCLUDE_DEVICE_SLA;
     });

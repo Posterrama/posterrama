@@ -1,7 +1,6 @@
 /**
  * Incremental coverage for healthCheck.js focusing on:
  * - TMDB connectivity branches: ok, warning (4xx), timeout/abort, missing apiKey warning.
- * - TVDB connectivity branches: ok, error (5xx), timeout/abort.
  * - __setCacheDuration guard + cache refresh behavior.
  *
  * Strategy:
@@ -24,7 +23,6 @@ describe('healthCheck incremental connectivity coverage', () => {
         const base = {
             mediaServers: [],
             tmdbSource: { enabled: false, apiKey: '' },
-            tvdbSource: { enabled: false },
         };
         const cfg = { ...base, ...partial };
         jest.doMock('fs', () => {
@@ -89,40 +87,7 @@ describe('healthCheck incremental connectivity coverage', () => {
     // swallows errors and returns a fallback object; covering that catch would require fault injection
     // after readConfig returns (not meaningful for current stability goals), so it's intentionally skipped.
 
-    test('tvdb: enabled + ok', async () => {
-        mockConfig({ tvdbSource: { enabled: true } });
-        global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
-        jest.isolateModules(async () => {
-            const hc = require('../../utils/healthCheck');
-            const r = await hc.checkTVDBConnectivity();
-            expect(r.status).toBe('ok');
-            expect(r.message).toMatch(/TVDB reachable/);
-        });
-    });
-
-    test('tvdb: enabled + 500 -> error', async () => {
-        mockConfig({ tvdbSource: { enabled: true } });
-        global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 });
-        jest.isolateModules(async () => {
-            const hc = require('../../utils/healthCheck');
-            const r = await hc.checkTVDBConnectivity();
-            expect(r.status).toBe('error');
-            expect(r.message).toMatch(/TVDB HTTP 500/);
-        });
-    });
-
-    test('tvdb: enabled + abort -> timeout msg', async () => {
-        mockConfig({ tvdbSource: { enabled: true } });
-        const abortError = new Error('aborted');
-        abortError.name = 'AbortError';
-        global.fetch = jest.fn().mockRejectedValue(abortError);
-        jest.isolateModules(async () => {
-            const hc = require('../../utils/healthCheck');
-            const r = await hc.checkTVDBConnectivity();
-            expect(r.status).toBe('error');
-            expect(r.message).toMatch(/timeout|error/i);
-        });
-    });
+    // connectivity tests for TVDB were deleted
 
     // Cache duration mutation test omitted: calling getDetailedHealth triggers plex connectivity baseline
     // which attempts to require server.js late, causing post-teardown reference noise. Not critical for
