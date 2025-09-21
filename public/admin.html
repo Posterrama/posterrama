@@ -345,74 +345,6 @@
     </section>
     </section> <!-- /section-dashboard -->
 
-    <!-- Device Settings Section -->
-    <section id="section-device-settings" class="app-section" hidden>
-      <section class="panel" id="panel-device-settings">
-        <header class="panel-header">
-          <div class="panel-title">
-            <h2><i class="fas fa-sliders-h"></i> Device Management Settings</h2>
-            <div class="panel-subtitle">Configure IP whitelists and general device policies</div>
-          </div>
-          <div class="panel-actions"></div>
-        </header>
-        <div class="panel-content">
-          <!-- IP Whitelist Section -->
-          <div class="form-section" id="card-ip-whitelist">
-            <div class="section-title"><i class="fas fa-shield-halved"></i> IP Whitelist</div>
-            <div class="section-subtitle">Clients matching these IPv4 addresses or CIDR ranges will skip device registration and use global Display Settings. Useful for trusted kiosk displays.</div>
-            
-            <div class="form-row" style="margin-top: 16px;">
-              <div id="device-whitelist-empty" style="display:none; opacity:.6; font-size:.9rem; margin-bottom:12px; color: #9ca3af;">No whitelist entries yet.</div>
-              <div id="device-whitelist-list" class="chip-container" style="margin:0 0 16px 0; display:flex; flex-wrap:wrap; gap:8px; min-height:24px;"></div>
-            </div>
-            
-            <div class="form-row">
-              <div class="input-group" style="display:flex; gap:12px; align-items:stretch;">
-                <input 
-                  type="text" 
-                  id="input-whitelist-entry" 
-                  class="form-input"
-                  placeholder="192.168.1.25 or 192.168.0.0/16" 
-                  style="
-                    flex:1; 
-                    min-width:280px;
-                    background: var(--color-bg-card) !important;
-                    color: var(--color-text-primary) !important;
-                    border: 1px solid var(--color-border) !important;
-                    padding: var(--space-md) !important;
-                    border-radius: var(--border-radius-md) !important;
-                  "
-                  pattern="[0-9\.\/]*"
-                  title="Only numbers, dots, and forward slashes allowed for IP addresses and CIDR ranges"
-                  autocomplete="off" 
-                  autocapitalize="off" 
-                  spellcheck="false"
-                />
-                <button type="button" id="btn-add-whitelist" class="btn btn-outline" style="padding:10px 16px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:6px; white-space:nowrap; transition:all 0.15s ease;">
-                  <i class="fas fa-plus" style="font-size:12px;"></i>
-                  <span>Add</span>
-                </button>
-                <button type="button" id="btn-whitelist-save" class="btn btn-primary" disabled style="padding:10px 20px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s ease;">
-                  <i class="fas fa-save" style="font-size:12px;"></i>
-                  <span>Save Changes</span>
-                </button>
-              </div>
-            </div>
-            
-            <div class="form-help" style="margin-top:8px;">
-              <strong>Formats:</strong> IPv4 addresses or CIDR ranges (e.g. 10.0.0.0/8, 192.168.1.0/24). Changes take effect within 30s or after server restart.
-            </div>
-            <div id="whitelist-status" class="form-status" style="display:none; margin-top:8px;"></div>
-          </div>
-
-          <!-- Placeholder for future device management settings -->
-          <div class="form-section" style="margin-top:32px;" hidden id="device-future-settings">
-            <div class="section-title"><i class="fas fa-gears"></i> Additional Settings</div>
-            <div class="section-subtitle">Future options will appear here such as pairing policies, heartbeat intervals, offline grace periods, API throttling and more.</div>
-          </div>
-        </div>
-      </section>
-    </section>
 
     <!-- Display Settings -->
     <section id="section-display" class="app-section" hidden>
@@ -1564,10 +1496,37 @@
 
     <!-- Devices Section (top-level sibling) -->
     <section id="section-devices" class="app-section" hidden>
+      <!-- Device Management Tabs header (mirrors Media Sources/Display) -->
+      <div class="panel" id="panel-device-management">
+        <div class="panel-header">
+          <div class="panel-title" style="flex-direction:column; align-items:flex-start; gap:4px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <i class="fas fa-laptop" aria-hidden="true"></i>
+              <h2 style="margin:0;">Device Management</h2>
+            </div>
+            <div class="panel-subtitle">Manage devices, groups, and configuration presets</div>
+          </div>
+          <div class="panel-actions"></div>
+        </div>
+        <div class="panel-content">
+          <div class="form-section" id="device-tabs">
+            <div class="section-title" style="display:none;"><i class="fas fa-layer-group"></i> Tabs</div>
+            <div class="segmented" role="tablist" aria-label="Device Tabs">
+              <label class="seg" id="seg-devices" role="tab" aria-controls="device-ui" aria-checked="false">
+                <i class="fas fa-desktop"></i> Devices
+              </label>
+              <label class="seg" id="seg-dev-settings" role="tab" aria-controls="panel-device-settings" aria-checked="false">
+                <i class="fas fa-sliders-h"></i> Settings
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Devices subpanel -->
       <section class="panel" id="device-ui">
         <header class="panel-header">
           <div class="panel-title">
-            <h2><i class="fas fa-laptop"></i> Device Management <span class="badge badge-error">BETA</span></h2>
+            <h2><i class="fas fa-desktop"></i> Devices <span class="badge badge-error">BETA</span></h2>
             <div class="panel-subtitle">Manage devices, groups, and configuration presets</div>
           </div>
           <div class="panel-actions device-toolbar">
@@ -1617,6 +1576,72 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+      <!-- Settings subpanel (moved under Devices section) -->
+      <section class="panel" id="panel-device-settings" hidden>
+        <header class="panel-header">
+          <div class="panel-title">
+            <h2><i class="fas fa-sliders-h"></i> Settings</h2>
+            <div class="panel-subtitle">Configure IP whitelists and general device policies</div>
+          </div>
+          <div class="panel-actions"></div>
+        </header>
+        <div class="panel-content">
+          <!-- IP Whitelist Section -->
+          <div class="form-section" id="card-ip-whitelist">
+            <div class="section-title"><i class="fas fa-shield-halved"></i> IP Whitelist</div>
+            <div class="section-subtitle">Clients matching these IPv4 addresses or CIDR ranges will skip device registration and use global Display Settings. Useful for trusted kiosk displays.</div>
+            
+            <div class="form-row" style="margin-top: 16px;">
+              <div id="device-whitelist-empty" style="display:none; opacity:.6; font-size:.9rem; margin-bottom:12px; color: #9ca3af;">No whitelist entries yet.</div>
+              <div id="device-whitelist-list" class="chip-container" style="margin:0 0 16px 0; display:flex; flex-wrap:wrap; gap:8px; min-height:24px;"></div>
+            </div>
+            
+            <div class="form-row">
+              <div class="input-group" style="display:flex; gap:12px; align-items:stretch;">
+                <input 
+                  type="text" 
+                  id="input-whitelist-entry" 
+                  class="form-input"
+                  placeholder="192.168.1.25 or 192.168.0.0/16" 
+                  style="
+                    flex:1; 
+                    min-width:280px;
+                    background: var(--color-bg-card) !important;
+                    color: var(--color-text-primary) !important;
+                    border: 1px solid var(--color-border) !important;
+                    padding: var(--space-md) !important;
+                    border-radius: var(--border-radius-md) !important;
+                  "
+                  pattern="[0-9\.\/]*"
+                  title="Only numbers, dots, and forward slashes allowed for IP addresses and CIDR ranges"
+                  autocomplete="off" 
+                  autocapitalize="off" 
+                  spellcheck="false"
+                />
+                <button type="button" id="btn-add-whitelist" class="btn btn-outline" style="padding:10px 16px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:6px; white-space:nowrap; transition:all 0.15s ease;">
+                  <i class="fas fa-plus" style="font-size:12px;"></i>
+                  <span>Add</span>
+                </button>
+                <button type="button" id="btn-whitelist-save" class="btn btn-primary" disabled style="padding:10px 20px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s ease;">
+                  <i class="fas fa-save" style="font-size:12px;"></i>
+                  <span>Save Changes</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="form-help" style="margin-top:8px;">
+              <strong>Formats:</strong> IPv4 addresses or CIDR ranges (e.g. 10.0.0.0/8, 192.168.1.0/24). Changes take effect within 30s or after server restart.
+            </div>
+            <div id="whitelist-status" class="form-status" style="display:none; margin-top:8px;"></div>
+          </div>
+
+          <!-- Placeholder for future device management settings -->
+          <div class="form-section" style="margin-top:32px;" hidden id="device-future-settings">
+            <div class="section-title"><i class="fas fa-gears"></i> Additional Settings</div>
+            <div class="section-subtitle">Future options will appear here such as pairing policies, heartbeat intervals, offline grace periods, API throttling and more.</div>
           </div>
         </div>
       </section>

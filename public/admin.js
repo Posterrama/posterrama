@@ -1394,13 +1394,13 @@
                 .querySelectorAll('.sidebar-nav .nav-item, .sidebar-nav .nav-subitem')
                 .forEach(n => n.classList.remove('active'));
 
-            if (id === 'section-devices' || id === 'section-device-settings') {
+            if (id === 'section-devices') {
                 // Open the device management group and highlight its header toggle
                 const deviceGroup = document.querySelectorAll('.sidebar .nav-group')[0];
                 deviceGroup?.classList.add('open');
                 deviceGroup?.querySelector('.nav-item.nav-toggle')?.classList.add('active');
                 // Highlight the appropriate subitem
-                const subKey = id === 'section-devices' ? 'devices' : 'device-settings';
+                const subKey = 'devices';
                 const subitem = deviceGroup?.querySelector(`.nav-subitem[data-sub="${subKey}"]`);
                 subitem?.classList.add('active');
             } else {
@@ -1409,7 +1409,6 @@
                     'section-display': 'display',
                     'section-operations': 'operations',
                     'section-devices': 'devices',
-                    'section-device-settings': 'device-settings',
                     'section-media-sources': 'media-sources',
                 };
                 const key = map[id];
@@ -1440,14 +1439,6 @@
             } else if (id === 'section-devices') {
                 // Hide the big page header for Device Management (use compact in-panel header)
                 pageHeader.style.display = 'none';
-            } else if (id === 'section-device-settings') {
-                // Hide the big page header for Device Settings (use compact in-panel header)
-                pageHeader.style.display = 'none';
-
-                // Reload whitelist data when device settings section is shown
-                if (typeof window.reloadWhitelistData === 'function') {
-                    window.reloadWhitelistData();
-                }
             } else if (id === 'section-display') {
                 // Hide the big page header for Display Settings (compact panel)
                 pageHeader.style.display = 'none';
@@ -5939,6 +5930,74 @@
             } catch (_) {}
         })();
 
+        // ----- Device Management segmented tabs (mirror Display/Sources) -----
+        (function setupDeviceTabs() {
+            try {
+                const container = document.querySelector('#section-devices .segmented');
+                if (!container) return;
+                // Ensure indicator exists
+                let ind = container.querySelector('.seg-indicator');
+                if (!ind) {
+                    ind = document.createElement('div');
+                    ind.className = 'seg-indicator';
+                    container.appendChild(ind);
+                }
+                const segs = [
+                    { id: 'seg-devices', val: 'devices', panel: 'device-ui' },
+                    { id: 'seg-dev-settings', val: 'settings', panel: 'panel-device-settings' },
+                ];
+                function setActive(val) {
+                    segs.forEach(s => {
+                        const el = document.getElementById(s.id);
+                        if (el) el.setAttribute('aria-checked', String(s.val === val));
+                        const panel = document.getElementById(s.panel);
+                        if (panel) panel.hidden = s.val !== val;
+                    });
+                    const activeSeg = container.querySelector('.seg[aria-checked="true"]');
+                    if (activeSeg) {
+                        const cRect = container.getBoundingClientRect();
+                        const sRect = activeSeg.getBoundingClientRect();
+                        ind.style.left = `${sRect.left - cRect.left}px`;
+                        ind.style.width = `${sRect.width}px`;
+                    }
+                    // When switching to Settings, refresh whitelist data
+                    if (val === 'settings') {
+                        try {
+                            if (typeof window.reloadWhitelistData === 'function') {
+                                window.reloadWhitelistData();
+                            }
+                        } catch (_) {}
+                    }
+                }
+                // Click handling
+                segs.forEach(s => {
+                    const el = document.getElementById(s.id);
+                    if (!el) return;
+                    el.addEventListener('click', e => {
+                        e.preventDefault();
+                        setActive(s.val);
+                    });
+                });
+                // Initialize default: Devices
+                setActive('devices');
+                // Keep in sync when section toggles visibility
+                const section = document.getElementById('section-devices');
+                const obs = new MutationObserver(() => {
+                    if (!section.hidden) {
+                        // Recalculate indicator position on show
+                        const active = container.querySelector('.seg[aria-checked="true"]');
+                        if (active) {
+                            const cRect = container.getBoundingClientRect();
+                            const sRect = active.getBoundingClientRect();
+                            ind.style.left = `${sRect.left - cRect.left}px`;
+                            ind.style.width = `${sRect.width}px`;
+                        }
+                    }
+                });
+                obs.observe(section, { attributes: true, attributeFilter: ['hidden'] });
+            } catch (_) {}
+        })();
+
         // Device Management group: robust toggle and sub-navigation via event delegation
         (function setupDeviceGroupDelegation() {
             const sidebar = document.querySelector('.sidebar .sidebar-nav');
@@ -5980,7 +6039,11 @@
                             window.admin2?.initDevices?.();
                         } catch (_) {}
                     } else if (key === 'device-settings') {
-                        showSection('section-device-settings');
+                        // Switch to Settings tab inside Devices section
+                        showSection('section-devices');
+                        try {
+                            document.getElementById('seg-dev-settings')?.click();
+                        } catch (_) {}
                     }
                 }
             });
@@ -6078,6 +6141,13 @@
                     showSection('section-devices');
                     try {
                         window.admin2?.initDevices?.();
+                    } catch (_) {}
+                    return;
+                }
+                if (h === '#device-settings') {
+                    showSection('section-devices');
+                    try {
+                        document.getElementById('seg-dev-settings')?.click();
                     } catch (_) {}
                     return;
                 }
