@@ -12690,14 +12690,19 @@
                     const hostname = getInput('jf.hostname')?.value || undefined;
                     const port = getInput('jf.port')?.value || undefined;
                     const apiKey = getInput('jf.apikey')?.value || undefined;
-                    // Guard early if not configured => silently skip without error toast
-                    if (!hostname || !apiKey) {
-                        return { skipped: true, libraries: [] };
-                    }
                     const insecureHttps = !!(
                         document.getElementById('jf.insecureHttps')?.checked ||
                         document.getElementById('jf.insecureHttpsHeader')?.checked
                     );
+                    if (!hostname) {
+                        window.notify?.toast({
+                            type: 'warning',
+                            title: 'Jellyfin',
+                            message: 'Hostname is required to fetch libraries',
+                            duration: 3200,
+                        });
+                        return { skipped: true, libraries: [] };
+                    }
                     const res = await fetch('/api/admin/jellyfin-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

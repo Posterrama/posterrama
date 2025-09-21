@@ -994,13 +994,13 @@
           </div>
           <div class="form-section">
             <div class="section-title"><i class="fas fa-server"></i> Server
-              <label class="header-toggle" for="jf.insecureHttpsHeader" title="Allow self‑signed/invalid HTTPS (Jellyfin)" style="margin-left:auto;">
-                <input type="checkbox" id="jf.insecureHttpsHeader" />
-                <span class="ht-switch" aria-hidden="true"></span>
-              </label>
-            </div>
-            <div class="form-help">
-              Accept self‑signed or otherwise invalid HTTPS certificates when connecting to Jellyfin. Enable this only if your Jellyfin server uses a self‑signed certificate; otherwise leave it off.
+              <div class="section-actions">
+                <span class="ht-text" id="jf-insecure-note">Allow self‑signed certificates</span>
+                <label class="header-toggle" for="jf.insecureHttpsHeader" title="Allow self‑signed/invalid HTTPS (Jellyfin)">
+                  <input type="checkbox" id="jf.insecureHttpsHeader" />
+                  <span class="ht-switch" aria-hidden="true"></span>
+                </label>
+              </div>
             </div>
           </div>
           <div class="form-grid plex-dense" id="jf-server-grid">

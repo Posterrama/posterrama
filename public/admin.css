@@ -5317,8 +5317,13 @@ body.page-logs {
     position: relative; /* allow z-index to work */
     z-index: 3; /* sit above loading overlays inside panel-content */
 }
-.form-section .section-title .header-toggle {
+.form-section .section-title .section-actions {
     margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+.form-section .section-title .header-toggle {
     display: inline-flex;
     align-items: center;
     position: relative;
