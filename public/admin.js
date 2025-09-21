@@ -10304,31 +10304,31 @@
             const notes = j?.releaseNotes;
             if (!hasUpdate) {
                 content.innerHTML = `
-                                        <div style="text-align:center;">
-                                            <i class="fas fa-check-circle" style="color:#34d399;font-size:2rem;margin-bottom:8px;"></i>
-                                            <div>Already up to date (v${current})</div>
-                                        </div>
-                                        <div style="margin-top:10px; padding:10px; border:1px solid rgba(255,193,7,0.25); background:rgba(255,193,7,0.08); border-radius:8px;">
-                                            <div style="color:#fbbf24; font-weight:600; margin-bottom:6px;"><i class="fas fa-hammer"></i> Repair / Force Reinstall</div>
-                                            <div class="subtle">Use Force Update to repair your installation even if you're on the latest version.</div>
-                                        </div>`;
+                                    <div class="update-status-ok">
+                                        <i class="fas fa-check-circle"></i>
+                                        <div>Already up to date (v${current})</div>
+                                    </div>
+                                    <div class="update-repair-box">
+                                        <div class="title"><i class="fas fa-hammer"></i> Repair / Force Reinstall</div>
+                                        <div class="subtle">Use Force Update to repair your installation even if you're on the latest version.</div>
+                                    </div>`;
                 btnConfirm.disabled = true;
                 btnConfirm.querySelector('span').textContent = 'No Update Needed';
                 btnForce.style.display = '';
             } else {
                 content.innerHTML = `
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-                    <div style="text-align:center; padding:10px; background: rgba(255,255,255,0.05); border-radius:8px;">
-                      <div class="subtle">Current</div>
-                      <div style="font-weight:700;">v${current}</div>
-                    </div>
-                    <div style="text-align:center; padding:10px; background: rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); border-radius:8px;">
-                      <div style="color:#34d399;">Available</div>
-                      <div style="font-weight:700;">v${latest}</div>
-                    </div>
-                  </div>
-                  ${notes ? `<div style="max-height:160px;overflow:auto; padding:10px; border:1px solid rgba(255,255,255,0.1); border-radius:8px;"><div class="subtle" style="margin-bottom:6px;">Release notes</div><div style="white-space:pre-wrap;">${notes}</div></div>` : ''}
-                `;
+                                    <div class="update-grid">
+                                        <div class="update-box">
+                                            <div class="subtle">Current</div>
+                                            <div class="version">v${current}</div>
+                                        </div>
+                                        <div class="update-box update-box-available">
+                                            <div class="available-label">Available</div>
+                                            <div class="version">v${latest}</div>
+                                        </div>
+                                    </div>
+                                    ${notes ? `<div class="release-notes"><div class="subtle heading">Release notes</div><div class="notes-content">${notes}</div></div>` : ''}
+                                `;
                 btnConfirm.disabled = false;
                 btnConfirm.querySelector('span').textContent = `Update to v${latest}`;
                 btnForce.style.display = '';
