@@ -5787,13 +5787,58 @@ body.page-logs {
     align-items: center;
     gap: 6px;
 }
-/* Ensure backup action icons (chevron/trash) are readable on dark backgrounds */
-.compact-backup-list .backup-summary .right .btn,
-.compact-backup-list .backup-summary .right .btn i {
-    color: #fff !important;
+/* Base color for summary action buttons; specific icons will be accented below */
+.compact-backup-list .backup-summary .right .btn {
+    color: var(--color-text-secondary);
 }
-.compact-backup-list .backup-summary .right .btn:hover i {
-    color: #fff !important;
+.compact-backup-list .backup-summary .right .btn i {
+    color: currentColor;
+}
+.compact-backup-list .backup-summary .right .btn:hover {
+    color: var(--color-text-primary);
+}
+/* Summary action buttons (chevron/trash): apply neutral surface like other compact buttons */
+.compact-backup-list .backup-summary .right .btn.btn-link.btn-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    line-height: 1;
+    border-radius: 4px;
+    border: none;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: var(--color-text-secondary);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+.compact-backup-list .backup-summary .right .btn.btn-link.btn-sm:hover,
+.compact-backup-list .backup-summary .right .btn.btn-link.btn-sm:focus,
+.compact-backup-list .backup-summary .right .btn.btn-link.btn-sm:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+    color: var(--color-text-primary);
+}
+.compact-backup-list .backup-summary .right .btn.btn-link.btn-sm:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
 }
 /* Keep the archive icon on the left white as well */
 .compact-backup-list .backup-summary .left i {
