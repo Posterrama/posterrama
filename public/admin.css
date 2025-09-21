@@ -3128,7 +3128,7 @@ input[type='range']::-moz-range-thumb {
     appearance: none;
     width: 10px;
     height: 10px;
-    border-radius: var(--border-radius-sm);
+    border-radius: 50%;
     border: 1px solid var(--color-border);
     background: var(--color-bg-card);
     display: inline-block;
@@ -3147,10 +3147,7 @@ input[type='range']::-moz-range-thumb {
 .ms-menu .ms-option input[type='checkbox']:checked {
     background-color: var(--color-primary);
     border-color: var(--color-primary);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4,9 7,12 14,5'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 9px 9px;
+    background-image: none; /* solid filled circle, no checkmark */
 }
 .ms-menu .ms-option input[type='checkbox']:focus-visible {
     outline: none;
@@ -7052,19 +7049,7 @@ body.page-logs {
 #plex-ms-qualities .ms-menu .ms-option input[type='checkbox'],
 #plex-ms-qualities-menu .ms-option input[type='checkbox'],
 #plex-ms-genres-menu .ms-option input[type='checkbox'] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 10px; /* extra compact */
-    height: 10px;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-card);
-    display: inline-block;
-    position: relative;
-    transition:
-        background-color 120ms ease,
-        border-color 120ms ease,
-        transform 40ms ease;
+    border-radius: 50%;
 }
 #plex-ms-movies .ms-menu .ms-option input[type='checkbox']:hover,
 #plex-ms-movies-menu .ms-option input[type='checkbox']:hover,
@@ -7097,12 +7082,7 @@ body.page-logs {
 #plex-ms-qualities .ms-menu .ms-option input[type='checkbox']:checked,
 #plex-ms-qualities-menu .ms-option input[type='checkbox']:checked,
 #plex-ms-genres-menu .ms-option input[type='checkbox']:checked {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4,9 7,12 14,5'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 9px 9px; /* restore fuller-sized checkmark */
+    background-image: none;
 }
 #plex-ms-movies .ms-menu .ms-option input[type='checkbox']:focus-visible,
 #plex-ms-movies-menu .ms-option input[type='checkbox']:focus-visible,
@@ -7417,19 +7397,7 @@ body.page-logs {
 #jf-ms-qualities-menu .ms-option input[type='checkbox'],
 #jf-ms-genres .ms-menu .ms-option input[type='checkbox'],
 #jf-ms-genres-menu .ms-option input[type='checkbox'] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 10px;
-    height: 10px;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-card);
-    display: inline-block;
-    position: relative;
-    transition:
-        background-color 120ms ease,
-        border-color 120ms ease,
-        transform 40ms ease;
+    border-radius: 50%;
 }
 #jf-ms-movies .ms-menu .ms-option input[type='checkbox']:hover,
 #jf-ms-movies-menu .ms-option input[type='checkbox']:hover,
@@ -7465,12 +7433,7 @@ body.page-logs {
 #jf-ms-qualities-menu .ms-option input[type='checkbox']:checked,
 #jf-ms-genres .ms-menu .ms-option input[type='checkbox']:checked,
 #jf-ms-genres-menu .ms-option input[type='checkbox']:checked {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4,9 7,12 14,5'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 9px 9px;
+    background-image: none;
 }
 #jf-ms-movies .ms-menu .ms-option input[type='checkbox']:focus-visible,
 #jf-ms-movies-menu .ms-option input[type='checkbox']:focus-visible,
@@ -7773,19 +7736,7 @@ body.page-logs {
 #tmdb-ms-genres-menu .ms-option input[type='checkbox'],
 #streaming-ms-providers .ms-menu .ms-option input[type='checkbox'],
 #streaming-ms-providers-menu .ms-option input[type='checkbox'] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 10px;
-    height: 10px;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-card);
-    display: inline-block;
-    position: relative;
-    transition:
-        background-color 120ms ease,
-        border-color 120ms ease,
-        transform 40ms ease;
+    border-radius: 50%;
 }
 #tmdb-ms-genres .ms-menu .ms-option input[type='checkbox']:hover,
 #tmdb-ms-genres-menu .ms-option input[type='checkbox']:hover,
@@ -7803,12 +7754,7 @@ body.page-logs {
 #tmdb-ms-genres-menu .ms-option input[type='checkbox']:checked,
 #streaming-ms-providers .ms-menu .ms-option input[type='checkbox']:checked,
 #streaming-ms-providers-menu .ms-option input[type='checkbox']:checked {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4,9 7,12 14,5'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 9px 9px;
+    background-image: none;
 }
 #tmdb-ms-genres .ms-menu .ms-option input[type='checkbox']:focus-visible,
 #tmdb-ms-genres-menu .ms-option input[type='checkbox']:focus-visible,
