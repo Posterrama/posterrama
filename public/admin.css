@@ -6003,6 +6003,10 @@ body.page-logs {
     opacity: 1;
     pointer-events: auto;
 }
+/* Media Sources: do not block interactions while loading (allow spinners to work immediately) */
+#section-media-sources .panel.is-loading .loading-overlay {
+    pointer-events: none !important;
+}
 /* Blur/dim content while loading, then fade to sharp */
 .panel .panel-content > *:not(.loading-overlay) {
     opacity: 1;

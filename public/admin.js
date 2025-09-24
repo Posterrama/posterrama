@@ -2196,54 +2196,51 @@
                         wrapper.classList.add('niw-sized-sm');
                     }
                 } catch (_) {}
-                // If inside Media Sources, rely on the delegated handler to avoid double wiring
-                const inMediaSources = !!wrapper.closest('#section-media-sources');
-                if (!inMediaSources) {
-                    const step = () => Number(input.step || '1') || 1;
-                    const decimalsForStep = s => {
-                        const str = String(s);
-                        if (str.includes('e') || str.includes('E')) return 6;
-                        const i = str.indexOf('.');
-                        return i === -1 ? 0 : Math.min(6, str.length - i - 1);
-                    };
-                    const snap = (val, s) => Math.round(val / s) * s;
-                    const clamp = v => {
-                        let val = v;
-                        const min = input.min === '' ? null : Number(input.min);
-                        const max = input.max === '' ? null : Number(input.max);
-                        if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
-                        if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
-                        return val;
-                    };
-                    btnUp.addEventListener('click', e => {
-                        try {
-                            e.stopPropagation();
-                        } catch (_) {}
-                        const cur = Number(input.value || '0') || 0;
-                        const s = step();
-                        const out = clamp(snap(cur + s, s));
-                        const d = decimalsForStep(s);
-                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                        input.dispatchEvent(new Event('change', { bubbles: true }));
-                    });
-                    btnDown.addEventListener('click', e => {
-                        try {
-                            e.stopPropagation();
-                        } catch (_) {}
-                        const cur = Number(input.value || '0') || 0;
-                        const s = step();
-                        const out = clamp(snap(cur - s, s));
-                        const d = decimalsForStep(s);
-                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                        input.dispatchEvent(new Event('change', { bubbles: true }));
-                    });
-                    // Mark wrapper as wired to prevent duplicate listeners elsewhere
+                // Always wire direct handlers so buttons work without relying on delegated bubbling
+                const step = () => Number(input.step || '1') || 1;
+                const decimalsForStep = s => {
+                    const str = String(s);
+                    if (str.includes('e') || str.includes('E')) return 6;
+                    const i = str.indexOf('.');
+                    return i === -1 ? 0 : Math.min(6, str.length - i - 1);
+                };
+                const snap = (val, s) => Math.round(val / s) * s;
+                const clamp = v => {
+                    let val = v;
+                    const min = input.min === '' ? null : Number(input.min);
+                    const max = input.max === '' ? null : Number(input.max);
+                    if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+                    if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+                    return val;
+                };
+                btnUp.addEventListener('click', e => {
                     try {
-                        wrapper.dataset.wired = '1';
+                        e.stopPropagation();
                     } catch (_) {}
-                }
+                    const cur = Number(input.value || '0') || 0;
+                    const s = step();
+                    const out = clamp(snap(cur + s, s));
+                    const d = decimalsForStep(s);
+                    input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                btnDown.addEventListener('click', e => {
+                    try {
+                        e.stopPropagation();
+                    } catch (_) {}
+                    const cur = Number(input.value || '0') || 0;
+                    const s = step();
+                    const out = clamp(snap(cur - s, s));
+                    const d = decimalsForStep(s);
+                    input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                // Mark wrapper as wired to prevent duplicate listeners elsewhere (and to let delegated handler bail)
+                try {
+                    wrapper.dataset.wired = '1';
+                } catch (_) {}
             };
             // Target specific IDs explicitly to avoid unexpected layout shifts
             const numberIds = [
@@ -2294,8 +2291,7 @@
                 if (!scope) return;
                 scope.querySelectorAll('.number-input-wrapper').forEach(wrapper => {
                     if (!wrapper || wrapper.dataset.wired === '1') return;
-                    // If this wrapper lives under Media Sources, skip direct wiring and let delegated handler act
-                    if (wrapper.closest('#section-media-sources')) return;
+                    // Wire anywhere (including Media Sources) if not already wired
                     const input = wrapper.querySelector('input[type="number"]');
                     const inc = wrapper.querySelector('.number-inc');
                     const dec = wrapper.querySelector('.number-dec');
@@ -2352,57 +2348,70 @@
             window.admin2 = window.admin2 || {};
             window.admin2.wireNumberWrappers = wireNumberWrappers;
             // Delegated click handler as a safety net so buttons always work
-            scope?.addEventListener(
-                'click',
-                e => {
-                    const btn = e.target?.closest?.('.number-input-wrapper .number-btn');
-                    if (!btn) return;
-                    const wrapper = btn.closest('.number-input-wrapper');
-                    // If this wrapper already has direct listeners, let them handle it
-                    if (wrapper?.dataset?.wired === '1') return;
-                    const input = wrapper?.querySelector?.('input[type="number"]');
-                    if (!input) return;
-                    // Prevent double handling within the same tick
-                    if (btn.__handledOnce) return;
-                    btn.__handledOnce = true;
-                    setTimeout(() => {
+            // Attach at the document level to avoid timing issues when the section
+            // isn't yet in the DOM during script evaluation (direct nav to hashes).
+            if (!document.__niwDelegated) {
+                document.addEventListener(
+                    'click',
+                    e => {
+                        const btn = e.target?.closest?.('.number-input-wrapper .number-btn');
+                        if (!btn) return;
+                        // Only handle for wrappers inside Media Sources
+                        const wrapper = btn.closest('.number-input-wrapper');
+                        if (!wrapper || !wrapper.closest('#section-media-sources')) return;
+                        // Handle centrally to avoid timing issues and double handlers
+                        // Prevent any other click handlers from running for this button
                         try {
-                            delete btn.__handledOnce;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation?.();
                         } catch (_) {}
-                    }, 0);
-                    const s = (() => Number(input.step || '1') || 1)();
-                    const min = input.min === '' ? null : Number(input.min);
-                    const max = input.max === '' ? null : Number(input.max);
-                    const decimalsForStep = step => {
-                        const str = String(step);
-                        if (str.includes('e') || str.includes('E')) return 6;
-                        const i = str.indexOf('.');
-                        return i === -1 ? 0 : Math.min(6, str.length - i - 1);
-                    };
-                    const snap = (val, step) => Math.round(val / step) * step;
-                    const clamp = v => {
-                        let val = v;
-                        if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
-                        if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
-                        return val;
-                    };
-                    const cur = Number(input.value || '0') || 0;
-                    if (btn.classList.contains('number-inc')) {
-                        const out = clamp(snap(cur + s, s));
-                        const d = decimalsForStep(s);
-                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
-                    } else if (btn.classList.contains('number-dec')) {
-                        const out = clamp(snap(cur - s, s));
-                        const d = decimalsForStep(s);
-                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
-                    } else {
-                        return;
-                    }
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                    input.dispatchEvent(new Event('change', { bubbles: true }));
-                },
-                false
-            );
+                        const input = wrapper.querySelector('input[type="number"]');
+                        if (!input) return;
+                        // Prevent double handling within the same tick
+                        if (btn.__handledOnce) return;
+                        btn.__handledOnce = true;
+                        setTimeout(() => {
+                            try {
+                                delete btn.__handledOnce;
+                            } catch (_) {}
+                        }, 0);
+                        const s = (() => Number(input.step || '1') || 1)();
+                        const min = input.min === '' ? null : Number(input.min);
+                        const max = input.max === '' ? null : Number(input.max);
+                        const decimalsForStep = step => {
+                            const str = String(step);
+                            if (str.includes('e') || str.includes('E')) return 6;
+                            const i = str.indexOf('.');
+                            return i === -1 ? 0 : Math.min(6, str.length - i - 1);
+                        };
+                        const snap = (val, step) => Math.round(val / step) * step;
+                        const clamp = v => {
+                            let val = v;
+                            if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+                            if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+                            return val;
+                        };
+                        const cur = Number(input.value || '0') || 0;
+                        if (btn.classList.contains('number-inc')) {
+                            const out = clamp(snap(cur + s, s));
+                            const d = decimalsForStep(s);
+                            input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+                        } else if (btn.classList.contains('number-dec')) {
+                            const out = clamp(snap(cur - s, s));
+                            const d = decimalsForStep(s);
+                            input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+                        } else {
+                            return;
+                        }
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    },
+                    true
+                );
+                // mark to avoid double-binding if this block runs twice
+                document.__niwDelegated = true;
+            }
         } catch (_) {}
 
         // Screensaver: live summary + presets (affect global Effect/Playback/Clock)
