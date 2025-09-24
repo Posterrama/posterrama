@@ -3807,6 +3807,22 @@ select:not([multiple]) {
     height: 42px;
 }
 
+/* Plex/Jellyfin API Key: match TMDB height (42px) */
+#panel-plex input#plex_token,
+#panel-jellyfin input#jf\.apikey {
+    height: 42px;
+}
+
+/* Plex/Jellyfin API Key: match TMDB input length by spanning full grid width */
+#plex-server-grid .form-group:has(#plex_token),
+#jf-server-grid .form-group:has(#jf\.apikey) {
+    grid-column: 1 / -1; /* span all columns */
+}
+#plex-server-grid #plex_token,
+#jf-server-grid #jf\.apikey {
+    width: 100%;
+}
+
 /* Streaming Releases: Min Rating select sizing */
 #panel-tmdb .select-wrap.has-caret select#streamingSources\.minRating {
     background-image: none !important;
@@ -7984,15 +8000,18 @@ body.page-logs {
     gap: 12px 16px;
 }
 #panel-plex #plex-server-grid > .form-group:nth-child(1) {
-    grid-column: 1 / span 5;
+    /* Hostname: a bit narrower to give Token more room */
+    grid-column: 1 / span 4;
     grid-row: 1;
 }
 #panel-plex #plex-server-grid > .form-group:nth-child(2) {
-    grid-column: 6 / span 2;
+    /* Port: fixed compact width area (2 cols) */
+    grid-column: 5 / span 2;
     grid-row: 1;
 }
 #panel-plex #plex-server-grid > .form-group:nth-child(3) {
-    grid-column: 8 / span 5;
+    /* API Token: wider (6 cols) */
+    grid-column: 7 / span 6;
     grid-row: 1;
     justify-self: start;
 }
@@ -8019,15 +8038,15 @@ body.page-logs {
     gap: 12px 16px;
 }
 #panel-jellyfin #jf-server-grid > .form-group:nth-child(1) {
-    grid-column: 1 / span 5;
+    grid-column: 1 / span 4;
     grid-row: 1;
 }
 #panel-jellyfin #jf-server-grid > .form-group:nth-child(2) {
-    grid-column: 6 / span 2;
+    grid-column: 5 / span 2;
     grid-row: 1;
 }
 #panel-jellyfin #jf-server-grid > .form-group:nth-child(3) {
-    grid-column: 8 / span 5;
+    grid-column: 7 / span 6;
     grid-row: 1;
     justify-self: start;
 }
