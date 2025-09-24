@@ -3720,7 +3720,7 @@ select:not([multiple]) {
     background-image: none;
 }
 /* vertical divider before the caret */
-.select-wrap.has-caret::after {
+.select-wrap.has-caret:has(select)::after {
     content: '';
     position: absolute;
     right: 44px;
@@ -3731,7 +3731,7 @@ select:not([multiple]) {
     opacity: 0.8;
     pointer-events: none;
 }
-.select-wrap.has-caret .select-caret {
+.select-wrap.has-caret:has(select) .select-caret {
     position: absolute;
     right: 10px;
     top: 50%;
@@ -3753,15 +3753,21 @@ select:not([multiple]) {
     z-index: 1; /* sit above the select input */
     pointer-events: none;
 }
-.select-wrap.has-caret:hover .select-caret {
+.select-wrap.has-caret:has(select):hover .select-caret {
     background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-card));
 }
-.select-wrap.has-caret:focus-within .select-caret {
+.select-wrap.has-caret:has(select):focus-within .select-caret {
     border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
     color: color-mix(in srgb, var(--color-primary) 80%, var(--color-text-muted));
     box-shadow:
         0 0 0 2px rgba(255, 255, 255, 0.04),
         0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* If a caret wrapper is used around non-select fields (e.g., number inputs), hide the caret visuals */
+.select-wrap.has-caret:not(:has(select))::after,
+.select-wrap.has-caret:not(:has(select)) .select-caret {
+    display: none;
 }
 
 /* TMDB Category: styled like admin selects and compact inputs */
