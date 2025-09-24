@@ -11863,12 +11863,20 @@
             if (getInput('plex.hostname')) getInput('plex.hostname').value = env[plexHostVar] || '';
             if (getInput('plex.port')) getInput('plex.port').value = env[plexPortVar] || '';
             if (getInput('plex.token')) {
-                getInput('plex.token').value = '';
-                getInput('plex.token').setAttribute(
-                    'placeholder',
-                    env[plexTokenVar] ? '••••••••' : 'X-Plex-Token'
-                );
+                // Show grey hint instead of masked value when a token exists
+                const hasToken = !!env[plexTokenVar];
+                const el = getInput('plex.token');
+                el.value = '';
+                el.setAttribute('placeholder', hasToken ? 'Token already set' : 'X-Plex-Token');
             }
+            // Support legacy ID used in some templates
+            (function () {
+                const el = document.getElementById('plex_token');
+                if (!el) return;
+                const hasToken = !!env[plexTokenVar];
+                el.value = '';
+                el.setAttribute('placeholder', hasToken ? 'Token already set' : 'X-Plex-Token');
+            })();
             const plexRecentlyHeader = getInput('plex.recentOnlyHeader');
             if (plexRecentlyHeader) plexRecentlyHeader.checked = !!plex.recentlyAddedOnly;
             if (getInput('plex.recentDays'))
@@ -11973,10 +11981,13 @@
             if (getInput('jf.hostname')) getInput('jf.hostname').value = env[jfHostVar] || '';
             if (getInput('jf.port')) getInput('jf.port').value = env[jfPortVar] || '';
             if (getInput('jf.apikey')) {
-                getInput('jf.apikey').value = '';
-                getInput('jf.apikey').setAttribute(
+                // Use grey hint text when a key exists
+                const hasKey = !!env[jfKeyVar];
+                const el = getInput('jf.apikey');
+                el.value = '';
+                el.setAttribute(
                     'placeholder',
-                    env[jfKeyVar] ? '••••••••' : 'Jellyfin API Key'
+                    hasKey ? 'Jellyfin API Key already set' : 'Jellyfin API Key'
                 );
             }
             // Initialize Jellyfin Insecure HTTPS header toggle from env or default false
@@ -12069,8 +12080,15 @@
             } catch (_) {
                 /* no-op */
             }
-            if (getInput('tmdb.apikey'))
-                getInput('tmdb.apikey').value = tmdb.apiKey ? '••••••••' : '';
+            if (getInput('tmdb.apikey')) {
+                // Prefer placeholder hint over masked value
+                const el = getInput('tmdb.apikey');
+                el.value = '';
+                el.setAttribute(
+                    'placeholder',
+                    tmdb.apiKey ? 'TMDB API Key already set' : 'TMDB API Key'
+                );
+            }
             if (getInput('tmdb.category')) {
                 const el = getInput('tmdb.category');
                 el.value = tmdb.category || 'popular';
@@ -12081,35 +12099,57 @@
                     // ignore (icon refresh)
                 }
             }
-            // Replace TMDB Min Rating spinner with a dropdown (0–10)
-            (function ensureTmdbMinRatingSelect() {
-                const el = getInput('tmdb.minRating');
-                if (!el) return;
-                if (el.tagName !== 'SELECT') {
-                    const mount = el.closest('.number-input-wrapper') || el;
-                    const wrap = document.createElement('div');
-                    wrap.className = 'select-wrap has-caret';
-                    const sel = document.createElement('select');
-                    sel.id = el.id;
-                    sel.name = el.getAttribute('name') || el.id;
-                    for (let i = 0; i <= 10; i++) {
-                        const opt = document.createElement('option');
-                        opt.value = String(i);
-                        opt.textContent = String(i);
-                        sel.appendChild(opt);
-                    }
-                    wrap.appendChild(sel);
-                    const caret = document.createElement('span');
-                    caret.className = 'select-caret';
-                    caret.setAttribute('aria-hidden', 'true');
-                    caret.textContent = '▾';
-                    wrap.appendChild(caret);
-                    mount.parentNode?.replaceChild(wrap, mount);
+            // Ensure TMDB Min Rating remains a compact number input (not a dropdown)
+            (function ensureTmdbMinRatingNumber() {
+                const existing = getInput('tmdb.minRating');
+                if (!existing) return;
+                // If a previous session converted it to a <select>, convert back to number input
+                if (existing.tagName === 'SELECT') {
+                    const sel = /** @type {HTMLSelectElement} */ (existing);
+                    const current = Number(sel.value);
+                    const wrap = sel.closest('.select-wrap') || sel;
+                    const niw = document.createElement('div');
+                    niw.className = 'number-input-wrapper niw-compact niw-sized-sm';
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.id = sel.id;
+                    input.name = sel.getAttribute('name') || sel.id;
+                    input.min = '0';
+                    input.max = '10';
+                    input.step = '0.1';
+                    input.placeholder = '0';
+                    input.value = Number.isFinite(current) ? String(current) : '0';
+                    niw.appendChild(input);
+                    const controls = document.createElement('div');
+                    controls.className = 'number-controls';
+                    const btnUp = document.createElement('button');
+                    btnUp.type = 'button';
+                    btnUp.className = 'number-btn number-inc';
+                    btnUp.setAttribute('aria-label', 'Increase value');
+                    btnUp.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                    const btnDown = document.createElement('button');
+                    btnDown.type = 'button';
+                    btnDown.className = 'number-btn number-dec';
+                    btnDown.setAttribute('aria-label', 'Decrease value');
+                    btnDown.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                    controls.appendChild(btnUp);
+                    controls.appendChild(btnDown);
+                    niw.appendChild(controls);
+                    wrap.parentNode?.replaceChild(niw, wrap);
+                    // Wire steppers for this wrapper (delegated handler expects correct structure)
+                    try {
+                        window.admin2?.wireNumberWrappers?.(niw.closest('.form-grid') || document);
+                    } catch (_) {}
+                } else {
+                    // Plain number input exists: ensure value is clamped and wrapper enhanced
+                    const input = /** @type {HTMLInputElement} */ (existing);
+                    const raw = Number(tmdb.minRating);
+                    const v = Number.isFinite(raw) ? Math.min(10, Math.max(0, Math.round(raw))) : 0;
+                    input.value = String(v);
+                    try {
+                        window.admin2?.enhanceNumberInput?.(input);
+                    } catch (_) {}
                 }
-                const sel = /** @type {HTMLSelectElement} */ (getInput('tmdb.minRating'));
-                const raw = Number(tmdb.minRating);
-                const v = Number.isFinite(raw) ? Math.min(10, Math.max(0, Math.round(raw))) : 0;
-                sel.value = String(v);
             })();
             if (getInput('tmdb.yearFilter')) {
                 const v = tmdb.yearFilter;
@@ -12129,37 +12169,58 @@
                 };
                 setBool('streamingSources.enabled', streaming.enabled);
                 setVal('streamingSources.region', streaming.region || 'US');
-                // Replace Streaming Min Rating spinner with a dropdown (0–10)
-                (function ensureStreamingMinRatingSelect() {
-                    const el = getInput('streamingSources.minRating');
-                    if (!el) return;
-                    if (el.tagName !== 'SELECT') {
-                        const mount = el.closest('.number-input-wrapper') || el;
-                        const wrap = document.createElement('div');
-                        wrap.className = 'select-wrap has-caret';
-                        const sel = document.createElement('select');
-                        sel.id = el.id;
-                        sel.name = el.getAttribute('name') || el.id;
-                        for (let i = 0; i <= 10; i++) {
-                            const opt = document.createElement('option');
-                            opt.value = String(i);
-                            opt.textContent = String(i);
-                            sel.appendChild(opt);
-                        }
-                        wrap.appendChild(sel);
-                        const caret = document.createElement('span');
-                        caret.className = 'select-caret';
-                        caret.setAttribute('aria-hidden', 'true');
-                        caret.textContent = '▾';
-                        wrap.appendChild(caret);
-                        mount.parentNode?.replaceChild(wrap, mount);
+                // Ensure Streaming Min Rating remains a compact number input (not a dropdown)
+                (function ensureStreamingMinRatingNumber() {
+                    const existing = getInput('streamingSources.minRating');
+                    if (!existing) return;
+                    if (existing.tagName === 'SELECT') {
+                        const sel = /** @type {HTMLSelectElement} */ (existing);
+                        const current = Number(sel.value);
+                        const wrap = sel.closest('.select-wrap') || sel;
+                        const niw = document.createElement('div');
+                        niw.className = 'number-input-wrapper niw-compact niw-sized-sm';
+                        const input = document.createElement('input');
+                        input.type = 'number';
+                        input.id = sel.id;
+                        input.name = sel.getAttribute('name') || sel.id;
+                        input.min = '0';
+                        input.max = '10';
+                        input.step = '0.1';
+                        input.placeholder = '0';
+                        input.value = Number.isFinite(current) ? String(current) : '0';
+                        niw.appendChild(input);
+                        const controls = document.createElement('div');
+                        controls.className = 'number-controls';
+                        const btnUp = document.createElement('button');
+                        btnUp.type = 'button';
+                        btnUp.className = 'number-btn number-inc';
+                        btnUp.setAttribute('aria-label', 'Increase value');
+                        btnUp.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                        const btnDown = document.createElement('button');
+                        btnDown.type = 'button';
+                        btnDown.className = 'number-btn number-dec';
+                        btnDown.setAttribute('aria-label', 'Decrease value');
+                        btnDown.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                        controls.appendChild(btnUp);
+                        controls.appendChild(btnDown);
+                        niw.appendChild(controls);
+                        wrap.parentNode?.replaceChild(niw, wrap);
+                        try {
+                            window.admin2?.wireNumberWrappers?.(
+                                niw.closest('.form-grid') || document
+                            );
+                        } catch (_) {}
+                    } else {
+                        const input = /** @type {HTMLInputElement} */ (existing);
+                        const raw = Number(streaming.minRating);
+                        const v = Number.isFinite(raw)
+                            ? Math.min(10, Math.max(0, Math.round(raw)))
+                            : 0;
+                        input.value = String(v);
+                        try {
+                            window.admin2?.enhanceNumberInput?.(input);
+                        } catch (_) {}
                     }
-                    const sel = /** @type {HTMLSelectElement} */ (
-                        getInput('streamingSources.minRating')
-                    );
-                    const raw = Number(streaming.minRating);
-                    const v = Number.isFinite(raw) ? Math.min(10, Math.max(0, Math.round(raw))) : 0;
-                    sel.value = String(v);
                 })();
                 // Build provider multiselect options
                 const providerOpts = [
@@ -14182,6 +14243,204 @@
                 tmdbCatIcon.className = iconFor(tmdbCat.value);
             });
         }
+
+        // Enhance TMDB category with a custom menu that displays icons inside the dropdown
+        (function enhanceTmdbCategoryDropdown() {
+            // Temporarily disabled to restore native select behavior per user request
+            // Cleanup any previous enhancement artifacts, then return
+            const wrap = document
+                .getElementById('tmdb.category')
+                ?.closest('.select-wrap.has-caret');
+            const select = document.getElementById('tmdb.category');
+            try {
+                if (wrap) wrap.classList.remove('cs-enhanced');
+                if (wrap)
+                    wrap.querySelectorAll('.cs-trigger').forEach(
+                        el => el.parentNode && el.parentNode.removeChild(el)
+                    );
+                if (select) select.removeAttribute('data-enhanced');
+                const oldMenu = document.getElementById('tmdb-category-menu');
+                if (oldMenu && oldMenu.parentNode) oldMenu.parentNode.removeChild(oldMenu);
+                if (window.__tmdbCat) delete window.__tmdbCat;
+            } catch (_) {
+                /* no-op */
+            }
+            return;
+            if (!wrap || !select || wrap.classList.contains('cs-enhanced')) return;
+            wrap.classList.add('cs-enhanced');
+            // Make select show current value but ignore pointer events; we place a trigger above it
+            select.setAttribute('data-enhanced', 'true');
+            const trigger = document.createElement('button');
+            trigger.type = 'button';
+            trigger.className = 'cs-trigger';
+            trigger.setAttribute('aria-haspopup', 'listbox');
+            trigger.setAttribute('aria-expanded', 'false');
+            wrap.appendChild(trigger);
+
+            const menu = document.createElement('div');
+            menu.className = 'cs-menu cs-portal';
+            menu.setAttribute('role', 'listbox');
+            menu.id = 'tmdb-category-menu';
+            menu.hidden = true;
+            menu.tabIndex = -1; // enable focus for keyboard nav
+            document.body.appendChild(menu);
+
+            const build = () => {
+                menu.innerHTML = '';
+                // Iterate optgroups and options to mirror structure
+                const ogs = select.querySelectorAll('optgroup');
+                ogs.forEach(og => {
+                    const g = document.createElement('div');
+                    g.className = 'cs-group';
+                    g.textContent = og.getAttribute('label') || '';
+                    menu.appendChild(g);
+                    og.querySelectorAll('option').forEach(opt => {
+                        const val = opt.value;
+                        const row = document.createElement('div');
+                        row.className = 'cs-option' + (select.value === val ? ' is-selected' : '');
+                        row.setAttribute('role', 'option');
+                        row.setAttribute('data-value', val);
+                        const ico = document.createElement('i');
+                        ico.className = iconFor(val);
+                        row.appendChild(ico);
+                        const label = document.createElement('span');
+                        label.className = 'cs-label';
+                        label.textContent = opt.textContent || '';
+                        row.appendChild(label);
+                        const check = document.createElement('i');
+                        check.className = 'cs-check fas fa-check';
+                        row.appendChild(check);
+                        row.addEventListener('click', () => {
+                            select.value = val;
+                            select.dispatchEvent(new Event('change', { bubbles: true }));
+                            close();
+                            // Update selection classes
+                            menu.querySelectorAll('.cs-option').forEach(el =>
+                                el.classList.remove('is-selected')
+                            );
+                            row.classList.add('is-selected');
+                        });
+                        menu.appendChild(row);
+                    });
+                });
+            };
+
+            const positionMenu = () => {
+                const r = wrap.getBoundingClientRect();
+                menu.style.left = `${Math.round(r.left)}px`;
+                menu.style.top = `${Math.round(r.bottom + 8)}px`;
+                menu.style.width = `${Math.round(r.width)}px`;
+                // Constrain height within viewport
+                const maxH = Math.max(180, Math.floor(window.innerHeight - r.bottom - 24));
+                menu.style.maxHeight = `${maxH}px`;
+            };
+            const open = () => {
+                build();
+                positionMenu();
+                menu.hidden = false;
+                trigger.setAttribute('aria-expanded', 'true');
+                try {
+                    console.debug('[TMDB] custom menu OPEN');
+                } catch {}
+                // Defer outside click binding so the same initiating mousedown doesn't immediately close it
+                setTimeout(() => {
+                    document.addEventListener('mousedown', outsideOnce, { once: true });
+                    window.addEventListener('scroll', positionMenu, { passive: true });
+                    window.addEventListener('resize', positionMenu, { passive: true });
+                }, 0);
+                // Move focus into the menu for arrow/enter handling
+                try {
+                    menu.focus({ preventScroll: true });
+                } catch {}
+            };
+            const close = () => {
+                menu.hidden = true;
+                trigger.setAttribute('aria-expanded', 'false');
+                window.removeEventListener('scroll', positionMenu);
+                window.removeEventListener('resize', positionMenu);
+                try {
+                    console.debug('[TMDB] custom menu CLOSE');
+                } catch {}
+            };
+            const outsideOnce = e => {
+                if (!wrap.contains(e.target) && !menu.contains(e.target)) close();
+            };
+            // Prevent the native select from opening via mouse while keeping it focusable by keyboard
+            select.addEventListener('mousedown', e => {
+                e.preventDefault();
+            });
+            // Open/close on our trigger button (captures clicks inside wrapper)
+            trigger.addEventListener('click', e => {
+                e.preventDefault();
+                if (menu.hidden) open();
+                else close();
+            });
+            // Also toggle on wrapper mousedown (for clicks that miss the trigger due to browser quirks)
+            wrap.addEventListener('mousedown', e => {
+                // If the trigger caught this click, skip to avoid double toggle
+                if (e.target && e.target.closest && e.target.closest('.cs-trigger')) return;
+                e.preventDefault();
+                if (menu.hidden) open();
+                else close();
+            });
+            // Basic Escape to close
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape' && !menu.hidden) close();
+            });
+            // Arrow navigation within menu (simple)
+            menu.addEventListener('keydown', e => {
+                if (menu.hidden) return;
+                const items = Array.from(menu.querySelectorAll('.cs-option'));
+                const current = items.findIndex(el => el.classList.contains('is-selected'));
+                let next = current;
+                if (e.key === 'ArrowDown') next = Math.min(items.length - 1, current + 1);
+                if (e.key === 'ArrowUp') next = Math.max(0, current - 1);
+                if (next !== current && items[next]) {
+                    items[current]?.classList.remove('is-active');
+                    items[next].classList.add('is-active');
+                    items[next].scrollIntoView({ block: 'nearest' });
+                }
+                if (e.key === 'Enter') {
+                    const active =
+                        menu.querySelector('.cs-option.is-active') || items[next] || items[current];
+                    active?.dispatchEvent(new Event('click', { bubbles: true }));
+                }
+            });
+
+            // Keyboard open: Space/Enter when trigger focused
+            trigger.addEventListener('keydown', e => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    if (menu.hidden) open();
+                    else close();
+                }
+            });
+
+            // Keep menu in sync if value changes programmatically
+            select.addEventListener('change', () => {
+                // Sync selection highlight and header icon (handled earlier)
+                menu.querySelectorAll('.cs-option').forEach(el => {
+                    el.classList.toggle(
+                        'is-selected',
+                        el.getAttribute('data-value') === select.value
+                    );
+                });
+            });
+
+            // Expose debug helpers in console
+            try {
+                window.__tmdbCat = {
+                    wrap,
+                    select,
+                    trigger,
+                    menu,
+                    build,
+                    positionMenu,
+                    open,
+                    close,
+                };
+            } catch {}
+        })();
 
         // Live auto-fetch libraries when connection inputs change (Plex/Jellyfin)
         // Simple debounce to avoid rapid calls while typing

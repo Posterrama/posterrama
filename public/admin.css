@@ -3269,6 +3269,159 @@ input[type='range']::-moz-range-thumb {
 }
 .device-avatar i {
     font-size: 18px;
+
+    /* --- Custom select (icons in dropdown) for TMDB category ---
+   Disabled: revert to native select (keep styles for future use)
+   To re-enable, remove the :where(.disabled-cs) flag below and the disabling IIFE return in admin.js
+*/
+    #panel-tmdb .select-wrap.has-caret.cs-enhanced:where(.disabled-cs) {
+        position: relative;
+    }
+    #panel-tmdb
+        .select-wrap.has-caret.cs-enhanced:where(.disabled-cs)
+        select[data-enhanced='true'] {
+        /* keep native select visible for closed state text and allow focus */
+        pointer-events: none; /* prevent native dropdown from opening on click */
+    }
+    #panel-tmdb .select-wrap.has-caret.cs-enhanced:where(.disabled-cs) .cs-trigger {
+        position: absolute;
+        inset: 0;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        color: transparent; /* text is provided by the native select below */
+        pointer-events: auto; /* this element captures clicks to open custom menu */
+    }
+    #panel-tmdb .select-wrap.has-caret.cs-enhanced:where(.disabled-cs) .cs-trigger:focus {
+        outline: none;
+    }
+    #panel-tmdb .cs-menu:where(.disabled-cs) {
+        position: absolute;
+        z-index: 1000;
+        left: 0;
+        right: 0;
+        top: calc(100% + 8px);
+        background: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        box-shadow:
+            0 12px 30px rgba(0, 0, 0, 0.35),
+            inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        padding: 8px 0;
+        max-height: 360px;
+        overflow: auto;
+    }
+    #panel-tmdb .cs-menu.cs-portal:where(.disabled-cs) {
+        position: fixed; /* portal mode renders on body */
+        z-index: 3000; /* above modals/overlays */
+        left: 0;
+        right: auto;
+        top: 0;
+        bottom: auto; /* JS will set exact rect */
+        width: auto; /* JS sets width */
+    }
+
+    /* Make trigger keyboard-focusable look consistent when navigated by Tab */
+    #panel-tmdb .select-wrap.has-caret.cs-enhanced:where(.disabled-cs) .cs-trigger:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--color-primary) 60%, transparent);
+        outline-offset: 2px;
+    }
+    #panel-tmdb .cs-option:where(.disabled-cs),
+    #panel-tmdb .cs-group:where(.disabled-cs) {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px 8px 14px;
+    }
+    #panel-tmdb .cs-group:where(.disabled-cs) {
+        font-size: 12px;
+        text-transform: none;
+        letter-spacing: 0.3px;
+        color: var(--color-text-secondary);
+        opacity: 0.9;
+    }
+    #panel-tmdb .cs-option:where(.disabled-cs) {
+        font-size: 14px;
+        color: var(--color-text);
+        cursor: pointer;
+    }
+    #panel-tmdb .cs-option i:where(.disabled-cs) {
+        color: var(--color-text-secondary);
+        width: 18px;
+        text-align: center;
+    }
+    #panel-tmdb .cs-option .cs-label:where(.disabled-cs) {
+        flex: 1;
+    }
+    #panel-tmdb .cs-option .cs-check:where(.disabled-cs) {
+        color: var(--color-primary);
+        opacity: 0;
+    }
+    #panel-tmdb .cs-option.is-selected .cs-check:where(.disabled-cs) {
+        opacity: 1;
+    }
+    #panel-tmdb .cs-option:hover:where(.disabled-cs),
+    #panel-tmdb .cs-option.is-active:where(.disabled-cs) {
+        background: rgba(255, 255, 255, 0.04);
+    }
+    /* Close menu utility */
+    #panel-tmdb .cs-menu[hidden]:where(.disabled-cs) {
+        display: none;
+    }
+    /* Global fallback for portaled menu */
+    .cs-menu:where(.disabled-cs) {
+        background: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        box-shadow:
+            0 12px 30px rgba(0, 0, 0, 0.35),
+            inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        padding: 8px 0;
+        max-height: 360px;
+        overflow: auto;
+    }
+    .cs-option:where(.disabled-cs),
+    .cs-group:where(.disabled-cs) {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px 8px 14px;
+    }
+    .cs-group:where(.disabled-cs) {
+        font-size: 12px;
+        text-transform: none;
+        letter-spacing: 0.3px;
+        color: var(--color-text-secondary);
+        opacity: 0.9;
+    }
+    .cs-option:where(.disabled-cs) {
+        font-size: 14px;
+        color: var(--color-text);
+        cursor: pointer;
+    }
+    .cs-option i:where(.disabled-cs) {
+        color: var(--color-text-secondary);
+        width: 18px;
+        text-align: center;
+    }
+    .cs-option .cs-label:where(.disabled-cs) {
+        flex: 1;
+    }
+    .cs-option .cs-check:where(.disabled-cs) {
+        color: var(--color-primary);
+        opacity: 0;
+    }
+    .cs-option.is-selected .cs-check:where(.disabled-cs) {
+        opacity: 1;
+    }
+    .cs-option:hover:where(.disabled-cs),
+    .cs-option.is-active:where(.disabled-cs) {
+        background: rgba(255, 255, 255, 0.04);
+    }
+    .cs-menu[hidden]:where(.disabled-cs) {
+        display: none;
+    }
     line-height: 1;
     font-style: normal; /* prevent default italic style on <i> */
     -webkit-font-smoothing: antialiased;
@@ -3669,7 +3822,8 @@ select:not([multiple]) {
     opacity: 0.9;
 }
 .select-wrap .select-icon i {
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
+    font-size: 14px;
 }
 /* Only add extra left padding when a leading select icon is present */
 .select-wrap .select-icon + select {
@@ -3723,12 +3877,12 @@ select:not([multiple]) {
 .select-wrap.has-caret:has(select)::after {
     content: '';
     position: absolute;
-    right: 44px;
+    right: 46px; /* align better with caret border */
     top: 6px;
     bottom: 6px;
     width: 1px;
     background: var(--color-border);
-    opacity: 0.8;
+    opacity: 0.7;
     pointer-events: none;
 }
 .select-wrap.has-caret:has(select) .select-caret {
@@ -3757,10 +3911,10 @@ select:not([multiple]) {
     background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-card));
 }
 .select-wrap.has-caret:has(select):focus-within .select-caret {
-    border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
-    color: color-mix(in srgb, var(--color-primary) 80%, var(--color-text-muted));
+    border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border));
+    color: color-mix(in srgb, var(--color-primary) 70%, var(--color-text-muted));
     box-shadow:
-        0 0 0 2px rgba(255, 255, 255, 0.04),
+        0 0 0 1px rgba(255, 255, 255, 0.05),
         0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
