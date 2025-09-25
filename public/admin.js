@@ -6354,7 +6354,11 @@
                 function setActive(val) {
                     segs.forEach(s => {
                         const el = document.getElementById(s.id);
-                        if (el) el.setAttribute('aria-checked', String(s.val === val));
+                        if (el) {
+                            el.setAttribute('aria-checked', String(s.val === val));
+                            const radio = el.querySelector('input[type="radio"]');
+                            if (radio) radio.checked = s.val === val;
+                        }
                         const panel = document.getElementById(s.panel);
                         if (panel) panel.hidden = s.val !== val;
                     });

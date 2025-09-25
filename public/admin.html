@@ -1468,10 +1468,13 @@
             <div class="section-title"><i class="fas fa-layer-group"></i> Manage</div>
             <div class="form-row">
               <div class="segmented" role="tablist" aria-label="Manage">
+                <div class="seg-indicator"></div>
                 <label class="seg" id="seg-devices" role="tab" aria-controls="device-ui" aria-checked="false">
+                  <input type="radio" name="devices.active" value="devices" />
                   <i class="fas fa-desktop"></i> Devices
                 </label>
                 <label class="seg" id="seg-dev-settings" role="tab" aria-controls="panel-device-settings" aria-checked="false">
+                  <input type="radio" name="devices.active" value="settings" />
                   <i class="fas fa-sliders-h"></i> Settings
                 </label>
               </div>

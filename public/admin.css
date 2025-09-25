@@ -6979,6 +6979,9 @@ body.page-logs {
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
     margin-bottom: 12px;
 }
+#section-devices #device-tabs > :last-child {
+    margin-bottom: 0 !important;
+}
 #section-devices #device-tabs .section-title {
     margin: 0 0 10px 0;
     font-size: 0.95rem;
