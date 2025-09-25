@@ -2157,12 +2157,20 @@
         // -------------------------------------------------------------
         try {
             const enhanceNumberInput = input => {
-                if (!input || input.dataset.enhanced === '1') return;
-                // Skip if already inside a number-input-wrapper
-                if (input.closest('.number-input-wrapper')) {
+                if (!input) return;
+                const wrapped = !!input.closest('.number-input-wrapper');
+                // If previously marked enhanced but wrapper got removed (orphan), allow re-wrap by clearing flag
+                if (input.dataset.enhanced === '1' && !wrapped) {
+                    try {
+                        delete input.dataset.enhanced;
+                    } catch (_) {}
+                }
+                // If now wrapped, just normalize flag and exit
+                if (wrapped) {
                     input.dataset.enhanced = '1';
                     return;
                 }
+                if (input.dataset.enhanced === '1') return; // fully done case
                 const wrapper = document.createElement('div');
                 wrapper.className = 'number-input-wrapper niw-compact';
                 const parent = input.parentElement;
@@ -2263,9 +2271,194 @@
                 'ops.backgroundRefreshMinutes',
             ];
             numberIds.forEach(id => enhanceNumberInput(document.getElementById(id)));
+            // Repair pass: if any target number input lost its wrapper after initial enhancement, re-wrap it
+            try {
+                numberIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (el.dataset.enhanced === '1' && !el.closest('.number-input-wrapper')) {
+                        try {
+                            delete el.dataset.enhanced;
+                        } catch (_) {}
+                        enhanceNumberInput(el);
+                    }
+                });
+            } catch (_) {}
             // Expose so other flows (like panel routing) can enhance late-mounted or hidden inputs
             window.admin2 = window.admin2 || {};
             window.admin2.enhanceNumberInput = enhanceNumberInput;
+
+            // --- Robust reliability layer for plex_port: force immediate wrap, re-wrap if lost, react to visibility ---
+            (function ensurePlexPortWrapped() {
+                const TARGET_ID = 'plex_port';
+                const MAX_ATTEMPTS = 15;
+                const INTERVAL_MS = 90;
+                let attempts = 0;
+
+                const forceWrapManually = el => {
+                    // Build wrapper manually if enhanceNumberInput still refuses (e.g., hidden ancestor logic)
+                    if (!el || el.closest('.number-input-wrapper')) return true;
+                    try {
+                        const parent = el.parentElement;
+                        if (!parent) return false;
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'number-input-wrapper niw-compact';
+                        parent.replaceChild(wrapper, el);
+                        wrapper.appendChild(el);
+                        const controls = document.createElement('div');
+                        controls.className = 'number-controls';
+                        const btnUp = document.createElement('button');
+                        btnUp.type = 'button';
+                        btnUp.className = 'number-btn number-inc';
+                        btnUp.setAttribute('aria-label', 'Increase value');
+                        btnUp.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                        const btnDown = document.createElement('button');
+                        btnDown.type = 'button';
+                        btnDown.className = 'number-btn number-dec';
+                        btnDown.setAttribute('aria-label', 'Decrease value');
+                        btnDown.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                        controls.appendChild(btnUp);
+                        controls.appendChild(btnDown);
+                        wrapper.appendChild(controls);
+                        // Direct wiring (mirrors logic in enhanceNumberInput)
+                        const step = () => Number(el.step || '1') || 1;
+                        const decimalsForStep = s => {
+                            const str = String(s);
+                            if (str.includes('e') || str.includes('E')) return 6;
+                            const i = str.indexOf('.');
+                            return i === -1 ? 0 : Math.min(6, str.length - i - 1);
+                        };
+                        const snap = (val, s) => Math.round(val / s) * s;
+                        const clamp = v => {
+                            let val = v;
+                            const min = el.min === '' ? null : Number(el.min);
+                            const max = el.max === '' ? null : Number(el.max);
+                            if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+                            if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+                            return val;
+                        };
+                        const applyChange = dir => {
+                            const cur = Number(el.value || '0') || 0;
+                            const s = step();
+                            const out = clamp(snap(cur + (dir === 'up' ? s : -s), s));
+                            const d = decimalsForStep(s);
+                            el.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                        };
+                        btnUp.addEventListener('click', e => {
+                            try {
+                                e.stopPropagation();
+                            } catch (_) {}
+                            applyChange('up');
+                        });
+                        btnDown.addEventListener('click', e => {
+                            try {
+                                e.stopPropagation();
+                            } catch (_) {}
+                            applyChange('down');
+                        });
+                        try {
+                            wrapper.dataset.wired = '1';
+                            wrapper.dataset.directHandlers = '1';
+                        } catch (_) {}
+                        try {
+                            el.dataset.enhanced = '1';
+                        } catch (_) {}
+                        return true;
+                    } catch (_) {
+                        return false;
+                    }
+                };
+
+                const attempt = () => {
+                    const el = document.getElementById(TARGET_ID);
+                    if (!el) return schedule();
+                    const wrapped = !!el.closest('.number-input-wrapper');
+                    if (el.dataset.enhanced === '1' && !wrapped) {
+                        // stale flag without wrapper
+                        try {
+                            delete el.dataset.enhanced;
+                        } catch (_) {}
+                    }
+                    if (!wrapped) {
+                        try {
+                            enhanceNumberInput(el);
+                        } catch (_) {}
+                    }
+                    if (!el.closest('.number-input-wrapper')) {
+                        // Fallback manual wrap
+                        forceWrapManually(el);
+                    }
+                    if (el.closest('.number-input-wrapper')) return; // success
+                    schedule();
+                };
+                const schedule = () => {
+                    if (attempts++ >= MAX_ATTEMPTS) return;
+                    setTimeout(attempt, INTERVAL_MS);
+                };
+
+                // Immediate synchronous attempt (before delays) to catch already-present DOM
+                attempt();
+
+                // Observe specific container for dynamic re-renders
+                try {
+                    const grid =
+                        document.getElementById('plex-server-grid') ||
+                        document.getElementById('section-media-sources');
+                    if (grid && !grid.__plexPortObserver2) {
+                        const obs = new MutationObserver(muts => {
+                            for (const m of muts) {
+                                if (m.type === 'childList') {
+                                    const el = document.getElementById(TARGET_ID);
+                                    if (el && !el.closest('.number-input-wrapper')) {
+                                        try {
+                                            enhanceNumberInput(el);
+                                        } catch (_) {}
+                                        if (!el.closest('.number-input-wrapper'))
+                                            forceWrapManually(el);
+                                    }
+                                }
+                            }
+                        });
+                        obs.observe(grid, { childList: true, subtree: true });
+                        grid.__plexPortObserver2 = obs;
+                    }
+                } catch (_) {}
+
+                // Hash changes (panel routing)
+                window.addEventListener('hashchange', () => {
+                    const hash = location.hash || '';
+                    if (hash.includes('plex') || hash.includes('media')) setTimeout(attempt, 40);
+                });
+
+                // Visibility: if section is hidden via style/display until after first paint
+                try {
+                    const section = document.getElementById('section-media-sources');
+                    if (section && typeof IntersectionObserver === 'function') {
+                        const io = new IntersectionObserver(entries => {
+                            for (const ent of entries) {
+                                if (ent.isIntersecting) {
+                                    attempt();
+                                    setTimeout(attempt, 50);
+                                    setTimeout(attempt, 200);
+                                }
+                            }
+                        });
+                        io.observe(section);
+                    }
+                } catch (_) {}
+
+                // Custom activation event hook if panels dispatch
+                window.addEventListener('panelActivated', ev => {
+                    try {
+                        if (ev?.detail?.id && /plex|media/i.test(String(ev.detail.id))) {
+                            attempt();
+                            setTimeout(attempt, 25);
+                        }
+                    } catch (_) {}
+                });
+            })();
             // Plex port now enhanced like others; retain sanitization post-enhancement
             try {
                 const plexPort = document.getElementById('plex_port');
