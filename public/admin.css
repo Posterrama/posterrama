@@ -8116,8 +8116,8 @@ body.page-logs {
 
 /* Number inputs: stretch to full width and match height */
 #section-media-sources .form-group .number-input-wrapper {
-    /* Fixed width requested */
-    width: 160px;
+    /* Fixed width requested (adjusted from 160px to 120px) */
+    width: 120px;
     min-height: 42px;
     border-radius: var(--border-radius-md);
 }
