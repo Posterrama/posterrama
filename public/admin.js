@@ -12749,10 +12749,75 @@
             }
         }
 
+        // Silent auto-hydration for Streaming Providers (TMDB dependent) with retry & instrumentation
+        function maybeFetchStreamingProvidersOnOpen() {
+            try {
+                (async () => {
+                    if (window.__streamingProvidersLoaded || window.__streamingProvidersLoading)
+                        return;
+                    const selectEl = document.getElementById('streaming.providers');
+                    const hasOptions = !!(selectEl && selectEl.querySelector('option'));
+                    if (hasOptions) {
+                        window.__streamingProvidersLoaded = true;
+                        return;
+                    }
+                    window.__streamingProvidersLoading = true;
+                    const maxAttempts = 3;
+                    let attempt = 0;
+                    window.__streamingProvidersAttempts = window.__streamingProvidersAttempts || [];
+                    const providerOpts = [
+                        { value: 'netflix', label: 'Netflix' },
+                        { value: 'disney', label: 'Disney+' },
+                        { value: 'prime', label: 'Prime Video' },
+                        { value: 'hbo', label: 'Max (HBO)' },
+                        { value: 'hulu', label: 'Hulu' },
+                        { value: 'apple', label: 'Apple TV+' },
+                        { value: 'paramount', label: 'Paramount+' },
+                        { value: 'crunchyroll', label: 'Crunchyroll' },
+                    ];
+                    const run = async () => {
+                        attempt++;
+                        window.__streamingProvidersAttempts.push({ attempt, ts: Date.now() });
+                        try {
+                            const cfgRes = await window.dedupJSON('/api/admin/config', {
+                                credentials: 'include',
+                            });
+                            const base = cfgRes?.ok ? await cfgRes.json() : {};
+                            const streaming =
+                                base?.config?.streamingSources || base?.streamingSources || {};
+                            const selected = Object.entries(streaming)
+                                .filter(([k, v]) => v && providerOpts.some(p => p.value === k))
+                                .map(([k]) => k);
+                            if (typeof setMultiSelect === 'function') {
+                                setMultiSelect('streaming.providers', providerOpts, selected);
+                                if (typeof initMsForSelect === 'function') {
+                                    initMsForSelect(
+                                        'streaming-ms-providers',
+                                        'streaming.providers'
+                                    );
+                                }
+                            }
+                            window.__streamingProvidersLoaded = true;
+                        } catch (e) {
+                            if (attempt < maxAttempts) setTimeout(run, 350 * attempt);
+                        } finally {
+                            if (window.__streamingProvidersLoaded || attempt >= maxAttempts) {
+                                window.__streamingProvidersLoading = false;
+                            }
+                        }
+                    };
+                    run();
+                })();
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
         // attach helpers to admin2 namespace
         window.admin2.maybeFetchPlexOnOpen = maybeFetchPlexOnOpen;
         window.admin2.maybeFetchJellyfinOnOpen = maybeFetchJellyfinOnOpen;
         window.admin2.maybeFetchTmdbOnOpen = maybeFetchTmdbOnOpen;
+        window.admin2.maybeFetchStreamingProvidersOnOpen = maybeFetchStreamingProvidersOnOpen;
 
         // Fetch libraries
         async function fetchPlexLibraries(refreshFilters = false, silent = false) {
