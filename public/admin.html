@@ -1496,9 +1496,9 @@
                     </button>
                     <div class="dropdown-menu" id="device-actions-menu"></div>
                   </div>
-                  <div class="search-box">
+                  <div class="search-box device-search-box" style="margin-left:12px;">
                     <i class="fas fa-search"></i>
-                    <input id="device-search" type="text" placeholder="Search devices…">
+                    <input id="device-search" type="text" placeholder="Search devices…" style="height:32px; line-height:32px; padding:0 12px;">
                   </div>
                 </div>
               </div>
@@ -1534,14 +1534,13 @@
       </div>
       <!-- Settings subpanel (moved under Devices section) -->
       <section class="panel" id="panel-device-settings" hidden>
-        <header class="panel-header">
-          <div class="panel-title">
-            <h2><i class="fas fa-sliders-h"></i> Settings</h2>
-            <div class="panel-subtitle">Configure IP whitelists and general device policies</div>
-          </div>
-          <div class="panel-actions"></div>
-        </header>
         <div class="panel-content">
+          <div class="form-section" style="margin-top:0; padding-top:0;">
+            <div class="section-title" style="display:flex; align-items:center; gap:8px; font-size:1.05rem;">
+              <i class="fas fa-sliders-h"></i> Settings
+            </div>
+            <div class="section-subtitle" style="margin-top:4px;">Configure IP whitelists and general device policies</div>
+          </div>
           <!-- IP Whitelist Section -->
           <div class="form-section" id="card-ip-whitelist">
             <div class="section-title"><i class="fas fa-shield-halved"></i> IP Whitelist</div>
