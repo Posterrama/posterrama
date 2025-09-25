@@ -8408,6 +8408,9 @@ body.page-logs {
 #section-media-sources .number-input-wrapper.niw-sized-sm {
     width: 160px;
 }
+#section-media-sources .number-input-wrapper.niw-sized-xs {
+    width: 120px;
+}
 #section-media-sources .number-input-wrapper.niw-sized-md {
     width: 240px;
 }

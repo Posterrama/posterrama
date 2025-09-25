@@ -2195,15 +2195,17 @@
                 input.dataset.enhanced = '1';
                 // Apply a compact width class for known small fields so wrappers don't fill the grid
                 try {
-                    const smallIds = new Set([
-                        'plex.recentDays',
-                        'plex_port',
-                        'jf.port',
-                        'jf.recentDays',
-                        'tmdb.minRating',
-                        'streamingSources.minRating',
-                    ]);
-                    if (smallIds.has(input.id)) {
+                    // Width buckets: xs (very short like single port), sm (short numeric), md (wider rating ranges)
+                    const id = input.id;
+                    if (id === 'plex_port') {
+                        wrapper.classList.add('niw-sized-xs');
+                    } else if (
+                        id === 'plex.recentDays' ||
+                        id === 'jf.port' ||
+                        id === 'jf.recentDays' ||
+                        id === 'tmdb.minRating' ||
+                        id === 'streamingSources.minRating'
+                    ) {
                         wrapper.classList.add('niw-sized-sm');
                     }
                 } catch (_) {}
