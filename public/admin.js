@@ -2288,7 +2288,7 @@
             window.admin2 = window.admin2 || {};
             window.admin2.enhanceNumberInput = enhanceNumberInput;
 
-            // --- Unified reliability layer for Media Sources numeric inputs (multi-field) ---
+            // --- Unified reliability layer (instrumented) for Media Sources numeric inputs ---
             (function ensureMediaSourceNumberWrappers() {
                 const IDS = [
                     'plex_port',
@@ -2302,6 +2302,16 @@
                 const INTERVAL = 80;
                 let attempts = 0;
                 let fullyDone = false;
+                const attemptHistory = [];
+                const debugEnabled = () =>
+                    !!(window.__MS_NUM_DEBUG || window.localStorage?.getItem('MS_NUM_DEBUG'));
+                const debugLog = (...args) => {
+                    if (debugEnabled()) {
+                        try {
+                            console.debug('[MediaNumWrap]', ...args);
+                        } catch (_) {}
+                    }
+                };
 
                 const manualWrap = el => {
                     if (!el || el.closest('.number-input-wrapper')) return true;
@@ -2397,30 +2407,38 @@
                     return !!el.closest('.number-input-wrapper');
                 };
 
-                const attemptAll = () => {
+                const attemptAll = (reason = 'tick') => {
+                    const snapshot = { reason, attempt: attempts, ts: Date.now(), statuses: {} };
                     let allDone = true;
                     IDS.forEach(id => {
-                        if (!wrapOne(id)) allDone = false;
+                        const success = wrapOne(id);
+                        snapshot.statuses[id] = success;
+                        if (!success) allDone = false;
                     });
+                    attemptHistory.push(snapshot);
+                    debugLog('attempt', snapshot.attempt, reason, snapshot.statuses);
                     if (!allDone) schedule();
+                    else debugLog('all wrapped after attempt', snapshot.attempt, 'reason', reason);
                 };
                 const schedule = () => {
-                    if (attempts++ >= MAX_ATTEMPTS) return;
-                    setTimeout(attemptAll, INTERVAL);
+                    if (attempts++ >= MAX_ATTEMPTS) {
+                        debugLog('max attempts reached');
+                        return;
+                    }
+                    setTimeout(() => attemptAll('retry-' + attempts), INTERVAL);
                 };
 
-                attemptAll();
+                attemptAll('initial');
 
-                // If already all wrapped mark done (prevents extra work later)
                 const allWrapped = () =>
                     IDS.every(id => {
                         const el = document.getElementById(id);
                         return el && el.closest('.number-input-wrapper');
                     });
-
                 const finishIfComplete = () => {
                     if (!fullyDone && allWrapped()) {
                         fullyDone = true;
+                        debugLog('fullyDone=true');
                     }
                 };
                 finishIfComplete();
@@ -2432,7 +2450,7 @@
                             if (fullyDone) return;
                             for (const m of muts) {
                                 if (m.type === 'childList') {
-                                    attemptAll();
+                                    attemptAll('section-mutation');
                                     finishIfComplete();
                                 }
                             }
@@ -2442,7 +2460,6 @@
                     }
                 } catch (_) {}
 
-                // Document-level observer as last resort (in case section replaced later or moved)
                 try {
                     if (!document.__msGlobalWrapObs) {
                         const gObs = new MutationObserver(muts => {
@@ -2467,7 +2484,7 @@
                                 }
                             }
                             if (relevant) {
-                                attemptAll();
+                                attemptAll('global-mutation');
                                 finishIfComplete();
                             }
                         });
@@ -2481,7 +2498,7 @@
                     const h = location.hash || '';
                     if (/plex|jelly|tmdb|media/i.test(h))
                         setTimeout(() => {
-                            attemptAll();
+                            attemptAll('hashchange');
                             finishIfComplete();
                         }, 35);
                 });
@@ -2489,9 +2506,9 @@
                     if (fullyDone) return;
                     try {
                         if (ev?.detail?.id && /plex|jelly|tmdb|media/i.test(String(ev.detail.id))) {
-                            attemptAll();
+                            attemptAll('panelActivated');
                             setTimeout(() => {
-                                attemptAll();
+                                attemptAll('panelActivated-delayed');
                                 finishIfComplete();
                             }, 25);
                         }
@@ -2505,13 +2522,13 @@
                             if (fullyDone) return;
                             entries.forEach(ent => {
                                 if (ent.isIntersecting) {
-                                    attemptAll();
+                                    attemptAll('io-visible');
                                     setTimeout(() => {
-                                        attemptAll();
+                                        attemptAll('io-visible-55');
                                         finishIfComplete();
                                     }, 55);
                                     setTimeout(() => {
-                                        attemptAll();
+                                        attemptAll('io-visible-230');
                                         finishIfComplete();
                                     }, 230);
                                 }
@@ -2521,48 +2538,57 @@
                     }
                 } catch (_) {}
 
-                // Early DOMContentLoaded microtask + rAF chain (in case this block executes late)
                 try {
                     if (document.readyState === 'loading') {
                         document.addEventListener('DOMContentLoaded', () => {
                             if (fullyDone) return;
-                            attemptAll();
+                            attemptAll('domcontentloaded');
                             finishIfComplete();
                             queueMicrotask(() => {
                                 if (fullyDone) return;
-                                attemptAll();
+                                attemptAll('domcontentloaded-microtask');
                                 finishIfComplete();
                             });
                             requestAnimationFrame(() => {
                                 if (fullyDone) return;
-                                attemptAll();
+                                attemptAll('domcontentloaded-raf');
                                 finishIfComplete();
                             });
                             setTimeout(() => {
                                 if (fullyDone) return;
-                                attemptAll();
+                                attemptAll('domcontentloaded-60ms');
                                 finishIfComplete();
                             }, 60);
                         });
                     }
                 } catch (_) {}
 
-                // Window load safety passes
                 window.addEventListener('load', () => {
                     if (fullyDone) return;
-                    attemptAll();
+                    attemptAll('window-load');
                     finishIfComplete();
                     setTimeout(() => {
                         if (fullyDone) return;
-                        attemptAll();
+                        attemptAll('window-load-120ms');
                         finishIfComplete();
                     }, 120);
                     setTimeout(() => {
                         if (fullyDone) return;
-                        attemptAll();
+                        attemptAll('window-load-400ms');
                         finishIfComplete();
                     }, 400);
                 });
+
+                try {
+                    window.admin2 = window.admin2 || {};
+                    window.admin2.mediaSourceWrapDebug = () => ({
+                        fullyDone,
+                        attempts,
+                        ids: [...IDS],
+                        lastStatus: attemptHistory[attemptHistory.length - 1],
+                        history: attemptHistory.slice(-10),
+                    });
+                } catch (_) {}
             })();
             // Plex port now enhanced like others; retain sanitization post-enhancement
             try {
