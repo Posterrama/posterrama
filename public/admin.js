@@ -6973,7 +6973,7 @@
             const pageNumbers = document.getElementById('device-page-numbers');
             const pagePrev = document.getElementById('device-page-prev');
             const pageNext = document.getElementById('device-page-next');
-            const perPageSel = document.getElementById('device-per-page');
+            // per-page selector removed; fixed page size
             const mergeSource = document.getElementById('merge-source');
             const mergeTarget = document.getElementById('merge-target');
             const mergeConfirm = document.getElementById('btn-merge-confirm');
@@ -6984,7 +6984,7 @@
                 all: [],
                 filteredIds: [],
                 currentPage: 1,
-                perPage: perPageSel ? parseInt(perPageSel.value, 10) : 9,
+                perPage: 9,
                 query: '',
                 filterStatus: null,
                 filterRoom: null,
@@ -8711,11 +8711,7 @@
                 state.currentPage = 1;
                 renderPage();
             });
-            perPageSel?.addEventListener('change', () => {
-                state.perPage = parseInt(perPageSel.value, 10) || 9;
-                state.currentPage = 1;
-                renderPage();
-            });
+            // per-page selector removed; always 9 per page
             pagePrev?.addEventListener('click', () => {
                 if (state.currentPage > 1) {
                     state.currentPage--;

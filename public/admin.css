@@ -3222,16 +3222,6 @@ input[type='range']::-moz-range-thumb {
     box-shadow: none !important;
     padding-left: 0;
 }
-.per-page.input-shell select {
-    background: transparent;
-    border: none;
-    padding: 4px 4px 4px 8px;
-    height: 30px;
-    line-height: 30px;
-}
-.per-page.input-shell .select-wrap {
-    margin: 0;
-}
 
 /* Ensure entire device toolbar content shifts right */
 .device-toolbar {
