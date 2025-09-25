@@ -1463,7 +1463,7 @@
           </div>
           <div class="panel-actions"></div>
         </div>
-        <div class="panel-content" style="display:flex; flex-direction:column; gap:20px;">
+        <div class="panel-content">
           <div class="form-section" id="device-tabs">
             <div class="section-title"><i class="fas fa-layer-group"></i> Manage</div>
             <div class="form-row">
@@ -1475,36 +1475,38 @@
                   <i class="fas fa-sliders-h"></i> Settings
                 </label>
               </div>
-              <div class="device-toolbar" style="margin-left:auto;">
-                <div class="dropdown">
-                  <button class="btn btn-outline btn-sm dropdown-toggle" id="device-filter-toggle">
-                    <i class="fas fa-filter"></i>
-                    Filter
-                    <i class="fas fa-chevron-down"></i>
-                  </button>
-                  <div class="dropdown-menu" id="device-filter-menu"></div>
-                </div>
-                <div class="dropdown">
-                  <button class="btn btn-outline btn-sm dropdown-toggle" id="device-actions-toggle">
-                    <i class="fas fa-gear"></i>
-                    Actions
-                    <i class="fas fa-chevron-down"></i>
-                  </button>
-                  <div class="dropdown-menu" id="device-actions-menu"></div>
-                </div>
-                <div class="search-box">
-                  <i class="fas fa-search"></i>
-                  <input id="device-search" type="text" placeholder="Search devices…">
+              <div class="device-actions-right">
+                <div class="device-toolbar">
+                  <div class="dropdown">
+                    <button class="btn btn-outline btn-sm dropdown-toggle" id="device-filter-toggle">
+                      <i class="fas fa-filter"></i>
+                      Filter
+                      <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu" id="device-filter-menu"></div>
+                  </div>
+                  <div class="dropdown">
+                    <button class="btn btn-outline btn-sm dropdown-toggle" id="device-actions-toggle">
+                      <i class="fas fa-gear"></i>
+                      Actions
+                      <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu" id="device-actions-menu"></div>
+                  </div>
+                  <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input id="device-search" type="text" placeholder="Search devices…">
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           <!-- Devices content (grid + pagination) -->
-          <div id="device-ui" style="display:block;">
+          <div id="device-ui">
             <div class="device-grid" id="device-grid">
               <!-- Device cards will be rendered dynamically from /api/devices -->
             </div>
-            <div class="table-footer device-pagination" style="margin-top:20px;">
+            <div class="table-footer device-pagination">
               <div class="table-info" id="device-page-info">Showing 0 of 0 devices</div>
               <div class="pagination">
                 <button class="btn btn-icon btn-sm" id="device-page-prev" aria-label="Previous page"><i class="fas fa-chevron-left"></i></button>
