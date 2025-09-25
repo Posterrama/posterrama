@@ -3180,19 +3180,57 @@ input[type='range']::-moz-range-thumb {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    background: var(--color-bg-input, #1f2430);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
     height: 32px;
-    padding: 0 8px;
+    padding: 0 6px 0 8px;
+    background: transparent;
+    box-shadow: none;
 }
 .device-toolbar .search-box input {
-    min-width: 160px;
-    width: clamp(180px, 18vw, 240px);
+    min-width: 220px;
+    width: clamp(240px, 22vw, 340px);
     height: 30px;
     line-height: 30px;
     padding: 0 4px;
     background: transparent;
+}
+
+/* Unified shell for search + per-page select to prevent double outlines */
+.input-shell {
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-bg-secondary, #1d232e);
+}
+.input-shell:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary) inset;
+}
+.input-shell.search-box {
+    padding-left: 28px;
+} /* space for icon */
+.input-shell.search-box i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+/* Remove inner borders when inside unified shell */
+.input-shell.search-box input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding-left: 0;
+}
+.per-page.input-shell select {
+    background: transparent;
+    border: none;
+    padding: 4px 4px 4px 8px;
+    height: 30px;
+    line-height: 30px;
+}
+.per-page.input-shell .select-wrap {
+    margin: 0;
 }
 
 /* Ensure entire device toolbar content shifts right */
@@ -3212,6 +3250,7 @@ input[type='range']::-moz-range-thumb {
     }
     .device-toolbar .search-box {
         flex: 1 1 100%;
+        width: 100%;
     }
     .device-toolbar .search-box input {
         width: 100%;
