@@ -603,13 +603,11 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-lg);
-    border-bottom: 1px solid var(--color-border);
+    gap: 10px;
     background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card));
-}
-.panel-header.compact {
-    /* Reduced vertical + horizontal padding for dense sections */
-    padding: 14px 18px;
+    border-bottom: 1px solid var(--color-border);
+    padding: 16px 20px; /* canonical header size (Display Settings standard) */
+    border-radius: 12px 12px 0 0;
 }
 
 .panel-header h2 {
@@ -6691,16 +6689,6 @@ body.page-logs {
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-md);
 }
-#section-display .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card));
-    border-bottom: 1px solid var(--color-border);
-    padding: 16px 20px;
-    border-radius: 12px 12px 0 0;
-}
 #section-display .panel-title {
     display: flex;
     align-items: center;
@@ -6710,16 +6698,6 @@ body.page-logs {
     padding: 16px 20px;
 }
 /* Media Sources header should visually match Display header */
-#section-media-sources .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card));
-    border-bottom: 1px solid var(--color-border);
-    padding: 14px 18px; /* slightly more compact */
-    border-radius: 12px 12px 0 0;
-}
 #section-media-sources .panel-title {
     display: flex;
     align-items: center;
