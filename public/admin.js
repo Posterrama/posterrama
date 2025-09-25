@@ -12250,7 +12250,10 @@
                 const hasToken = !!env[plexTokenVar];
                 const el = getInput('plex.token');
                 el.value = '';
-                el.setAttribute('placeholder', hasToken ? 'Token already set' : 'X-Plex-Token');
+                el.setAttribute(
+                    'placeholder',
+                    hasToken ? 'Plex token already set' : 'X-Plex-Token'
+                );
             }
             // Support legacy ID used in some templates
             (function () {
@@ -12258,7 +12261,10 @@
                 if (!el) return;
                 const hasToken = !!env[plexTokenVar];
                 el.value = '';
-                el.setAttribute('placeholder', hasToken ? 'Token already set' : 'X-Plex-Token');
+                el.setAttribute(
+                    'placeholder',
+                    hasToken ? 'Plex token already set' : 'X-Plex-Token'
+                );
             })();
             const plexRecentlyHeader = getInput('plex.recentOnlyHeader');
             if (plexRecentlyHeader) plexRecentlyHeader.checked = !!plex.recentlyAddedOnly;
