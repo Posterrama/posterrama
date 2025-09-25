@@ -2301,6 +2301,7 @@
                 const MAX_ATTEMPTS = 20;
                 const INTERVAL = 80;
                 let attempts = 0;
+                let fullyDone = false;
 
                 const manualWrap = el => {
                     if (!el || el.closest('.number-input-wrapper')) return true;
@@ -2410,12 +2411,30 @@
 
                 attemptAll();
 
+                // If already all wrapped mark done (prevents extra work later)
+                const allWrapped = () =>
+                    IDS.every(id => {
+                        const el = document.getElementById(id);
+                        return el && el.closest('.number-input-wrapper');
+                    });
+
+                const finishIfComplete = () => {
+                    if (!fullyDone && allWrapped()) {
+                        fullyDone = true;
+                    }
+                };
+                finishIfComplete();
+
                 try {
                     const section = document.getElementById('section-media-sources');
                     if (section && !section.__msNumObs) {
                         const obs = new MutationObserver(muts => {
+                            if (fullyDone) return;
                             for (const m of muts) {
-                                if (m.type === 'childList') attemptAll();
+                                if (m.type === 'childList') {
+                                    attemptAll();
+                                    finishIfComplete();
+                                }
                             }
                         });
                         obs.observe(section, { childList: true, subtree: true });
@@ -2423,15 +2442,58 @@
                     }
                 } catch (_) {}
 
+                // Document-level observer as last resort (in case section replaced later or moved)
+                try {
+                    if (!document.__msGlobalWrapObs) {
+                        const gObs = new MutationObserver(muts => {
+                            if (fullyDone) return;
+                            let relevant = false;
+                            for (const m of muts) {
+                                if (m.type === 'childList') {
+                                    for (const n of m.addedNodes) {
+                                        if (n.nodeType === 1) {
+                                            const id = n.id || '';
+                                            if (
+                                                IDS.includes(id) ||
+                                                IDS.some(tid =>
+                                                    n.querySelector?.('#' + CSS.escape(tid))
+                                                )
+                                            ) {
+                                                relevant = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (relevant) {
+                                attemptAll();
+                                finishIfComplete();
+                            }
+                        });
+                        gObs.observe(document.documentElement, { childList: true, subtree: true });
+                        document.__msGlobalWrapObs = gObs;
+                    }
+                } catch (_) {}
+
                 window.addEventListener('hashchange', () => {
+                    if (fullyDone) return;
                     const h = location.hash || '';
-                    if (/plex|jelly|tmdb|media/i.test(h)) setTimeout(attemptAll, 35);
+                    if (/plex|jelly|tmdb|media/i.test(h))
+                        setTimeout(() => {
+                            attemptAll();
+                            finishIfComplete();
+                        }, 35);
                 });
                 window.addEventListener('panelActivated', ev => {
+                    if (fullyDone) return;
                     try {
                         if (ev?.detail?.id && /plex|jelly|tmdb|media/i.test(String(ev.detail.id))) {
                             attemptAll();
-                            setTimeout(attemptAll, 25);
+                            setTimeout(() => {
+                                attemptAll();
+                                finishIfComplete();
+                            }, 25);
                         }
                     } catch (_) {}
                 });
@@ -2440,17 +2502,67 @@
                     const section = document.getElementById('section-media-sources');
                     if (section && typeof IntersectionObserver === 'function') {
                         const io = new IntersectionObserver(entries => {
+                            if (fullyDone) return;
                             entries.forEach(ent => {
                                 if (ent.isIntersecting) {
                                     attemptAll();
-                                    setTimeout(attemptAll, 55);
-                                    setTimeout(attemptAll, 230);
+                                    setTimeout(() => {
+                                        attemptAll();
+                                        finishIfComplete();
+                                    }, 55);
+                                    setTimeout(() => {
+                                        attemptAll();
+                                        finishIfComplete();
+                                    }, 230);
                                 }
                             });
                         });
                         io.observe(section);
                     }
                 } catch (_) {}
+
+                // Early DOMContentLoaded microtask + rAF chain (in case this block executes late)
+                try {
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', () => {
+                            if (fullyDone) return;
+                            attemptAll();
+                            finishIfComplete();
+                            queueMicrotask(() => {
+                                if (fullyDone) return;
+                                attemptAll();
+                                finishIfComplete();
+                            });
+                            requestAnimationFrame(() => {
+                                if (fullyDone) return;
+                                attemptAll();
+                                finishIfComplete();
+                            });
+                            setTimeout(() => {
+                                if (fullyDone) return;
+                                attemptAll();
+                                finishIfComplete();
+                            }, 60);
+                        });
+                    }
+                } catch (_) {}
+
+                // Window load safety passes
+                window.addEventListener('load', () => {
+                    if (fullyDone) return;
+                    attemptAll();
+                    finishIfComplete();
+                    setTimeout(() => {
+                        if (fullyDone) return;
+                        attemptAll();
+                        finishIfComplete();
+                    }, 120);
+                    setTimeout(() => {
+                        if (fullyDone) return;
+                        attemptAll();
+                        finishIfComplete();
+                    }, 400);
+                });
             })();
             // Plex port now enhanced like others; retain sanitization post-enhancement
             try {
