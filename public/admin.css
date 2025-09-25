@@ -6684,9 +6684,9 @@ body.page-logs {
 #section-devices #panel-device-management > .panel-content {
     padding: 16px 20px;
 }
-/* Remove extra visual gap above first form-section inside device management */
+/* Controlled top gap above first form-section inside device management (match sources visual rhythm) */
 #section-devices #panel-device-management > .panel-content > .form-section:first-child {
-    margin-top: 0;
+    margin-top: 6px; /* tweakable: set to 4px/8px if needed after visual check */
 }
 /* Ops-like cards for Display sections */
 #section-display .form-section {
