@@ -11481,11 +11481,21 @@
                 } else if (kind === 'jf') {
                     const hostname = document.getElementById('jf.hostname')?.value?.trim();
                     const port = document.getElementById('jf.port')?.value?.trim();
-                    const apiKey = document.getElementById('jf.apikey')?.value?.trim();
-                    // Guard: skip request if clearly not configured
-                    if (!hostname || !apiKey) {
-                        return new Map();
+                    let apiKey = document.getElementById('jf.apikey')?.value?.trim();
+                    // If input empty (masked), attempt to read from latest config
+                    if (!apiKey) {
+                        try {
+                            const cfgRes = await window.dedupJSON('/api/admin/config', {
+                                credentials: 'include',
+                            });
+                            if (cfgRes?.ok) {
+                                const cfgJson = await cfgRes.json();
+                                apiKey = cfgJson?.config?.jellyfinSource?.apiKey || apiKey;
+                            }
+                        } catch (_) {}
                     }
+                    // If still no apiKey or hostname missing, abort
+                    if (!hostname || !apiKey) return new Map();
                     try {
                         res = await fetch('/api/admin/jellyfin-libraries', {
                             method: 'POST',
@@ -12833,6 +12843,13 @@
         window.admin2.maybeFetchJellyfinOnOpen = maybeFetchJellyfinOnOpen;
         window.admin2.maybeFetchTmdbOnOpen = maybeFetchTmdbOnOpen;
         window.admin2.maybeFetchStreamingProvidersOnOpen = maybeFetchStreamingProvidersOnOpen;
+        // Expose debug helpers for console diagnostics
+        try {
+            window.admin2.fetchLibraryCounts = fetchLibraryCounts;
+            window.admin2.refreshOverviewCounts = refreshOverviewCounts;
+            window.admin2.getSelectedLibraries = getSelectedLibraries;
+            window.admin2.getMultiSelectValues = getMultiSelectValues;
+        } catch (_) {}
 
         // Fetch libraries
         async function fetchPlexLibraries(refreshFilters = false, silent = false) {
