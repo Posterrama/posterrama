@@ -6686,7 +6686,7 @@ body.page-logs {
 }
 /* Controlled top gap above first form-section inside device management (match sources visual rhythm) */
 #section-devices #panel-device-management > .panel-content > .form-section:first-child {
-    margin-top: 6px; /* tweakable: set to 4px/8px if needed after visual check */
+    margin-top: 14px; /* match default .form-section top margin for parity with Media Sources */
 }
 /* Ops-like cards for Display sections */
 #section-display .form-section {
