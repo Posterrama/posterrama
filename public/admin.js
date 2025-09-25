@@ -13189,6 +13189,10 @@
                         });
                     }
                     // Optionally refresh dependent filters now that libraries are known
+                    try {
+                        // Refresh overview item counts now that libraries are known (parity with Plex)
+                        refreshOverviewCounts();
+                    } catch (_) {}
                     if (window.__jfLibsRefreshRequested) {
                         try {
                             loadJellyfinRatings?.(getJfHidden?.('jf.ratingFilter-hidden'));
