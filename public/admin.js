@@ -6656,7 +6656,7 @@
                         document.getElementById('seg-devices')?.click();
                         window.admin2?.initDevices?.();
                     } catch (_) {}
-                    syncNavActive('section-devices');
+                    // showSection already calls ensureNavActive
                     return;
                 }
                 if (h === '#device-settings') {
@@ -6664,7 +6664,6 @@
                     try {
                         document.getElementById('seg-dev-settings')?.click();
                     } catch (_) {}
-                    syncNavActive('section-devices');
                     return;
                 }
                 if (h === '#jellyfin') {
