@@ -197,6 +197,9 @@
                 }
                 return data;
             })();
+
+            // version-bump: ensure fresh cache-busting token for admin.js
+            // reason: force clients and SW to fetch updated spinner wiring (2025-09-24)
             window.__metricsInFlight = p;
             await p;
         } catch (_) {
@@ -2185,8 +2188,8 @@
                 // Apply a compact width class for known small fields so wrappers don't fill the grid
                 try {
                     const smallIds = new Set([
-                        // 'plex_port' intentionally excluded: plain input without spinner controls
                         'plex.recentDays',
+                        'plex_port',
                         'jf.port',
                         'jf.recentDays',
                         'tmdb.minRating',
@@ -2240,11 +2243,13 @@
                 // Mark wrapper as wired to prevent duplicate listeners elsewhere (and to let delegated handler bail)
                 try {
                     wrapper.dataset.wired = '1';
+                    wrapper.dataset.directHandlers = '1';
                 } catch (_) {}
             };
             // Target specific IDs explicitly to avoid unexpected layout shifts
             const numberIds = [
                 'plex.recentDays',
+                'plex_port',
                 'jf.port',
                 'jf.recentDays',
                 'tmdb.minRating',
@@ -2261,7 +2266,7 @@
             // Expose so other flows (like panel routing) can enhance late-mounted or hidden inputs
             window.admin2 = window.admin2 || {};
             window.admin2.enhanceNumberInput = enhanceNumberInput;
-            // Plex port: plain input (no spinner controls). Sanitize and clamp.
+            // Plex port now enhanced like others; retain sanitization post-enhancement
             try {
                 const plexPort = document.getElementById('plex_port');
                 if (plexPort) {
@@ -2278,8 +2283,7 @@
                         const digits = v.replace(/[^0-9]/g, '');
                         if (digits !== v) plexPort.value = digits;
                     });
-                    plexPort.addEventListener('change', clampPort);
-                    plexPort.addEventListener('blur', clampPort);
+                    ['change', 'blur'].forEach(ev => plexPort.addEventListener(ev, clampPort));
                 }
             } catch (_) {}
         } catch (_) {}
@@ -2339,6 +2343,7 @@
                         input.dispatchEvent(new Event('change', { bubbles: true }));
                     });
                     wrapper.dataset.wired = '1';
+                    wrapper.dataset.directHandlers = '1';
                 });
             };
             // Initial pass for the whole Media Sources section
@@ -2347,45 +2352,42 @@
             // Expose helper for use on panel activation
             window.admin2 = window.admin2 || {};
             window.admin2.wireNumberWrappers = wireNumberWrappers;
-            // Delegated click handler as a safety net so buttons always work
-            // Attach at the document level to avoid timing issues when the section
-            // isn't yet in the DOM during script evaluation (direct nav to hashes).
+            // Global delegated click handler (capture) so spinner buttons always work
+            // Works across all sections (Display, Media Sources, Operations, Modals)
             if (!document.__niwDelegated) {
                 document.addEventListener(
                     'click',
                     e => {
                         const btn = e.target?.closest?.('.number-input-wrapper .number-btn');
                         if (!btn) return;
-                        // Only handle for wrappers inside Media Sources
                         const wrapper = btn.closest('.number-input-wrapper');
-                        if (!wrapper || !wrapper.closest('#section-media-sources')) return;
-                        // Handle centrally to avoid timing issues and double handlers
-                        // Prevent any other click handlers from running for this button
+                        if (!wrapper) return;
+                        const input = wrapper.querySelector('input[type="number"]');
+                        if (!input) return;
+                        // If direct wiring already attached handlers and marked wired, skip to avoid duplicate increments
+                        if (wrapper.dataset.directHandlers === '1') return;
                         try {
                             e.preventDefault();
                             e.stopPropagation();
                             e.stopImmediatePropagation?.();
                         } catch (_) {}
-                        const input = wrapper.querySelector('input[type="number"]');
-                        if (!input) return;
-                        // Prevent double handling within the same tick
-                        if (btn.__handledOnce) return;
+                        if (btn.__handledOnce) return; // guard per tick
                         btn.__handledOnce = true;
                         setTimeout(() => {
                             try {
                                 delete btn.__handledOnce;
                             } catch (_) {}
                         }, 0);
-                        const s = (() => Number(input.step || '1') || 1)();
+                        const stepVal = (() => Number(input.step || '1') || 1)();
                         const min = input.min === '' ? null : Number(input.min);
                         const max = input.max === '' ? null : Number(input.max);
-                        const decimalsForStep = step => {
-                            const str = String(step);
+                        const decimalsForStep = s => {
+                            const str = String(s);
                             if (str.includes('e') || str.includes('E')) return 6;
                             const i = str.indexOf('.');
                             return i === -1 ? 0 : Math.min(6, str.length - i - 1);
                         };
-                        const snap = (val, step) => Math.round(val / step) * step;
+                        const snap = (val, s) => Math.round(val / s) * s;
                         const clamp = v => {
                             let val = v;
                             if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
@@ -2393,23 +2395,19 @@
                             return val;
                         };
                         const cur = Number(input.value || '0') || 0;
+                        let out;
                         if (btn.classList.contains('number-inc')) {
-                            const out = clamp(snap(cur + s, s));
-                            const d = decimalsForStep(s);
-                            input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+                            out = clamp(snap(cur + stepVal, stepVal));
                         } else if (btn.classList.contains('number-dec')) {
-                            const out = clamp(snap(cur - s, s));
-                            const d = decimalsForStep(s);
-                            input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
-                        } else {
-                            return;
-                        }
+                            out = clamp(snap(cur - stepVal, stepVal));
+                        } else return;
+                        const d = decimalsForStep(stepVal);
+                        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
                         input.dispatchEvent(new Event('input', { bubbles: true }));
                         input.dispatchEvent(new Event('change', { bubbles: true }));
                     },
                     true
                 );
-                // mark to avoid double-binding if this block runs twice
                 document.__niwDelegated = true;
             }
         } catch (_) {}
@@ -15183,3 +15181,46 @@
             });
     };
 })();
+
+// ===== Fallback spinner delegation (late-phase safety net) =====
+// Ensures number spinner buttons work even if earlier wiring failed due to
+// race conditions or partial DOM when navigating directly to Media Sources.
+// Skips wrappers that already have directHandlers set.
+if (!document.__niwDelegatedFallback) {
+    document.addEventListener('click', e => {
+        const btn = e.target?.closest?.('.number-input-wrapper .number-btn');
+        if (!btn) return;
+        const wrapper = btn.closest('.number-input-wrapper');
+        if (!wrapper) return;
+        if (wrapper.dataset.directHandlers === '1') return;
+        const input = wrapper.querySelector('input[type="number"]');
+        if (!input) return;
+        e.preventDefault();
+        const stepVal = (() => Number(input.step || '1') || 1)();
+        const min = input.min === '' ? null : Number(input.min);
+        const max = input.max === '' ? null : Number(input.max);
+        const decimalsForStep = s => {
+            const str = String(s);
+            if (str.includes('e') || str.includes('E')) return 6;
+            const i = str.indexOf('.');
+            return i === -1 ? 0 : Math.min(6, str.length - i - 1);
+        };
+        const snap = (val, s) => Math.round(val / s) * s;
+        const clamp = v => {
+            let val = v;
+            if (min != null && !Number.isNaN(min)) val = Math.max(val, min);
+            if (max != null && !Number.isNaN(max)) val = Math.min(val, max);
+            return val;
+        };
+        const cur = Number(input.value || '0') || 0;
+        let out;
+        if (btn.classList.contains('number-inc')) out = clamp(snap(cur + stepVal, stepVal));
+        else if (btn.classList.contains('number-dec')) out = clamp(snap(cur - stepVal, stepVal));
+        else return;
+        const d = decimalsForStep(stepVal);
+        input.value = d > 0 ? Number(out).toFixed(d) : String(Math.round(out));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    document.__niwDelegatedFallback = true;
+}
