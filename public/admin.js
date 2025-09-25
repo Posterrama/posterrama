@@ -12685,7 +12685,8 @@
                     // This fixes the issue where only pre-selected libraries show as options
                     if (!window.__autoFetchedLibs.jf) {
                         window.__autoFetchedLibs.jf = true;
-                        await fetchJellyfinLibraries(true);
+                        // Silent auto-load (no toasts) per Option 1
+                        await fetchJellyfinLibraries(true, true);
                     }
                 })();
             } catch (_) {
@@ -13130,7 +13131,7 @@
                 chipsRoot.innerHTML = '<div class="subtle">Failed to load genres</div>';
             }
         }
-        async function fetchJellyfinLibraries(refreshFilters = false) {
+        async function fetchJellyfinLibraries(refreshFilters = false, silent = false) {
             // If any caller requests dependent refresh, mark it globally for this flight
             if (refreshFilters) window.__jfLibsRefreshRequested = true;
             // Deduplicate concurrent calls so only one request + toast occurs
@@ -13145,12 +13146,14 @@
                         document.getElementById('jf.insecureHttpsHeader')?.checked
                     );
                     if (!hostname) {
-                        window.notify?.toast({
-                            type: 'warning',
-                            title: 'Jellyfin',
-                            message: 'Hostname is required to fetch libraries',
-                            duration: 3200,
-                        });
+                        if (!silent) {
+                            window.notify?.toast({
+                                type: 'warning',
+                                title: 'Jellyfin',
+                                message: 'Hostname is required to fetch libraries',
+                                duration: 3200,
+                            });
+                        }
                         return { skipped: true, libraries: [] };
                     }
                     const res = await fetch('/api/admin/jellyfin-libraries', {
@@ -13175,12 +13178,14 @@
                     // Rebuild multiselect options
                     rebuildMsForSelect('jf-ms-movies', 'jf.movies');
                     rebuildMsForSelect('jf-ms-shows', 'jf.shows');
-                    window.notify?.toast({
-                        type: 'success',
-                        title: 'Jellyfin',
-                        message: 'Jellyfin libraries loaded',
-                        duration: 2200,
-                    });
+                    if (!silent) {
+                        window.notify?.toast({
+                            type: 'success',
+                            title: 'Jellyfin',
+                            message: 'Jellyfin libraries loaded',
+                            duration: 2200,
+                        });
+                    }
                     // Optionally refresh dependent filters now that libraries are known
                     if (window.__jfLibsRefreshRequested) {
                         try {
@@ -13193,12 +13198,14 @@
                         }
                     }
                 } catch (e) {
-                    window.notify?.toast({
-                        type: 'error',
-                        title: 'Jellyfin',
-                        message: e?.message || 'Failed to fetch libraries',
-                        duration: 4200,
-                    });
+                    if (!silent) {
+                        window.notify?.toast({
+                            type: 'error',
+                            title: 'Jellyfin',
+                            message: e?.message || 'Failed to fetch libraries',
+                            duration: 4200,
+                        });
+                    }
                 } finally {
                     // Clear in-flight marker after settle so subsequent manual fetches are allowed
                     window.__jfLibsInFlight = null;
