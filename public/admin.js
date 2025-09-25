@@ -12664,8 +12664,8 @@
                     // This fixes the issue where only pre-selected libraries show as options
                     if (!window.__autoFetchedLibs.plex) {
                         window.__autoFetchedLibs.plex = true;
-                        const silentFirst = window.__plexToastShown === true;
-                        await fetchPlexLibraries(true, silentFirst);
+                        // Always silent on auto-fetch (parity with Jellyfin Option 1)
+                        await fetchPlexLibraries(true, true);
                     }
                 })();
             } catch (_) {
@@ -12785,12 +12785,14 @@
                         }
                     }
                 } catch (e) {
-                    window.notify?.toast({
-                        type: 'error',
-                        title: 'Plex',
-                        message: e?.message || 'Failed to fetch libraries',
-                        duration: 4200,
-                    });
+                    if (!silent) {
+                        window.notify?.toast({
+                            type: 'error',
+                            title: 'Plex',
+                            message: e?.message || 'Failed to fetch libraries',
+                            duration: 4200,
+                        });
+                    }
                 } finally {
                     // Clear in-flight marker after settle so subsequent manual fetches are allowed
                     window.__plexLibsInFlight = null;
