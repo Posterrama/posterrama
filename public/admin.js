@@ -1353,44 +1353,8 @@
             target.classList.add('active');
             target.hidden = false;
         }
-        // Keep sidebar nav indicator in sync with active section
-        try {
-            // Clear previous active states
-            document
-                .querySelectorAll('.sidebar-nav .nav-item, .sidebar-nav .nav-subitem')
-                .forEach(n => n.classList.remove('active'));
-
-            if (id === 'section-devices') {
-                // Open the device management group and highlight its header toggle
-                const deviceGroup = document.querySelectorAll('.sidebar .nav-group')[0];
-                deviceGroup?.classList.add('open');
-                deviceGroup?.querySelector('.nav-item.nav-toggle')?.classList.add('active');
-                // Highlight the appropriate subitem
-                const subKey = 'devices';
-                const subitem = deviceGroup?.querySelector(`.nav-subitem[data-sub="${subKey}"]`);
-                subitem?.classList.add('active');
-            } else {
-                const map = {
-                    'section-dashboard': 'dashboard',
-                    'section-display': 'display',
-                    'section-operations': 'operations',
-                    'section-devices': 'devices',
-                    'section-media-sources': 'media-sources',
-                };
-                const key = map[id];
-                if (key) {
-                    const item = document.querySelector(
-                        `.sidebar-nav .nav-item[data-nav="${key}"]`
-                    );
-                    item?.classList.add('active');
-                }
-                // Collapse groups when leaving them
-                const deviceGroup = document.querySelectorAll('.sidebar .nav-group')[0];
-                deviceGroup?.classList.remove('open');
-            }
-        } catch (_) {
-            /* non-fatal */
-        }
+        // Single authoritative nav sync (no other code should toggle .active)
+        ensureNavActive(id);
         // Update header title for basic context switch
         const pageHeader = document.querySelector('.page-header');
         const h1 = pageHeader?.querySelector('h1');
@@ -6590,8 +6554,8 @@
                 }
             }
         } catch (_) {}
-        // Central nav active sync helper
-        function syncNavActive(sectionId) {
+        // Authoritative nav activation logic (idempotent + microtask re-assert)
+        function ensureNavActive(sectionId) {
             try {
                 const map = {
                     'section-dashboard': 'dashboard',
@@ -6600,28 +6564,24 @@
                     'section-devices': 'devices',
                     'section-operations': 'operations',
                 };
-                const target = map[sectionId];
-                const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
-                navItems.forEach(n => n.classList.remove('active'));
-                if (target) {
-                    const el = document.querySelector(
-                        `.sidebar-nav .nav-item[data-nav="${target}"]`
-                    );
+                const key = map[sectionId];
+                const all = document.querySelectorAll('.sidebar-nav .nav-item');
+                all.forEach(n => n.classList.remove('active'));
+                if (key) {
+                    const el = document.querySelector(`.sidebar-nav .nav-item[data-nav="${key}"]`);
                     if (el) el.classList.add('active');
                 }
+                // Microtask re-assert in case some later code removes .active synchronously
+                Promise.resolve().then(() => {
+                    const still = document.querySelector('.sidebar-nav .nav-item.active');
+                    if (!still && key) {
+                        const el2 = document.querySelector(
+                            `.sidebar-nav .nav-item[data-nav="${key}"]`
+                        );
+                        el2?.classList.add('active');
+                    }
+                });
             } catch (_) {}
-        }
-
-        // Patch showSection to always sync nav state
-        const __origShowSection = typeof showSection === 'function' ? showSection : null;
-        if (__origShowSection && !window.__showSectionPatched) {
-            window.__showSectionPatched = true;
-            window.showSection = function patchedShowSection(id) {
-                try {
-                    __origShowSection(id);
-                } catch (_) {}
-                syncNavActive(id);
-            };
         }
 
         function routeByHash() {
