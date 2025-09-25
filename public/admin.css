@@ -6680,6 +6680,14 @@ body.page-logs {
 #section-media-sources .panel-content {
     padding: 16px 20px;
 }
+/* Device Management panel content should match Display/Media exactly */
+#section-devices #panel-device-management > .panel-content {
+    padding: 16px 20px;
+}
+/* Remove extra visual gap above first form-section inside device management */
+#section-devices #panel-device-management > .panel-content > .form-section:first-child {
+    margin-top: 0;
+}
 /* Ops-like cards for Display sections */
 #section-display .form-section {
     background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
