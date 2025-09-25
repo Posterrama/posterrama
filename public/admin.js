@@ -12697,24 +12697,51 @@
         function maybeFetchTmdbOnOpen() {
             try {
                 (async () => {
-                    // Only load the TMDB genres once on first open
+                    // Ensure structure has tmdb flag
                     window.__autoFetchedLibs = window.__autoFetchedLibs || {
                         plex: false,
                         jf: false,
+                        tmdb: false,
                     };
+                    if (window.__tmdbGenresLoaded) return; // already fully loaded
+                    if (window.__tmdbGenresLoading) return; // in-flight
                     if (!window.__autoFetchedLibs.tmdb) {
                         window.__autoFetchedLibs.tmdb = true;
-                        try {
-                            // Use stored selection if any (ensure we parse JSON from the response)
-                            const cfgRes = await window.dedupJSON('/api/admin/config', {
-                                credentials: 'include',
-                            });
-                            const base = cfgRes?.ok ? await cfgRes.json() : {};
-                            const tmdb = base?.config?.tmdbSource || base?.tmdbSource || {};
-                            await loadTMDBGenres(tmdb.genreFilter || '');
-                        } catch (_) {
-                            // best-effort; keep UI responsive
-                        }
+                        // Retry with small backoff because config + panel markup may still be hydrating
+                        const maxAttempts = 3;
+                        let attempt = 0;
+                        window.__tmdbGenreFetchAttempts = window.__tmdbGenreFetchAttempts || [];
+                        const run = async () => {
+                            attempt++;
+                            const stamp = Date.now();
+                            window.__tmdbGenreFetchAttempts.push({ attempt, ts: stamp });
+                            window.__tmdbGenresLoading = true;
+                            try {
+                                const cfgRes = await window.dedupJSON('/api/admin/config', {
+                                    credentials: 'include',
+                                });
+                                const base = cfgRes?.ok ? await cfgRes.json() : {};
+                                const tmdb = base?.config?.tmdbSource || base?.tmdbSource || {};
+                                // Only try if enabled & apiKey present
+                                if (!tmdb.enabled || !tmdb.apiKey) {
+                                    window.__tmdbGenresLoading = false;
+                                    return; // nothing to load yet
+                                }
+                                await loadTMDBGenres(tmdb.genreFilter || '');
+                                window.__tmdbGenresLoaded = true;
+                            } catch (e) {
+                                // swallow but retry if attempts remain
+                                if (attempt < maxAttempts) {
+                                    const delay = 400 * attempt; // linear backoff
+                                    setTimeout(run, delay);
+                                }
+                            } finally {
+                                if (window.__tmdbGenresLoaded || attempt >= maxAttempts) {
+                                    window.__tmdbGenresLoading = false;
+                                }
+                            }
+                        };
+                        run();
                     }
                 })();
             } catch (_) {
