@@ -6231,7 +6231,10 @@
                         // Reset the auto-fetch flag so libraries are re-fetched each time panel opens
                         if (window.__autoFetchedLibs) window.__autoFetchedLibs.jf = false;
                         window.admin2?.maybeFetchJellyfinOnOpen?.();
-                    } else if (panelId === 'panel-tmdb') window.admin2?.maybeFetchTmdbOnOpen?.();
+                    } else if (panelId === 'panel-tmdb') {
+                        window.admin2?.maybeFetchTmdbOnOpen?.();
+                        window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
+                    }
                 } catch (_) {
                     /* no-op */
                 }
@@ -6411,8 +6414,10 @@
                             if (s.panel === 'panel-plex') window.admin2?.maybeFetchPlexOnOpen?.();
                             else if (s.panel === 'panel-jellyfin')
                                 window.admin2?.maybeFetchJellyfinOnOpen?.();
-                            else if (s.panel === 'panel-tmdb')
+                            else if (s.panel === 'panel-tmdb') {
                                 window.admin2?.maybeFetchTmdbOnOpen?.();
+                                window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
+                            }
                         } catch (_) {}
                     });
                 });
@@ -6688,6 +6693,7 @@
                     showSourcePanel('panel-tmdb', 'TMDB');
                     // Lazy-load on routed open
                     window.admin2?.maybeFetchTmdbOnOpen?.();
+                    window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
                     return;
                 }
                 if (h === '#media-sources' || h === '#media-sources/overview') {
