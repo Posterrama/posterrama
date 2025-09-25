@@ -11453,6 +11453,9 @@
         };
 
         async function fetchLibraryCounts(kind) {
+            // Normalize alias so both 'jf' and 'jellyfin' share cache
+            const originalKind = kind;
+            if (kind === 'jellyfin') kind = 'jf';
             const now = Date.now();
             // Reuse cache for 15s
             if (now - __libCountsCache.ts < 15000 && __libCountsCache[kind]) {
@@ -11475,7 +11478,7 @@
                             token: token || undefined,
                         }),
                     });
-                } else if (kind === 'jf' || kind === 'jellyfin') {
+                } else if (kind === 'jf') {
                     const hostname = document.getElementById('jf.hostname')?.value?.trim();
                     const port = document.getElementById('jf.port')?.value?.trim();
                     const apiKey = document.getElementById('jf.apikey')?.value?.trim();
@@ -11505,6 +11508,12 @@
                     byName.set(l.name, { type: l.type, itemCount: Number(l.itemCount) || 0 });
                 }
                 __libCountsCache[kind] = byName;
+                // If caller used 'jellyfin', also populate alias key for future lookups
+                if (originalKind === 'jellyfin') {
+                    __libCountsCache.jellyfin = byName;
+                } else if (originalKind === 'jf') {
+                    __libCountsCache.jellyfin = byName;
+                }
                 __libCountsCache.ts = now;
                 return byName;
             } catch (_) {
