@@ -6590,6 +6590,40 @@
                 }
             }
         } catch (_) {}
+        // Central nav active sync helper
+        function syncNavActive(sectionId) {
+            try {
+                const map = {
+                    'section-dashboard': 'dashboard',
+                    'section-display': 'display',
+                    'section-media-sources': 'media-sources',
+                    'section-devices': 'devices',
+                    'section-operations': 'operations',
+                };
+                const target = map[sectionId];
+                const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+                navItems.forEach(n => n.classList.remove('active'));
+                if (target) {
+                    const el = document.querySelector(
+                        `.sidebar-nav .nav-item[data-nav="${target}"]`
+                    );
+                    if (el) el.classList.add('active');
+                }
+            } catch (_) {}
+        }
+
+        // Patch showSection to always sync nav state
+        const __origShowSection = typeof showSection === 'function' ? showSection : null;
+        if (__origShowSection && !window.__showSectionPatched) {
+            window.__showSectionPatched = true;
+            window.showSection = function patchedShowSection(id) {
+                try {
+                    __origShowSection(id);
+                } catch (_) {}
+                syncNavActive(id);
+            };
+        }
+
         function routeByHash() {
             if (routeTimer) {
                 clearTimeout(routeTimer);
@@ -6662,6 +6696,7 @@
                         document.getElementById('seg-devices')?.click();
                         window.admin2?.initDevices?.();
                     } catch (_) {}
+                    syncNavActive('section-devices');
                     return;
                 }
                 if (h === '#device-settings') {
@@ -6669,6 +6704,7 @@
                     try {
                         document.getElementById('seg-dev-settings')?.click();
                     } catch (_) {}
+                    syncNavActive('section-devices');
                     return;
                 }
                 if (h === '#jellyfin') {
