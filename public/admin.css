@@ -8116,8 +8116,8 @@ body.page-logs {
 
 /* Number inputs: stretch to full width and match height */
 #section-media-sources .form-group .number-input-wrapper {
-    /* Allow content-driven width by default; specific fields will size via classes */
-    width: auto;
+    /* Fixed width requested */
+    width: 160px;
     min-height: 42px;
     border-radius: var(--border-radius-md);
 }
