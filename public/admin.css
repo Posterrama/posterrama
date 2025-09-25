@@ -3186,8 +3186,8 @@ input[type='range']::-moz-range-thumb {
     box-shadow: none;
 }
 .device-toolbar .search-box input {
-    min-width: 220px;
-    width: clamp(240px, 22vw, 340px);
+    min-width: 140px;
+    width: clamp(160px, 14vw, 190px);
     height: 30px;
     line-height: 30px;
     padding: 0 4px;
