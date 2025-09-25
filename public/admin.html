@@ -2895,6 +2895,56 @@
       </div>
     </div>
   <script src="/admin.js?v={{ASSET_VERSION}}"></script>
+  <script>
+    // Fallback spinner wrapper bootstrap (runs after main admin.js). Safe + idempotent.
+    (function(){
+      const IDS = ['plex_port','plex.recentDays','jf.port','jf.recentDays','tmdb.minRating','streamingSources.minRating'];
+      const MAX_WINDOW_MS = 10000; // give up after 10s
+      const START = Date.now();
+      const log = (...a)=>{ try { if (window.__MS_NUM_DEBUG || localStorage.getItem('MS_NUM_DEBUG')) console.debug('[MediaNumWrapFallback]',...a);}catch(_){} };
+      function hasWrapper(el){ return !!el && !!el.closest('.number-input-wrapper'); }
+      function manualWrap(el){
+        if(!el || hasWrapper(el)) return;
+        const parent=el.parentElement; if(!parent) return;
+        const w=document.createElement('div'); w.className='number-input-wrapper niw-compact';
+        parent.replaceChild(w,el); w.appendChild(el);
+        const ctr=document.createElement('div'); ctr.className='number-controls';
+        const mk=(cls,dir)=>{ const b=document.createElement('button'); b.type='button'; b.className='number-btn '+cls; b.setAttribute('aria-label', dir==='up'?'Increase value':'Decrease value'); b.innerHTML='<i class="fas fa-chevron-'+dir+'"></i>'; return b; };
+        const up=mk('number-inc','up'); const dn=mk('number-dec','down'); ctr.append(up,dn); w.appendChild(ctr);
+        const step=()=>Number(el.step||'1')||1; const dec=s=>{const str=String(s); const i=str.indexOf('.'); return i===-1?0:Math.min(6,str.length-i-1);} ;
+        const snap=(v,s)=>Math.round(v/s)*s; const clamp=v=>{ let val=v; const min=el.min===''?null:Number(el.min); const max=el.max===''?null:Number(el.max); if(min!=null&&!Number.isNaN(min)) val=Math.max(val,min); if(max!=null&&!Number.isNaN(max)) val=Math.min(val,max); return val; };
+        function apply(dir){ const cur=Number(el.value||'0')||0; const s=step(); const out=clamp(snap(cur+(dir==='up'?s:-s),s)); const d=dec(s); el.value=d>0?Number(out).toFixed(d):String(Math.round(out)); el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
+        up.addEventListener('click',e=>{try{e.stopPropagation();}catch(_){} apply('up');});
+        dn.addEventListener('click',e=>{try{e.stopPropagation();}catch(_){} apply('down');});
+      }
+      function attempt(reason){
+        let remaining = [];
+        IDS.forEach(id=>{
+          const el=document.getElementById(id);
+            if(!el){ remaining.push(id); return; }
+            if(!hasWrapper(el)){
+              if(window.enhanceNumberInput){ try { window.enhanceNumberInput(el); } catch(_){} }
+              if(!hasWrapper(el)) manualWrap(el);
+              if(!hasWrapper(el)) remaining.push(id);
+            }
+        });
+        log('attempt', reason, 'remaining', remaining);
+        if(remaining.length===0){ log('all wrapped'); return true; }
+        if(Date.now()-START>MAX_WINDOW_MS){ log('giving up (timeout)', remaining); return true; }
+        return false;
+      }
+      // Initial burst of rapid attempts
+      let i=0; function burst(){ if(attempt('burst-'+i++)) return; if(i<20) setTimeout(burst,75); else scheduleSlow(); }
+      function scheduleSlow(){
+        let slowCount=0; const slow=()=>{ if(attempt('slow-'+slowCount++)) return; if(slowCount<40) setTimeout(slow,250); else attempt('final'); };
+        slow();
+      }
+      // Mutation observer (document-level) as ultimate catch
+      try { const mo = new MutationObserver(()=> attempt('mutation')); mo.observe(document.documentElement,{childList:true,subtree:true}); setTimeout(()=>mo.disconnect(), MAX_WINDOW_MS); } catch(_){}
+      // Kick off
+      if(!attempt('initial')) burst();
+    })();
+  </script>
   <link rel="stylesheet" href="/cinema/cinema.css?v={{ASSET_VERSION}}" />
   <script src="/cinema/cinema-ui.js?v={{ASSET_VERSION}}"></script>
   <!-- PWA Service Worker Registration (admin2) -->

@@ -8337,48 +8337,35 @@ body.page-logs {
     background: var(--color-bg-card);
 }
 
-/* Plex Port: single number input (no wrapper controls, dark background) */
+/* Plex Port: rely on wrapper for visuals; only size & padding if unwrapped (legacy) */
 #panel-plex #plex_port {
     height: 42px;
     width: 160px;
     padding: 8px 12px;
-    /* Force dark background even if UA styles try to override */
-    background: var(--color-bg-card) !important;
-    background-color: var(--color-bg-card) !important;
-    color: var(--color-text-primary) !important;
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-md);
-    outline: none;
     -webkit-appearance: none;
     -moz-appearance: textfield;
     appearance: textfield;
-    caret-color: var(--color-text-primary);
-    background-clip: padding-box;
 }
+/* Spinner wrapper already neutralizes focus/border; keep native focus minimal if unwrapped */
 #panel-plex #plex_port:focus,
 #panel-plex #plex_port:focus-visible {
-    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+    outline: none;
 }
 #panel-plex #plex_port::-webkit-outer-spin-button,
 #panel-plex #plex_port::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
-
-/* Plex Port: handle browser autofill forcing light backgrounds */
+/* Autofill: suppress bright background without reintroducing border */
 #panel-plex #plex_port:-webkit-autofill,
 #panel-plex #plex_port:-webkit-autofill:hover,
 #panel-plex #plex_port:-webkit-autofill:focus {
     -webkit-text-fill-color: var(--color-text-primary) !important;
     box-shadow: 0 0 0 1000px var(--color-bg-card) inset !important;
-    border: 1px solid var(--color-border) !important;
-    caret-color: var(--color-text-primary) !important;
 }
 #panel-plex #plex_port:-moz-ui-autofill {
     background-color: var(--color-bg-card) !important;
     color: var(--color-text-primary) !important;
-    caret-color: var(--color-text-primary) !important;
 }
 
 /* Jellyfin: enforce equal control height */
@@ -8398,9 +8385,6 @@ body.page-logs {
     max-width: 280px;
 }
 /* Keep numeric fields compact */
-#panel-plex #plex\.recentDays {
-    width: 160px;
-}
 #panel-plex #plex\.recentDays {
     width: 160px;
 }
@@ -10710,6 +10694,53 @@ select:focus-visible {
 #section-operations .number-input-wrapper input[type='number']::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
+}
+
+/* -------------------------------------------------------------- */
+/* Spinner Wrapper – Double Border Cleanup (Plex Port & others)   */
+/* -------------------------------------------------------------- */
+/* When the Plex port field is wrapped by .number-input-wrapper we want
+   only the outer container border. The original #plex_port rule adds its
+   own border, producing a visible double edge. These overrides strip the
+   inner border & focus ring, letting the wrapper handle focus styling. */
+#panel-plex .number-input-wrapper > #plex_port,
+#panel-plex .number-input-wrapper > #plex_port:focus,
+#panel-plex .number-input-wrapper > #plex_port:focus-visible {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important; /* wrapper supplies background */
+    border-radius: 0 !important; /* rely on outer wrapper rounding */
+}
+/* Autofill case: keep dark background without reinstating border */
+#panel-plex .number-input-wrapper > #plex_port:-webkit-autofill,
+#panel-plex .number-input-wrapper > #plex_port:-webkit-autofill:hover,
+#panel-plex .number-input-wrapper > #plex_port:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-text-primary) !important;
+    box-shadow: 0 0 0 1000px var(--color-bg-card) inset !important;
+    border: none !important;
+}
+#panel-plex .number-input-wrapper > #plex_port:-moz-ui-autofill {
+    background-color: var(--color-bg-card) !important;
+    color: var(--color-text-primary) !important;
+    border: none !important;
+}
+
+/* Wrapper hover (subtle) */
+.number-input-wrapper:hover {
+    border-color: color-mix(in srgb, var(--color-border) 70%, var(--color-primary) 30%);
+    background: linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+}
+.number-input-wrapper:focus-within:hover {
+    /* don't fight focus ring */
+    background: var(--color-bg-card);
+}
+
+/* Jellyfin numeric inputs: ensure no double border when wrapped */
+#panel-jellyfin .number-input-wrapper > #jf\.port,
+#panel-jellyfin .number-input-wrapper > #jf\.recentDays {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
 }
 #section-operations .number-input-wrapper input[type='number'] {
     appearance: textfield;

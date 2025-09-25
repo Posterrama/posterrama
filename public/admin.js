@@ -2288,6 +2288,29 @@
             window.admin2 = window.admin2 || {};
             window.admin2.enhanceNumberInput = enhanceNumberInput;
 
+            // Dedupe nested wrappers (in case fallback wrapped first, then main tried to wrap again earlier in lifecycle)
+            function dedupeNumberWrappers(scope = document) {
+                try {
+                    scope
+                        .querySelectorAll('.number-input-wrapper .number-input-wrapper')
+                        .forEach(inner => {
+                            const outer = inner.parentElement;
+                            if (!outer) return;
+                            // Move all children of inner out before removing
+                            while (inner.firstChild) outer.insertBefore(inner.firstChild, inner);
+                            inner.remove();
+                        });
+                } catch (_) {}
+            }
+            dedupeNumberWrappers();
+            try {
+                window.admin2.dedupeNumberWrappers = dedupeNumberWrappers;
+            } catch (_) {}
+            window.addEventListener('load', () => setTimeout(() => dedupeNumberWrappers(), 30));
+            window.addEventListener('hashchange', () =>
+                setTimeout(() => dedupeNumberWrappers(), 60)
+            );
+
             // --- Unified reliability layer (instrumented) for Media Sources numeric inputs ---
             (function ensureMediaSourceNumberWrappers() {
                 const IDS = [
@@ -2412,6 +2435,14 @@
                     let allDone = true;
                     IDS.forEach(id => {
                         const success = wrapOne(id);
+                        try {
+                            window.__MS_WRAP_STATE = {
+                                fullyDone,
+                                attempts,
+                                last: snapshot,
+                                history: attemptHistory.slice(-20),
+                            };
+                        } catch (_) {}
                         snapshot.statuses[id] = success;
                         if (!success) allDone = false;
                     });
@@ -2581,15 +2612,34 @@
 
                 try {
                     window.admin2 = window.admin2 || {};
-                    window.admin2.mediaSourceWrapDebug = () => ({
+                    const apiFn = () => ({
                         fullyDone,
                         attempts,
                         ids: [...IDS],
                         lastStatus: attemptHistory[attemptHistory.length - 1],
                         history: attemptHistory.slice(-10),
                     });
+                    Object.defineProperty(window.admin2, 'mediaSourceWrapDebug', {
+                        configurable: true,
+                        enumerable: false,
+                        writable: true,
+                        value: apiFn,
+                    });
+                    if (!window.mediaSourceWrapDebug) window.mediaSourceWrapDebug = apiFn; // direct global alias
+                    if (!window.enhanceNumberInput && typeof enhanceNumberInput === 'function')
+                        window.enhanceNumberInput = enhanceNumberInput;
                 } catch (_) {}
             })();
+            try {
+                // If overwritten later, keep last known state reference
+                if (
+                    window.admin2 &&
+                    !window.admin2.mediaSourceWrapDebug &&
+                    window.__lastMediaSourceWrapState
+                ) {
+                    window.admin2.mediaSourceWrapDebug = () => window.__lastMediaSourceWrapState;
+                }
+            } catch (_) {}
             // Plex port now enhanced like others; retain sanitization post-enhancement
             try {
                 const plexPort = document.getElementById('plex_port');
