@@ -56,33 +56,16 @@
 
         // Dynamic color based on percentage and kind
         let gradient = '';
-        if (kind === 'cpu') {
-            if (v < 50) {
-                gradient =
-                    'linear-gradient(90deg, var(--color-success), var(--color-success-dark))';
-            } else if (v < 80) {
-                gradient =
-                    'linear-gradient(90deg, var(--color-warning), var(--color-warning-dark))';
-            } else {
-                gradient = 'linear-gradient(90deg, var(--color-error), var(--color-error-dark))';
-            }
-        } else if (kind === 'mem') {
-            if (v < 60) {
-                gradient = 'linear-gradient(90deg, var(--color-info), var(--color-info-dark))';
-            } else if (v < 85) {
-                gradient =
-                    'linear-gradient(90deg, var(--color-warning), var(--color-warning-dark))';
-            } else {
-                gradient = 'linear-gradient(90deg, var(--color-error), var(--color-error-dark))';
-            }
+        if (kind === 'danger' || v >= 90) {
+            gradient = 'linear-gradient(90deg,#ff4d4f,#ff7875)';
+        } else if (kind === 'warn' || v >= 70) {
+            gradient = 'linear-gradient(90deg,#faad14,#ffc53d)';
+        } else if (kind === 'ok' || v >= 40) {
+            gradient = 'linear-gradient(90deg,#52c41a,#73d13d)';
         } else {
-            // Default gradient
-            gradient = 'linear-gradient(90deg, var(--color-info), var(--color-info-dark))';
+            gradient = 'linear-gradient(90deg,#1890ff,#40a9ff)';
         }
-
         el.style.background = gradient;
-        el.setAttribute?.('aria-valuenow', String(v));
-        if (kind) el.setAttribute?.('data-kind', kind);
     }
 
     function formatBytes(bytes) {
@@ -11464,10 +11447,16 @@
             try {
                 let res;
                 if (kind === 'plex') {
-                    // Use current UI values if present (even if not yet saved)
-                    const hostname = document.getElementById('plex.hostname')?.value?.trim();
-                    const port = document.getElementById('plex.port')?.value?.trim();
-                    const token = document.getElementById('plex.token')?.value?.trim();
+                    // Use current UI values (support both dotted & legacy underscore IDs)
+                    const hostname =
+                        document.getElementById('plex.hostname')?.value?.trim() ||
+                        document.getElementById('plex_hostname')?.value?.trim();
+                    const port =
+                        document.getElementById('plex.port')?.value?.trim() ||
+                        document.getElementById('plex_port')?.value?.trim();
+                    const token =
+                        document.getElementById('plex.token')?.value?.trim() ||
+                        document.getElementById('plex_token')?.value?.trim();
                     res = await fetch('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -11482,7 +11471,6 @@
                     const hostname = document.getElementById('jf.hostname')?.value?.trim();
                     const port = document.getElementById('jf.port')?.value?.trim();
                     let apiKey = document.getElementById('jf.apikey')?.value?.trim();
-                    // If input empty (masked), attempt to read from latest config
                     if (!apiKey) {
                         try {
                             const cfgRes = await window.dedupJSON('/api/admin/config', {
@@ -11490,12 +11478,17 @@
                             });
                             if (cfgRes?.ok) {
                                 const cfgJson = await cfgRes.json();
-                                apiKey = cfgJson?.config?.jellyfinSource?.apiKey || apiKey;
+                                const servers = Array.isArray(cfgJson?.config?.mediaServers)
+                                    ? cfgJson.config.mediaServers
+                                    : [];
+                                const jfSrv = servers.find(
+                                    s => (s.type || '').toLowerCase() === 'jellyfin'
+                                );
+                                apiKey = jfSrv?.apiKey || jfSrv?.token || apiKey;
                             }
                         } catch (_) {}
                     }
-                    // If still no apiKey or hostname missing, abort
-                    if (!hostname || !apiKey) return new Map();
+                    if (!hostname) return new Map();
                     try {
                         res = await fetch('/api/admin/jellyfin-libraries', {
                             method: 'POST',
@@ -11504,7 +11497,7 @@
                             body: JSON.stringify({
                                 hostname: hostname || undefined,
                                 port: port || undefined,
-                                apiKey: apiKey || undefined,
+                                apiKey: apiKey || undefined, // may be undefined; server can fallback
                             }),
                         });
                     } catch (_) {
@@ -12268,8 +12261,25 @@
             } catch (_) {
                 /* no-op */
             }
-            if (getInput('plex.hostname')) getInput('plex.hostname').value = env[plexHostVar] || '';
-            if (getInput('plex.port')) getInput('plex.port').value = env[plexPortVar] || '';
+            // Populate Plex host/port more defensively: if empty but we have server config values fallback
+            try {
+                // Support both dotted IDs (new) and legacy underscore IDs present in HTML
+                const hostInput =
+                    getInput('plex.hostname') || document.getElementById('plex_hostname');
+                const portInput = getInput('plex.port') || document.getElementById('plex_port');
+                const existingHost = hostInput ? hostInput.value.trim() : '';
+                const existingPort = portInput ? portInput.value.trim() : '';
+                const envHost = env[plexHostVar] || '';
+                const envPort = env[plexPortVar] || '';
+                if (hostInput) {
+                    hostInput.value = envHost || existingHost;
+                    hostInput.classList.toggle('is-placeholder', !hostInput.value);
+                }
+                if (portInput) {
+                    portInput.value = envPort || existingPort;
+                    portInput.classList.toggle('is-placeholder', !portInput.value);
+                }
+            } catch (_) {}
             if (getInput('plex.token')) {
                 // Show grey hint instead of masked value when a token exists
                 const hasToken = !!env[plexTokenVar];
@@ -12279,6 +12289,7 @@
                     'placeholder',
                     hasToken ? 'Plex token already set' : 'X-Plex-Token'
                 );
+                el.classList.add('token-masked');
             }
             // Support legacy ID used in some templates
             (function () {
@@ -12318,6 +12329,39 @@
             if (getInput('plex.yearFilter')) {
                 const v = plex.yearFilter;
                 getInput('plex.yearFilter').value = v == null ? '' : String(v);
+            }
+            // --- Pre-seed Plex library multiselects with config values BEFORE async fetch ---
+            try {
+                // Only run once per page load to avoid duplicating chips
+                if (!window.__plexLibsPreseeded) {
+                    window.__plexLibsPreseeded = true;
+                    const preMovies = Array.isArray(plex.movieLibraryNames)
+                        ? plex.movieLibraryNames.filter(Boolean)
+                        : [];
+                    const preShows = Array.isArray(plex.showLibraryNames)
+                        ? plex.showLibraryNames.filter(Boolean)
+                        : [];
+                    if (preMovies.length || preShows.length) {
+                        // Seed options using names (no counts yet). They will be replaced once real library fetch completes.
+                        setMultiSelect(
+                            'plex.movies',
+                            preMovies.map(n => ({ value: n, label: n })),
+                            preMovies
+                        );
+                        setMultiSelect(
+                            'plex.shows',
+                            preShows.map(n => ({ value: n, label: n })),
+                            preShows
+                        );
+                        // Ensure theme-demo multiselect UI shows chips immediately if already wired
+                        try {
+                            rebuildMsForSelect('plex-ms-movies', 'plex.movies');
+                            rebuildMsForSelect('plex-ms-shows', 'plex.shows');
+                        } catch (_) {}
+                    }
+                }
+            } catch (_) {
+                /* no-op */
             }
             setMultiSelect(
                 'plex.movies',
@@ -12672,6 +12716,32 @@
             // Enforce explicit click to edit sensitive fields and suppress auto-focus
             guardSensitiveInputs();
         }
+
+        // Expose Plex field debug helper
+        try {
+            window.admin2 = window.admin2 || {};
+            window.admin2.debugPlexFields = () => {
+                const hostInput =
+                    getInput('plex.hostname') || document.getElementById('plex_hostname');
+                const portInput = getInput('plex.port') || document.getElementById('plex_port');
+                const tokenInput = getInput('plex.token') || document.getElementById('plex_token');
+                return {
+                    hostValue: hostInput ? hostInput.value : null,
+                    portValue: portInput ? portInput.value : null,
+                    tokenPlaceholder: tokenInput ? tokenInput.getAttribute('placeholder') : null,
+                    classes: {
+                        host: hostInput ? hostInput.className : null,
+                        port: portInput ? portInput.className : null,
+                        token: tokenInput ? tokenInput.className : null,
+                    },
+                    idMatch: {
+                        hostUsed: hostInput ? hostInput.id : null,
+                        portUsed: portInput ? portInput.id : null,
+                        tokenUsed: tokenInput ? tokenInput.id : null,
+                    },
+                };
+            };
+        } catch (_) {}
         // Expose for reuse
         window.admin2 = window.admin2 || {};
         window.admin2.loadMediaSources = loadMediaSources;
@@ -12849,6 +12919,28 @@
             window.admin2.refreshOverviewCounts = refreshOverviewCounts;
             window.admin2.getSelectedLibraries = getSelectedLibraries;
             window.admin2.getMultiSelectValues = getMultiSelectValues;
+            window.admin2.debugJf = async () => {
+                const sel = getSelectedLibraries('jellyfin');
+                const map = await fetchLibraryCounts('jellyfin');
+                const keys = Array.from(map.keys());
+                const norm = s => s.trim().toLowerCase();
+                const mismatches = [...sel.movies, ...sel.shows].filter(
+                    n => !keys.some(k => norm(k) === norm(n))
+                );
+                return {
+                    selected: sel,
+                    fetchedKeys: keys,
+                    mismatches,
+                    manualTotal: (() => {
+                        const sum = arr =>
+                            (arr || []).reduce((a, n) => {
+                                const m = keys.find(k => norm(k) === norm(n));
+                                return a + (m ? map.get(m)?.itemCount || 0 : 0);
+                            }, 0);
+                        return sum(sel.movies) + sum(sel.shows);
+                    })(),
+                };
+            };
         } catch (_) {}
 
         // Fetch libraries
@@ -12859,9 +12951,18 @@
             if (window.__plexLibsInFlight) return window.__plexLibsInFlight;
             window.__plexLibsInFlight = (async () => {
                 try {
-                    const hostname = getInput('plex.hostname')?.value || undefined;
-                    const port = getInput('plex.port')?.value || undefined;
-                    const token = getInput('plex.token')?.value || undefined;
+                    const hostname =
+                        getInput('plex.hostname')?.value ||
+                        document.getElementById('plex_hostname')?.value ||
+                        undefined;
+                    const port =
+                        getInput('plex.port')?.value ||
+                        document.getElementById('plex_port')?.value ||
+                        undefined;
+                    const token =
+                        getInput('plex.token')?.value ||
+                        document.getElementById('plex_token')?.value ||
+                        undefined;
                     const res = await fetch('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -12926,6 +13027,26 @@
             })();
             return window.__plexLibsInFlight;
         }
+        // Auto-fetch Plex libraries silently if host/port present but no options yet
+        try {
+            setTimeout(() => {
+                try {
+                    if (window.__plexAutoLibInit) return;
+                    const hostVal =
+                        getInput('plex.hostname')?.value ||
+                        document.getElementById('plex_hostname')?.value;
+                    const portVal =
+                        getInput('plex.port')?.value || document.getElementById('plex_port')?.value;
+                    const menuCount = document.querySelectorAll(
+                        '#plex-ms-movies-menu .ms-option, #plex-ms-shows-menu .ms-option'
+                    ).length;
+                    if (hostVal && portVal && menuCount === 0) {
+                        window.__plexAutoLibInit = true;
+                        fetchPlexLibraries(true, true);
+                    }
+                } catch (_) {}
+            }, 600);
+        } catch (_) {}
 
         // ------- Plex Genre Filter (chips with hidden input) -------
         function setPlexGenreFilterHidden(val) {
@@ -13732,9 +13853,18 @@
             const btn = document.getElementById('btn-plex-test');
             startBtnSpinner(btn);
             try {
-                const hostname = getInput('plex.hostname')?.value || '';
-                const port = getInput('plex.port')?.value || '';
-                const token = getInput('plex.token')?.value || '';
+                const hostname =
+                    getInput('plex.hostname')?.value ||
+                    document.getElementById('plex_hostname')?.value ||
+                    '';
+                const port =
+                    getInput('plex.port')?.value ||
+                    document.getElementById('plex_port')?.value ||
+                    '';
+                const token =
+                    getInput('plex.token')?.value ||
+                    document.getElementById('plex_token')?.value ||
+                    '';
                 if (!hostname || !port) throw new Error('Hostname and port are required');
                 const res = await fetch('/api/admin/test-plex', {
                     method: 'POST',

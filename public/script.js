@@ -4019,10 +4019,70 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             let newMediaQueue = await mediaResponse.json();
             if (!Array.isArray(newMediaQueue) || newMediaQueue.length === 0) {
-                console.warn('[Media] Received invalid or empty media queue:', newMediaQueue);
-                showError('No media found. Check the library configuration.');
+                // Grace period: on the very first admin/dashboard load the playlist builder
+                // can momentarily yield an empty array (caches warming, filters syncing, etc.).
+                const isAdminContext = /admin/i.test(window.location.pathname);
+                const attemptKey = '__mediaInitialEmptyAttempts';
+                window[attemptKey] = (window[attemptKey] || 0) + 1;
+                const attempt = window[attemptKey];
+                const maxGraceAttempts = 3; // configurable small backoff window
+                if (isInitialLoad && attempt <= maxGraceAttempts) {
+                    const delay = 400 * attempt; // linear backoff
+                    console.info(
+                        `[Media] Empty media queue on initial load (attempt ${attempt}/${maxGraceAttempts}) – retrying in ${delay}ms`,
+                        { admin: isAdminContext }
+                    );
+                    setTimeout(() => fetchMedia(isInitialLoad), delay);
+                    return;
+                }
+                // If we have a persisted source that might be disabled, try auto-fallback once
+                try {
+                    if (!window.__mediaTriedFallback) {
+                        window.__mediaTriedFallback = true;
+                        const savedSrc = localStorage.getItem('posterrama.selectedSource');
+                        // Fetch config to detect enabled sources
+                        const cfgRes = await fetch('/api/admin/config', {
+                            credentials: 'include',
+                        }).catch(() => null);
+                        if (cfgRes && cfgRes.ok) {
+                            const cfgJson = await cfgRes.json().catch(() => null);
+                            const servers =
+                                cfgJson &&
+                                cfgJson.config &&
+                                Array.isArray(cfgJson.config.mediaServers)
+                                    ? cfgJson.config.mediaServers
+                                    : [];
+                            const enabled = servers.filter(s => s && s.enabled !== false); // default true
+                            if (savedSrc && enabled.length > 0) {
+                                const existsEnabled = enabled.some(
+                                    s => (s.type || '').toLowerCase() === savedSrc.toLowerCase()
+                                );
+                                if (!existsEnabled) {
+                                    const fallback = (enabled[0].type || '').toLowerCase();
+                                    console.info(
+                                        '[Media] Auto-fallback: switching inactive source',
+                                        savedSrc,
+                                        '→',
+                                        fallback
+                                    );
+                                    localStorage.setItem('posterrama.selectedSource', fallback);
+                                    setTimeout(() => fetchMedia(true), 50);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                } catch (_) {}
+                // After grace period, fall back to original warning + user hint.
+                console.warn('[Media] Received invalid or empty media queue:', newMediaQueue, {
+                    attempts: attempt,
+                    admin: isAdminContext,
+                });
+                const userMsg = isAdminContext
+                    ? 'No media currently available (after retries). Check source libraries or filters.'
+                    : 'No media found. Check the library configuration.';
+                showError(userMsg);
                 if (loader && loader.style.opacity !== '0') loader.style.opacity = '0';
-                // Ensure mediaQueue remains a valid empty array
                 mediaQueue = [];
                 return;
             }
