@@ -2288,15 +2288,21 @@
             window.admin2 = window.admin2 || {};
             window.admin2.enhanceNumberInput = enhanceNumberInput;
 
-            // --- Robust reliability layer for plex_port: force immediate wrap, re-wrap if lost, react to visibility ---
-            (function ensurePlexPortWrapped() {
-                const TARGET_ID = 'plex_port';
-                const MAX_ATTEMPTS = 15;
-                const INTERVAL_MS = 90;
+            // --- Unified reliability layer for Media Sources numeric inputs (multi-field) ---
+            (function ensureMediaSourceNumberWrappers() {
+                const IDS = [
+                    'plex_port',
+                    'plex.recentDays',
+                    'jf.port',
+                    'jf.recentDays',
+                    'tmdb.minRating',
+                    'streamingSources.minRating',
+                ];
+                const MAX_ATTEMPTS = 20;
+                const INTERVAL = 80;
                 let attempts = 0;
 
-                const forceWrapManually = el => {
-                    // Build wrapper manually if enhanceNumberInput still refuses (e.g., hidden ancestor logic)
+                const manualWrap = el => {
                     if (!el || el.closest('.number-input-wrapper')) return true;
                     try {
                         const parent = el.parentElement;
@@ -2307,24 +2313,25 @@
                         wrapper.appendChild(el);
                         const controls = document.createElement('div');
                         controls.className = 'number-controls';
-                        const btnUp = document.createElement('button');
-                        btnUp.type = 'button';
-                        btnUp.className = 'number-btn number-inc';
-                        btnUp.setAttribute('aria-label', 'Increase value');
-                        btnUp.innerHTML = '<i class="fas fa-chevron-up"></i>';
-                        const btnDown = document.createElement('button');
-                        btnDown.type = 'button';
-                        btnDown.className = 'number-btn number-dec';
-                        btnDown.setAttribute('aria-label', 'Decrease value');
-                        btnDown.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                        const mk = (cls, dir) => {
+                            const b = document.createElement('button');
+                            b.type = 'button';
+                            b.className = 'number-btn ' + cls;
+                            b.setAttribute(
+                                'aria-label',
+                                dir === 'up' ? 'Increase value' : 'Decrease value'
+                            );
+                            b.innerHTML = '<i class="fas fa-chevron-' + dir + '"></i>';
+                            return b;
+                        };
+                        const btnUp = mk('number-inc', 'up');
+                        const btnDown = mk('number-dec', 'down');
                         controls.appendChild(btnUp);
                         controls.appendChild(btnDown);
                         wrapper.appendChild(controls);
-                        // Direct wiring (mirrors logic in enhanceNumberInput)
                         const step = () => Number(el.step || '1') || 1;
                         const decimalsForStep = s => {
                             const str = String(s);
-                            if (str.includes('e') || str.includes('E')) return 6;
                             const i = str.indexOf('.');
                             return i === -1 ? 0 : Math.min(6, str.length - i - 1);
                         };
@@ -2371,93 +2378,79 @@
                     }
                 };
 
-                const attempt = () => {
-                    const el = document.getElementById(TARGET_ID);
-                    if (!el) return schedule();
-                    const wrapped = !!el.closest('.number-input-wrapper');
-                    if (el.dataset.enhanced === '1' && !wrapped) {
-                        // stale flag without wrapper
+                const wrapOne = id => {
+                    const el = document.getElementById(id);
+                    if (!el) return false;
+                    const hasWrapper = !!el.closest('.number-input-wrapper');
+                    if (el.dataset.enhanced === '1' && !hasWrapper) {
                         try {
                             delete el.dataset.enhanced;
                         } catch (_) {}
                     }
-                    if (!wrapped) {
+                    if (!hasWrapper) {
                         try {
                             enhanceNumberInput(el);
                         } catch (_) {}
                     }
-                    if (!el.closest('.number-input-wrapper')) {
-                        // Fallback manual wrap
-                        forceWrapManually(el);
-                    }
-                    if (el.closest('.number-input-wrapper')) return; // success
-                    schedule();
+                    if (!el.closest('.number-input-wrapper')) manualWrap(el);
+                    return !!el.closest('.number-input-wrapper');
+                };
+
+                const attemptAll = () => {
+                    let allDone = true;
+                    IDS.forEach(id => {
+                        if (!wrapOne(id)) allDone = false;
+                    });
+                    if (!allDone) schedule();
                 };
                 const schedule = () => {
                     if (attempts++ >= MAX_ATTEMPTS) return;
-                    setTimeout(attempt, INTERVAL_MS);
+                    setTimeout(attemptAll, INTERVAL);
                 };
 
-                // Immediate synchronous attempt (before delays) to catch already-present DOM
-                attempt();
+                attemptAll();
 
-                // Observe specific container for dynamic re-renders
                 try {
-                    const grid =
-                        document.getElementById('plex-server-grid') ||
-                        document.getElementById('section-media-sources');
-                    if (grid && !grid.__plexPortObserver2) {
+                    const section = document.getElementById('section-media-sources');
+                    if (section && !section.__msNumObs) {
                         const obs = new MutationObserver(muts => {
                             for (const m of muts) {
-                                if (m.type === 'childList') {
-                                    const el = document.getElementById(TARGET_ID);
-                                    if (el && !el.closest('.number-input-wrapper')) {
-                                        try {
-                                            enhanceNumberInput(el);
-                                        } catch (_) {}
-                                        if (!el.closest('.number-input-wrapper'))
-                                            forceWrapManually(el);
-                                    }
-                                }
+                                if (m.type === 'childList') attemptAll();
                             }
                         });
-                        obs.observe(grid, { childList: true, subtree: true });
-                        grid.__plexPortObserver2 = obs;
+                        obs.observe(section, { childList: true, subtree: true });
+                        section.__msNumObs = obs;
                     }
                 } catch (_) {}
 
-                // Hash changes (panel routing)
                 window.addEventListener('hashchange', () => {
-                    const hash = location.hash || '';
-                    if (hash.includes('plex') || hash.includes('media')) setTimeout(attempt, 40);
+                    const h = location.hash || '';
+                    if (/plex|jelly|tmdb|media/i.test(h)) setTimeout(attemptAll, 35);
+                });
+                window.addEventListener('panelActivated', ev => {
+                    try {
+                        if (ev?.detail?.id && /plex|jelly|tmdb|media/i.test(String(ev.detail.id))) {
+                            attemptAll();
+                            setTimeout(attemptAll, 25);
+                        }
+                    } catch (_) {}
                 });
 
-                // Visibility: if section is hidden via style/display until after first paint
                 try {
                     const section = document.getElementById('section-media-sources');
                     if (section && typeof IntersectionObserver === 'function') {
                         const io = new IntersectionObserver(entries => {
-                            for (const ent of entries) {
+                            entries.forEach(ent => {
                                 if (ent.isIntersecting) {
-                                    attempt();
-                                    setTimeout(attempt, 50);
-                                    setTimeout(attempt, 200);
+                                    attemptAll();
+                                    setTimeout(attemptAll, 55);
+                                    setTimeout(attemptAll, 230);
                                 }
-                            }
+                            });
                         });
                         io.observe(section);
                     }
                 } catch (_) {}
-
-                // Custom activation event hook if panels dispatch
-                window.addEventListener('panelActivated', ev => {
-                    try {
-                        if (ev?.detail?.id && /plex|media/i.test(String(ev.detail.id))) {
-                            attempt();
-                            setTimeout(attempt, 25);
-                        }
-                    } catch (_) {}
-                });
             })();
             // Plex port now enhanced like others; retain sanitization post-enhancement
             try {
