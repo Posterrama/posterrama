@@ -1341,6 +1341,33 @@
         }
     };
 
+    // Authoritative nav activation logic (idempotent + microtask re-assert)
+    function ensureNavActive(sectionId) {
+        try {
+            const map = {
+                'section-dashboard': 'dashboard',
+                'section-display': 'display',
+                'section-media-sources': 'media-sources',
+                'section-devices': 'devices',
+                'section-operations': 'operations',
+            };
+            const key = map[sectionId];
+            const all = document.querySelectorAll('.sidebar-nav .nav-item');
+            all.forEach(n => n.classList.remove('active'));
+            if (key) {
+                const el = document.querySelector(`.sidebar-nav .nav-item[data-nav="${key}"]`);
+                if (el) el.classList.add('active');
+            }
+            Promise.resolve().then(() => {
+                const still = document.querySelector('.sidebar-nav .nav-item.active');
+                if (!still && key) {
+                    const el2 = document.querySelector(`.sidebar-nav .nav-item[data-nav="${key}"]`);
+                    el2?.classList.add('active');
+                }
+            });
+        } catch (_) {}
+    }
+
     function showSection(id) {
         dbg('showSection()', { id });
         const sections = document.querySelectorAll('.app-section');
@@ -1355,6 +1382,24 @@
         }
         // Single authoritative nav sync (no other code should toggle .active)
         ensureNavActive(id);
+
+        // Lazy device section initialization (if user clicked sidebar directly, hash routing may not fire init)
+        if (id === 'section-devices') {
+            try {
+                const section = document.getElementById('section-devices');
+                // If not initialized and no device tiles present yet, trigger init + default tab
+                const already = section?.dataset.inited === '1';
+                const grid = document.getElementById('device-grid');
+                const hasDevices = grid && grid.children.length > 0;
+                if (!already && !hasDevices) {
+                    // Select Devices tab as default
+                    document.getElementById('seg-devices')?.click();
+                    window.admin2?.initDevices?.();
+                }
+            } catch (_) {
+                /* silent */
+            }
+        }
         // Update header title for basic context switch
         const pageHeader = document.querySelector('.page-header');
         const h1 = pageHeader?.querySelector('h1');
@@ -6554,35 +6599,6 @@
                 }
             }
         } catch (_) {}
-        // Authoritative nav activation logic (idempotent + microtask re-assert)
-        function ensureNavActive(sectionId) {
-            try {
-                const map = {
-                    'section-dashboard': 'dashboard',
-                    'section-display': 'display',
-                    'section-media-sources': 'media-sources',
-                    'section-devices': 'devices',
-                    'section-operations': 'operations',
-                };
-                const key = map[sectionId];
-                const all = document.querySelectorAll('.sidebar-nav .nav-item');
-                all.forEach(n => n.classList.remove('active'));
-                if (key) {
-                    const el = document.querySelector(`.sidebar-nav .nav-item[data-nav="${key}"]`);
-                    if (el) el.classList.add('active');
-                }
-                // Microtask re-assert in case some later code removes .active synchronously
-                Promise.resolve().then(() => {
-                    const still = document.querySelector('.sidebar-nav .nav-item.active');
-                    if (!still && key) {
-                        const el2 = document.querySelector(
-                            `.sidebar-nav .nav-item[data-nav="${key}"]`
-                        );
-                        el2?.classList.add('active');
-                    }
-                });
-            } catch (_) {}
-        }
 
         function routeByHash() {
             if (routeTimer) {
