@@ -3928,6 +3928,15 @@ input[type='range']::-moz-range-thumb {
     position: relative;
     z-index: 10;
 }
+/* Allow device management panel to let toolbar dropdowns escape */
+#section-devices #panel-device-management {
+    overflow: visible; /* override base .panel overflow hidden */
+}
+/* Ensure panel-content doesn't clip either */
+#section-devices #panel-device-management > .panel-content {
+    position: relative;
+    overflow: visible;
+}
 .device-toolbar .search-box {
     flex: 0 0 auto;
     display: flex;
