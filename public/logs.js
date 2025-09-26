@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let lastLogCount = 0;
     // Track scroll state within checkScroll(); initialized true
-    let _isScrolledToBottom = true; // renamed to silence unused var (logic simplified later)
+    // Auto-scroll tracking removed (was _isScrolledToBottom)
     let isPaused = false;
     let currentLogs = [];
     let selectedLevel = logLevelSelect.value;
@@ -66,20 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const uses24Hour = shouldUse24Hour();
 
     // Simplified log level hierarchy for filtering
-    const logLevels = {
-        debug: 1, // Most verbose - shows everything
-        info: 2, // Normal operations
-        warn: 3, // Warnings
-        error: 4, // Errors only
-    }; // Function to check if the user is scrolled to the bottom of the log container
-    function checkScroll() {
-        // Scroll tracking kept for potential future auto-scroll logic
-        const container = logOutput.parentElement;
-        _isScrolledToBottom =
-            container.scrollHeight - container.scrollTop - container.clientHeight < 5;
-    }
-
-    logOutput.parentElement.addEventListener('scroll', checkScroll);
+    // Removed logLevels map (numeric hierarchy) - simple string compare used in filtering
 
     // Event listeners for controls
     pauseButton.addEventListener('click', () => {

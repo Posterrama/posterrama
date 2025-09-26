@@ -106,16 +106,11 @@ afterEach(() => {
 
     // Verify critical fixtures unchanged
     for (const [f, orig] of fixtureSnapshots.entries()) {
-        try {
-            if (fs.existsSync(f)) {
-                const current = fs.readFileSync(f, 'utf8');
-                if (current !== orig) {
-                    throw new Error(`Test mutated immutable fixture: ${f}`);
-                }
+        if (fs.existsSync(f)) {
+            const current = fs.readFileSync(f, 'utf8');
+            if (current !== orig) {
+                throw new Error(`Test mutated immutable fixture: ${f}`);
             }
-        } catch (err) {
-            // Re-throw to fail the test visibly
-            throw err;
         }
     }
 });

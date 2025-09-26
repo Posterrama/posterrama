@@ -226,7 +226,7 @@ describe('fixOwnership coverage', () => {
         const baseDir = '/tmp/base6';
         // Add file then force statSync to throw for it after existsSync true
         addFile(path.join(baseDir, 'config.json'), { uid: 0, gid: 0 });
-        jest.spyOn(realFs, 'existsSync').mockImplementation(p => true);
+        jest.spyOn(realFs, 'existsSync').mockImplementation(_p => true);
         jest.spyOn(realFs, 'statSync').mockImplementation(() => {
             throw new Error('stat fail');
         });

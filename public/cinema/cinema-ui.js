@@ -31,6 +31,7 @@
             if (!s.presets) s.presets = {};
             return s;
         } catch (_) {
+            // failed to parse working state from sessionStorage; start fresh
             window.__cinemaWorkingState = { presets: {} };
             return window.__cinemaWorkingState;
         }
@@ -66,7 +67,10 @@
             if (typeof window.confirmAction === 'function') {
                 return window.confirmAction({ title, message, okText, okClass });
             }
-        } catch (_) {}
+        } catch (e) {
+            // ignore preview update failure
+            void e; // no-op reference
+        }
         // Fallback to native confirm
         const res = window.confirm(message);
         return Promise.resolve(!!res);
@@ -104,7 +108,7 @@
                 return;
 
             let selected = '';
-            function renderList() {
+            const renderList = () => {
                 const items = getItems() || [];
                 listEl.replaceChildren(
                     ...items.map(v => {
@@ -122,8 +126,8 @@
                         return b;
                     })
                 );
-            }
-            function close() {
+            };
+            const close = () => {
                 addBtn.removeEventListener('click', onAdd);
                 renBtn.removeEventListener('click', onRename);
                 delBtn.removeEventListener('click', onDelete);
@@ -134,8 +138,8 @@
                     ?.forEach(btn => btn.removeEventListener('click', onDone));
                 overlay.classList.remove('open');
                 overlay.setAttribute('hidden', '');
-            }
-            function onAdd() {
+            };
+            const onAdd = () => {
                 const val = (inputEl.value || '').trim();
                 if (!val) return;
                 const cur = getItems() || [];
@@ -150,9 +154,11 @@
                 renderList();
                 try {
                     window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                } catch (_) {}
-            }
-            function onRename() {
+                } catch (e) {
+                    // ignore preview update failure after add
+                }
+            };
+            const onRename = () => {
                 const val = (inputEl.value || '').trim();
                 if (!val || !selected) return;
                 const cur = getItems() || [];
@@ -170,9 +176,11 @@
                 renderList();
                 try {
                     window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                } catch (_) {}
-            }
-            async function onDelete() {
+                } catch (e) {
+                    // ignore preview update failure after rename
+                }
+            };
+            const onDelete = async () => {
                 if (!selected) return;
                 const cur = getItems() || [];
                 if (!cur.includes(selected)) return;
@@ -192,12 +200,14 @@
                 renderList();
                 try {
                     window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                } catch (_) {}
-            }
-            function onDone() {
+                } catch (e) {
+                    // ignore preview update failure after delete
+                }
+            };
+            const onDone = () => {
                 close();
-            }
-            function onKey(e) {
+            };
+            const onKey = e => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     if (selected) onRename();
@@ -206,7 +216,7 @@
                     e.preventDefault();
                     onDone();
                 }
-            }
+            };
 
             titleEl.innerHTML = `<i class="fas fa-list"></i> ${title}`;
             if (inputLabel) inputLabel.textContent = contextLabel;
@@ -228,7 +238,10 @@
             overlay.classList.add('open');
             inputEl.focus();
             if (inputEl.value) inputEl.select();
-        } catch (_) {}
+        } catch (_) {
+            // manage modal failed to open (missing DOM nodes)
+            void 0;
+        }
     }
 
     async function loadAdminConfig() {
@@ -280,6 +293,7 @@
             }
         } catch (_) {
             // header toggle mount failure ignored (card not present yet)
+            void 0;
         }
 
         const rowText = el('div', { class: 'form-row cin-col' }, [
@@ -348,7 +362,10 @@
             saveWorkingState();
             try {
                 window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-            } catch (_) {}
+            } catch (e) {
+                // ignore preview update failure
+                void e;
+            }
         });
 
         // Simple preset CRUD stored in config.json under cinema.presets.headerTexts
@@ -399,7 +416,8 @@
                 if (existing) existing.checked = !!f.enabled;
             }
         } catch (_) {
-            // footer toggle mount failure ignored
+            // footer toggle mount failure ignored (card not yet in DOM)
+            void 0;
         }
 
         // Controls row: Footer type (left) + contextual Style (right)
@@ -545,7 +563,10 @@
             saveWorkingState();
             try {
                 window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-            } catch (_) {}
+            } catch (e) {
+                // ignore preview update failure
+                void e;
+            }
         });
         // Create the specs Style control; inserted in the style slot when type='specs'
         const specsStyleRow = (function () {
@@ -622,7 +643,7 @@
                 if (existing) existing.checked = !!a.enabled;
             }
         } catch (_) {
-            /* ignore */
+            // ambilight toggle mount failure ignored
         }
         const rowStrength = el('div', { class: 'form-row' }, [
             el('label', { for: 'cin-a-strength' }, 'Intensity'),
@@ -717,7 +738,7 @@
 
                 slot.replaceChildren(presetsRow, summaryTitle, summary);
 
-                const q = sel => document.querySelector(sel);
+                // removed unused helper q (was const q = sel => document.querySelector(sel))
                 const setVal = (id, value) => {
                     const el = document.getElementById(id);
                     if (!el) return;
@@ -847,7 +868,9 @@
                 section?.addEventListener('input', refreshSummary, true);
                 section?.addEventListener('change', refreshSummary, true);
             }
-        } catch (_) {}
+        } catch (_) {
+            // presets card mount failed (slot not present)
+        }
         // Expose a collector for admin.js to merge into its save payload
         window.__collectCinemaConfig = () => {
             try {

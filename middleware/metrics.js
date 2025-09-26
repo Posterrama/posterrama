@@ -80,25 +80,7 @@ const metricsMiddleware = (req, res, next) => {
             }
             // Removed routine "Request performance" logging
 
-            // Only log significant memory usage changes, but exclude endpoints that naturally have large responses
-            const isLargeResponseEndpoint =
-                [
-                    '/get-media',
-                    '/api/admin/logs',
-                    '/api/v1/media',
-                    '/api/admin/config',
-                    '/api/admin/preview-media',
-                ].some(endpoint => (path || req.path).includes(endpoint)) ||
-                // Admin API endpoints with counts/genres/qualities often have large responses
-                ((path || req.path).includes('/api/admin/') &&
-                    ((path || req.path).includes('-with-counts') ||
-                        (path || req.path).includes('-genres') ||
-                        (path || req.path).includes('-qualities')));
-
-            // Memory impact warnings removed - not actionable and create log noise
-            // if (Math.abs(memoryDelta) > 2048 && !isLargeResponseEndpoint) {
-            //     logger.warn('🧠 High memory impact request', { ... });
-            // }
+            // Memory impact warnings removed intentionally to reduce noise.
         } catch (error) {
             logger.error('Error recording metrics:', error);
         }
