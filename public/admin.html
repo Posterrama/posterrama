@@ -2283,6 +2283,13 @@
             <button type="button" class="ov-snippet" data-override-snippet='{"display":{"orientation":"landscape"}}'>display.orientation</button>
             <button type="button" class="ov-snippet" data-override-snippet='{"display":{"theme":"dark"}}'>display.theme</button>
           </div>
+          <div class="override-keys-panel" id="override-keys-panel">
+            <div class="ov-keys-head">
+              <strong class="sm">All Keys</strong>
+              <input type="text" id="ov-keys-search" placeholder="Filter keys..." aria-label="Filter override keys" />
+            </div>
+            <div id="ov-keys-list" class="ov-keys-list" role="listbox" aria-label="Override keys list"></div>
+          </div>
           <div class="override-actions">
             <button type="button" class="btn btn-outline btn-sm" id="override-format" title="Format JSON"><i class="fas fa-magic"></i> Format</button>
             <button type="button" class="btn btn-outline btn-sm" id="override-clear" title="Clear JSON"><i class="fas fa-eraser"></i> Clear</button>

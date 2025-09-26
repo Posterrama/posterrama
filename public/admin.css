@@ -4444,6 +4444,126 @@ select:not([multiple]) {
 .pairing-copy {
     display: flex;
     align-items: center;
+    .override-keys-panel {
+        background: var(--color-bg-tertiary);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        padding: 8px 10px 10px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 200px;
+        overflow: hidden;
+    }
+    .override-keys-panel .ov-keys-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .override-keys-panel #ov-keys-search {
+        flex: 1;
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 4px 6px;
+        font-size: 0.7rem;
+        color: var(--color-text-primary);
+    }
+    .ov-keys-list {
+        overflow-y: auto;
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        background: var(--color-bg-secondary);
+        padding: 4px;
+        display: grid;
+        gap: 2px;
+        font-size: 0.65rem;
+    }
+    .ov-key-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 4px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        user-select: none;
+        background: var(--color-bg-tertiary);
+        border: 1px solid var(--color-border);
+        line-height: 1.2;
+    }
+    .ov-key-item:hover,
+    .ov-key-item.active {
+        background: var(--color-bg-hover);
+        border-color: var(--color-border-strong);
+    }
+    .ov-key-item .meta {
+        opacity: 0.6;
+        font-weight: 500;
+        font-size: 0.6rem;
+    }
+    .ov-key-type {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.55rem;
+        padding: 2px 4px;
+        border-radius: 4px;
+        background: var(--color-bg-tertiary-alt, #262a36);
+        color: var(--color-text-secondary);
+        letter-spacing: 0.5px;
+    }
+    .ov-key-type.t-boolean {
+        color: #10b981;
+    }
+    .ov-key-type.t-string {
+        color: #3b82f6;
+    }
+    .ov-key-type.t-number,
+    .ov-key-type.t-integer {
+        color: #f59e0b;
+    }
+    .ov-key-type.t-object {
+        color: #a855f7;
+    }
+    .ov-key-type.t-array {
+        color: #ec4899;
+    }
+    .ov-key-type.t-null {
+        color: #6b7280;
+    }
+
+    /* Inline autocomplete dropdown */
+    .ov-autocomplete {
+        position: absolute;
+        z-index: 4000;
+        background: var(--color-bg-tertiary);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 4px;
+        box-shadow: var(--shadow-lg);
+        max-height: 220px;
+        overflow-y: auto;
+        min-width: 200px;
+        font-size: 0.7rem;
+    }
+    .ov-autocomplete-item {
+        padding: 4px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+    }
+    .ov-autocomplete-item:hover,
+    .ov-autocomplete-item.active {
+        background: var(--color-bg-hover);
+    }
+    .ov-ac-desc {
+        opacity: 0.5;
+        font-size: 0.55rem;
+    }
     gap: 8px;
     flex: 1;
     min-width: 0;

@@ -16002,3 +16002,270 @@ if (!document.__niwDelegatedFallback) {
     });
     document.__niwDelegatedFallback = true;
 }
+
+// ===== Override Modal Schema Assistant (keys panel + autocomplete) =====
+(function () {
+    const textarea = document.getElementById('override-json');
+    if (!textarea) return;
+    let schemaCache = null;
+    let keyIndex = [];
+    let keyIndexMap = {};
+    let acEl = null;
+    let acActive = -1;
+    const statusEl = document.getElementById('override-json-status');
+
+    function fetchSchema() {
+        if (schemaCache) return Promise.resolve(schemaCache);
+        return fetch('/api/admin/config-schema', { headers: { Accept: 'application/json' } })
+            .then(r => (r.ok ? r.json() : null))
+            .then(js => {
+                schemaCache = js;
+                return js;
+            })
+            .catch(e => {
+                console.error('[override] schema fetch failed', e);
+                return null;
+            });
+    }
+    function buildIndex(schema, pfx = '') {
+        if (!schema || schema.type !== 'object') return;
+        const props = schema.properties || {};
+        Object.entries(props).forEach(([k, v]) => {
+            const path = pfx ? pfx + '.' + k : k;
+            keyIndex.push({
+                path,
+                type: v.type || 'any',
+                description: v.description || '',
+                schema: v,
+            });
+            keyIndexMap[path] = v;
+            if (v.type === 'object') buildIndex(v, path);
+        });
+    }
+    function ensurePanel() {
+        const list = document.getElementById('ov-keys-list');
+        const search = document.getElementById('ov-keys-search');
+        if (!list || !search) return;
+        function render(filter = '') {
+            const f = filter.trim().toLowerCase();
+            list.innerHTML = '';
+            keyIndex
+                .filter(it => !f || it.path.toLowerCase().includes(f))
+                .slice(0, 400)
+                .forEach(it => {
+                    const div = document.createElement('div');
+                    div.className = 'ov-key-item';
+                    div.dataset.path = it.path;
+                    div.innerHTML = `<span class="k">${it.path}</span><span class="ov-key-type t-${it.type}">${it.type}</span>`;
+                    div.title = it.description || it.path;
+                    div.addEventListener('click', () => insertKey(it.path));
+                    list.appendChild(div);
+                });
+        }
+        search.addEventListener('input', () => render(search.value));
+        render();
+    }
+    function insertKey(path) {
+        let obj = {};
+        try {
+            obj = JSON.parse(textarea.value || '{}');
+        } catch (_) {
+            obj = {};
+        }
+        const parts = path.split('.');
+        let node = obj;
+        for (let i = 0; i < parts.length; i++) {
+            const p = parts[i];
+            if (i === parts.length - 1) {
+                const schemaNode = keyIndexMap[path];
+                let val = null;
+                if (schemaNode) {
+                    if ('default' in schemaNode) val = schemaNode.default;
+                    else if (schemaNode.type === 'string') val = '';
+                    else if (schemaNode.type === 'number' || schemaNode.type === 'integer') val = 0;
+                    else if (schemaNode.type === 'boolean') val = false;
+                    else if (schemaNode.type === 'array') val = [];
+                    else if (schemaNode.type === 'object') val = {};
+                }
+                node[p] = val;
+            } else {
+                if (!node[p] || typeof node[p] !== 'object') node[p] = {};
+                node = node[p];
+            }
+        }
+        textarea.value = JSON.stringify(obj, null, 2);
+        textarea.dispatchEvent(new Event('input'));
+    }
+    function caretPos(el) {
+        return el.selectionStart;
+    }
+    function tokenBefore(text, caret) {
+        let i = caret - 1;
+        while (i >= 0 && /[A-Za-z0-9_.]/.test(text[i])) i--;
+        return text.slice(i + 1, caret);
+    }
+    function showAC(matches) {
+        hideAC();
+        if (!matches.length) return;
+        acEl = document.createElement('div');
+        acEl.className = 'ov-autocomplete';
+        matches.slice(0, 150).forEach(it => {
+            const d = document.createElement('div');
+            d.className = 'ov-autocomplete-item';
+            d.dataset.path = it.path;
+            d.innerHTML = `<span>${it.path}</span><span class="ov-key-type t-${it.type}">${it.type}</span>`;
+            d.addEventListener('mousedown', e => {
+                e.preventDefault();
+                applyAC(it.path);
+            });
+            acEl.appendChild(d);
+        });
+        document.body.appendChild(acEl);
+        positionAC();
+    }
+    function positionAC() {
+        if (!acEl) return;
+        const r = textarea.getBoundingClientRect();
+        acEl.style.top = window.scrollY + r.bottom + 4 + 'px';
+        acEl.style.left = window.scrollX + r.left + 'px';
+    }
+    function hideAC() {
+        if (acEl) {
+            acEl.remove();
+            acEl = null;
+            acActive = -1;
+        }
+    }
+    function moveAC(d) {
+        if (!acEl) return;
+        const items = [...acEl.querySelectorAll('.ov-autocomplete-item')];
+        if (!items.length) return;
+        acActive = (acActive + d + items.length) % items.length;
+        items.forEach((el, i) => el.classList.toggle('active', i === acActive));
+    }
+    function applyAC(path) {
+        const caret = caretPos(textarea);
+        const text = textarea.value;
+        const token = tokenBefore(text, caret);
+        const start = caret - token.length;
+        const before = text.slice(0, start);
+        const after = text.slice(caret);
+        textarea.value = before + path + after;
+        const newCaret = start + path.length;
+        textarea.setSelectionRange(newCaret, newCaret);
+        hideAC();
+        textarea.focus();
+    }
+    function handleAC() {
+        const caret = caretPos(textarea);
+        const text = textarea.value;
+        const token = tokenBefore(text, caret);
+        if (token.length < 2) {
+            hideAC();
+            return;
+        }
+        const lower = token.toLowerCase();
+        const matches = keyIndex.filter(k => k.path.toLowerCase().startsWith(lower));
+        if (matches.length) showAC(matches);
+        else hideAC();
+    }
+    function validateAgainstSchema() {
+        if (!schemaCache) return;
+        let obj;
+        try {
+            obj = JSON.parse(textarea.value);
+        } catch (e) {
+            if (statusEl) {
+                statusEl.textContent = 'Invalid JSON';
+                statusEl.className = 'override-status error';
+            }
+            return;
+        }
+        const unknown = [];
+        const typeMismatches = [];
+        function walk(node, prefix) {
+            if (node && typeof node === 'object' && !Array.isArray(node)) {
+                Object.entries(node).forEach(([k, v]) => {
+                    const path = prefix ? prefix + '.' + k : k;
+                    const schemaNode = keyIndexMap[path];
+                    if (!schemaNode) {
+                        unknown.push(path);
+                    } else {
+                        const expected = schemaNode.type;
+                        const actual = Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v;
+                        if (expected && expected !== 'any') {
+                            if (Array.isArray(expected)) {
+                                if (!expected.includes(actual))
+                                    typeMismatches.push({
+                                        path,
+                                        expected: expected.join('|'),
+                                        actual,
+                                    });
+                            } else if (expected !== actual) {
+                                typeMismatches.push({ path, expected, actual });
+                            }
+                        }
+                    }
+                    walk(v, path);
+                });
+            }
+        }
+        walk(obj, '');
+        if (statusEl) {
+            if (!unknown.length && !typeMismatches.length) {
+                statusEl.textContent = 'Valid JSON';
+                statusEl.className = 'override-status success';
+            } else {
+                const parts = [];
+                if (unknown.length) parts.push(unknown.length + ' unknown');
+                if (typeMismatches.length) parts.push(typeMismatches.length + ' type mismatches');
+                statusEl.textContent = 'Warnings: ' + parts.join(', ');
+                statusEl.className = 'override-status warning';
+            }
+        }
+    }
+    function handleInput() {
+        handleAC();
+        validateAgainstSchema();
+    }
+    textarea.addEventListener('input', handleInput);
+    textarea.addEventListener('keydown', e => {
+        if (acEl) {
+            if (e.key === 'ArrowDown') {
+                moveAC(1);
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp') {
+                moveAC(-1);
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                if (acActive >= 0) {
+                    const it = acEl.querySelectorAll('.ov-autocomplete-item')[acActive];
+                    if (it) {
+                        applyAC(it.dataset.path);
+                        e.preventDefault();
+                    }
+                }
+            } else if (e.key === 'Escape') {
+                hideAC();
+            }
+        }
+    });
+    document.addEventListener('click', e => {
+        if (acEl && !acEl.contains(e.target) && e.target !== textarea) hideAC();
+    });
+    const modal = document.getElementById('modal-override');
+    const obs = new MutationObserver(() => {
+        const open = modal.classList.contains('open');
+        if (open && !schemaCache) {
+            fetchSchema().then(s => {
+                if (!s) return;
+                keyIndex = [];
+                keyIndexMap = {};
+                buildIndex(s);
+                ensurePanel();
+                validateAgainstSchema();
+            });
+        }
+    });
+    obs.observe(modal, { attributes: true, attributeFilter: ['class'] });
+})();

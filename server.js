@@ -8731,6 +8731,43 @@ app.get(
 
 /**
  * @swagger
+ * /api/admin/config-schema:
+ *   get:
+ *     summary: Retrieve configuration JSON schema (alias)
+ *     description: Alias of /api/admin/config/schema returning config.schema.json for autocomplete tooling in the admin UI.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: The JSON schema document
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       401:
+ *         description: Unauthorized.
+ */
+app.get(
+    '/api/admin/config-schema',
+    isAuthenticated,
+    asyncHandler(async (_req, res) => {
+        try {
+            const schemaPath = path.join(__dirname, 'config.schema.json');
+            const raw = await fs.promises.readFile(schemaPath, 'utf8');
+            res.type('application/json').send(raw);
+        } catch (e) {
+            logger.error(
+                '[Admin API] Failed to read config.schema.json (admin config-schema alias):',
+                e && e.message
+            );
+            res.status(500).json({ error: 'schema_read_failed' });
+        }
+    })
+);
+
+/**
+ * @swagger
  * /api/admin/test-plex:
  *   post:
  *     summary: Test connection to a Plex server
