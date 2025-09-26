@@ -11237,51 +11237,108 @@ body.page-logs {
     justify-content: center;
     gap: 12px;
 }
+/* Remote nav grid (D-pad) */
 #modal-remote .remote-nav {
     display: grid;
     grid-template-columns: repeat(3, 60px);
-    grid-auto-rows: 60px;
-    gap: 8px;
-    justify-content: center;
-    align-items: center;
-}
-#modal-remote .remote-actions {
-    display: grid;
-    grid-template-columns: repeat(3, 60px);
+    grid-template-rows: repeat(3, 60px);
     gap: 10px;
     justify-content: center;
-    align-items: center;
+}
+
+/* Action row under D-pad */
+#modal-remote .remote-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
     margin-top: 4px;
 }
+
+/* Unified neutral surface buttons inside remote panel */
 #modal-remote .remote-panel .btn {
     width: 60px;
     height: 60px;
-    border-radius: 10px;
+    border-radius: 12px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-bg-elevated, rgba(255, 255, 255, 0.06));
-    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-    color: var(--color-text-primary, #e6e6e6);
-    box-shadow: none;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.08)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    border: 1px solid rgba(0, 0, 0, 0.55);
+    color: var(--color-text-secondary);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 -1px 0 0 rgba(0, 0, 0, 0.55) inset,
+        0 1px 1px rgba(0, 0, 0, 0.4);
+    font-weight: 500;
     transition:
-        transform 100ms ease,
-        background 100ms ease,
-        color 100ms ease,
-        border-color 100ms ease;
+        transform 110ms ease,
+        background 140ms ease,
+        color 140ms ease,
+        border-color 140ms ease,
+        box-shadow 160ms ease;
 }
 #modal-remote .remote-panel .btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: var(--color-text-primary);
+    border-color: rgba(0, 0, 0, 0.5);
 }
 #modal-remote .remote-panel .btn:active {
-    transform: scale(0.96);
-    background: rgba(0, 0, 0, 0.2);
+    transform: scale(0.94);
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.14)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+        0 1px 1px rgba(0, 0, 0, 0.35) inset;
 }
-/* Use default theme focus styles (no custom glow) */
+/* Icon inside remote buttons */
 #modal-remote .remote-panel .btn i {
     font-size: 18px;
     pointer-events: none;
+}
+
+/* Footer close button neutralization */
+#modal-remote .modal-footer .btn {
+    border: none;
+    border-radius: 6px;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: var(--color-text-secondary);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    font-size: 0.85rem;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.25s ease;
+}
+#modal-remote .modal-footer .btn:hover,
+#modal-remote .modal-footer .btn:focus-visible {
+    color: var(--color-text-primary);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+}
+#modal-remote .modal-footer .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
 }
 /* No special accent/select styling to keep it neutral per theme */
 /* Click pulse feedback */
