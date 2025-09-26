@@ -7357,6 +7357,20 @@
                                                 <button type="button" class="btn btn-icon btn-sm btn-pair card-secondary" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
                                                 <button type="button" class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-gamepad"></i></button>
                                                 <button type="button" class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
+                                                ${(() => {
+                                                    try {
+                                                        const ov = d.settingsOverride || {};
+                                                        const has =
+                                                            ov &&
+                                                            typeof ov === 'object' &&
+                                                            Object.keys(ov).length;
+                                                        return has
+                                                            ? '<button type="button" class="btn btn-icon btn-sm btn-clear-override card-secondary" title="Clear overrides" aria-label="Clear overrides"><i class="fas fa-eraser"></i></button>'
+                                                            : '';
+                                                    } catch (_) {
+                                                        return '';
+                                                    }
+                                                })()}
                                                 <button type="button" class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-terminal"></i></button>
                                                 <button type="button" class="btn btn-icon btn-sm btn-playpause${ppCls}" title="${ppTitle}" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas ${ppIcon}"></i></button>
                                                 <button type="button" class="btn btn-icon btn-sm btn-pin card-secondary${pinCls}" title="${pinTitle}" aria-pressed="${pinPressed}" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas ${pinIcon}"></i></button>
@@ -7612,6 +7626,35 @@
                     } catch (_) {}
                     const id = card.getAttribute('data-id');
                     openOverrideFor([id]);
+                });
+                card.querySelector('.btn-clear-override')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {}
+                    const id = card.getAttribute('data-id');
+                    const confirmMsg =
+                        'Alle overrides voor dit device wissen? Het apparaat volgt daarna alleen server + groep config.';
+                    if (!window.confirm(confirmMsg)) return;
+                    try {
+                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ settingsOverride: {} }),
+                        });
+                        window.notify?.toast?.({
+                            type: 'success',
+                            title: 'Overrides verwijderd',
+                            message: state.all.find(d => d.id === id)?.name || id,
+                        });
+                        await loadDevices();
+                    } catch (err) {
+                        window.notify?.toast?.({
+                            type: 'error',
+                            title: 'Verwijderen mislukt',
+                            message: err?.message || 'Kon overrides niet wissen',
+                        });
+                    }
                 });
                 card.querySelector('.btn-sendcmd')?.addEventListener('click', async e => {
                     try {
@@ -8776,26 +8819,46 @@
                         if (obj && typeof obj === 'object' && k in obj) keep[k] = obj[k];
                     });
                     if (curMode === 'wallart') {
+                        // Activate wallart; preserve previous wallart settings
                         if (obj.wallartMode && typeof obj.wallartMode === 'object') {
-                            // clone to avoid mutating original reference and guarantee enabled flag
                             keep.wallartMode = { ...obj.wallartMode };
                         } else if (obj.wallart && typeof obj.wallart === 'object') {
                             keep.wallartMode = { ...obj.wallart };
                         } else {
                             keep.wallartMode = {};
                         }
-                        keep.wallartMode.enabled = true; // FORCE ON when wallart segment selected
+                        keep.wallartMode.enabled = true;
+                        // Preserve cinema config (inactive) if present
+                        if (obj.cinema && typeof obj.cinema === 'object') {
+                            keep.cinema = { ...obj.cinema };
+                        }
                         keep.cinemaMode = false;
                     } else if (curMode === 'cinema') {
-                        // Ensure cinema enabled; explicitly disable wallart to override base/group config
+                        // Activate cinema; retain full wallart config but disable it
                         keep.cinemaMode = true;
-                        keep.wallartMode = { enabled: false };
-                        if (obj.cinema) keep.cinema = obj.cinema;
-                        else keep.cinema = { header: { text: 'Now Showing' } };
+                        keep.cinema =
+                            obj.cinema && typeof obj.cinema === 'object'
+                                ? { ...obj.cinema }
+                                : { header: { text: 'Now Showing' } };
+                        if (obj.wallartMode && typeof obj.wallartMode === 'object') {
+                            keep.wallartMode = { ...obj.wallartMode, enabled: false };
+                        } else if (obj.wallart && typeof obj.wallart === 'object') {
+                            keep.wallartMode = { ...obj.wallart, enabled: false };
+                        } else {
+                            keep.wallartMode = { enabled: false };
+                        }
                     } else {
-                        // general / screensaver
-                        // Neutral: explicitly disable both so baseConfig can't force wallart
-                        keep.wallartMode = { enabled: false };
+                        // Screensaver/general: preserve both configs but mark them inactive
+                        if (obj.wallartMode && typeof obj.wallartMode === 'object') {
+                            keep.wallartMode = { ...obj.wallartMode, enabled: false };
+                        } else if (obj.wallart && typeof obj.wallart === 'object') {
+                            keep.wallartMode = { ...obj.wallart, enabled: false };
+                        } else {
+                            keep.wallartMode = { enabled: false };
+                        }
+                        if (obj.cinema && typeof obj.cinema === 'object') {
+                            keep.cinema = { ...obj.cinema }; // retained for later use
+                        }
                         keep.cinemaMode = false;
                     }
                     textarea.value = JSON.stringify(keep, null, 2);
