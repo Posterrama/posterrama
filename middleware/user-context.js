@@ -63,7 +63,6 @@ const userContextMiddleware = (req, res, next) => {
 
     next();
 };
-
 /**
  * Determine the type of action based on the request
  */
@@ -83,27 +82,6 @@ function getActionType(req) {
     }
 
     return 'user_action';
-}
-
-/**
- * Sanitize request body for logging (remove sensitive data)
- */
-function sanitizeRequestBody(body) {
-    if (!body || typeof body !== 'object') {
-        return body;
-    }
-
-    const sanitized = { ...body };
-    const sensitiveFields = ['password', 'token', 'secret', 'key', 'auth'];
-
-    Object.keys(sanitized).forEach(key => {
-        const lowKey = key.toLowerCase();
-        if (sensitiveFields.some(field => lowKey.includes(field))) {
-            sanitized[key] = '[REDACTED]';
-        }
-    });
-
-    return sanitized;
 }
 
 /**
@@ -139,7 +117,6 @@ const logoutMiddleware = (req, res, next) => {
     }
     next();
 };
-
 module.exports = {
     userContextMiddleware,
     loginSuccessMiddleware,

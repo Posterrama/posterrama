@@ -1541,121 +1541,7 @@
         } catch (_) {}
     }
 
-    // Ensure a custom select UI (trigger + popup list) reflects the current value of the hidden <select>
-    function syncCustomSelect(selectEl) {
-        if (!selectEl) return;
-        const wrap = selectEl.closest?.('.select-wrap');
-        if (!wrap) return;
-        const custom = wrap.querySelector?.('.custom-select');
-        if (custom) {
-            // Update trigger icon + label
-            const trigger = custom.querySelector('.custom-select-trigger');
-            const icon = trigger?.querySelector('.left > i');
-            const label = trigger?.querySelector('.left > span:last-child');
-            const selectedText = selectEl.options[selectEl.selectedIndex]?.text || 'Select';
-            if (icon) {
-                // Local icon map covering TMDB
-                const iconForFn = val => {
-                    switch (val) {
-                        // Shared ratings/popularity
-                        case 'top_rated':
-                        case 'tv_top_rated':
-                            return 'fas fa-star';
-                        case 'popular':
-                        case 'tv_popular':
-                            return 'fas fa-fire';
-                        // TMDB Movies
-                        case 'now_playing':
-                            return 'fas fa-ticket-alt';
-                        case 'upcoming':
-                            return 'fas fa-calendar-alt';
-                        case 'latest':
-                        case 'tv_latest':
-                            return 'fas fa-bolt';
-                        // TMDB TV-specific
-                        case 'tv_on_the_air':
-                            return 'fas fa-broadcast-tower';
-                        case 'tv_airing_today':
-                            return 'fas fa-tv';
-                        // TMDB Trending
-                        case 'trending_all_day':
-                        case 'trending_movie_day':
-                        case 'trending_tv_day':
-                        case 'trending_all_week':
-                        case 'trending_movie_week':
-                        case 'trending_tv_week':
-                            return 'fas fa-chart-line';
-                        // TMDB Discover/Collections
-                        case 'discover_movie':
-                        case 'discover_tv':
-                            return 'fas fa-compass';
-                        default:
-                            return 'fas fa-list';
-                    }
-                };
-                icon.className = iconForFn(selectEl.value);
-            }
-            if (label) label.textContent = selectedText;
-        }
-        // Update overlay icon (if present next to the native select)
-        const overlayIcon = wrap.querySelector?.('.select-icon i');
-        if (overlayIcon) {
-            const mapIcon = val => {
-                switch (val) {
-                    // Shared ratings/popularity
-                    case 'top_rated':
-                    case 'tv_top_rated':
-                        return 'fas fa-star';
-                    case 'popular':
-                    case 'tv_popular':
-                        return 'fas fa-fire';
-                    // TMDB Movies
-                    case 'now_playing':
-                        return 'fas fa-ticket-alt';
-                    case 'upcoming':
-                        return 'fas fa-calendar-alt';
-                    case 'latest':
-                    case 'tv_latest':
-                        return 'fas fa-bolt';
-                    // TMDB TV-specific
-                    case 'tv_on_the_air':
-                        return 'fas fa-broadcast-tower';
-                    case 'tv_airing_today':
-                        return 'fas fa-tv';
-                    // TMDB Trending
-                    case 'trending_all_day':
-                    case 'trending_movie_day':
-                    case 'trending_tv_day':
-                    case 'trending_all_week':
-                    case 'trending_movie_week':
-                    case 'trending_tv_week':
-                        return 'fas fa-chart-line';
-                    // TMDB Discover/Collections
-                    case 'discover_movie':
-                    case 'discover_tv':
-                        return 'fas fa-compass';
-                    default:
-                        return 'fas fa-list';
-                }
-            };
-            overlayIcon.className = mapIcon(selectEl.value);
-        }
-        // Update popup list selection if it exists (identified by data-select-id)
-        try {
-            const list = document.querySelector(
-                `.custom-options[data-select-id="${CSS.escape(selectEl.id)}"]`
-            );
-            if (list) {
-                list.querySelectorAll('.custom-option').forEach(optEl => {
-                    const on = optEl.dataset.value === selectEl.value;
-                    if (on) optEl.setAttribute('aria-selected', 'true');
-                    else optEl.removeAttribute('aria-selected');
-                });
-            }
-        } catch (_) {
-            // ignore if CSS.escape not available or DOM not ready
-        }
-    }
+    // Removed unused syncCustomSelect helper; cleaned stray references to selectEl/list.
 
     // Enhance: ensure standard selects inside Cinema cards get the caret wrapper
     // Idempotent: skips selects already wrapped or not eligible
@@ -2283,7 +2169,7 @@
             window.admin2.enhanceNumberInput = enhanceNumberInput;
 
             // Dedupe nested wrappers (in case fallback wrapped first, then main tried to wrap again earlier in lifecycle)
-            function dedupeNumberWrappers(scope = document) {
+            const dedupeNumberWrappers = (scope = document) => {
                 try {
                     scope
                         .querySelectorAll('.number-input-wrapper .number-input-wrapper')
@@ -2295,7 +2181,7 @@
                             inner.remove();
                         });
                 } catch (_) {}
-            }
+            };
             dedupeNumberWrappers();
             try {
                 window.admin2.dedupeNumberWrappers = dedupeNumberWrappers;
@@ -6323,6 +6209,9 @@
                     { id: 'seg-tmdb', val: 'tmdb', panel: 'panel-tmdb', hash: '#tmdb' },
                 ];
 
+                // Forward declaration so early calls can use a no-op until real impl assigned
+                const forceUpdateHeaderToggleText = (..._args) => {};
+
                 // Mount per-source header actions into the Media Sources UI
                 const topActions = document.querySelector(
                     '#panel-media-sources .panel-header .panel-actions'
@@ -6402,7 +6291,7 @@
                     }
                 };
 
-                function setActive(val) {
+                const setActive = val => {
                     segs.forEach(s => {
                         const el = document.getElementById(s.id);
                         if (el) {
@@ -6436,7 +6325,7 @@
                             requestAnimationFrame(() => forceUpdateHeaderToggleText(inputId));
                         }
                     } catch (_) {}
-                }
+                };
 
                 // Click handling
                 segs.forEach(s => {
@@ -6464,12 +6353,12 @@
                 setActive('plex');
 
                 // Sync with router/hash
-                function syncFromHash() {
+                const syncFromHash = () => {
                     const h = (location.hash || '').toLowerCase();
                     if (h === '#jellyfin') setActive('jellyfin');
                     else if (h === '#tmdb') setActive('tmdb');
                     else setActive('plex');
-                }
+                };
                 // Run on enter to sources and on hash changes
                 const section = document.getElementById('section-media-sources');
                 const obs = new MutationObserver(() => {
@@ -6512,7 +6401,7 @@
                     { id: 'seg-devices', val: 'devices', panel: 'device-ui' },
                     { id: 'seg-dev-settings', val: 'settings', panel: 'panel-device-settings' },
                 ];
-                function setActive(val) {
+                const setActive = val => {
                     segs.forEach(s => {
                         const el = document.getElementById(s.id);
                         if (el) el.setAttribute('aria-checked', String(s.val === val));
@@ -6534,7 +6423,7 @@
                             }
                         } catch (_) {}
                     }
-                }
+                };
                 // Click handling
                 segs.forEach(s => {
                     const el = document.getElementById(s.id);
@@ -12085,7 +11974,8 @@
         }
 
         // Force update helper: update label text once without wiring
-        function forceUpdateHeaderToggleText(inputId, onText = 'Enabled', offText = 'Disabled') {
+        // Assign implementation (overwrites earlier placeholder for segmented sources tabs)
+        const forceUpdateHeaderToggleText = (inputId, onText = 'Enabled', offText = 'Disabled') => {
             try {
                 const input = document.getElementById(inputId);
                 const label = document.querySelector(`label.header-toggle[for="${inputId}"]`);
@@ -12096,7 +11986,7 @@
                 textEl.textContent = checked ? onText : offText;
                 label.classList.toggle('is-on', checked);
             } catch (_) {}
-        }
+        };
 
         // Wire Enabled/Disabled text for Media Sources header toggles (and Streaming)
         try {
@@ -13232,7 +13122,7 @@
                 ? await fetch('/api/admin/config', { credentials: 'include' })
                 : await window.dedupJSON('/api/admin/config', { credentials: 'include' });
             const j = r.ok ? await r.json() : {};
-            const env = j?.env || {};
+            const env = j?.env || {}; // used by updateOverviewCards and subsequent helpers
             const cfg = j?.config || j || {};
             dbg('loadMediaSources()', { hasConfig: !!cfg, hasEnv: !!env });
             // Initialize once-per-session auto-fetch guards
@@ -13252,7 +13142,6 @@
             // Prefill status pill based on enabled + presence of host/port
             try {
                 const pill = document.getElementById('plex-status-pill-header');
-                const openLink = null;
                 const host = env[plexHostVar] || '';
                 const portVal = env[plexPortVar] || '';
                 if (pill) {
@@ -15918,13 +15807,12 @@
 
         // Enhance TMDB category with a custom menu that displays icons inside the dropdown
         (function enhanceTmdbCategoryDropdown() {
-            // Temporarily disabled to restore native select behavior per user request
-            // Cleanup any previous enhancement artifacts, then return
-            const wrap = document
-                .getElementById('tmdb.category')
-                ?.closest('.select-wrap.has-caret');
-            const select = document.getElementById('tmdb.category');
+            // Enhancement disabled; cleaned up any previous custom dropdown artifacts to restore native select.
             try {
+                const wrap = document
+                    .getElementById('tmdb.category')
+                    ?.closest('.select-wrap.has-caret');
+                const select = document.getElementById('tmdb.category');
                 if (wrap) wrap.classList.remove('cs-enhanced');
                 if (wrap)
                     wrap.querySelectorAll('.cs-trigger').forEach(
@@ -15932,187 +15820,12 @@
                     );
                 if (select) select.removeAttribute('data-enhanced');
                 const oldMenu = document.getElementById('tmdb-category-menu');
-                if (oldMenu && oldMenu.parentNode) oldMenu.parentNode.removeChild(oldMenu);
+                if (oldMenu?.parentNode) oldMenu.parentNode.removeChild(oldMenu);
                 if (window.__tmdbCat) delete window.__tmdbCat;
             } catch (_) {
                 /* no-op */
             }
-            return;
-            if (!wrap || !select || wrap.classList.contains('cs-enhanced')) return;
-            wrap.classList.add('cs-enhanced');
-            // Make select show current value but ignore pointer events; we place a trigger above it
-            select.setAttribute('data-enhanced', 'true');
-            const trigger = document.createElement('button');
-            trigger.type = 'button';
-            trigger.className = 'cs-trigger';
-            trigger.setAttribute('aria-haspopup', 'listbox');
-            trigger.setAttribute('aria-expanded', 'false');
-            wrap.appendChild(trigger);
-
-            const menu = document.createElement('div');
-            menu.className = 'cs-menu cs-portal';
-            menu.setAttribute('role', 'listbox');
-            menu.id = 'tmdb-category-menu';
-            menu.hidden = true;
-            menu.tabIndex = -1; // enable focus for keyboard nav
-            document.body.appendChild(menu);
-
-            const build = () => {
-                menu.innerHTML = '';
-                // Iterate optgroups and options to mirror structure
-                const ogs = select.querySelectorAll('optgroup');
-                ogs.forEach(og => {
-                    const g = document.createElement('div');
-                    g.className = 'cs-group';
-                    g.textContent = og.getAttribute('label') || '';
-                    menu.appendChild(g);
-                    og.querySelectorAll('option').forEach(opt => {
-                        const val = opt.value;
-                        const row = document.createElement('div');
-                        row.className = 'cs-option' + (select.value === val ? ' is-selected' : '');
-                        row.setAttribute('role', 'option');
-                        row.setAttribute('data-value', val);
-                        const ico = document.createElement('i');
-                        ico.className = iconFor(val);
-                        row.appendChild(ico);
-                        const label = document.createElement('span');
-                        label.className = 'cs-label';
-                        label.textContent = opt.textContent || '';
-                        row.appendChild(label);
-                        const check = document.createElement('i');
-                        check.className = 'cs-check fas fa-check';
-                        row.appendChild(check);
-                        row.addEventListener('click', () => {
-                            select.value = val;
-                            select.dispatchEvent(new Event('change', { bubbles: true }));
-                            close();
-                            // Update selection classes
-                            menu.querySelectorAll('.cs-option').forEach(el =>
-                                el.classList.remove('is-selected')
-                            );
-                            row.classList.add('is-selected');
-                        });
-                        menu.appendChild(row);
-                    });
-                });
-            };
-
-            const positionMenu = () => {
-                const r = wrap.getBoundingClientRect();
-                menu.style.left = `${Math.round(r.left)}px`;
-                menu.style.top = `${Math.round(r.bottom + 8)}px`;
-                menu.style.width = `${Math.round(r.width)}px`;
-                // Constrain height within viewport
-                const maxH = Math.max(180, Math.floor(window.innerHeight - r.bottom - 24));
-                menu.style.maxHeight = `${maxH}px`;
-            };
-            const open = () => {
-                build();
-                positionMenu();
-                menu.hidden = false;
-                trigger.setAttribute('aria-expanded', 'true');
-                try {
-                    console.debug('[TMDB] custom menu OPEN');
-                } catch {}
-                // Defer outside click binding so the same initiating mousedown doesn't immediately close it
-                setTimeout(() => {
-                    document.addEventListener('mousedown', outsideOnce, { once: true });
-                    window.addEventListener('scroll', positionMenu, { passive: true });
-                    window.addEventListener('resize', positionMenu, { passive: true });
-                }, 0);
-                // Move focus into the menu for arrow/enter handling
-                try {
-                    menu.focus({ preventScroll: true });
-                } catch {}
-            };
-            const close = () => {
-                menu.hidden = true;
-                trigger.setAttribute('aria-expanded', 'false');
-                window.removeEventListener('scroll', positionMenu);
-                window.removeEventListener('resize', positionMenu);
-                try {
-                    console.debug('[TMDB] custom menu CLOSE');
-                } catch {}
-            };
-            const outsideOnce = e => {
-                if (!wrap.contains(e.target) && !menu.contains(e.target)) close();
-            };
-            // Prevent the native select from opening via mouse while keeping it focusable by keyboard
-            select.addEventListener('mousedown', e => {
-                e.preventDefault();
-            });
-            // Open/close on our trigger button (captures clicks inside wrapper)
-            trigger.addEventListener('click', e => {
-                e.preventDefault();
-                if (menu.hidden) open();
-                else close();
-            });
-            // Also toggle on wrapper mousedown (for clicks that miss the trigger due to browser quirks)
-            wrap.addEventListener('mousedown', e => {
-                // If the trigger caught this click, skip to avoid double toggle
-                if (e.target && e.target.closest && e.target.closest('.cs-trigger')) return;
-                e.preventDefault();
-                if (menu.hidden) open();
-                else close();
-            });
-            // Basic Escape to close
-            document.addEventListener('keydown', e => {
-                if (e.key === 'Escape' && !menu.hidden) close();
-            });
-            // Arrow navigation within menu (simple)
-            menu.addEventListener('keydown', e => {
-                if (menu.hidden) return;
-                const items = Array.from(menu.querySelectorAll('.cs-option'));
-                const current = items.findIndex(el => el.classList.contains('is-selected'));
-                let next = current;
-                if (e.key === 'ArrowDown') next = Math.min(items.length - 1, current + 1);
-                if (e.key === 'ArrowUp') next = Math.max(0, current - 1);
-                if (next !== current && items[next]) {
-                    items[current]?.classList.remove('is-active');
-                    items[next].classList.add('is-active');
-                    items[next].scrollIntoView({ block: 'nearest' });
-                }
-                if (e.key === 'Enter') {
-                    const active =
-                        menu.querySelector('.cs-option.is-active') || items[next] || items[current];
-                    active?.dispatchEvent(new Event('click', { bubbles: true }));
-                }
-            });
-
-            // Keyboard open: Space/Enter when trigger focused
-            trigger.addEventListener('keydown', e => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                    e.preventDefault();
-                    if (menu.hidden) open();
-                    else close();
-                }
-            });
-
-            // Keep menu in sync if value changes programmatically
-            select.addEventListener('change', () => {
-                // Sync selection highlight and header icon (handled earlier)
-                menu.querySelectorAll('.cs-option').forEach(el => {
-                    el.classList.toggle(
-                        'is-selected',
-                        el.getAttribute('data-value') === select.value
-                    );
-                });
-            });
-
-            // Expose debug helpers in console
-            try {
-                window.__tmdbCat = {
-                    wrap,
-                    select,
-                    trigger,
-                    menu,
-                    build,
-                    positionMenu,
-                    open,
-                    close,
-                };
-            } catch {}
-        })();
+        })(); // end enhanceTmdbCategoryDropdown (custom menu disabled)
 
         // Live auto-fetch libraries when connection inputs change (Plex/Jellyfin)
         // Simple debounce to avoid rapid calls while typing
@@ -16411,7 +16124,7 @@
         try {
             const r = await window.dedupJSON('/api/admin/config', { credentials: 'include' });
             const j = r.ok ? await r.json() : null;
-            const env = j?.env || {};
+            // Removed duplicate unused env declaration (was: const env = j?.env || {};) no longer needed.
             const cfg = j?.config || {};
             // SERVER_PORT
             const portElMain = document.getElementById('SERVER_PORT');
