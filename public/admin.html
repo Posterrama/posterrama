@@ -2273,11 +2273,11 @@
         <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
       </div>
       <div class="modal-body">
-        <p>Provide a JSON object to override display settings for the selected device(s).</p>
+        <p>Override display settings (JSON).</p>
         <div class="override-helper">
           <div class="override-snippet-mode">
-            <label for="override-snippet-mode" class="sm" style="display:flex; align-items:center; gap:6px; font-weight:600; color:var(--color-text-secondary);">
-              <i class="fas fa-layer-group" style="opacity:.7"></i> Mode
+            <label for="override-snippet-mode" class="sm" style="display:flex; align-items:center; gap:8px; font-weight:600; color:var(--color-text-primary); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
+              <i class="fas fa-layer-group" style="opacity:.8"></i> Mode
               <select id="override-snippet-mode" style="background:var(--color-bg-tertiary); border:1px solid var(--color-border); color:var(--color-text-primary); border-radius:6px; padding:4px 6px; font-size:0.7rem;">
                 <option value="general">General</option>
                 <option value="wallart">Wallart</option>
@@ -2303,7 +2303,6 @@
           <div class="override-actions">
             <button type="button" class="btn btn-outline btn-sm" id="override-format" title="Format JSON"><i class="fas fa-magic"></i> Format</button>
             <button type="button" class="btn btn-outline btn-sm" id="override-clear" title="Clear JSON"><i class="fas fa-eraser"></i> Clear</button>
-            <button type="button" class="btn btn-outline btn-sm" id="override-insert-base" title="Insert base template"><i class="fas fa-file-code"></i> Template</button>
           </div>
         </div>
         <textarea id="override-json" rows="12" class="override-json" placeholder="{\n  \"wallart\": { \"duration\": 30 }\n}"></textarea>

@@ -8218,7 +8218,6 @@
                 const statusEl = document.getElementById('override-json-status');
                 const formatBtn = document.getElementById('override-format');
                 const clearBtn = document.getElementById('override-clear');
-                const templateBtn = document.getElementById('override-insert-base');
                 const snippetsWrap = document.getElementById('override-snippets');
                 const snippetModeSel = document.getElementById('override-snippet-mode');
 
@@ -16129,39 +16128,39 @@ if (!document.__niwDelegatedFallback) {
     let acActive = -1;
     const statusEl = document.getElementById('override-json-status');
 
-    function fetchSchema(){
-        if(schemaCache) return Promise.resolve(schemaCache);
+    function fetchSchema() {
+        if (schemaCache) return Promise.resolve(schemaCache);
         const candidates = [
-            '/api/admin/config-schema',       // new alias we added
-            '/api/admin/config/schema',       // existing admin-prefixed
-            '/api/config/schema'              // non-admin fallback
+            '/api/admin/config-schema', // new alias we added
+            '/api/admin/config/schema', // existing admin-prefixed
+            '/api/config/schema', // non-admin fallback
         ];
         let attempt = 0;
         const tryNext = () => {
-            if(attempt >= candidates.length){
+            if (attempt >= candidates.length) {
                 console.warn('[override] All schema endpoints failed:', candidates);
-                if(statusEl){
+                if (statusEl) {
                     statusEl.textContent = 'Schema unavailable (autocomplete limited)';
                     statusEl.className = 'override-status warning';
                 }
                 return Promise.resolve(null);
             }
             const url = candidates[attempt++];
-            return fetch(url, { headers:{Accept:'application/json'} })
-                .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-                .then(js=>{ schemaCache=js; return js; })
-                .catch(err=>{
+            return fetch(url, { headers: { Accept: 'application/json' } })
+                .then(r => {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(js => {
+                    schemaCache = js;
+                    return js;
+                })
+                .catch(err => {
                     console.warn('[override] schema fetch failed for', url, err.message || err);
                     return tryNext();
                 });
         };
         return tryNext();
-    }
-            })
-            .catch(e => {
-                console.error('[override] schema fetch failed', e);
-                return null;
-            });
     }
     function buildIndex(schema, pfx = '') {
         if (!schema || schema.type !== 'object') return;
@@ -16430,8 +16429,8 @@ if (!document.__niwDelegatedFallback) {
                 buildIndex(s);
                 ensurePanel();
                 validateAgainstSchema();
-                if(statusEl){
-                    statusEl.textContent = 'Schema loaded ('+keyIndex.length+' keys)';
+                if (statusEl) {
+                    statusEl.textContent = 'Schema loaded (' + keyIndex.length + ' keys)';
                     statusEl.className = 'override-status success';
                 }
             });
