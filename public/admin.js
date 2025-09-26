@@ -8220,6 +8220,121 @@
                 const clearBtn = document.getElementById('override-clear');
                 const templateBtn = document.getElementById('override-insert-base');
                 const snippetsWrap = document.getElementById('override-snippets');
+                const snippetModeSel = document.getElementById('override-snippet-mode');
+
+                const SNIPPET_SETS = {
+                    general: [
+                        { label: 'syncEnabled', json: { syncEnabled: true } },
+                        {
+                            label: 'transitionIntervalSeconds',
+                            json: { transitionIntervalSeconds: 45 },
+                        },
+                        { label: 'transitionEffect=fade', json: { transitionEffect: 'fade' } },
+                        { label: 'effectPauseTime=2', json: { effectPauseTime: 2 } },
+                        { label: 'uiScaling.content', json: { uiScaling: { content: 110 } } },
+                        { label: 'clockFormat=12h', json: { clockFormat: '12h' } },
+                    ],
+                    wallart: [
+                        { label: 'wallartMode.enabled', json: { wallartMode: { enabled: true } } },
+                        {
+                            label: 'wallartMode.density=high',
+                            json: { wallartMode: { density: 'high' } },
+                        },
+                        {
+                            label: 'wallartMode.animationType=fade',
+                            json: { wallartMode: { animationType: 'fade' } },
+                        },
+                        {
+                            label: 'wallartMode.itemsPerScreen=40',
+                            json: { wallartMode: { itemsPerScreen: 40 } },
+                        },
+                        {
+                            label: 'wallartMode.refreshRate=4',
+                            json: { wallartMode: { refreshRate: 4 } },
+                        },
+                        {
+                            label: 'wallartMode.ambientGradient',
+                            json: { wallartMode: { ambientGradient: true } },
+                        },
+                    ],
+                    cinema: [
+                        {
+                            label: 'cinema.header.style=neon',
+                            json: { cinema: { header: { style: 'neon' } } },
+                        },
+                        {
+                            label: 'cinema.footer.type=marquee',
+                            json: { cinema: { footer: { type: 'marquee' } } },
+                        },
+                        {
+                            label: 'cinema.footer.type=specs',
+                            json: { cinema: { footer: { type: 'specs' } } },
+                        },
+                        {
+                            label: 'cinema.ambilight.enabled',
+                            json: { cinema: { ambilight: { enabled: true } } },
+                        },
+                        {
+                            label: 'cinema.ambilight.strength=80',
+                            json: { cinema: { ambilight: { strength: 80 } } },
+                        },
+                        {
+                            label: 'cinema.header.text',
+                            json: { cinema: { header: { text: 'Now Showing' } } },
+                        },
+                    ],
+                };
+
+                function renderSnippets() {
+                    if (!snippetsWrap) return;
+                    const mode = snippetModeSel?.value || 'general';
+                    snippetsWrap.innerHTML = '';
+                    (SNIPPET_SETS[mode] || []).forEach(sn => {
+                        const b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'ov-snippet';
+                        b.textContent = sn.label;
+                        b.dataset.overrideSnippet = JSON.stringify(sn.json);
+                        b.addEventListener('click', () => applySnippet(JSON.stringify(sn.json)));
+                        snippetsWrap.appendChild(b);
+                    });
+                }
+
+                function applySnippet(str) {
+                    if (!textarea) return;
+                    textarea.dataset.userEdited = '1';
+                    let frag;
+                    try {
+                        frag = JSON.parse(str);
+                    } catch (_) {
+                        return;
+                    }
+                    let baseObj = {};
+                    try {
+                        baseObj = JSON.parse(textarea.value || '{}');
+                    } catch (_) {
+                        baseObj = {};
+                    }
+                    const merged = (function deepMerge(t, s) {
+                        if (s && typeof s === 'object' && !Array.isArray(s)) {
+                            Object.entries(s).forEach(([k, v]) => {
+                                if (v && typeof v === 'object' && !Array.isArray(v))
+                                    t[k] = deepMerge(
+                                        t[k] && typeof t[k] === 'object' ? t[k] : {},
+                                        v
+                                    );
+                                else t[k] = v;
+                            });
+                            return t;
+                        }
+                        return s;
+                    })(baseObj, frag);
+                    textarea.value = JSON.stringify(merged, null, 2);
+                    textarea.dispatchEvent(new Event('input'));
+                }
+
+                snippetModeSel?.addEventListener('change', renderSnippets);
+                renderSnippets();
 
                 function setStatus(state, msg) {
                     if (!statusEl) return;
@@ -16046,6 +16161,7 @@ if (!document.__niwDelegatedFallback) {
         const list = document.getElementById('ov-keys-list');
         const search = document.getElementById('ov-keys-search');
         if (!list || !search) return;
+        let activeIndex = -1;
         function render(filter = '') {
             const f = filter.trim().toLowerCase();
             list.innerHTML = '';
@@ -16061,8 +16177,37 @@ if (!document.__niwDelegatedFallback) {
                     div.addEventListener('click', () => insertKey(it.path));
                     list.appendChild(div);
                 });
+            activeIndex = list.children.length ? 0 : -1;
+            updateActive();
+        }
+        function updateActive() {
+            [...list.children].forEach((el, i) => el.classList.toggle('active', i === activeIndex));
         }
         search.addEventListener('input', () => render(search.value));
+        search.addEventListener('focus', () => {
+            if (!search.value) render('');
+        });
+        search.addEventListener('keydown', e => {
+            const total = list.children.length;
+            if (!total) return;
+            if (e.key === 'ArrowDown') {
+                activeIndex = (activeIndex + 1) % total;
+                updateActive();
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp') {
+                activeIndex = (activeIndex - 1 + total) % total;
+                updateActive();
+                e.preventDefault();
+            } else if (e.key === 'Enter' && activeIndex >= 0) {
+                const item = list.children[activeIndex];
+                if (item) {
+                    insertKey(item.dataset.path);
+                    e.preventDefault();
+                }
+            } else if (e.key === 'Escape') {
+                search.blur();
+            }
+        });
         render();
     }
     function insertKey(path) {
