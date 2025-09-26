@@ -356,6 +356,54 @@
 #modal-assign-location .btn-location-accent {
     --accent-color: var(--color-accent);
 }
+#modal-assign-location .modal-footer .btn {
+    border: none;
+    border-radius: 4px;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: var(--color-text-secondary);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    font-size: 0.85rem;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.25s ease;
+}
+#modal-assign-location .modal-footer .btn:hover,
+#modal-assign-location .modal-footer .btn:focus-visible {
+    color: var(--color-text-primary);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+}
+#modal-assign-location .modal-footer .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+#modal-assign-location .modal-footer .btn.btn-location-accent {
+    color: color-mix(in srgb, var(--color-accent) 78%, var(--color-text-secondary));
+}
+#modal-assign-location .modal-footer .btn.btn-location-accent:hover,
+#modal-assign-location .modal-footer .btn.btn-location-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-accent) 90%, var(--color-text-secondary));
+}
+#modal-assign-location .modal-footer .btn.btn-location-accent:active {
+    color: color-mix(in srgb, var(--color-accent) 95%, var(--color-text-secondary));
+}
 #modal-create-device .btn-create-accent {
     --accent-color: var(--color-success);
 }
