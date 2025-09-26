@@ -955,6 +955,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     function applySettings(partial) {
         try {
             if (!partial || typeof partial !== 'object') return;
+            if (window.POSTERRAMA_DEBUG) {
+                try {
+                    console.log(
+                        '[LIVE APPLY] incoming partial',
+                        JSON.parse(JSON.stringify(partial))
+                    );
+                } catch (_) {}
+            }
             // Merge into current appConfig (shallow for top-level, deep for known groups)
             const next = { ...appConfig };
             let rerenderNeeded = false; // whether we should refresh current media display after commit
@@ -1378,8 +1386,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function applyWallartMode(config) {
         const body = document.body;
-
+        // Give cinema mode absolute precedence: if cinemaMode true, ensure wallart is not applied
+        if (config.cinemaMode) {
+            // If wallart class was active previously, remove and perform minimal cleanup branch
+            if (body.classList.contains('wallart-mode')) {
+                body.classList.remove('wallart-mode');
+            }
+            window._lastWallartEnabled = false;
+            if (window.POSTERRAMA_DEBUG) {
+                const msg = '[WALLART] Skip apply: cinemaMode active';
+                try {
+                    logger.debug(msg);
+                } catch (_) {
+                    console.log(msg);
+                }
+            }
+            return;
+        }
         const nextWallartEnabled = !!config.wallartMode?.enabled;
+        if (window.POSTERRAMA_DEBUG) {
+            const meta = { enabled: nextWallartEnabled, wallartMode: config.wallartMode };
+            try {
+                logger.debug('[WALLART] applyWallartMode invoked', meta);
+            } catch (_) {
+                console.log('[WALLART] applyWallartMode invoked', meta);
+            }
+        }
         window._lastWallartEnabled = nextWallartEnabled;
         if (nextWallartEnabled) {
             // Check if wallart mode is already active BEFORE removing the class

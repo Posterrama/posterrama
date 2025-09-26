@@ -7229,11 +7229,40 @@
                     reasons: Array.from(v.reasons),
                 }));
             }
+            function deriveDeviceMode(d) {
+                try {
+                    const override = d?.settingsOverride || {};
+                    // Explicit override precedence with hard disable semantics
+                    const ovCinema = override.cinemaMode === true;
+                    const ovCinemaDisabled = override.cinemaMode === false;
+                    const ovWallart = !!(
+                        override.wallartMode &&
+                        typeof override.wallartMode === 'object' &&
+                        override.wallartMode.enabled
+                    );
+
+                    if (ovCinema) return 'cinema';
+                    if (ovWallart) return 'wallart';
+                    // If override explicitly disabled cinema and wallart not enabled, force screensaver regardless of stale reported mode
+                    if (ovCinemaDisabled && !ovWallart) return 'screensaver';
+
+                    // Ignore presence of override.cinema object unless cinemaMode === true
+                    const reported = (d?.clientInfo?.mode || d?.mode || '').toLowerCase();
+                    if (!ovCinemaDisabled) {
+                        // only trust reported if not explicitly disabled
+                        if (reported === 'cinema' || reported === 'cinema mode') return 'cinema';
+                    }
+                    if (reported === 'wallart') return 'wallart';
+                    return 'screensaver';
+                } catch (_) {
+                    return 'screensaver';
+                }
+            }
             function renderCard(d) {
                 const status = getStatusClass(d);
                 const icon = iconForDevice(d);
                 const type = typeLabel(d);
-                const mode = d?.clientInfo?.mode || d?.mode || '';
+                const mode = deriveDeviceMode(d);
                 const room = roomLabel(d);
                 const meta = versionMeta(d);
                 const disabledPower = status === 'offline' ? ' disabled' : '';
@@ -8210,16 +8239,94 @@
                 if (!Array.isArray(ids) || !ids.length) return;
                 const overlay = document.getElementById('modal-override');
                 const textarea = document.getElementById('override-json');
-                if (textarea && !textarea.dataset.userEdited) {
-                    textarea.value = '{\n  "wallart": { "duration": 30 }\n}';
-                }
                 overlay?.classList.add('open');
                 const applyBtn = document.getElementById('btn-override-apply');
                 const statusEl = document.getElementById('override-json-status');
                 const formatBtn = document.getElementById('override-format');
                 const clearBtn = document.getElementById('override-clear');
+                const cleanBtn = document.getElementById('override-clean');
+                const mixedBadge = document.getElementById('mode-mixed-badge');
+                const conflictWrap = document.getElementById('override-conflicts');
+                const conflictCountEl = document.getElementById('conflict-count');
+                const conflictList = document.getElementById('conflict-list');
+                const conflictEmpty = document.getElementById('conflicts-empty');
+                const conflictsBody = document.getElementById('conflicts-body');
+                const conflictsToggle = document.getElementById('conflicts-toggle');
+                const conflictsRescan = document.getElementById('conflicts-rescan');
+                const seg = document.getElementById('mode-segment');
                 const snippetsWrap = document.getElementById('override-snippets');
-                const snippetModeSel = document.getElementById('override-snippet-mode');
+                let originalPerDevice = {}; // id -> settingsOverride object
+                let conflictData = { paths: [], map: {} }; // map[path] => { values:Set<string>, samples:[{device,value}] }
+                function deriveMode(obj) {
+                    if (!obj || typeof obj !== 'object') return 'general';
+                    if (obj.cinemaMode === true || (obj.cinema && typeof obj.cinema === 'object'))
+                        return 'cinema';
+                    if (
+                        (obj.wallartMode &&
+                            typeof obj.wallartMode === 'object' &&
+                            obj.wallartMode.enabled) ||
+                        (obj.wallart && typeof obj.wallart === 'object')
+                    )
+                        return 'wallart';
+                    return 'general';
+                }
+                function normalizeLegacy(obj) {
+                    if (obj && obj.wallart && !obj.wallartMode) {
+                        // attempt shallow transform if legacy key used
+                        obj.wallartMode = obj.wallartMode || {};
+                        if (obj.wallart.duration && !obj.wallartMode.transitionInterval)
+                            obj.wallartMode.transitionInterval = obj.wallart.duration;
+                        delete obj.wallart; // remove legacy key
+                    }
+                }
+                async function loadOverrides(ids) {
+                    const collected = [];
+                    for (const id of ids) {
+                        try {
+                            const dev = await fetchJSON(`/api/devices/${encodeURIComponent(id)}`);
+                            if (
+                                dev &&
+                                dev.settingsOverride &&
+                                typeof dev.settingsOverride === 'object'
+                            ) {
+                                collected.push(dev.settingsOverride);
+                            }
+                        } catch (_) {}
+                    }
+                    return collected;
+                }
+                // Load overrides for all selected devices
+                let mode = 'general';
+                if (textarea) {
+                    const all = await loadOverrides(ids);
+                    originalPerDevice = {};
+                    all.forEach((o, i) => {
+                        originalPerDevice[ids[i]] = JSON.parse(JSON.stringify(o || {}));
+                    });
+                    if (all.length === 1) {
+                        const obj = all[0];
+                        normalizeLegacy(obj);
+                        textarea.value = JSON.stringify(obj, null, 2);
+                        mode = deriveMode(obj);
+                    } else if (all.length > 1) {
+                        // Determine if mixed
+                        const modes = new Set();
+                        all.forEach(o => modes.add(deriveMode(o)));
+                        if (modes.size === 1) {
+                            const merged = all.reduce((acc, cur) => Object.assign(acc, cur), {});
+                            normalizeLegacy(merged);
+                            textarea.value = JSON.stringify(merged, null, 2);
+                            mode = [...modes][0];
+                        } else {
+                            mode = '__mixed';
+                            textarea.value = '{}';
+                        }
+                    } else if (!textarea.dataset.userEdited) {
+                        textarea.value =
+                            '{\n  "wallartMode": { "enabled": true, "animationType": "fade" }\n}';
+                        mode = 'wallart';
+                    }
+                }
 
                 const SNIPPET_SETS = {
                     general: [
@@ -8284,9 +8391,27 @@
                     ],
                 };
 
+                let mixedInfo = mode === '__mixed';
+                function setSegmentActive(val) {
+                    if (!seg) return;
+                    seg.querySelectorAll('.seg-btn').forEach(btn => {
+                        const m = btn.getAttribute('data-mode');
+                        const active = m === val;
+                        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+                        btn.classList.toggle('active', active);
+                    });
+                }
+                if (!mixedInfo) setSegmentActive(mode);
+                if (mixedBadge) mixedBadge.hidden = !mixedInfo;
+
                 function renderSnippets() {
                     if (!snippetsWrap) return;
-                    const mode = snippetModeSel?.value || 'general';
+                    const activeSeg = seg?.querySelector('.seg-btn[aria-checked="true"]');
+                    const mode = mixedInfo
+                        ? 'general'
+                        : activeSeg
+                          ? activeSeg.getAttribute('data-mode')
+                          : 'general';
                     snippetsWrap.innerHTML = '';
                     (SNIPPET_SETS[mode] || []).forEach(sn => {
                         const b = document.createElement('button');
@@ -8332,8 +8457,355 @@
                     textarea.dispatchEvent(new Event('input'));
                 }
 
-                snippetModeSel?.addEventListener('change', renderSnippets);
                 renderSnippets();
+                if (mixedInfo && statusEl) {
+                    statusEl.className = 'override-status neutral';
+                    statusEl.innerHTML =
+                        '<i class="fas fa-info-circle icon"></i>Multiple modes selected. Editing will apply a unified override to all.';
+                }
+
+                function buildConflicts() {
+                    const devIds = Object.keys(originalPerDevice);
+                    if (devIds.length <= 1) {
+                        conflictData = { paths: [], map: {} };
+                        return;
+                    }
+                    const map = {};
+                    for (const id of devIds) {
+                        const root = originalPerDevice[id] || {};
+                        walk(root, '', (p, v) => {
+                            if (!map[p]) map[p] = { values: new Set(), samples: [] };
+                            const key = JSON.stringify(v);
+                            map[p].values.add(key);
+                            if (map[p].samples.length < 12)
+                                map[p].samples.push({ device: id, value: v });
+                        });
+                    }
+                    const paths = Object.keys(map).filter(p => map[p].values.size > 1);
+                    conflictData = { paths, map };
+                }
+                function walk(obj, base, cb) {
+                    if (obj && typeof obj === 'object') {
+                        for (const k of Object.keys(obj)) {
+                            const path = base ? base + '.' + k : k;
+                            const val = obj[k];
+                            if (val && typeof val === 'object' && !Array.isArray(val)) {
+                                cb(path, val);
+                                walk(val, path, cb);
+                            } else cb(path, val);
+                        }
+                    }
+                }
+                function renderConflicts() {
+                    if (!conflictWrap) return;
+                    conflictList.innerHTML = '';
+                    if (!conflictData.paths.length) {
+                        if (conflictCountEl) conflictCountEl.textContent = '0';
+                        conflictWrap.hidden = true;
+                        return;
+                    }
+                    conflictWrap.hidden = false;
+                    conflictCountEl.textContent = String(conflictData.paths.length);
+                    const sorted = conflictData.paths.slice().sort();
+                    conflictEmpty.hidden = true;
+                    sorted.forEach(p => {
+                        const info = conflictData.map[p];
+                        const li = document.createElement('li');
+                        li.className = 'conflict-item';
+                        const pathEl = document.createElement('span');
+                        pathEl.className = 'c-path';
+                        pathEl.textContent = p;
+                        li.appendChild(pathEl);
+                        const valuesWrap = document.createElement('div');
+                        valuesWrap.className = 'conflict-values';
+                        const rendered = new Set();
+                        info.samples.forEach(s => {
+                            const k = JSON.stringify(s.value);
+                            if (rendered.has(k)) return;
+                            rendered.add(k);
+                            const vBtn = document.createElement('div');
+                            vBtn.className = 'conflict-value';
+                            vBtn.title =
+                                'Device: ' +
+                                s.device +
+                                '\nClick to apply this value across all devices';
+                            let label =
+                                typeof s.value === 'object'
+                                    ? JSON.stringify(s.value)
+                                    : String(s.value);
+                            if (label.length > 60) label = label.slice(0, 57) + '…';
+                            vBtn.textContent = label;
+                            vBtn.addEventListener('click', () =>
+                                applyConflictValue(p, s.value, vBtn)
+                            );
+                            valuesWrap.appendChild(vBtn);
+                        });
+                        li.appendChild(valuesWrap);
+                        conflictList.appendChild(li);
+                    });
+                }
+                function setPath(obj, path, val) {
+                    const parts = path.split('.');
+                    let cur = obj;
+                    for (let i = 0; i < parts.length - 1; i++) {
+                        const k = parts[i];
+                        if (!cur[k] || typeof cur[k] !== 'object') cur[k] = {};
+                        cur = cur[k];
+                    }
+                    cur[parts[parts.length - 1]] = val;
+                }
+                function applyConflictValue(path, value, el) {
+                    Object.keys(originalPerDevice).forEach(id => {
+                        setPath(originalPerDevice[id], path, value);
+                    });
+                    // Rebuild canonical merged object from first device
+                    const firstId = Object.keys(originalPerDevice)[0];
+                    const canon = JSON.parse(JSON.stringify(originalPerDevice[firstId] || {}));
+                    textarea.value = JSON.stringify(canon, null, 2);
+                    el.classList.add('applied');
+                    buildConflicts();
+                    renderConflicts();
+                    updateSnippetState();
+                    if (statusEl) setStatus('success', 'Conflict value applied');
+                }
+                function currentModeValue() {
+                    if (mixedInfo) return '__mixed';
+                    const active = seg?.querySelector('.seg-btn[aria-checked="true"]');
+                    return active ? active.getAttribute('data-mode') : 'general';
+                }
+                function updateSnippetState() {
+                    const disabled =
+                        currentModeValue() === '__mixed' || conflictData.paths.length > 0;
+                    snippetsWrap?.querySelectorAll('.ov-snippet').forEach(b => {
+                        b.disabled = disabled;
+                        b.title = disabled
+                            ? 'Disabled while mixed or conflicts unresolved'
+                            : 'Insert snippet';
+                    });
+                }
+                function selectSegment(newMode) {
+                    if (mixedInfo) {
+                        showConfirm(
+                            'Unify Mixed Overrides',
+                            'Switching mode will unify overrides across devices and discard conflicting keys that do not apply to the chosen mode. Continue?',
+                            () => {
+                                mixedInfo = false;
+                                mixedBadge && (mixedBadge.hidden = true);
+                                setSegmentActive(newMode);
+                                cleanupForMode(newMode);
+                                buildConflicts();
+                                renderConflicts();
+                                updateSnippetState();
+                                setStatus('info', 'Mode switched to ' + formatModeWord(newMode));
+                            }
+                        );
+                        return;
+                    }
+                    const cur = currentModeValue();
+                    if (cur === newMode) return;
+                    setSegmentActive(newMode);
+                    cleanupForMode(newMode);
+                    buildConflicts();
+                    renderConflicts();
+                    updateSnippetState();
+                    setStatus('info', 'Mode switched to ' + formatModeWord(newMode));
+                }
+                seg?.addEventListener('click', e => {
+                    const btn = e.target.closest('.seg-btn');
+                    if (!btn) return;
+                    selectSegment(btn.getAttribute('data-mode'));
+                });
+                seg?.addEventListener('keydown', e => {
+                    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End', ' ', 'Enter'].includes(e.key))
+                        return;
+                    const buttons = Array.from(seg.querySelectorAll('.seg-btn'));
+                    let idx = buttons.findIndex(b => b.getAttribute('aria-checked') === 'true');
+                    if (idx === -1) idx = 0;
+                    let next = idx;
+                    if (e.key === 'ArrowRight') next = (idx + 1) % buttons.length;
+                    else if (e.key === 'ArrowLeft')
+                        next = (idx - 1 + buttons.length) % buttons.length;
+                    else if (e.key === 'Home') next = 0;
+                    else if (e.key === 'End') next = buttons.length - 1;
+                    if (next !== idx) {
+                        e.preventDefault();
+                        selectSegment(buttons[next].getAttribute('data-mode'));
+                    } else if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        selectSegment(buttons[idx].getAttribute('data-mode'));
+                    }
+                });
+                conflictsToggle?.addEventListener('click', () => {
+                    if (conflictsBody) conflictsBody.hidden = !conflictsBody.hidden;
+                });
+                conflictsRescan?.addEventListener('click', () => {
+                    buildConflicts();
+                    renderConflicts();
+                    updateSnippetState();
+                });
+                // Initial conflict build
+                buildConflicts();
+                renderConflicts();
+                updateSnippetState();
+                if (mixedBadge) mixedBadge.hidden = mode !== '__mixed';
+
+                // Custom confirm modal helper
+                function showConfirm(title, message, onOk) {
+                    const overlay = document.getElementById('modal-confirm');
+                    if (!overlay) {
+                        if (confirm(message)) onOk?.();
+                        return;
+                    }
+                    const msgEl = document.getElementById('confirm-message');
+                    const titleEl = document.getElementById('confirm-title');
+                    const okBtn = document.getElementById('confirm-ok');
+                    const cancelBtn = document.getElementById('confirm-cancel');
+                    if (titleEl)
+                        titleEl.innerHTML =
+                            '<i class="fas fa-circle-question"></i> ' +
+                            escapeHtml(title || 'Confirm');
+                    if (msgEl) msgEl.textContent = message;
+                    overlay.hidden = false;
+                    overlay.classList.add('open');
+                    const cleanup = () => {
+                        overlay.classList.remove('open');
+                        overlay.hidden = true;
+                        okBtn && okBtn.removeEventListener('click', okHandler);
+                        cancelBtn && cancelBtn.removeEventListener('click', cancelHandler);
+                    };
+                    function okHandler() {
+                        try {
+                            onOk?.();
+                        } finally {
+                            cleanup();
+                        }
+                    }
+                    function cancelHandler() {
+                        cleanup();
+                    }
+                    okBtn?.addEventListener('click', okHandler, { once: true });
+                    cancelBtn?.addEventListener('click', cancelHandler, { once: true });
+                }
+                // Multi-choice variant for dual-mode resolution
+                function showChoice(options) {
+                    // options: { title, message, choices:[{label,mode,primary}], onSelect(mode), onCancel }
+                    const overlay = document.getElementById('modal-confirm');
+                    if (!overlay) {
+                        // Fallback to simple confirm sequence
+                        const picked = confirm(
+                            options.message + '\nKeep Wall Art? (Cancel = Cinema)'
+                        );
+                        options.onSelect?.(picked ? 'wallart' : 'cinema');
+                        return;
+                    }
+                    const msgEl = document.getElementById('confirm-message');
+                    const titleEl = document.getElementById('confirm-title');
+                    const okBtn = document.getElementById('confirm-ok');
+                    const cancelBtn = document.getElementById('confirm-cancel');
+                    if (titleEl)
+                        titleEl.innerHTML =
+                            '<i class="fas fa-circle-question"></i> ' +
+                            escapeHtml(options.title || 'Choose');
+                    if (msgEl) msgEl.textContent = options.message;
+                    // Repurpose existing two buttons: make OK = first choice, Cancel = second choice (or cancel)
+                    const wallartChoice =
+                        options.choices?.find(c => c.mode === 'wallart') || options.choices?.[0];
+                    const cinemaChoice =
+                        options.choices?.find(c => c.mode === 'cinema') || options.choices?.[1];
+                    if (okBtn && wallartChoice) okBtn.textContent = wallartChoice.label;
+                    if (cancelBtn && cinemaChoice) cancelBtn.textContent = cinemaChoice.label;
+                    overlay.hidden = false;
+                    overlay.classList.add('open');
+                    function cleanup() {
+                        overlay.classList.remove('open');
+                        overlay.hidden = true;
+                        if (okBtn) okBtn.textContent = 'OK';
+                        if (cancelBtn) cancelBtn.textContent = 'Cancel';
+                        okBtn && okBtn.removeEventListener('click', okHandler);
+                        cancelBtn && cancelBtn.removeEventListener('click', cancelHandler);
+                    }
+                    function okHandler() {
+                        try {
+                            options.onSelect?.(wallartChoice.mode);
+                        } finally {
+                            cleanup();
+                        }
+                    }
+                    function cancelHandler() {
+                        try {
+                            options.onSelect?.(cinemaChoice.mode);
+                        } finally {
+                            cleanup();
+                        }
+                    }
+                    okBtn?.addEventListener('click', okHandler, { once: true });
+                    cancelBtn?.addEventListener('click', cancelHandler, { once: true });
+                }
+                function formatModeWord(modeVal) {
+                    const label = modeVal === 'general' ? 'screensaver' : modeVal;
+                    const cls =
+                        modeVal === 'wallart'
+                            ? 'pill-wallart'
+                            : modeVal === 'cinema'
+                              ? 'pill-cinema'
+                              : 'pill-screensaver';
+                    return '<span class="mode-pill ' + cls + '">' + escapeHtml(label) + '</span>';
+                }
+
+                function cleanupForMode(curMode) {
+                    if (!textarea) return;
+                    // Parse existing JSON; treat invalid/empty as empty object instead of aborting
+                    let obj;
+                    try {
+                        const raw = (textarea.value || '').trim();
+                        obj = raw ? JSON.parse(raw) : {};
+                    } catch {
+                        obj = {}; // fallback
+                    }
+                    if (curMode === '__mixed') return; // never mutate while mixed
+                    const keep = {};
+                    const genericKeys = [
+                        'syncEnabled',
+                        'transitionIntervalSeconds',
+                        'transitionEffect',
+                        'effectPauseTime',
+                        'uiScaling',
+                        'clockFormat',
+                    ];
+                    genericKeys.forEach(k => {
+                        if (obj && typeof obj === 'object' && k in obj) keep[k] = obj[k];
+                    });
+                    if (curMode === 'wallart') {
+                        if (obj.wallartMode && typeof obj.wallartMode === 'object') {
+                            // clone to avoid mutating original reference and guarantee enabled flag
+                            keep.wallartMode = { ...obj.wallartMode };
+                        } else if (obj.wallart && typeof obj.wallart === 'object') {
+                            keep.wallartMode = { ...obj.wallart };
+                        } else {
+                            keep.wallartMode = {};
+                        }
+                        keep.wallartMode.enabled = true; // FORCE ON when wallart segment selected
+                        keep.cinemaMode = false;
+                    } else if (curMode === 'cinema') {
+                        // Ensure cinema enabled; explicitly disable wallart to override base/group config
+                        keep.cinemaMode = true;
+                        keep.wallartMode = { enabled: false };
+                        if (obj.cinema) keep.cinema = obj.cinema;
+                        else keep.cinema = { header: { text: 'Now Showing' } };
+                    } else {
+                        // general / screensaver
+                        // Neutral: explicitly disable both so baseConfig can't force wallart
+                        keep.wallartMode = { enabled: false };
+                        keep.cinemaMode = false;
+                    }
+                    textarea.value = JSON.stringify(keep, null, 2);
+                    // Immediately re-parse to update status/apply button state
+                    tryParse();
+                }
+                cleanBtn?.addEventListener('click', () => {
+                    const cur = currentModeValue();
+                    cleanupForMode(cur === '__mixed' ? 'general' : cur);
+                });
 
                 function setStatus(state, msg) {
                     if (!statusEl) return;
@@ -8367,6 +8839,7 @@
                         textarea.classList.add('valid');
                         textarea.classList.remove('invalid');
                         if (applyBtn) applyBtn.disabled = false;
+                        maybePromptDualMode(obj);
                         return obj;
                     } catch (e) {
                         setStatus('error', e.message.split('\n')[0]);
@@ -8374,6 +8847,44 @@
                         textarea.classList.remove('valid');
                         if (applyBtn) applyBtn.disabled = true;
                         return null;
+                    }
+                }
+                let dualModePromptShown = false;
+                function maybePromptDualMode(obj) {
+                    if (dualModePromptShown) return;
+                    if (!obj || typeof obj !== 'object') return;
+                    // Detect wallart enabled
+                    const wallartOn = !!(
+                        obj.wallartMode?.enabled ||
+                        obj.wallart?.enabled ||
+                        (obj.wallartMode &&
+                            obj.wallartMode.enabled !== false &&
+                            obj.wallartMode.enabled !== 0)
+                    );
+                    // Detect cinema enabled (explicit true). A cinema object alone does not force activation unless cinemaMode true.
+                    const cinemaOn = obj.cinemaMode === true;
+                    if (wallartOn && cinemaOn) {
+                        dualModePromptShown = true;
+                        showChoice({
+                            title: 'Choose a Mode',
+                            message:
+                                "Both Wall Art and Cinema are enabled. Select which mode to keep; the other mode's keys will be removed.",
+                            choices: [
+                                { label: 'Keep Wall Art', mode: 'wallart' },
+                                { label: 'Keep Cinema', mode: 'cinema' },
+                            ],
+                            onSelect: modeChosen => {
+                                cleanupForMode(modeChosen);
+                                buildConflicts();
+                                renderConflicts();
+                                updateSnippetState();
+                                setSegmentActive(modeChosen);
+                                setStatus(
+                                    'info',
+                                    'Resolved dual mode – kept ' + formatModeWord(modeChosen)
+                                );
+                            },
+                        });
                     }
                 }
                 // Initial validation
@@ -8401,19 +8912,6 @@
                         tryParse();
                     });
                     clearBtn._bound = true;
-                }
-                if (templateBtn && !templateBtn._bound) {
-                    templateBtn.addEventListener('click', () => {
-                        const template = {
-                            wallart: { duration: 30, shuffle: true },
-                            screensaver: { interval: 120 },
-                            cinema: { ambilight: { strength: 60 } },
-                            display: { orientation: 'auto', theme: 'dark' },
-                        };
-                        textarea.value = JSON.stringify(template, null, 2);
-                        tryParse();
-                    });
-                    templateBtn._bound = true;
                 }
                 if (snippetsWrap && !snippetsWrap._bound) {
                     snippetsWrap.addEventListener('click', e => {
@@ -8473,7 +8971,27 @@
                                 fail++;
                             }
                         }
+                        window.notify?.toast?.({
+                            type: 'info',
+                            title: 'Override Debug',
+                            message:
+                                'Keys sent: ' + (Object.keys(payload || {}).join(', ') || '(none)'),
+                        });
                         document.getElementById('modal-override')?.classList.remove('open');
+                        // After applying overrides, refresh the config so mode pill reflects changes promptly
+                        try {
+                            const r = await fetch('/api/admin/config', { cache: 'no-cache' });
+                            if (r.ok) {
+                                const cfg = await r.json();
+                                if (cfg && (cfg.config || cfg)) {
+                                    hydrateDisplayForm(cfg.config || cfg);
+                                }
+                            } else {
+                                console.warn('[Admin] Failed to refresh config after overrides');
+                            }
+                        } catch (e) {
+                            console.warn('[Admin] Refresh error after overrides', e);
+                        }
                         if (ok)
                             window.notify?.toast({
                                 type: 'success',
@@ -16180,24 +16698,45 @@ if (!document.__niwDelegatedFallback) {
     function ensurePanel() {
         const list = document.getElementById('ov-keys-list');
         const search = document.getElementById('ov-keys-search');
+        const emptyEl = document.getElementById('ov-keys-empty');
         if (!list || !search) return;
         let activeIndex = -1;
         function render(filter = '') {
             const f = filter.trim().toLowerCase();
             list.innerHTML = '';
-            keyIndex
-                .filter(it => !f || it.path.toLowerCase().includes(f))
-                .slice(0, 400)
-                .forEach(it => {
-                    const div = document.createElement('div');
-                    div.className = 'ov-key-item';
-                    div.dataset.path = it.path;
-                    div.innerHTML = `<span class="k">${it.path}</span><span class="ov-key-type t-${it.type}">${it.type}</span>`;
-                    div.title = it.description || it.path;
-                    div.addEventListener('click', () => insertKey(it.path));
-                    list.appendChild(div);
-                });
-            activeIndex = list.children.length ? 0 : -1;
+            if (!f) {
+                // Show empty prompt
+                if (emptyEl) {
+                    emptyEl.textContent = 'Start typing to see matching keys.';
+                    emptyEl.style.display = 'block';
+                }
+                activeIndex = -1;
+                updateActive();
+                return;
+            }
+            let count = 0;
+            keyIndex.forEach(it => {
+                if (!it.path.toLowerCase().includes(f)) return;
+                if (count >= 400) return; // safety cap
+                const div = document.createElement('div');
+                div.className = 'ov-key-item';
+                div.dataset.path = it.path;
+                div.innerHTML = `<span class="k">${it.path}</span><span class="ov-key-type t-${it.type}">${it.type}</span>`;
+                div.title = it.description || it.path;
+                div.addEventListener('click', () => insertKey(it.path));
+                list.appendChild(div);
+                count++;
+            });
+            if (!list.children.length) {
+                if (emptyEl) {
+                    emptyEl.textContent = 'No matching keys';
+                    emptyEl.style.display = 'block';
+                }
+                activeIndex = -1;
+            } else {
+                if (emptyEl) emptyEl.style.display = 'none';
+                activeIndex = 0;
+            }
             updateActive();
         }
         function updateActive() {
@@ -16205,7 +16744,7 @@ if (!document.__niwDelegatedFallback) {
         }
         search.addEventListener('input', () => render(search.value));
         search.addEventListener('focus', () => {
-            if (!search.value) render('');
+            if (!search.value) render(''); // will show empty prompt
         });
         search.addEventListener('keydown', e => {
             const total = list.children.length;
@@ -16228,8 +16767,10 @@ if (!document.__niwDelegatedFallback) {
                 search.blur();
             }
         });
-        render();
+        // initial: do not render keys list until user types
+        if (emptyEl) emptyEl.style.display = 'block';
     }
+    // Legacy dropdown listener removed: segmented control now the single source of truth for mode flags
     function insertKey(path) {
         let obj = {};
         try {

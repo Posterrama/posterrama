@@ -1,3 +1,320 @@
+#modal-override .override-layout {
+    position: relative;
+}
+#modal-override .override-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+.mode-segment {
+    display: inline-flex;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+    position: relative;
+}
+.mode-segment .seg-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--color-text-secondary);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    transition:
+        background 0.15s,
+        var(--anim-duration-fast);
+}
+.mode-segment .seg-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-primary);
+}
+.mode-segment .seg-btn[aria-checked='true'] {
+    background: linear-gradient(180deg, var(--color-bg-card), var(--color-bg-secondary));
+    color: var(--color-text-primary);
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.4),
+        0 1px 2px rgba(0, 0, 0, 0.4) inset;
+}
+.mode-segment .seg-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+.mode-segment .mode-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+}
+.mode-quick-group {
+    display: flex;
+    gap: 0.35rem;
+    margin-right: 0.25rem;
+}
+.mode-quick-group .btn.qm {
+    padding: 2px 6px;
+    font-size: 0.65rem;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    border-radius: 6px;
+    box-shadow: var(--btn-shadow);
+}
+.mode-badge {
+    background: linear-gradient(90deg, #ff9800, #ffb74d);
+    color: #222;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.2),
+        0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.override-conflicts {
+    margin-top: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--panel-bg, rgba(255, 255, 255, 0.05));
+    padding: 0.5rem 0.6rem 0.6rem;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.15) inset,
+        0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.override-conflicts .conflicts-header {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.override-conflicts #conflict-count {
+    background: #d32f2f;
+    color: #fff;
+    padding: 0 6px;
+    border-radius: 12px;
+    font-size: 0.65rem;
+    margin-left: 0.35rem;
+}
+.conflicts-body {
+    margin-top: 0.5rem;
+    max-height: 200px;
+    overflow: auto;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.5rem;
+}
+.conflict-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.conflict-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.4rem 0.5rem;
+    font-family: var(--mono, monospace);
+    font-size: 0.7rem;
+    position: relative;
+}
+.conflict-item .c-path {
+    font-weight: 600;
+    color: var(--accent, #4dabf7);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+.conflict-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.conflict-value {
+    cursor: pointer;
+    background: #2d2f36;
+    color: #eee;
+    border: 1px solid #444;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    position: relative;
+}
+.conflict-value:hover {
+    background: #39414d;
+}
+.conflict-value.applied {
+    outline: 2px solid #4caf50;
+}
+.conflict-list-empty {
+    font-size: 0.65rem;
+    opacity: 0.6;
+}
+.conflict-hint {
+    margin-top: 0.4rem;
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.55;
+}
+
+body.dark .override-conflicts {
+    background: rgba(30, 32, 38, 0.55);
+}
+body.dark .conflict-value {
+    background: #3a3f48;
+    border-color: #555;
+}
+body.dark .conflict-value:hover {
+    background: #48515e;
+}
+
+/* Small confirm modal */
+#modal-confirm .modal.small {
+    max-width: 420px;
+}
+#modal-confirm .confirm-message {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    padding: 0.25rem 0.25rem 0.5rem;
+}
+#modal-confirm .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+}
+#modal-confirm .modal-footer .btn {
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.25px;
+    padding: 10px 14px;
+    gap: 8px;
+    display: inline-flex;
+    align-items: center;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: var(--color-text-secondary);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#modal-confirm .modal-footer .btn:hover,
+#modal-confirm .modal-footer .btn:focus,
+#modal-confirm .modal-footer .btn:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+}
+#modal-confirm .modal-footer .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+#modal-confirm #confirm-ok.btn {
+    color: var(--color-success-light, #55efc4);
+}
+#modal-confirm #confirm-ok.btn i {
+    color: var(--color-success, #00d4aa);
+}
+#modal-confirm #confirm-cancel.btn {
+    color: var(--color-text-secondary);
+}
+
+/* Mode pills in status messages */
+.mode-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 14px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    line-height: 1;
+    margin: 0 2px;
+    vertical-align: baseline;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+.pill-screensaver {
+    background: linear-gradient(90deg, #2196f3, #64b5f6);
+    color: #fff;
+}
+.pill-wallart {
+    background: linear-gradient(90deg, #8e24aa, #ba68c8);
+    color: #fff;
+}
+.pill-cinema {
+    background: linear-gradient(90deg, #ff7043, #ffa270);
+    color: #241914;
+}
+body.dark .pill-cinema {
+    color: #2b1b14;
+}
+#modal-override .override-row .menu-shell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--color-bg-tertiary);
+    padding: 4px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+}
+#modal-override .override-row .menu-shell .menu-section {
+    padding: 2px 6px;
+    background: transparent;
+    border: none;
+}
+#modal-override .override-row .ov-mode-select select.wide {
+    width: 210px;
+}
+#modal-override .override-json-shell {
+    position: relative;
+}
+#modal-override .toolbar-floating {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    z-index: 3;
+}
+#modal-override .toolbar-floating .btn {
+    padding: 4px 8px;
+}
+#modal-override .override-json-shell textarea.override-json {
+    margin-top: 12px;
+}
+
+/* Remove extra purple outline on search box when focused (reuse focus-within but subtle) */
+#modal-override .override-row .search-box.input-shell:focus-within {
+    box-shadow: none;
+    border-color: var(--color-primary);
+}
+#modal-override .override-row .search-box.input-shell:focus-within input {
+    outline: none;
+}
+
 /* Posterrama Admin Theme CSS */
 
 /* CSS Variables - Design System */
@@ -4264,6 +4581,138 @@ select:not([multiple]) {
 #modal-override .override-snippet-mode select:focus {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+}
+/* New Mode block styling */
+#modal-override .override-mode-block {
+    flex: 0 0 100%;
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+#modal-override .ov-mode-header {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-tertiary);
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+}
+#modal-override .ov-mode-select select {
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    padding: 6px 30px 6px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+}
+#modal-override .ov-mode-select select.wide {
+    min-width: 160px;
+    width: 200px;
+}
+#modal-override .ov-mode-select {
+    position: relative;
+}
+#modal-override .ov-mode-select .select-caret {
+    right: 10px;
+}
+
+/* Key filter */
+#modal-override .ov-keys-head {
+    align-items: flex-end;
+}
+#modal-override .ov-keys-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-tertiary);
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+}
+#modal-override .ov-filter-wrap input {
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.7rem;
+    width: 160px;
+}
+#modal-override .ov-filter-wrap input:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+#modal-override .ov-keys-empty {
+    font-size: 0.65rem;
+    opacity: 0.6;
+    padding: 6px 4px 2px 4px;
+}
+/* Unified menu-style section headers inside override modal */
+#modal-override .menu-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    padding: 4px 10px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+    border-radius: 6px;
+}
+#modal-override .menu-section .menu-label {
+    line-height: 1;
+}
+
+/* Search box adaptation within override keys head */
+#modal-override .override-keys-panel .search-box {
+    height: 30px;
+    padding: 0 6px 0 8px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+}
+#modal-override .override-keys-panel .search-box {
+    width: 210px;
+}
+#modal-override .override-keys-panel .search-box input {
+    width: 100%;
+    height: 28px;
+    font-size: 0.7rem;
+}
+#modal-override .override-intro {
+    margin-bottom: 20px;
+}
+#modal-override .override-row .ov-mode-select {
+    width: 210px;
+}
+#modal-override .override-row .ov-mode-select select.wide {
+    width: 100%;
+}
+
+/* Toolbar refine: anchor slightly inside textarea border */
+#modal-override .override-json-shell {
+    padding-top: 36px;
+}
+#modal-override .toolbar-floating {
+    top: 6px;
+    right: 10px;
+}
+#modal-override .toolbar-floating .btn {
+    background: rgba(255, 255, 255, 0.04);
+}
+#modal-override .toolbar-floating .btn:hover {
+    background: rgba(255, 255, 255, 0.08);
 }
 #modal-override .ov-snippet {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));

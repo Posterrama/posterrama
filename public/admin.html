@@ -2273,17 +2273,22 @@
         <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
       </div>
       <div class="modal-body">
-        <p>Override display settings (JSON).</p>
-        <div class="override-helper">
-          <div class="override-snippet-mode">
-            <label for="override-snippet-mode" class="sm" style="display:flex; align-items:center; gap:8px; font-weight:600; color:var(--color-text-primary); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
-              <i class="fas fa-layer-group" style="opacity:.8"></i> Mode
-              <select id="override-snippet-mode" style="background:var(--color-bg-tertiary); border:1px solid var(--color-border); color:var(--color-text-primary); border-radius:6px; padding:4px 6px; font-size:0.7rem;">
-                <option value="general">General</option>
-                <option value="wallart">Wallart</option>
-                <option value="cinema">Cinema</option>
-              </select>
-            </label>
+  <p class="override-intro">Override display settings (JSON).</p>
+        <div class="override-helper override-layout">
+          <div class="override-row">
+            <div class="mode-segment" id="mode-segment" role="radiogroup" aria-label="Display mode">
+              <button type="button" role="radio" aria-checked="false" data-mode="general" class="seg-btn">Screensaver</button>
+              <button type="button" role="radio" aria-checked="false" data-mode="wallart" class="seg-btn">Wallart</button>
+              <button type="button" role="radio" aria-checked="false" data-mode="cinema" class="seg-btn">Cinema</button>
+              <span class="mode-badge" id="mode-mixed-badge" hidden>Mixed</span>
+            </div>
+            <div class="menu-shell">
+              <div class="menu-section"><i class="fas fa-key"></i><span class="menu-label">Keys</span></div>
+              <div class="ov-filter-wrap input-shell search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="ov-keys-search" placeholder="Search keys…" aria-label="Search keys" />
+              </div>
+            </div>
           </div>
           <div class="override-snippets" id="override-snippets" aria-label="Quick JSON snippets" role="toolbar">
             <button type="button" class="ov-snippet" data-override-snippet='{"wallart":{"duration":45}}'>wallart.duration</button>
@@ -2294,23 +2299,51 @@
             <button type="button" class="ov-snippet" data-override-snippet='{"display":{"theme":"dark"}}'>display.theme</button>
           </div>
           <div class="override-keys-panel" id="override-keys-panel">
-            <div class="ov-keys-head">
-              <strong class="sm">All Keys</strong>
-              <input type="text" id="ov-keys-search" placeholder="Filter keys..." aria-label="Filter override keys" />
-            </div>
             <div id="ov-keys-list" class="ov-keys-list" role="listbox" aria-label="Override keys list"></div>
+            <div id="ov-keys-empty" class="ov-keys-empty">Start typing to see matching keys.</div>
           </div>
-          <div class="override-actions">
-            <button type="button" class="btn btn-outline btn-sm" id="override-format" title="Format JSON"><i class="fas fa-magic"></i> Format</button>
-            <button type="button" class="btn btn-outline btn-sm" id="override-clear" title="Clear JSON"><i class="fas fa-eraser"></i> Clear</button>
+          <div class="override-conflicts" id="override-conflicts" hidden>
+            <div class="conflicts-header">
+              <button type="button" class="btn btn-outline btn-xs" id="conflicts-toggle"><i class="fas fa-code-branch"></i> Conflicts <span id="conflict-count">0</span></button>
+              <button type="button" class="btn btn-outline btn-xs" id="conflicts-rescan" title="Rescan conflicts"><i class="fas fa-rotate"></i></button>
+            </div>
+            <div class="conflicts-body" id="conflicts-body" hidden>
+              <div class="conflict-list-empty" id="conflicts-empty">No conflicts</div>
+              <ul class="conflict-list" id="conflict-list" aria-label="Conflict keys"></ul>
+              <div class="conflict-hint">Click a value to apply it; it will be removed from conflicts.</div>
+            </div>
           </div>
         </div>
-        <textarea id="override-json" rows="12" class="override-json" placeholder="{\n  \"wallart\": { \"duration\": 30 }\n}"></textarea>
+        <div class="override-json-shell">
+          <div class="override-actions toolbar-floating" id="override-toolbar">
+            <button type="button" class="btn btn-outline btn-sm" id="override-format" title="Format JSON"><i class="fas fa-magic"></i></button>
+            <button type="button" class="btn btn-outline btn-sm" id="override-clear" title="Clear JSON"><i class="fas fa-eraser"></i></button>
+            <button type="button" class="btn btn-outline btn-sm" id="override-clean" title="Reduce to current mode keys"><i class="fas fa-broom"></i></button>
+          </div>
+          <textarea id="override-json" rows="12" class="override-json" placeholder="{\n  \"wallart\": { \"duration\": 30 }\n}"></textarea>
+        </div>
         <div id="override-json-status" class="override-status" aria-live="polite"></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" data-close-modal>Cancel</button>
         <button class="btn btn-primary" id="btn-override-apply"><i class="fas fa-check"></i> Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generic Small Confirm Modal -->
+  <div class="modal-overlay" id="modal-confirm" hidden>
+    <div class="modal small" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="modal-header">
+        <div class="modal-title" id="confirm-title"><i class="fas fa-circle-question"></i> Confirm</div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="confirm-message" class="confirm-message">Are you sure?</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="confirm-cancel">Cancel</button>
+        <button class="btn btn-primary" id="confirm-ok"><i class="fas fa-check"></i> Continue</button>
       </div>
     </div>
   </div>
