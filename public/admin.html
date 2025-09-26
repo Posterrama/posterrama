@@ -2280,6 +2280,7 @@
         <div class="override-helper override-layout">
           <div class="override-row">
             <div class="mode-segment" id="mode-segment" role="radiogroup" aria-label="Display mode">
+              <span class="seg-indicator" aria-hidden="true"></span>
               <button type="button" role="radio" aria-checked="false" data-mode="general" class="seg-btn">Screensaver</button>
               <button type="button" role="radio" aria-checked="false" data-mode="wallart" class="seg-btn">Wallart</button>
               <button type="button" role="radio" aria-checked="false" data-mode="cinema" class="seg-btn">Cinema</button>
@@ -2318,10 +2319,13 @@
           </div>
         </div>
         <div class="override-json-shell">
-          <div class="override-actions toolbar-floating" id="override-toolbar">
-            <button type="button" class="btn btn-outline btn-sm" id="override-format" title="Format JSON"><i class="fas fa-magic"></i></button>
-            <button type="button" class="btn btn-outline btn-sm" id="override-clear" title="Clear JSON"><i class="fas fa-eraser"></i></button>
-            <button type="button" class="btn btn-outline btn-sm" id="override-clean" title="Reduce to current mode keys"><i class="fas fa-broom"></i></button>
+          <div class="toolbar-row">
+            <span class="label-spacer" aria-hidden="true"></span>
+            <div class="override-actions" id="override-toolbar">
+              <button type="button" class="btn btn-outline btn-sm" id="override-format" title="Format JSON"><i class="fas fa-magic"></i></button>
+              <button type="button" class="btn btn-outline btn-sm" id="override-clear" title="Clear JSON"><i class="fas fa-eraser"></i></button>
+              <button type="button" class="btn btn-outline btn-sm" id="override-clean" title="Reduce to current mode keys"><i class="fas fa-broom"></i></button>
+            </div>
           </div>
           <textarea id="override-json" rows="12" class="override-json" placeholder="{\n  \"wallart\": { \"duration\": 30 }\n}"></textarea>
         </div>

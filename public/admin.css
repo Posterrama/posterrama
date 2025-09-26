@@ -246,6 +246,72 @@
     gap: var(--space-sm);
     transition: all 0.2s ease;
 }
+
+/* ===== Override Modal Mode Segmented Control (reuse Display segmented styling) ===== */
+#modal-override .mode-segment {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    width: fit-content;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 18px; /* extra space below menu */
+}
+#modal-override .mode-segment .seg-btn {
+    background: none;
+    border: 0;
+    font: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    border-radius: 8px;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+    position: relative;
+}
+#modal-override .mode-segment .seg-btn:hover,
+#modal-override .mode-segment .seg-btn:focus-visible {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-primary);
+    outline: none;
+}
+#modal-override .mode-segment .seg-btn[aria-checked='true'] {
+    color: #bfdbfe;
+}
+#modal-override .mode-segment .seg-indicator {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    height: calc(100% - 8px);
+    width: 0; /* updated by JS */
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.18);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    pointer-events: none;
+    transition:
+        left 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#modal-override .mode-badge {
+    margin-left: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+}
 #modal-revoke-api-key .btn-revoke-accent i,
 #modal-revoke-api-key .btn-revoke-accent > span:not(.spinner) {
     color: inherit !important;
@@ -4681,7 +4747,7 @@ select:not([multiple]) {
 
 /* Toolbar refine: anchor slightly inside textarea border */
 #modal-override .override-json-shell {
-    padding-top: 36px;
+    padding-top: 0; /* we'll control spacing with toolbar row */
 }
 #modal-override .toolbar-floating {
     top: 6px;
@@ -4716,7 +4782,8 @@ select:not([multiple]) {
 #modal-override .override-actions {
     display: flex;
     flex-direction: row;
-    gap: 6px;
+    gap: 8px;
+    margin-left: auto;
 }
 #modal-override .override-actions .btn {
     padding: 6px 10px;
@@ -4739,6 +4806,59 @@ select:not([multiple]) {
         border-color 120ms ease,
         box-shadow 120ms ease,
         background 120ms ease;
+}
+
+/* Override modal: header row for keys/search + ensure equal heights */
+#modal-override .override-layout .override-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 18px;
+    align-items: stretch;
+    margin-bottom: 16px;
+}
+#modal-override .override-layout .override-row .menu-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+#modal-override .mode-segment .seg-btn,
+#modal-override .menu-section,
+#modal-override .override-keys-panel .search-box {
+    /* unify vertical sizing context */
+    line-height: 1.1;
+}
+#modal-override .menu-section,
+#modal-override .override-keys-panel .search-box {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+}
+#modal-override .override-keys-panel .search-box input {
+    height: 100%;
+}
+
+/* Toolbar + textarea wrapper spacing */
+#modal-override .override-json-shell {
+    margin-top: 22px;
+    position: relative;
+}
+#modal-override .override-json-shell .toolbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+#modal-override .override-json-shell .toolbar-row .label-spacer {
+    flex: 1 1 auto;
+}
+#modal-override .override-json-shell .toolbar-row .override-actions {
+    position: static;
+    top: auto;
+    right: auto;
+}
+#modal-override .override-json-shell .override-actions .btn {
+    padding: 6px 12px;
 }
 #modal-override .override-json:focus-visible {
     border-color: color-mix(in srgb, var(--color-secondary) 35%, var(--color-border-dark));
