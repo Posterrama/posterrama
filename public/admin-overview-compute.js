@@ -55,4 +55,6 @@ try {
             computeOverviewStatuses,
         };
     }
-} catch (_) {}
+} catch (_) {
+    // Intentionally ignored: accessing window in non-browser environments will throw.
+}
