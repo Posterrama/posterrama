@@ -1518,64 +1518,60 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-      <!-- Inline Settings content (previously separate panel) -->
-      <div id="device-settings-inline" hidden>
-          <!-- IP Whitelist Section (moved inline) -->
-          <div class="form-section" id="card-ip-whitelist">
-            <div class="section-title"><i class="fas fa-shield-halved"></i> IP Whitelist</div>
-            <div class="section-subtitle">Clients matching these IPv4 addresses or CIDR ranges will skip device registration and use global Display Settings. Useful for trusted kiosk displays.</div>
-            
-            <div class="form-row" style="margin-top: 16px;">
-              <div id="device-whitelist-empty" style="display:none; opacity:.6; font-size:.9rem; margin-bottom:12px; color: #9ca3af;">No whitelist entries yet.</div>
-              <div id="device-whitelist-list" class="chip-container" style="margin:0 0 16px 0; display:flex; flex-wrap:wrap; gap:8px; min-height:24px;"></div>
-            </div>
-            
-            <div class="form-row">
-              <div class="input-group" style="display:flex; gap:12px; align-items:stretch;">
-                <input 
-                  type="text" 
-                  id="input-whitelist-entry" 
-                  class="form-input"
-                  placeholder="192.168.1.25 or 192.168.0.0/16" 
-                  style="
-                    flex:1; 
-                    min-width:280px;
-                    background: var(--color-bg-card) !important;
-                    color: var(--color-text-primary) !important;
-                    border: 1px solid var(--color-border) !important;
-                    padding: var(--space-md) !important;
-                    border-radius: var(--border-radius-md) !important;
-                  "
-                  pattern="[0-9\.\/]*"
-                  title="Only numbers, dots, and forward slashes allowed for IP addresses and CIDR ranges"
-                  autocomplete="off" 
-                  autocapitalize="off" 
-                  spellcheck="false"
-                />
-                <button type="button" id="btn-add-whitelist" class="btn btn-outline" style="padding:10px 16px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:6px; white-space:nowrap; transition:all 0.15s ease;">
-                  <i class="fas fa-plus" style="font-size:12px;"></i>
-                  <span>Add</span>
-                </button>
-                <button type="button" id="btn-whitelist-save" class="btn btn-primary" disabled style="padding:10px 20px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s ease;">
-                  <i class="fas fa-save" style="font-size:12px;"></i>
-                  <span>Save Changes</span>
-                </button>
+          <!-- Inline Settings content (previously separate panel) -->
+          <div id="device-settings-inline" hidden>
+              <!-- IP Whitelist Section (moved inline) -->
+              <div class="form-section" id="card-ip-whitelist">
+                <div class="section-title"><i class="fas fa-shield-halved"></i> IP Whitelist</div>
+                <div class="section-subtitle">Clients matching these IPv4 addresses or CIDR ranges will skip device registration and use global Display Settings. Useful for trusted kiosk displays.</div>
+                <div class="form-row" style="margin-top: 16px;">
+                  <div id="device-whitelist-empty" style="display:none; opacity:.6; font-size:.9rem; margin-bottom:12px; color: #9ca3af;">No whitelist entries yet.</div>
+                  <div id="device-whitelist-list" class="chip-container" style="margin:0 0 16px 0; display:flex; flex-wrap:wrap; gap:8px; min-height:24px;"></div>
+                </div>
+                <div class="form-row">
+                  <div class="input-group" style="display:flex; gap:12px; align-items:stretch;">
+                    <input 
+                      type="text" 
+                      id="input-whitelist-entry" 
+                      class="form-input"
+                      placeholder="192.168.1.25 or 192.168.0.0/16" 
+                      style="
+                        flex:1; 
+                        min-width:280px;
+                        background: var(--color-bg-card) !important;
+                        color: var(--color-text-primary) !important;
+                        border: 1px solid var(--color-border) !important;
+                        padding: var(--space-md) !important;
+                        border-radius: var(--border-radius-md) !important;
+                      "
+                      pattern="[0-9\.\/]*"
+                      title="Only numbers, dots, and forward slashes allowed for IP addresses and CIDR ranges"
+                      autocomplete="off" 
+                      autocapitalize="off" 
+                      spellcheck="false"
+                    />
+                    <button type="button" id="btn-add-whitelist" class="btn btn-outline" style="padding:10px 16px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:6px; white-space:nowrap; transition:all 0.15s ease;">
+                      <i class="fas fa-plus" style="font-size:12px;"></i>
+                      <span>Add</span>
+                    </button>
+                    <button type="button" id="btn-whitelist-save" class="btn btn-primary" disabled style="padding:10px 20px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s ease;">
+                      <i class="fas fa-save" style="font-size:12px;"></i>
+                      <span>Save Changes</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="form-help" style="margin-top:8px;">
+                  <strong>Formats:</strong> IPv4 addresses or CIDR ranges (e.g. 10.0.0.0/8, 192.168.1.0/24). Changes take effect within 30s or after server restart.
+                </div>
+                <div id="whitelist-status" class="form-status" style="display:none; margin-top:8px;"></div>
               </div>
-            </div>
-            
-            <div class="form-help" style="margin-top:8px;">
-              <strong>Formats:</strong> IPv4 addresses or CIDR ranges (e.g. 10.0.0.0/8, 192.168.1.0/24). Changes take effect within 30s or after server restart.
-            </div>
-            <div id="whitelist-status" class="form-status" style="display:none; margin-top:8px;"></div>
+              <!-- Placeholder for future device management settings -->
+              <div class="form-section" style="margin-top:32px;" hidden id="device-future-settings">
+                <div class="section-title"><i class="fas fa-gears"></i> Additional Settings</div>
+                <div class="section-subtitle">Future options will appear here such as pairing policies, heartbeat intervals, offline grace periods, API throttling and more.</div>
+              </div>
           </div>
-
-          <!-- Placeholder for future device management settings -->
-          <div class="form-section" style="margin-top:32px;" hidden id="device-future-settings">
-            <div class="section-title"><i class="fas fa-gears"></i> Additional Settings</div>
-            <div class="section-subtitle">Future options will appear here such as pairing policies, heartbeat intervals, offline grace periods, API throttling and more.</div>
-          </div>
+        </div>
       </div>
     </section>
 
