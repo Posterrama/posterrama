@@ -16129,13 +16129,34 @@ if (!document.__niwDelegatedFallback) {
     let acActive = -1;
     const statusEl = document.getElementById('override-json-status');
 
-    function fetchSchema() {
-        if (schemaCache) return Promise.resolve(schemaCache);
-        return fetch('/api/admin/config-schema', { headers: { Accept: 'application/json' } })
-            .then(r => (r.ok ? r.json() : null))
-            .then(js => {
-                schemaCache = js;
-                return js;
+    function fetchSchema(){
+        if(schemaCache) return Promise.resolve(schemaCache);
+        const candidates = [
+            '/api/admin/config-schema',       // new alias we added
+            '/api/admin/config/schema',       // existing admin-prefixed
+            '/api/config/schema'              // non-admin fallback
+        ];
+        let attempt = 0;
+        const tryNext = () => {
+            if(attempt >= candidates.length){
+                console.warn('[override] All schema endpoints failed:', candidates);
+                if(statusEl){
+                    statusEl.textContent = 'Schema unavailable (autocomplete limited)';
+                    statusEl.className = 'override-status warning';
+                }
+                return Promise.resolve(null);
+            }
+            const url = candidates[attempt++];
+            return fetch(url, { headers:{Accept:'application/json'} })
+                .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+                .then(js=>{ schemaCache=js; return js; })
+                .catch(err=>{
+                    console.warn('[override] schema fetch failed for', url, err.message || err);
+                    return tryNext();
+                });
+        };
+        return tryNext();
+    }
             })
             .catch(e => {
                 console.error('[override] schema fetch failed', e);
@@ -16409,6 +16430,10 @@ if (!document.__niwDelegatedFallback) {
                 buildIndex(s);
                 ensurePanel();
                 validateAgainstSchema();
+                if(statusEl){
+                    statusEl.textContent = 'Schema loaded ('+keyIndex.length+' keys)';
+                    statusEl.className = 'override-status success';
+                }
             });
         }
     });
