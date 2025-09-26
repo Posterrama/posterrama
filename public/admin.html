@@ -335,7 +335,6 @@
           </div>
         </div>
       </section>
-    </section>
     </section> <!-- /section-dashboard -->
 
 
@@ -924,6 +923,7 @@
                   </div>
                   <div class="ms-options" id="plex-ms-genres-options"></div>
                 </div>
+              </div>
               </div>
               <small class="form-help">Select one or more genres. Populated from Plex libraries.</small>
               
@@ -2203,7 +2203,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
-        <button class="btn btn-secondary btn-sm btn-merge-accent" id="btn-merge-confirm">
+  <button class="btn btn-secondary btn-sm btn-accent btn-merge-accent" id="btn-merge-confirm">
           <i class="fas fa-object-group" aria-hidden="true"></i><span>Merge</span>
         </button>
       </div>
@@ -2221,7 +2221,7 @@
         <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-pair" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
         <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-override" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
         <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-sendcmd" title="Send command"><i class="fas fa-terminal"></i></button>
-  <button class="btn btn-secondary btn-sm bulk-secondary" id="bulk-clearoverrides" title="Clear overrides for selected devices"><i class="fas fa-eraser"></i></button>
+  <button class="btn btn-secondary btn-sm bulk-secondary btn-accent btn-remove-accent" id="bulk-clearoverrides" title="Clear overrides for selected devices"><i class="fas fa-eraser"></i></button>
   <button class="btn btn-secondary btn-sm" id="bulk-playpause" title="Play/Pause"><i class="fas fa-play"></i></button>
         <button class="btn btn-error btn-sm" id="bulk-delete" title="Delete selected"><i class="fas fa-trash"></i></button>
         <button class="btn btn-outline btn-sm" id="bulk-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
@@ -2402,7 +2402,7 @@
       </div>
   <div class="modal-footer">
     <button class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
-  <button class="btn btn-secondary btn-sm" id="btn-sendcmd-apply"><i class="fas fa-paper-plane"></i> <span>Send</span></button>
+  <button class="btn btn-secondary btn-sm btn-accent btn-sendcmd-accent" id="btn-sendcmd-apply"><i class="fas fa-paper-plane"></i> <span>Send</span></button>
       </div>
     </div>
   </div>
@@ -2489,7 +2489,7 @@
           <label for="new-group-name">Or create a new group</label>
           <div style="display:flex; gap:.5rem; align-items:center;">
             <input id="new-group-name" type="text" placeholder="New group name" />
-            <button class="btn btn-secondary btn-sm btn-assign-accent" id="btn-group-create-assign">
+            <button class="btn btn-secondary btn-sm btn-accent btn-assign-accent" id="btn-group-create-assign">
               <i class="fas fa-plus" aria-hidden="true"></i><span>Create & assign</span>
             </button>
           </div>
@@ -2497,10 +2497,10 @@
       </div>
       <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end;">
         <button class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
-        <button class="btn btn-secondary btn-sm btn-remove-accent" id="btn-group-remove">
+  <button class="btn btn-secondary btn-sm btn-accent btn-remove-accent" id="btn-group-remove">
           <i class="fas fa-minus-circle" aria-hidden="true"></i><span>Remove</span>
         </button>
-        <button class="btn btn-secondary btn-sm btn-assign-accent" id="btn-group-assign">
+  <button class="btn btn-secondary btn-sm btn-accent btn-assign-accent" id="btn-group-assign">
           <i class="fas fa-layer-group" aria-hidden="true"></i><span>Assign</span>
         </button>
       </div>
@@ -2529,7 +2529,7 @@
       </div>
       <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end;">
   <button class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
-  <button class="btn btn-secondary btn-sm btn-remove-accent" id="btn-preset-clear"><i class="fas fa-ban" aria-hidden="true"></i><span>Clear</span></button>
+  <button class="btn btn-secondary btn-sm btn-accent btn-remove-accent" id="btn-preset-clear"><i class="fas fa-ban" aria-hidden="true"></i><span>Clear</span></button>
   <button class="btn btn-secondary btn-sm btn-accent btn-preset-accent" id="btn-preset-apply"><i class="fas fa-star" aria-hidden="true"></i><span>Apply</span></button>
       </div>
     </div>
@@ -2555,7 +2555,7 @@
       </div>
       <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end;">
         <button class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
-        <button class="btn btn-secondary btn-sm btn-remove-accent" id="btn-location-clear"><i class="fas fa-ban" aria-hidden="true"></i><span>Clear</span></button>
+  <button class="btn btn-secondary btn-sm btn-accent btn-remove-accent" id="btn-location-clear"><i class="fas fa-ban" aria-hidden="true"></i><span>Clear</span></button>
   <button class="btn btn-secondary btn-sm btn-accent btn-location-accent" id="btn-location-apply"><i class="fas fa-location-dot" aria-hidden="true"></i><span>Assign</span></button>
       </div>
     </div>
@@ -2614,7 +2614,7 @@
       </div>
       <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end; padding: 16px 20px;">
         <button type="button" class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
-        <button type="button" class="btn btn-secondary btn-sm btn-delete-accent" id="btn-confirm-delete-devices"><i class="fas fa-trash"></i><span> Delete</span></button>
+  <button type="button" class="btn btn-secondary btn-sm btn-accent btn-delete-accent" id="btn-confirm-delete-devices"><i class="fas fa-trash"></i><span> Delete</span></button>
       </div>
     </div>
   </div>
