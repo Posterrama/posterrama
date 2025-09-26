@@ -8501,9 +8501,87 @@
                         btn.setAttribute('aria-checked', active ? 'true' : 'false');
                         btn.classList.toggle('active', active);
                     });
+                    // Reposition sliding indicator when a concrete mode is active
+                    if (!mixedInfo) positionIndicator();
                 }
                 if (!mixedInfo) setSegmentActive(mode);
                 if (mixedBadge) mixedBadge.hidden = !mixedInfo;
+
+                function positionIndicator() {
+                    try {
+                        if (!seg) return;
+                        const ind = seg.querySelector('.seg-indicator');
+                        if (!ind) return;
+                        if (mixedInfo) {
+                            ind.style.width = '0px';
+                            return;
+                        }
+                        const active = seg.querySelector('.seg-btn[aria-checked="true"]');
+                        if (!active) {
+                            ind.style.width = '0px';
+                            return;
+                        }
+                        // Compute offset relative to segment container (which is position:relative)
+                        const left = active.offsetLeft;
+                        const width = active.offsetWidth;
+                        ind.style.left = left + 'px';
+                        ind.style.width = width + 'px';
+                    } catch (e) {
+                        /* noop */
+                    }
+                }
+
+                // Wire interaction (once) for segmented control
+                if (seg && !seg._wired) {
+                    seg._wired = true;
+                    seg.addEventListener('click', ev => {
+                        const btn = ev.target?.closest?.('.seg-btn');
+                        if (!btn || !seg.contains(btn)) return;
+                        const val = btn.getAttribute('data-mode');
+                        if (!val) return;
+                        // Leaving mixed state if user selects a mode
+                        if (mixedInfo) {
+                            mixedInfo = false;
+                            if (mixedBadge) mixedBadge.hidden = true;
+                        }
+                        setSegmentActive(val);
+                        renderSnippets();
+                    });
+                    // Keyboard navigation (Left/Right / Arrow keys + Home/End)
+                    seg.addEventListener('keydown', ev => {
+                        const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+                        if (!keys.includes(ev.key)) return;
+                        const buttons = Array.from(seg.querySelectorAll('.seg-btn'));
+                        if (!buttons.length) return;
+                        const current = seg.querySelector('.seg-btn[aria-checked="true"]');
+                        let idx = buttons.indexOf(current);
+                        if (ev.key === 'ArrowLeft')
+                            idx = (idx + buttons.length - 1) % buttons.length;
+                        else if (ev.key === 'ArrowRight') idx = (idx + 1) % buttons.length;
+                        else if (ev.key === 'Home') idx = 0;
+                        else if (ev.key === 'End') idx = buttons.length - 1;
+                        const target = buttons[idx];
+                        if (target) {
+                            ev.preventDefault();
+                            if (mixedInfo) {
+                                mixedInfo = false;
+                                if (mixedBadge) mixedBadge.hidden = true;
+                            }
+                            const val = target.getAttribute('data-mode');
+                            setSegmentActive(val);
+                            renderSnippets();
+                            target.focus();
+                        }
+                    });
+                    // Recalculate on resize (debounced via rAF)
+                    let resizeRaf = null;
+                    window.addEventListener('resize', () => {
+                        if (resizeRaf) cancelAnimationFrame(resizeRaf);
+                        resizeRaf = requestAnimationFrame(positionIndicator);
+                    });
+                    // Initial positioning after first layout paint
+                    requestAnimationFrame(positionIndicator);
+                }
 
                 function renderSnippets() {
                     if (!snippetsWrap) return;
