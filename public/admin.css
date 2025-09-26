@@ -18,259 +18,54 @@
     );
     color: var(--_accent-color) !important;
     border: 1px solid color-mix(in srgb, var(--_accent-color) 35%, transparent);
-    border: none;
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: 500;
     letter-spacing: 0.25px;
     padding: 10px 14px;
-    gap: 8px;
-    display: inline-flex;
-    align-items: center;
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
-    color: var(--color-text-secondary);
-    box-shadow:
-        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
-        0 0 0 1px rgba(0, 0, 0, 0.35),
-        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
-        0 1px 1px rgba(0, 0, 0, 0.25);
-}
-#modal-confirm .modal-footer .btn:hover,
-#modal-confirm .modal-footer .btn:focus,
-#modal-confirm .modal-footer .btn:focus-visible {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
-}
-#modal-confirm .modal-footer .btn:active {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
-        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
-    box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
-        0 1px 0 0 rgba(255, 255, 255, 0.05),
-        0 1px 1px rgba(0, 0, 0, 0.25) inset;
-}
-#modal-confirm #confirm-ok.btn {
-    color: var(--color-success-light, #55efc4);
-}
-#modal-confirm #confirm-ok.btn i {
-    color: var(--color-success, #00d4aa);
-}
-/* Unified cancel button interaction styling */
-.btn-cancel:hover,
-.btn-cancel:focus,
-.btn-cancel:focus-visible {
-    opacity: 1;
-}
-.btn-cancel:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.08);
-    outline-offset: 2px;
-}
-#modal-override .toolbar-floating .btn {
-    padding: 4px 8px;
-}
-#modal-override .override-json-shell textarea.override-json {
-    margin-top: 12px;
-}
-
-/* Magenta action (for Clear Overrides) */
-.btn-magenta {
-    --btn-mg-accent: #d946ef; /* primary magenta accent */
-    --btn-mg-accent-hover: #e879f9;
-    --btn-mg-accent-active: #c026d3;
-    background: rgba(217, 70, 239, 0.08); /* subtle tint */
-    border-color: rgba(217, 70, 239, 0.35);
-    color: var(--btn-mg-accent);
-}
-.btn-magenta-solid {
-    /* Copy Save Settings surface metrics */
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    border-radius: 4px;
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
     line-height: 1.1;
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
-    box-shadow:
-        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
-        0 0 0 1px rgba(0, 0, 0, 0.35),
-        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
-        0 1px 1px rgba(0, 0, 0, 0.25);
-    color: color-mix(in srgb, #d946ef 80%, var(--color-text-secondary)) !important;
-    border: none;
-    transition: all 0.2s ease;
-}
-.btn-magenta-solid i,
-.btn-magenta-solid > span:not(.spinner) {
-    color: inherit !important;
-}
-.btn-magenta-solid:hover:not(:disabled),
-.btn-magenta-solid:focus-visible:not(:disabled) {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
-    color: color-mix(in srgb, #e879f9 88%, var(--color-text-secondary)) !important;
-    box-shadow:
-        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
-        0 0 0 1px rgba(0, 0, 0, 0.35),
-        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
-        0 1px 1px rgba(0, 0, 0, 0.25);
-}
-.btn-magenta-solid:active:not(:disabled) {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
-        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
-    color: color-mix(in srgb, #c026d3 82%, var(--color-text-secondary)) !important;
-    box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
-        0 1px 0 0 rgba(255, 255, 255, 0.05),
-        0 1px 1px rgba(0, 0, 0, 0.25) inset;
-}
-.btn-magenta-solid:focus-visible {
-    outline: 2px solid color-mix(in srgb, #d946ef 70%, transparent);
-    outline-offset: 2px;
-}
-
-/* Command Send button (blue/cyan accent variant similar surface) */
-.btn-command-solid {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    border-radius: 4px;
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.1;
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
-    box-shadow:
-        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
-        0 0 0 1px rgba(0, 0, 0, 0.35),
-        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
-        0 1px 1px rgba(0, 0, 0, 0.25);
-    color: color-mix(
-        in srgb,
-        #38bdf8 80%,
-        var(--color-text-secondary)
-    ) !important; /* cyan accent */
-    border: none;
-    transition: all 0.2s ease;
-}
-.btn-command-solid i,
-.btn-command-solid > span:not(.spinner) {
-    color: inherit !important;
-}
-.btn-command-solid:hover:not(:disabled),
-.btn-command-solid:focus-visible:not(:disabled) {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
-    color: color-mix(in srgb, #67e8f9 88%, var(--color-text-secondary)) !important;
-    box-shadow:
-        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
-        0 0 0 1px rgba(0, 0, 0, 0.35),
-        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
-        0 1px 1px rgba(0, 0, 0, 0.25);
-}
-.btn-command-solid:active:not(:disabled) {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
-        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
-    color: color-mix(in srgb, #0891b2 82%, var(--color-text-secondary)) !important;
-    box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
-        0 1px 0 0 rgba(255, 255, 255, 0.05),
-        0 1px 1px rgba(0, 0, 0, 0.25) inset;
-}
-.btn-command-solid:focus-visible {
-    outline: 2px solid color-mix(in srgb, #38bdf8 60%, transparent);
-    outline-offset: 2px;
-}
-
-/* Send Command modal button: reuse secondary surface + cyan accent */
-#modal-sendcmd #btn-sendcmd-apply {
-    border: none !important;
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
-    box-shadow:
-        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
-        0 0 0 1px rgba(0, 0, 0, 0.35),
-        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
-        0 1px 1px rgba(0, 0, 0, 0.25) !important;
-    color: color-mix(in srgb, #38bdf8 78%, var(--color-text-secondary)) !important;
-    padding: var(--space-sm) var(--space-md) !important;
-    font-size: var(--font-size-sm) !important;
-    border-radius: 4px !important;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-sm);
-}
-#modal-sendcmd #btn-sendcmd-apply i,
-#modal-sendcmd #btn-sendcmd-apply > span:not(.spinner) {
-    color: inherit !important;
-}
-#modal-sendcmd #btn-sendcmd-apply:hover,
-#modal-sendcmd #btn-sendcmd-apply:focus,
-#modal-sendcmd #btn-sendcmd-apply:focus-visible {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
-    color: color-mix(in srgb, #67e8f9 85%, var(--color-text-secondary)) !important;
-}
-#modal-sendcmd #btn-sendcmd-apply:active {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
-        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
-    color: color-mix(in srgb, #0891b2 80%, var(--color-text-secondary)) !important;
-    box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
-        0 1px 0 0 rgba(255, 255, 255, 0.05),
-        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
-}
-#modal-sendcmd #btn-sendcmd-apply:focus-visible {
-    outline: 2px solid color-mix(in srgb, #38bdf8 60%, transparent);
-    outline-offset: 2px;
-}
-
-/* Send Command modal Cancel button (neutral variant) */
-#modal-sendcmd .btn-cancel {
-    border: none !important;
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
     box-shadow:
         0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
-        0 0 0 1px rgba(0, 0, 0, 0.34),
-        0 -1px 0 0 rgba(0, 0, 0, 0.34) inset,
-        0 1px 1px rgba(0, 0, 0, 0.22) !important;
-    color: var(--color-text-secondary) !important;
-    padding: var(--space-sm) var(--space-md) !important;
-    font-size: var(--font-size-sm) !important;
-    border-radius: 4px !important;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-sm);
-    opacity: 0.92;
-    transition: all 0.18s ease;
+        0 0 0 1px rgba(0, 0, 0, 0.4),
+        0 -1px 0 0 rgba(0, 0, 0, 0.4) inset,
+        0 1px 1px rgba(0, 0, 0, 0.28);
+    transition: all 0.2s ease;
 }
-#modal-sendcmd .btn-cancel:hover,
-#modal-sendcmd .btn-cancel:focus,
-#modal-sendcmd .btn-cancel:focus-visible {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.065), rgba(0, 0, 0, 0.03)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
-    opacity: 1;
+.btn-accent i,
+.btn-accent > span:not(.spinner) {
+    color: inherit !important;
+}
+.btn-accent:hover:not(:disabled),
+.btn-accent:focus-visible:not(:disabled) {
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--surface-layer-2) 82%, transparent),
+        color-mix(in srgb, var(--surface-layer-3) 94%, transparent)
+    );
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.45),
+        0 -1px 0 0 rgba(0, 0, 0, 0.4) inset,
+        0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.btn-accent:active:not(:disabled) {
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--surface-layer-3) 90%, transparent),
+        color-mix(in srgb, var(--surface-layer-4, var(--surface-layer-3)) 96%, transparent)
+    );
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.45) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 2px rgba(0, 0, 0, 0.4) inset;
+}
+.btn-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--_accent-color) 55%, transparent);
+    outline-offset: 2px;
 }
 #modal-merge .btn-merge-accent {
     --accent-color: var(--color-warning);
