@@ -4023,22 +4023,47 @@
         message = 'Are you sure?',
         okText = 'Confirm',
         okClass = 'btn-primary',
+        okIcon = null, // override icon (font-awesome name, without fa-). If null auto-selects.
     } = {}) {
         return new Promise(resolve => {
             const overlay = document.getElementById('modal-confirm');
             if (!overlay) return resolve(false);
             overlay.removeAttribute('hidden');
-            const titleEl = document.getElementById('modal-confirm-title');
-            const bodyEl = document.getElementById('modal-confirm-body');
-            const okBtn = document.getElementById('modal-confirm-ok');
-            if (titleEl) titleEl.innerHTML = `<i class="fas fa-question-circle"></i> ${title}`;
-            if (bodyEl) bodyEl.textContent = message;
-            if (okBtn) {
-                okBtn.className = `btn ${okClass}`;
-                const isDanger =
-                    String(okClass || '').includes('btn-danger') || /delete/i.test(okText || '');
-                const icon = isDanger ? 'trash' : 'check';
-                okBtn.innerHTML = `<i class="fas fa-${icon}"></i><span>${okText}</span>`;
+            let titleEl = document.getElementById('modal-confirm-title');
+            let bodyEl = document.getElementById('modal-confirm-body');
+            let okBtn = document.getElementById('modal-confirm-ok');
+
+            function applyContent() {
+                // Re-query in case DOM changed
+                titleEl = document.getElementById('modal-confirm-title');
+                bodyEl = document.getElementById('modal-confirm-body');
+                okBtn = document.getElementById('modal-confirm-ok');
+                if (titleEl) titleEl.innerHTML = `<i class="fas fa-question-circle"></i> ${title}`;
+                if (bodyEl) {
+                    // Allow simple HTML (strong, em) in message
+                    bodyEl.innerHTML = message;
+                }
+                if (okBtn) {
+                    // Preserve foundational button classes (btn + btn-secondary btn-sm) while applying accent override.
+                    // okClass may be passed as a legacy single class (e.g., 'btn-magenta-solid') or multiple.
+                    const baseClasses = ['btn', 'btn-secondary', 'btn-sm'];
+                    const extra = (okClass || '')
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .filter(c => !baseClasses.includes(c));
+                    okBtn.className = [...baseClasses, ...extra].join(' ');
+                    const isDanger =
+                        String(okClass || '').includes('btn-error') ||
+                        String(okClass || '').includes('btn-danger') ||
+                        /delete|remove|clear/i.test(okText || '');
+                    const icon = okIcon || (isDanger ? 'trash' : 'check');
+                    okBtn.innerHTML = `<i class="fas fa-${icon}"></i><span>${okText}</span>`;
+                }
+            }
+            applyContent();
+            // If elements weren't present yet (rare), retry on next frame
+            if (!okBtn || !titleEl) {
+                requestAnimationFrame(() => applyContent());
             }
             function cleanup(val) {
                 overlay.classList.remove('open');
@@ -4058,6 +4083,23 @@
             const closeBtns = overlay.querySelectorAll('[data-close-modal]');
             okBtn?.addEventListener('click', onOk);
             closeBtns.forEach(b => b.addEventListener('click', onCancel));
+            // Esc key support
+            overlay.addEventListener(
+                'keydown',
+                e => {
+                    if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        onCancel();
+                    }
+                },
+                { once: true }
+            );
+            // Focus the primary action for accessibility
+            setTimeout(() => {
+                try {
+                    okBtn?.focus();
+                } catch (_) {}
+            }, 0);
             overlay.classList.add('open');
         });
     }
@@ -7633,9 +7675,25 @@
                         e.stopPropagation();
                     } catch (_) {}
                     const id = card.getAttribute('data-id');
-                    const confirmMsg =
-                        'Alle overrides voor dit device wissen? Het apparaat volgt daarna alleen server + groep config.';
-                    if (!window.confirm(confirmMsg)) return;
+                    const proceed = await (async () => {
+                        try {
+                            return await confirmAction({
+                                title: 'Clear Display Overrides',
+                                message: `Remove all display settings overrides for <strong>${escapeHtml(
+                                    state.all.find(d => d.id === id)?.name || id
+                                )}</strong>? It will then only inherit server and group configuration.`,
+                                okText: 'Clear Overrides',
+                                okClass: 'btn-accent btn-confirm-accent',
+                                okIcon: 'eraser',
+                            });
+                        } catch (_) {
+                            // Fallback to native confirm if themed modal fails for any reason
+                            return window.confirm(
+                                'Remove all overrides for this device? It will only follow server + group config.'
+                            );
+                        }
+                    })();
+                    if (!proceed) return;
                     try {
                         await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
                             method: 'PATCH',
@@ -7644,15 +7702,15 @@
                         });
                         window.notify?.toast?.({
                             type: 'success',
-                            title: 'Overrides verwijderd',
+                            title: 'Overrides cleared',
                             message: state.all.find(d => d.id === id)?.name || id,
                         });
                         await loadDevices();
                     } catch (err) {
                         window.notify?.toast?.({
                             type: 'error',
-                            title: 'Verwijderen mislukt',
-                            message: err?.message || 'Kon overrides niet wissen',
+                            title: 'Failed to clear',
+                            message: err?.message || 'Could not clear overrides',
                         });
                     }
                 });
@@ -10465,6 +10523,62 @@
                     document.querySelectorAll('#device-grid .device-card.selected')
                 ).map(c => c.getAttribute('data-id'));
                 await openSendCmdFor(ids);
+            });
+            document.getElementById('bulk-clearoverrides')?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+                if (!ids.length) {
+                    window.notify?.toast?.({
+                        type: 'info',
+                        title: 'No devices selected',
+                        message: 'Select one or more devices first',
+                    });
+                    return;
+                }
+                const proceed = await (async () => {
+                    try {
+                        return await confirmAction({
+                            title: 'Clear Display Overrides',
+                            message: `Remove all display settings overrides for <strong>${ids.length}</strong> device${ids.length !== 1 ? 's' : ''}? They will then only inherit server and group configuration.`,
+                            okText: 'Clear Overrides',
+                            okClass: 'btn-accent btn-confirm-accent',
+                            okIcon: 'eraser',
+                        });
+                    } catch (_) {
+                        return window.confirm(
+                            `Clear overrides for ${ids.length} device${ids.length !== 1 ? 's' : ''}?`
+                        );
+                    }
+                })();
+                if (!proceed) return;
+                let ok = 0,
+                    fail = 0;
+                for (const id of ids) {
+                    try {
+                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ settingsOverride: {} }),
+                        });
+                        ok++;
+                    } catch (_) {
+                        fail++;
+                    }
+                }
+                if (ok)
+                    window.notify?.toast?.({
+                        type: 'success',
+                        title: 'Overrides cleared',
+                        message: `Cleared ${ok} device${ok !== 1 ? 's' : ''}`,
+                    });
+                if (fail)
+                    window.notify?.toast?.({
+                        type: 'warning',
+                        title: 'Some failed',
+                        message: `${fail} could not be cleared`,
+                    });
+                await loadDevices();
             });
             document.getElementById('bulk-playpause')?.addEventListener('click', async () => {
                 const ids = Array.from(

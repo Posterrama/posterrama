@@ -59,68 +59,15 @@
 #modal-confirm #confirm-ok.btn i {
     color: var(--color-success, #00d4aa);
 }
-#modal-confirm #confirm-cancel.btn {
-    color: var(--color-text-secondary);
+/* Unified cancel button interaction styling */
+.btn-cancel:hover,
+.btn-cancel:focus,
+.btn-cancel:focus-visible {
+    opacity: 1;
 }
-
-/* Mode pills in status messages */
-.mode-pill {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 14px;
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-    line-height: 1;
-    margin: 0 2px;
-    vertical-align: baseline;
-    box-shadow:
-        0 1px 2px rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-}
-.pill-screensaver {
-    background: linear-gradient(90deg, #2196f3, #64b5f6);
-    color: #fff;
-}
-.pill-wallart {
-    background: linear-gradient(90deg, #8e24aa, #ba68c8);
-    color: #fff;
-}
-.pill-cinema {
-    background: linear-gradient(90deg, #ff7043, #ffa270);
-    color: #241914;
-}
-body.dark .pill-cinema {
-    color: #2b1b14;
-}
-#modal-override .override-row .menu-shell {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--color-bg-tertiary);
-    padding: 4px 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-}
-#modal-override .override-row .menu-shell .menu-section {
-    padding: 2px 6px;
-    background: transparent;
-    border: none;
-}
-#modal-override .override-row .ov-mode-select select.wide {
-    width: 210px;
-}
-#modal-override .override-json-shell {
-    position: relative;
-}
-#modal-override .toolbar-floating {
-    position: absolute;
-    top: 6px;
-    right: 8px;
-    display: flex;
-    gap: 6px;
-    z-index: 3;
+.btn-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.08);
+    outline-offset: 2px;
 }
 #modal-override .toolbar-floating .btn {
     padding: 4px 8px;
