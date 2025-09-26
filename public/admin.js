@@ -9059,24 +9059,7 @@
                                 fail++;
                             }
                         }
-                        // Suppress noisy debug toast unless explicitly enabled.
-                        try {
-                            const allow =
-                                (typeof localStorage !== 'undefined' &&
-                                    localStorage.getItem('adminShowOverrideDebugToast') === '1') ||
-                                window.__SHOW_OVERRIDE_DEBUG_TOAST === true;
-                            if (allow) {
-                                window.notify?.toast?.({
-                                    type: 'info',
-                                    title: 'Override Debug',
-                                    message:
-                                        'Keys sent: ' +
-                                        (Object.keys(payload || {}).join(', ') || '(none)'),
-                                });
-                            }
-                        } catch (_) {
-                            /* ignore storage access issues */
-                        }
+                        // Removed deprecated 'Override Debug' informational toast.
                         document.getElementById('modal-override')?.classList.remove('open');
                         // After applying overrides, refresh the config so mode pill reflects changes promptly
                         try {
