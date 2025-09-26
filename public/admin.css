@@ -306,6 +306,914 @@ body.dark .pill-cinema {
     margin-top: 12px;
 }
 
+/* Magenta action (for Clear Overrides) */
+.btn-magenta {
+    --btn-mg-accent: #d946ef; /* primary magenta accent */
+    --btn-mg-accent-hover: #e879f9;
+    --btn-mg-accent-active: #c026d3;
+    background: rgba(217, 70, 239, 0.08); /* subtle tint */
+    border-color: rgba(217, 70, 239, 0.35);
+    color: var(--btn-mg-accent);
+}
+.btn-magenta-solid {
+    /* Copy Save Settings surface metrics */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 4px;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.1;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+    color: color-mix(in srgb, #d946ef 80%, var(--color-text-secondary)) !important;
+    border: none;
+    transition: all 0.2s ease;
+}
+.btn-magenta-solid i,
+.btn-magenta-solid > span:not(.spinner) {
+    color: inherit !important;
+}
+.btn-magenta-solid:hover:not(:disabled),
+.btn-magenta-solid:focus-visible:not(:disabled) {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: color-mix(in srgb, #e879f9 88%, var(--color-text-secondary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+.btn-magenta-solid:active:not(:disabled) {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    color: color-mix(in srgb, #c026d3 82%, var(--color-text-secondary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+.btn-magenta-solid:focus-visible {
+    outline: 2px solid color-mix(in srgb, #d946ef 70%, transparent);
+    outline-offset: 2px;
+}
+
+/* Command Send button (blue/cyan accent variant similar surface) */
+.btn-command-solid {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 4px;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.1;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+    color: color-mix(
+        in srgb,
+        #38bdf8 80%,
+        var(--color-text-secondary)
+    ) !important; /* cyan accent */
+    border: none;
+    transition: all 0.2s ease;
+}
+.btn-command-solid i,
+.btn-command-solid > span:not(.spinner) {
+    color: inherit !important;
+}
+.btn-command-solid:hover:not(:disabled),
+.btn-command-solid:focus-visible:not(:disabled) {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: color-mix(in srgb, #67e8f9 88%, var(--color-text-secondary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+.btn-command-solid:active:not(:disabled) {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    color: color-mix(in srgb, #0891b2 82%, var(--color-text-secondary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+.btn-command-solid:focus-visible {
+    outline: 2px solid color-mix(in srgb, #38bdf8 60%, transparent);
+    outline-offset: 2px;
+}
+
+/* Send Command modal button: reuse secondary surface + cyan accent */
+#modal-sendcmd #btn-sendcmd-apply {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: color-mix(in srgb, #38bdf8 78%, var(--color-text-secondary)) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+#modal-sendcmd #btn-sendcmd-apply i,
+#modal-sendcmd #btn-sendcmd-apply > span:not(.spinner) {
+    color: inherit !important;
+}
+#modal-sendcmd #btn-sendcmd-apply:hover,
+#modal-sendcmd #btn-sendcmd-apply:focus,
+#modal-sendcmd #btn-sendcmd-apply:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    color: color-mix(in srgb, #67e8f9 85%, var(--color-text-secondary)) !important;
+}
+#modal-sendcmd #btn-sendcmd-apply:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    color: color-mix(in srgb, #0891b2 80%, var(--color-text-secondary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+#modal-sendcmd #btn-sendcmd-apply:focus-visible {
+    outline: 2px solid color-mix(in srgb, #38bdf8 60%, transparent);
+    outline-offset: 2px;
+}
+
+/* Send Command modal Cancel button (neutral variant) */
+#modal-sendcmd .btn-cancel {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.34),
+        0 -1px 0 0 rgba(0, 0, 0, 0.34) inset,
+        0 1px 1px rgba(0, 0, 0, 0.22) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    opacity: 0.92;
+    transition: all 0.18s ease;
+}
+#modal-sendcmd .btn-cancel:hover,
+#modal-sendcmd .btn-cancel:focus,
+#modal-sendcmd .btn-cancel:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.065), rgba(0, 0, 0, 0.03)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    opacity: 1;
+}
+#modal-sendcmd .btn-cancel:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.09), rgba(0, 0, 0, 0.05)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.34) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.22) inset !important;
+}
+#modal-sendcmd .btn-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.08);
+    outline-offset: 2px;
+}
+
+/* Strengthen Send Command cancel button (ensure no outline variant leaks) */
+#modal-sendcmd .modal-footer .btn-cancel {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.045), rgba(0, 0, 0, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.38),
+        0 -1px 0 0 rgba(0, 0, 0, 0.38) inset,
+        0 1px 1px rgba(0, 0, 0, 0.24) !important;
+    color: var(--color-text-secondary) !important;
+    border-radius: 4px !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all 0.18s ease;
+}
+#modal-sendcmd .modal-footer .btn-cancel:hover,
+#modal-sendcmd .modal-footer .btn-cancel:focus,
+#modal-sendcmd .modal-footer .btn-cancel:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.07), rgba(0, 0, 0, 0.035)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+#modal-sendcmd .modal-footer .btn-cancel:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.095), rgba(0, 0, 0, 0.055)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.38) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.24) inset !important;
+}
+#modal-delete-devices .btn-cancel {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.34),
+        0 -1px 0 0 rgba(0, 0, 0, 0.34) inset,
+        0 1px 1px rgba(0, 0, 0, 0.22) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    opacity: 0.92;
+    transition: all 0.18s ease;
+}
+#modal-delete-devices .btn-cancel:hover,
+#modal-delete-devices .btn-cancel:focus,
+#modal-delete-devices .btn-cancel:focus-visible {
+    opacity: 1;
+}
+#modal-delete-devices .btn-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.08);
+    outline-offset: 2px;
+}
+
+#modal-delete-devices .btn-delete-accent {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: color-mix(in srgb, var(--color-error) 82%, var(--color-text-secondary)) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all 0.2s ease;
+}
+#modal-delete-devices .btn-delete-accent i,
+#modal-delete-devices .btn-delete-accent > span:not(.spinner) {
+    color: inherit !important;
+}
+#modal-delete-devices .btn-delete-accent:hover,
+#modal-delete-devices .btn-delete-accent:focus,
+#modal-delete-devices .btn-delete-accent:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    color: color-mix(in srgb, var(--color-error) 90%, var(--color-text-secondary)) !important;
+}
+#modal-delete-devices .btn-delete-accent:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    color: color-mix(in srgb, var(--color-error-dark) 88%, var(--color-text-secondary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+#modal-delete-devices .btn-delete-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-error) 55%, transparent);
+    outline-offset: 2px;
+}
+#modal-merge .btn-cancel {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.34),
+        0 -1px 0 0 rgba(0, 0, 0, 0.34) inset,
+        0 1px 1px rgba(0, 0, 0, 0.22) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    opacity: 0.92;
+    transition: all 0.18s ease;
+}
+#modal-merge .btn-cancel:hover,
+#modal-merge .btn-cancel:focus,
+#modal-merge .btn-cancel:focus-visible {
+    opacity: 1;
+}
+#modal-merge .btn-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.08);
+    outline-offset: 2px;
+}
+
+#modal-merge .btn-merge-accent {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    /* Use warning palette (amber) accent */
+    color: color-mix(in srgb, var(--color-warning) 80%, var(--color-text-secondary)) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all 0.2s ease;
+}
+#modal-merge .btn-merge-accent i,
+#modal-merge .btn-merge-accent > span:not(.spinner) {
+    color: inherit !important;
+}
+#modal-merge .btn-merge-accent:hover,
+#modal-merge .btn-merge-accent:focus,
+#modal-merge .btn-merge-accent:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    color: color-mix(in srgb, var(--color-warning) 88%, var(--color-text-secondary)) !important;
+}
+#modal-merge .btn-merge-accent:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    color: color-mix(
+        in srgb,
+        var(--color-warning-dark) 84%,
+        var(--color-text-secondary)
+    ) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+#modal-merge .btn-merge-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-warning) 55%, transparent);
+    outline-offset: 2px;
+}
+#modal-update .btn-cancel {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.34),
+        0 -1px 0 0 rgba(0, 0, 0, 0.34) inset,
+        0 1px 1px rgba(0, 0, 0, 0.22) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    opacity: 0.92;
+    transition: all 0.18s ease;
+}
+#modal-update .btn-cancel:hover,
+#modal-update .btn-cancel:focus,
+#modal-update .btn-cancel:focus-visible {
+    opacity: 1;
+}
+#modal-update .btn-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.08);
+    outline-offset: 2px;
+}
+
+#modal-update .btn-update-accent {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: color-mix(in srgb, var(--color-accent) 82%, var(--color-text-secondary)) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all 0.2s ease;
+}
+#modal-update .btn-update-accent i,
+#modal-update .btn-update-accent > span:not(.spinner) {
+    color: inherit !important;
+}
+#modal-update .btn-update-accent:hover,
+#modal-update .btn-update-accent:focus,
+#modal-update .btn-update-accent:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    color: color-mix(in srgb, var(--color-accent) 90%, var(--color-text-secondary)) !important;
+}
+#modal-update .btn-update-accent:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    color: color-mix(in srgb, var(--color-accent-dark) 88%, var(--color-text-secondary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+#modal-update .btn-update-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+    outline-offset: 2px;
+}
+#modal-group-assign .btn-cancel {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.34),
+        0 -1px 0 0 rgba(0, 0, 0, 0.34) inset,
+        0 1px 1px rgba(0, 0, 0, 0.22) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    opacity: 0.92;
+    transition: all 0.18s ease;
+}
+#modal-group-assign .btn-cancel:hover,
+#modal-group-assign .btn-cancel:focus,
+#modal-group-assign .btn-cancel:focus-visible {
+    opacity: 1;
+}
+#modal-group-assign .btn-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.08);
+    outline-offset: 2px;
+}
+
+#modal-group-assign .btn-assign-accent {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: color-mix(in srgb, var(--color-secondary) 84%, var(--color-text-secondary)) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all 0.2s ease;
+}
+#modal-group-assign .btn-assign-accent i,
+#modal-group-assign .btn-assign-accent > span:not(.spinner) {
+    color: inherit !important;
+}
+#modal-group-assign .btn-assign-accent:hover,
+#modal-group-assign .btn-assign-accent:focus,
+#modal-group-assign .btn-assign-accent:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    color: color-mix(in srgb, var(--color-secondary) 90%, var(--color-text-secondary)) !important;
+}
+#modal-group-assign .btn-assign-accent:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    color: color-mix(
+        in srgb,
+        var(--color-secondary-dark) 88%,
+        var(--color-text-secondary)
+    ) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+#modal-group-assign .btn-assign-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+    outline-offset: 2px;
+}
+
+#modal-group-assign .btn-remove-accent,
+#modal-assign-preset .btn-remove-accent,
+#modal-assign-location .btn-remove-accent {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    /* Slight warning tone but less aggressive than delete */
+    color: color-mix(in srgb, var(--color-warning) 78%, var(--color-text-secondary)) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all 0.2s ease;
+}
+#modal-group-assign .btn-remove-accent i,
+#modal-group-assign .btn-remove-accent > span:not(.spinner),
+#modal-assign-preset .btn-remove-accent i,
+#modal-assign-preset .btn-remove-accent > span:not(.spinner),
+#modal-assign-location .btn-remove-accent i,
+#modal-assign-location .btn-remove-accent > span:not(.spinner) {
+    color: inherit !important;
+}
+#modal-group-assign .btn-remove-accent:hover,
+#modal-group-assign .btn-remove-accent:focus,
+#modal-group-assign .btn-remove-accent:focus-visible,
+#modal-assign-preset .btn-remove-accent:hover,
+#modal-assign-preset .btn-remove-accent:focus,
+#modal-assign-preset .btn-remove-accent:focus-visible,
+#modal-assign-location .btn-remove-accent:hover,
+#modal-assign-location .btn-remove-accent:focus,
+#modal-assign-location .btn-remove-accent:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    color: color-mix(in srgb, var(--color-warning) 86%, var(--color-text-secondary)) !important;
+}
+#modal-group-assign .btn-remove-accent:active,
+#modal-assign-preset .btn-remove-accent:active,
+#modal-assign-location .btn-remove-accent:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    color: color-mix(
+        in srgb,
+        var(--color-warning-dark) 84%,
+        var(--color-text-secondary)
+    ) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+#modal-group-assign .btn-remove-accent:focus-visible,
+#modal-assign-preset .btn-remove-accent:focus-visible,
+#modal-assign-location .btn-remove-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-warning) 50%, transparent);
+    outline-offset: 2px;
+}
+#modal-assign-preset .btn-cancel,
+#modal-assign-location .btn-cancel,
+#modal-revoke-api-key .btn-cancel,
+#modal-create-device .btn-cancel,
+#modal-2fa-disable .btn-cancel {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.34),
+        0 -1px 0 0 rgba(0, 0, 0, 0.34) inset,
+        0 1px 1px rgba(0, 0, 0, 0.22) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    opacity: 0.92;
+    transition: all 0.18s ease;
+}
+#modal-assign-preset .btn-cancel:hover,
+#modal-assign-location .btn-cancel:hover,
+#modal-revoke-api-key .btn-cancel:hover,
+#modal-create-device .btn-cancel:hover,
+#modal-2fa-disable .btn-cancel:hover,
+#modal-assign-preset .btn-cancel:focus,
+#modal-assign-location .btn-cancel:focus,
+#modal-revoke-api-key .btn-cancel:focus,
+#modal-create-device .btn-cancel:focus,
+#modal-2fa-disable .btn-cancel:focus,
+#modal-assign-preset .btn-cancel:focus-visible,
+#modal-assign-location .btn-cancel:focus-visible,
+#modal-revoke-api-key .btn-cancel:focus-visible,
+#modal-create-device .btn-cancel:focus-visible,
+#modal-2fa-disable .btn-cancel:focus-visible {
+    opacity: 1;
+}
+#modal-assign-preset .btn-cancel:focus-visible,
+#modal-assign-location .btn-cancel:focus-visible,
+#modal-revoke-api-key .btn-cancel:focus-visible,
+#modal-create-device .btn-cancel:focus-visible,
+#modal-2fa-disable .btn-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.08);
+    outline-offset: 2px;
+}
+
+/* Accent buttons for remaining modals */
+#modal-assign-preset .btn-preset-accent,
+#modal-assign-location .btn-location-accent,
+#modal-create-device .btn-create-accent,
+#modal-revoke-api-key .btn-revoke-accent,
+#modal-2fa-disable .btn-2fa-accent {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all 0.2s ease;
+    color: var(--color-text-secondary) !important; /* will be overridden per variant below */
+}
+#modal-assign-preset .btn-preset-accent i,
+#modal-assign-location .btn-location-accent i,
+#modal-create-device .btn-create-accent i,
+#modal-revoke-api-key .btn-revoke-accent i,
+#modal-2fa-disable .btn-2fa-accent i,
+#modal-assign-preset .btn-preset-accent > span:not(.spinner),
+#modal-assign-location .btn-location-accent > span:not(.spinner),
+#modal-create-device .btn-create-accent > span:not(.spinner),
+#modal-revoke-api-key .btn-revoke-accent > span:not(.spinner),
+#modal-2fa-disable .btn-2fa-accent > span:not(.spinner) {
+    color: inherit !important;
+}
+
+/* Individual accent color mixes */
+#modal-assign-preset .btn-preset-accent {
+    color: color-mix(in srgb, var(--color-secondary) 84%, var(--color-text-secondary)) !important;
+}
+#modal-assign-location .btn-location-accent {
+    color: color-mix(in srgb, var(--color-accent) 82%, var(--color-text-secondary)) !important;
+}
+#modal-create-device .btn-create-accent {
+    color: color-mix(in srgb, var(--color-success) 80%, var(--color-text-secondary)) !important;
+}
+#modal-revoke-api-key .btn-revoke-accent {
+    color: color-mix(in srgb, var(--color-error) 82%, var(--color-text-secondary)) !important;
+}
+#modal-2fa-disable .btn-2fa-accent {
+    color: color-mix(in srgb, var(--color-warning) 82%, var(--color-text-secondary)) !important;
+}
+
+#modal-assign-preset .btn-preset-accent:hover,
+#modal-assign-preset .btn-preset-accent:focus,
+#modal-assign-preset .btn-preset-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-secondary) 90%, var(--color-text-secondary)) !important;
+}
+#modal-assign-location .btn-location-accent:hover,
+#modal-assign-location .btn-location-accent:focus,
+#modal-assign-location .btn-location-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-accent) 90%, var(--color-text-secondary)) !important;
+}
+#modal-create-device .btn-create-accent:hover,
+#modal-create-device .btn-create-accent:focus,
+#modal-create-device .btn-create-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-success) 88%, var(--color-text-secondary)) !important;
+}
+#modal-revoke-api-key .btn-revoke-accent:hover,
+#modal-revoke-api-key .btn-revoke-accent:focus,
+#modal-revoke-api-key .btn-revoke-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-error) 90%, var(--color-text-secondary)) !important;
+}
+#modal-2fa-disable .btn-2fa-accent:hover,
+#modal-2fa-disable .btn-2fa-accent:focus,
+#modal-2fa-disable .btn-2fa-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-warning) 90%, var(--color-text-secondary)) !important;
+}
+
+#modal-assign-preset .btn-preset-accent:active {
+    color: color-mix(
+        in srgb,
+        var(--color-secondary-dark) 88%,
+        var(--color-text-secondary)
+    ) !important;
+}
+#modal-assign-location .btn-location-accent:active {
+    color: color-mix(in srgb, var(--color-accent-dark) 88%, var(--color-text-secondary)) !important;
+}
+#modal-create-device .btn-create-accent:active {
+    color: color-mix(
+        in srgb,
+        var(--color-success-dark) 88%,
+        var(--color-text-secondary)
+    ) !important;
+}
+#modal-revoke-api-key .btn-revoke-accent:active {
+    color: color-mix(in srgb, var(--color-error-dark) 88%, var(--color-text-secondary)) !important;
+}
+#modal-2fa-disable .btn-2fa-accent:active {
+    color: color-mix(
+        in srgb,
+        var(--color-warning-dark) 84%,
+        var(--color-text-secondary)
+    ) !important;
+}
+
+#modal-assign-preset .btn-preset-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+    outline-offset: 2px;
+}
+#modal-assign-location .btn-location-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+    outline-offset: 2px;
+}
+#modal-create-device .btn-create-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-success) 55%, transparent);
+    outline-offset: 2px;
+}
+#modal-revoke-api-key .btn-revoke-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-error) 55%, transparent);
+    outline-offset: 2px;
+}
+#modal-2fa-disable .btn-2fa-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-warning) 55%, transparent);
+    outline-offset: 2px;
+}
+#modal-cinema-text .btn-cinema-accent,
+#modal-cinema-manage .btn-cinema-accent,
+#modal-override .btn-override-accent,
+#modal-confirm .btn-confirm-accent {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all 0.2s ease;
+    color: color-mix(in srgb, var(--color-accent) 82%, var(--color-text-secondary)) !important;
+}
+#modal-cinema-text .btn-cinema-accent i,
+#modal-cinema-manage .btn-cinema-accent i,
+#modal-override .btn-override-accent i,
+#modal-confirm .btn-confirm-accent i,
+#modal-cinema-text .btn-cinema-accent > span:not(.spinner),
+#modal-cinema-manage .btn-cinema-accent > span:not(.spinner),
+#modal-override .btn-override-accent > span:not(.spinner),
+#modal-confirm .btn-confirm-accent > span:not(.spinner) {
+    color: inherit !important;
+}
+
+#modal-override .btn-override-accent {
+    color: color-mix(in srgb, var(--color-success) 80%, var(--color-text-secondary)) !important;
+}
+#modal-override .btn-override-accent:hover,
+#modal-override .btn-override-accent:focus,
+#modal-override .btn-override-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-success) 88%, var(--color-text-secondary)) !important;
+}
+#modal-override .btn-override-accent:active {
+    color: color-mix(
+        in srgb,
+        var(--color-success-dark) 88%,
+        var(--color-text-secondary)
+    ) !important;
+}
+#modal-override .btn-override-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-success) 55%, transparent);
+    outline-offset: 2px;
+}
+
+#modal-confirm .btn-confirm-accent {
+    color: color-mix(in srgb, var(--color-secondary) 84%, var(--color-text-secondary)) !important;
+}
+#modal-confirm .btn-confirm-accent:hover,
+#modal-confirm .btn-confirm-accent:focus,
+#modal-confirm .btn-confirm-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-secondary) 90%, var(--color-text-secondary)) !important;
+}
+#modal-confirm .btn-confirm-accent:active {
+    color: color-mix(
+        in srgb,
+        var(--color-secondary-dark) 88%,
+        var(--color-text-secondary)
+    ) !important;
+}
+#modal-confirm .btn-confirm-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+    outline-offset: 2px;
+}
+
+#modal-cinema-text .btn-cinema-accent,
+#modal-cinema-manage .btn-cinema-accent {
+    color: color-mix(in srgb, var(--color-accent) 82%, var(--color-text-secondary)) !important;
+}
+#modal-cinema-text .btn-cinema-accent:hover,
+#modal-cinema-text .btn-cinema-accent:focus,
+#modal-cinema-text .btn-cinema-accent:focus-visible,
+#modal-cinema-manage .btn-cinema-accent:hover,
+#modal-cinema-manage .btn-cinema-accent:focus,
+#modal-cinema-manage .btn-cinema-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-accent) 90%, var(--color-text-secondary)) !important;
+}
+#modal-cinema-text .btn-cinema-accent:active,
+#modal-cinema-manage .btn-cinema-accent:active {
+    color: color-mix(in srgb, var(--color-accent-dark) 88%, var(--color-text-secondary)) !important;
+}
+#modal-cinema-text .btn-cinema-accent:focus-visible,
+#modal-cinema-manage .btn-cinema-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+    outline-offset: 2px;
+}
+.btn-magenta i {
+    color: var(--btn-mg-accent);
+}
+.btn-magenta:hover:not(:disabled),
+.btn-magenta:focus-visible:not(:disabled) {
+    background: rgba(232, 121, 249, 0.18);
+    border-color: var(--btn-mg-accent-hover);
+    color: var(--btn-mg-accent-hover);
+}
+.btn-magenta:active:not(:disabled) {
+    background: rgba(192, 38, 211, 0.22);
+    border-color: var(--btn-mg-accent-active);
+    color: var(--btn-mg-accent-active);
+}
+
 /* Remove extra purple outline on search box when focused (reuse focus-within but subtle) */
 #modal-override .override-row .search-box.input-shell:focus-within {
     box-shadow: none;
