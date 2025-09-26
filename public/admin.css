@@ -197,6 +197,80 @@
 #modal-revoke-api-key .btn-revoke-accent {
     --accent-color: var(--color-error);
 }
+#modal-revoke-api-key .btn-cancel {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.34),
+        0 -1px 0 0 rgba(0, 0, 0, 0.34) inset,
+        0 1px 1px rgba(0, 0, 0, 0.22) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    opacity: 0.92;
+    transition: all 0.18s ease;
+}
+#modal-revoke-api-key .btn-cancel:hover,
+#modal-revoke-api-key .btn-cancel:focus,
+#modal-revoke-api-key .btn-cancel:focus-visible {
+    opacity: 1;
+}
+#modal-revoke-api-key .btn-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.08);
+    outline-offset: 2px;
+}
+
+/* Refined destructive accent: keep neutral surface, tint icon + text + subtle ring */
+#modal-revoke-api-key .btn-revoke-accent {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important; /* removed colored outline layer */
+    color: color-mix(in srgb, var(--color-error) 80%, var(--color-text-secondary)) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all 0.2s ease;
+}
+#modal-revoke-api-key .btn-revoke-accent i,
+#modal-revoke-api-key .btn-revoke-accent > span:not(.spinner) {
+    color: inherit !important;
+}
+#modal-revoke-api-key .btn-revoke-accent:hover,
+#modal-revoke-api-key .btn-revoke-accent:focus,
+#modal-revoke-api-key .btn-revoke-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-error) 88%, var(--color-text-secondary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 2px rgba(0, 0, 0, 0.3) !important; /* removed colored outline layer */
+}
+#modal-revoke-api-key .btn-revoke-accent:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important; /* removed colored outline layer */
+}
+#modal-revoke-api-key .btn-revoke-accent:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-error) 55%, transparent);
+    outline-offset: 2px;
+}
 #modal-2fa-disable .btn-2fa-accent {
     --accent-color: var(--color-warning);
 }
