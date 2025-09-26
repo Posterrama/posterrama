@@ -53,4 +53,32 @@ describe('admin-overview-compute', () => {
         expect(out.jellyfin.configured).toBe(true);
         expect(out.tmdb.configured).toBe(true);
     });
+
+    test('custom env var names respected (plex)', () => {
+        const out = computeSourceStatus({
+            type: 'plex',
+            sourceCfg: {
+                enabled: true,
+                hostnameEnvVar: 'P_HOST',
+                portEnvVar: 'P_PORT',
+                tokenEnvVar: 'P_TOKEN',
+            },
+            env: { P_HOST: 'x', P_PORT: '1', P_TOKEN: 'zz' },
+        });
+        expect(out.configured).toBe(true);
+    });
+
+    test('tmdb not configured when key missing', () => {
+        const out = computeSourceStatus({ type: 'tmdb', sourceCfg: { enabled: true }, env: {} });
+        expect(out).toMatchObject({ enabled: true, configured: false, pillText: 'Not configured' });
+    });
+
+    test('tmdb disabled even with key', () => {
+        const out = computeSourceStatus({
+            type: 'tmdb',
+            sourceCfg: { enabled: false },
+            env: { TMDB_API_KEY: 'abc' },
+        });
+        expect(out).toMatchObject({ enabled: false, configured: true, pillText: 'Disabled' });
+    });
 });

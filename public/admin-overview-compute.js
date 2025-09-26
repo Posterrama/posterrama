@@ -46,3 +46,13 @@ function computeOverviewStatuses(cfg = {}, env = {}) {
 }
 
 module.exports = { computeSourceStatus, computeOverviewStatuses };
+
+// Optional browser global (non-breaking) to allow re-use inside admin UI without additional bundling.
+try {
+    if (typeof window !== 'undefined') {
+        window.__adminOverviewCompute = {
+            computeSourceStatus,
+            computeOverviewStatuses,
+        };
+    }
+} catch (_) {}
