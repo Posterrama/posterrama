@@ -3914,6 +3914,20 @@ input[type='range']::-moz-range-thumb {
 .device-toolbar .dropdown {
     flex: 0 0 auto;
 }
+.device-toolbar .dropdown,
+.device-toolbar .dropdown * {
+    /* Ensure menus establish a higher stacking context */
+    z-index: auto;
+}
+/* Elevate open dropdown menus for device management (Filter / Actions) */
+.device-toolbar .dropdown.open > .dropdown-menu {
+    z-index: 5000; /* above modals/tooltips (1700..3000 range elsewhere) */
+}
+/* If any ancestor clips overflow, force visibility for toolbar */
+.panel-header .panel-actions.device-toolbar {
+    position: relative;
+    z-index: 10;
+}
 .device-toolbar .search-box {
     flex: 0 0 auto;
     display: flex;
